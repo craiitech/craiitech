@@ -1,4 +1,6 @@
+
 'use client'
+import Link from 'next/link';
 import {
   Card,
   CardContent,
@@ -14,14 +16,17 @@ import {
 } from '@/components/ui/tabs';
 import { Overview } from '@/components/dashboard/overview';
 import { RecentSubmissions } from '@/components/dashboard/recent-submissions';
-import { FileText, CheckCircle, Clock, PieChart } from 'lucide-react';
+import { FileText, CheckCircle, Clock, PieChart, AlertTriangle } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import type { Submission } from '@/lib/types';
+import type { Submission, Unit, Role } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMemo } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 export default function DashboardPage() {
-  const { user } = useUser();
+  const { user, userProfile } = useUser();
   const firestore = useFirestore();
 
   const submissionsQuery = useMemoFirebase(() => {
@@ -29,7 +34,25 @@ export default function DashboardPage() {
     return query(collection(firestore, 'users', user.uid, 'submissions'));
   }, [firestore, user]);
 
-  const { data: submissions, isLoading } = useCollection<Submission>(submissionsQuery);
+  const { data: submissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
+  
+  const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units') : null, [firestore]);
+  const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+
+  const rolesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'roles') : null, [firestore]);
+  const { data: roles, isLoading: isLoadingRoles } = useCollection<Role>(rolesQuery);
+
+  const userRole = useMemo(() => {
+    if (!userProfile || !roles) return null;
+    return roles.find(r => r.id === userProfile.roleId)?.name;
+  }, [userProfile, roles]);
+
+  const campusHasNoUnits = useMemo(() => {
+    if (!userProfile || !units || userRole !== 'Campus Director') return false;
+    return units.filter(u => u.campusId === userProfile.campusId).length === 0;
+  }, [userProfile, units, userRole]);
+
+  const isLoading = isLoadingSubmissions || isLoadingUnits || isLoadingRoles;
 
   const stats = {
     total: submissions?.length ?? 0,
@@ -65,6 +88,18 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
       </div>
+       {campusHasNoUnits && !isLoading && (
+        <Alert variant="default" className="bg-yellow-50 border-yellow-200 text-yellow-800">
+           <AlertTriangle className="h-4 w-4 !text-yellow-500" />
+          <AlertTitle>No Units Found for Your Campus</AlertTitle>
+          <AlertDescription>
+            There are no units registered under your campus yet. Please go to the settings to add units for your faculty and staff to be assigned to.
+            <Button asChild variant="link" className="p-0 h-auto ml-1 text-yellow-800 font-bold">
+                <Link href="/settings">Go to Settings</Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
