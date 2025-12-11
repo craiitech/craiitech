@@ -60,10 +60,12 @@ export default function DashboardLayout({
     return redirect('/login');
   }
 
+  // If user is on one of these pages, let them stay.
   if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
     return <>{children}</>;
   }
   
+  // For non-admin users, enforce profile completion and verification.
   if (!isAdmin) {
     if (
       !userProfile ||
