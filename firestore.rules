@@ -184,7 +184,7 @@ service cloud.firestore {
     }
     
     /**
-     * @description Global unit definitions are readable by any authenticated user but only managed by Admins.
+     * @description Global unit definitions can be created by Admins. Campus-level users can assign units to their campus.
      * @path /units/{unitId}
      * @allow (get) Any signed-in user reading unit information.
      * @deny (update) A non-admin user trying to modify a unit.
@@ -192,7 +192,12 @@ service cloud.firestore {
      */
     match /units/{unitId} {
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isCampusOdimo()
+          && request.resource.data.keys().hasOnly(['campusId', 'name', 'createdAt']) // User can only change campusId
+          && request.resource.data.name == resource.data.name // Name cannot be changed
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.campusId == request.resource.data.campusId); // Can only assign to their own campus
+      allow delete: if isAdmin();
     }
     
     /**
