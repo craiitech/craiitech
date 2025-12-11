@@ -5,41 +5,31 @@ import {
   AvatarFallback,
   AvatarImage,
 } from '@/components/ui/avatar';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
-import type { Submission, User } from '@/lib/types';
+import type { Submission } from '@/lib/types';
 import { useMemo } from 'react';
 import { Skeleton } from '../ui/skeleton';
 
 export function RecentSubmissions() {
   const firestore = useFirestore();
+  const { user: authUser, userProfile } = useUser();
 
   const submissionsQuery = useMemoFirebase(
     () =>
-      firestore
+      firestore && authUser
         ? query(
-            collection(firestore, 'submissions'),
+            collection(firestore, 'users', authUser.uid, 'submissions'),
             orderBy('submissionDate', 'desc'),
             limit(5)
           )
         : null,
-    [firestore]
+    [firestore, authUser]
   );
   const { data: submissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
-  const usersQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'users') : null),
-    [firestore]
-  );
-  const { data: users, isLoading: isLoadingUsers } = useCollection<User>(usersQuery);
-
-  const userMap = useMemo(() => {
-    if (!users) return new Map();
-    return new Map(users.map((user) => [user.id, user]));
-  }, [users]);
+  const isLoading = isLoadingSubmissions || !userProfile;
   
-  const isLoading = isLoadingSubmissions || isLoadingUsers;
-
   if (isLoading) {
     return (
         <div className="space-y-8">
@@ -65,21 +55,21 @@ export function RecentSubmissions() {
       )
   }
 
+  const userName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : 'Unknown User';
+  const userInitial = userName.charAt(0);
+  const avatar = userProfile?.avatar;
+
   return (
     <div className="space-y-8">
       {submissions.map(submission => {
-          const user = userMap.get(submission.userId);
-          const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
-          const userInitial = userName.charAt(0);
-
           return (
             <div key={submission.id} className="flex items-center">
                 <Avatar className="h-9 w-9">
-                <AvatarImage src={user?.avatar} alt={userName} />
+                <AvatarImage src={avatar} alt={userName} />
                 <AvatarFallback>{userInitial}</AvatarFallback>
                 </Avatar>
                 <div className="ml-4 space-y-1">
-                <p className="text-sm font-medium leading-none">{submission.googleDriveLink.substring(0,25)}...</p>
+                <p className="text-sm font-medium leading-none max-w-[150px] truncate" title={submission.googleDriveLink}>{submission.googleDriveLink}</p>
                 <p className="text-sm text-muted-foreground">
                     by {userName}
                 </p>

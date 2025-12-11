@@ -14,14 +14,51 @@ import {
 } from '@/components/ui/tabs';
 import { Overview } from '@/components/dashboard/overview';
 import { RecentSubmissions } from '@/components/dashboard/recent-submissions';
-import { submissions } from '@/lib/data';
-import { DollarSign, Users, FileText, CheckCircle } from 'lucide-react';
-import { useUser } from '@/firebase';
+import { FileText, CheckCircle, Clock, PieChart } from 'lucide-react';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import type { Submission } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
   const { user } = useUser();
-  const totalSubmissions = submissions.length;
-  const approvedSubmissions = submissions.filter(s => s.status === 'Approved').length;
+  const firestore = useFirestore();
+
+  const submissionsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'users', user.uid, 'submissions'));
+  }, [firestore, user]);
+
+  const { data: submissions, isLoading } = useCollection<Submission>(submissionsQuery);
+
+  const stats = {
+    total: submissions?.length ?? 0,
+    approved: submissions?.filter(s => s.statusId === 'approved').length ?? 0,
+    pending: submissions?.filter(s => ['pending', 'submitted'].includes(s.statusId)).length ?? 0,
+    complianceRate: submissions?.length ? ((submissions?.filter(s => s.statusId === 'approved').length ?? 0) / submissions.length) * 100 : 0
+  };
+
+  const renderCard = (title: string, value: string | number, icon: React.ReactNode, description: string, isLoading: boolean) => (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <>
+            <Skeleton className="h-8 w-20 mb-2" />
+            <Skeleton className="h-4 w-40" />
+          </>
+        ) : (
+          <>
+            <div className="text-2xl font-bold">{value}</div>
+            <p className="text-xs text-muted-foreground">{description}</p>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
 
   return (
     <>
@@ -41,60 +78,10 @@ export default function DashboardPage() {
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Submissions
-                </CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totalSubmissions}</div>
-                <p className="text-xs text-muted-foreground">
-                  +20.1% from last month
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Approved Submissions
-                </CardTitle>
-                <CheckCircle className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{approvedSubmissions}</div>
-                <p className="text-xs text-muted-foreground">
-                  +180.1% from last month
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Compliance Rate</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{(approvedSubmissions/totalSubmissions * 100).toFixed(1)}%</div>
-                <p className="text-xs text-muted-foreground">
-                  +19% from last month
-                </p>
-              </CardContent>
-            </Card>
-             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Pending Approvals
-                </CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{submissions.filter(s => s.status === 'Pending' || s.status === 'Submitted').length}</div>
-                <p className="text-xs text-muted-foreground">
-                  +201 since last hour
-                </p>
-              </CardContent>
-            </Card>
+            {renderCard("Total Submissions", stats.total, <FileText className="h-4 w-4 text-muted-foreground" />, 'All reports you have submitted.', isLoading)}
+            {renderCard("Approved Submissions", stats.approved, <CheckCircle className="h-4 w-4 text-muted-foreground" />, 'Your successfully approved reports.', isLoading)}
+            {renderCard("Compliance Rate", `${stats.complianceRate.toFixed(1)}%`, <PieChart className="h-4 w-4 text-muted-foreground" />, 'Based on your approved submissions.', isLoading)}
+            {renderCard("Pending Actions", stats.pending, <Clock className="h-4 w-4 text-muted-foreground" />, 'Reports awaiting review.', isLoading)}
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
             <Card className="col-span-4">
@@ -109,7 +96,7 @@ export default function DashboardPage() {
               <CardHeader>
                 <CardTitle>Recent Submissions</CardTitle>
                 <CardDescription>
-                  You have {submissions.filter(s => s.status === "Pending").length} pending submissions this month.
+                  Your last 5 submissions.
                 </CardDescription>
               </CardHeader>
               <CardContent>

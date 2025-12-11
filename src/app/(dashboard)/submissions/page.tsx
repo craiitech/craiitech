@@ -1,3 +1,6 @@
+
+'use client';
+
 import { PlusCircle } from 'lucide-react';
 import {
   Table,
@@ -18,7 +21,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
-import { submissions } from '@/lib/data';
 import {
   Card,
   CardContent,
@@ -26,19 +28,33 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
-import type { Status } from '@/lib/types';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+import type { Submission, Status } from '@/lib/types';
 import { format } from 'date-fns';
+import { Loader2 } from 'lucide-react';
+import { useState } from 'react';
 
-const statusVariant: Record<Status, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    Approved: 'default',
-    Pending: 'secondary',
-    Rejected: 'destructive',
-    Submitted: 'outline'
+const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    approved: 'default',
+    pending: 'secondary',
+    rejected: 'destructive',
+    submitted: 'outline'
 }
 
 
 export default function SubmissionsPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
+  const submissionsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'users', user.uid, 'submissions'));
+  }, [firestore, user]);
+
+  const { data: submissions, isLoading } = useCollection<Submission>(submissionsQuery);
+
   return (
     <>
       <div className="flex items-center justify-between space-y-2">
@@ -49,7 +65,7 @@ export default function SubmissionsPage() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Dialog>
+          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger asChild>
               <Button>
                 <PlusCircle className="mr-2 h-4 w-4" />
@@ -65,7 +81,7 @@ export default function SubmissionsPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">
-                <SubmissionForm />
+                <SubmissionForm onSuccess={() => setIsFormOpen(false)} />
               </div>
             </DialogContent>
           </Dialog>
@@ -79,10 +95,15 @@ export default function SubmissionsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-40">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Title</TableHead>
+                <TableHead>Link</TableHead>
                 <TableHead>Cycle</TableHead>
                 <TableHead>Submitted At</TableHead>
                 <TableHead>Status</TableHead>
@@ -90,16 +111,20 @@ export default function SubmissionsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {submissions.map((submission) => (
+              {submissions?.map((submission) => (
                 <TableRow key={submission.id}>
-                  <TableCell className="font-medium">{submission.title}</TableCell>
-                  <TableCell>{submission.cycle}</TableCell>
+                  <TableCell className="font-medium max-w-xs truncate">
+                    <a href={submission.googleDriveLink} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                      {submission.googleDriveLink}
+                    </a>
+                  </TableCell>
+                  <TableCell className="capitalize">{submission.cycleId}</TableCell>
                   <TableCell>
-                    {format(new Date(submission.submittedAt), 'MMMM d, yyyy')}
+                    {format(new Date(submission.submissionDate), 'MMMM d, yyyy')}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={statusVariant[submission.status]}>
-                      {submission.status}
+                    <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
+                      {submission.statusId}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -111,6 +136,12 @@ export default function SubmissionsPage() {
               ))}
             </TableBody>
           </Table>
+          )}
+          {!isLoading && submissions?.length === 0 && (
+            <div className="text-center py-10 text-muted-foreground">
+              You have not made any submissions yet.
+            </div>
+          )}
         </CardContent>
       </Card>
     </>

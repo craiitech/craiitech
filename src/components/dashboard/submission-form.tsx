@@ -31,10 +31,11 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { validateGoogleDriveLinkAccessibility } from '@/ai/flows/validate-google-drive-link-accessibility';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const submissionSchema = z.object({
-  title: z.string().min(5, 'Title must be at least 5 characters long'),
-  cycle: z.enum(['First', 'Final']),
+  cycleId: z.enum(['first', 'final']),
   googleDriveLink: z
     .string()
     .url('Please enter a valid URL')
@@ -57,12 +58,13 @@ export function SubmissionForm({
     useState<ValidationStatus>('idle');
   const [validationMessage, setValidationMessage] = useState('');
   const { toast } = useToast();
+  const { user, userProfile } = useUser();
+  const firestore = useFirestore();
 
   const form = useForm<z.infer<typeof submissionSchema>>({
     resolver: zodResolver(submissionSchema),
     defaultValues: {
-      title: '',
-      cycle: 'First',
+      cycleId: 'first',
       googleDriveLink: '',
       comments: '',
     },
@@ -109,19 +111,36 @@ export function SubmissionForm({
   };
 
   const onSubmit = async (values: z.infer<typeof submissionSchema>) => {
+    if (!user || !firestore || !userProfile) {
+        toast({ title: 'Error', description: 'You must be logged in to submit.', variant: 'destructive'});
+        return;
+    }
+
     setIsSubmitting(true);
-    // Here you would typically call a server action to save the submission
-    console.log(values);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast({
-      title: 'Submission Successful!',
-      description: `Your report "${values.title}" has been submitted.`,
-    });
-    setIsSubmitting(false);
-    form.reset();
-    setValidationStatus('idle');
-    if (onSuccess) {
-      onSuccess();
+    try {
+        const submissionCollectionRef = collection(firestore, 'users', user.uid, 'submissions');
+        await addDoc(submissionCollectionRef, {
+            ...values,
+            userId: user.uid,
+            campusId: userProfile.campusId,
+            unitId: userProfile.unitId,
+            statusId: 'submitted', // Initial status
+            submissionDate: serverTimestamp(),
+        });
+        toast({
+            title: 'Submission Successful!',
+            description: `Your report has been submitted.`,
+        });
+        setIsSubmitting(false);
+        form.reset();
+        setValidationStatus('idle');
+        if (onSuccess) {
+            onSuccess();
+        }
+    } catch (error) {
+        console.error("Error submitting report: ", error);
+        toast({ title: 'Submission Failed', description: 'Could not submit your report.', variant: 'destructive'});
+        setIsSubmitting(false);
     }
   };
 
@@ -143,20 +162,7 @@ export function SubmissionForm({
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Report Title</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g., Q2 Financial Performance" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="cycle"
+          name="cycleId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Submission Cycle</FormLabel>
@@ -167,8 +173,8 @@ export function SubmissionForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="First">First Submission</SelectItem>
-                  <SelectItem value="Final">Final Submission</SelectItem>
+                  <SelectItem value="first">First Submission</SelectItem>
+                  <SelectItem value="final">Final Submission</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
