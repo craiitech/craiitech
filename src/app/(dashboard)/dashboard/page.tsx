@@ -1,3 +1,4 @@
+'use client'
 import {
   Card,
   CardContent,
@@ -13,12 +14,12 @@ import {
 } from '@/components/ui/tabs';
 import { Overview } from '@/components/dashboard/overview';
 import { RecentSubmissions } from '@/components/dashboard/recent-submissions';
-import { getCurrentUser } from '@/lib/auth';
 import { submissions } from '@/lib/data';
 import { DollarSign, Users, FileText, CheckCircle } from 'lucide-react';
+import { useUser } from '@/firebase';
 
-export default async function DashboardPage() {
-  const user = await getCurrentUser();
+export default function DashboardPage() {
+  const { user } = useUser();
   const totalSubmissions = submissions.length;
   const approvedSubmissions = submissions.filter(s => s.status === 'Approved').length;
 

@@ -1,3 +1,7 @@
+// This file can be used for mock data types, but for Firebase, 
+// consider using Zod schemas and inferring types from them, 
+// especially for Firestore documents.
+
 export type Role = 'Admin' | 'Campus Director' | 'Campus ODIMO' | 'Unit ODIMO' | 'Employee';
 
 export type User = {

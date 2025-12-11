@@ -7,21 +7,16 @@ import { users } from './data';
 
 const AUTH_COOKIE_NAME = 'rsu-eoms-auth';
 
+// This function is kept for compatibility but Firebase auth is handled client-side
 export async function login(role: Role) {
-  const user = users.find((u) => u.role === role);
-  if (!user) {
-    throw new Error('Invalid role selected');
-  }
-  cookies().set(AUTH_COOKIE_NAME, user.id, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 60 * 60 * 24 * 7, // One week
-    path: '/',
-  });
+  // The actual login is now handled on the client with Firebase.
+  // This server action could be used for other server-side logic after login if needed.
+  // For now, we just redirect.
   redirect('/dashboard');
 }
 
 export async function logout() {
+  // Client-side will handle Firebase signout. This is for any server-side session cleanup.
   cookies().delete(AUTH_COOKIE_NAME);
   redirect('/login');
 }

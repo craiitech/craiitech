@@ -22,32 +22,37 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { login } from '@/lib/actions';
-import type { Role } from '@/lib/types';
 import { Logo } from '@/components/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/firebase';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
 export default function RegisterPage() {
-  const [role, setRole] = useState<Role | ''>('');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
 
   const handleRegister = async () => {
-    if (!role) {
+    if (!email || !password || !fullName) {
       toast({
         title: 'Registration Error',
-        description: 'Please select a role to register.',
+        description: 'Please fill out all fields.',
         variant: 'destructive',
       });
       return;
     }
     setIsRegistering(true);
-    // In a real app, you'd have a register server action.
-    // For now, we'll just simulate a login to show the flow.
     try {
-      await login(role);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(userCredential.user, {
+        displayName: fullName,
+      });
+
       toast({
         title: 'Registration Successful',
         description: "You've been registered and logged in.",
@@ -82,7 +87,14 @@ export default function RegisterPage() {
           <div className="grid gap-4">
             <div className="grid gap-2">
                 <Label htmlFor="full-name">Full name</Label>
-                <Input id="full-name" placeholder="Juan Dela Cruz" required />
+                <Input 
+                  id="full-name" 
+                  placeholder="Juan Dela Cruz" 
+                  required 
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={isRegistering}
+                />
             </div>
              <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
@@ -91,32 +103,27 @@ export default function RegisterPage() {
                   type="email"
                   placeholder="name@rsu.edu.ph"
                   required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isRegistering}
                 />
               </div>
-            <div className="grid gap-2">
-              <Label htmlFor="role">Select Role</Label>
-              <Select
-                onValueChange={(value) => setRole(value as Role)}
-                value={role}
-                disabled={isRegistering}
-              >
-                <SelectTrigger id="role">
-                  <SelectValue placeholder="Select your role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="Campus Director">Campus Director</SelectItem>
-                  <SelectItem value="Campus ODIMO">Campus ODIMO</SelectItem>
-                  <SelectItem value="Unit ODIMO">Unit ODIMO</SelectItem>
-                  <SelectItem value="Employee">Employee</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+               <div className="grid gap-2">
+                <Label htmlFor="password">Password</Label>
+                <Input 
+                  id="password" 
+                  type="password" 
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isRegistering}
+                />
+              </div>
             <Button
               type="submit"
               className="w-full"
               onClick={handleRegister}
-              disabled={isRegistering || !role}
+              disabled={isRegistering || !email || !password || !fullName}
             >
               {isRegistering ? 'Creating Account...' : 'Create Account'}
             </Button>

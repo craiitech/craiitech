@@ -13,39 +13,34 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { login } from '@/lib/actions';
-import type { Role } from '@/lib/types';
 import { Logo } from '@/components/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 export default function LoginPage() {
-  const [role, setRole] = useState<Role | ''>('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
 
   const handleLogin = async () => {
-    if (!role) {
+    if (!email || !password) {
       toast({
         title: 'Login Error',
-        description: 'Please select a role to sign in.',
+        description: 'Please enter your email and password.',
         variant: 'destructive',
       });
       return;
     }
     setIsLoggingIn(true);
     try {
-      await login(role);
-      // The server action will handle the redirect, but as a fallback:
+      await signInWithEmailAndPassword(auth, email, password);
       router.push('/dashboard');
     } catch (error) {
       toast({
@@ -74,30 +69,34 @@ export default function LoginPage() {
             </p>
           </div>
           <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="role">Select Role</Label>
-              <Select
-                onValueChange={(value) => setRole(value as Role)}
-                value={role}
+             <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@rsu.edu.ph"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoggingIn}
-              >
-                <SelectTrigger id="role">
-                  <SelectValue placeholder="Select your role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="Campus Director">Campus Director</SelectItem>
-                  <SelectItem value="Campus ODIMO">Campus ODIMO</SelectItem>
-                  <SelectItem value="Unit ODIMO">Unit ODIMO</SelectItem>
-                  <SelectItem value="Employee">Employee</SelectItem>
-                </SelectContent>
-              </Select>
+              />
+            </div>
+             <div className="grid gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input 
+                id="password" 
+                type="password" 
+                required 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoggingIn}
+              />
             </div>
             <Button
               type="submit"
               className="w-full"
               onClick={handleLogin}
-              disabled={isLoggingIn || !role}
+              disabled={isLoggingIn || !email || !password}
             >
               {isLoggingIn ? 'Signing In...' : 'Sign In'}
             </Button>
