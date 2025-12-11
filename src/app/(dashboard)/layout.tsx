@@ -1,32 +1,22 @@
 'use client';
 
 import { redirect, usePathname } from 'next/navigation';
-import { useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser } from '@/firebase';
 import TeamSwitcher from '@/components/dashboard/team-switcher';
 import { MainNav } from '@/components/dashboard/main-nav';
 import { UserNav } from '@/components/dashboard/user-nav';
 import { Logo } from '@/components/logo';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc, getFirestore } from 'firebase/firestore';
-import type { User as AppUser } from '@/lib/types';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isUserLoading } = useUser();
-  const firestore = getFirestore();
+  const { user, userProfile, isUserLoading } = useUser();
   const pathname = usePathname();
-
-  const userDocRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
-
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<AppUser>(userDocRef);
-
-  const isLoading = isUserLoading || isProfileLoading;
+  
+  const isLoading = isUserLoading;
 
   if (isLoading) {
     return (
@@ -62,17 +52,28 @@ export default function DashboardLayout({
     redirect('/login');
   }
 
-  if (user && !userProfile?.verified && pathname !== '/awaiting-verification') {
-      if (userProfile && (!userProfile.campusId || !userProfile.unitId || !userProfile.role)) {
-          redirect('/register/campus');
-      }
-      redirect('/awaiting-verification');
+  // If user is loaded and there's a profile
+  if (userProfile) {
+     // If user profile is not complete, redirect to campus registration
+    if (!userProfile.campusId || !userProfile.unitId || !userProfile.roleId) {
+        if (pathname !== '/register/campus') {
+             redirect('/register/campus');
+        }
+        // If they are on the campus page, let them be
+    } else if (!userProfile.verified) {
+        // If profile is complete but not verified, send to awaiting verification
+        if (pathname !== '/awaiting-verification') {
+            redirect('/awaiting-verification');
+        }
+    }
+  } else if(user && !isUserLoading) {
+      // This case can happen briefly if the user is authenticated but the firestore doc is still loading
+      // Or if the user doc doesn't exist for some reason after registration.
+      // A redirect to /register/campus is a safe bet.
+       if (pathname !== '/register/campus' && pathname !== '/awaiting-verification') {
+         redirect('/register/campus');
+       }
   }
-  
-  if (user && userProfile?.verified === false && pathname !== '/awaiting-verification' && pathname !== '/register/campus') {
-    redirect('/awaiting-verification');
-  }
-
 
   return (
     <div className="flex flex-col">
@@ -80,7 +81,7 @@ export default function DashboardLayout({
         <div className="flex h-16 items-center px-4 md:px-8">
           <Logo className="h-6 w-6 mr-4" />
           <TeamSwitcher />
-          <MainNav className="mx-6" user={user}/>
+          <MainNav className="mx-6" />
           <div className="ml-auto flex items-center space-x-4">
             <UserNav user={user}/>
           </div>
