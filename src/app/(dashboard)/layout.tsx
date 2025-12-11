@@ -1,13 +1,13 @@
 'use client';
 
 import { redirect, usePathname } from 'next/navigation';
-import { useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import TeamSwitcher from '@/components/dashboard/team-switcher';
 import { MainNav } from '@/components/dashboard/main-nav';
 import { UserNav } from '@/components/dashboard/user-nav';
 import { Logo } from '@/components/logo';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collection, getFirestore } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import { useMemo } from 'react';
 import type { Role } from '@/lib/types';
 
