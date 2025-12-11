@@ -129,8 +129,7 @@ service cloud.firestore {
      * @principle Enforces document ownership for creation, while allowing tiered supervisory access for reads and updates.
      */
     match /users/{userId}/submissions/{submissionId} {
-      allow get: if isOwner(userId) || canSupervisorAccess(resource.data);
-      allow list: if isOwner(userId); // Users can list their own submissions. Supervisors must use targeted queries.
+      allow get, list: if isOwner(userId) || canSupervisorAccess(resource.data);
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
       allow update: if (isExistingOwner(userId) || (resource != null && canSupervisorAccess(resource.data))) && request.resource.data.userId == resource.data.id;
       allow delete: if isExistingOwner(userId);
