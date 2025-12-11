@@ -1,6 +1,6 @@
 // This file can be used for mock data types, but for Firebase, 
 // consider using Zod schemas and inferring types from them, 
-// especially for Firestore documents.
+// especially for a Firestore documents.
 
 export type Role = {
   id: string;
@@ -10,30 +10,26 @@ export type Role = {
 
 export type User = {
   id: string;
-  name: string;
   email: string;
-  avatar: string;
-  role: Role['name'];
-  campus: string;
-  unit: string;
-  verified?: boolean;
+  firstName: string;
+  lastName: string;
+  avatar?: string;
+  roleId: string;
+  campusId: string;
+  unitId: string;
+  verified: boolean;
 };
 
 export type Status = 'Pending' | 'Approved' | 'Rejected' | 'Submitted';
 
 export type Submission = {
   id: string;
-  title: string;
-  submitter: Pick<User, 'name' | 'id'>;
-  submittedAt: string;
-  status: Status;
-  cycle: 'First' | 'Final';
+  userId: string;
+  submissionDate: Date;
   googleDriveLink: string;
-  comments?: {
-    user: string;
-    comment: string;
-    timestamp: string;
-  }[];
+  cycleId: string;
+  statusId: string;
+  comments?: string;
 };
 
 export type Campus = {
