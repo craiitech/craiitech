@@ -76,22 +76,27 @@ export default function DashboardLayout({
     return redirect('/login');
   }
 
-  // If user is on one of these pages, let them stay to avoid redirect loops.
+  // 1. Let users stay on special pages to avoid redirect loops.
   if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
     return <>{children}</>;
   }
   
-  // For non-admin users, enforce profile completion and verification.
-  if (!isAdmin) {
+  // 2. For all non-admin users, check profile completion and verification status.
+  if (!isAdmin && userProfile) {
     const isCampusLevelRole = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
-    const isProfileIncomplete = !userProfile || !userProfile.campusId || !userProfile.roleId || (!isCampusLevelRole && !userProfile.unitId);
-
+    
+    // 3. Check for incomplete registration.
+    const isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || (!isCampusLevelRole && !userProfile.unitId);
     if (isProfileIncomplete) {
        return redirect('/complete-registration');
-    } else if (!userProfile.verified) {
+    }
+    
+    // 4. If registration is complete, check for verification.
+    if (!userProfile.verified) {
       return redirect('/awaiting-verification');
     }
   }
+
 
   return (
     <SidebarProvider>
