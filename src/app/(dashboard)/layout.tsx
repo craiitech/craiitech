@@ -1,7 +1,7 @@
 'use client';
 
 import { redirect, usePathname } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import TeamSwitcher from '@/components/dashboard/team-switcher';
 import { UserNav } from '@/components/dashboard/user-nav';
 import { Logo } from '@/components/logo';
@@ -16,6 +16,9 @@ import {
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
 import { Button } from '@/components/ui/button';
+import { collection } from 'firebase/firestore';
+import type { Role } from '@/lib/types';
+import { useMemo } from 'react';
 
 export default function DashboardLayout({
   children,
@@ -24,6 +27,18 @@ export default function DashboardLayout({
 }) {
   const { user, userProfile, isUserLoading, isAdmin } = useUser();
   const pathname = usePathname();
+  const firestore = useFirestore();
+
+  const rolesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'roles') : null),
+    [firestore]
+  );
+  const { data: roles } = useCollection<Role>(rolesQuery);
+
+  const userRole = useMemo(() => {
+    if (!userProfile || !roles) return null;
+    return roles.find((r) => r.id === userProfile.roleId)?.name;
+  }, [userProfile, roles]);
 
   if (isUserLoading) {
     return (
@@ -67,13 +82,11 @@ export default function DashboardLayout({
   
   // For non-admin users, enforce profile completion and verification.
   if (!isAdmin) {
-    if (
-      !userProfile ||
-      !userProfile.campusId ||
-      !userProfile.unitId ||
-      !userProfile.roleId
-    ) {
-      return redirect('/complete-registration');
+    const isCampusLevelRole = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+    const isProfileIncomplete = !userProfile || !userProfile.campusId || !userProfile.roleId || (!isCampusLevelRole && !userProfile.unitId);
+
+    if (isProfileIncomplete) {
+       return redirect('/complete-registration');
     } else if (!userProfile.verified) {
       return redirect('/awaiting-verification');
     }
