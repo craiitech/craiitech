@@ -1,3 +1,4 @@
+
 'use client';
 
 import { redirect, usePathname } from 'next/navigation';
@@ -75,7 +76,7 @@ export default function DashboardLayout({
     return redirect('/login');
   }
 
-  // If user is on one of these pages, let them stay.
+  // If user is on one of these pages, let them stay to avoid redirect loops.
   if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
     return <>{children}</>;
   }
