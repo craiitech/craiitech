@@ -11,7 +11,7 @@ import {
 import type { Role } from '@/lib/types';
 import { collection } from 'firebase/firestore';
 import { useMemo } from 'react';
-import { LayoutDashboard, FileText, CheckSquare, UserCog, Settings } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../ui/sidebar';
 
 export function SidebarNav({
@@ -55,16 +55,10 @@ export function SidebarNav({
       icon: <CheckSquare />,
     },
     {
-      href: '/admin',
-      label: 'Admin',
-      active: pathname.startsWith('/admin'),
-      roles: ['Admin'],
-      icon: <UserCog />,
-    },
-    {
         href: '/settings',
         label: 'Settings',
         active: pathname.startsWith('/settings'),
+        roles: ['Admin'],
         icon: <Settings />,
     }
   ];
