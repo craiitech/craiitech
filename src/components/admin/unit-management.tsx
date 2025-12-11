@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,6 +9,7 @@ import {
   useFirestore,
   useCollection,
   useMemoFirebase,
+  useUser,
 } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,7 @@ export function UnitManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { userProfile, isAdmin } = useUser();
 
   const campusesQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'campuses') : null),
@@ -75,6 +77,12 @@ export function UnitManagement() {
     defaultValues: { name: '', campusId: '' },
   });
 
+  useEffect(() => {
+    if (!isAdmin && userProfile?.campusId) {
+        form.setValue('campusId', userProfile.campusId);
+    }
+  }, [isAdmin, userProfile, form]);
+
   const onSubmit = async (values: z.infer<typeof unitSchema>) => {
     if (!firestore) return;
     setIsSubmitting(true);
@@ -85,6 +93,9 @@ export function UnitManagement() {
       });
       toast({ title: 'Success', description: 'New unit created.' });
       form.reset();
+       if (!isAdmin && userProfile?.campusId) {
+        form.setValue('campusId', userProfile.campusId);
+    }
     } catch (error) {
       console.error('Error creating unit:', error);
       toast({
@@ -100,6 +111,12 @@ export function UnitManagement() {
   const getCampusName = (campusId: string) => {
     return campuses?.find((c) => c.id === campusId)?.name || 'N/A';
   }
+  
+  const visibleUnits = useMemo(() => {
+    if (isAdmin) return units;
+    if (!userProfile?.campusId || !units) return [];
+    return units.filter(u => u.campusId === userProfile.campusId);
+  }, [units, isAdmin, userProfile]);
 
   const isLoading = isLoadingCampuses || isLoadingUnits;
 
@@ -121,7 +138,7 @@ export function UnitManagement() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Campus</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={!isAdmin}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a campus" />
@@ -189,7 +206,7 @@ export function UnitManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {units?.map((unit) => (
+                {visibleUnits?.map((unit) => (
                   <TableRow key={unit.id}>
                     <TableCell>{unit.name}</TableCell>
                     <TableCell>{getCampusName(unit.campusId)}</TableCell>

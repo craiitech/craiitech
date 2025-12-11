@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -58,7 +59,7 @@ export function SidebarNav({
         href: '/settings',
         label: 'Settings',
         active: pathname.startsWith('/settings'),
-        roles: ['Admin'],
+        roles: ['Admin', 'Campus Director', 'Campus ODIMO'],
         icon: <Settings />,
     }
   ];
