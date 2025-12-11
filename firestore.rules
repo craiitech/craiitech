@@ -18,7 +18,7 @@ service cloud.firestore {
      *
      * Key Security Decisions:
      * - User Listing Disabled: To protect user privacy, listing the top-level `/users`
-     *   collection is explicitly forbidden.
+     *   collection is explicitly forbidden except for Admins.
      * - Role-Based Access via Existence Checks: A user's role is determined by checking for the
      *   existence of a document in collections like `/roles_admin/{userId}`. This is a highly
      *   performant and secure method for managing roles.
@@ -107,11 +107,11 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     /**
-     * @description Users can create, read, and update their own profile information.
+     * @description Users can create, read, and update their own profile information. Admins can list all users.
      * @path /users/{userId}
      * @allow (create) A new user with uid 'user123' creating their own profile at /users/user123.
      * @deny (get) User 'user456' trying to read the profile of 'user123'.
-     * @principle Restricts access to a user's own data tree and prevents enumeration of all users.
+     * @principle Restricts access to a user's own data tree and prevents enumeration of all users except for admins.
      */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
@@ -199,12 +199,13 @@ service cloud.firestore {
     /**
      * @description The collection for assigning Admin roles. Only other Admins can manage this list.
      * @path /roles_admin/{userId}
-     * @allow (create) An existing Admin adding 'user123' to /roles_admin/user123.
-     * @deny (get) A non-admin user trying to see who is an admin.
+     * @allow (get) An admin checking another admin's role, or a user checking their own.
+     * @deny (list) A non-admin user trying to see who is an admin.
      * @principle Secures the RBAC system by restricting management of the highest privilege level.
      */
     match /roles_admin/{userId} {
-      allow get, list: if isAdmin();
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
 
@@ -216,7 +217,8 @@ service cloud.firestore {
      * @principle Secures the RBAC system by restricting management of supervisory roles to Admins.
      */
     match /roles_campus_odimo/{userId} {
-      allow get, list: if isAdmin();
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
 
@@ -228,10 +230,9 @@ service cloud.firestore {
      * @principle Secures the RBAC system by restricting management of supervisory roles to Admins.
      */
     match /roles_unit_odimo/{userId} {
-      allow get, list: if isAdmin();
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
   }
 }
-
-    
