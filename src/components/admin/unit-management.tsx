@@ -51,7 +51,7 @@ import type { Campus, Unit } from '@/lib/types';
 
 const unitSchema = z.object({
   name: z.string().min(3, 'Unit name must be at least 3 characters.'),
-  campusId: z.string().min(1, 'Please select a campus.'),
+  campusId: z.string().min(1, 'Please select a campus.').optional(),
 });
 
 export function UnitManagement() {
@@ -85,10 +85,23 @@ export function UnitManagement() {
 
   const onSubmit = async (values: z.infer<typeof unitSchema>) => {
     if (!firestore) return;
+    
+    const campusId = isAdmin ? values.campusId : userProfile?.campusId;
+
+    if (!campusId) {
+        toast({
+            title: 'Error',
+            description: 'Campus ID is missing.',
+            variant: 'destructive',
+        });
+        return;
+    }
+
     setIsSubmitting(true);
     try {
       await addDoc(collection(firestore, 'units'), {
-        ...values,
+        name: values.name,
+        campusId: campusId,
         createdAt: serverTimestamp(),
       });
       toast({ title: 'Success', description: 'New unit created.' });
@@ -132,30 +145,32 @@ export function UnitManagement() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="campusId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Campus</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={!isAdmin}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a campus" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {campuses?.map((campus) => (
-                          <SelectItem key={campus.id} value={campus.id}>
-                            {campus.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {isAdmin && (
+                <FormField
+                  control={form.control}
+                  name="campusId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Campus</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a campus" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {campuses?.map((campus) => (
+                            <SelectItem key={campus.id} value={campus.id}>
+                              {campus.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
                 name="name"
@@ -189,7 +204,7 @@ export function UnitManagement() {
         <CardHeader>
           <CardTitle>Existing Units</CardTitle>
           <CardDescription>
-            A list of all units currently in the system.
+            A list of units in {isAdmin ? 'the system' : 'your campus'}.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -202,19 +217,24 @@ export function UnitManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Campus</TableHead>
+                  {isAdmin && <TableHead>Campus</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {visibleUnits?.map((unit) => (
                   <TableRow key={unit.id}>
                     <TableCell>{unit.name}</TableCell>
-                    <TableCell>{getCampusName(unit.campusId)}</TableCell>
+                    {isAdmin && <TableCell>{getCampusName(unit.campusId)}</TableCell>}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           )}
+           {(!isLoading && (!visibleUnits || visibleUnits.length === 0)) && (
+              <div className="text-center py-10 text-muted-foreground">
+                No units found.
+              </div>
+            )}
         </CardContent>
       </Card>
     </div>
