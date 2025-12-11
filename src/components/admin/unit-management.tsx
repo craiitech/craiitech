@@ -52,7 +52,6 @@ import type { Campus, Unit } from '@/lib/types';
 // Schema for Admins creating a new unit
 const adminUnitSchema = z.object({
   name: z.string().min(3, 'Unit name must be at least 3 characters.'),
-  campusId: z.string().optional(), // For admin, campusId is optional at creation
 });
 
 // Schema for Campus Directors assigning an existing unit
@@ -79,9 +78,10 @@ export function UnitManagement() {
   );
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
-  // Determine the correct schema based on the user's role
+  // Determine the correct schema and resolver based on the user's role
   const form = useForm({
     resolver: zodResolver(isAdmin ? adminUnitSchema : directorUnitSchema),
+    defaultValues: isAdmin ? { name: '' } : { unitId: '' },
   });
 
   const unassignedUnits = useMemo(() => {
@@ -89,7 +89,7 @@ export function UnitManagement() {
     return allUnits.filter(u => !u.campusId);
   }, [allUnits]);
 
-  const onSubmit = async (values: any) => {
+  const onSubmit = async (values: z.infer<typeof adminUnitSchema> | z.infer<typeof directorUnitSchema>) => {
     if (!firestore || !userProfile) return;
     setIsSubmitting(true);
     
@@ -97,7 +97,7 @@ export function UnitManagement() {
         if (isAdmin) {
             // Admin logic: Create a new unit (unassigned)
             await addDoc(collection(firestore, 'units'), {
-                name: values.name,
+                name: (values as z.infer<typeof adminUnitSchema>).name,
                 campusId: '', // Admins create unassigned units
                 createdAt: serverTimestamp(),
             });
@@ -106,9 +106,10 @@ export function UnitManagement() {
             // Campus Director logic: Assign an existing unit to their campus
             if (!userProfile.campusId) {
                  toast({ title: 'Error', description: 'You are not assigned to a campus.', variant: 'destructive' });
+                 setIsSubmitting(false);
                  return;
             }
-            const unitRef = doc(firestore, 'units', values.unitId);
+            const unitRef = doc(firestore, 'units', (values as z.infer<typeof directorUnitSchema>).unitId);
             await updateDoc(unitRef, {
                 campusId: userProfile.campusId
             });
@@ -177,7 +178,7 @@ export function UnitManagement() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Unassigned Unit</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} >
+                      <Select onValueChange={field.onChange} value={field.value || ''} >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a unit to assign" />
@@ -258,5 +259,3 @@ export function UnitManagement() {
     </div>
   );
 }
-
-    
