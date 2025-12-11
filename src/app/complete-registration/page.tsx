@@ -66,7 +66,7 @@ const campusRegistrationSchema = z.object({
 export default function CompleteRegistrationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
-  const { user, isUserLoading } = useAuth();
+  const auth = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -109,7 +109,7 @@ export default function CompleteRegistrationPage() {
   }, [roleId, roles]);
   
   const onSubmit = async (values: z.infer<typeof campusRegistrationSchema>) => {
-    if (!user) {
+    if (!auth.currentUser) {
       toast({
         title: 'Error',
         description: 'You must be logged in to complete registration.',
@@ -120,7 +120,7 @@ export default function CompleteRegistrationPage() {
 
     setIsSubmitting(true);
     try {
-      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDocRef = doc(firestore, 'users', auth.currentUser.uid);
       await updateDoc(userDocRef, {
         campusId: values.campusId,
         unitId: values.unitId || '', // Store empty string if not provided
@@ -146,7 +146,7 @@ export default function CompleteRegistrationPage() {
   
   const showNoUnitsMessage = campusId && !isLoadingUnits && units.length === 0;
 
-  if (isUserLoading || isLoadingCampuses || isLoadingRoles) {
+  if (isLoadingCampuses || isLoadingRoles) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin" />
