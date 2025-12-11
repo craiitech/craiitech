@@ -1,12 +1,17 @@
 'use client';
 
 import { redirect, usePathname } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { useUser, useCollection, useMemoFirebase } from '@/firebase';
 import TeamSwitcher from '@/components/dashboard/team-switcher';
 import { MainNav } from '@/components/dashboard/main-nav';
 import { UserNav } from '@/components/dashboard/user-nav';
 import { Logo } from '@/components/logo';
 import { Skeleton } from '@/components/ui/skeleton';
+import { collection } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { useMemo } from 'react';
+import type { Role } from '@/lib/types';
+
 
 export default function DashboardLayout({
   children,
@@ -15,8 +20,17 @@ export default function DashboardLayout({
 }) {
   const { user, userProfile, isUserLoading } = useUser();
   const pathname = usePathname();
+  const firestore = useFirestore();
+
+  const rolesQuery = useMemoFirebase(() => collection(firestore, 'roles'), [firestore]);
+  const { data: roles, isLoading: areRolesLoading } = useCollection<Role>(rolesQuery);
   
-  const isLoading = isUserLoading;
+  const userRole = useMemo(() => {
+    if (!userProfile || !roles) return null;
+    return roles.find(r => r.id === userProfile.roleId)?.name;
+  }, [userProfile, roles]);
+
+  const isLoading = isUserLoading || areRolesLoading;
 
   if (isLoading) {
     return (
@@ -52,24 +66,24 @@ export default function DashboardLayout({
     redirect('/login');
   }
 
-  // If user is loaded and there's a profile
   if (userProfile) {
-     // If user profile is not complete, redirect to campus registration
-    if (!userProfile.campusId || !userProfile.unitId || !userProfile.roleId) {
+    // If the user is an admin, they can access everything.
+    if (userRole === 'Admin') {
+       // Let them access any page.
+    } else if (!userProfile.campusId || !userProfile.unitId || !userProfile.roleId) {
+      // If user profile is not complete (and they are not an admin), redirect to campus registration
         if (pathname !== '/register/campus') {
              redirect('/register/campus');
         }
-        // If they are on the campus page, let them be
     } else if (!userProfile.verified) {
         // If profile is complete but not verified, send to awaiting verification
         if (pathname !== '/awaiting-verification') {
             redirect('/awaiting-verification');
         }
     }
-  } else if(user && !isUserLoading) {
-      // This case can happen briefly if the user is authenticated but the firestore doc is still loading
-      // Or if the user doc doesn't exist for some reason after registration.
-      // A redirect to /register/campus is a safe bet.
+  } else if(user && !isLoading) {
+      // This can happen if the user is authenticated but the firestore doc doesn't exist.
+      // Redirecting to campus registration is a safe default.
        if (pathname !== '/register/campus' && pathname !== '/awaiting-verification') {
          redirect('/register/campus');
        }
