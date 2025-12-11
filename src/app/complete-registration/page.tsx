@@ -145,6 +145,8 @@ export default function CompleteRegistrationPage() {
   };
   
   const showNoUnitsMessage = campusId && !isLoadingUnits && units.length === 0;
+  
+  const isButtonDisabled = isSubmitting || (isUnitRequired && (!form.getValues('unitId') || showNoUnitsMessage));
 
   if (isLoadingCampuses || isLoadingRoles) {
     return (
@@ -259,7 +261,7 @@ export default function CompleteRegistrationPage() {
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={isSubmitting || (isUnitRequired && (showNoUnitsMessage || !form.getValues('unitId')))}>
+                disabled={isButtonDisabled}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
