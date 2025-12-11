@@ -173,7 +173,7 @@ export default function CompleteRegistrationPage() {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder={!campusId ? "Select a campus first" : "Select your unit"} />
-                        </Tigger>
+                        </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {isLoadingUnits ? (
