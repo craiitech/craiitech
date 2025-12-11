@@ -114,11 +114,11 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree and prevents enumeration of all users.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false; // Explicitly prevent listing all users for privacy.
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin(); // Allow admins to list all users.
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      allow update: if isExistingOwner(userId) || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
     }
     
     /**
@@ -233,3 +233,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
