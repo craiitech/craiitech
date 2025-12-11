@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc, collection } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
@@ -66,7 +66,7 @@ const campusRegistrationSchema = z.object({
 export default function CompleteRegistrationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
-  const auth = useAuth();
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -109,7 +109,7 @@ export default function CompleteRegistrationPage() {
   }, [roleId, roles]);
   
   const onSubmit = async (values: z.infer<typeof campusRegistrationSchema>) => {
-    if (!auth.currentUser) {
+    if (!user) {
       toast({
         title: 'Error',
         description: 'You must be logged in to complete registration.',
@@ -120,7 +120,7 @@ export default function CompleteRegistrationPage() {
 
     setIsSubmitting(true);
     try {
-      const userDocRef = doc(firestore, 'users', auth.currentUser.uid);
+      const userDocRef = doc(firestore, 'users', user.uid);
       await updateDoc(userDocRef, {
         campusId: values.campusId,
         unitId: values.unitId || '', // Store empty string if not provided
@@ -259,7 +259,7 @@ export default function CompleteRegistrationPage() {
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={isSubmitting || (isUnitRequired && showNoUnitsMessage)}>
+                disabled={isSubmitting || (isUnitRequired && (showNoUnitsMessage || !form.getValues('unitId')))}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
