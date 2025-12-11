@@ -89,27 +89,30 @@ export default function DashboardLayout({
   
   // 2. For all non-admin users, check profile completion and verification status.
   if (userProfile && !isAdmin) {
-    const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
-    const isCampusLevelUser = userRole ? campusLevelRoles.includes(userRole) : false;
+    // 3. Only proceed if we have determined the user's role.
+    if (userRole) {
+      const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
+      const isCampusLevelUser = campusLevelRoles.includes(userRole);
 
-    // 3. Define what an incomplete profile means based on the user's role.
-    let isProfileIncomplete = false;
-    if (isCampusLevelUser) {
-      // Campus-level users only need campusId and roleId.
-      isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
-    } else {
-      // All other non-admin roles need campus, role, and unit.
-      isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
-    }
-    
-    // 4. Redirect if the profile is incomplete for their role.
-    if (isProfileIncomplete) {
-       return redirect('/complete-registration');
-    }
-    
-    // 5. If registration is complete, check for verification.
-    if (!userProfile.verified) {
-      return redirect('/awaiting-verification');
+      // 4. Define what an incomplete profile means based on the user's role.
+      let isProfileIncomplete = false;
+      if (isCampusLevelUser) {
+        // Campus-level users only need campusId and roleId. unitId is ignored.
+        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
+      } else {
+        // All other non-admin, non-campus roles need campus, role, and unit.
+        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
+      }
+      
+      // 5. Redirect if the profile is incomplete for their role.
+      if (isProfileIncomplete) {
+         return redirect('/complete-registration');
+      }
+      
+      // 6. If registration is complete, check for verification.
+      if (!userProfile.verified) {
+        return redirect('/awaiting-verification');
+      }
     }
   }
 
