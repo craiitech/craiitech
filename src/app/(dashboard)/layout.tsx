@@ -34,14 +34,17 @@ export default function DashboardLayout({
     () => (firestore ? collection(firestore, 'roles') : null),
     [firestore]
   );
-  const { data: roles } = useCollection<Role>(rolesQuery);
+  const { data: roles, isLoading: areRolesLoading } = useCollection<Role>(rolesQuery);
 
   const userRole = useMemo(() => {
     if (!userProfile || !roles) return null;
     return roles.find((r) => r.id === userProfile.roleId)?.name;
   }, [userProfile, roles]);
+  
+  // Combine all loading states. Logic should not proceed until all are false.
+  const isStillLoading = isUserLoading || areRolesLoading;
 
-  if (isUserLoading) {
+  if (isStillLoading) {
     return (
       <div className="flex items-start">
         <div className="w-64 border-r h-screen p-4 flex-col gap-4 hidden md:flex">
@@ -76,23 +79,26 @@ export default function DashboardLayout({
     return redirect('/login');
   }
 
+  // == REDIRECTION LOGIC ==
+  // This block only runs after all essential data (user, profile, roles) is loaded.
+  
   // 1. Let users stay on special pages to avoid redirect loops.
   if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
     return <>{children}</>;
   }
   
   // 2. For all non-admin users, check profile completion and verification status.
-  if (userProfile && !isAdmin) { // Check if profile is loaded and user is not an admin
+  if (userProfile && !isAdmin) {
     const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
     const isCampusLevelUser = userRole ? campusLevelRoles.includes(userRole) : false;
 
     // 3. Define what an incomplete profile means based on the user's role.
     let isProfileIncomplete = false;
     if (isCampusLevelUser) {
-      // Campus-level users only need campusId and roleId. unitId is ignored.
+      // Campus-level users only need campusId and roleId.
       isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
     } else {
-      // All other users need campus, role, and unit.
+      // All other non-admin roles need campus, role, and unit.
       isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
     }
     
