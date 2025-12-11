@@ -75,8 +75,8 @@ export function SidebarNav({
     <SidebarMenu>
       {visibleRoutes.map((route) => (
         <SidebarMenuItem key={route.href}>
-          <Link href={route.href} passHref legacyBehavior>
-            <SidebarMenuButton isActive={route.active} icon={route.icon} {...props}>
+          <Link href={route.href} passHref>
+            <SidebarMenuButton as="a" isActive={route.active} icon={route.icon} {...props}>
               {route.label}
             </SidebarMenuButton>
           </Link>
