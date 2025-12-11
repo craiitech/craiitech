@@ -1,0 +1,235 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * Core Philosophy: This ruleset implements a sophisticated security model that combines
+     * strict user-ownership with a hierarchical Role-Based Access Control (RBAC) system.
+     * The default posture is denial of access, with permissions explicitly granted based on
+     * user identity and assigned roles.
+     *
+     * Data Structure: User-specific data, such as their profile and submissions, is nested
+     * under a private `/users/{userId}` path, creating a clear ownership boundary.
+     * Global application data, such as role definitions, campuses, and submission cycles,
+     * are stored in top-level collections. User roles (Admin, Campus ODIMO, Unit ODIMO)
+     * are managed in dedicated `/roles_*` collections, where the existence of a document
+     * signifies a user's role.
+     *
+     * Key Security Decisions:
+     * - User Listing Disabled: To protect user privacy, listing the top-level `/users`
+     *   collection is explicitly forbidden.
+     * - Role-Based Access via Existence Checks: A user's role is determined by checking for the
+     *   existence of a document in collections like `/roles_admin/{userId}`. This is a highly
+     *   performant and secure method for managing roles.
+     * - Read-Only Global Data: Core application data (roles, campuses, etc.) is readable by any
+     *   signed-in user but is only writable by Admins, ensuring data integrity.
+     * - Supervisory Access: Higher-level roles (ODIMOs, Admins) are granted read and update
+     *   access to submissions that fall within their campus or unit jurisdiction. This is
+     *   achieved by comparing the supervisor's profile data against the submission data.
+     *
+     * Denormalization for Authorization: The rules for accessing submissions rely on the
+     * assumption that `Submission` documents contain denormalized `campusId` and `unitId` fields,
+     * copied from the author's user profile at the time of creation. This avoids slow and
+     * costly cross-collection `get()` calls in rules when checking permissions for supervisors.
+     * For example, an ODIMO's access is checked by getting their own user profile to find their
+     * campusId, then comparing it directly to the `submission.campusId`, which is a very
+     * efficient check.
+     *
+     * Structural Segregation: User-generated content (`/users/{userId}/submissions`) is
+     * structurally isolated from global administrative data (`/campuses`, `/roles`, etc.),
+     * which simplifies rule logic and enhances security and query performance.
+     */
+
+    // --------------------------------------------------------------------------
+    // Helper Functions
+    // --------------------------------------------------------------------------
+
+    /**
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user is the owner of a document,
+     * based on a matching userId.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks if the currently authenticated user is the owner of an existing document.
+     * Crucial for secure update and delete operations.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Checks if the current user has global Admin privileges.
+     * This is determined by the existence of a document in the roles_admin collection.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+    
+    /**
+     * Checks if the current user has Campus ODIMO privileges.
+     */
+    function isCampusOdimo() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_campus_odimo/$(request.auth.uid));
+    }
+    
+    /**
+     * Checks if the current user has Unit ODIMO privileges.
+     */
+    function isUnitOdimo() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_unit_odimo/$(request.auth.uid));
+    }
+
+    /**
+     * Determines if a supervisor (Admin, Campus ODIMO, Unit ODIMO) can view a specific submission.
+     * This requires one `get` call to fetch the supervisor's own profile to check their campus/unit.
+     * NOTE: This function assumes the submission document has denormalized `campusId` and `unitId` fields.
+     */
+    function canSupervisorAccess(submissionData) {
+      let userProfile = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return isAdmin()
+        || (isCampusOdimo() && userProfile.campusId == submissionData.campusId)
+        || (isUnitOdimo() && userProfile.unitId == submissionData.unitId);
+    }
+
+    // --------------------------------------------------------------------------
+    // Collection Rules
+    // --------------------------------------------------------------------------
+    
+    /**
+     * @description Users can create, read, and update their own profile information.
+     * @path /users/{userId}
+     * @allow (create) A new user with uid 'user123' creating their own profile at /users/user123.
+     * @deny (get) User 'user456' trying to read the profile of 'user123'.
+     * @principle Restricts access to a user's own data tree and prevents enumeration of all users.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Explicitly prevent listing all users for privacy.
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+    
+    /**
+     * @description A user's submissions are owned by them but can be viewed and managed by authorized supervisors.
+     * @path /users/{userId}/submissions/{submissionId}
+     * @allow (create) User 'user123' creating a submission at /users/user123/submissions/sub456.
+     * @deny (get) User 'user789' trying to read a submission owned by 'user123'.
+     * @principle Enforces document ownership for creation, while allowing tiered supervisory access for reads and updates.
+     */
+    match /users/{userId}/submissions/{submissionId} {
+      allow get: if isOwner(userId) || canSupervisorAccess(resource.data);
+      allow list: if isOwner(userId); // Users can list their own submissions. Supervisors must use targeted queries.
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if (isExistingOwner(userId) || (resource != null && canSupervisorAccess(resource.data))) && request.resource.data.userId == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Global role definitions are readable by any authenticated user but only managed by Admins.
+     * @path /roles/{roleId}
+     * @allow (get) Any signed-in user reading /roles/admin-role.
+     * @deny (create) A non-admin user trying to create a new role.
+     * @principle Protects critical application configuration data while allowing read access for UI elements.
+     */
+    match /roles/{roleId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Global submission statuses are readable by any authenticated user but only managed by Admins.
+     * @path /submissionStatuses/{statusId}
+     * @allow (list) Any signed-in user listing all possible submission statuses.
+     * @deny (update) A non-admin user trying to change the name of a status.
+     * @principle Protects critical application configuration data while allowing read access for UI elements.
+     */
+    match /submissionStatuses/{statusId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+    
+    /**
+     * @description Global submission cycles are readable by any authenticated user but only managed by Admins.
+     * @path /cycles/{cycleId}
+     * @allow (get) Any signed-in user reading the details of a submission cycle.
+     * @deny (delete) A non-admin user trying to delete a cycle.
+     * @principle Protects critical application configuration data while allowing read access for UI elements.
+     */
+    match /cycles/{cycleId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+    
+    /**
+     * @description Global campus definitions are readable by any authenticated user but only managed by Admins.
+     * @path /campuses/{campusId}
+     * @allow (get) Any signed-in user reading campus information.
+     * @deny (create) A non-admin user trying to add a new campus.
+     * @principle Protects critical application configuration data while allowing read access for UI elements.
+     */
+    match /campuses/{campusId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+    
+    /**
+     * @description Global unit definitions are readable by any authenticated user but only managed by Admins.
+     * @path /units/{unitId}
+     * @allow (get) Any signed-in user reading unit information.
+     * @deny (update) A non-admin user trying to modify a unit.
+     * @principle Protects critical application configuration data while allowing read access for UI elements.
+     */
+    match /units/{unitId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+    
+    /**
+     * @description The collection for assigning Admin roles. Only other Admins can manage this list.
+     * @path /roles_admin/{userId}
+     * @allow (create) An existing Admin adding 'user123' to /roles_admin/user123.
+     * @deny (get) A non-admin user trying to see who is an admin.
+     * @principle Secures the RBAC system by restricting management of the highest privilege level.
+     */
+    match /roles_admin/{userId} {
+      allow get, list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description The collection for assigning Campus ODIMO roles. Only Admins can manage this list.
+     * @path /roles_campus_odimo/{userId}
+     * @allow (create) An Admin adding 'user123' to /roles_campus_odimo/user123.
+     * @deny (get) A non-admin user trying to see who is a Campus ODIMO.
+     * @principle Secures the RBAC system by restricting management of supervisory roles to Admins.
+     */
+    match /roles_campus_odimo/{userId} {
+      allow get, list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description The collection for assigning Unit ODIMO roles. Only Admins can manage this list.
+     * @path /roles_unit_odimo/{userId}
+     * @allow (create) An Admin adding 'user123' to /roles_unit_odimo/user123.
+     * @deny (get) A Campus ODIMO trying to see who is a Unit ODIMO.
+     * @principle Secures the RBAC system by restricting management of supervisory roles to Admins.
+     */
+    match /roles_unit_odimo/{userId} {
+      allow get, list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}

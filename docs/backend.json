@@ -1,0 +1,403 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user within the RSU EOMS Submission Portal.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "User's first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "User's last name."
+        },
+        "roleId": {
+          "type": "string",
+          "description": "Reference to Role. (Relationship: User 1:1 Role)"
+        },
+        "campusId": {
+          "type": "string",
+          "description": "Reference to Campus. (Relationship: User 1:1 Campus).  The campus the user belongs to."
+        },
+        "unitId": {
+          "type": "string",
+          "description": "Reference to Unit. (Relationship: User 1:1 Unit). The unit the user belongs to."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "firstName",
+        "lastName",
+        "roleId",
+        "campusId",
+        "unitId"
+      ]
+    },
+    "Role": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Role",
+      "type": "object",
+      "description": "Represents a user role within the system (e.g., Admin, Campus Director).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Role entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the role (e.g., Admin, Campus Director)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the role and its permissions."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description"
+      ]
+    },
+    "Submission": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Submission",
+      "type": "object",
+      "description": "Represents a report submission by an employee.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Submission entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Submission).  The user who submitted the report."
+        },
+        "submissionDate": {
+          "type": "string",
+          "description": "Date and time of the submission.",
+          "format": "date-time"
+        },
+        "googleDriveLink": {
+          "type": "string",
+          "description": "Link to the report on Google Drive.",
+          "format": "uri"
+        },
+        "cycleId": {
+          "type": "string",
+          "description": "Reference to Cycle. (Relationship: Submission 1:1 Cycle). Identifies the submission cycle (First or Final)."
+        },
+        "statusId": {
+          "type": "string",
+          "description": "Reference to SubmissionStatus. (Relationship: Submission 1:1 SubmissionStatus). Current status of the submission in the approval workflow."
+        },
+        "comments": {
+          "type": "string",
+          "description": "Any comments associated with the submission (e.g., rejection reasons)."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "submissionDate",
+        "googleDriveLink",
+        "cycleId",
+        "statusId"
+      ]
+    },
+    "SubmissionStatus": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SubmissionStatus",
+      "type": "object",
+      "description": "Represents the status of a submission in the approval workflow.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SubmissionStatus entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the submission status (e.g., Submitted, Approved by Unit ODIMO, Rejected)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the status."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description"
+      ]
+    },
+    "Cycle": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Cycle",
+      "type": "object",
+      "description": "Represents a submission cycle (First or Final).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Cycle entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the cycle (e.g., First, Final)."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Start date of the submission cycle.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "End date of the submission cycle.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "startDate",
+        "endDate"
+      ]
+    },
+    "Campus": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Campus",
+      "type": "object",
+      "description": "Represents a campus within the RSU system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Campus entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the campus."
+        },
+        "location": {
+          "type": "string",
+          "description": "Location of the campus."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "location"
+      ]
+    },
+    "Unit": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Unit",
+      "type": "object",
+      "description": "Represents a unit within a campus.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Unit entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the unit."
+        },
+        "campusId": {
+          "type": "string",
+          "description": "Reference to Campus. (Relationship: Unit 1:1 Campus). The campus this unit belongs to."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "campusId"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile data. Uses path-based ownership, so security rules can easily verify `request.auth.uid == userId`. Includes denormalized 'roleId', 'campusId', and 'unitId' for easier access in other collections.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles/{roleId}",
+        "definition": {
+          "entityName": "Role",
+          "schema": {
+            "$ref": "#/backend/entities/Role"
+          },
+          "description": "Stores role definitions (e.g., Admin, Campus Director, Employee).",
+          "params": [
+            {
+              "name": "roleId",
+              "description": "The unique identifier of the role."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/submissions/{submissionId}",
+        "definition": {
+          "entityName": "Submission",
+          "schema": {
+            "$ref": "#/backend/entities/Submission"
+          },
+          "description": "Stores report submissions. Includes denormalized 'userId', 'cycleId', 'statusId' for authorization independence and quick access. 'userId' duplicates the parent path structure, reinforcing ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who created the submission."
+            },
+            {
+              "name": "submissionId",
+              "description": "The unique identifier of the submission."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/submissionStatuses/{statusId}",
+        "definition": {
+          "entityName": "SubmissionStatus",
+          "schema": {
+            "$ref": "#/backend/entities/SubmissionStatus"
+          },
+          "description": "Stores the possible statuses of a submission (e.g., Submitted, Approved, Rejected).",
+          "params": [
+            {
+              "name": "statusId",
+              "description": "The unique identifier of the submission status."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/cycles/{cycleId}",
+        "definition": {
+          "entityName": "Cycle",
+          "schema": {
+            "$ref": "#/backend/entities/Cycle"
+          },
+          "description": "Stores submission cycle definitions (e.g., First Cycle, Final Cycle).",
+          "params": [
+            {
+              "name": "cycleId",
+              "description": "The unique identifier of the cycle."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/campuses/{campusId}",
+        "definition": {
+          "entityName": "Campus",
+          "schema": {
+            "$ref": "#/backend/entities/Campus"
+          },
+          "description": "Stores campus information.",
+          "params": [
+            {
+              "name": "campusId",
+              "description": "The unique identifier of the campus."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/units/{unitId}",
+        "definition": {
+          "entityName": "Unit",
+          "schema": {
+            "$ref": "#/backend/entities/Unit"
+          },
+          "description": "Stores unit information within a campus.",
+          "params": [
+            {
+              "name": "unitId",
+              "description": "The unique identifier of the unit."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "adminRole",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Documents in this collection denote admin privileges.  Authorization rules check for the existence of a document with the user's UID in this collection. Existence, not content, is important.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who is an admin."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_campus_odimo/{userId}",
+        "definition": {
+          "entityName": "campusOdimoRole",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Documents in this collection denote Campus ODIMO privileges. Authorization rules check for the existence of a document with the user's UID in this collection. Existence, not content, is important.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who is a campus ODIMO."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_unit_odimo/{userId}",
+        "definition": {
+          "entityName": "unitOdimoRole",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Documents in this collection denote Unit ODIMO privileges. Authorization rules check for the existence of a document with the user's UID in this collection. Existence, not content, is important.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who is a unit ODIMO."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore structure prioritizes security, scalability, and debuggability, following the core design principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). It uses denormalization, structural segregation, and standardized access modeling to simplify security rules and ensure data integrity.\n\n**Authorization Independence:**  Access control is enforced at each document level without relying on hierarchical `get()` calls. This is achieved by denormalizing relevant authorization data.  For example, user role and campus/unit information are directly embedded within the `submissions` collection to enable independent rule evaluation.\n\n**Structural Segregation:**  Data with differing access requirements are stored in separate collections.  Administrative data (roles, campuses, units, cycles, submission statuses) are stored in root-level collections. User-generated content (submissions) are stored in a path-based structure (`/users/{userId}/submissions/{submissionId}`) to easily manage ownership.\n\n**DBAC (Database-Based Access Control):** User roles and campus/unit assignments are stored in the database and used for authorization.  The security rules will use the user's `uid` from `request.auth` to verify their assigned role and campus/unit affiliation before granting access.\n\n**QAPs (Rules Are Not Filters):** The structure supports secure `list` operations. For example, listing submissions is secure because the rules ensure the requesting user has the appropriate role and/or ownership to access the submissions.\n\n**Invariants:** The structure ensures the integrity of ownership, timestamps, and denormalized data.  Path-based ownership for submissions ensures only the designated user can create/modify their submissions. Server timestamps can be used for `submissionDate`. Denormalized data (e.g., user role) is kept consistent through backend functions triggered on user role changes.\n\n**Denormalization Details**\n\n*   **Submissions:** The `submissions` collection benefits from denormalization.  While `userId` links back to the `users` collection, additional information may be denormalized for quicker access and authorization, such as copying the `roleId`, `campusId`, and `unitId` from the `User` document into the `Submission` document. This is crucial for authorizing access to Submissions without needing to perform a `get()` operation on the `users` document in the security rules.\n\n\n**Role-based access is implemented as follows:**\n\n*   **Admin:** Admins have read and write access to all collections, including managing users, roles, campuses, units, cycles, and submission statuses. This is achieved by checking for the existence of a document in the `/roles_admin/{userId}` collection. Admins can also access all Submissions.\n*   **Campus Director/ODIMO:** Campus Directors/ODIMOs can access and manage submissions associated with their campus. The rule will check the `campusId` of the submission against the user's `campusId` (retrieved from their `users` document). Access to `/roles_campus_odimo/{userId}` confirms their elevated permissions.\n*   **Unit ODIMO:** Unit ODIMOs can access and manage submissions associated with their unit.  The rule will check the `unitId` of the submission against the user's `unitId` (retrieved from their `users` document). Access to `/roles_unit_odimo/{userId}` confirms their elevated permissions.\n*   **Employee:** Employees can only create, read, update (before approval), and delete their own submissions. The rule will check that the `userId` in the submission matches the authenticated user's `uid`."
+  }
+}
