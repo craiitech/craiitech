@@ -22,7 +22,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const firestore = useFirestore();
 
-  const rolesQuery = useMemoFirebase(() => collection(firestore, 'roles'), [firestore]);
+  const rolesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'roles') : null), [firestore]);
   const { data: roles, isLoading: areRolesLoading } = useCollection<Role>(rolesQuery);
   
   const userRole = useMemo(() => {
@@ -66,27 +66,26 @@ export default function DashboardLayout({
     redirect('/login');
   }
 
-  if (userProfile) {
-    // If the user is an admin, they can access everything.
-    if (userRole === 'Admin') {
-       // Let them access any page.
-    } else if (!userProfile.campusId || !userProfile.unitId || !userProfile.roleId) {
-      // If user profile is not complete (and they are not an admin), redirect to campus registration
-        if (pathname !== '/register/campus') {
-             redirect('/register/campus');
+  if (userRole !== 'Admin') {
+      if (userProfile) {
+        if (!userProfile.campusId || !userProfile.unitId || !userProfile.roleId) {
+          // If user profile is not complete, redirect to campus registration
+            if (pathname !== '/register/campus') {
+                 redirect('/register/campus');
+            }
+        } else if (!userProfile.verified) {
+            // If profile is complete but not verified, send to awaiting verification
+            if (pathname !== '/awaiting-verification') {
+                redirect('/awaiting-verification');
+            }
         }
-    } else if (!userProfile.verified) {
-        // If profile is complete but not verified, send to awaiting verification
-        if (pathname !== '/awaiting-verification') {
-            redirect('/awaiting-verification');
-        }
+    } else if(user && !isLoading) {
+        // This can happen if the user is authenticated but the firestore doc doesn't exist yet
+        // or is still loading. Redirecting to campus registration is a safe default.
+         if (pathname !== '/register/campus' && pathname !== '/awaiting-verification') {
+           redirect('/register/campus');
+         }
     }
-  } else if(user && !isLoading) {
-      // This can happen if the user is authenticated but the firestore doc doesn't exist.
-      // Redirecting to campus registration is a safe default.
-       if (pathname !== '/register/campus' && pathname !== '/awaiting-verification') {
-         redirect('/register/campus');
-       }
   }
 
   return (
