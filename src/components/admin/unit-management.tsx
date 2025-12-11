@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -49,22 +49,51 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import type { Campus, Unit } from '@/lib/types';
 
-// Schema for Admins creating a new unit
-const adminUnitSchema = z.object({
-  name: z.string().min(3, 'Unit name must be at least 3 characters.'),
-});
-
-// Schema for Campus Directors assigning an existing unit
-const directorUnitSchema = z.object({
-  unitId: z.string().min(1, 'Please select a unit to assign.'),
-});
-
 
 export function UnitManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const firestore = useFirestore();
   const { toast } = useToast();
   const { userProfile, isAdmin } = useUser();
+
+  // This schema handles both cases: admin creating a unit, and director assigning one.
+  const unitManagementSchema = z.object({
+    name: z.string().optional(),
+    unitId: z.string().optional(),
+  }).superRefine((data, ctx) => {
+      // Pass isAdmin to the refine function using a closure
+      // This is a bit of a hack, but necessary since Zod schemas are static.
+      const isUserAdmin = (typeof window !== 'undefined' && (window as any).__isAdmin);
+
+      if (isUserAdmin) {
+          if (!data.name || data.name.length < 3) {
+              ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  message: 'Unit name must be at least 3 characters.',
+                  path: ['name'],
+              });
+          }
+      } else {
+          if (!data.unitId || data.unitId.length < 1) {
+              ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  message: 'Please select a unit to assign.',
+                  path: ['unitId'],
+              });
+          }
+      }
+  });
+
+  // Store isAdmin in a temporary global variable for the Zod schema to access.
+  // This is safe in the browser's single-threaded environment.
+  if (typeof window !== 'undefined') {
+    (window as any).__isAdmin = isAdmin;
+  }
+  
+  const form = useForm<z.infer<typeof unitManagementSchema>>({
+    resolver: zodResolver(unitManagementSchema),
+    defaultValues: { name: '', unitId: '' },
+  });
 
   const campusesQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'campuses') : null),
@@ -78,18 +107,12 @@ export function UnitManagement() {
   );
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
-  // Determine the correct schema and resolver based on the user's role
-  const form = useForm({
-    resolver: zodResolver(isAdmin ? adminUnitSchema : directorUnitSchema),
-    defaultValues: isAdmin ? { name: '' } : { unitId: '' },
-  });
-
   const unassignedUnits = useMemo(() => {
     if (!allUnits) return [];
     return allUnits.filter(u => !u.campusId);
   }, [allUnits]);
 
-  const onSubmit = async (values: z.infer<typeof adminUnitSchema> | z.infer<typeof directorUnitSchema>) => {
+  const onSubmit = async (values: z.infer<typeof unitManagementSchema>) => {
     if (!firestore || !userProfile) return;
     setIsSubmitting(true);
     
@@ -97,7 +120,7 @@ export function UnitManagement() {
         if (isAdmin) {
             // Admin logic: Create a new unit (unassigned)
             await addDoc(collection(firestore, 'units'), {
-                name: (values as z.infer<typeof adminUnitSchema>).name,
+                name: values.name,
                 campusId: '', // Admins create unassigned units
                 createdAt: serverTimestamp(),
             });
@@ -109,8 +132,12 @@ export function UnitManagement() {
                  setIsSubmitting(false);
                  return;
             }
-            const selectedUnitId = (values as z.infer<typeof directorUnitSchema>).unitId;
-            const unitRef = doc(firestore, 'units', selectedUnitId);
+            if (!values.unitId) {
+                toast({ title: 'Error', description: 'No unit selected.', variant: 'destructive' });
+                setIsSubmitting(false);
+                return;
+            }
+            const unitRef = doc(firestore, 'units', values.unitId);
             await updateDoc(unitRef, {
                 campusId: userProfile.campusId
             });
