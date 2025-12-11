@@ -89,14 +89,16 @@ export default function DashboardPage() {
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
       </div>
        {campusHasNoUnits && !isLoading && (
-        <Alert variant="default" className="bg-yellow-50 border-yellow-200 text-yellow-800">
-           <AlertTriangle className="h-4 w-4 !text-yellow-500" />
+        <Alert variant="default" className="bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800/50 dark:text-yellow-200">
+           <AlertTriangle className="h-4 w-4 !text-yellow-500 dark:!text-yellow-400" />
           <AlertTitle>No Units Found for Your Campus</AlertTitle>
           <AlertDescription>
-            There are no units registered under your campus yet. Please go to the settings to add units for your faculty and staff to be assigned to.
-            <Button asChild variant="link" className="p-0 h-auto ml-1 text-yellow-800 font-bold">
-                <Link href="/settings">Go to Settings</Link>
-            </Button>
+            There are no units registered under your campus yet. Please go to the settings page to add units.
+             <div className="mt-2">
+                <Button asChild variant="secondary" size="sm">
+                    <Link href="/settings">Go to Settings</Link>
+                </Button>
+            </div>
           </AlertDescription>
         </Alert>
       )}
