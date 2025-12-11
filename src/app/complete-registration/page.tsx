@@ -42,7 +42,7 @@ const campusRegistrationSchema = z.object({
   roleId: z.string().min(1, { message: 'Please select a role.' }),
 });
 
-export default function CampusRegistrationPage() {
+export default function CompleteRegistrationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const { user, isUserLoading } = useAuth();
@@ -60,13 +60,13 @@ export default function CampusRegistrationPage() {
   
   const { campusId } = form.watch();
 
-  const campusesQuery = useMemoFirebase(() => collection(firestore, 'campuses'), [firestore]);
+  const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses'): null, [firestore]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
-  const unitsQuery = useMemoFirebase(() => collection(firestore, 'units'), [firestore]);
+  const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units'): null, [firestore]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
-  const rolesQuery = useMemoFirebase(() => collection(firestore, 'roles'), [firestore]);
+  const rolesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'roles'): null, [firestore]);
   const { data: roles, isLoading: isLoadingRoles } = useCollection<Role>(rolesQuery);
 
   const units = useMemo(() => {
@@ -118,7 +118,6 @@ export default function CampusRegistrationPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
@@ -221,6 +220,5 @@ export default function CampusRegistrationPage() {
           </Form>
         </CardContent>
       </Card>
-    </div>
   );
 }

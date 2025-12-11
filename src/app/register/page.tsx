@@ -67,7 +67,7 @@ export default function RegisterPage() {
         title: 'Account Created!',
         description: "Please complete your registration.",
       });
-      router.push('/register/campus');
+      router.push('/complete-registration');
     } catch (error) {
       toast({
         title: 'Registration Failed',

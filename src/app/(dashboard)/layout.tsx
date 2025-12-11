@@ -7,8 +7,7 @@ import { MainNav } from '@/components/dashboard/main-nav';
 import { UserNav } from '@/components/dashboard/user-nav';
 import { Logo } from '@/components/logo';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collection } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { collection, getFirestore } from 'firebase/firestore';
 import { useMemo } from 'react';
 import type { Role } from '@/lib/types';
 
@@ -63,29 +62,24 @@ export default function DashboardLayout({
   }
 
   if (!user) {
-    redirect('/login');
+    return redirect('/login');
   }
 
-  // Once loading is complete, we can check roles and profile status
+  // If user is loaded, check their role and profile status
   if (userRole !== 'Admin') {
-    if (!userProfile) {
-       // This can happen if the firestore doc doesn't exist yet.
-       // Redirecting to campus registration is a safe default for non-admins.
-        if (pathname !== '/register/campus') {
-          redirect('/register/campus');
-        }
-    } else if (!userProfile.campusId || !userProfile.unitId || !userProfile.roleId) {
-        // If user profile is not complete, redirect to campus registration
-        if (pathname !== '/register/campus') {
-            redirect('/register/campus');
+     // For non-admins, we enforce profile completion and verification
+    if (!userProfile || !userProfile.campusId || !userProfile.unitId || !userProfile.roleId) {
+        if (pathname !== '/complete-registration') {
+            return redirect('/complete-registration');
         }
     } else if (!userProfile.verified) {
-        // If profile is complete but not verified, send to awaiting verification
         if (pathname !== '/awaiting-verification') {
-            redirect('/awaiting-verification');
+            return redirect('/awaiting-verification');
         }
     }
   }
+  // Admins are allowed through without the above checks.
+  // We also let users who are on the correct verification/completion pages stay there.
 
 
   return (
