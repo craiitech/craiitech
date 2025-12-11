@@ -56,36 +56,32 @@ export function UnitManagement() {
   const { toast } = useToast();
   const { userProfile, isAdmin } = useUser();
 
-  // This schema handles both cases: admin creating a unit, and director assigning one.
   const unitManagementSchema = z.object({
     name: z.string().optional(),
     unitId: z.string().optional(),
   }).superRefine((data, ctx) => {
-      // Pass isAdmin to the refine function using a closure
-      // This is a bit of a hack, but necessary since Zod schemas are static.
-      const isUserAdmin = (typeof window !== 'undefined' && (window as any).__isAdmin);
-
-      if (isUserAdmin) {
-          if (!data.name || data.name.length < 3) {
-              ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  message: 'Unit name must be at least 3 characters.',
-                  path: ['name'],
-              });
-          }
-      } else {
-          if (!data.unitId || data.unitId.length < 1) {
-              ctx.addIssue({
-                  code: z.ZodIssueCode.custom,
-                  message: 'Please select a unit to assign.',
-                  path: ['unitId'],
-              });
-          }
+      if (typeof window !== 'undefined') {
+        const isUserAdmin = (window as any).__isAdmin;
+        if (isUserAdmin) {
+            if (!data.name || data.name.length < 3) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Unit name must be at least 3 characters.',
+                    path: ['name'],
+                });
+            }
+        } else {
+            if (!data.unitId || data.unitId.length < 1) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Please select a unit to assign.',
+                    path: ['unitId'],
+                });
+            }
+        }
       }
   });
 
-  // Store isAdmin in a temporary global variable for the Zod schema to access.
-  // This is safe in the browser's single-threaded environment.
   if (typeof window !== 'undefined') {
     (window as any).__isAdmin = isAdmin;
   }
