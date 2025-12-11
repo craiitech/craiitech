@@ -185,7 +185,7 @@ export function UnitManagement() {
                         </FormControl>
                         <SelectContent>
                           {isLoadingUnits ? (
-                             <SelectItem value="loading" disabled>Loading...</SelectItem></SelectItem>
+                             <SelectItem value="loading" disabled>Loading...</SelectItem>
                           ) : unassignedUnits.length > 0 ? (
                             unassignedUnits.map((unit) => (
                                 <SelectItem key={unit.id} value={unit.id}>
@@ -193,7 +193,7 @@ export function UnitManagement() {
                                 </SelectItem>
                             ))
                           ) : (
-                             <SelectItem value="none" disabled>No unassigned units available</SelectItem></SelectItem>
+                             <SelectItem value="none" disabled>No unassigned units available</SelectItem>
                           )}
                         </SelectContent>
                       </Select>
