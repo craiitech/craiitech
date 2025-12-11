@@ -145,13 +145,6 @@ export default function CompleteRegistrationPage() {
   
   const showNoUnitsMessage = campusId && !isLoadingUnits && units.length === 0;
 
-  const isButtonDisabled = useMemo(() => {
-    if (isSubmitting) return true;
-    // Disable if a unit is required but there are no units for the selected campus.
-    if (isUnitRequired && showNoUnitsMessage) return true;
-    return false;
-  }, [isSubmitting, isUnitRequired, showNoUnitsMessage]);
-
 
   if (isUserLoading || isLoadingCampuses || isLoadingRoles) {
     return (
@@ -263,7 +256,10 @@ export default function CompleteRegistrationPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isButtonDisabled}>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isSubmitting || (isUnitRequired && showNoUnitsMessage)}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
