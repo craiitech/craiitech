@@ -233,6 +233,25 @@
         "name",
         "campusId"
       ]
+    },
+    "CampusSetting": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CampusSetting",
+      "type": "object",
+      "description": "Represents settings specific to a campus.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CampusSetting entity, same as campusId."
+        },
+        "announcement": {
+          "type": "string",
+          "description": "A campus-specific announcement to be displayed on the dashboard."
+        }
+      },
+      "required": [
+        "id"
+      ]
     }
   },
   "auth": {
@@ -343,6 +362,22 @@
           ]
         }
       },
+       {
+        "path": "/campusSettings/{campusId}",
+        "definition": {
+          "entityName": "CampusSetting",
+          "schema": {
+            "$ref": "#/backend/entities/CampusSetting"
+          },
+          "description": "Stores campus-specific settings. The document ID is the same as the campusId.",
+          "params": [
+            {
+              "name": "campusId",
+              "description": "The unique identifier of the campus."
+            }
+          ]
+        }
+      },
       {
         "path": "/units/{unitId}",
         "definition": {
@@ -411,3 +446,5 @@
     "reasoning": "This Firestore structure prioritizes security, scalability, and debuggability, following the core design principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). It uses denormalization, structural segregation, and standardized access modeling to simplify security rules and ensure data integrity.\n\n**Authorization Independence:**  Access control is enforced at each document level without relying on hierarchical `get()` calls. This is achieved by denormalizing relevant authorization data.  For example, user role and campus/unit information are directly embedded within the `submissions` collection to enable independent rule evaluation.\n\n**Structural Segregation:**  Data with differing access requirements are stored in separate collections.  Administrative data (roles, campuses, units, cycles, submission statuses) are stored in root-level collections. User-generated content (submissions) are stored in a path-based structure (`/users/{userId}/submissions/{submissionId}`) to easily manage ownership.\n\n**DBAC (Database-Based Access Control):** User roles and campus/unit assignments are stored in the database and used for authorization.  The security rules will use the user's `uid` from `request.auth` to verify their assigned role and campus/unit affiliation before granting access.\n\n**QAPs (Rules Are Not Filters):** The structure supports secure `list` operations. For example, listing submissions is secure because the rules ensure the requesting user has the appropriate role and/or ownership to access the submissions.\n\n**Invariants:** The structure ensures the integrity of ownership, timestamps, and denormalized data.  Path-based ownership for submissions ensures only the designated user can create/modify their submissions. Server timestamps can be used for `submissionDate`. Denormalized data (e.g., user role) is kept consistent through backend functions triggered on user role changes.\n\n**Denormalization Details**\n\n*   **Submissions:** The `submissions` collection benefits from denormalization.  While `userId` links back to the `users` collection, additional information may be denormalized for quicker access and authorization, such as copying the `roleId`, `campusId`, and `unitId` from the `User` document into the `Submission` document. This is crucial for authorizing access to Submissions without needing to perform a `get()` operation on the `users` document in the security rules.\n\n\n**Role-based access is implemented as follows:**\n\n*   **Admin:** Admins have read and write access to all collections, including managing users, roles, campuses, units, cycles, and submission statuses. This is achieved by checking for the existence of a document in the `/roles_admin/{userId}` collection. Admins can also access all Submissions.\n*   **Campus Director/ODIMO:** Campus Directors/ODIMOs can access and manage submissions associated with their campus. The rule will check the `campusId` of the submission against the user's `campusId` (retrieved from their `users` document). Access to `/roles_campus_odimo/{userId}` confirms their elevated permissions.\n*   **Unit ODIMO:** Unit ODIMOs can access and manage submissions associated with their unit.  The rule will check the `unitId` of the submission against the user's `unitId` (retrieved from their `users` document). Access to `/roles_unit_odimo/{userId}` confirms their elevated permissions.\n*   **Employee:** Employees can only create, read, update (before approval), and delete their own submissions. The rule will check that the `userId` in the submission matches the authenticated user's `uid`."
   }
 }
+
+    

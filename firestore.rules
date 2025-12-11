@@ -192,6 +192,18 @@ service cloud.firestore {
     }
     
     /**
+     * @description Campus-specific settings can be managed by campus-level users or admins.
+     * @path /campusSettings/{campusId}
+     * @allow (write) A Campus Director updating the settings for their own campus.
+     * @deny (read) An employee from another campus trying to read settings.
+     * @principle Allows decentralized management of campus settings while maintaining security.
+     */
+    match /campusSettings/{campusId} {
+      allow read, write: if isAdmin() || ((isCampusDirector() || isCampusOdimo()) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.campusId == campusId);
+      allow list: if isAdmin();
+    }
+    
+    /**
      * @description Global unit definitions can be created by Admins. Campus-level users can assign units to their campus.
      * @path /units/{unitId}
      * @allow (get) Any signed-in user reading unit information.
@@ -249,3 +261,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
