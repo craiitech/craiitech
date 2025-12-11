@@ -77,6 +77,14 @@ service cloud.firestore {
     }
     
     /**
+     * Checks if the current user has Campus Director privileges.
+     */
+    function isCampusDirector() {
+      let userProfile = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return userProfile.role == 'Campus Director';
+    }
+    
+    /**
      * Checks if the current user has Campus ODIMO privileges.
      */
     function isCampusOdimo() {
@@ -193,10 +201,11 @@ service cloud.firestore {
     match /units/{unitId} {
       allow get, list: if isSignedIn();
       allow create: if isAdmin();
-      allow update: if isAdmin() || (isCampusOdimo()
-          && request.resource.data.keys().hasOnly(['campusId', 'name', 'createdAt']) // User can only change campusId
-          && request.resource.data.name == resource.data.name // Name cannot be changed
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.campusId == request.resource.data.campusId); // Can only assign to their own campus
+      allow update: if isAdmin() || (
+        (isCampusDirector() || isCampusOdimo())
+        && request.resource.data.keys().hasOnly(['campusId'])
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.campusId == request.resource.data.campusId
+      );
       allow delete: if isAdmin();
     }
     
