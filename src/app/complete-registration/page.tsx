@@ -25,6 +25,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -91,6 +92,7 @@ export default function CompleteRegistrationPage() {
         campusId: values.campusId,
         unitId: values.unitId,
         roleId: values.roleId,
+        verified: false, // Ensure verification status is reset on profile update
       });
 
       toast({
@@ -108,8 +110,10 @@ export default function CompleteRegistrationPage() {
       setIsSubmitting(false);
     }
   };
+  
+  const showNoUnitsMessage = campusId && !isLoadingUnits && units.length === 0;
 
-  if (isUserLoading || isLoadingCampuses || isLoadingUnits || isLoadingRoles) {
+  if (isUserLoading || isLoadingCampuses || isLoadingRoles) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin" />
@@ -137,7 +141,10 @@ export default function CompleteRegistrationPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Campus</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={(value) => {
+                      field.onChange(value);
+                      form.setValue('unitId', ''); // Reset unit when campus changes
+                    }} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select your campus" />
@@ -162,20 +169,31 @@ export default function CompleteRegistrationPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Unit</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!campusId}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={!campusId || showNoUnitsMessage}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select your unit" />
+                          <SelectValue placeholder={!campusId ? "Select a campus first" : "Select your unit"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {units.map((unit) => (
-                          <SelectItem key={unit.id} value={unit.id}>
-                            {unit.name}
-                          </SelectItem>
-                        ))}
+                        {isLoadingUnits ? (
+                          <div className="flex items-center justify-center p-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          </div>
+                        ) : (
+                          units.map((unit) => (
+                            <SelectItem key={unit.id} value={unit.id}>
+                              {unit.name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
+                    {showNoUnitsMessage && (
+                        <FormDescription className='text-destructive'>
+                            NO UNITS REGISTERED TO THIS CAMPUS, please ask the administrator.
+                        </FormDescription>
+                    )}
                      <FormMessage />
                   </FormItem>
                 )}
@@ -206,7 +224,7 @@ export default function CompleteRegistrationPage() {
                 )}
               />
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button type="submit" className="w-full" disabled={isSubmitting || showNoUnitsMessage}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
