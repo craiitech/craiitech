@@ -82,17 +82,19 @@ export default function DashboardLayout({
   }
   
   // 2. For all non-admin users, check profile completion and verification status.
-  if (!isAdmin && userProfile) {
-    const isCampusLevelRole = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+  if (userProfile) { // Check if profile is loaded
+    const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
+    const isCampusLevelRole = userRole ? campusLevelRoles.includes(userRole) : false;
     
-    // 3. Check for incomplete registration.
+    // 3. Check for incomplete registration based on role.
     const isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || (!isCampusLevelRole && !userProfile.unitId);
-    if (isProfileIncomplete) {
+    
+    if (isProfileIncomplete && !isAdmin) { // Admins don't need to complete this profile
        return redirect('/complete-registration');
     }
     
     // 4. If registration is complete, check for verification.
-    if (!userProfile.verified) {
+    if (!userProfile.verified && !isAdmin) { // Admins don't need verification
       return redirect('/awaiting-verification');
     }
   }
