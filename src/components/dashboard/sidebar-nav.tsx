@@ -2,7 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useUser, useMemoFirebase, useFirestore } from '@/firebase';
+import {
+  useUser,
+  useMemoFirebase,
+  useFirestore,
+  useCollection,
+} from '@/firebase';
 import { cn } from '@/lib/utils';
 import type { Role } from '@/lib/types';
 import { collection } from 'firebase/firestore';
@@ -70,11 +75,11 @@ export function SidebarNav({
     <SidebarMenu>
       {visibleRoutes.map((route) => (
         <SidebarMenuItem key={route.href}>
-            <Link href={route.href} passHref legacyBehavior>
-                <SidebarMenuButton isActive={route.active} icon={route.icon} {...props}>
-                    {route.label}
-                </SidebarMenuButton>
-            </Link>
+          <Link href={route.href} passHref legacyBehavior>
+            <SidebarMenuButton isActive={route.active} icon={route.icon} {...props}>
+              {route.label}
+            </SidebarMenuButton>
+          </Link>
         </SidebarMenuItem>
       ))}
     </SidebarMenu>
