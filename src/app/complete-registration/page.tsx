@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -144,7 +145,6 @@ export default function CompleteRegistrationPage() {
   };
   
   const showNoUnitsMessage = campusId && !isLoadingUnits && units.length === 0;
-
 
   if (isUserLoading || isLoadingCampuses || isLoadingRoles) {
     return (
