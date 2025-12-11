@@ -91,7 +91,7 @@ export default function CompleteRegistrationPage() {
   const { data: roles, isLoading: isLoadingRoles } = useCollection<Role>(rolesQuery);
   
   // Store roles in a globally accessible way for the refiner
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && roles) {
     (window as any).__roles = roles;
   }
 
@@ -109,7 +109,7 @@ export default function CompleteRegistrationPage() {
   }, [roleId, roles]);
   
   const onSubmit = async (values: z.infer<typeof campusRegistrationSchema>) => {
-    if (!user) {
+    if (!user || !firestore) {
       toast({
         title: 'Error',
         description: 'You must be logged in to complete registration.',
@@ -121,10 +121,13 @@ export default function CompleteRegistrationPage() {
     setIsSubmitting(true);
     try {
       const userDocRef = doc(firestore, 'users', user.uid);
+      const selectedRole = roles?.find(r => r.id === values.roleId);
+
       await updateDoc(userDocRef, {
         campusId: values.campusId,
         unitId: values.unitId || '', // Store empty string if not provided
         roleId: values.roleId,
+        role: selectedRole ? selectedRole.name : '',
         verified: false, // Ensure verification status is reset on profile update
       });
 
@@ -146,7 +149,7 @@ export default function CompleteRegistrationPage() {
   
   const showNoUnitsMessage = campusId && !isLoadingUnits && units.length === 0;
   
-  const isButtonDisabled = isSubmitting || (isUnitRequired && (!form.getValues('unitId') || showNoUnitsMessage));
+  const isButtonDisabled = isSubmitting || (isUnitRequired && (!form.getValues('unitId') || (showNoUnitsMessage && units.length === 0)));
 
   if (isLoadingCampuses || isLoadingRoles) {
     return (
@@ -229,7 +232,7 @@ export default function CompleteRegistrationPage() {
                     <FormLabel>
                         Unit {isUnitRequired ? '' : <span className="text-muted-foreground">(Optional)</span>}
                     </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={!campusId || showNoUnitsMessage || !isUnitRequired}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={!campusId || (showNoUnitsMessage && isUnitRequired) || !isUnitRequired}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder={!isUnitRequired ? "Not applicable for this role" : !campusId ? "Select a campus first" : "Select your unit"} />

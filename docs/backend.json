@@ -27,6 +27,10 @@
           "type": "string",
           "description": "Reference to Role. (Relationship: User 1:1 Role)"
         },
+        "role": {
+          "type": "string",
+          "description": "The name of the user's role, denormalized for easy access."
+        },
         "campusId": {
           "type": "string",
           "description": "Reference to Campus. (Relationship: User 1:1 Campus).  The campus the user belongs to."
@@ -46,6 +50,7 @@
         "firstName",
         "lastName",
         "roleId",
+        "role",
         "campusId",
         "unitId",
         "verified"
