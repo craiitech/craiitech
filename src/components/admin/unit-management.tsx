@@ -109,7 +109,8 @@ export function UnitManagement() {
                  setIsSubmitting(false);
                  return;
             }
-            const unitRef = doc(firestore, 'units', (values as z.infer<typeof directorUnitSchema>).unitId);
+            const selectedUnitId = (values as z.infer<typeof directorUnitSchema>).unitId;
+            const unitRef = doc(firestore, 'units', selectedUnitId);
             await updateDoc(unitRef, {
                 campusId: userProfile.campusId
             });
