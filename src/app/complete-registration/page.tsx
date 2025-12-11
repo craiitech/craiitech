@@ -47,7 +47,9 @@ const campusRegistrationSchema = z.object({
     const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
     
     // Find the role object to get its name
-    const roleName = (window as any).__roles?.find((r: Role) => r.id === data.roleId)?.name;
+    const roleName = (typeof window !== 'undefined' && (window as any).__roles)
+      ? (window as any).__roles.find((r: Role) => r.id === data.roleId)?.name
+      : '';
 
     if (roleName && campusLevelRoles.includes(roleName)) {
       return true; // If it's a campus-level role, unitId is not required.
@@ -101,7 +103,8 @@ export default function CompleteRegistrationPage() {
     if (!roleId || !roles) return true; // Default to required
     const selectedRole = roles.find(r => r.id === roleId);
     const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
-    return !selectedRole || !campusLevelRoles.includes(selectedRole.name);
+    // A unit is required if a role is selected AND it's not a campus-level role.
+    return !!selectedRole && !campusLevelRoles.includes(selectedRole.name);
   }, [roleId, roles]);
   
   const onSubmit = async (values: z.infer<typeof campusRegistrationSchema>) => {
@@ -141,6 +144,14 @@ export default function CompleteRegistrationPage() {
   };
   
   const showNoUnitsMessage = campusId && !isLoadingUnits && units.length === 0;
+
+  const isButtonDisabled = useMemo(() => {
+    if (isSubmitting) return true;
+    // Disable if a unit is required but there are no units for the selected campus.
+    if (isUnitRequired && showNoUnitsMessage) return true;
+    return false;
+  }, [isSubmitting, isUnitRequired, showNoUnitsMessage]);
+
 
   if (isUserLoading || isLoadingCampuses || isLoadingRoles) {
     return (
@@ -252,7 +263,7 @@ export default function CompleteRegistrationPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isSubmitting || (showNoUnitsMessage && isUnitRequired)}>
+              <Button type="submit" className="w-full" disabled={isButtonDisabled}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
