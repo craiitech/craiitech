@@ -34,6 +34,10 @@
         "unitId": {
           "type": "string",
           "description": "Reference to Unit. (Relationship: User 1:1 Unit). The unit the user belongs to."
+        },
+        "verified": {
+          "type": "boolean",
+          "description": "Indicates if the user's account has been verified by an admin."
         }
       },
       "required": [
@@ -43,7 +47,8 @@
         "lastName",
         "roleId",
         "campusId",
-        "unitId"
+        "unitId",
+        "verified"
       ]
     },
     "Role": {

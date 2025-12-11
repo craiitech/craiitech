@@ -2,16 +2,21 @@
 // consider using Zod schemas and inferring types from them, 
 // especially for Firestore documents.
 
-export type Role = 'Admin' | 'Campus Director' | 'Campus ODIMO' | 'Unit ODIMO' | 'Employee';
+export type Role = {
+  id: string;
+  name: string;
+  description?: string;
+};
 
 export type User = {
   id: string;
   name: string;
   email: string;
   avatar: string;
-  role: Role;
+  role: Role['name'];
   campus: string;
   unit: string;
+  verified?: boolean;
 };
 
 export type Status = 'Pending' | 'Approved' | 'Rejected' | 'Submitted';
@@ -30,3 +35,15 @@ export type Submission = {
     timestamp: string;
   }[];
 };
+
+export type Campus = {
+    id: string;
+    name: string;
+    location: string;
+}
+
+export type Unit = {
+    id: string;
+    name: string;
+    campusId: string;
+}

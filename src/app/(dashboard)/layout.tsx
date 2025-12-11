@@ -1,12 +1,14 @@
 'use client';
 
-import { redirect } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { redirect, usePathname } from 'next/navigation';
+import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import TeamSwitcher from '@/components/dashboard/team-switcher';
 import { MainNav } from '@/components/dashboard/main-nav';
 import { UserNav } from '@/components/dashboard/user-nav';
 import { Logo } from '@/components/logo';
 import { Skeleton } from '@/components/ui/skeleton';
+import { doc, getFirestore } from 'firebase/firestore';
+import type { User as AppUser } from '@/lib/types';
 
 export default function DashboardLayout({
   children,
@@ -14,8 +16,19 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { user, isUserLoading } = useUser();
+  const firestore = getFirestore();
+  const pathname = usePathname();
 
-  if (isUserLoading) {
+  const userDocRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<AppUser>(userDocRef);
+
+  const isLoading = isUserLoading || isProfileLoading;
+
+  if (isLoading) {
     return (
        <div className="flex flex-col">
         <div className="border-b">
@@ -48,6 +61,18 @@ export default function DashboardLayout({
   if (!user) {
     redirect('/login');
   }
+
+  if (user && !userProfile?.verified && pathname !== '/awaiting-verification') {
+      if (userProfile && (!userProfile.campusId || !userProfile.unitId || !userProfile.role)) {
+          redirect('/register/campus');
+      }
+      redirect('/awaiting-verification');
+  }
+  
+  if (user && userProfile?.verified === false && pathname !== '/awaiting-verification' && pathname !== '/register/campus') {
+    redirect('/awaiting-verification');
+  }
+
 
   return (
     <div className="flex flex-col">

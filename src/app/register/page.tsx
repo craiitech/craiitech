@@ -13,20 +13,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 export default function RegisterPage() {
   const [fullName, setFullName] = useState('');
@@ -36,6 +30,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
+  const firestore = useFirestore();
 
   const handleRegister = async () => {
     if (!email || !password || !fullName) {
@@ -49,15 +44,30 @@ export default function RegisterPage() {
     setIsRegistering(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, {
+      const user = userCredential.user;
+      await updateProfile(user, {
         displayName: fullName,
       });
 
-      toast({
-        title: 'Registration Successful',
-        description: "You've been registered and logged in.",
+      const [firstName, ...lastName] = fullName.split(' ');
+
+      // Create user document in Firestore
+      await setDoc(doc(firestore, 'users', user.uid), {
+        id: user.uid,
+        email: user.email,
+        firstName: firstName,
+        lastName: lastName.join(' '),
+        roleId: '',
+        campusId: '',
+        unitId: '',
+        verified: false,
       });
-      router.push('/dashboard');
+
+      toast({
+        title: 'Account Created!',
+        description: "Please complete your registration.",
+      });
+      router.push('/register/campus');
     } catch (error) {
       toast({
         title: 'Registration Failed',

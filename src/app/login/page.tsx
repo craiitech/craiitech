@@ -18,8 +18,11 @@ import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useAuth, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { signInWithEmailAndPassword, type User } from 'firebase/auth';
+import { doc } from 'firebase/firestore';
+import type { User as AppUser } from '@/lib/types';
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -28,6 +31,8 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
+  const firestore = useFirestore();
+
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -41,7 +46,7 @@ export default function LoginPage() {
     setIsLoggingIn(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push('/dashboard');
+       // The redirect logic is now handled in the DashboardLayout
     } catch (error) {
       toast({
         title: 'Login Failed',
