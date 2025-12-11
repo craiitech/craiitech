@@ -39,8 +39,25 @@ import type { Campus, Unit, Role } from '@/lib/types';
 
 const campusRegistrationSchema = z.object({
   campusId: z.string().min(1, { message: 'Please select a campus.' }),
-  unitId: z.string().min(1, { message: 'Please select a unit.' }),
+  unitId: z.string(),
   roleId: z.string().min(1, { message: 'Please select a role.' }),
+}).refine((data) => {
+    // These are temporary role names for the check.
+    // In a real app, you'd want to use IDs or a more robust system.
+    const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
+    
+    // Find the role object to get its name
+    const roleName = (window as any).__roles?.find((r: Role) => r.id === data.roleId)?.name;
+
+    if (roleName && campusLevelRoles.includes(roleName)) {
+      return true; // If it's a campus-level role, unitId is not required.
+    }
+    
+    // For all other roles, unitId is required.
+    return data.unitId.length > 0;
+}, {
+    message: 'Please select a unit.',
+    path: ['unitId'],
 });
 
 export default function CompleteRegistrationPage() {
@@ -59,7 +76,7 @@ export default function CompleteRegistrationPage() {
     },
   });
   
-  const { campusId } = form.watch();
+  const { campusId, roleId } = form.watch();
 
   const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses'): null, [firestore]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
@@ -69,11 +86,23 @@ export default function CompleteRegistrationPage() {
 
   const rolesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'roles'): null, [firestore]);
   const { data: roles, isLoading: isLoadingRoles } = useCollection<Role>(rolesQuery);
+  
+  // Store roles in a globally accessible way for the refiner
+  if (typeof window !== 'undefined') {
+    (window as any).__roles = roles;
+  }
 
   const units = useMemo(() => {
     if (!allUnits || !campusId) return [];
     return allUnits.filter(unit => unit.campusId === campusId);
   }, [allUnits, campusId]);
+  
+  const isUnitRequired = useMemo(() => {
+    if (!roleId || !roles) return true; // Default to required
+    const selectedRole = roles.find(r => r.id === roleId);
+    const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
+    return !selectedRole || !campusLevelRoles.includes(selectedRole.name);
+  }, [roleId, roles]);
   
   const onSubmit = async (values: z.infer<typeof campusRegistrationSchema>) => {
     if (!user) {
@@ -90,7 +119,7 @@ export default function CompleteRegistrationPage() {
       const userDocRef = doc(firestore, 'users', user.uid);
       await updateDoc(userDocRef, {
         campusId: values.campusId,
-        unitId: values.unitId,
+        unitId: values.unitId || '', // Store empty string if not provided
         roleId: values.roleId,
         verified: false, // Ensure verification status is reset on profile update
       });
@@ -162,43 +191,6 @@ export default function CompleteRegistrationPage() {
                   </FormItem>
                 )}
               />
-
-              <FormField
-                control={form.control}
-                name="unitId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unit</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={!campusId || showNoUnitsMessage}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={!campusId ? "Select a campus first" : "Select your unit"} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {isLoadingUnits ? (
-                          <div className="flex items-center justify-center p-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          </div>
-                        ) : (
-                          units.map((unit) => (
-                            <SelectItem key={unit.id} value={unit.id}>
-                              {unit.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {showNoUnitsMessage && (
-                        <FormDescription className='text-destructive'>
-                            NO UNITS REGISTERED TO THIS CAMPUS, please ask the administrator.
-                        </FormDescription>
-                    )}
-                     <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <FormField
                 control={form.control}
                 name="roleId"
@@ -223,8 +215,44 @@ export default function CompleteRegistrationPage() {
                   </FormItem>
                 )}
               />
-
-              <Button type="submit" className="w-full" disabled={isSubmitting || showNoUnitsMessage}>
+              <FormField
+                control={form.control}
+                name="unitId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                        Unit {isUnitRequired ? '' : <span className="text-muted-foreground">(Optional)</span>}
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={!campusId || showNoUnitsMessage || !isUnitRequired}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={!isUnitRequired ? "Not applicable for this role" : !campusId ? "Select a campus first" : "Select your unit"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {isLoadingUnits ? (
+                          <div className="flex items-center justify-center p-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          </div>
+                        ) : (
+                          units.map((unit) => (
+                            <SelectItem key={unit.id} value={unit.id}>
+                              {unit.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {showNoUnitsMessage && isUnitRequired && (
+                        <FormDescription className='text-destructive'>
+                            NO UNITS REGISTERED TO THIS CAMPUS, please ask the administrator.
+                        </FormDescription>
+                    )}
+                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full" disabled={isSubmitting || (showNoUnitsMessage && isUnitRequired)}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
