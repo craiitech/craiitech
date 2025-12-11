@@ -66,27 +66,27 @@ export default function DashboardLayout({
     redirect('/login');
   }
 
+  // Once loading is complete, we can check roles and profile status
   if (userRole !== 'Admin') {
-      if (userProfile) {
-        if (!userProfile.campusId || !userProfile.unitId || !userProfile.roleId) {
-          // If user profile is not complete, redirect to campus registration
-            if (pathname !== '/register/campus') {
-                 redirect('/register/campus');
-            }
-        } else if (!userProfile.verified) {
-            // If profile is complete but not verified, send to awaiting verification
-            if (pathname !== '/awaiting-verification') {
-                redirect('/awaiting-verification');
-            }
+    if (!userProfile) {
+       // This can happen if the firestore doc doesn't exist yet.
+       // Redirecting to campus registration is a safe default for non-admins.
+        if (pathname !== '/register/campus') {
+          redirect('/register/campus');
         }
-    } else if(user && !isLoading) {
-        // This can happen if the user is authenticated but the firestore doc doesn't exist yet
-        // or is still loading. Redirecting to campus registration is a safe default.
-         if (pathname !== '/register/campus' && pathname !== '/awaiting-verification') {
-           redirect('/register/campus');
-         }
+    } else if (!userProfile.campusId || !userProfile.unitId || !userProfile.roleId) {
+        // If user profile is not complete, redirect to campus registration
+        if (pathname !== '/register/campus') {
+            redirect('/register/campus');
+        }
+    } else if (!userProfile.verified) {
+        // If profile is complete but not verified, send to awaiting verification
+        if (pathname !== '/awaiting-verification') {
+            redirect('/awaiting-verification');
+        }
     }
   }
+
 
   return (
     <div className="flex flex-col">
