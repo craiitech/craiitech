@@ -35,6 +35,8 @@ export interface FirebaseContextState {
   userError: Error | null;
   userProfile: WithId<AppUser> | null;
   isProfileLoading: boolean;
+  isAdmin: boolean;
+  isAdminLoading: boolean;
 }
 
 // Return type for useFirebase()
@@ -47,6 +49,8 @@ export interface FirebaseServicesAndUser {
   userError: Error | null;
   userProfile: WithId<AppUser> | null;
   isProfileLoading: boolean;
+  isAdmin: boolean;
+  isAdminLoading: boolean;
 }
 
 // Return type for useUser() - specific to user auth state
@@ -55,6 +59,7 @@ export interface UserHookResult { // Renamed from UserAuthHookResult for consist
   userProfile: WithId<AppUser> | null;
   isUserLoading: boolean; // Combines auth and profile loading
   userError: Error | null;
+  isAdmin: boolean;
 }
 
 // React Context
@@ -105,22 +110,33 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<AppUser>(userDocRef);
 
+  const adminDocRef = useMemoFirebase(() => {
+    if (!userAuthState.user || !firestore) return null;
+    return doc(firestore, 'roles_admin', userAuthState.user.uid);
+  }, [userAuthState.user, firestore]);
+
+  const { data: adminDoc, isLoading: isAdminLoading } = useDoc(adminDocRef);
 
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
+    const isAdmin = !!adminDoc;
+    const combinedIsLoading = userAuthState.isUserLoading || (userAuthState.user && (isProfileLoading || isAdminLoading));
+
     return {
       areServicesAvailable: servicesAvailable,
       firebaseApp: servicesAvailable ? firebaseApp : null,
       firestore: servicesAvailable ? firestore : null,
       auth: servicesAvailable ? auth : null,
       user: userAuthState.user,
-      isUserLoading: userAuthState.isUserLoading || (userAuthState.user && isProfileLoading),
+      isUserLoading: combinedIsLoading,
       userError: userAuthState.userError,
       userProfile,
-      isProfileLoading
+      isProfileLoading,
+      isAdmin,
+      isAdminLoading,
     };
-  }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading]);
+  }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading, adminDoc, isAdminLoading]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>
@@ -154,6 +170,8 @@ export const useFirebase = (): FirebaseServicesAndUser => {
     userError: context.userError,
     userProfile: context.userProfile,
     isProfileLoading: context.isProfileLoading,
+    isAdmin: context.isAdmin,
+    isAdminLoading: context.isAdminLoading,
   };
 };
 
@@ -192,6 +210,6 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | 
  * @returns {UserHookResult} Object with user, isUserLoading, userError.
  */
 export const useUser = (): UserHookResult => { // Renamed from useAuthUser
-  const { user, userProfile, isUserLoading, userError } = useFirebase(); // Leverages the main hook
-  return { user, userProfile, isUserLoading, userError };
+  const { user, userProfile, isUserLoading, userError, isAdmin } = useFirebase(); // Leverages the main hook
+  return { user, userProfile, isUserLoading, userError, isAdmin };
 };

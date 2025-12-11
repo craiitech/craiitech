@@ -1,37 +1,22 @@
 'use client';
 
 import { redirect, usePathname } from 'next/navigation';
-import { useUser, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
+import { useUser } from '@/firebase';
 import TeamSwitcher from '@/components/dashboard/team-switcher';
 import { MainNav } from '@/components/dashboard/main-nav';
 import { UserNav } from '@/components/dashboard/user-nav';
 import { Logo } from '@/components/logo';
 import { Skeleton } from '@/components/ui/skeleton';
-import { collection } from 'firebase/firestore';
-import { useMemo } from 'react';
-import type { Role } from '@/lib/types';
-
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, userProfile, isUserLoading } = useUser();
+  const { user, userProfile, isUserLoading, isAdmin } = useUser();
   const pathname = usePathname();
-  const firestore = useFirestore();
 
-  const rolesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'roles') : null), [firestore]);
-  const { data: roles, isLoading: areRolesLoading } = useCollection<Role>(rolesQuery);
-  
-  const userRole = useMemo(() => {
-    if (!userProfile || !roles) return null;
-    return roles.find(r => r.id === userProfile.roleId)?.name;
-  }, [userProfile, roles]);
-
-  const isLoading = isUserLoading || areRolesLoading;
-
-  if (isLoading) {
+  if (isUserLoading) {
     return (
        <div className="flex flex-col">
         <div className="border-b">
@@ -65,9 +50,8 @@ export default function DashboardLayout({
     return redirect('/login');
   }
 
-  // If user is loaded, check their role and profile status
-  if (userRole !== 'Admin') {
-     // For non-admins, we enforce profile completion and verification
+  // If user is loaded, but not an admin, check their profile status
+  if (!isAdmin) {
     if (!userProfile || !userProfile.campusId || !userProfile.unitId || !userProfile.roleId) {
         if (pathname !== '/complete-registration') {
             return redirect('/complete-registration');
@@ -80,7 +64,6 @@ export default function DashboardLayout({
   }
   // Admins are allowed through without the above checks.
   // We also let users who are on the correct verification/completion pages stay there.
-
 
   return (
     <div className="flex flex-col">

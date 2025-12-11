@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { cn } from '@/lib/utils';
 import type { Role } from '@/lib/types';
-import { collection, getFirestore } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import { useMemo } from 'react';
 
 export function MainNav({
@@ -13,16 +13,17 @@ export function MainNav({
   ...props
 }: React.HTMLAttributes<HTMLElement>) {
   const pathname = usePathname();
-  const { userProfile } = useUser();
-  const firestore = getFirestore();
+  const { userProfile, isAdmin } = useUser();
+  const firestore = useFirestore();
 
-  const rolesQuery = useMemoFirebase(() => collection(firestore, 'roles'), [firestore]);
+  const rolesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'roles') : null), [firestore]);
   const { data: roles } = useCollection<Role>(rolesQuery);
   
   const userRole = useMemo(() => {
+    if (isAdmin) return 'Admin';
     if (!userProfile || !roles) return null;
     return roles.find(r => r.id === userProfile.roleId)?.name;
-  }, [userProfile, roles]);
+  }, [isAdmin, userProfile, roles]);
 
   const allRoutes = [
     { href: '/dashboard', label: 'Dashboard', active: pathname === '/dashboard' },
