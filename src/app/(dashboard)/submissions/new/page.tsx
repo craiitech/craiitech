@@ -8,10 +8,18 @@ import type { Submission } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
-import { CheckCircle, Circle, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle, Circle, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const submissionTypes = [
   'Operational Plans',
@@ -25,6 +33,14 @@ const submissionTypes = [
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => currentYear + i - 2);
 
+const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    approved: 'default',
+    pending: 'secondary',
+    rejected: 'destructive',
+    submitted: 'outline'
+}
+
+
 export default function NewSubmissionPage() {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -33,6 +49,11 @@ export default function NewSubmissionPage() {
   const [selectedCycle, setSelectedCycle] = useState<'first' | 'final'>('first');
   const [activeReport, setActiveReport] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  
+  // State for feedback dialog
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+  const [feedbackToShow, setFeedbackToShow] = useState('');
+
 
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -45,14 +66,13 @@ export default function NewSubmissionPage() {
 
   const { data: submissions, isLoading } = useCollection<Submission>(submissionsQuery);
 
-  const submittedReports = useMemo(() => {
-    if (!submissions) return new Set<string>();
-    return new Set(submissions.map((s) => s.reportType));
+  const submissionStatusMap = useMemo(() => {
+    if (!submissions) return new Map<string, Submission>();
+    return new Map(submissions.map((s) => [s.reportType, s]));
   }, [submissions]);
 
   const handleLinkChange = (link: string) => {
     if (link && link.startsWith('https://drive.google.com/')) {
-      // Create an embeddable URL
       const embedUrl = link.replace('/view', '/preview').replace('?usp=sharing', '');
       setPreviewUrl(embedUrl);
     } else {
@@ -61,8 +81,13 @@ export default function NewSubmissionPage() {
   };
 
   const handleFormSuccess = () => {
-    setActiveReport(null); // Collapse the form on success
+    setActiveReport(null); 
   };
+  
+  const handleViewFeedback = (comments: string) => {
+    setFeedbackToShow(comments);
+    setIsFeedbackDialogOpen(true);
+  }
 
   return (
     <div className="space-y-4">
@@ -106,12 +131,12 @@ export default function NewSubmissionPage() {
               {isLoading ? (
                 <div className="space-y-4">
                   {[...Array(6)].map((_, i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
+                    <Skeleton key={i} className="h-14 w-full" />
                   ))}
                 </div>
               ) : (
                 submissionTypes.map((reportType) => {
-                  const isSubmitted = submittedReports.has(reportType);
+                  const submission = submissionStatusMap.get(reportType);
                   const isExpanded = activeReport === reportType;
 
                   return (
@@ -123,7 +148,7 @@ export default function NewSubmissionPage() {
                     >
                       <div className="flex w-full items-center justify-between p-4 text-left">
                         <div className="flex items-center gap-3">
-                          {isSubmitted ? (
+                           {submission ? (
                             <CheckCircle className="h-5 w-5 text-green-500" />
                           ) : (
                             <Circle className="h-5 w-5 text-muted-foreground" />
@@ -131,7 +156,18 @@ export default function NewSubmissionPage() {
                           <span className="font-medium">{reportType}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          {isSubmitted && <span className="text-sm text-green-600">Completed</span>}
+                           {submission && (
+                            <div className="flex items-center gap-2">
+                                <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
+                                    {submission.statusId}
+                                </Badge>
+                                {submission.statusId === 'rejected' && submission.comments && (
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); handleViewFeedback(submission.comments!)} }>
+                                        <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                                    </Button>
+                                )}
+                            </div>
+                          )}
                           <CollapsibleTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                                 {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -142,7 +178,7 @@ export default function NewSubmissionPage() {
                       </div>
                       <CollapsibleContent className="p-4 pt-0">
                         <p className="mb-4 text-sm text-muted-foreground">
-                          {isSubmitted
+                          {submission
                             ? 'You have already submitted this report for the selected period. You can update it by submitting again.'
                             : 'Fill out the form below to submit this report.'}
                         </p>
@@ -152,6 +188,7 @@ export default function NewSubmissionPage() {
                           cycleId={selectedCycle}
                           onLinkChange={handleLinkChange}
                           onSuccess={handleFormSuccess}
+                          key={`${reportType}-${selectedYear}-${selectedCycle}`}
                         />
                       </CollapsibleContent>
                     </Collapsible>
@@ -183,6 +220,19 @@ export default function NewSubmissionPage() {
           </Card>
         </div>
       </div>
+      <Dialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Rejection Feedback</DialogTitle>
+                <DialogDescription>
+                    This is the feedback provided by the approver.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4 rounded-md border bg-muted p-4 text-sm">
+                {feedbackToShow}
+            </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

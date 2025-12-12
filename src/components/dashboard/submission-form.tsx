@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CheckCircle, XCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -21,8 +21,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { validateGoogleDriveLinkAccessibility } from '@/ai/flows/validate-google-drive-link-accessibility';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import type { Unit } from '@/lib/types';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import type { Unit, Submission } from '@/lib/types';
 
 const submissionSchema = z.object({
   googleDriveLink: z
@@ -120,24 +120,51 @@ export function SubmissionForm({
 
     setIsSubmitting(true);
     try {
-      const unitName = units.find((u) => u.id === userProfile.unitId)?.name || 'Unknown Unit';
-      const submissionCollectionRef = collection(firestore, 'users', user.uid, 'submissions');
-      await addDoc(submissionCollectionRef, {
-        ...values,
-        reportType,
-        year,
-        cycleId,
-        userId: user.uid,
-        campusId: userProfile.campusId,
-        unitId: userProfile.unitId,
-        unitName: unitName,
-        statusId: 'submitted',
-        submissionDate: serverTimestamp(),
-      });
-      toast({
-        title: 'Submission Successful!',
-        description: `Your '${reportType}' report has been submitted.`,
-      });
+        const unitName = units.find((u) => u.id === userProfile.unitId)?.name || 'Unknown Unit';
+        const submissionCollectionRef = collection(firestore, 'users', user.uid, 'submissions');
+
+        // Check for an existing submission to update it
+        const q = query(
+            submissionCollectionRef,
+            where('reportType', '==', reportType),
+            where('year', '==', year),
+            where('cycleId', '==', cycleId)
+        );
+        
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            // Update existing submission
+            const existingDocRef = doc(firestore, querySnapshot.docs[0].ref.path);
+            await updateDoc(existingDocRef, {
+                ...values,
+                statusId: 'submitted', // Reset status on update
+                submissionDate: serverTimestamp(),
+            });
+            toast({
+                title: 'Submission Updated!',
+                description: `Your '${reportType}' report has been updated.`,
+            });
+        } else {
+            // Add new submission
+            await addDoc(submissionCollectionRef, {
+                ...values,
+                reportType,
+                year,
+                cycleId,
+                userId: user.uid,
+                campusId: userProfile.campusId,
+                unitId: userProfile.unitId,
+                unitName: unitName,
+                statusId: 'submitted',
+                submissionDate: serverTimestamp(),
+            });
+            toast({
+                title: 'Submission Successful!',
+                description: `Your '${reportType}' report has been submitted.`,
+            });
+        }
+      
       setIsSubmitting(false);
       form.reset();
       setValidationStatus('idle');
@@ -190,7 +217,7 @@ export function SubmissionForm({
               </FormControl>
               {!fieldState.error && (
                 <FormDescription>
-                  The AI validator will check if the link is accessible upon losing focus.
+                  Make sure the link sharing is set to 'Anyone with the link'.
                 </FormDescription>
               )}
               <FormMessage />
