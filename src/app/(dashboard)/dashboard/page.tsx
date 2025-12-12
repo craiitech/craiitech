@@ -41,7 +41,7 @@ import {
   getDocs,
   Timestamp,
 } from 'firebase/firestore';
-import type { Submission, User as AppUser, Unit } from '@/lib/types';
+import type { Submission, User as AppUser, Unit, Campus } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -134,8 +134,17 @@ export default function DashboardPage() {
   const { data: allUnits, isLoading: isLoadingUnits } =
     useCollection<Unit>(allUnitsQuery);
 
+   const allCampusesQuery = useMemoFirebase(() => {
+    if (!firestore || !isAdmin) return null;
+    return collection(firestore, 'campuses');
+  }, [firestore, isAdmin]);
+  const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(allCampusesQuery);
+
+
   useEffect(() => {
-    if (!firestore || (!isAdmin && !isCampusSupervisor && !userProfile)) {
+    if (!firestore) return;
+    
+    if (!isAdmin && !isCampusSupervisor && !userProfile) {
         return;
     }
 
@@ -158,6 +167,9 @@ export default function DashboardPage() {
                 usersData[doc.id] = { id: doc.id, ...doc.data() } as AppUser;
             });
             setAllUsers(usersData);
+        } else if (userProfile) { // Case for a regular user
+             setAllUsers({ [userProfile.id]: userProfile });
+             setUserCount(1);
         } else {
              setUserCount(0);
              setAllUsers({});
@@ -183,7 +195,7 @@ export default function DashboardPage() {
     isUserLoading ||
     isLoadingSubmissions ||
     (canViewAnnouncements && isLoadingSettings) ||
-    ((isAdmin || isCampusSupervisor) && isLoadingUnits);
+    ((isAdmin || isCampusSupervisor) && (isLoadingUnits || isLoadingCampuses));
 
 
   const stats = useMemo(() => {
@@ -565,6 +577,7 @@ export default function DashboardPage() {
          />
         <UnitsWithoutSubmissions
           allUnits={allUnits}
+          allCampuses={allCampuses}
           allSubmissions={submissions}
           isLoading={isLoading}
           userProfile={userProfile}
@@ -641,6 +654,7 @@ export default function DashboardPage() {
         </div>
          <UnitsWithoutSubmissions
           allUnits={allUnits}
+          allCampuses={allCampuses}
           allSubmissions={submissions}
           isLoading={isLoading}
           userProfile={userProfile}

@@ -44,6 +44,7 @@ export type Submission = {
   year: number;
   unitName: string;
   campusId: string;
+  unitId: string;
   comments?: Comment[];
 };
 
