@@ -14,9 +14,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 interface DataPrivacyDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
+  onAccept: () => void;
 }
 
-export function DataPrivacyDialog({ isOpen, onOpenChange }: DataPrivacyDialogProps) {
+export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivacyDialogProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-2xl">
@@ -83,11 +84,9 @@ export function DataPrivacyDialog({ isOpen, onOpenChange }: DataPrivacyDialogPro
         </ScrollArea>
         
         <div className="flex justify-end">
-            <AlertDialogAction>I Understand</AlertDialogAction>
+            <AlertDialogAction onClick={onAccept}>Understand and Accept</AlertDialogAction>
         </div>
       </AlertDialogContent>
     </AlertDialog>
   );
 }
-
-    

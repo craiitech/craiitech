@@ -409,13 +409,11 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     <DataPrivacyDialog 
       isOpen={isPrivacyDialogOpen}
       onOpenChange={setIsPrivacyDialogOpen}
+      onAccept={() => {
+        setPrivacyPolicyAgreed(true);
+        setIsPrivacyDialogOpen(false);
+      }}
     />
     </>
   );
 }
-
-    
-
-    
-
-    
