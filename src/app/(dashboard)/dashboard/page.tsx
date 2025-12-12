@@ -23,7 +23,7 @@ import {
   useMemoFirebase,
   useDoc,
 } from '@/firebase';
-import { collection, query, where, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, collectionGroup, doc } from 'firebase/firestore';
 import type { Submission } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo } from 'react';
@@ -40,6 +40,9 @@ export default function DashboardPage() {
     userProfile?.role === 'Campus Director' ||
     userProfile?.role === 'Campus ODIMO' ||
     userProfile?.role === 'Unit ODIMO';
+  
+  const canViewAnnouncements = isSupervisor || userProfile?.role === 'Employee';
+
 
   // Memoize the query based on the user's role
   const submissionsQuery = useMemoFirebase(() => {
@@ -67,20 +70,18 @@ export default function DashboardPage() {
   const { data: submissions, isLoading: isLoadingSubmissions } =
     useCollection<AggregatedSubmission>(submissionsQuery);
 
-  const campusSettingsQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile?.campusId) return null;
-    return query(
-      collection(firestore, 'campusSettings'),
-      where('id', '==', userProfile.campusId)
-    );
-  }, [firestore, userProfile?.campusId]);
+  const campusSettingsDocRef = useMemoFirebase(() => {
+    // Only fetch announcements if the user is authorized and has a campusId
+    if (!firestore || !userProfile?.campusId || !canViewAnnouncements) return null;
+    return doc(firestore, 'campusSettings', userProfile.campusId);
+  }, [firestore, userProfile?.campusId, canViewAnnouncements]);
 
-  const { data: campusSettings, isLoading: isLoadingSettings } =
-    useCollection(campusSettingsQuery);
+  const { data: campusSetting, isLoading: isLoadingSettings } =
+    useDoc(campusSettingsDocRef);
 
-  const announcement = campusSettings?.[0]?.announcement;
+  const announcement = campusSetting?.announcement;
   
-  const isLoading = isUserLoading || isLoadingSubmissions || isLoadingSettings;
+  const isLoading = isUserLoading || isLoadingSubmissions || (canViewAnnouncements && isLoadingSettings);
 
   const stats = useMemo(() => {
     if (!submissions) {

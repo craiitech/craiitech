@@ -187,12 +187,13 @@ service cloud.firestore {
     /**
      * @description Campus-specific settings can be managed by campus-level users or admins.
      * @path /campusSettings/{campusId}
-     * @allow (write) A Campus Director updating the settings for their own campus.
+     * @allow (get) A Campus Director or any signed in user viewing the settings for their own campus.
      * @deny (read) An employee from another campus trying to read settings.
-     * @principle Allows decentralized management of campus settings while maintaining security.
+     * @principle Allows any user to see their campus announcement, but only supervisors can write.
      */
     match /campusSettings/{campusId} {
-      allow read, write: if isAdmin() || (isCampusOdimo() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.campusId == campusId);
+      allow get: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.campusId == campusId;
+      allow write: if isAdmin() || (isCampusOdimo() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.campusId == campusId);
       allow list: if isAdmin();
     }
     
