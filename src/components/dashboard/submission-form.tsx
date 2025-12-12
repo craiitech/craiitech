@@ -48,11 +48,15 @@ const submissionSchema = z.object({
 
 type ValidationStatus = 'idle' | 'validating' | 'valid' | 'invalid';
 
-export function SubmissionForm({
-  onSuccess,
-}: {
+interface SubmissionFormProps {
+  reportType: string;
   onSuccess?: () => void;
-}) {
+}
+
+export function SubmissionForm({
+  reportType,
+  onSuccess,
+}: SubmissionFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationStatus, setValidationStatus] =
     useState<ValidationStatus>('idle');
@@ -121,6 +125,7 @@ export function SubmissionForm({
         const submissionCollectionRef = collection(firestore, 'users', user.uid, 'submissions');
         await addDoc(submissionCollectionRef, {
             ...values,
+            reportType, // Add the report type to the submission
             userId: user.uid,
             campusId: userProfile.campusId,
             unitId: userProfile.unitId,
@@ -129,7 +134,7 @@ export function SubmissionForm({
         });
         toast({
             title: 'Submission Successful!',
-            description: `Your report has been submitted.`,
+            description: `Your '${reportType}' report has been submitted.`,
         });
         setIsSubmitting(false);
         form.reset();
@@ -159,7 +164,7 @@ export function SubmissionForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="cycleId"
@@ -234,6 +239,7 @@ export function SubmissionForm({
         />
         <Button
           type="submit"
+          className="w-full"
           disabled={
             isSubmitting ||
             validationStatus === 'validating' ||
@@ -253,3 +259,5 @@ export function SubmissionForm({
     </Form>
   );
 }
+
+    

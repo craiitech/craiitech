@@ -29,6 +29,7 @@ export type Submission = {
   googleDriveLink: string;
   cycleId: string;
   statusId: string;
+  reportType: string;
   comments?: string;
 };
 
@@ -42,3 +43,5 @@ export type Unit = {
     id: string;
     name: string;
 }
+
+    

@@ -13,15 +13,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { SubmissionForm } from '@/components/dashboard/submission-form';
-import {
   Card,
   CardContent,
   CardDescription,
@@ -29,11 +20,11 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
-import type { Submission, Status } from '@/lib/types';
+import { collection, query, orderBy } from 'firebase/firestore';
+import type { Submission } from '@/lib/types';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import Link from 'next/link';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -46,11 +37,10 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 export default function SubmissionsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const [isFormOpen, setIsFormOpen] = useState(false);
 
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, 'users', user.uid, 'submissions'));
+    return query(collection(firestore, 'users', user.uid, 'submissions'), orderBy('submissionDate', 'desc'));
   }, [firestore, user]);
 
   const { data: submissions, isLoading } = useCollection<Submission>(submissionsQuery);
@@ -65,26 +55,12 @@ export default function SubmissionsPage() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogTrigger asChild>
-              <Button>
+          <Button asChild>
+            <Link href="/submissions/new">
                 <PlusCircle className="mr-2 h-4 w-4" />
                 New Submission
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Create New Submission</DialogTitle>
-                <DialogDescription>
-                  Fill out the form below to submit a new report. Click submit
-                  when you&apos;re done.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                <SubmissionForm onSuccess={() => setIsFormOpen(false)} />
-              </div>
-            </DialogContent>
-          </Dialog>
+            </Link>
+          </Button>
         </div>
       </div>
       <Card>
@@ -103,6 +79,7 @@ export default function SubmissionsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Report Type</TableHead>
                 <TableHead>Link</TableHead>
                 <TableHead>Cycle</TableHead>
                 <TableHead>Submitted At</TableHead>
@@ -113,6 +90,7 @@ export default function SubmissionsPage() {
             <TableBody>
               {submissions?.map((submission) => (
                 <TableRow key={submission.id}>
+                  <TableCell className="font-medium">{submission.reportType}</TableCell>
                   <TableCell className="font-medium max-w-xs truncate">
                     <a href={submission.googleDriveLink} target="_blank" rel="noopener noreferrer" className="hover:underline">
                       {submission.googleDriveLink}
@@ -147,3 +125,5 @@ export default function SubmissionsPage() {
     </>
   );
 }
+
+    
