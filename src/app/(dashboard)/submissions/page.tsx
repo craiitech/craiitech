@@ -166,7 +166,7 @@ export default function SubmissionsPage() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Submissions</h2>
           <p className="text-muted-foreground">
-            {isSupervisor ? 'A list of all submissions in your scope.' : 'Here\'s a list of your report submissions.'}
+            {isSupervisor ? 'A list of all submissions in your scope.' : 'Here\\'s a list of your report submissions.'}
           </p>
         </div>
         <div className="flex items-center space-x-2">
