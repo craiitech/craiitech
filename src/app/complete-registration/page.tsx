@@ -72,7 +72,7 @@ export default function CompleteRegistrationPage() {
   const selectedRoleId = form.watch('roleId');
   
   const isUnitRequired = useMemo(() => {
-    if (!selectedRoleId || !roles) return true; 
+    if (!selectedRoleId || !roles) return true; // Default to required if data is not loaded
     const selectedRole = roles.find(r => r.id === selectedRoleId);
     if (!selectedRole) return true;
     const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
@@ -88,7 +88,7 @@ export default function CompleteRegistrationPage() {
   }, [isUnitRequired, form]);
   
   const onSubmit = async (values: z.infer<typeof registrationSchema>) => {
-    if (!user || !firestore) {
+    if (!user || !firestore || !roles) {
       toast({
         title: 'Error',
         description: 'You must be logged in to complete registration.',
@@ -105,34 +105,56 @@ export default function CompleteRegistrationPage() {
     setIsSubmitting(true);
     try {
       const usersCollection = collection(firestore, 'users');
-      const queryConstraints = [
-        where('campusId', '==', values.campusId),
-        where('roleId', '==', values.roleId),
-      ];
-      
-      if (isUnitRequired && values.unitId) {
-        queryConstraints.push(where('unitId', '==', values.unitId));
+      const selectedRole = roles.find(r => r.id === values.roleId);
+
+      // --- Start of Uniqueness Validation ---
+      let q;
+      let isRoleTaken = false;
+
+      // Special check for 'Campus Director'
+      if (selectedRole?.name === 'Campus Director') {
+        q = query(
+          usersCollection,
+          where('campusId', '==', values.campusId),
+          where('roleId', '==', values.roleId)
+        );
+        const querySnapshot = await getDocs(q);
+        isRoleTaken = !querySnapshot.empty && querySnapshot.docs.some(doc => doc.id !== user.uid);
+        if (isRoleTaken) {
+          toast({
+            title: 'Role Taken',
+            description: 'The selected campus already has a Campus Director. Please choose a different role or campus.',
+            variant: 'destructive',
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      } else { // General check for other roles
+          const queryConstraints = [
+            where('campusId', '==', values.campusId),
+            where('roleId', '==', values.roleId),
+          ];
+
+          if (isUnitRequired && values.unitId) {
+            queryConstraints.push(where('unitId', '==', values.unitId));
+          }
+
+          q = query(usersCollection, ...queryConstraints);
+          const querySnapshot = await getDocs(q);
+          isRoleTaken = !querySnapshot.empty && querySnapshot.docs.some(doc => doc.id !== user.uid);
+          if (isRoleTaken) {
+            toast({
+              title: 'Role Taken',
+              description: 'The selected role is already assigned to another user in this campus and unit. Please choose a different role or contact an administrator.',
+              variant: 'destructive',
+            });
+            setIsSubmitting(false);
+            return;
+          }
       }
-
-      const q = query(usersCollection, ...queryConstraints);
-
-      const querySnapshot = await getDocs(q);
-
-      const isRoleTaken = !querySnapshot.empty && querySnapshot.docs.some(doc => doc.id !== user.uid);
-
-      if (isRoleTaken) {
-        toast({
-          title: 'Role Taken',
-          description:
-            'The selected role is already assigned to another user in this campus and unit. Please choose a different role or contact an administrator.',
-          variant: 'destructive',
-        });
-        setIsSubmitting(false);
-        return;
-      }
+      // --- End of Uniqueness Validation ---
 
       const userDocRef = doc(firestore, 'users', user.uid);
-      const selectedRole = roles?.find(r => r.id === values.roleId);
 
       await updateDoc(userDocRef, {
         campusId: values.campusId,
@@ -277,5 +299,3 @@ export default function CompleteRegistrationPage() {
       </Card>
   );
 }
-
-    
