@@ -1,3 +1,4 @@
+
 'use client'
 import {
   Avatar,
@@ -121,7 +122,7 @@ export function RecentActivity({ submissions, isLoading: isLoadingSubmissions }:
 
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {recentSubmissions.map(submission => (
         <div key={submission.id} className="flex items-center">
             <Avatar className="h-9 w-9">
@@ -129,17 +130,20 @@ export function RecentActivity({ submissions, isLoading: isLoadingSubmissions }:
                 <AvatarFallback>{getUserFallback(submission.userId)}</AvatarFallback>
             </Avatar>
             <div className="ml-4 space-y-1">
-                <p className="text-sm font-medium leading-none max-w-[150px] truncate" title={submission.reportType}>
+                <p className="text-sm font-medium leading-none max-w-[180px] truncate" title={submission.reportType}>
                     {submission.reportType}
                 </p>
-                <p className="text-sm text-muted-foreground">
-                    by {getUserName(submission.userId)}
+                <p className="text-xs text-muted-foreground capitalize">
+                   {submission.unitName} &bull; {submission.cycleId} Cycle {submission.year}
                 </p>
             </div>
-            <div className="ml-auto font-medium">
+            <div className="ml-auto font-medium text-right">
                  <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
                     {submission.statusId}
                 </Badge>
+                 <p className="text-xs text-muted-foreground mt-1">
+                    by {getUserName(submission.userId)}
+                </p>
             </div>
         </div>
       ))}
