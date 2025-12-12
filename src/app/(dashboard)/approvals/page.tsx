@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -98,12 +97,15 @@ export default function ApprovalsPage() {
 
   // Effect to fetch submissions based on user role
   useEffect(() => {
-    // Ensure all dependencies are ready before fetching
-    if (!firestore || !userRole || !userProfile) {
-        // If dependencies aren't ready, but we are not in an initial loading state, it means no data will be fetched.
-        if (!isLoading) setIsLoading(false);
+    // Wait for the dependencies that are *always* required
+    if (!firestore || !userRole) {
+      return;
+    }
+    // Supervisors (non-admin) need to wait for their profile to get campus/unit IDs
+    if (userRole !== 'Admin' && !userProfile) {
         return;
     }
+
 
     const fetchSubmissions = async () => {
       setIsLoading(true);
@@ -117,24 +119,14 @@ export default function ApprovalsPage() {
         if (userRole === 'Admin') {
           submissionsQuery = baseQuery;
         } else if (
-          userRole === 'Campus Director' ||
-          userRole === 'Campus ODIMO'
+          (userRole === 'Campus Director' || userRole === 'Campus ODIMO') &&
+          userProfile?.campusId
         ) {
-          if (!userProfile.campusId) {
-             setSubmissions([]);
-             setIsLoading(false);
-             return;
-          }
           submissionsQuery = query(
             baseQuery,
             where('campusId', '==', userProfile.campusId)
           );
-        } else if (userRole === 'Unit ODIMO') {
-          if (!userProfile.unitId) {
-             setSubmissions([]);
-             setIsLoading(false);
-             return;
-          }
+        } else if (userRole === 'Unit ODIMO' && userProfile?.unitId) {
           submissionsQuery = query(
             baseQuery,
             where('unitId', '==', userProfile.unitId)
@@ -162,15 +154,16 @@ export default function ApprovalsPage() {
             originalPath: doc.ref.path,
           } as AggregatedSubmission;
         });
-
+        
         // Filter out submissions made by the approver themselves, unless they are an admin
-        if (userRole !== 'Admin') {
+        if (userRole !== 'Admin' && userProfile) {
           fetchedSubmissions = fetchedSubmissions.filter(
             (s) => s.userId !== userProfile.id
           );
         }
 
         setSubmissions(fetchedSubmissions);
+
       } catch (error) {
         console.error('Error fetching submissions for approval:', error);
         toast({
@@ -184,7 +177,7 @@ export default function ApprovalsPage() {
     };
 
     fetchSubmissions();
-  }, [firestore, userRole, userProfile, toast, isLoading]);
+  }, [firestore, userRole, userProfile, toast]);
 
   // Effect to fetch users for the loaded submissions
   useEffect(() => {
