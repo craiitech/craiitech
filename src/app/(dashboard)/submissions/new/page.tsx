@@ -233,23 +233,25 @@ export default function NewSubmissionPage() {
 
         {/* --- RIGHT COLUMN: PREVIEW --- */}
         <div className="space-y-4">
-          <Card className="sticky top-4">
-            <CardHeader>
-              <CardTitle>Document Preview</CardTitle>
-              <CardDescription>A preview of the Google Drive link will be shown here.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="aspect-video w-full rounded-lg border bg-muted">
-                {previewUrl ? (
-                  <iframe src={previewUrl} className="h-full w-full" allow="autoplay"></iframe>
-                ) : (
-                  <div className="flex h-full items-center justify-center text-muted-foreground">
-                    <p>Enter a valid Google Drive link to see a preview.</p>
+            {activeReport && (
+              <Card className="sticky top-4">
+                <CardHeader>
+                  <CardTitle>Document Preview</CardTitle>
+                  <CardDescription>A preview of the Google Drive link will be shown here.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="aspect-video w-full rounded-lg border bg-muted">
+                    {previewUrl ? (
+                      <iframe src={previewUrl} className="h-full w-full" allow="autoplay"></iframe>
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-muted-foreground">
+                        <p>Enter a valid Google Drive link to see a preview.</p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            )}
         </div>
       </div>
       <FeedbackDialog 
@@ -260,5 +262,3 @@ export default function NewSubmissionPage() {
     </div>
   );
 }
-
-    
