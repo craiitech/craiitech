@@ -36,7 +36,7 @@ export default function DashboardPage() {
   const firestore = useFirestore();
 
   const isSupervisor =
-    userProfile?.role === 'Admin' ||
+    isAdmin ||
     userProfile?.role === 'Campus Director' ||
     userProfile?.role === 'Campus ODIMO' ||
     userProfile?.role === 'Unit ODIMO';
@@ -46,13 +46,18 @@ export default function DashboardPage() {
 
   // Memoize the query based on the user's role
   const submissionsQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile) return null;
+    if (!firestore) return null;
+
+    // Admin should get all submissions, and doesn't need to wait for profile.
+    if (isAdmin) {
+      return collectionGroup(firestore, 'submissions');
+    }
+    
+    // For all other users, we must wait for the user profile to be loaded.
+    if (!userProfile) return null;
 
     if (isSupervisor) {
       const baseQuery = collectionGroup(firestore, 'submissions');
-      if (isAdmin) {
-        return baseQuery; // Admin gets all submissions
-      }
       if (
         userProfile.role === 'Campus Director' ||
         userProfile.role === 'Campus ODIMO'
