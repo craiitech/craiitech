@@ -85,7 +85,7 @@ export default function SubmissionsPage() {
         submissionsQuery = query(submissionsCollection, where('unitId', '==', userProfile.unitId));
       } else {
         // Regular employee - query only for their own submissions
-        submissionsQuery = query(submissionsCollection, where('userId', '==', userProfile.id));
+        submissionsQuery = query(submissionsCollection, where('userId', '==', userProfile.id), orderBy('submissionDate', 'desc'));
       }
 
       const snapshot = await getDocs(submissionsQuery);

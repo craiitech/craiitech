@@ -24,14 +24,12 @@ interface RecentActivityProps {
 }
 
 export function RecentActivity({ submissions, isLoading: isLoadingSubmissions }: RecentActivityProps) {
-  const { userProfile, isAdmin } = useUser();
+  const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const [users, setUsers] = useState<Record<string, AppUser>>({});
   const [isFetchingUsers, setIsFetchingUsers] = useState(false);
 
-  // Use the denormalized role from userProfile
-  const userRoleName = isAdmin ? 'Admin' : userProfile?.role;
-  const isSupervisor = userRoleName === 'Admin' || userRoleName === 'Campus Director' || userRoleName === 'Campus ODIMO' || userRoleName === 'Unit ODIMO';
+  const isSupervisor = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole === 'Unit ODIMO';
 
 
   useEffect(() => {
