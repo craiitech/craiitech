@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,11 +31,16 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { validateGoogleDriveLinkAccessibility } from '@/ai/flows/validate-google-drive-link-accessibility';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import type { Unit } from '@/lib/types';
+
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 5 }, (_, i) => currentYear + i - 2);
 
 const submissionSchema = z.object({
   cycleId: z.enum(['first', 'final']),
+  year: z.coerce.number(),
   googleDriveLink: z
     .string()
     .url('Please enter a valid URL')
@@ -65,10 +70,14 @@ export function SubmissionForm({
   const { user, userProfile } = useUser();
   const firestore = useFirestore();
 
+  const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units'): null, [firestore]);
+  const { data: units } = useCollection<Unit>(unitsQuery);
+
   const form = useForm<z.infer<typeof submissionSchema>>({
     resolver: zodResolver(submissionSchema),
     defaultValues: {
       cycleId: 'first',
+      year: currentYear,
       googleDriveLink: '',
       comments: '',
     },
@@ -119,9 +128,14 @@ export function SubmissionForm({
         toast({ title: 'Error', description: 'You must be logged in to submit.', variant: 'destructive'});
         return;
     }
+     if (!units) {
+      toast({ title: 'Error', description: 'Could not load unit data. Please try again.', variant: 'destructive'});
+      return;
+    }
 
     setIsSubmitting(true);
     try {
+        const unitName = units.find(u => u.id === userProfile.unitId)?.name || 'Unknown Unit';
         const submissionCollectionRef = collection(firestore, 'users', user.uid, 'submissions');
         await addDoc(submissionCollectionRef, {
             ...values,
@@ -129,6 +143,7 @@ export function SubmissionForm({
             userId: user.uid,
             campusId: userProfile.campusId,
             unitId: userProfile.unitId,
+            unitName: unitName,
             statusId: 'submitted', // Initial status
             submissionDate: serverTimestamp(),
         });
@@ -165,27 +180,51 @@ export function SubmissionForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="cycleId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Submission Cycle</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a cycle" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="first">First Submission</SelectItem>
-                  <SelectItem value="final">Final Submission</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-2 gap-4">
+            <FormField
+            control={form.control}
+            name="cycleId"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Submission Cycle</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select a cycle" />
+                    </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                    <SelectItem value="first">First Submission</SelectItem>
+                    <SelectItem value="final">Final Submission</SelectItem>
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+             <FormField
+            control={form.control}
+            name="year"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Year</FormLabel>
+                <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={String(field.value)}>
+                    <FormControl>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select a year" />
+                    </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        {years.map(year => (
+                            <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
         <FormField
           control={form.control}
           name="googleDriveLink"
@@ -259,5 +298,3 @@ export function SubmissionForm({
     </Form>
   );
 }
-
-    

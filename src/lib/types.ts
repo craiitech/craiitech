@@ -30,6 +30,8 @@ export type Submission = {
   cycleId: string;
   statusId: string;
   reportType: string;
+  year: number;
+  unitName: string;
   comments?: string;
 };
 

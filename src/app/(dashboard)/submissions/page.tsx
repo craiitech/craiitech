@@ -81,6 +81,8 @@ export default function SubmissionsPage() {
               <TableRow>
                 <TableHead>Report Type</TableHead>
                 <TableHead>Link</TableHead>
+                <TableHead>Unit</TableHead>
+                <TableHead>Year</TableHead>
                 <TableHead>Cycle</TableHead>
                 <TableHead>Submitted At</TableHead>
                 <TableHead>Status</TableHead>
@@ -96,6 +98,8 @@ export default function SubmissionsPage() {
                       {submission.googleDriveLink}
                     </a>
                   </TableCell>
+                  <TableCell>{submission.unitName}</TableCell>
+                  <TableCell>{submission.year}</TableCell>
                   <TableCell className="capitalize">{submission.cycleId}</TableCell>
                   <TableCell>
                     {format(new Date(submission.submissionDate), 'MMMM d, yyyy')}
