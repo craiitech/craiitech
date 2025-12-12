@@ -13,11 +13,25 @@ import { UnitManagement } from '@/components/admin/unit-management';
 import { RoleManagement } from '@/components/admin/role-management';
 import { CampusSettingsManagement } from '@/components/admin/campus-settings-management';
 import { useUser } from '@/firebase';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SettingsPage() {
-  const { isAdmin, userProfile } = useUser();
+  const { userProfile, isAdmin, isUserLoading } = useUser();
   
-  const isCampusDirector = userProfile?.role === 'Campus Director';
+  const isCampusDirector = userProfile?.role === 'Campus Director' || userProfile?.role === 'Campus ODIMO';
+
+  if (isUserLoading) {
+     return (
+       <div className="space-y-4">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-6 w-96" />
+        <div className="space-y-4 pt-4">
+            <Skeleton className="h-10 w-[400px]" />
+            <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    );
+  }
 
   if (isAdmin) {
     return (
