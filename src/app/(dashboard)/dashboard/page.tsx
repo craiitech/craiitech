@@ -64,7 +64,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 
 
 export default function DashboardPage() {
-  const { user, userProfile, isAdmin, isUserLoading } = useUser();
+  const { user, userProfile, isAdmin, isUserLoading, userRole } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
 
@@ -72,7 +72,7 @@ export default function DashboardPage() {
   const [allUsers, setAllUsers] = useState<Record<string, AppUser>>({});
 
   // Determine user role and scope from the denormalized role name in userProfile
-  const userRoleName = isAdmin ? 'Admin' : userProfile?.role;
+  const userRoleName = userRole;
   
   const isCampusSupervisor =
     userRoleName === 'Campus Director' ||

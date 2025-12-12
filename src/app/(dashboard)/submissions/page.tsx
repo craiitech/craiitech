@@ -38,12 +38,11 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 
 
 export default function SubmissionsPage() {
-  const { user, userProfile, isAdmin } = useUser();
+  const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
 
   const [users, setUsers] = useState<Record<string, AppUser>>({});
-  const [roles, setRoles] = useState<Record<string, Role>>({});
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -56,32 +55,15 @@ export default function SubmissionsPage() {
 
 
   useEffect(() => {
-    if (!firestore) return;
-
-    // Pre-fetch roles and users for supervisors
-    const fetchPrereqs = async () => {
-      const rolesQuery = query(collection(firestore, 'roles'));
-      const rolesSnapshot = await getDocs(rolesQuery);
-      setRoles(Object.fromEntries(rolesSnapshot.docs.map(doc => [doc.id, doc.data() as Role])));
-
-      // Only admins should fetch all users. Other supervisors will see their scope.
-      if (isAdmin) {
-        const usersQuery = query(collection(firestore, 'users'));
-        const usersSnapshot = await getDocs(usersQuery);
-        setUsers(Object.fromEntries(usersSnapshot.docs.map(doc => [doc.id, doc.data() as AppUser])));
-      }
-    };
-    fetchPrereqs();
-  }, [firestore, isAdmin]);
-
-  const userRole = useMemo(() => {
-    if (isAdmin) return 'Admin';
-    if (!userProfile || Object.keys(roles).length === 0) return null;
-    return roles[userProfile.roleId]?.name;
-  }, [isAdmin, userProfile, roles]);
-
-  useEffect(() => {
-    if (!firestore || !userRole || !userProfile) return;
+    // Wait until firestore and the user's role and profile are available.
+    if (!firestore || !userRole || !userProfile) {
+        // If we know we're not a supervisor and just need the profile, we can be less strict
+        if (isSupervisor === false && firestore && userProfile) {
+            // continue for regular users
+        } else {
+             return;
+        }
+    }
 
     const fetchSubmissions = async () => {
       setIsLoading(true);
@@ -96,7 +78,7 @@ export default function SubmissionsPage() {
       } else if (userRole === 'Unit ODIMO') {
         submissionsQuery = query(submissionsCollection, where('unitId', '==', userProfile.unitId), orderBy('submissionDate', 'desc'));
       } else {
-        // Regular employee - remove order by to prevent index error
+        // Regular employee - query only for their own submissions
         submissionsQuery = query(submissionsCollection, where('userId', '==', userProfile.id));
       }
 
@@ -105,6 +87,7 @@ export default function SubmissionsPage() {
       let fetchedSubmissions = snapshot.docs.map(doc => {
         const data = doc.data();
         const submissionDateRaw = data.submissionDate;
+        // Ensure submissionDate is a JS Date object
         const submissionDate =
           submissionDateRaw instanceof Timestamp
             ? submissionDateRaw.toDate()
@@ -116,22 +99,29 @@ export default function SubmissionsPage() {
         } as Submission;
       });
 
-      // Sort client-side for non-supervisors
+      // Sort client-side for non-supervisors as they don't use a composite index by default
       if (!['Admin', 'Campus Director', 'Campus ODIMO', 'Unit ODIMO'].includes(userRole)) {
         fetchedSubmissions.sort((a, b) => b.submissionDate.getTime() - a.submissionDate.getTime());
       }
 
       // If supervisor, fetch needed user data for display
       const isSupervisor = ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit ODIMO'].includes(userRole);
-      if (isSupervisor && !isAdmin) { // Admins already have all users
-         const userIds = [...new Set(fetchedSubmissions.map(s => s.userId))];
-         if (userIds.length > 0) {
-           const usersQuery = query(collection(firestore, 'users'), where('id', 'in', userIds));
-           const usersSnapshot = await getDocs(usersQuery);
-           setUsers(prevUsers => ({
-             ...prevUsers,
-             ...Object.fromEntries(usersSnapshot.docs.map(doc => [doc.id, doc.data() as AppUser]))
-           }));
+      
+      const userIds = [...new Set(fetchedSubmissions.map(s => s.userId))];
+      // Fetch all users at once if admin, otherwise fetch only needed users for supervisors
+      if (isAdmin && Object.keys(users).length === 0) { // fetch all only once
+          const usersQuery = query(collection(firestore, 'users'));
+          const usersSnapshot = await getDocs(usersQuery);
+          setUsers(Object.fromEntries(usersSnapshot.docs.map(doc => [doc.id, doc.data() as AppUser])));
+      } else if (isSupervisor && !isAdmin && userIds.length > 0) {
+         const newUsersToFetch = userIds.filter(id => !users[id]);
+         if (newUsersToFetch.length > 0) {
+            const usersQuery = query(collection(firestore, 'users'), where('id', 'in', newUsersToFetch));
+            const usersSnapshot = await getDocs(usersQuery);
+            setUsers(prevUsers => ({
+                ...prevUsers,
+                ...Object.fromEntries(usersSnapshot.docs.map(doc => [doc.id, doc.data() as AppUser]))
+            }));
          }
       }
       

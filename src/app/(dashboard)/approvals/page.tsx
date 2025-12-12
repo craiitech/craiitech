@@ -53,14 +53,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { useRouter } from 'next/navigation';
 
 export default function ApprovalsPage() {
-  const { user, userProfile, isAdmin } = useUser();
+  const { user, userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [users, setUsers] = useState<Record<string, AppUser>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [roles, setRoles] = useState<Record<string, Role>>({});
 
   // State for the feedback dialog
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -69,31 +68,6 @@ export default function ApprovalsPage() {
   const [feedback, setFeedback] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [dialogMode, setDialogMode] = useState<'reject' | 'view'>('view');
-
-  useEffect(() => {
-    if (!firestore) return;
-
-    const fetchRoles = async () => {
-      const rolesCollection = collection(firestore, 'roles');
-      const rolesSnapshot = await getDocs(rolesCollection);
-      setRoles(
-        Object.fromEntries(
-          rolesSnapshot.docs.map((d) => [
-            d.id,
-            { id: d.id, ...d.data() } as Role,
-          ])
-        )
-      );
-    };
-
-    fetchRoles();
-  }, [firestore]);
-
-  const userRole = useMemo(() => {
-    if (isAdmin) return 'Admin';
-    if (!userProfile || !Object.keys(roles).length) return null;
-    return roles[userProfile.roleId]?.name;
-  }, [isAdmin, userProfile, roles]);
   
   const canApprove = userRole === 'Admin' || userRole === 'Unit ODIMO';
 
@@ -114,36 +88,37 @@ export default function ApprovalsPage() {
       setIsLoading(true);
       try {
         const submissionsCollection = collection(firestore, 'submissions');
-        const baseQuery = query(
-          submissionsCollection,
-          where('statusId', '==', 'submitted')
-        );
+        let baseQuery;
 
-        let submissionsQuery;
         if (userRole === 'Admin') {
-          submissionsQuery = baseQuery;
+          baseQuery = query(
+            submissionsCollection,
+            where('statusId', '==', 'submitted')
+          );
         } else if (
           (userRole === 'Campus Director' || userRole === 'Campus ODIMO') &&
           userProfile?.campusId
         ) {
-          submissionsQuery = query(
-            baseQuery,
-            where('campusId', '==', userProfile.campusId)
+          baseQuery = query(
+            submissionsCollection,
+            where('campusId', '==', userProfile.campusId),
+            where('statusId', '==', 'submitted')
           );
         } else if (userRole === 'Unit ODIMO' && userProfile?.unitId) {
-          submissionsQuery = query(
-            baseQuery,
-            where('unitId', '==', userProfile.unitId)
+          baseQuery = query(
+            submissionsCollection,
+            where('unitId', '==', userProfile.unitId),
+            where('statusId', '==', 'submitted')
           );
         }
 
-        if (!submissionsQuery) {
+        if (!baseQuery) {
           setSubmissions([]);
           setIsLoading(false);
           return;
         }
 
-        const submissionsSnapshot = await getDocs(submissionsQuery);
+        const submissionsSnapshot = await getDocs(baseQuery);
         let fetchedSubmissions = submissionsSnapshot.docs.map((doc) => {
           const data = doc.data();
           const submissionDateRaw = data.submissionDate;
