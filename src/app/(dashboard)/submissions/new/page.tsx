@@ -188,6 +188,11 @@ export default function NewSubmissionPage() {
                                 <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
                                     {submission.statusId}
                                 </Badge>
+                                {submission.statusId === 'submitted' && (
+                                  <p className="text-sm text-muted-foreground">
+                                    Awaiting Review and Approval
+                                  </p>
+                                )}
                                 {submission.statusId === 'rejected' && submission.comments && (
                                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); handleViewFeedback(submission.comments)} }>
                                         <MessageSquare className="h-4 w-4 text-muted-foreground" />
