@@ -71,13 +71,18 @@ export default function CompleteRegistrationPage() {
 
   const selectedRoleId = form.watch('roleId');
   
-  const isUnitRequired = useMemo(() => {
-    if (!selectedRoleId || !roles) return true; // Default to required if data is not loaded
-    const selectedRole = roles.find(r => r.id === selectedRoleId);
-    if (!selectedRole) return true;
-    const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
-    return !campusLevelRoles.includes(selectedRole.name);
+  const selectedRole = useMemo(() => {
+    if (!selectedRoleId || !roles) return null;
+    return roles.find(r => r.id === selectedRoleId);
   }, [selectedRoleId, roles]);
+
+  const isUnitRequired = useMemo(() => {
+    if (!selectedRole) return true; // Default to required if data is not loaded
+    const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
+    // Make the check case-insensitive for 'Campus ODIMO'
+    return !campusLevelRoles.some(r => r.toLowerCase() === selectedRole.name.toLowerCase());
+  }, [selectedRole]);
+
 
   // When isUnitRequired changes, we might need to clear errors or values
   useEffect(() => {
@@ -105,14 +110,14 @@ export default function CompleteRegistrationPage() {
     setIsSubmitting(true);
     try {
       const usersCollection = collection(firestore, 'users');
-      const selectedRole = roles.find(r => r.id === values.roleId);
+      const selectedRoleObject = roles.find(r => r.id === values.roleId);
 
       // --- Start of Uniqueness Validation ---
       let q;
       let isRoleTaken = false;
 
       const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
-      if (selectedRole && campusLevelRoles.includes(selectedRole.name)) {
+      if (selectedRoleObject && campusLevelRoles.some(r => r.toLowerCase() === selectedRoleObject.name.toLowerCase())) {
         q = query(
           usersCollection,
           where('campusId', '==', values.campusId),
@@ -123,7 +128,7 @@ export default function CompleteRegistrationPage() {
         if (isRoleTaken) {
           toast({
             title: 'Role Taken',
-            description: `The selected campus already has a ${selectedRole.name}. Please choose a different role or campus.`,
+            description: `The selected campus already has a ${selectedRoleObject.name}. Please choose a different role or campus.`,
             variant: 'destructive',
           });
           setIsSubmitting(false);
@@ -169,7 +174,7 @@ export default function CompleteRegistrationPage() {
         campusId: values.campusId,
         unitId: values.unitId || '',
         roleId: values.roleId,
-        role: selectedRole ? selectedRole.name : '',
+        role: selectedRoleObject ? selectedRoleObject.name : '',
         verified: false,
       });
 
@@ -308,4 +313,3 @@ export default function CompleteRegistrationPage() {
       </Card>
   );
 }
-
