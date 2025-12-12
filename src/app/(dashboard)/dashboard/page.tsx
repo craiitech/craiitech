@@ -326,18 +326,7 @@ export default function DashboardPage() {
 
   const approvalQueue = useMemo(() => {
     if (!submissions) return [];
-    return submissions
-        .filter((s) => s.statusId === 'submitted')
-        .map(s => {
-            const submissionDateRaw = s.submissionDate as any;
-            const submissionDate = submissionDateRaw instanceof Timestamp 
-                ? submissionDateRaw.toDate()
-                : new Date(submissionDateRaw.seconds * 1000);
-            return {
-                ...s,
-                submissionDate
-            };
-        });
+    return submissions.filter((s) => s.statusId === 'submitted');
   }, [submissions]);
 
   const renderCard = (
