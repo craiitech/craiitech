@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
-import { format, subMonths, isValid } from 'date-fns';
+import { format, subMonths } from 'date-fns';
 import type { Submission } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChartTooltipContent, ChartContainer } from '@/components/ui/chart';
@@ -40,8 +40,8 @@ export function Overview({ submissions, isLoading }: OverviewProps) {
     // Populate with actual submission data
     if (submissions) {
       submissions.forEach((submission) => {
-        const submissionDate = new Date(submission.submissionDate);
         // This is a more robust check for a valid date
+        const submissionDate = new Date(submission.submissionDate);
         if (submissionDate && !isNaN(submissionDate.getTime())) {
             const monthKey = format(submissionDate, 'yyyy-MM');
             if (monthlyData[monthKey]) {
