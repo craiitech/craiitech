@@ -23,7 +23,8 @@ import {
   Eye,
   Search,
   Bell,
-  Heart
+  Heart,
+  XCircle
 } from 'lucide-react';
 import {
   useUser,
@@ -289,7 +290,7 @@ export default function DashboardPage() {
       };
     }
     const currentYearSubmissions = submissions.filter(
-      (s) => s.year === new Date().getFullYear()
+      (s) => s.year === new Date().getFullYear() && s.cycleId === 'first'
     );
     const statusMap = new Map(
       currentYearSubmissions.map((s) => [s.reportType, s])
@@ -423,65 +424,54 @@ export default function DashboardPage() {
       <TabsContent value="actions" className="space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle>Tactical Submission Dashboard</CardTitle>
+            <CardTitle>First Cycle Submission Status</CardTitle>
             <CardDescription>
-              Quick actions for all required submissions for{' '}
+              Checklist for all required submissions for{' '}
               {new Date().getFullYear()}.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="mb-4">
+             <div className="mb-4">
               <div className="flex justify-between text-sm font-medium mb-1">
-                <span>Overall Progress</span>
+                <span>Overall Progress (First Cycle)</span>
                 <span>{Math.round(submissionProgress)}%</span>
               </div>
               <Progress value={submissionProgress} />
             </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-3">
               {submissionTypes.map((reportType) => {
                 const submission = submissionStatusMap.get(reportType);
-                const status = submission?.statusId || 'Not Submitted';
+                const isSubmitted = !!submission;
                 return (
-                  <Card key={reportType}>
-                    <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                      <CardTitle className="text-base font-medium">
-                        {reportType}
-                      </CardTitle>
-                      {getIconForStatus(submission?.statusId)}
-                    </CardHeader>
-                    <CardContent>
-                      <Badge
-                        variant={
-                          submission ? statusVariant[status] : 'outline'
-                        }
-                        className="capitalize"
-                      >
-                        {status}
-                      </Badge>
-                      {submission && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Cycle: {submission.cycleId}
-                        </p>
+                  <div key={reportType} className="flex items-center justify-between rounded-md border p-4">
+                      <div className="flex items-center gap-3">
+                         {isSubmitted ? (
+                          <CheckCircle className="h-6 w-6 text-green-500" />
+                        ) : (
+                          <XCircle className="h-6 w-6 text-destructive" />
+                        )}
+                        <span className="font-medium">{reportType}</span>
+                      </div>
+                      {isSubmitted ? (
+                         <Badge
+                            variant={statusVariant[submission.statusId]}
+                            className="capitalize"
+                        >
+                            {submission.statusId}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">Not Submitted</Badge>
                       )}
-                    </CardContent>
-                    <CardFooter>
-                      <Button asChild className="w-full">
-                        <Link href="/submissions/new">
-                          {submission ? (
-                            <Pencil className="mr-2 h-4 w-4" />
-                          ) : (
-                            <FilePlus className="mr-2 h-4 w-4" />
-                          )}
-                          {submission
-                            ? 'Update Submission'
-                            : 'Add Submission'}
-                        </Link>
-                      </Button>
-                    </CardFooter>
-                  </Card>
+                  </div>
                 );
               })}
             </div>
+             <Button asChild className="w-full mt-6">
+                <Link href="/submissions/new">
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Manage Submissions
+                </Link>
+            </Button>
           </CardContent>
         </Card>
       </TabsContent>
