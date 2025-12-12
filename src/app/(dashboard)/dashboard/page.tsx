@@ -47,11 +47,6 @@ export default function DashboardPage() {
     return roles.find(r => r.id === userProfile.roleId)?.name;
   }, [userProfile, roles]);
 
-  const campusHasNoUnits = useMemo(() => {
-    if (!userProfile || !units || userRole !== 'Campus Director') return false;
-    return units.filter(u => u.campusId === userProfile.campusId).length === 0;
-  }, [userProfile, units, userRole]);
-
   const isLoading = isLoadingSubmissions || isLoadingUnits || isLoadingRoles;
 
   const stats = {
@@ -88,20 +83,6 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
       </div>
-       {campusHasNoUnits && !isLoading && (
-        <Alert variant="default" className="bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800/50 dark:text-yellow-200">
-           <AlertTriangle className="h-4 w-4 !text-yellow-500 dark:!text-yellow-400" />
-          <AlertTitle>No Units Found for Your Campus</AlertTitle>
-          <AlertDescription>
-            There are no units registered under your campus yet. Please go to the settings page to add units.
-             <div className="mt-2">
-                <Button asChild variant="secondary" size="sm">
-                    <Link href="/settings">Go to Settings</Link>
-                </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
