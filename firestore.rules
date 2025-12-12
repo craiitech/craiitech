@@ -117,6 +117,7 @@ service cloud.firestore {
       allow list: if isSignedIn(); // Further filtering must be done in the query.
       
       allow create: if isOwner(request.resource.data.userId)
+                    && 'campusId' in getUserProfile() && 'unitId' in getUserProfile()
                     && request.resource.data.campusId == getUserProfile().campusId
                     && request.resource.data.unitId == getUserProfile().unitId;
 
