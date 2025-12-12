@@ -45,7 +45,7 @@ export function SidebarNav({
     {
       href: '/submissions',
       label: 'Submissions',
-      active: pathname === '/submissions',
+      active: pathname.startsWith('/submissions'),
       icon: <FileText />,
     },
     {
