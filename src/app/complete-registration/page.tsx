@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -40,8 +40,8 @@ import type { Campus, Unit, Role } from '@/lib/types';
 
 const registrationSchema = z.object({
   campusId: z.string().min(1, { message: 'Please select a campus.' }),
-  unitId: z.string().min(1, { message: 'Please select a unit.' }),
   roleId: z.string().min(1, { message: 'Please select a role.' }),
+  unitId: z.string().optional(),
 });
 
 export default function CompleteRegistrationPage() {
@@ -50,15 +50,6 @@ export default function CompleteRegistrationPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-
-  const form = useForm<z.infer<typeof registrationSchema>>({
-    resolver: zodResolver(registrationSchema),
-    defaultValues: {
-      campusId: '',
-      unitId: '',
-      roleId: '',
-    },
-  });
   
   const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses'): null, [firestore]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
@@ -68,6 +59,31 @@ export default function CompleteRegistrationPage() {
 
   const rolesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'roles'): null, [firestore]);
   const { data: roles, isLoading: isLoadingRoles } = useCollection<Role>(rolesQuery);
+
+  const form = useForm<z.infer<typeof registrationSchema>>({
+    resolver: zodResolver(registrationSchema),
+    defaultValues: {
+      campusId: '',
+      unitId: '',
+      roleId: '',
+    },
+  });
+
+  const selectedRoleId = form.watch('roleId');
+  
+  const isUnitRequired = useMemo(() => {
+    if (!selectedRoleId || !roles) return true;
+    const selectedRole = roles.find(r => r.id === selectedRoleId);
+    const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
+    return !campusLevelRoles.includes(selectedRole?.name || '');
+  }, [selectedRoleId, roles]);
+
+  useEffect(() => {
+    // Clear unitId if it's not required
+    if (!isUnitRequired) {
+      form.setValue('unitId', '');
+    }
+  }, [isUnitRequired, form]);
   
   const onSubmit = async (values: z.infer<typeof registrationSchema>) => {
     if (!user || !firestore) {
@@ -78,6 +94,12 @@ export default function CompleteRegistrationPage() {
       });
       return;
     }
+    
+    // Manual validation for unitId based on role
+    if (isUnitRequired && !values.unitId) {
+        form.setError('unitId', { message: 'Please select a unit.' });
+        return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -86,8 +108,9 @@ export default function CompleteRegistrationPage() {
       const q = query(
         usersCollection,
         where('campusId', '==', values.campusId),
-        where('unitId', '==', values.unitId),
-        where('roleId', '==', values.roleId)
+        where('roleId', '==', values.roleId),
+        // Only check unitId if it's required for the role
+        ...(isUnitRequired ? [where('unitId', '==', values.unitId)] : [])
       );
 
       const querySnapshot = await getDocs(q);
@@ -112,7 +135,7 @@ export default function CompleteRegistrationPage() {
 
       await updateDoc(userDocRef, {
         campusId: values.campusId,
-        unitId: values.unitId,
+        unitId: values.unitId || '', // Store empty string if not applicable
         roleId: values.roleId,
         role: selectedRole ? selectedRole.name : '',
         verified: false, // Ensure verification status is reset on profile update
@@ -206,32 +229,34 @@ export default function CompleteRegistrationPage() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="unitId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                        Unit
-                    </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={"Select your unit"} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                          {units?.map((unit) => (
-                            <SelectItem key={unit.id} value={unit.id}>
-                              {unit.name}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                     <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {isUnitRequired && (
+                <FormField
+                    control={form.control}
+                    name="unitId"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>
+                            Unit
+                        </FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder={"Select your unit"} />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {units?.map((unit) => (
+                                <SelectItem key={unit.id} value={unit.id}>
+                                {unit.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              )}
               <Button 
                 type="submit" 
                 className="w-full" 

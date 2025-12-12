@@ -102,12 +102,12 @@ export default function DashboardLayout({
     }
 
     if (userProfile && !isAdmin) {
-      let isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
-
       const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
       const isCampusLevelUser = userRole ? campusLevelRoles.includes(userRole) : false;
 
-      // Unit ID is not required for campus level users
+      let isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
+
+      // Unit ID is only required for non-campus level users
       if (!isCampusLevelUser) {
         isProfileIncomplete = isProfileIncomplete || !userProfile.unitId;
       }
