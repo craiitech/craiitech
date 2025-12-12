@@ -38,7 +38,7 @@ export default function SettingsPage() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">System Settings</h2>
           <p className="text-muted-foreground">
-            Manage users, campuses, units, roles, and system settings.
+            Manage users, campuses, units, roles, and campus-specific settings.
           </p>
         </div>
         <Tabs defaultValue="users" className="space-y-4">

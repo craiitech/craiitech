@@ -34,11 +34,13 @@ export default function DashboardPage() {
 
   const [userCount, setUserCount] = useState(0);
 
-  // Determine user role and scope
+  // Determine user role and scope from the denormalized role name in userProfile
+  const userRoleName = isAdmin ? 'Admin' : userProfile?.role;
+  
   const isCampusSupervisor =
-    userProfile?.role === 'Campus Director' ||
-    userProfile?.role === 'Campus ODIMO';
-  const isUnitSupervisor = userProfile?.role === 'Unit ODIMO';
+    userRoleName === 'Campus Director' ||
+    userRoleName === 'Campus ODIMO';
+  const isUnitSupervisor = userRoleName === 'Unit ODIMO';
   const isSupervisor = isAdmin || isCampusSupervisor || isUnitSupervisor;
   const canViewAnnouncements = userProfile?.campusId;
 

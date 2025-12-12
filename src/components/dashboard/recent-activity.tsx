@@ -1,4 +1,3 @@
-
 'use client'
 import {
   Avatar,
@@ -30,20 +29,24 @@ export function RecentActivity({ submissions, isLoading: isLoadingSubmissions }:
   const [users, setUsers] = useState<Record<string, AppUser>>({});
   const [isFetchingUsers, setIsFetchingUsers] = useState(false);
 
-  const isSupervisor = isAdmin || userProfile?.role === 'Campus Director' || userProfile?.role === 'Campus ODIMO' || userProfile?.role === 'Unit ODIMO';
+  // Use the denormalized role from userProfile
+  const userRoleName = isAdmin ? 'Admin' : userProfile?.role;
+  const isSupervisor = userRoleName === 'Admin' || userRoleName === 'Campus Director' || userRoleName === 'Campus ODIMO' || userRoleName === 'Unit ODIMO';
+
 
   useEffect(() => {
     if (!isSupervisor || !submissions || submissions.length === 0 || !firestore) return;
 
     const fetchUsers = async () => {
         setIsFetchingUsers(true);
-        const userIds = [...new Set(submissions.map(s => s.userId))].filter(id => !users[id]);
-        if (userIds.length > 0) {
+        const userIdsToFetch = [...new Set(submissions.map(s => s.userId))].filter(id => !users[id]);
+        
+        if (userIdsToFetch.length > 0) {
             try {
-                // Firestore 'in' query is limited to 30 elements. We might need to chunk it.
-                const chunks = [];
-                for (let i = 0; i < userIds.length; i += 30) {
-                    chunks.push(userIds.slice(i, i + 30));
+                // Firestore 'in' query is limited to 30 elements. We need to chunk it.
+                const chunks: string[][] = [];
+                for (let i = 0; i < userIdsToFetch.length; i += 30) {
+                    chunks.push(userIdsToFetch.slice(i, i + 30));
                 }
                 const userPromises = chunks.map(chunk => 
                     getDocs(query(collection(firestore, 'users'), where('id', 'in', chunk)))
@@ -68,7 +71,9 @@ export function RecentActivity({ submissions, isLoading: isLoadingSubmissions }:
   const recentSubmissions = useMemo(() => {
     if (!submissions) return [];
     // Sort by date just in case they aren't already
-    return submissions.sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime()).slice(0, 5);
+    return [...submissions]
+      .sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime())
+      .slice(0, 5);
   }, [submissions]);
 
   const isLoading = isLoadingSubmissions || (isSupervisor && isFetchingUsers);

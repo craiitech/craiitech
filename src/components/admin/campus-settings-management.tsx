@@ -159,7 +159,7 @@ export function CampusSettingsManagement() {
               </FormItem>
             )}
 
-            {isLoading ? (
+            {isLoading && activeCampusId ? (
                 <div className="space-y-2 pt-2">
                     <Skeleton className="h-5 w-32" />
                     <Skeleton className="h-24 w-full" />
