@@ -2,8 +2,7 @@
 'use client';
 
 import { redirect, usePathname } from 'next/navigation';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase } from '@/firebase';
-import TeamSwitcher from '@/components/dashboard/team-switcher';
+import { useUser, useFirebase } from '@/firebase';
 import { UserNav } from '@/components/dashboard/user-nav';
 import { Logo } from '@/components/logo';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,9 +16,7 @@ import {
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
 import { Button } from '@/components/ui/button';
-import { collection } from 'firebase/firestore';
-import type { Role } from '@/lib/types';
-import { useMemo, useEffect } from 'react';
+import { useEffect } from 'react';
 
 const LoadingSkeleton = () => (
   <div className="flex items-start">
@@ -66,23 +63,9 @@ export default function DashboardLayout({
   }
 
   // Destructure the rest of the state only after we know services are available.
-  const { user, userProfile, isUserLoading, isAdmin, firestore } = firebaseState;
-
-
-  const rolesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'roles') : null),
-    [firestore]
-  );
-  const { data: roles, isLoading: areRolesLoading } = useCollection<Role>(rolesQuery);
-
-  const userRole = useMemo(() => {
-    if (!userProfile || !roles) return null;
-    if (isAdmin) return 'Admin';
-    const userRoleDoc = roles.find((r) => r.id === userProfile.roleId);
-    return userRoleDoc ? userRoleDoc.name : null;
-  }, [userProfile, roles, isAdmin]);
+  const { user, userProfile, isUserLoading, isAdmin, userRole } = firebaseState;
   
-  const isStillLoading = isUserLoading || areRolesLoading;
+  const isStillLoading = isUserLoading;
 
   useEffect(() => {
     if (isStillLoading) return; // Don't do anything while loading
@@ -146,7 +129,9 @@ export default function DashboardLayout({
         <header className="flex h-14 items-center justify-between border-b px-4 lg:px-8">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="md:hidden" />
-            <TeamSwitcher />
+            <div className="hidden md:block font-semibold">
+              {userRole ? `${userRole} Dashboard` : 'Dashboard'}
+            </div>
           </div>
           <UserNav user={user} />
         </header>
