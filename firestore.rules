@@ -95,7 +95,7 @@ service cloud.firestore {
      * The `get` rule is critical for the `getUserProfile()` helper to function.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
+      allow get: if isSignedIn();
       allow update: if isOwner(userId) || isAdmin();
       allow list: if isAdmin() || isCampusOdimo() || isUnitOdimo();
       allow create: if isOwner(userId); // A user can create their own document.
