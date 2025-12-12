@@ -39,8 +39,6 @@ export default function SubmissionsPage() {
   const { user, userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
 
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<Record<string, AppUser>>({});
 
   const rolesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'roles') : null, [firestore]);
@@ -61,49 +59,36 @@ export default function SubmissionsPage() {
     return roles.find(r => r.id === userProfile.roleId)?.name;
   }, [isAdmin, userProfile, roles]);
 
-
-  useEffect(() => {
-    if (!firestore || !userRole || !userProfile) return;
-
-    setIsLoading(true);
-    let subsQuery;
+  const submissionsQuery = useMemoFirebase(() => {
+    if (!firestore || !userRole || !userProfile) return null;
+    
     const baseQuery = collectionGroup(firestore, 'submissions');
 
     if (userRole === 'Admin') {
-      subsQuery = query(baseQuery, orderBy('submissionDate', 'desc'));
-    } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-      subsQuery = query(baseQuery, where('campusId', '==', userProfile.campusId), orderBy('submissionDate', 'desc'));
-    } else if (userRole === 'Unit ODIMO') {
-       subsQuery = query(baseQuery, where('unitId', '==', userProfile.unitId), orderBy('submissionDate', 'desc'));
-    } else {
-      // Regular user sees their own submissions
-      subsQuery = query(collection(firestore, 'users', userProfile.id, 'submissions'), orderBy('submissionDate', 'desc'));
+      return query(baseQuery, orderBy('submissionDate', 'desc'));
     }
+    if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
+      return query(baseQuery, where('campusId', '==', userProfile.campusId), orderBy('submissionDate', 'desc'));
+    }
+    if (userRole === 'Unit ODIMO') {
+       return query(baseQuery, where('unitId', '==', userProfile.unitId), orderBy('submissionDate', 'desc'));
+    }
+    // Default to regular user
+    return query(collection(firestore, 'users', userProfile.id, 'submissions'), orderBy('submissionDate', 'desc'));
 
-    const unsubscribe = collection(firestore, 'submissions');
+  }, [firestore, userRole, userProfile]);
 
-    const unsub = useCollection.prototype.constructor(subsQuery, (snapshot: any) => {
-        const fetchedSubmissions = snapshot.docs.map((doc: any) => ({
-            id: doc.id,
-            ...doc.data(),
-            submissionDate: doc.data().submissionDate?.toDate() ?? new Date(),
-        }));
-        setSubmissions(fetchedSubmissions);
-        setIsLoading(false);
-    }, (error: any) => {
-        console.error("Error fetching submissions:", error);
-        setIsLoading(false);
-    });
+  const { data: submissionsData, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
-    return () => {
-        if (typeof unsub === 'function') {
-            unsub();
-        }
-    };
+  const submissions = useMemo(() => {
+    return submissionsData?.map(s => ({
+        ...s,
+        submissionDate: (s.submissionDate as any)?.toDate ? (s.submissionDate as any).toDate() : new Date(s.submissionDate),
+    })) ?? [];
+  }, [submissionsData]);
 
-  }, [firestore, userRole, userProfile, isAdmin]);
   
-  const pageIsLoading = isLoading || isLoadingRoles || isLoadingUsers;
+  const pageIsLoading = isLoadingSubmissions || isLoadingRoles || isLoadingUsers;
 
   const isSupervisor = ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit ODIMO'].includes(userRole ?? '');
 
