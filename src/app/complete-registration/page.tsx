@@ -111,8 +111,8 @@ export default function CompleteRegistrationPage() {
       let q;
       let isRoleTaken = false;
 
-      // Special check for 'Campus Director'
-      if (selectedRole?.name === 'Campus Director') {
+      const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
+      if (selectedRole && campusLevelRoles.includes(selectedRole.name)) {
         q = query(
           usersCollection,
           where('campusId', '==', values.campusId),
@@ -123,13 +123,13 @@ export default function CompleteRegistrationPage() {
         if (isRoleTaken) {
           toast({
             title: 'Role Taken',
-            description: 'The selected campus already has a Campus Director. Please choose a different role or campus.',
+            description: `The selected campus already has a ${selectedRole.name}. Please choose a different role or campus.`,
             variant: 'destructive',
           });
           setIsSubmitting(false);
           return;
         }
-      } else { // General check for other roles
+      } else { // General check for other roles (unit-level roles)
           const queryConstraints = [
             where('campusId', '==', values.campusId),
             where('roleId', '==', values.roleId),
@@ -137,6 +137,15 @@ export default function CompleteRegistrationPage() {
 
           if (isUnitRequired && values.unitId) {
             queryConstraints.push(where('unitId', '==', values.unitId));
+          } else if (isUnitRequired) {
+            // This case should be caught by the form validation, but as a safeguard:
+             toast({
+              title: 'Validation Error',
+              description: 'A unit is required for this role.',
+              variant: 'destructive',
+            });
+            setIsSubmitting(false);
+            return;
           }
 
           q = query(usersCollection, ...queryConstraints);
@@ -299,3 +308,4 @@ export default function CompleteRegistrationPage() {
       </Card>
   );
 }
+
