@@ -82,7 +82,7 @@ export default function CompleteRegistrationPage() {
   // When isUnitRequired changes, we might need to clear errors or values
   useEffect(() => {
     if (!isUnitRequired) {
-      form.setValue('unitId', undefined); // Use undefined to clear it completely
+      form.setValue('unitId', ''); // Use empty string to clear it
       form.clearErrors('unitId');
     }
   }, [isUnitRequired, form]);
