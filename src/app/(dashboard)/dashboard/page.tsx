@@ -590,6 +590,7 @@ export default function DashboardPage() {
     <Tabs defaultValue="overview" className="space-y-4">
       <TabsList>
         <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsTrigger value="tactical">Tactical</TabsTrigger>
         <TabsTrigger value="approvals">Approvals Queue</TabsTrigger>
         <TabsTrigger value="analytics">Analytics</TabsTrigger>
       </TabsList>
@@ -650,6 +651,9 @@ export default function DashboardPage() {
           isAdmin={isAdmin}
           isCampusSupervisor={isCampusSupervisor}
         />
+      </TabsContent>
+       <TabsContent value="tactical" className="h-[80vh]">
+        <iframe src="/dashboard/tactical" className="w-full h-full border-none" />
       </TabsContent>
       <TabsContent value="approvals" className="space-y-4">
         <Card>
