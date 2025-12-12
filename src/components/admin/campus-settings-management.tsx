@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -41,9 +40,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
+import { Skeleton } from '../ui/skeleton';
 
 const settingsSchema = z.object({
-  announcement: z.string().max(500, 'Announcement must be 500 characters or less.'),
+  announcement: z.string().max(500, 'Announcement must be 500 characters or less.').optional(),
 });
 
 export function CampusSettingsManagement() {
@@ -57,7 +57,7 @@ export function CampusSettingsManagement() {
     isAdmin ? undefined : userProfile?.campusId
   );
   
-  const isCampusDirector = userProfile?.role === 'Campus Director';
+  const isCampusSupervisor = userProfile?.role === 'Campus Director' || userProfile?.role === 'Campus ODIMO';
 
   // Determine the active campusId
   const activeCampusId = isAdmin ? selectedCampusId : userProfile?.campusId;
@@ -77,13 +77,20 @@ export function CampusSettingsManagement() {
 
   const form = useForm<z.infer<typeof settingsSchema>>({
     resolver: zodResolver(settingsSchema),
-    values: { // Use `values` to keep the form in sync with fetched data
-        announcement: campusSetting?.announcement || '',
-    },
     defaultValues: {
       announcement: '',
     },
   });
+
+  // Effect to sync form with fetched data
+  useEffect(() => {
+    if (campusSetting) {
+      form.reset({ announcement: campusSetting.announcement || '' });
+    } else {
+      form.reset({ announcement: '' });
+    }
+  }, [campusSetting, form]);
+
 
   const onSubmit = async (values: z.infer<typeof settingsSchema>) => {
     if (!firestore || !activeCampusId) return;
@@ -92,7 +99,7 @@ export function CampusSettingsManagement() {
       const settingRef = doc(firestore, 'campusSettings', activeCampusId);
       await setDoc(settingRef, {
         id: activeCampusId,
-        ...values,
+        announcement: values.announcement || '',
       }, { merge: true });
       toast({ title: 'Success', description: 'Campus announcement updated.' });
     } catch (error) {
@@ -108,7 +115,7 @@ export function CampusSettingsManagement() {
   };
 
   const isLoading = isLoadingSettings || (isAdmin && isLoadingCampuses);
-  const canSubmit = activeCampusId && (isAdmin || isCampusDirector);
+  const canSubmit = activeCampusId && (isAdmin || isCampusSupervisor);
 
   return (
     <Card className="max-w-2xl">
@@ -126,7 +133,10 @@ export function CampusSettingsManagement() {
               <FormItem>
                 <FormLabel>Select Campus</FormLabel>
                 <Select
-                  onValueChange={setSelectedCampusId}
+                  onValueChange={(value) => {
+                    setSelectedCampusId(value);
+                    form.reset({ announcement: '' }); // Reset form when campus changes
+                  }}
                   defaultValue={selectedCampusId}
                 >
                   <FormControl>
@@ -150,7 +160,8 @@ export function CampusSettingsManagement() {
             )}
 
             {isLoading ? (
-                <div className="space-y-2">
+                <div className="space-y-2 pt-2">
+                    <Skeleton className="h-5 w-32" />
                     <Skeleton className="h-24 w-full" />
                 </div>
 
@@ -163,7 +174,7 @@ export function CampusSettingsManagement() {
                       <FormLabel>Announcement Message</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="e.g., The deadline for the first cycle is approaching."
+                          placeholder="e.g., The deadline for the first cycle is approaching. Leave blank to clear the announcement."
                           {...field}
                           disabled={!canSubmit}
                         />

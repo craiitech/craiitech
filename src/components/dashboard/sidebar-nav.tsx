@@ -1,17 +1,10 @@
-
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   useUser,
-  useMemoFirebase,
-  useFirestore,
-  useCollection,
 } from '@/firebase';
-import type { Role } from '@/lib/types';
-import { collection } from 'firebase/firestore';
-import { useMemo } from 'react';
 import { LayoutDashboard, FileText, CheckSquare, Settings } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../ui/sidebar';
 
@@ -21,19 +14,9 @@ export function SidebarNav({
 }: React.HTMLAttributes<HTMLElement>) {
   const pathname = usePathname();
   const { userProfile, isAdmin } = useUser();
-  const firestore = useFirestore();
 
-  const rolesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'roles') : null),
-    [firestore]
-  );
-  const { data: roles } = useCollection<Role>(rolesQuery);
-
-  const userRole = useMemo(() => {
-    if (isAdmin) return 'Admin';
-    if (!userProfile || !roles) return null;
-    return roles.find((r) => r.id === userProfile.roleId)?.name;
-  }, [isAdmin, userProfile, roles]);
+  const userRole = isAdmin ? 'Admin' : userProfile?.role;
+  const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
 
   const allRoutes = [
     {
@@ -66,9 +49,13 @@ export function SidebarNav({
 
   const visibleRoutes = allRoutes.filter((route) => {
     if (!route.roles) {
-      return true;
+      return true; // Route is visible to everyone
     }
-    return userRole && route.roles.includes(userRole);
+    if (!userRole) {
+      return false; // If role is not loaded yet, don't show role-specific routes
+    }
+    // Check if the user's role is included in the route's allowed roles
+    return route.roles.includes(userRole);
   });
 
   return (

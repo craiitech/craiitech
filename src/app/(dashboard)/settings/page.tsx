@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -18,7 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function SettingsPage() {
   const { userProfile, isAdmin, isUserLoading } = useUser();
   
-  const isCampusDirector = userProfile?.role === 'Campus Director' || userProfile?.role === 'Campus ODIMO';
+  const isCampusSupervisor = userProfile?.role === 'Campus Director' || userProfile?.role === 'Campus ODIMO';
 
   if (isUserLoading) {
      return (
@@ -70,7 +69,7 @@ export default function SettingsPage() {
     );
   }
   
-  if (isCampusDirector) {
+  if (isCampusSupervisor) {
       return (
          <div className="space-y-4">
             <div>

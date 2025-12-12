@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -23,61 +22,83 @@ import {
   useMemoFirebase,
   useDoc,
 } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
-import type { Submission } from '@/lib/types';
+import { collection, query, where, doc, getDocs } from 'firebase/firestore';
+import type { Submission, User as AppUser } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
-type AggregatedSubmission = Submission & { originalPath: string };
 
 export default function DashboardPage() {
   const { user, userProfile, isAdmin, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  const isSupervisor =
-    isAdmin ||
+  const [userCount, setUserCount] = useState(0);
+
+  // Determine user role and scope
+  const isCampusSupervisor =
     userProfile?.role === 'Campus Director' ||
-    userProfile?.role === 'Campus ODIMO' ||
-    userProfile?.role === 'Unit ODIMO';
-  
-  const canViewAnnouncements = isSupervisor || userProfile?.role === 'Employee';
+    userProfile?.role === 'Campus ODIMO';
+  const isUnitSupervisor = userProfile?.role === 'Unit ODIMO';
+  const isSupervisor = isAdmin || isCampusSupervisor || isUnitSupervisor;
+  const canViewAnnouncements = userProfile?.campusId;
 
-
-  // Memoize the query based on the user's role
+  // Memoize the submissions query based on the user's role
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    
+
     const submissionsCollection = collection(firestore, 'submissions');
 
-    // Admin should get all submissions, and doesn't need to wait for profile.
     if (isAdmin) {
       return submissionsCollection;
     }
     
-    // For all other users, we must wait for the user profile to be loaded.
     if (!userProfile) return null;
 
-    if (isSupervisor) {
-      if (
-        userProfile.role === 'Campus Director' ||
-        userProfile.role === 'Campus ODIMO'
-      ) {
-        return query(submissionsCollection, where('campusId', '==', userProfile.campusId));
-      }
-      if (userProfile.role === 'Unit ODIMO') {
-        return query(submissionsCollection, where('unitId', '==', userProfile.unitId));
-      }
+    if (isCampusSupervisor) {
+      return query(
+        submissionsCollection,
+        where('campusId', '==', userProfile.campusId)
+      );
+    }
+    if (isUnitSupervisor) {
+      return query(
+        submissionsCollection,
+        where('unitId', '==', userProfile.unitId)
+      );
     }
     // Default to regular user's own submissions
     return query(submissionsCollection, where('userId', '==', userProfile.id));
-  }, [firestore, userProfile, isSupervisor, isAdmin]);
+  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isUnitSupervisor]);
 
   const { data: submissions, isLoading: isLoadingSubmissions } =
-    useCollection<AggregatedSubmission>(submissionsQuery);
+    useCollection<Submission>(submissionsQuery);
+
+  // Fetch user count for admins and campus supervisors
+  useEffect(() => {
+    if (!firestore || (!isAdmin && !isCampusSupervisor) || !userProfile) {
+        setUserCount(0);
+        return;
+    };
+
+    const fetchUserCount = async () => {
+        let countQuery;
+        if (isAdmin) {
+            countQuery = collection(firestore, 'users');
+        } else if (isCampusSupervisor) {
+            countQuery = query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
+        }
+        
+        if (countQuery) {
+            const snapshot = await getDocs(countQuery);
+            setUserCount(snapshot.size);
+        }
+    };
+    
+    fetchUserCount();
+
+  }, [firestore, isAdmin, isCampusSupervisor, userProfile]);
 
   const campusSettingsDocRef = useMemoFirebase(() => {
-    // Only fetch announcements if the user is authorized and has a campusId
     if (!firestore || !userProfile?.campusId || !canViewAnnouncements) return null;
     return doc(firestore, 'campusSettings', userProfile.campusId);
   }, [firestore, userProfile?.campusId, canViewAnnouncements]);
@@ -86,19 +107,19 @@ export default function DashboardPage() {
     useDoc(campusSettingsDocRef);
 
   const announcement = campusSetting?.announcement;
-  
+
   const isLoading = isUserLoading || isLoadingSubmissions || (canViewAnnouncements && isLoadingSettings);
 
   const stats = useMemo(() => {
-    if (!submissions) {
-      return {
-        stat1: { title: 'Loading...', value: '...', icon: <Clock /> },
-        stat2: { title: 'Loading...', value: '...', icon: <Clock /> },
-        stat3: { title: 'Loading...', value: '...', icon: <Clock /> },
-      };
-    }
+    const defaultStats = {
+      stat1: { title: 'Loading...', value: '...', icon: <Clock /> },
+      stat2: { title: 'Loading...', value: '...', icon: <Clock /> },
+      stat3: { title: 'Loading...', value: '...', icon: <Clock /> },
+    };
 
-    if (isSupervisor) {
+    if (!submissions) return defaultStats;
+
+    if (isAdmin) {
       return {
         stat1: {
           title: 'Pending Approvals',
@@ -111,21 +132,57 @@ export default function DashboardPage() {
           icon: <FileText className="h-4 w-4 text-muted-foreground" />,
         },
         stat3: {
-          title: 'Approved Submissions',
-          value: submissions.filter((s) => s.statusId === 'approved').length,
-          icon: <CheckCircle className="h-4 w-4 text-muted-foreground" />,
+          title: 'Total Users',
+          value: userCount,
+          icon: <Users className="h-4 w-4 text-muted-foreground" />,
         },
       };
+    } else if (isCampusSupervisor) {
+      return {
+        stat1: {
+          title: 'Campus Pending',
+          value: submissions.filter((s) => s.statusId === 'submitted').length,
+          icon: <Clock className="h-4 w-4 text-muted-foreground" />,
+        },
+        stat2: {
+          title: 'Campus Submissions',
+          value: submissions.length,
+          icon: <FileText className="h-4 w-4 text-muted-foreground" />,
+        },
+        stat3: {
+          title: 'Campus Users',
+          value: userCount,
+          icon: <Users className="h-4 w-4 text-muted-foreground" />,
+        },
+      };
+    } else if (isUnitSupervisor) {
+        return {
+             stat1: {
+                title: 'Unit Pending',
+                value: submissions.filter(s => s.statusId === 'submitted').length,
+                icon: <Clock className="h-4 w-4 text-muted-foreground" />
+            },
+             stat2: {
+                title: 'Unit Submissions',
+                value: submissions.length,
+                icon: <FileText className="h-4 w-4 text-muted-foreground" />
+            },
+             stat3: {
+                title: 'Approved',
+                value: submissions.filter(s => s.statusId === 'approved').length,
+                icon: <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            }
+        }
     } else {
       // Regular user stats
       return {
         stat1: {
-          title: 'Total Submissions',
+          title: 'My Submissions',
           value: submissions.length,
           icon: <FileText className="h-4 w-4 text-muted-foreground" />,
         },
         stat2: {
-          title: 'Approved Submissions',
+          title: 'Approved',
           value: submissions.filter((s) => s.statusId === 'approved').length,
           icon: <CheckCircle className="h-4 w-4 text-muted-foreground" />,
         },
@@ -138,7 +195,7 @@ export default function DashboardPage() {
         },
       };
     }
-  }, [submissions, isSupervisor]);
+  }, [submissions, isSupervisor, isAdmin, isCampusSupervisor, isUnitSupervisor, userCount]);
 
   const renderCard = (
     title: string,
@@ -184,7 +241,7 @@ export default function DashboardPage() {
         <Card className="col-span-4">
           <CardHeader>
             <CardTitle>Submissions Overview</CardTitle>
-             <CardDescription>
+            <CardDescription>
               {isSupervisor ? 'Monthly submissions from your scope.' : 'Your monthly submission trend.'}
             </CardDescription>
           </CardHeader>
@@ -207,5 +264,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
