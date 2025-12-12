@@ -121,7 +121,8 @@ export function UnitManagement() {
                 createdAt: serverTimestamp(),
             });
             toast({ title: 'Success', description: 'New unit has been created.' });
-        } else { 
+            form.reset();
+        } else { // Campus Director/ODIMO logic
             if (!values.unitId) {
                 toast({ title: 'Error', description: 'No unit selected.', variant: 'destructive' });
                 setIsSubmitting(false);
@@ -132,8 +133,8 @@ export function UnitManagement() {
                 campusId: userProfile.campusId,
             });
             toast({ title: 'Success', description: 'Unit has been assigned to your campus.' });
+            form.setValue('unitId', ''); // Reset only the unitId field
         }
-        form.reset();
     } catch (error) {
         console.error('Error in unit management:', error);
         toast({
@@ -232,7 +233,7 @@ export function UnitManagement() {
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Unassigned Unit</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select a unit to assign" />
