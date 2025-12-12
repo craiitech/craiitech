@@ -31,8 +31,8 @@ export default function DashboardLayout({
   const firestore = useFirestore();
 
   const rolesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'roles') : null),
-    [firestore]
+    () => (firestore && user ? collection(firestore, 'roles') : null),
+    [firestore, user]
   );
   const { data: roles, isLoading: areRolesLoading } = useCollection<Role>(rolesQuery);
 
