@@ -131,7 +131,10 @@ export default function SubmissionDetailPage() {
     return 'Invalid Date';
   };
 
-  const canApprove = userRole === 'Admin' || userRole === 'Unit ODIMO';
+  const canApprove = useMemo(() => {
+      if (!userRole) return false;
+      return ['Admin', 'Unit ODIMO'].includes(userRole);
+  }, [userRole]);
   
   const isApprover = 
     submission &&
@@ -417,3 +420,5 @@ export default function SubmissionDetailPage() {
     </div>
   );
 }
+
+    
