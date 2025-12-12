@@ -23,10 +23,11 @@ import {
   useDoc,
 } from '@/firebase';
 import { collection, query, where, doc, getDocs, collectionGroup } from 'firebase/firestore';
-import type { Submission, User as AppUser } from '@/lib/types';
+import type { Submission, User as AppUser, Unit } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { UnitsWithoutSubmissions } from '@/components/dashboard/units-without-submissions';
 
 
 const TOTAL_REQUIRED_SUBMISSIONS = 6; // As there are 6 types of reports
@@ -76,6 +77,15 @@ export default function DashboardPage() {
   const { data: submissions, isLoading: isLoadingSubmissions } =
     useCollection<Submission>(submissionsQuery);
 
+    
+  const allUnitsQuery = useMemoFirebase(() => {
+    if (!firestore || !isSupervisor) return null;
+    return collection(firestore, 'units');
+  }, [firestore, isSupervisor]);
+
+  const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(allUnitsQuery);
+
+
   // Fetch user count for admins and campus supervisors
   useEffect(() => {
     if (!firestore || (!isAdmin && !isCampusSupervisor) || (isCampusSupervisor && !userProfile)) {
@@ -114,7 +124,7 @@ export default function DashboardPage() {
 
   const announcement = campusSetting?.announcement;
 
-  const isLoading = isUserLoading || isLoadingSubmissions || (canViewAnnouncements && isLoadingSettings);
+  const isLoading = isUserLoading || isLoadingSubmissions || (canViewAnnouncements && isLoadingSettings) || (isSupervisor && isLoadingUnits);
 
   const stats = useMemo(() => {
     const defaultStats = {
@@ -281,6 +291,17 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {isSupervisor && (
+         <UnitsWithoutSubmissions 
+            allUnits={allUnits}
+            allSubmissions={submissions}
+            isLoading={isLoading}
+            userProfile={userProfile}
+            isAdmin={isAdmin}
+            isCampusSupervisor={isCampusSupervisor}
+         />
+      )}
     </div>
   );
 }
