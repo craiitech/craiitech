@@ -17,14 +17,28 @@ import { useAuth } from '@/firebase';
 import { signOut, type User } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 export function UserNav({ user }: { user: User | null }) {
   const router = useRouter();
   const auth = useAuth();
+  const { toast } = useToast();
   
   const handleLogout = async () => {
-    await signOut(auth);
-    router.push('/login');
+    try {
+      await signOut(auth);
+      toast({
+        title: 'Logged Out',
+        description: 'You have been successfully logged out.',
+      });
+      router.push('/login');
+    } catch (error) {
+       toast({
+        title: 'Logout Failed',
+        description: 'An error occurred while logging out. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   if (!user) {
@@ -67,7 +81,8 @@ export function UserNav({ user }: { user: User | null }) {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
-          Log out
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Log out</span>
           <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>
