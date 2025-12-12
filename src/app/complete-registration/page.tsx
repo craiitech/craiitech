@@ -72,16 +72,18 @@ export default function CompleteRegistrationPage() {
   const selectedRoleId = form.watch('roleId');
   
   const isUnitRequired = useMemo(() => {
-    if (!selectedRoleId || !roles) return true;
+    if (!selectedRoleId || !roles) return true; // Default to required until roles are loaded
     const selectedRole = roles.find(r => r.id === selectedRoleId);
     const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
+    // It's required if the role is NOT a campus-level role
     return !campusLevelRoles.includes(selectedRole?.name || '');
   }, [selectedRoleId, roles]);
 
+  // When isUnitRequired changes, we might need to clear errors or values
   useEffect(() => {
-    // Clear unitId if it's not required
     if (!isUnitRequired) {
-      form.setValue('unitId', '');
+      form.setValue('unitId', undefined); // Use undefined to clear it completely
+      form.clearErrors('unitId');
     }
   }, [isUnitRequired, form]);
   
@@ -97,7 +99,7 @@ export default function CompleteRegistrationPage() {
     
     // Manual validation for unitId based on role
     if (isUnitRequired && !values.unitId) {
-        form.setError('unitId', { message: 'Please select a unit.' });
+        form.setError('unitId', { type: 'manual', message: 'Please select a unit.' });
         return;
     }
 
@@ -105,13 +107,17 @@ export default function CompleteRegistrationPage() {
     try {
        // --- Role Uniqueness Validation ---
       const usersCollection = collection(firestore, 'users');
-      const q = query(
-        usersCollection,
+      const queryConstraints = [
         where('campusId', '==', values.campusId),
         where('roleId', '==', values.roleId),
-        // Only check unitId if it's required for the role
-        ...(isUnitRequired ? [where('unitId', '==', values.unitId)] : [])
-      );
+      ];
+      
+      // Only check unitId if it's required for the role and has a value
+      if (isUnitRequired && values.unitId) {
+        queryConstraints.push(where('unitId', '==', values.unitId));
+      }
+
+      const q = query(usersCollection, ...queryConstraints);
 
       const querySnapshot = await getDocs(q);
 
@@ -122,7 +128,7 @@ export default function CompleteRegistrationPage() {
         toast({
           title: 'Role Taken',
           description:
-            'The selected role is already assigned to another user in this campus and unit. Please choose a different role.',
+            'The selected role is already assigned to another user in this campus and unit. Please choose a different role or contact an administrator.',
           variant: 'destructive',
         });
         setIsSubmitting(false);
@@ -215,7 +221,7 @@ export default function CompleteRegistrationPage() {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select your role" />
-                        </SelectTrigger>
+                        </Trigger>
                       </FormControl>
                       <SelectContent>
                         {roles?.filter(r => r.name !== 'Admin').map((role) => (
@@ -238,7 +244,7 @@ export default function CompleteRegistrationPage() {
                         <FormLabel>
                             Unit
                         </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder={"Select your unit"} />
