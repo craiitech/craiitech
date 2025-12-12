@@ -1,15 +1,12 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
-  useFirestore,
-  useCollection,
-  useMemoFirebase,
-} from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -36,45 +33,116 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import type { Unit } from '@/lib/types';
+import type { Unit, Role } from '@/lib/types';
 
-const unitSchema = z.object({
-  name: z.string().min(3, 'Unit name must be at least 3 characters.'),
+// A single schema that can handle both cases. Fields are optional.
+const formSchema = z.object({
+  name: z.string().optional(),
+  unitId: z.string().optional(),
 });
 
+type UnitFormValues = z.infer<typeof formSchema>;
+
 export function UnitManagement() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const unitsQuery = useMemoFirebase(
+  // === HOOKS AT TOP LEVEL ===
+  const rolesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'roles') : null),
+    [firestore]
+  );
+  const { data: roles, isLoading: isLoadingRoles } = useCollection<Role>(rolesQuery);
+
+  const allUnitsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'units') : null),
     [firestore]
   );
-  const { data: units, isLoading } = useCollection<Unit>(unitsQuery);
+  const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(allUnitsQuery);
 
-  const form = useForm<z.infer<typeof unitSchema>>({
-    resolver: zodResolver(unitSchema),
-    defaultValues: { name: '' },
+  const userRole = useMemo(() => {
+    if (isAdmin) return 'Admin';
+    if (!userProfile || !roles) return null;
+    return roles.find((r) => r.id === userProfile.roleId)?.name;
+  }, [isAdmin, userProfile, roles]);
+
+  const isCampusDirector = userRole === 'Campus Director';
+
+  const form = useForm<UnitFormValues>({
+    resolver: zodResolver(
+      z.object({
+        // Dynamic validation based on role
+        name: isAdmin
+          ? z.string().min(3, 'Unit name must be at least 3 characters.')
+          : z.string().optional(),
+        unitId: isCampusDirector
+          ? z.string().min(1, 'Please select a unit to assign.')
+          : z.string().optional(),
+      })
+    ),
+    defaultValues: {
+      name: '',
+      unitId: '',
+    },
   });
 
-  const onSubmit = async (values: z.infer<typeof unitSchema>) => {
+  const unassignedUnits = useMemo(
+    () => allUnits?.filter((unit) => !unit.campusId) || [],
+    [allUnits]
+  );
+
+  const visibleUnits = useMemo(
+    () =>
+      allUnits?.filter((unit) => {
+        if (isAdmin) return true; // Admins see all units
+        if (isCampusDirector) return unit.campusId === userProfile?.campusId; // Directors see their campus's units
+        return false;
+      }) || [],
+    [allUnits, isAdmin, isCampusDirector, userProfile]
+  );
+
+  const isLoading = isLoadingRoles || isLoadingUnits;
+
+  // === LOGIC MOVED INTO HANDLERS ===
+  const onSubmit = async (values: UnitFormValues) => {
     if (!firestore) return;
     setIsSubmitting(true);
+
     try {
-      await addDoc(collection(firestore, 'units'), {
-        ...values,
-        createdAt: serverTimestamp(),
-      });
-      toast({ title: 'Success', description: 'New unit created.' });
-      form.reset();
-    } catch (error) {
-      console.error('Error creating unit:', error);
+      if (isAdmin && values.name) {
+        // Admin logic: Create a new global unit
+        await addDoc(collection(firestore, 'units'), {
+          name: values.name,
+          createdAt: serverTimestamp(),
+          campusId: '', // Admins create unassigned units
+        });
+        toast({ title: 'Success', description: 'New unit created.' });
+        form.reset({ name: '' });
+      } else if (isCampusDirector && values.unitId && userProfile?.campusId) {
+        // Director logic: Assign a unit to their campus
+        const unitRef = doc(firestore, 'units', values.unitId);
+        await updateDoc(unitRef, {
+          campusId: userProfile.campusId,
+        });
+        toast({ title: 'Success', description: 'Unit has been assigned to your campus.' });
+        form.reset({ unitId: '' });
+      }
+    } catch (error: any) {
+      console.error('Error managing unit:', error);
       toast({
         title: 'Error',
-        description: 'Could not create unit.',
+        description: error.message || 'Could not save unit.',
         variant: 'destructive',
       });
     } finally {
@@ -82,52 +150,100 @@ export function UnitManagement() {
     }
   };
 
+  const renderAdminForm = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>Add New Unit</CardTitle>
+        <CardDescription>Create a new global unit for assignment.</CardDescription>
+      </CardHeader>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <CardContent>
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Unit Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., College of Engineering" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+          <CardFooter>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Add Unit
+            </Button>
+          </CardFooter>
+        </form>
+      </Form>
+    </Card>
+  );
+
+  const renderDirectorForm = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>Assign Unit to Your Campus</CardTitle>
+        <CardDescription>Select a unit to make it available for your campus.</CardDescription>
+      </CardHeader>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <CardContent>
+            <FormField
+              control={form.control}
+              name="unitId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Unassigned Unit</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an unassigned unit" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {unassignedUnits.map((unit) => (
+                        <SelectItem key={unit.id} value={unit.id}>
+                          {unit.name}
+                        </SelectItem>
+                      ))}
+                      {unassignedUnits.length === 0 && (
+                        <div className="p-4 text-sm text-muted-foreground">
+                          No unassigned units available.
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+          <CardFooter>
+            <Button type="submit" disabled={isSubmitting || !form.watch('unitId')}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Assign Unit
+            </Button>
+          </CardFooter>
+        </form>
+      </Form>
+    </Card>
+  );
+
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle>Add New Unit</CardTitle>
-          <CardDescription>
-            Create a new global unit to be used in the system.
-          </CardDescription>
-        </CardHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unit Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., College of Engineering" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-            <CardFooter>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  'Add Unit'
-                )}
-              </Button>
-            </CardFooter>
-          </form>
-        </Form>
-      </Card>
+      {isAdmin && renderAdminForm()}
+      {isCampusDirector && renderDirectorForm()}
+
       <Card>
         <CardHeader>
           <CardTitle>Existing Units</CardTitle>
           <CardDescription>
-            A list of all global units currently in the system.
+            {isAdmin ? 'A list of all units in the system.' : 'A list of units assigned to your campus.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -140,22 +256,28 @@ export function UnitManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  {isAdmin && <TableHead>Campus</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {units?.map((unit) => (
+                {visibleUnits.map((unit) => (
                   <TableRow key={unit.id}>
                     <TableCell>{unit.name}</TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        {unit.campusId || <span className="text-muted-foreground">Unassigned</span>}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           )}
-           {(!isLoading && (!units || units.length === 0)) && (
-              <div className="text-center py-10 text-muted-foreground">
-                No units found.
-              </div>
-            )}
+          {!isLoading && visibleUnits.length === 0 && (
+            <div className="text-center py-10 text-muted-foreground">
+              {isAdmin ? 'No units found.' : 'No units assigned to your campus.'}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
