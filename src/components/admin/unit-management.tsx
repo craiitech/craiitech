@@ -133,7 +133,7 @@ export function UnitManagement() {
                 campusId: userProfile.campusId,
             });
             toast({ title: 'Success', description: 'Unit has been assigned to your campus.' });
-            form.setValue('unitId', ''); // Reset only the unitId field
+            form.setValue('unitId', '');
         }
     } catch (error) {
         console.error('Error in unit management:', error);
@@ -154,7 +154,7 @@ export function UnitManagement() {
   const unassignedUnits = useMemo(() => {
       if (!allUnits) return [];
       return allUnits.filter(u => !u.campusId);
-  }, [allUnits, isAdmin, userProfile]);
+  }, [allUnits]);
 
   const visibleUnits = useMemo(() => {
     if (isAdmin) return allUnits;
