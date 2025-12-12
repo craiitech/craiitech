@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -51,13 +52,14 @@ export default function RegisterPage() {
 
       const [firstName, ...lastName] = fullName.split(' ');
 
-      // Create user document in Firestore
+      // Create user document in Firestore to ensure it exists for security rules
       await setDoc(doc(firestore, 'users', user.uid), {
         id: user.uid,
         email: user.email,
-        firstName: firstName,
-        lastName: lastName.join(' '),
+        firstName: firstName || '',
+        lastName: lastName.join(' ') || '',
         roleId: '',
+        role: '',
         campusId: '',
         unitId: '',
         verified: false,

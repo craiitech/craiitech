@@ -76,7 +76,9 @@ service cloud.firestore {
     }
     
     /**
-     * Retrieves the user's profile data.
+     * Retrieves the user's profile data. CRITICAL: This function requires that a
+     * document for the currently authenticated user exists at /users/$(request.auth.uid).
+     * If the document is missing, any rule calling this function will fail.
      */
     function getUserProfile() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
@@ -90,12 +92,13 @@ service cloud.firestore {
     /**
      * @description Users can read and update their own profile. Admins can read/write any profile.
      * Supervisors can list users within their scope.
+     * The `get` rule is critical for the `getUserProfile()` helper to function.
      */
     match /users/{userId} {
       // Allow reading your own profile (for getUserProfile()) or if you're an admin.
-      // This breaks the circular dependency where a supervisor rule depends on getting a profile,
-      // which in turn depended on the supervisor rule.
+      // This rule is critical and must not contain circular dependencies.
       allow get: if isOwner(userId) || isAdmin();
+      
       allow update: if isOwner(userId) || isAdmin();
       allow list: if isAdmin() || isCampusOdimo() || isUnitOdimo();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
