@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
@@ -39,7 +40,7 @@ export default function Home() {
                     RSU EOMS Submission Portal
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    Welcome to the Romblon State University Extension Office Management System. The centralized hub for all your compliance and operational reporting needs.
+                    Educational Organizations Management System or ISO 21001:2018 Submission Portal
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
