@@ -71,9 +71,9 @@ export function CampusUnitOverview({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Unit Submission Overview</CardTitle>
+        <CardTitle>Submission Status per Unit</CardTitle>
         <CardDescription>
-          Submission progress for each unit in your campus for the current year ({new Date().getFullYear()}).
+          Shows the submission progress for each unit within your campus for the current year ({new Date().getFullYear()}).
         </CardDescription>
       </CardHeader>
       <CardContent>
