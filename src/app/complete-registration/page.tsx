@@ -71,17 +71,14 @@ export default function CompleteRegistrationPage() {
 
   const selectedRoleId = form.watch('roleId');
   
-  const selectedRole = useMemo(() => {
-    if (!selectedRoleId || !roles) return null;
-    return roles.find(r => r.id === selectedRoleId);
-  }, [selectedRoleId, roles]);
-
   const isUnitRequired = useMemo(() => {
-    if (!selectedRole) return true; // Default to required if data is not loaded
-    const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
-    // Make the check case-insensitive
-    return !campusLevelRoles.some(r => r.toLowerCase() === selectedRole.name.toLowerCase());
-  }, [selectedRole]);
+    if (!selectedRoleId || !roles) return true;
+    const selectedRole = roles.find((r) => r.id === selectedRoleId);
+    if (!selectedRole) return true;
+
+    const campusLevelRoles = ['campus director', 'campus odimo'];
+    return !campusLevelRoles.includes(selectedRole.name.toLowerCase());
+  }, [selectedRoleId, roles]);
 
 
   // When isUnitRequired changes, we might need to clear errors or values
@@ -116,8 +113,8 @@ export default function CompleteRegistrationPage() {
       let q;
       let isRoleTaken = false;
 
-      const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
-      if (selectedRoleObject && campusLevelRoles.some(r => r.toLowerCase() === selectedRoleObject.name.toLowerCase())) {
+      const campusLevelRoles = ['campus director', 'campus odimo'];
+      if (selectedRoleObject && campusLevelRoles.includes(selectedRoleObject.name.toLowerCase())) {
         q = query(
           usersCollection,
           where('campusId', '==', values.campusId),
@@ -279,7 +276,7 @@ export default function CompleteRegistrationPage() {
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder={"Select your unit"} />
-                            </Trigger>
+                            </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                             {units?.map((unit) => (
