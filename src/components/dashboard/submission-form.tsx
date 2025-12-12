@@ -54,7 +54,6 @@ export function SubmissionForm({
 }: SubmissionFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationStatus, setValidationStatus] = useState<ValidationStatus>('idle');
-  const [validationMessage, setValidationMessage] = useState('');
   const { toast } = useToast();
   const { user, userProfile } = useUser();
   const firestore = useFirestore();
@@ -83,7 +82,6 @@ export function SubmissionForm({
     }
 
     setValidationStatus('validating');
-    setValidationMessage('');
 
     try {
       const result = await validateGoogleDriveLinkAccessibility({
@@ -95,7 +93,6 @@ export function SubmissionForm({
       } else {
         setValidationStatus('invalid');
         const reason = result.reason || 'Link is not accessible.';
-        setValidationMessage(reason);
         form.setError('googleDriveLink', {
           type: 'manual',
           message: reason,
@@ -104,7 +101,6 @@ export function SubmissionForm({
     } catch (error) {
       setValidationStatus('invalid');
       const reason = 'Could not validate the link. Please check the format and try again.';
-      setValidationMessage(reason);
       form.setError('googleDriveLink', {
         type: 'manual',
         message: reason,
@@ -174,7 +170,7 @@ export function SubmissionForm({
         <FormField
           control={form.control}
           name="googleDriveLink"
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <FormItem>
               <FormLabel>Google Drive Link</FormLabel>
               <FormControl>
@@ -192,12 +188,7 @@ export function SubmissionForm({
                   </div>
                 </div>
               </FormControl>
-              {validationStatus === 'invalid' && validationMessage ? (
-                <FormDescription className="text-destructive flex items-center gap-1">
-                  <AlertTriangle className="h-3 w-3" />
-                  {validationMessage}
-                </FormDescription>
-              ) : (
+              {!fieldState.error && (
                 <FormDescription>
                   The AI validator will check if the link is accessible upon losing focus.
                 </FormDescription>
