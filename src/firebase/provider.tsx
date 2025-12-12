@@ -41,6 +41,7 @@ export interface FirebaseContextState {
 
 // Return type for useFirebase()
 export interface FirebaseServicesAndUser {
+  areServicesAvailable: true;
   firebaseApp: FirebaseApp;
   firestore: Firestore;
   auth: Auth;
@@ -150,7 +151,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
 /**
  * Hook to access core Firebase services and user authentication state.
- * Throws error if core services are not available or used outside provider.
+ * Throws error if used outside provider. Returns a guarded object if services are not ready.
  */
 export const useFirebase = (): FirebaseServicesAndUser | { areServicesAvailable: false } => {
   const context = useContext(FirebaseContext);
@@ -175,7 +176,7 @@ export const useFirebase = (): FirebaseServicesAndUser | { areServicesAvailable:
     isProfileLoading: context.isProfileLoading,
     isAdmin: context.isAdmin,
     isAdminLoading: context.isAdminLoading,
-  } as FirebaseServicesAndUser;
+  };
 };
 
 /** Hook to access Firebase Auth instance. */

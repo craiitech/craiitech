@@ -78,7 +78,8 @@ export default function DashboardLayout({
   const userRole = useMemo(() => {
     if (!userProfile || !roles) return null;
     if (isAdmin) return 'Admin';
-    return roles.find((r) => r.id === userProfile.roleId)?.name;
+    const userRoleDoc = roles.find((r) => r.id === userProfile.roleId);
+    return userRoleDoc ? userRoleDoc.name : null;
   }, [userProfile, roles, isAdmin]);
   
   const isStillLoading = isUserLoading || areRolesLoading;
