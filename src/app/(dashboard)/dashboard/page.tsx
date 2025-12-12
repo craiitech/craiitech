@@ -137,35 +137,35 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!firestore || (!isAdmin && !isCampusSupervisor)) {
       setUserCount(0);
+      setAllUsers({});
       return;
     }
-
+  
     const fetchUsers = async () => {
-      let countQuery;
+      let usersQuery;
       if (isAdmin) {
-        countQuery = collection(firestore, 'users');
+        usersQuery = collection(firestore, 'users');
       } else if (isCampusSupervisor && userProfile?.campusId) {
-        countQuery = query(
+        usersQuery = query(
           collection(firestore, 'users'),
           where('campusId', '==', userProfile.campusId)
         );
       }
-
-      if (countQuery) {
-        const snapshot = await getDocs(countQuery);
+  
+      if (usersQuery) {
+        const snapshot = await getDocs(usersQuery);
         setUserCount(snapshot.size);
-        if (isAdmin) {
-          const usersData: Record<string, AppUser> = {};
-          snapshot.forEach((doc) => {
-            usersData[doc.id] = { id: doc.id, ...doc.data() } as AppUser;
-          });
-          setAllUsers(usersData);
-        }
+        const usersData: Record<string, AppUser> = {};
+        snapshot.forEach((doc) => {
+          usersData[doc.id] = { id: doc.id, ...doc.data() } as AppUser;
+        });
+        setAllUsers(usersData);
       }
     };
-
+  
     fetchUsers();
-  }, [firestore, isAdmin, isCampusSupervisor, userProfile]);
+  }, [firestore, isAdmin, isCampusSupervisor, userProfile?.campusId]);
+  
 
   const campusSettingsDocRef = useMemoFirebase(() => {
     if (!firestore || !userProfile?.campusId || !canViewAnnouncements)
@@ -745,3 +745,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
