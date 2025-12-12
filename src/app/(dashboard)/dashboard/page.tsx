@@ -95,7 +95,6 @@ export default function DashboardPage() {
   const isCampusSupervisor =
     userRoleName === 'Campus Director' || userRoleName === 'Campus ODIMO';
   
-  const isSupervisor = isAdmin || isCampusSupervisor;
   const canViewAnnouncements = userProfile?.campusId;
 
   // Memoize the submissions query based on the user's role
@@ -126,9 +125,9 @@ export default function DashboardPage() {
     useCollection<Submission>(submissionsQuery);
 
   const allUnitsQuery = useMemoFirebase(() => {
-    if (!firestore || !isSupervisor) return null;
+    if (!firestore) return null;
     return collection(firestore, 'units');
-  }, [firestore, isSupervisor]);
+  }, [firestore]);
 
   const { data: allUnits, isLoading: isLoadingUnits } =
     useCollection<Unit>(allUnitsQuery);
@@ -182,7 +181,7 @@ export default function DashboardPage() {
     isUserLoading ||
     isLoadingSubmissions ||
     (canViewAnnouncements && isLoadingSettings) ||
-    (isSupervisor && isLoadingUnits);
+    (isAdmin && isLoadingUnits);
 
   const stats = useMemo(() => {
     const defaultStats = {
@@ -279,7 +278,7 @@ export default function DashboardPage() {
             },
         };
     }
-  }, [submissions, isSupervisor, isAdmin, isCampusSupervisor, userCount, userProfile, allUnits]);
+  }, [submissions, isCampusSupervisor, isAdmin, userCount, userProfile, allUnits]);
 
   const { submissionStatusMap, submissionProgress } = useMemo(() => {
     if (!submissions) {
@@ -357,9 +356,6 @@ export default function DashboardPage() {
       <TabsList>
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="actions">Submission Actions</TabsTrigger>
-        <TabsTrigger value="analytics" disabled>
-          Analytics
-        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="overview" className="space-y-4">
@@ -479,69 +475,65 @@ export default function DashboardPage() {
   );
 
   const renderSupervisorDashboard = () => (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-3">
-        {renderCard(
-          stats.stat1.title,
-          stats.stat1.value,
-          stats.stat1.icon,
-          isLoading,
-          (stats.stat1 as any).description
-        )}
-        {renderCard(
-          stats.stat2.title,
-          stats.stat2.value,
-          stats.stat2.icon,
-          isLoading,
-          (stats.stat2 as any).description
-        )}
-        {renderCard(
-          stats.stat3.title,
-          stats.stat3.value,
-          stats.stat3.icon,
-          isLoading,
-          (stats.stat3 as any).description
-        )}
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Submissions Overview</CardTitle>
-            <CardDescription>
-              {isSupervisor
-                ? 'Monthly submissions from your scope.'
-                : 'Your monthly submission trend.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pl-2">
-            <Overview submissions={submissions} isLoading={isLoading} />
-          </CardContent>
-        </Card>
-        <Card className="col-span-4 lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>
-              {isSupervisor
-                ? 'The latest submissions from your scope.'
-                : 'Your last 5 submissions.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RecentActivity submissions={submissions} isLoading={isLoading} />
-          </CardContent>
-        </Card>
-      </div>
-
-      {isCampusSupervisor && (
+     <Tabs defaultValue="overview" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsTrigger value="analytics">Analytics</TabsTrigger>
+      </TabsList>
+      <TabsContent value="overview" className="space-y-4">
+         <div className="grid gap-4 md:grid-cols-3">
+          {renderCard(
+            stats.stat1.title,
+            stats.stat1.value,
+            stats.stat1.icon,
+            isLoading,
+            (stats.stat1 as any).description
+          )}
+          {renderCard(
+            stats.stat2.title,
+            stats.stat2.value,
+            stats.stat2.icon,
+            isLoading,
+            (stats.stat2 as any).description
+          )}
+          {renderCard(
+            stats.stat3.title,
+            stats.stat3.value,
+            stats.stat3.icon,
+            isLoading,
+            (stats.stat3 as any).description
+          )}
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <Card className="col-span-4">
+            <CardHeader>
+              <CardTitle>Submissions Overview</CardTitle>
+              <CardDescription>
+                Monthly submissions from your campus.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pl-2">
+              <Overview submissions={submissions} isLoading={isLoading} />
+            </CardContent>
+          </Card>
+          <Card className="col-span-4 lg:col-span-3">
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>
+                The latest submissions from your campus.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RecentActivity submissions={submissions} isLoading={isLoading} />
+            </CardContent>
+          </Card>
+        </div>
          <CampusUnitOverview 
             allUnits={allUnits}
             allSubmissions={submissions}
             isLoading={isLoading}
             userProfile={userProfile}
          />
-      )}
-
-      {isSupervisor && (
         <UnitsWithoutSubmissions
           allUnits={allUnits}
           allSubmissions={submissions}
@@ -550,8 +542,15 @@ export default function DashboardPage() {
           isAdmin={isAdmin}
           isCampusSupervisor={isCampusSupervisor}
         />
-      )}
-    </div>
+      </TabsContent>
+       <TabsContent value="analytics" className="space-y-4">
+        <SubmissionAnalytics
+          allSubmissions={submissions}
+          allUnits={allUnits}
+          isLoading={isLoading}
+        />
+      </TabsContent>
+    </Tabs>
   );
 
   const renderAdminDashboard = () => (
@@ -562,7 +561,61 @@ export default function DashboardPage() {
         <TabsTrigger value="analytics">Analytics</TabsTrigger>
       </TabsList>
       <TabsContent value="overview" className="space-y-4">
-        {renderSupervisorDashboard()}
+        <div className="grid gap-4 md:grid-cols-3">
+          {renderCard(
+            stats.stat1.title,
+            stats.stat1.value,
+            stats.stat1.icon,
+            isLoading,
+            (stats.stat1 as any).description
+          )}
+          {renderCard(
+            stats.stat2.title,
+            stats.stat2.value,
+            stats.stat2.icon,
+            isLoading,
+            (stats.stat2 as any).description
+          )}
+          {renderCard(
+            stats.stat3.title,
+            stats.stat3.value,
+            stats.stat3.icon,
+            isLoading,
+            (stats.stat3 as any).description
+          )}
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <Card className="col-span-4">
+            <CardHeader>
+              <CardTitle>Submissions Overview</CardTitle>
+              <CardDescription>
+                Monthly submissions from all users.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pl-2">
+              <Overview submissions={submissions} isLoading={isLoading} />
+            </CardContent>
+          </Card>
+          <Card className="col-span-4 lg:col-span-3">
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>
+                The latest submissions from all users.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RecentActivity submissions={submissions} isLoading={isLoading} />
+            </CardContent>
+          </Card>
+        </div>
+         <UnitsWithoutSubmissions
+          allUnits={allUnits}
+          allSubmissions={submissions}
+          isLoading={isLoading}
+          userProfile={userProfile}
+          isAdmin={isAdmin}
+          isCampusSupervisor={isCampusSupervisor}
+        />
       </TabsContent>
       <TabsContent value="approvals" className="space-y-4">
         <Card>
@@ -650,7 +703,7 @@ export default function DashboardPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        {!isSupervisor && (
+        {!isCampusSupervisor && !isAdmin && (
           <Button asChild>
             <Link href="/submissions/new">
               <FilePlus className="mr-2 h-4 w-4" />
