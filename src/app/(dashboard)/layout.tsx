@@ -21,6 +21,7 @@ import { useEffect, useMemo } from 'react';
 import type { Campus, Unit } from '@/lib/types';
 import { collection } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Building2 } from 'lucide-react';
 
 const LoadingSkeleton = () => (
   <div className="flex items-start">
@@ -78,12 +79,12 @@ export default function DashboardLayout({
     if (!userProfile || !campuses || !units) return '';
     const campusName = campuses.find(c => c.id === userProfile.campusId)?.name;
     const unitName = units.find(u => u.id === userProfile.unitId)?.name;
-    let locationString = campusName || 'Campus';
-    if (unitName) {
+    let locationString = campusName || '';
+    if (unitName && userRole !== 'Campus Director' && userRole !== 'Campus ODIMO') {
         locationString += ` / ${unitName}`;
     }
     return locationString;
-  }, [userProfile, campuses, units]);
+  }, [userProfile, campuses, units, userRole]);
 
   useEffect(() => {
     if (isStillLoading) return;
@@ -135,9 +136,15 @@ export default function DashboardLayout({
                 {userProfile?.lastName?.charAt(0)}
               </AvatarFallback>
             </Avatar>
-            <div className="mt-2">
+            <div className="mt-2 text-center">
                 <p className="font-semibold text-lg">{userProfile?.firstName} {userProfile?.lastName}</p>
-                 <p className="text-xs text-sidebar-foreground/70">{userRole}</p>
+                 <p className="text-xs text-sidebar-primary font-medium">{userRole}</p>
+                 {userLocation && (
+                    <div className="flex items-center justify-center gap-1 text-xs text-sidebar-foreground/70 mt-1">
+                        <Building2 className="h-3 w-3"/>
+                        <span>{userLocation}</span>
+                    </div>
+                 )}
             </div>
         </SidebarHeader>
         <SidebarContent className="p-4">
@@ -148,7 +155,7 @@ export default function DashboardLayout({
         <header className="flex h-16 items-center justify-between border-b px-4 lg:px-8 bg-card">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="md:hidden" />
-            <h1 className="font-semibold text-lg">{pathname.split('/').pop()?.charAt(0).toUpperCase() + pathname.slice(2)}</h1>
+            <h1 className="font-semibold text-lg capitalize">{pathname.split('/').pop()}</h1>
           </div>
           <UserNav user={user} />
         </header>
