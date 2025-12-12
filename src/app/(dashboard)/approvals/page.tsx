@@ -98,7 +98,12 @@ export default function ApprovalsPage() {
 
   // Effect to fetch submissions based on user role
   useEffect(() => {
-    if (!firestore || !userRole || !userProfile) return;
+    // Ensure all dependencies are ready before fetching
+    if (!firestore || !userRole || !userProfile) {
+        // If dependencies aren't ready, but we are not in an initial loading state, it means no data will be fetched.
+        if (!isLoading) setIsLoading(false);
+        return;
+    }
 
     const fetchSubmissions = async () => {
       setIsLoading(true);
@@ -115,11 +120,21 @@ export default function ApprovalsPage() {
           userRole === 'Campus Director' ||
           userRole === 'Campus ODIMO'
         ) {
+          if (!userProfile.campusId) {
+             setSubmissions([]);
+             setIsLoading(false);
+             return;
+          }
           submissionsQuery = query(
             baseQuery,
             where('campusId', '==', userProfile.campusId)
           );
         } else if (userRole === 'Unit ODIMO') {
+          if (!userProfile.unitId) {
+             setSubmissions([]);
+             setIsLoading(false);
+             return;
+          }
           submissionsQuery = query(
             baseQuery,
             where('unitId', '==', userProfile.unitId)
@@ -169,7 +184,7 @@ export default function ApprovalsPage() {
     };
 
     fetchSubmissions();
-  }, [firestore, userRole, userProfile, toast]);
+  }, [firestore, userRole, userProfile, toast, isLoading]);
 
   // Effect to fetch users for the loaded submissions
   useEffect(() => {
@@ -459,5 +474,3 @@ export default function ApprovalsPage() {
     </TooltipProvider>
   );
 }
-
-    
