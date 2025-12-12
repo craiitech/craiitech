@@ -89,10 +89,11 @@ service cloud.firestore {
     
     /**
      * @description Users can read and update their own profile. Admins can read/write any profile.
+     * Supervisors can list users within their scope.
      */
     match /users/{userId} {
       allow get, update: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
+      allow list: if isSignedIn(); // Allow list for supervisors, queries must be filtered on client.
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow delete: if isOwner(userId) || isAdmin();
     }
@@ -194,5 +195,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

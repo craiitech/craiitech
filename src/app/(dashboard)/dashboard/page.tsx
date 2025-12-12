@@ -22,7 +22,7 @@ import {
   useMemoFirebase,
   useDoc,
 } from '@/firebase';
-import { collection, query, where, doc, getDocs } from 'firebase/firestore';
+import { collection, query, where, doc, getDocs, collectionGroup } from 'firebase/firestore';
 import type { Submission, User as AppUser } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
@@ -48,28 +48,26 @@ export default function DashboardPage() {
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
 
-    const submissionsCollection = collection(firestore, 'submissions');
-
     if (isAdmin) {
-      return submissionsCollection;
+      return collection(firestore, 'submissions');
     }
     
     if (!userProfile) return null;
 
     if (isCampusSupervisor) {
       return query(
-        submissionsCollection,
+        collection(firestore, 'submissions'),
         where('campusId', '==', userProfile.campusId)
       );
     }
     if (isUnitSupervisor) {
       return query(
-        submissionsCollection,
+        collection(firestore, 'submissions'),
         where('unitId', '==', userProfile.unitId)
       );
     }
     // Default to regular user's own submissions
-    return query(submissionsCollection, where('userId', '==', userProfile.id));
+    return query(collection(firestore, 'submissions'), where('userId', '==', userProfile.id));
   }, [firestore, userProfile, isAdmin, isCampusSupervisor, isUnitSupervisor]);
 
   const { data: submissions, isLoading: isLoadingSubmissions } =
@@ -77,7 +75,7 @@ export default function DashboardPage() {
 
   // Fetch user count for admins and campus supervisors
   useEffect(() => {
-    if (!firestore || (!isAdmin && !isCampusSupervisor) || !userProfile) {
+    if (!firestore || (!isAdmin && !isCampusSupervisor) || (isCampusSupervisor && !userProfile)) {
         setUserCount(0);
         return;
     };
@@ -85,8 +83,11 @@ export default function DashboardPage() {
     const fetchUserCount = async () => {
         let countQuery;
         if (isAdmin) {
+            // Firestore does not have a native count of all documents in a collection on the client-side.
+            // A full read is expensive. For this purpose, we'll use getDocs and get the size.
+            // For very large collections, a cloud function to maintain a counter would be better.
             countQuery = collection(firestore, 'users');
-        } else if (isCampusSupervisor) {
+        } else if (isCampusSupervisor && userProfile?.campusId) {
             countQuery = query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
         }
         
