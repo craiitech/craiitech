@@ -2,7 +2,7 @@
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, Timestamp } from 'firebase/firestore';
 import { useParams } from 'next/navigation';
 import type { Submission, User as AppUser, Campus, Unit } from '@/lib/types';
 import {
@@ -100,6 +100,19 @@ export default function SubmissionDetailPage() {
     ? submission.googleDriveLink.replace('/view', '/preview').replace('?usp=sharing', '')
     : '';
 
+  const getFormattedDate = (date: any) => {
+    if (!date) return '';
+    if (date instanceof Timestamp) {
+      return format(date.toDate(), 'MMMM d, yyyy');
+    }
+    // Fallback for string or other date representations
+    const d = new Date(date);
+    if (!isNaN(d.getTime())) {
+      return format(d, 'MMMM d, yyyy');
+    }
+    return 'Invalid Date';
+  };
+
   if (isLoading) {
     return <LoadingSkeleton />;
   }
@@ -142,7 +155,7 @@ export default function SubmissionDetailPage() {
             <CardHeader>
                 <CardTitle>{submission.reportType}</CardTitle>
                  <CardDescription>
-                    Submitted on {format(new Date(submission.submissionDate), 'MMMM d, yyyy')}
+                    Submitted on {getFormattedDate(submission.submissionDate)}
                 </CardDescription>
             </CardHeader>
             <CardContent>
