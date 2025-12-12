@@ -11,9 +11,12 @@ import { useAuth, useFirestore } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  getAdditionalUserInfo,
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import { Loader2, Mail, Apple, X } from 'lucide-react';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { Loader2, Mail, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AuthFormProps {
@@ -126,6 +129,53 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       setIsSubmitting(false);
     }
   };
+
+  const handleGoogleSignIn = async () => {
+    setIsSubmitting(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Check if the user document already exists
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        // This is a new user, create their document
+        const [first = '', last = ''] = user.displayName?.split(' ') || [];
+        await setDoc(userDocRef, {
+          id: user.uid,
+          email: user.email,
+          firstName: first,
+          lastName: last,
+          avatar: user.photoURL,
+          roleId: '',
+          role: '',
+          campusId: '',
+          unitId: '',
+          verified: false,
+        });
+        toast({
+            title: 'Account Created!',
+            description: 'Please complete your registration.',
+        });
+        router.push('/complete-registration');
+      } else {
+        // Existing user, just go to dashboard
+        router.push('/dashboard');
+      }
+    } catch (error) {
+      toast({
+        title: 'Google Sign-In Failed',
+        description:
+          error instanceof Error ? error.message : 'An unknown error occurred.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   const renderSignIn = () => (
     <form onSubmit={handleSignIn} className="space-y-6">
@@ -295,20 +345,16 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <Button
           variant="outline"
           className="bg-gray-800/50 border-gray-700 hover:bg-gray-700/50 text-white"
+          onClick={handleGoogleSignIn}
+          disabled={isSubmitting}
         >
+          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           <GoogleIcon className="mr-2 h-5 w-5" />
           Google
-        </Button>
-        <Button
-          variant="outline"
-          className="bg-gray-800/50 border-gray-700 hover:bg-gray-700/50 text-white"
-        >
-          <Apple className="mr-2 h-5 w-5 fill-white" />
-          Apple
         </Button>
       </div>
       {activeTab === 'signup' && (
@@ -322,3 +368,5 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     </div>
   );
 }
+
+    
