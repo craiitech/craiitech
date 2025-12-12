@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -809,5 +808,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
