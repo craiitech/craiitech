@@ -72,11 +72,12 @@ export default function CompleteRegistrationPage() {
   const selectedRoleId = form.watch('roleId');
   
   const isUnitRequired = useMemo(() => {
-    if (!selectedRoleId || !roles) return true; // Default to required until roles are loaded
+    if (!selectedRoleId || !roles) return true; // Default to required until roles are loaded and a role is selected
     const selectedRole = roles.find(r => r.id === selectedRoleId);
+    if (!selectedRole) return true; // Role not found, assume unit is required
     const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
-    // It's required if the role is NOT a campus-level role
-    return !campusLevelRoles.includes(selectedRole?.name || '');
+    // It's required if the role's name is NOT in the campusLevelRoles array
+    return !campusLevelRoles.includes(selectedRole.name);
   }, [selectedRoleId, roles]);
 
   // When isUnitRequired changes, we might need to clear errors or values
