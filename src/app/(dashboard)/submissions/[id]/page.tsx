@@ -2,9 +2,9 @@
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
-import { doc, Timestamp, updateDoc } from 'firebase/firestore';
+import { doc, Timestamp, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
-import type { Submission, User as AppUser, Campus, Unit } from '@/lib/types';
+import type { Submission, User as AppUser, Campus, Unit, Comment } from '@/lib/types';
 import {
   Card,
   CardContent,
@@ -16,13 +16,16 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Check, X } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, X, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 const statusVariant: Record<
   string,
@@ -77,12 +80,17 @@ const LoadingSkeleton = () => (
 export default function SubmissionDetailPage() {
   const { id } = useParams();
   const firestore = useFirestore();
-  const { userProfile, isAdmin, isUserLoading } = useUser();
+  const { user, userProfile, isAdmin, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // State for resubmission form
+  const [newLink, setNewLink] = useState('');
+  const [newComment, setNewComment] = useState('');
+
 
   const submissionId = Array.isArray(id) ? id[0] : id;
 
@@ -106,9 +114,9 @@ export default function SubmissionDetailPage() {
 
   const isLoading = isUserLoading || isLoadingSubmission || isLoadingSubmitter || isLoadingCampus;
   
-  const previewUrl = submission?.googleDriveLink
+  const previewUrl = newLink || (submission?.googleDriveLink
     ? submission.googleDriveLink.replace('/view', '/preview').replace('?usp=sharing', '')
-    : '';
+    : '');
 
   const getFormattedDate = (date: any) => {
     if (!date) return '';
@@ -134,14 +142,15 @@ export default function SubmissionDetailPage() {
         (userRole === 'Campus ODIMO' && userProfile.campusId === submission.campusId) ||
         (userRole === 'Unit ODIMO' && userProfile.unitId === submission.unitId)
     );
+  
+  const isSubmitter = user && submission && user.uid === submission.userId;
 
   const handleApprove = async () => {
     if (!submissionDocRef) return;
     setIsSubmitting(true);
     try {
-        await updateDoc(submissionDocRef, { statusId: 'approved', comments: '' });
+        await updateDoc(submissionDocRef, { statusId: 'approved' });
         toast({ title: 'Success', description: 'Submission has been approved.' });
-        // The page will automatically re-render with the new status due to useDoc
     } catch (error) {
         console.error('Error approving submission', error);
         toast({ title: 'Error', description: 'Could not approve submission.', variant: 'destructive'});
@@ -157,8 +166,19 @@ export default function SubmissionDetailPage() {
       };
       setIsSubmitting(true);
       try {
-          await updateDoc(submissionDocRef, { statusId: 'rejected', comments: feedback });
+          const newComment: Comment = {
+              text: feedback,
+              authorId: user!.uid,
+              authorName: userProfile!.firstName + ' ' + userProfile!.lastName,
+              createdAt: serverTimestamp(),
+              authorRole: userRole || 'User'
+          }
+          await updateDoc(submissionDocRef, { 
+              statusId: 'rejected', 
+              comments: arrayUnion(newComment)
+          });
           toast({ title: 'Success', description: 'Submission has been rejected.' });
+          setFeedback('');
       } catch (error) {
           console.error('Error rejecting submission', error);
           toast({ title: 'Error', description: 'Could not reject submission.', variant: 'destructive'});
@@ -166,6 +186,44 @@ export default function SubmissionDetailPage() {
           setIsSubmitting(false);
       }
   }
+  
+  const handleResubmit = async () => {
+    if (!submissionDocRef || !newLink) {
+        toast({ title: 'Error', description: 'A new Google Drive link is required to resubmit.', variant: 'destructive' });
+        return;
+    }
+    setIsSubmitting(true);
+    try {
+         const updateData: any = {
+            googleDriveLink: newLink,
+            statusId: 'submitted',
+            submissionDate: serverTimestamp()
+        };
+
+        if (newComment) {
+            const comment: Comment = {
+                text: newComment,
+                authorId: user!.uid,
+                authorName: userProfile!.firstName + ' ' + userProfile!.lastName,
+                createdAt: serverTimestamp(),
+                authorRole: userRole || 'User'
+            };
+            updateData.comments = arrayUnion(comment);
+        }
+        
+        await updateDoc(submissionDocRef, updateData);
+
+        toast({ title: 'Success', description: 'Submission has been resubmitted.' });
+        setNewLink('');
+        setNewComment('');
+
+    } catch (error) {
+        console.error('Error resubmitting:', error);
+        toast({ title: 'Error', description: 'Could not resubmit.', variant: 'destructive'});
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -209,7 +267,7 @@ export default function SubmissionDetailPage() {
             <CardHeader>
                 <CardTitle>{submission.reportType}</CardTitle>
                  <CardDescription>
-                    Submitted on {getFormattedDate(submission.submissionDate)}
+                    Last updated on {getFormattedDate(submission.submissionDate)}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -260,6 +318,43 @@ export default function SubmissionDetailPage() {
              </Card>
           )}
 
+          {isSubmitter && submission.statusId === 'rejected' && (
+             <Card>
+                <CardHeader>
+                    <CardTitle>Resubmit Report</CardTitle>
+                    <CardDescription>Your submission was rejected. Please update the link and add comments if necessary.</CardDescription>
+                </CardHeader>
+                 <CardContent className="space-y-4">
+                    <div>
+                        <Label htmlFor="new-link">New Google Drive Link</Label>
+                        <Input 
+                            id="new-link"
+                            placeholder="https://drive.google.com/..."
+                            value={newLink}
+                            onChange={(e) => setNewLink(e.target.value)}
+                            disabled={isSubmitting}
+                        />
+                    </div>
+                     <div>
+                        <Label htmlFor="new-comment">Add a Comment</Label>
+                        <Textarea 
+                            id="new-comment"
+                            placeholder="Explain the changes you've made..."
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            disabled={isSubmitting}
+                        />
+                    </div>
+                 </CardContent>
+                <CardFooter className="flex justify-end gap-2">
+                    <Button onClick={handleResubmit} disabled={isSubmitting || !newLink}>
+                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4"/>}
+                        Resubmit
+                    </Button>
+                </CardFooter>
+             </Card>
+          )}
+
         </div>
 
         {/* Right Column: Details */}
@@ -298,13 +393,26 @@ export default function SubmissionDetailPage() {
                 </CardContent>
             </Card>
 
-            {(submission.comments) && (
+            {submission.comments && submission.comments.length > 0 && (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Approver Feedback</CardTitle>
+                        <CardTitle>Conversation History</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground">{submission.comments}</p>
+                    <CardContent className="space-y-4">
+                        {submission.comments.slice().sort((a,b) => (a.createdAt as Timestamp).toMillis() - (b.createdAt as Timestamp).toMillis()).map((comment, index) => (
+                           <div key={index} className="flex gap-3">
+                               <Avatar className="h-8 w-8">
+                                    <AvatarFallback>{comment.authorName.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-center">
+                                        <p className="text-sm font-medium">{comment.authorName} <span className="text-xs text-muted-foreground">({comment.authorRole})</span></p>
+                                        <p className="text-xs text-muted-foreground">{getFormattedDate(comment.createdAt)}</p>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mt-1">{comment.text}</p>
+                                </div>
+                           </div>
+                        ))}
                     </CardContent>
                 </Card>
             )}

@@ -220,7 +220,7 @@ export default function SubmissionsPage() {
                   </TableCell>
                   <TableCell className="text-right space-x-1">
                      {submission.statusId === 'rejected' && submission.comments && (
-                        <Button variant="ghost" size="icon" onClick={() => handleViewFeedback(submission.comments!)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleViewFeedback(submission.comments?.[submission.comments.length-1]?.text || '')}>
                             <MessageSquare className="h-4 w-4" />
                             <span className="sr-only">View Feedback</span>
                         </Button>

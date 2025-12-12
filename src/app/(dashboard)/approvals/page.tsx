@@ -40,19 +40,23 @@ import {
   Timestamp,
   updateDoc,
   doc,
+  arrayUnion,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { useState, useEffect, useMemo } from 'react';
-import type { Submission, User as AppUser, Role } from '@/lib/types';
+import type { Submission, User as AppUser, Role, Comment } from '@/lib/types';
 import { format } from 'date-fns';
-import { Check, X, MessageSquare, Loader2 } from 'lucide-react';
+import { Check, X, MessageSquare, Loader2, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useRouter } from 'next/navigation';
 
 export default function ApprovalsPage() {
-  const { userProfile, isAdmin } = useUser();
+  const { user, userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [users, setUsers] = useState<Record<string, AppUser>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -216,7 +220,7 @@ export default function ApprovalsPage() {
     if (!firestore) return;
     const submissionRef = doc(firestore, 'submissions', submissionId);
     try {
-      await updateDoc(submissionRef, { statusId: 'approved', comments: '' });
+      await updateDoc(submissionRef, { statusId: 'approved' });
       toast({
         title: 'Success',
         description: `Submission has been approved.`,
@@ -237,13 +241,13 @@ export default function ApprovalsPage() {
     mode: 'reject' | 'view'
   ) => {
     setCurrentSubmission(submission);
-    setFeedback(mode === 'view' ? submission.comments || '' : '');
+    setFeedback(mode === 'view' ? (submission.comments?.[0]?.text || '') : '');
     setDialogMode(mode);
     setIsDialogOpen(true);
   };
 
   const handleRejectWithFeedback = async () => {
-    if (!firestore || !currentSubmission || !feedback) {
+    if (!firestore || !currentSubmission || !feedback || !user || !userProfile) {
       toast({
         title: 'Error',
         description: 'Feedback cannot be empty.',
@@ -255,9 +259,17 @@ export default function ApprovalsPage() {
     setIsSubmittingFeedback(true);
     const submissionRef = doc(firestore, 'submissions', currentSubmission.id);
     try {
+      const newComment: Comment = {
+        text: feedback,
+        authorId: user.uid,
+        authorName: userProfile.firstName + ' ' + userProfile.lastName,
+        createdAt: serverTimestamp(),
+        authorRole: userRole || 'User',
+      };
+      
       await updateDoc(submissionRef, {
         statusId: 'rejected',
-        comments: feedback,
+        comments: arrayUnion(newComment),
       });
       toast({
         title: 'Success',
@@ -341,6 +353,20 @@ export default function ApprovalsPage() {
                     </TableCell>
                     <TableCell className="text-right space-x-1">
                       <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => router.push(`/submissions/${submission.id}`)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>View Details</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
                             variant="ghost"
@@ -376,24 +402,6 @@ export default function ApprovalsPage() {
                           <p>Reject</p>
                         </TooltipContent>
                       </Tooltip>
-                      {submission.comments && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() =>
-                                handleOpenDialog(submission, 'view')
-                              }
-                            >
-                              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>View Comments</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -461,5 +469,3 @@ export default function ApprovalsPage() {
     </TooltipProvider>
   );
 }
-
-    

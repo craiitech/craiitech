@@ -185,7 +185,7 @@ export default function NewSubmissionPage() {
                                     {submission.statusId}
                                 </Badge>
                                 {submission.statusId === 'rejected' && submission.comments && (
-                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); handleViewFeedback(submission.comments!)} }>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); handleViewFeedback(submission.comments?.[submission.comments.length-1]?.text || '')} }>
                                         <MessageSquare className="h-4 w-4 text-muted-foreground" />
                                     </Button>
                                 )}
@@ -251,5 +251,3 @@ export default function NewSubmissionPage() {
     </div>
   );
 }
-
-    

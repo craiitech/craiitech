@@ -21,8 +21,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { validateGoogleDriveLinkAccessibility } from '@/ai/flows/validate-google-drive-link-accessibility';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
-import type { Unit, Submission } from '@/lib/types';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, arrayUnion } from 'firebase/firestore';
+import type { Unit, Submission, Comment } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -57,7 +57,7 @@ export function SubmissionForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationStatus, setValidationStatus] = useState<ValidationStatus>('idle');
   const { toast } = useToast();
-  const { user, userProfile } = useUser();
+  const { user, userProfile, userRole } = useUser();
   const firestore = useFirestore();
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
@@ -136,14 +136,26 @@ export function SubmissionForm({
     const querySnapshot = await getDocs(q);
     const unitName = units.find((u) => u.id === userProfile.unitId)?.name || 'Unknown Unit';
 
+    const newComment: Comment | null = values.comments ? {
+        text: values.comments,
+        authorId: user.uid,
+        authorName: userProfile.firstName + ' ' + userProfile.lastName,
+        createdAt: serverTimestamp(),
+        authorRole: userRole || 'User',
+    } : null;
+
     if (!querySnapshot.empty) {
         // Update existing submission
         const existingDocRef = doc(firestore, 'submissions', querySnapshot.docs[0].id);
-        const updateData = {
-          ...values,
+        const updateData: any = {
+          googleDriveLink: values.googleDriveLink,
           statusId: 'submitted', // Reset status on update
           submissionDate: serverTimestamp(),
         };
+
+        if (newComment) {
+            updateData.comments = arrayUnion(newComment);
+        }
         
         updateDoc(existingDocRef, updateData)
           .then(() => {
@@ -171,7 +183,7 @@ export function SubmissionForm({
     } else {
         // Add new submission
         const newSubmissionData = {
-            ...values,
+            googleDriveLink: values.googleDriveLink,
             reportType,
             year,
             cycleId,
@@ -181,6 +193,7 @@ export function SubmissionForm({
             unitName: unitName,
             statusId: 'submitted',
             submissionDate: serverTimestamp(),
+            comments: newComment ? [newComment] : [],
         };
 
         addDoc(submissionCollectionRef, newSubmissionData)
@@ -292,4 +305,3 @@ export function SubmissionForm({
     </Form>
   );
 }
-
