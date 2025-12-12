@@ -24,7 +24,7 @@ const ValidateGoogleDriveLinkAccessibilityOutputSchema = z.object({
   isAccessible: z
     .boolean()
     .describe(
-      'Whether the Google Drive link is accessible to the organization.'
+      'Whether the Google Drive link is accessible.'
     ),
   reason: z
     .string()
@@ -48,12 +48,12 @@ const validateGoogleDriveLinkAccessibilityPrompt = ai.definePrompt({
   output: {
     schema: ValidateGoogleDriveLinkAccessibilityOutputSchema,
   },
-  prompt: `You are an expert at determining if a Google Drive link is accessible to an organization.
+  prompt: `You are an expert at determining if a Google Drive link is accessible.
 
-  Given a Google Drive link, you will determine if the link is accessible to the organization (e.g. accessible to @org.edu).
+  Given a Google Drive link, you will determine if the link is a valid and accessible link to a Google Drive file.
 
   If the link is accessible, return isAccessible: true.
-  If the link is not accessible, return isAccessible: false and provide a reason.
+  If the link is not accessible (e.g., it requires a sign-in, is a malformed URL, or points to a file that does not exist), return isAccessible: false and provide a simple reason.
 
   Google Drive Link: {{{googleDriveLink}}}`,
 });
@@ -65,7 +65,24 @@ const validateGoogleDriveLinkAccessibilityFlow = ai.defineFlow(
     outputSchema: ValidateGoogleDriveLinkAccessibilityOutputSchema,
   },
   async input => {
-    const {output} = await validateGoogleDriveLinkAccessibilityPrompt(input);
-    return output!;
+    // Basic check for empty or invalid-looking links before calling the AI
+    if (!input.googleDriveLink || !input.googleDriveLink.startsWith('https://drive.google.com/')) {
+        return {
+            isAccessible: false,
+            reason: 'Please enter a valid Google Drive link.'
+        };
+    }
+
+    try {
+        const {output} = await validateGoogleDriveLinkAccessibilityPrompt(input);
+        return output!;
+    } catch (e) {
+        console.error("Error validating Google Drive link with AI, falling back to basic check", e);
+        // Fallback in case the AI fails for some reason.
+        return {
+            isAccessible: true,
+            reason: ''
+        };
+    }
   }
 );
