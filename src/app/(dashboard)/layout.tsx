@@ -59,12 +59,13 @@ export default function DashboardLayout({
   const firebaseState = useFirebase();
   const pathname = usePathname();
 
-  // If services aren't available yet, show a loading skeleton.
+  // If services aren't available yet, show a loading skeleton and stop rendering further.
+  // This is the main gate to prevent premature data fetches.
   if (!firebaseState.areServicesAvailable) {
     return <LoadingSkeleton />;
   }
 
-  // Destructure the rest of the state once we know services are available.
+  // Destructure the rest of the state only after we know services are available.
   const { user, userProfile, isUserLoading, isAdmin, firestore } = firebaseState;
 
 
