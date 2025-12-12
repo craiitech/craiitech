@@ -135,36 +135,37 @@ export default function DashboardPage() {
     useCollection<Unit>(allUnitsQuery);
 
   useEffect(() => {
-    if (!firestore || (!isAdmin && !isCampusSupervisor)) {
-      setUserCount(0);
-      setAllUsers({});
-      return;
+    if (!firestore || (!isAdmin && !isCampusSupervisor && !userProfile)) {
+        return;
     }
-  
+
     const fetchUsers = async () => {
-      let usersQuery;
-      if (isAdmin) {
-        usersQuery = collection(firestore, 'users');
-      } else if (isCampusSupervisor && userProfile?.campusId) {
-        usersQuery = query(
-          collection(firestore, 'users'),
-          where('campusId', '==', userProfile.campusId)
-        );
-      }
-  
-      if (usersQuery) {
-        const snapshot = await getDocs(usersQuery);
-        setUserCount(snapshot.size);
-        const usersData: Record<string, AppUser> = {};
-        snapshot.forEach((doc) => {
-          usersData[doc.id] = { id: doc.id, ...doc.data() } as AppUser;
-        });
-        setAllUsers(usersData);
-      }
+        let usersQuery;
+        if (isAdmin) {
+            usersQuery = collection(firestore, 'users');
+        } else if (isCampusSupervisor && userProfile?.campusId) {
+            usersQuery = query(
+                collection(firestore, 'users'),
+                where('campusId', '==', userProfile.campusId)
+            );
+        }
+
+        if (usersQuery) {
+            const snapshot = await getDocs(usersQuery);
+            setUserCount(snapshot.size);
+            const usersData: Record<string, AppUser> = {};
+            snapshot.forEach((doc) => {
+                usersData[doc.id] = { id: doc.id, ...doc.data() } as AppUser;
+            });
+            setAllUsers(usersData);
+        } else {
+             setUserCount(0);
+             setAllUsers({});
+        }
     };
-  
+
     fetchUsers();
-  }, [firestore, isAdmin, isCampusSupervisor, userProfile?.campusId]);
+  }, [firestore, isAdmin, isCampusSupervisor, userProfile]);
   
 
   const campusSettingsDocRef = useMemoFirebase(() => {
@@ -745,5 +746,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
