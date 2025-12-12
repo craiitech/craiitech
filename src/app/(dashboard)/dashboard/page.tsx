@@ -28,6 +28,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
+
+const TOTAL_REQUIRED_SUBMISSIONS = 6; // As there are 6 types of reports
+
 export default function DashboardPage() {
   const { user, userProfile, isAdmin, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -121,6 +124,9 @@ export default function DashboardPage() {
     };
 
     if (!submissions) return defaultStats;
+    
+    const currentYearSubmissions = submissions.filter(s => s.year === new Date().getFullYear());
+
 
     if (isAdmin) {
       return {
@@ -178,23 +184,30 @@ export default function DashboardPage() {
         }
     } else {
       // Regular user stats
+      const uniqueFirstCycle = new Set(currentYearSubmissions.filter(s => s.cycleId === 'first').map(s => s.reportType));
+      const uniqueFinalCycle = new Set(currentYearSubmissions.filter(s => s.cycleId === 'final').map(s => s.reportType));
+      
+      const firstCycleCount = uniqueFirstCycle.size;
+      const finalCycleCount = uniqueFinalCycle.size;
+
+
       return {
         stat1: {
-          title: 'My Submissions',
-          value: submissions.length,
+          title: 'Required Submissions',
+          value: `${firstCycleCount} of ${TOTAL_REQUIRED_SUBMISSIONS}`,
+          description: `First Cycle - ${new Date().getFullYear()}`,
           icon: <FileText className="h-4 w-4 text-muted-foreground" />,
         },
         stat2: {
-          title: 'Approved',
-          value: submissions.filter((s) => s.statusId === 'approved').length,
-          icon: <CheckCircle className="h-4 w-4 text-muted-foreground" />,
+          title: 'Required Submissions',
+          value: `${finalCycleCount} of ${TOTAL_REQUIRED_SUBMISSIONS}`,
+          description: `Final Cycle - ${new Date().getFullYear()}`,
+          icon: <FileText className="h-4 w-4 text-muted-foreground" />,
         },
         stat3: {
-          title: 'Pending/Rejected',
-          value: submissions.filter((s) =>
-            ['submitted', 'rejected'].includes(s.statusId)
-          ).length,
-          icon: <Clock className="h-4 w-4 text-muted-foreground" />,
+          title: 'Total Approved',
+          value: submissions.filter((s) => s.statusId === 'approved').length,
+          icon: <CheckCircle className="h-4 w-4 text-muted-foreground" />,
         },
       };
     }
@@ -204,7 +217,8 @@ export default function DashboardPage() {
     title: string,
     value: string | number,
     icon: React.ReactNode,
-    isLoading: boolean
+    isLoading: boolean,
+    description?: string,
   ) => (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -215,7 +229,10 @@ export default function DashboardPage() {
         {isLoading ? (
           <Skeleton className="h-8 w-20" />
         ) : (
-          <div className="text-2xl font-bold">{value}</div>
+          <>
+            <div className="text-2xl font-bold">{value}</div>
+            {description && <p className="text-xs text-muted-foreground">{description}</p>}
+          </>
         )}
       </CardContent>
     </Card>
@@ -236,9 +253,9 @@ export default function DashboardPage() {
       )}
 
       <div className="grid gap-4 md:grid-cols-3">
-        {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading)}
-        {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading)}
-        {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading)}
+        {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
+        {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
+        {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
