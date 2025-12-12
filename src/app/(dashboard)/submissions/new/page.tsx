@@ -1,58 +1,188 @@
 
 'use client';
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { useState, useMemo } from 'react';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import type { Submission } from '@/lib/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
+import { CheckCircle, Circle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const submissionTypes = [
-    'Operational Plans',
-    'Objectives Monitoring',
-    'Risk and Opportunity Registry Form',
-    'Risk and Opportunity Action Plan',
-    'Updated Needs and Expectation of Interested Parties',
-    'SWOT Analysis',
-]
+  'Operational Plans',
+  'Objectives Monitoring',
+  'Risk and Opportunity Registry Form',
+  'Risk and Opportunity Action Plan',
+  'Updated Needs and Expectation of Interested Parties',
+  'SWOT Analysis',
+];
+
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 5 }, (_, i) => currentYear + i - 2);
 
 export default function NewSubmissionPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [selectedCycle, setSelectedCycle] = useState<'first' | 'final'>('first');
+  const [activeReport, setActiveReport] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+
+  const submissionsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+      collection(firestore, 'users', user.uid, 'submissions'),
+      where('year', '==', selectedYear),
+      where('cycleId', '==', selectedCycle)
+    );
+  }, [firestore, user, selectedYear, selectedCycle]);
+
+  const { data: submissions, isLoading } = useCollection<Submission>(submissionsQuery);
+
+  const submittedReports = useMemo(() => {
+    if (!submissions) return new Set<string>();
+    return new Set(submissions.map((s) => s.reportType));
+  }, [submissions]);
+
+  const handleLinkChange = (link: string) => {
+    if (link && link.startsWith('https://drive.google.com/')) {
+      // Create an embeddable URL
+      const embedUrl = link.replace('/view', '/preview').replace('?usp=sharing', '');
+      setPreviewUrl(embedUrl);
+    } else {
+      setPreviewUrl('');
+    }
+  };
+
+  const handleFormSuccess = () => {
+    setActiveReport(null); // Collapse the form on success
+  };
+
   return (
     <div className="space-y-4">
-       <div>
+      <div>
         <h2 className="text-2xl font-bold tracking-tight">New Submission</h2>
-        <p className="text-muted-foreground">
-            Select a report type below to create a new submission.
-        </p>
+        <p className="text-muted-foreground">Select a report to submit for the chosen year and cycle.</p>
       </div>
-      <Accordion type="single" collapsible className="w-full space-y-4">
-        {submissionTypes.map(reportType => (
-            <Card key={reportType}>
-                <AccordionItem value={reportType} className="border-b-0">
-                    <AccordionTrigger className="p-6 hover:no-underline">
-                        <div className="text-left">
-                            <h3 className="text-lg font-semibold">{reportType}</h3>
-                            <p className="text-sm text-muted-foreground">Click to submit this report.</p>
-                        </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="p-6 pt-0">
-                         <SubmissionForm reportType={reportType} />
-                    </AccordionContent>
-                </AccordionItem>
-            </Card>
-        ))}
-      </Accordion>
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        {/* --- LEFT COLUMN: CHECKLIST --- */}
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Submission Checklist</CardTitle>
+              <CardDescription>Select the year and cycle to view submission status.</CardDescription>
+              <div className="flex items-center gap-4 pt-2">
+                <Select value={String(selectedYear)} onValueChange={(value) => setSelectedYear(Number(value))}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((year) => (
+                      <SelectItem key={year} value={String(year)}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={selectedCycle} onValueChange={(value: 'first' | 'final') => setSelectedCycle(value)}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Cycle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="first">First Submission</SelectItem>
+                    <SelectItem value="final">Final Submission</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[...Array(6)].map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : (
+                submissionTypes.map((reportType) => {
+                  const isSubmitted = submittedReports.has(reportType);
+                  const isExpanded = activeReport === reportType;
+
+                  return (
+                    <Collapsible
+                      key={reportType}
+                      open={isExpanded}
+                      onOpenChange={(isOpen) => setActiveReport(isOpen ? reportType : null)}
+                      className="rounded-lg border"
+                    >
+                      <CollapsibleTrigger asChild>
+                        <button className="flex w-full items-center justify-between p-4 text-left hover:bg-muted/50">
+                          <div className="flex items-center gap-3">
+                            {isSubmitted ? (
+                              <CheckCircle className="h-5 w-5 text-green-500" />
+                            ) : (
+                              <Circle className="h-5 w-5 text-muted-foreground" />
+                            )}
+                            <span className="font-medium">{reportType}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {isSubmitted && <span className="text-sm text-green-600">Completed</span>}
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                <span className="sr-only">Toggle</span>
+                            </Button>
+                          </div>
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="p-4 pt-0">
+                        <p className="mb-4 text-sm text-muted-foreground">
+                          {isSubmitted
+                            ? 'You have already submitted this report for the selected period. You can update it by submitting again.'
+                            : 'Fill out the form below to submit this report.'}
+                        </p>
+                        <SubmissionForm
+                          reportType={reportType}
+                          year={selectedYear}
+                          cycleId={selectedCycle}
+                          onLinkChange={handleLinkChange}
+                          onSuccess={handleFormSuccess}
+                        />
+                      </CollapsibleContent>
+                    </Collapsible>
+                  );
+                })
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* --- RIGHT COLUMN: PREVIEW --- */}
+        <div className="space-y-4">
+          <Card className="sticky top-4">
+            <CardHeader>
+              <CardTitle>Document Preview</CardTitle>
+              <CardDescription>A preview of the Google Drive link will be shown here.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="aspect-video w-full rounded-lg border bg-muted">
+                {previewUrl ? (
+                  <iframe src={previewUrl} className="h-full w-full" allow="autoplay"></iframe>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-muted-foreground">
+                    <p>Enter a valid Google Drive link to see a preview.</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
-
-    
