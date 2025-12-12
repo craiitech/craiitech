@@ -260,6 +260,9 @@ export default function SubmissionsPage() {
                   <AlertDialogDescription asChild>
                     <ul className="list-disc space-y-2 pl-5 text-sm">
                         <li>
+                            Prepare all required EOMS documents as a single PDF file (using Complete Staff Work format) in your RSU Google Drive.
+                        </li>
+                        <li>
                             Ensure the document is saved on your unit's Google Drive using your RSU email and that sharing is set to "anyone with the link can view."
                         </li>
                         <li>
@@ -337,5 +340,3 @@ export default function SubmissionsPage() {
     </>
   );
 }
-
-    
