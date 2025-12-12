@@ -90,10 +90,14 @@ export default function NewSubmissionPage() {
     setActiveReport(null); 
   };
   
-  const handleViewFeedback = (comments: string) => {
-    setFeedbackToShow(comments);
+  const handleViewFeedback = (comments: any) => {
+    if (Array.isArray(comments) && comments.length > 0) {
+      setFeedbackToShow(comments[comments.length - 1]?.text || 'No comment text found.');
+    } else {
+      setFeedbackToShow('No feedback provided.');
+    }
     setIsFeedbackDialogOpen(true);
-  }
+  };
 
   return (
     <div className="space-y-4">
@@ -185,7 +189,7 @@ export default function NewSubmissionPage() {
                                     {submission.statusId}
                                 </Badge>
                                 {submission.statusId === 'rejected' && submission.comments && (
-                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); handleViewFeedback(submission.comments?.[submission.comments.length-1]?.text || '')} }>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); handleViewFeedback(submission.comments)} }>
                                         <MessageSquare className="h-4 w-4 text-muted-foreground" />
                                     </Button>
                                 )}
@@ -251,3 +255,5 @@ export default function NewSubmissionPage() {
     </div>
   );
 }
+
+    

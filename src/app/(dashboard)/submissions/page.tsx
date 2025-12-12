@@ -151,8 +151,12 @@ export default function SubmissionsPage() {
     return user ? `${user.firstName} ${user.lastName}` : '...';
   };
   
-  const handleViewFeedback = (comments: string) => {
-    setFeedbackToShow(comments);
+  const handleViewFeedback = (comments: any) => {
+    if(Array.isArray(comments) && comments.length > 0) {
+        setFeedbackToShow(comments[comments.length-1]?.text || '');
+    } else if (typeof comments === 'string') { // Backwards compatibility
+        setFeedbackToShow(comments);
+    }
     setIsFeedbackDialogOpen(true);
   }
 
@@ -220,7 +224,7 @@ export default function SubmissionsPage() {
                   </TableCell>
                   <TableCell className="text-right space-x-1">
                      {submission.statusId === 'rejected' && submission.comments && (
-                        <Button variant="ghost" size="icon" onClick={() => handleViewFeedback(submission.comments?.[submission.comments.length-1]?.text || '')}>
+                        <Button variant="ghost" size="icon" onClick={() => handleViewFeedback(submission.comments)}>
                             <MessageSquare className="h-4 w-4" />
                             <span className="sr-only">View Feedback</span>
                         </Button>
@@ -250,3 +254,5 @@ export default function SubmissionsPage() {
     </>
   );
 }
+
+    

@@ -393,7 +393,7 @@ export default function SubmissionDetailPage() {
                 </CardContent>
             </Card>
 
-            {submission.comments && submission.comments.length > 0 && (
+            {Array.isArray(submission.comments) && submission.comments.length > 0 && (
                 <Card>
                     <CardHeader>
                         <CardTitle>Conversation History</CardTitle>
@@ -421,3 +421,5 @@ export default function SubmissionDetailPage() {
     </div>
   );
 }
+
+    

@@ -241,7 +241,19 @@ export default function ApprovalsPage() {
     mode: 'reject' | 'view'
   ) => {
     setCurrentSubmission(submission);
-    setFeedback(mode === 'view' ? (submission.comments?.[0]?.text || '') : '');
+    // This logic handles both old string-based comments and new array-based comments for viewing
+    if (mode === 'view') {
+        const comments = submission.comments;
+        if (Array.isArray(comments) && comments.length > 0) {
+            setFeedback(comments[comments.length - 1]?.text || 'No comment text found.');
+        } else if (typeof comments === 'string') { // Backwards compatibility
+            setFeedback(comments);
+        } else {
+            setFeedback('');
+        }
+    } else {
+        setFeedback(''); // Clear feedback for new rejection
+    }
     setDialogMode(mode);
     setIsDialogOpen(true);
   };
@@ -469,3 +481,5 @@ export default function ApprovalsPage() {
     </TooltipProvider>
   );
 }
+
+    
