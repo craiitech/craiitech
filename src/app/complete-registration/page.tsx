@@ -72,7 +72,7 @@ export default function CompleteRegistrationPage() {
   const selectedRoleId = form.watch('roleId');
   
   const isUnitRequired = useMemo(() => {
-    if (!selectedRoleId || !roles) return true;
+    if (!selectedRoleId || !roles) return true; // Default to required if data is missing
     const selectedRole = roles.find((r) => r.id === selectedRoleId);
     if (!selectedRole) return true;
 
@@ -84,7 +84,7 @@ export default function CompleteRegistrationPage() {
   // When isUnitRequired changes, we might need to clear errors or values
   useEffect(() => {
     if (!isUnitRequired) {
-      form.setValue('unitId', '');
+      form.setValue('unitId', undefined); // Use undefined to clear the value
       form.clearErrors('unitId');
     }
   }, [isUnitRequired, form]);
