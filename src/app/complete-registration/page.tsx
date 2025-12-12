@@ -182,6 +182,7 @@ export default function CompleteRegistrationPage() {
 
       router.push('/awaiting-verification');
     } catch (error) {
+      console.error('Error completing registration:', error);
       toast({
         title: 'Update Failed',
         description: error instanceof Error ? error.message : 'An unknown error occurred.',
