@@ -106,64 +106,7 @@ export default function CompleteRegistrationPage() {
 
     setIsSubmitting(true);
     try {
-      const usersCollection = collection(firestore, 'users');
       const selectedRoleObject = roles.find(r => r.id === values.roleId);
-
-      // --- Start of Uniqueness Validation ---
-      let q;
-      let isRoleTaken = false;
-
-      const campusLevelRoles = ['campus director', 'campus odimo'];
-      if (selectedRoleObject && campusLevelRoles.includes(selectedRoleObject.name.toLowerCase())) {
-        q = query(
-          usersCollection,
-          where('campusId', '==', values.campusId),
-          where('roleId', '==', values.roleId)
-        );
-        const querySnapshot = await getDocs(q);
-        isRoleTaken = !querySnapshot.empty && querySnapshot.docs.some(doc => doc.id !== user.uid);
-        if (isRoleTaken) {
-          toast({
-            title: 'Role Taken',
-            description: `The selected campus already has a ${selectedRoleObject.name}. Please choose a different role or campus.`,
-            variant: 'destructive',
-          });
-          setIsSubmitting(false);
-          return;
-        }
-      } else { // General check for other roles (unit-level roles)
-          const queryConstraints = [
-            where('campusId', '==', values.campusId),
-            where('roleId', '==', values.roleId),
-          ];
-
-          if (isUnitRequired && values.unitId) {
-            queryConstraints.push(where('unitId', '==', values.unitId));
-          } else if (isUnitRequired) {
-            // This case should be caught by the form validation, but as a safeguard:
-             toast({
-              title: 'Validation Error',
-              description: 'A unit is required for this role.',
-              variant: 'destructive',
-            });
-            setIsSubmitting(false);
-            return;
-          }
-
-          q = query(usersCollection, ...queryConstraints);
-          const querySnapshot = await getDocs(q);
-          isRoleTaken = !querySnapshot.empty && querySnapshot.docs.some(doc => doc.id !== user.uid);
-          if (isRoleTaken) {
-            toast({
-              title: 'Role Taken',
-              description: 'The selected role is already assigned to another user in this campus and unit. Please choose a different role or contact an administrator.',
-              variant: 'destructive',
-            });
-            setIsSubmitting(false);
-            return;
-          }
-      }
-      // --- End of Uniqueness Validation ---
 
       const userDocRef = doc(firestore, 'users', user.uid);
 
