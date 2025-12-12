@@ -19,7 +19,7 @@ import { SidebarNav } from '@/components/dashboard/sidebar-nav';
 import { Button } from '@/components/ui/button';
 import { collection } from 'firebase/firestore';
 import type { Role } from '@/lib/types';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 
 export default function DashboardLayout({
   children,
@@ -31,8 +31,8 @@ export default function DashboardLayout({
   const firestore = useFirestore();
 
   const rolesQuery = useMemoFirebase(
-    () => (firestore && user ? collection(firestore, 'roles') : null),
-    [firestore, user]
+    () => (firestore ? collection(firestore, 'roles') : null),
+    [firestore]
   );
   const { data: roles, isLoading: areRolesLoading } = useCollection<Role>(rolesQuery);
 
@@ -42,8 +42,43 @@ export default function DashboardLayout({
     return roles.find((r) => r.id === userProfile.roleId)?.name;
   }, [userProfile, roles, isAdmin]);
   
-  // Combine all loading states. Logic should not proceed until all are false.
   const isStillLoading = isUserLoading || areRolesLoading;
+
+  useEffect(() => {
+    if (isStillLoading) return; // Don't do anything while loading
+
+    if (!user) {
+      redirect('/login');
+      return;
+    }
+
+    if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
+      return; // Allow users to be on these pages
+    }
+
+    if (userProfile && !isAdmin) {
+      let isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
+
+      const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
+      const isCampusLevelUser = userRole ? campusLevelRoles.includes(userRole) : false;
+
+      // Unit ID is not required for campus level users
+      if (!isCampusLevelUser) {
+        isProfileIncomplete = isProfileIncomplete || !userProfile.unitId;
+      }
+      
+      if (isProfileIncomplete) {
+        redirect('/complete-registration');
+        return;
+      }
+
+      if (!userProfile.verified) {
+        redirect('/awaiting-verification');
+        return;
+      }
+    }
+  }, [user, userProfile, isStillLoading, pathname, userRole, isAdmin]);
+
 
   if (isStillLoading) {
     return (
@@ -76,47 +111,10 @@ export default function DashboardLayout({
     );
   }
 
-  if (!user) {
-    return redirect('/login');
+  // If we have a user but they are about to be redirected, show a minimal layout
+  if (!user || (user && !userProfile && !isAdmin && pathname !== '/complete-registration')) {
+     return <div className="flex h-screen w-screen items-center justify-center"><Skeleton className="h-16 w-16" /></div>;
   }
-
-  // == REDIRECTION LOGIC ==
-  // This block only runs after all essential data (user, profile, roles) is loaded.
-  
-  // 1. Let users stay on special pages to avoid redirect loops.
-  if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
-    return <>{children}</>;
-  }
-  
-  // 2. For all non-admin users, check profile completion and verification status.
-  if (userProfile && !isAdmin) {
-    // 3. Only proceed if we have determined the user's role.
-    if (userRole) {
-      const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
-      const isCampusLevelUser = campusLevelRoles.includes(userRole);
-
-      // 4. Define what an incomplete profile means based on the user's role.
-      let isProfileIncomplete = false;
-      if (isCampusLevelUser) {
-        // Campus-level users only need campusId and roleId. unitId is ignored.
-        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
-      } else {
-        // All other non-admin, non-campus roles need campus, role, and unit.
-        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
-      }
-      
-      // 5. Redirect if the profile is incomplete for their role.
-      if (isProfileIncomplete) {
-         return redirect('/complete-registration');
-      }
-      
-      // 6. If registration is complete, check for verification.
-      if (!userProfile.verified) {
-        return redirect('/awaiting-verification');
-      }
-    }
-  }
-
 
   return (
     <SidebarProvider>
