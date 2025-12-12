@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -28,11 +27,22 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, updateDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import type { User, Role, Campus, Unit } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { EditUserDialog } from './edit-user-dialog';
 
 type FilterStatus = 'all' | 'pending' | 'verified';
 
@@ -40,6 +50,10 @@ export function UserManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [filter, setFilter] = useState<FilterStatus>('pending');
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   const usersQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'users') : null),
@@ -105,16 +119,41 @@ export function UserManagement() {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!firestore || !deletingUser) return;
+    setIsSubmitting(true);
+    const userRef = doc(firestore, 'users', deletingUser.id);
+    try {
+        await deleteDoc(userRef);
+        toast({
+            title: "User Deleted",
+            description: `${deletingUser.firstName} ${deletingUser.lastName} has been removed.`,
+        });
+        setDeletingUser(null);
+    } catch (error) {
+        console.error("Error deleting user:", error);
+        toast({
+            title: "Error",
+            description: "Could not delete user.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
+
   const isLoading =
     isLoadingUsers || isLoadingRoles || isLoadingCampuses || isLoadingUnits;
 
   const descriptionText = {
-    all: `A list of all ${filteredUsers.length} users in the system.`,
+    all: `A list of all ${users?.length || 0} users in the system.`,
     pending: `${filteredUsers.length} users are awaiting verification.`,
     verified: `There are ${filteredUsers.length} verified users.`,
   };
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex justify-between items-start">
@@ -203,8 +242,10 @@ export function UserManagement() {
                         >
                           {user.verified ? 'Mark as Pending' : 'Verify User'}
                         </DropdownMenuItem>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem onClick={() => setEditingUser(user)}>
+                            Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => setDeletingUser(user)}>
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -222,5 +263,36 @@ export function UserManagement() {
         )}
       </CardContent>
     </Card>
+    {editingUser && (
+        <EditUserDialog 
+            user={editingUser}
+            isOpen={!!editingUser}
+            onOpenChange={(isOpen) => !isOpen && setEditingUser(null)}
+            roles={roles || []}
+            campuses={campuses || []}
+            units={units || []}
+        />
+    )}
+
+    <AlertDialog open={!!deletingUser} onOpenChange={(isOpen) => !isOpen && setDeletingUser(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to delete this user?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the account for{' '}
+                    <span className="font-bold">{deletingUser?.firstName} {deletingUser?.lastName}</span>.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteUser} disabled={isSubmitting}>
+                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Continue
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+
+    </>
   );
 }
