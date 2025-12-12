@@ -50,45 +50,19 @@ import { Loader2 } from 'lucide-react';
 import type { Campus, Unit } from '@/lib/types';
 
 
+const unitSchema = z.object({
+  name: z.string().min(3, 'Unit name must be at least 3 characters.'),
+});
+
 export function UnitManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const firestore = useFirestore();
   const { toast } = useToast();
   const { userProfile, isAdmin } = useUser();
 
-  const unitManagementSchema = z.object({
-    name: z.string().optional(),
-    unitId: z.string().optional(),
-  }).superRefine((data, ctx) => {
-      if (typeof window !== 'undefined') {
-        const isUserAdmin = (window as any).__isAdmin;
-        if (isUserAdmin) {
-            if (!data.name || data.name.length < 3) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: 'Unit name must be at least 3 characters.',
-                    path: ['name'],
-                });
-            }
-        } else {
-            if (!data.unitId || data.unitId.length < 1) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: 'Please select a unit to assign.',
-                    path: ['unitId'],
-                });
-            }
-        }
-      }
-  });
-
-  if (typeof window !== 'undefined') {
-    (window as any).__isAdmin = isAdmin;
-  }
-  
-  const form = useForm<z.infer<typeof unitManagementSchema>>({
-    resolver: zodResolver(unitManagementSchema),
-    defaultValues: { name: '', unitId: '' },
+  const form = useForm<z.infer<typeof unitSchema>>({
+    resolver: zodResolver(unitSchema),
+    defaultValues: { name: '' },
   });
 
   const campusesQuery = useMemoFirebase(
@@ -103,48 +77,31 @@ export function UnitManagement() {
   );
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
-  const unassignedUnits = useMemo(() => {
-    if (!allUnits) return [];
-    return allUnits.filter(u => !u.campusId);
-  }, [allUnits]);
-
-  const onSubmit = async (values: z.infer<typeof unitManagementSchema>) => {
+  const onSubmit = async (values: z.infer<typeof unitSchema>) => {
     if (!firestore || !userProfile) return;
     setIsSubmitting(true);
     
     try {
-        if (isAdmin) {
-            // Admin logic: Create a new unit (unassigned)
-            await addDoc(collection(firestore, 'units'), {
-                name: values.name,
-                campusId: '', // Admins create unassigned units
-                createdAt: serverTimestamp(),
-            });
-            toast({ title: 'Success', description: 'New unit created and is available for assignment.' });
-        } else {
-            // Campus Director logic: Assign an existing unit to their campus
-            if (!userProfile.campusId) {
-                 toast({ title: 'Error', description: 'You are not assigned to a campus.', variant: 'destructive' });
-                 setIsSubmitting(false);
-                 return;
-            }
-            if (!values.unitId) {
-                toast({ title: 'Error', description: 'No unit selected.', variant: 'destructive' });
-                setIsSubmitting(false);
-                return;
-            }
-            const unitRef = doc(firestore, 'units', values.unitId);
-            await updateDoc(unitRef, {
-                campusId: userProfile.campusId
-            });
-            toast({ title: 'Success', description: 'Unit has been assigned to your campus.' });
+        const campusIdForNewUnit = isAdmin ? '' : userProfile.campusId;
+        if (!isAdmin && !campusIdForNewUnit) {
+            toast({ title: 'Error', description: 'You are not assigned to a campus.', variant: 'destructive' });
+            setIsSubmitting(false);
+            return;
         }
+
+        await addDoc(collection(firestore, 'units'), {
+            name: values.name,
+            campusId: campusIdForNewUnit,
+            createdAt: serverTimestamp(),
+        });
+        toast({ title: 'Success', description: 'New unit has been created.' });
+        
         form.reset();
     } catch (error) {
         console.error('Error in unit management:', error);
         toast({
             title: 'Error',
-            description: `Could not ${isAdmin ? 'create' : 'assign'} unit.`,
+            description: `Could not create unit.`,
             variant: 'destructive',
         });
     } finally {
@@ -164,11 +121,11 @@ export function UnitManagement() {
 
   const isLoading = isLoadingCampuses || isLoadingUnits;
   
-  const cardTitle = isAdmin ? "Add New Unit" : "Assign Unit to Your Campus";
+  const cardTitle = isAdmin ? "Add New Unit" : "Add Unit to Your Campus";
   const cardDescription = isAdmin 
     ? "Create a new unit available for all campuses to assign." 
-    : "Assign a pre-registered unit to your campus from the list below.";
-  const buttonText = isAdmin ? 'Add Unit' : 'Assign Unit';
+    : "Create a new unit for your campus.";
+  const buttonText = 'Add Unit';
 
 
   return (
@@ -181,59 +138,26 @@ export function UnitManagement() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-4">
-              {isAdmin ? (
-                 <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Unit Name</FormLabel>
-                        <FormControl>
-                        <Input placeholder="e.g., College of Engineering" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-              ) : (
-                <FormField
-                  control={form.control}
-                  name="unitId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unassigned Unit</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''} >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a unit to assign" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {isLoadingUnits ? (
-                             <SelectItem value="loading" disabled>Loading...</SelectItem>
-                          ) : unassignedUnits.length > 0 ? (
-                            unassignedUnits.map((unit) => (
-                                <SelectItem key={unit.id} value={unit.id}>
-                                {unit.name}
-                                </SelectItem>
-                            ))
-                          ) : (
-                             <SelectItem value="none" disabled>No unassigned units available</SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Unit Name</FormLabel>
+                    <FormControl>
+                    <Input placeholder="e.g., College of Engineering" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+              />
             </CardContent>
             <CardFooter>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {isAdmin ? 'Adding...' : 'Assigning...'}
+                    Adding...
                   </>
                 ) : (
                   buttonText
