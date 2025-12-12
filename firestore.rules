@@ -92,8 +92,9 @@ service cloud.firestore {
      * Supervisors can list users within their scope.
      */
     match /users/{userId} {
-      allow get, update: if isOwner(userId) || isAdmin();
-      allow list: if isSignedIn(); // Allow list for supervisors, queries must be filtered on client.
+      allow get: if isOwner(userId) || isAdmin() || isCampusOdimo();
+      allow update: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin() || isCampusOdimo() || isUnitOdimo();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow delete: if isOwner(userId) || isAdmin();
     }
