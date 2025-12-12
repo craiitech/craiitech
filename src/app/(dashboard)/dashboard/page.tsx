@@ -41,6 +41,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { UnitsWithoutSubmissions } from '@/components/dashboard/units-without-submissions';
+import { CampusUnitOverview } from '@/components/dashboard/campus-unit-overview';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -67,7 +68,7 @@ const submissionTypes = [
   'SWOT Analysis',
 ];
 
-const TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT = 6;
+export const TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT = 6;
 
 const statusVariant: Record<
   string,
@@ -548,6 +549,15 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {isCampusSupervisor && (
+         <CampusUnitOverview 
+            allUnits={allUnits}
+            allSubmissions={submissions}
+            isLoading={isLoading}
+            userProfile={userProfile}
+         />
+      )}
 
       {isSupervisor && (
         <UnitsWithoutSubmissions
