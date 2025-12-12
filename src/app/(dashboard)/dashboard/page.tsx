@@ -181,7 +181,7 @@ export default function DashboardPage() {
     isUserLoading ||
     isLoadingSubmissions ||
     (canViewAnnouncements && isLoadingSettings) ||
-    (isAdmin && isLoadingUnits);
+    (isAdmin && isLoadingUnits) || (isCampusSupervisor && isLoadingUnits);
 
   const stats = useMemo(() => {
     const defaultStats = {
@@ -548,6 +548,8 @@ export default function DashboardPage() {
           allSubmissions={submissions}
           allUnits={allUnits}
           isLoading={isLoading}
+          isAdmin={isAdmin}
+          userProfile={userProfile}
         />
       </TabsContent>
     </Tabs>
@@ -688,6 +690,8 @@ export default function DashboardPage() {
           allSubmissions={submissions}
           allUnits={allUnits}
           isLoading={isLoading}
+          isAdmin={isAdmin}
+          userProfile={userProfile}
         />
       </TabsContent>
     </Tabs>

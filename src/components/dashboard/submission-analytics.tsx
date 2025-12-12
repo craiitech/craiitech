@@ -1,7 +1,7 @@
 
 'use client';
 import { useMemo } from 'react';
-import type { Submission, Unit } from '@/lib/types';
+import type { Submission, Unit, User as AppUser } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
@@ -16,6 +16,8 @@ interface SubmissionAnalyticsProps {
   allSubmissions: Submission[] | null;
   allUnits: Unit[] | null;
   isLoading: boolean;
+  isAdmin: boolean;
+  userProfile: AppUser | null;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -24,7 +26,7 @@ const STATUS_COLORS: Record<string, string> = {
   rejected: 'hsl(var(--chart-3))',
 };
 
-export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading }: SubmissionAnalyticsProps) {
+export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdmin, userProfile }: SubmissionAnalyticsProps) {
   const firestore = useFirestore();
   const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
@@ -52,6 +54,24 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading }: Sub
       return Object.entries(campusCounts).map(([name, total]) => ({ name, total }));
 
   }, [allSubmissions, allCampuses]);
+
+  const submissionsByUnitData = useMemo(() => {
+    if (!allSubmissions || !allUnits || !userProfile?.campusId) return [];
+
+    const campusUnits = allUnits.filter(u => u.campusId === userProfile.campusId);
+    const unitMap = new Map(campusUnits.map(u => [u.id, u.name]));
+
+    const unitCounts = allSubmissions.reduce((acc, submission) => {
+      // Only count submissions for units within the supervisor's campus
+      if (unitMap.has(submission.unitId)) {
+        const unitName = submission.unitName || 'Unknown Unit';
+        acc[unitName] = (acc[unitName] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(unitCounts).map(([name, total]) => ({ name, total }));
+  }, [allSubmissions, allUnits, userProfile]);
 
   const isDataLoading = isLoading || isLoadingCampuses;
 
@@ -127,13 +147,13 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading }: Sub
 
        <Card>
         <CardHeader>
-          <CardTitle>Submissions by Campus</CardTitle>
-          <CardDescription>Total number of submissions from each campus.</CardDescription>
+          <CardTitle>{isAdmin ? "Submissions by Campus" : "Submissions by Unit"}</CardTitle>
+          <CardDescription>Total number of submissions from each {isAdmin ? "campus" : "unit"}.</CardDescription>
         </CardHeader>
         <CardContent>
             <ChartContainer config={{}} className="min-h-[200px] w-full">
                 <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={submissionsByCampusData} layout="vertical">
+                    <BarChart data={isAdmin ? submissionsByCampusData : submissionsByUnitData} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" />
                      <XAxis type="number" />
                      <YAxis dataKey="name" type="category" width={120} />
