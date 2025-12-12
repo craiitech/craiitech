@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, query, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, getDocs, Timestamp, where } from 'firebase/firestore';
 import type { Submission, User as AppUser } from '@/lib/types';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
