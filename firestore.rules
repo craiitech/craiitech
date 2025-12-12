@@ -90,18 +90,15 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     /**
-     * @description Users can read and update their own profile. Admins can read/write any profile.
+     * @description Users can read, create, and update their own profile. Admins can read/write any profile.
      * Supervisors can list users within their scope.
      * The `get` rule is critical for the `getUserProfile()` helper to function.
      */
     match /users/{userId} {
-      // Allow reading your own profile (for getUserProfile()) or if you're an admin.
-      // This rule is critical and must not contain circular dependencies.
       allow get: if isOwner(userId) || isAdmin();
-      
       allow update: if isOwner(userId) || isAdmin();
       allow list: if isAdmin() || isCampusOdimo() || isUnitOdimo();
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow create: if isOwner(userId); // A user can create their own document.
       allow delete: if isOwner(userId) || isAdmin();
     }
     
