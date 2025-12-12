@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -10,10 +11,13 @@ import { UserManagement } from '@/components/admin/user-management';
 import { CampusManagement } from '@/components/admin/campus-management';
 import { UnitManagement } from '@/components/admin/unit-management';
 import { RoleManagement } from '@/components/admin/role-management';
+import { CampusSettingsManagement } from '@/components/admin/campus-settings-management';
 import { useUser } from '@/firebase';
 
 export default function SettingsPage() {
-  const { isAdmin } = useUser();
+  const { isAdmin, userProfile } = useUser();
+  
+  const isCampusDirector = userProfile?.role === 'Campus Director';
 
   if (isAdmin) {
     return (
@@ -30,6 +34,7 @@ export default function SettingsPage() {
             <TabsTrigger value="campuses">Campuses</TabsTrigger>
             <TabsTrigger value="units">Units</TabsTrigger>
             <TabsTrigger value="roles">Roles</TabsTrigger>
+            <TabsTrigger value="campus-settings">Campus Settings</TabsTrigger>
           </TabsList>
           <TabsContent value="users" className="space-y-4">
             <UserManagement />
@@ -43,9 +48,26 @@ export default function SettingsPage() {
           <TabsContent value="roles" className="space-y-4">
             <RoleManagement />
           </TabsContent>
+           <TabsContent value="campus-settings" className="space-y-4">
+            <CampusSettingsManagement />
+          </TabsContent>
         </Tabs>
       </div>
     );
+  }
+  
+  if (isCampusDirector) {
+      return (
+         <div className="space-y-4">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Campus Settings</h2>
+              <p className="text-muted-foreground">
+                Manage settings specific to your campus.
+              </p>
+            </div>
+            <CampusSettingsManagement />
+        </div>
+      )
   }
 
   return (

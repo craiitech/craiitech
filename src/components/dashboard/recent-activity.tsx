@@ -5,12 +5,12 @@ import {
   AvatarFallback,
   AvatarImage,
 } from '@/components/ui/avatar';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
 import type { Submission, User as AppUser } from '@/lib/types';
 import { useMemo, useState, useEffect } from 'react';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -39,10 +39,26 @@ export function RecentActivity({ submissions, isLoading: isLoadingSubmissions }:
         setIsFetchingUsers(true);
         const userIds = [...new Set(submissions.map(s => s.userId))].filter(id => !users[id]);
         if (userIds.length > 0) {
-            const usersQuery = query(collection(firestore, 'users'), where('id', 'in', userIds));
-            const usersSnapshot = await getDocs(usersQuery);
-            const fetchedUsers = Object.fromEntries(usersSnapshot.docs.map(doc => [doc.id, doc.data() as AppUser]));
-            setUsers(prev => ({...prev, ...fetchedUsers}));
+            try {
+                // Firestore 'in' query is limited to 30 elements. We might need to chunk it.
+                const chunks = [];
+                for (let i = 0; i < userIds.length; i += 30) {
+                    chunks.push(userIds.slice(i, i + 30));
+                }
+                const userPromises = chunks.map(chunk => 
+                    getDocs(query(collection(firestore, 'users'), where('id', 'in', chunk)))
+                );
+                const userSnapshots = await Promise.all(userPromises);
+                const fetchedUsers: Record<string, AppUser> = {};
+                userSnapshots.forEach(snap => {
+                     snap.docs.forEach(doc => {
+                        fetchedUsers[doc.id] = doc.data() as AppUser;
+                    });
+                });
+                setUsers(prev => ({...prev, ...fetchedUsers}));
+            } catch (error) {
+                console.error("Error fetching users for recent activity:", error);
+            }
         }
         setIsFetchingUsers(false);
     }
@@ -50,10 +66,12 @@ export function RecentActivity({ submissions, isLoading: isLoadingSubmissions }:
   }, [submissions, isSupervisor, firestore, users]);
   
   const recentSubmissions = useMemo(() => {
-    return submissions?.slice(0, 5) || [];
+    if (!submissions) return [];
+    // Sort by date just in case they aren't already
+    return submissions.sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime()).slice(0, 5);
   }, [submissions]);
 
-  const isLoading = isLoadingSubmissions || isFetchingUsers;
+  const isLoading = isLoadingSubmissions || (isSupervisor && isFetchingUsers);
   
   if (isLoading) {
     return (
@@ -93,9 +111,9 @@ export function RecentActivity({ submissions, isLoading: isLoadingSubmissions }:
    }
    const getUserFallback = (userId: string) => {
       const name = getUserName(userId);
-      if (name === '...') return '?';
+      if (name === '...' || !name) return '?';
       const parts = name.split(' ');
-      return `${parts[0]?.[0] ?? ''}${parts[1]?.[0] ?? ''}`.toUpperCase();
+      return `${parts[0]?.[0] ?? ''}${parts.length > 1 ? parts[parts.length - 1]?.[0] : ''}`.toUpperCase();
    }
 
 

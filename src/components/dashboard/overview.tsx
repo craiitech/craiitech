@@ -1,23 +1,60 @@
+
 'use client';
 
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import { useMemo } from 'react';
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { format, subMonths } from 'date-fns';
+import type { Submission } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ChartTooltipContent } from '@/components/ui/chart';
 
-const data = [
-  { name: 'Jan', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Feb', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Mar', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Apr', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'May', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Jun', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Jul', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Aug', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Sep', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Oct', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Nov', total: Math.floor(Math.random() * 5000) + 1000 },
-  { name: 'Dec', total: Math.floor(Math.random() * 5000) + 1000 },
-];
+interface OverviewProps {
+  submissions: Submission[] | null;
+  isLoading: boolean;
+}
 
-export function Overview() {
+export function Overview({ submissions, isLoading }: OverviewProps) {
+
+  const data = useMemo(() => {
+    const monthlyData: { [key: string]: { name: string; total: number } } = {};
+    const now = new Date();
+
+    // Initialize the last 12 months with 0 submissions
+    for (let i = 11; i >= 0; i--) {
+      const month = subMonths(now, i);
+      const monthKey = format(month, 'yyyy-MM');
+      monthlyData[monthKey] = {
+        name: format(month, 'MMM'),
+        total: 0,
+      };
+    }
+
+    // Populate with actual submission data
+    if (submissions) {
+      submissions.forEach((submission) => {
+        const submissionDate = new Date(submission.submissionDate);
+        const monthKey = format(submissionDate, 'yyyy-MM');
+        if (monthlyData[monthKey]) {
+          monthlyData[monthKey].total += 1;
+        }
+      });
+    }
+
+    return Object.values(monthlyData);
+  }, [submissions]);
+
+  if (isLoading) {
+    return <Skeleton className="h-[350px] w-full" />;
+  }
+  
+   if (!submissions || submissions.length === 0) {
+    return (
+      <div className="flex h-[350px] w-full items-center justify-center text-muted-foreground">
+        No submission data to display.
+      </div>
+    );
+  }
+
   return (
     <ResponsiveContainer width="100%" height={350}>
       <BarChart data={data}>
@@ -33,7 +70,12 @@ export function Overview() {
           fontSize={12}
           tickLine={false}
           axisLine={false}
-          tickFormatter={(value) => `$${value}`}
+          allowDecimals={false}
+          tickFormatter={(value) => `${value}`}
+        />
+        <Tooltip
+            cursor={{ fill: 'hsl(var(--muted))' }}
+            content={<ChartTooltipContent />}
         />
         <Bar
           dataKey="total"
