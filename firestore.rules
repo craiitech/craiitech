@@ -106,7 +106,10 @@ service cloud.firestore {
      * - Delete: Only allowed for owners.
      */
     match /submissions/{submissionId} {
-      allow get: if isOwner(resource.data.userId) || (isCampusOdimo() && getUserProfile().campusId == resource.data.campusId) || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId) || isAdmin();
+      allow get: if isOwner(resource.data.userId) 
+                    || (isCampusOdimo() && getUserProfile().campusId == resource.data.campusId) 
+                    || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId) 
+                    || isAdmin();
       allow list: if isSignedIn(); // Further filtering must be done in the query.
       
       allow create: if isOwner(request.resource.data.userId)
