@@ -40,7 +40,8 @@ export function Overview({ submissions, isLoading }: OverviewProps) {
     // Populate with actual submission data
     if (submissions) {
       submissions.forEach((submission) => {
-        const submissionDate = submission.submissionDate;
+        // This is the fix: Ensure we are working with a valid Date object.
+        const submissionDate = new Date(submission.submissionDate);
         if (isValid(submissionDate)) {
             const monthKey = format(submissionDate, 'yyyy-MM');
             if (monthlyData[monthKey]) {
