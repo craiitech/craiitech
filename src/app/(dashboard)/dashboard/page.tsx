@@ -443,6 +443,14 @@ export default function DashboardPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+        {!isSupervisor && (
+            <Button asChild>
+                <Link href="/submissions/new">
+                    <FilePlus className="mr-2 h-4 w-4" />
+                    Submit EOMS Document
+                </Link>
+            </Button>
+        )}
       </div>
 
       {announcement && !isLoading && (
@@ -458,5 +466,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
