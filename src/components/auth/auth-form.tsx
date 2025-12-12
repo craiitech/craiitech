@@ -341,7 +341,10 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       <div className="flex justify-center mb-6">
         <div className="flex rounded-full bg-gray-800/50 p-1 border border-gray-700/50">
           <Button
-            onClick={() => setActiveTab('signup')}
+            onClick={() => {
+              setActiveTab('signup');
+              setIsPrivacyDialogOpen(true);
+            }}
             className={cn(
               'rounded-full px-6 py-1 text-sm',
               activeTab === 'signup'
@@ -410,6 +413,8 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     </>
   );
 }
+
+    
 
     
 
