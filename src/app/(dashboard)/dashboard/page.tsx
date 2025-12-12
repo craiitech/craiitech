@@ -642,7 +642,7 @@ export default function DashboardPage() {
 
   const renderDashboardContent = () => {
     if (isAdmin) return renderAdminDashboard();
-    if (isSupervisor) return renderSupervisorDashboard();
+    if (isCampusSupervisor) return renderSupervisorDashboard();
     return renderUnitCoordinatorDashboard();
   };
 
@@ -672,3 +672,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
