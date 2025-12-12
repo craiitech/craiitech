@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -6,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   useUser,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, Crosshair } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../ui/sidebar';
 
 export function SidebarNav({
@@ -25,13 +24,6 @@ export function SidebarNav({
       label: 'Dashboard',
       active: pathname === '/dashboard',
       icon: <LayoutDashboard />,
-    },
-    {
-      href: '/dashboard/tactical',
-      label: 'Tactical',
-      active: pathname.startsWith('/dashboard/tactical'),
-      icon: <Crosshair />,
-      roles: ['Admin'],
     },
     {
       href: '/submissions',
