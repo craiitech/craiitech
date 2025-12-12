@@ -80,7 +80,7 @@ const LoadingSkeleton = () => (
 export default function SubmissionDetailPage() {
   const { id } = useParams();
   const firestore = useFirestore();
-  const { user, userProfile, isAdmin, isUserLoading } = useUser();
+  const { user, userProfile, isAdmin, isUserLoading, userRole } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -131,17 +131,13 @@ export default function SubmissionDetailPage() {
     return 'Invalid Date';
   };
 
-  const userRole = isAdmin ? 'Admin' : userProfile?.role;
+  const canApprove = userRole === 'Admin' || userRole === 'Unit ODIMO';
+  
   const isApprover = 
     submission &&
     userProfile && 
     submission.userId !== userProfile.id &&
-    (
-        isAdmin ||
-        (userRole === 'Campus Director' && userProfile.campusId === submission.campusId) ||
-        (userRole === 'Campus ODIMO' && userProfile.campusId === submission.campusId) ||
-        (userRole === 'Unit ODIMO' && userProfile.unitId === submission.unitId)
-    );
+    canApprove;
   
   const isSubmitter = user && submission && user.uid === submission.userId;
 
@@ -421,5 +417,3 @@ export default function SubmissionDetailPage() {
     </div>
   );
 }
-
-    

@@ -94,6 +94,9 @@ export default function ApprovalsPage() {
     if (!userProfile || !Object.keys(roles).length) return null;
     return roles[userProfile.roleId]?.name;
   }, [isAdmin, userProfile, roles]);
+  
+  const canApprove = userRole === 'Admin' || userRole === 'Unit ODIMO';
+
 
   // Effect to fetch submissions based on user role
   useEffect(() => {
@@ -378,42 +381,46 @@ export default function ApprovalsPage() {
                             <p>View Details</p>
                           </TooltipContent>
                         </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-green-600 hover:text-green-700"
-                            onClick={() =>
-                              handleApprove(
-                                submission.id
-                              )
-                            }
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Approve</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-red-600 hover:text-red-700"
-                            onClick={() =>
-                              handleOpenDialog(submission, 'reject')
-                            }
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Reject</p>
-                        </TooltipContent>
-                      </Tooltip>
+                      {canApprove && (
+                        <>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-green-600 hover:text-green-700"
+                                onClick={() =>
+                                  handleApprove(
+                                    submission.id
+                                  )
+                                }
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Approve</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-red-600 hover:text-red-700"
+                                onClick={() =>
+                                  handleOpenDialog(submission, 'reject')
+                                }
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Reject</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -481,5 +488,3 @@ export default function ApprovalsPage() {
     </TooltipProvider>
   );
 }
-
-    

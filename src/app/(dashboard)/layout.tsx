@@ -97,26 +97,23 @@ export default function DashboardLayout({
       return;
     }
 
+    // Allow users to be on these specific pages without checks
     if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
-      return; // Allow users to be on these pages
+      return;
     }
 
     if (userProfile && !isAdmin) {
       const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
-      const isCampusLevelUser = userRole ? campusLevelRoles.includes(userRole) : false;
+      const isCampusLevelUser = userRole ? campusLevelRoles.some(r => userRole.toLowerCase() === r.toLowerCase()) : false;
 
-      let isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
+      // Check if essential fields are missing
+      const isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || (!isCampusLevelUser && !userProfile.unitId);
 
-      // Unit ID is only required for non-campus level users
-      if (!isCampusLevelUser) {
-        isProfileIncomplete = isProfileIncomplete || !userProfile.unitId;
-      }
-      
       if (isProfileIncomplete) {
         redirect('/complete-registration');
         return;
       }
-
+      
       if (!userProfile.verified) {
         redirect('/awaiting-verification');
         return;
