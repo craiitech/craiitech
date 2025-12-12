@@ -41,5 +41,4 @@ export type Campus = {
 export type Unit = {
     id: string;
     name: string;
-    campusId: string;
 }

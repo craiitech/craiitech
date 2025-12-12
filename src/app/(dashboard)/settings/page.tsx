@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -12,15 +11,9 @@ import { CampusManagement } from '@/components/admin/campus-management';
 import { UnitManagement } from '@/components/admin/unit-management';
 import { RoleManagement } from '@/components/admin/role-management';
 import { useUser } from '@/firebase';
-import { useMemo } from 'react';
 
 export default function SettingsPage() {
-  const { userProfile, isAdmin } = useUser();
-
-  const isCampusLevelManager = useMemo(() => {
-    if (!userProfile?.role) return false;
-    return ['Campus Director', 'Campus ODIMO'].includes(userProfile.role);
-  }, [userProfile]);
+  const { isAdmin } = useUser();
 
   if (isAdmin) {
     return (
@@ -51,20 +44,6 @@ export default function SettingsPage() {
             <RoleManagement />
           </TabsContent>
         </Tabs>
-      </div>
-    );
-  }
-
-  if (isCampusLevelManager) {
-     return (
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Campus Settings</h2>
-          <p className="text-muted-foreground">
-            Manage units within your campus.
-          </p>
-        </div>
-         <UnitManagement />
       </div>
     );
   }
