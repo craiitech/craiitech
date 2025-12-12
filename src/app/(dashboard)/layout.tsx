@@ -38,8 +38,9 @@ export default function DashboardLayout({
 
   const userRole = useMemo(() => {
     if (!userProfile || !roles) return null;
+    if (isAdmin) return 'Admin';
     return roles.find((r) => r.id === userProfile.roleId)?.name;
-  }, [userProfile, roles]);
+  }, [userProfile, roles, isAdmin]);
   
   // Combine all loading states. Logic should not proceed until all are false.
   const isStillLoading = isUserLoading || areRolesLoading;
