@@ -248,16 +248,19 @@ export default function DashboardPage() {
         stat1: {
           title: 'Unit Pending',
           value: submissions.filter((s) => s.statusId === 'submitted').length,
+          description: `For your unit`,
           icon: <Clock className="h-4 w-4 text-muted-foreground" />,
         },
         stat2: {
           title: 'Unit Submissions',
           value: submissions.length,
+          description: `Total for your unit`,
           icon: <FileText className="h-4 w-4 text-muted-foreground" />,
         },
         stat3: {
           title: 'Approved',
           value: submissions.filter((s) => s.statusId === 'approved').length,
+          description: `Approved for your unit`,
           icon: <CheckCircle className="h-4 w-4 text-muted-foreground" />,
         },
       };
