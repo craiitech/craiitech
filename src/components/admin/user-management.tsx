@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -27,18 +28,18 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  useFirestore,
-  useCollection,
-  useMemoFirebase,
-} from '@/firebase';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc } from 'firebase/firestore';
 import type { User, Role, Campus, Unit } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
+type FilterStatus = 'all' | 'pending' | 'verified';
+
 export function UserManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const [filter, setFilter] = useState<FilterStatus>('pending');
 
   const usersQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'users') : null),
@@ -68,6 +69,14 @@ export function UserManagement() {
   const { data: units, isLoading: isLoadingUnits } =
     useCollection<Unit>(unitsQuery);
 
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
+    if (filter === 'all') return users;
+    return users.filter((user) =>
+      filter === 'pending' ? !user.verified : user.verified
+    );
+  }, [users, filter]);
+
   const getRoleName = (roleId: string) =>
     roles?.find((r) => r.id === roleId)?.name || 'N/A';
   const getCampusName = (campusId: string) =>
@@ -82,7 +91,9 @@ export function UserManagement() {
       await updateDoc(userRef, { verified: isVerified });
       toast({
         title: 'Success',
-        description: `User has been ${isVerified ? 'verified' : 'unverified'}.`,
+        description: `User has been ${
+          isVerified ? 'verified' : 'unverified'
+        }.`,
       });
     } catch (error) {
       console.error('Error updating user verification:', error);
@@ -97,14 +108,30 @@ export function UserManagement() {
   const isLoading =
     isLoadingUsers || isLoadingRoles || isLoadingCampuses || isLoadingUnits;
 
+  const descriptionText = {
+    all: `A list of all ${filteredUsers.length} users in the system.`,
+    pending: `${filteredUsers.length} users are awaiting verification.`,
+    verified: `There are ${filteredUsers.length} verified users.`,
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>User Management</CardTitle>
-        <CardDescription>
-          A list of all users in the system. You can verify, edit, or delete
-          users.
-        </CardDescription>
+        <div className="flex justify-between items-start">
+            <div>
+                 <CardTitle>User Management</CardTitle>
+                <CardDescription>
+                {descriptionText[filter]}
+                </CardDescription>
+            </div>
+            <Tabs value={filter} onValueChange={(value) => setFilter(value as FilterStatus)} >
+                <TabsList>
+                    <TabsTrigger value="all">All</TabsTrigger>
+                    <TabsTrigger value="pending">Pending</TabsTrigger>
+                    <TabsTrigger value="verified">Verified</TabsTrigger>
+                </TabsList>
+            </Tabs>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -126,7 +153,7 @@ export function UserManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users?.map((user) => (
+              {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -158,7 +185,11 @@ export function UserManagement() {
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                        <Button
+                          aria-haspopup="true"
+                          size="icon"
+                          variant="ghost"
+                        >
                           <MoreHorizontal className="h-4 w-4" />
                           <span className="sr-only">Toggle menu</span>
                         </Button>
@@ -166,12 +197,16 @@ export function UserManagement() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem
-                          onClick={() => handleVerification(user.id, !user.verified)}
+                          onClick={() =>
+                            handleVerification(user.id, !user.verified)
+                          }
                         >
                           {user.verified ? 'Mark as Pending' : 'Verify User'}
                         </DropdownMenuItem>
                         <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive">
+                          Delete
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -179,6 +214,11 @@ export function UserManagement() {
               ))}
             </TableBody>
           </Table>
+        )}
+         {!isLoading && filteredUsers.length === 0 && (
+            <div className="text-center py-10 text-muted-foreground">
+                No {filter} users found.
+            </div>
         )}
       </CardContent>
     </Card>
