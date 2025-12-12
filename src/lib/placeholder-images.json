@@ -1,16 +1,22 @@
 {
   "placeholderImages": [
     {
-      "id": "login-background",
-      "description": "Abstract background for login page",
-      "imageUrl": "https://images.unsplash.com/photo-1579700511188-d3aa73a5a810?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8YWJzdHJhY3QlMjBidWlsZGluZ3xlbnwwfHx8fDE3NjU0NjIxNTh8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "abstract building"
+      "id": "hero-landing",
+      "description": "A modern university building or campus",
+      "imageUrl": "https://images.unsplash.com/photo-1562774053-673738435123?q=80&w=2070&auto=format&fit=crop",
+      "imageHint": "university campus"
     },
     {
       "id": "auth-background",
       "description": "Abstract background for authentication pages",
       "imageUrl": "https://images.unsplash.com/photo-1620121692029-d088224ddc74?q=80&w=1932&auto=format&fit=crop",
       "imageHint": "abstract gradient"
+    },
+    {
+      "id": "feature-landing",
+      "description": "People collaborating in an office",
+      "imageUrl": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070&auto=format&fit=crop",
+      "imageHint": "team collaboration"
     }
   ]
 }
