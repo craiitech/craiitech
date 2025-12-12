@@ -232,8 +232,8 @@ export default function DashboardPage() {
         },
         stat2: {
           title: 'Campus Submissions',
-          value: submissions.length,
-          description: `Total for your campus`,
+          value: currentYearSubmissions.length,
+          description: `Total for your campus this year`,
           icon: <FileText className="h-4 w-4 text-muted-foreground" />,
         },
         stat3: {
@@ -479,7 +479,7 @@ export default function DashboardPage() {
   );
 
   const renderSupervisorDashboard = () => (
-    <>
+    <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-3">
         {renderCard(
           stats.stat1.title,
@@ -551,7 +551,7 @@ export default function DashboardPage() {
           isCampusSupervisor={isCampusSupervisor}
         />
       )}
-    </>
+    </div>
   );
 
   const renderAdminDashboard = () => (
@@ -672,5 +672,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
