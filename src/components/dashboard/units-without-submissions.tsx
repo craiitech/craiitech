@@ -6,8 +6,9 @@ import type { Unit, Submission, User as AppUser } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building } from 'lucide-react';
-import { AlertCircle } from 'lucide-react';
+import { Building, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
 
 interface UnitsWithoutSubmissionsProps {
   allUnits: Unit[] | null;
@@ -27,26 +28,34 @@ export function UnitsWithoutSubmissions({
   isCampusSupervisor,
 }: UnitsWithoutSubmissionsProps) {
 
-  const unitsWithoutSubmissions = useMemo(() => {
+  const unitsWithIncompleteSubmissions = useMemo(() => {
     if (!allUnits || !allSubmissions) {
       return [];
     }
 
     const currentYear = new Date().getFullYear();
-    const submittedUnitIds = new Set(
-        allSubmissions
-        .filter(s => s.year === currentYear)
-        .map(s => s.unitId)
-    );
-
+    
     let relevantUnits = allUnits;
-
     if (isCampusSupervisor && userProfile?.campusId) {
       relevantUnits = allUnits.filter(u => u.campusId === userProfile.campusId);
     }
-    // For Admins, relevantUnits is allUnits.
+    
+    const unitSubmissionCounts = relevantUnits.map(unit => {
+        const unitSubmissions = allSubmissions.filter(
+            s => s.unitId === unit.id && s.year === currentYear
+        );
+        const uniqueReports = new Set(unitSubmissions.map(s => s.reportType));
+        return {
+            id: unit.id,
+            name: unit.name,
+            count: uniqueReports.size
+        };
+    });
 
-    return relevantUnits.filter(unit => !submittedUnitIds.has(unit.id));
+    return unitSubmissionCounts
+        .filter(unit => unit.count < TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT)
+        .sort((a,b) => a.count - b.count); // Sort by least complete first
+
   }, [allUnits, allSubmissions, isCampusSupervisor, userProfile]);
 
   if (isLoading) {
@@ -67,8 +76,8 @@ export function UnitsWithoutSubmissions({
     );
   }
 
-  if (unitsWithoutSubmissions.length === 0) {
-    return null; // Don't show the card if every unit has submitted
+  if (unitsWithIncompleteSubmissions.length === 0) {
+    return null;
   }
 
   return (
@@ -76,20 +85,23 @@ export function UnitsWithoutSubmissions({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <AlertCircle className="text-destructive" />
-            Units Without Submissions
+            Incomplete Submissions by Unit
         </CardTitle>
         <CardDescription>
-          The following units have not submitted any documents for the current year ({new Date().getFullYear()}).
+          The following units have not completed all {TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT} required submissions for the current year ({new Date().getFullYear()}).
         </CardDescription>
       </CardHeader>
       <CardContent>
         <List>
-          {unitsWithoutSubmissions.map(unit => (
-            <ListItem key={unit.id}>
+          {unitsWithIncompleteSubmissions.map(unit => (
+            <ListItem key={unit.id} className="flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <Building className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">{unit.name}</span>
               </div>
+              <Badge variant={unit.count === 0 ? 'destructive' : 'secondary'}>
+                {unit.count} of {TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT}
+              </Badge>
             </ListItem>
           ))}
         </List>
