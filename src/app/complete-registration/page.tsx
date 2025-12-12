@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, collection } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -81,6 +81,32 @@ export default function CompleteRegistrationPage() {
 
     setIsSubmitting(true);
     try {
+       // --- Role Uniqueness Validation ---
+      const usersCollection = collection(firestore, 'users');
+      const q = query(
+        usersCollection,
+        where('campusId', '==', values.campusId),
+        where('unitId', '==', values.unitId),
+        where('roleId', '==', values.roleId)
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      // Check if any user found is not the current user
+      const isRoleTaken = !querySnapshot.empty && querySnapshot.docs.some(doc => doc.id !== user.uid);
+
+      if (isRoleTaken) {
+        toast({
+          title: 'Role Taken',
+          description:
+            'The selected role is already assigned to another user in this campus and unit. Please choose a different role.',
+          variant: 'destructive',
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      // --- End Validation ---
+
       const userDocRef = doc(firestore, 'users', user.uid);
       const selectedRole = roles?.find(r => r.id === values.roleId);
 
