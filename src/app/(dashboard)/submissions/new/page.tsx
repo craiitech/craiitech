@@ -14,6 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { FeedbackDialog } from '@/components/dashboard/feedback-dialog';
+import { Progress } from '@/components/ui/progress';
 
 
 const submissionTypes = [
@@ -45,7 +46,6 @@ export default function NewSubmissionPage() {
   const [activeReport, setActiveReport] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   
-  // State for feedback dialog
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [feedbackToShow, setFeedbackToShow] = useState('');
 
@@ -62,9 +62,19 @@ export default function NewSubmissionPage() {
 
   const { data: submissions, isLoading } = useCollection<Submission>(submissionsQuery);
 
-  const submissionStatusMap = useMemo(() => {
-    if (!submissions) return new Map<string, Submission>();
-    return new Map(submissions.map((s) => [s.reportType, s]));
+  const { submissionStatusMap, submissionProgress } = useMemo(() => {
+    if (!submissions) {
+      return { 
+        submissionStatusMap: new Map<string, Submission>(),
+        submissionProgress: 0 
+      };
+    }
+    const statusMap = new Map(submissions.map((s) => [s.reportType, s]));
+    const progress = (statusMap.size / submissionTypes.length) * 100;
+    return {
+      submissionStatusMap: statusMap,
+      submissionProgress: progress,
+    };
   }, [submissions]);
 
   const handleLinkChange = (link: string) => {
@@ -91,6 +101,23 @@ export default function NewSubmissionPage() {
         <h2 className="text-2xl font-bold tracking-tight">New Submission</h2>
         <p className="text-muted-foreground">Select a report to submit for the chosen year and cycle.</p>
       </div>
+      
+       <Card>
+        <CardHeader>
+          <CardTitle>Submission Progress</CardTitle>
+           <CardDescription>
+            You have completed {submissionStatusMap.size} of {submissionTypes.length} required submissions.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-4 w-full" />
+          ) : (
+            <Progress value={submissionProgress} className="w-full" />
+          )}
+        </CardContent>
+      </Card>
+
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         {/* --- LEFT COLUMN: CHECKLIST --- */}
@@ -225,3 +252,4 @@ export default function NewSubmissionPage() {
   );
 }
 
+    
