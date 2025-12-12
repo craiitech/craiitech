@@ -11,7 +11,7 @@ import {
   useMemoFirebase,
   useUser,
 } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -49,14 +49,24 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import type { Campus, Unit } from '@/lib/types';
 
-const unitSchema = z.object({
+// Schema for Admins creating a new unit
+const adminUnitSchema = z.object({
   name: z.string().min(3, 'Unit name must be at least 3 characters.'),
+  campusId: z.string().optional(), // Campus assignment is optional for admins
+});
+
+// Schema for Campus Directors assigning an existing unit
+const directorUnitSchema = z.object({
+    unitId: z.string().min(1, 'Please select a unit to assign.'),
+});
+
+// A combined schema that will be refined
+const unitManagementSchema = z.object({
+  name: z.string().optional(),
+  unitId: z.string().optional(),
   campusId: z.string().optional(),
 });
 
-const adminUnitSchema = unitSchema.extend({
-    campusId: z.string().min(1, 'Please select a campus.'),
-});
 
 export function UnitManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,10 +74,19 @@ export function UnitManagement() {
   const { toast } = useToast();
   const { userProfile, isAdmin } = useUser();
 
-  const form = useForm<z.infer<typeof unitSchema>>({
-    resolver: zodResolver(isAdmin ? adminUnitSchema : unitSchema),
-    defaultValues: { name: '', campusId: '' },
+  // Dynamically create the final schema based on the user's role
+  const finalSchema = useMemo(() => {
+    if (isAdmin) {
+      return adminUnitSchema;
+    }
+    return directorUnitSchema;
+  }, [isAdmin]);
+
+  const form = useForm<z.infer<typeof unitManagementSchema>>({
+    resolver: zodResolver(finalSchema),
+    defaultValues: { name: '', campusId: '', unitId: '' },
   });
+
 
   const campusesQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'campuses') : null),
@@ -81,7 +100,7 @@ export function UnitManagement() {
   );
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
-  const onSubmit = async (values: z.infer<typeof unitSchema>) => {
+  const onSubmit = async (values: z.infer<typeof unitManagementSchema>) => {
     if (!firestore || !userProfile) return;
     setIsSubmitting(true);
     
@@ -89,24 +108,23 @@ export function UnitManagement() {
         if (isAdmin) {
              await addDoc(collection(firestore, 'units'), {
                 name: values.name,
-                campusId: values.campusId,
+                campusId: values.campusId || '', // Store empty string if unassigned
                 createdAt: serverTimestamp(),
             });
-            toast({ title: 'Success', description: 'New unit has been created and assigned.' });
-        } else {
-             await addDoc(collection(firestore, 'units'), {
-                name: values.name,
-                campusId: userProfile.campusId, // Automatically assign to the director's campus
-                createdAt: serverTimestamp(),
+            toast({ title: 'Success', description: 'New unit has been created.' });
+        } else { // This is a Campus Director assigning a unit
+            const unitRef = doc(firestore, 'units', values.unitId!);
+            await updateDoc(unitRef, {
+                campusId: userProfile.campusId,
             });
-            toast({ title: 'Success', description: 'New unit has been added to your campus.' });
+            toast({ title: 'Success', description: 'Unit has been assigned to your campus.' });
         }
         form.reset();
     } catch (error) {
         console.error('Error in unit management:', error);
         toast({
             title: 'Error',
-            description: `Could not create unit.`,
+            description: isAdmin ? 'Could not create unit.' : 'Could not assign unit.',
             variant: 'destructive',
         });
     } finally {
@@ -118,6 +136,12 @@ export function UnitManagement() {
     return campuses?.find((c) => c.id === campusId)?.name || 'N/A';
   }
   
+  // For Campus Directors: filter for units that have no campusId
+  const unassignedUnits = useMemo(() => {
+      if (!allUnits) return [];
+      return allUnits.filter(u => !u.campusId);
+  }, [allUnits]);
+
   const visibleUnits = useMemo(() => {
     if (isAdmin) return allUnits;
     if (!userProfile?.campusId || !allUnits) return [];
@@ -126,11 +150,11 @@ export function UnitManagement() {
 
   const isLoading = isLoadingCampuses || isLoadingUnits;
   
-  const cardTitle = isAdmin ? "Manage Units" : "Add Unit to Your Campus";
+  const cardTitle = isAdmin ? "Manage Units" : "Assign Unit to Your Campus";
   const cardDescription = isAdmin 
-    ? "Create new units and assign them to a campus." 
-    : "Create a new unit for your campus.";
-  const buttonText = isAdmin ? 'Create and Assign Unit' : 'Add Unit';
+    ? "Create new units and optionally assign them to a campus." 
+    : "Assign a centrally-registered unit to your campus.";
+  const buttonText = isAdmin ? 'Create Unit' : 'Assign Unit';
 
 
   return (
@@ -143,26 +167,27 @@ export function UnitManagement() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Unit Name</FormLabel>
-                    <FormControl>
-                    <Input placeholder="e.g., College of Engineering" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-                )}
-              />
-              {isAdmin && (
+              {isAdmin ? (
+                <>
+                <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Unit Name</FormLabel>
+                        <FormControl>
+                        <Input placeholder="e.g., College of Engineering" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
                 <FormField
                   control={form.control}
                   name="campusId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Assign to Campus</FormLabel>
+                      <FormLabel>Assign to Campus (Optional)</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -185,6 +210,39 @@ export function UnitManagement() {
                     </FormItem>
                   )}
                 />
+                </>
+              ) : (
+                // Campus Director View
+                <FormField
+                    control={form.control}
+                    name="unitId"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Unassigned Unit</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a unit to assign" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {isLoadingUnits ? (
+                                    <SelectItem value="loading" disabled>Loading units...</SelectItem>
+                                ) : unassignedUnits.length > 0 ? (
+                                    unassignedUnits.map((unit) => (
+                                        <SelectItem key={unit.id} value={unit.id}>
+                                            {unit.name}
+                                        </SelectItem>
+                                    ))
+                                ) : (
+                                    <SelectItem value="none" disabled>No unassigned units available</SelectItem>
+                                )}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
               )}
             </CardContent>
             <CardFooter>
@@ -192,7 +250,7 @@ export function UnitManagement() {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Adding...
+                    Submitting...
                   </>
                 ) : (
                   buttonText
@@ -226,7 +284,7 @@ export function UnitManagement() {
                 {visibleUnits?.map((unit) => (
                   <TableRow key={unit.id}>
                     <TableCell>{unit.name}</TableCell>
-                    {isAdmin && <TableCell>{getCampusName(unit.campusId) || 'Unassigned'}</TableCell>}
+                    {isAdmin && <TableCell>{getCampusName(unit.campusId) || <span className="text-muted-foreground">Unassigned</span>}</TableCell>}
                   </TableRow>
                 ))}
               </TableBody>
