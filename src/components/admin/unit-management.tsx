@@ -47,24 +47,32 @@ import {
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import type { Campus, Unit } from '@/lib/types';
+import type { Campus, Unit, Role } from '@/lib/types';
 
-// Schema for Admins creating a new unit
-const adminUnitSchema = z.object({
-  name: z.string().min(3, 'Unit name must be at least 3 characters.'),
-  campusId: z.string().optional(), // Campus assignment is optional for admins
-});
 
-// Schema for Campus Directors assigning an existing unit
-const directorUnitSchema = z.object({
-    unitId: z.string().min(1, 'Please select a unit to assign.'),
-});
-
-// A combined schema that will be refined
-const unitManagementSchema = z.object({
+const unitSchema = z.object({
   name: z.string().optional(),
   unitId: z.string().optional(),
   campusId: z.string().optional(),
+}).superRefine((data, ctx) => {
+    const isAdmin = (window as any).__isAdmin; // Access role from window
+    if (isAdmin) {
+        if (!data.name || data.name.length < 3) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Unit name must be at least 3 characters.",
+                path: ['name'],
+            });
+        }
+    } else {
+         if (!data.unitId) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Please select a unit to assign.",
+                path: ['unitId'],
+            });
+        }
+    }
 });
 
 
@@ -73,17 +81,14 @@ export function UnitManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { userProfile, isAdmin } = useUser();
+  
+  // Set role on window for Zod refinement
+  if (typeof window !== 'undefined') {
+    (window as any).__isAdmin = isAdmin;
+  }
 
-  // Dynamically create the final schema based on the user's role
-  const finalSchema = useMemo(() => {
-    if (isAdmin) {
-      return adminUnitSchema;
-    }
-    return directorUnitSchema;
-  }, [isAdmin]);
-
-  const form = useForm<z.infer<typeof unitManagementSchema>>({
-    resolver: zodResolver(finalSchema),
+  const form = useForm<z.infer<typeof unitSchema>>({
+    resolver: zodResolver(unitSchema),
     defaultValues: { name: '', campusId: '', unitId: '' },
   });
 
@@ -100,7 +105,11 @@ export function UnitManagement() {
   );
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
-  const onSubmit = async (values: z.infer<typeof unitManagementSchema>) => {
+  const rolesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'roles') : null), [firestore]);
+  const { data: roles, isLoading: isLoadingRoles } = useCollection<Role>(rolesQuery);
+
+
+  const onSubmit = async (values: z.infer<typeof unitSchema>) => {
     if (!firestore || !userProfile) return;
     setIsSubmitting(true);
     
@@ -108,12 +117,17 @@ export function UnitManagement() {
         if (isAdmin) {
              await addDoc(collection(firestore, 'units'), {
                 name: values.name,
-                campusId: values.campusId || '', // Store empty string if unassigned
+                campusId: values.campusId || '', 
                 createdAt: serverTimestamp(),
             });
             toast({ title: 'Success', description: 'New unit has been created.' });
-        } else { // This is a Campus Director assigning a unit
-            const unitRef = doc(firestore, 'units', values.unitId!);
+        } else { 
+            if (!values.unitId) {
+                toast({ title: 'Error', description: 'No unit selected.', variant: 'destructive' });
+                setIsSubmitting(false);
+                return;
+            }
+            const unitRef = doc(firestore, 'units', values.unitId);
             await updateDoc(unitRef, {
                 campusId: userProfile.campusId,
             });
@@ -136,7 +150,6 @@ export function UnitManagement() {
     return campuses?.find((c) => c.id === campusId)?.name || 'N/A';
   }
   
-  // For Campus Directors: filter for units that have no campusId
   const unassignedUnits = useMemo(() => {
       if (!allUnits) return [];
       return allUnits.filter(u => !u.campusId);
@@ -148,7 +161,7 @@ export function UnitManagement() {
     return allUnits.filter(u => u.campusId === userProfile.campusId);
   }, [allUnits, isAdmin, userProfile]);
 
-  const isLoading = isLoadingCampuses || isLoadingUnits;
+  const isLoading = isLoadingCampuses || isLoadingUnits || isLoadingRoles;
   
   const cardTitle = isAdmin ? "Manage Units" : "Assign Unit to Your Campus";
   const cardDescription = isAdmin 
