@@ -152,7 +152,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
  * Hook to access core Firebase services and user authentication state.
  * Throws error if core services are not available or used outside provider.
  */
-export const useFirebase = (): FirebaseServicesAndUser => {
+export const useFirebase = (): FirebaseServicesAndUser | { areServicesAvailable: false } => {
   const context = useContext(FirebaseContext);
 
   if (context === undefined) {
@@ -160,10 +160,11 @@ export const useFirebase = (): FirebaseServicesAndUser => {
   }
 
   if (!context.areServicesAvailable || !context.firebaseApp || !context.firestore || !context.auth) {
-    throw new Error('Firebase core services not available. Check FirebaseProvider props.');
+    return { areServicesAvailable: false };
   }
 
   return {
+    areServicesAvailable: true,
     firebaseApp: context.firebaseApp,
     firestore: context.firestore,
     auth: context.auth,
@@ -174,25 +175,34 @@ export const useFirebase = (): FirebaseServicesAndUser => {
     isProfileLoading: context.isProfileLoading,
     isAdmin: context.isAdmin,
     isAdminLoading: context.isAdminLoading,
-  };
+  } as FirebaseServicesAndUser;
 };
 
 /** Hook to access Firebase Auth instance. */
 export const useAuth = (): Auth => {
-  const { auth } = useFirebase();
-  return auth;
+  const context = useFirebase();
+   if (!context.areServicesAvailable) {
+    throw new Error("useAuth called before Firebase services were available.");
+  }
+  return context.auth;
 };
 
 /** Hook to access Firestore instance. */
 export const useFirestore = (): Firestore => {
-  const { firestore } = useFirebase();
-  return firestore;
+  const context = useFirebase();
+  if (!context.areServicesAvailable) {
+    throw new Error("useFirestore called before Firebase services were available.");
+  }
+  return context.firestore;
 };
 
 /** Hook to access Firebase App instance. */
 export const useFirebaseApp = (): FirebaseApp => {
-  const { firebaseApp } = useFirebase();
-  return firebaseApp;
+  const context = useFirebase();
+   if (!context.areServicesAvailable) {
+    throw new Error("useFirebaseApp called before Firebase services were available.");
+  }
+  return context.firebaseApp;
 };
 
 type MemoFirebase <T> = T & {__memo?: boolean};
@@ -212,6 +222,10 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | 
  * @returns {UserHookResult} Object with user, isUserLoading, userError.
  */
 export const useUser = (): UserHookResult => { 
-  const { user, userProfile, isUserLoading, userError, isAdmin } = useFirebase(); // Leverages the main hook
+  const context = useFirebase();
+   if (!context.areServicesAvailable) {
+      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false };
+  }
+  const { user, userProfile, isUserLoading, userError, isAdmin } = context; 
   return { user, userProfile, isUserLoading, userError, isAdmin };
 };
