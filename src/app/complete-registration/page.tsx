@@ -72,18 +72,17 @@ export default function CompleteRegistrationPage() {
   const selectedRoleId = form.watch('roleId');
   
   const isUnitRequired = useMemo(() => {
-    if (!selectedRoleId || !roles) return true; // Default to required until roles are loaded and a role is selected
+    if (!selectedRoleId || !roles) return true; 
     const selectedRole = roles.find(r => r.id === selectedRoleId);
-    if (!selectedRole) return true; // Role not found, assume unit is required
+    if (!selectedRole) return true;
     const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
-    // It's required if the role's name is NOT in the campusLevelRoles array
     return !campusLevelRoles.includes(selectedRole.name);
   }, [selectedRoleId, roles]);
 
   // When isUnitRequired changes, we might need to clear errors or values
   useEffect(() => {
     if (!isUnitRequired) {
-      form.setValue('unitId', ''); // Use empty string to clear it
+      form.setValue('unitId', '');
       form.clearErrors('unitId');
     }
   }, [isUnitRequired, form]);
@@ -98,7 +97,6 @@ export default function CompleteRegistrationPage() {
       return;
     }
     
-    // Manual validation for unitId based on role
     if (isUnitRequired && !values.unitId) {
         form.setError('unitId', { type: 'manual', message: 'Please select a unit.' });
         return;
@@ -106,14 +104,12 @@ export default function CompleteRegistrationPage() {
 
     setIsSubmitting(true);
     try {
-       // --- Role Uniqueness Validation ---
       const usersCollection = collection(firestore, 'users');
       const queryConstraints = [
         where('campusId', '==', values.campusId),
         where('roleId', '==', values.roleId),
       ];
       
-      // Only check unitId if it's required for the role and has a value
       if (isUnitRequired && values.unitId) {
         queryConstraints.push(where('unitId', '==', values.unitId));
       }
@@ -122,7 +118,6 @@ export default function CompleteRegistrationPage() {
 
       const querySnapshot = await getDocs(q);
 
-      // Check if any user found is not the current user
       const isRoleTaken = !querySnapshot.empty && querySnapshot.docs.some(doc => doc.id !== user.uid);
 
       if (isRoleTaken) {
@@ -135,17 +130,16 @@ export default function CompleteRegistrationPage() {
         setIsSubmitting(false);
         return;
       }
-      // --- End Validation ---
 
       const userDocRef = doc(firestore, 'users', user.uid);
       const selectedRole = roles?.find(r => r.id === values.roleId);
 
       await updateDoc(userDocRef, {
         campusId: values.campusId,
-        unitId: values.unitId || '', // Store empty string if not applicable
+        unitId: values.unitId || '',
         roleId: values.roleId,
         role: selectedRole ? selectedRole.name : '',
-        verified: false, // Ensure verification status is reset on profile update
+        verified: false,
       });
 
       toast({
@@ -283,3 +277,5 @@ export default function CompleteRegistrationPage() {
       </Card>
   );
 }
+
+    
