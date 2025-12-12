@@ -31,7 +31,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import {
   collection,
   query,
@@ -55,7 +55,7 @@ type AggregatedSubmission = Submission & {
 };
 
 export default function ApprovalsPage() {
-  const { userProfile } = useUser();
+  const { userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [submissions, setSubmissions] = useState<AggregatedSubmission[]>([]);
@@ -71,13 +71,22 @@ export default function ApprovalsPage() {
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [dialogMode, setDialogMode] = useState<'reject' | 'view'>('view');
 
+  const usersCollection = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'users') : null),
+    [firestore]
+  );
+  const rolesCollection = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'roles') : null),
+    [firestore]
+  );
+
   useEffect(() => {
     if (!firestore) return;
 
     const fetchPrereqs = async () => {
       const [usersSnapshot, rolesSnapshot] = await Promise.all([
-        getDocs(collection(firestore, 'users')),
-        getDocs(collection(firestore, 'roles')),
+        usersCollection ? getDocs(usersCollection) : Promise.resolve({ docs: [] }),
+        rolesCollection ? getDocs(rolesCollection) : Promise.resolve({ docs: [] }),
       ]);
 
       setUsers(
@@ -99,12 +108,13 @@ export default function ApprovalsPage() {
     };
 
     fetchPrereqs();
-  }, [firestore]);
+  }, [firestore, usersCollection, rolesCollection]);
 
   const userRole = useMemo(() => {
+    if (isAdmin) return 'Admin';
     if (!userProfile || !Object.keys(roles).length) return null;
     return roles[userProfile.roleId]?.name;
-  }, [userProfile, roles]);
+  }, [isAdmin, userProfile, roles]);
 
   useEffect(() => {
     if (!firestore || !userRole || !userProfile || !Object.keys(users).length)
@@ -115,28 +125,32 @@ export default function ApprovalsPage() {
       try {
         let submissionsQuery;
 
+        // Use collectionGroup to query across all users' submissions subcollections
         const baseQuery = query(
           collectionGroup(firestore, 'submissions'),
-          where('statusId', 'in', ['submitted'])
+          where('statusId', '==', 'submitted')
         );
-
+        
         if (userRole === 'Admin') {
+          // Admin sees all submitted reports
           submissionsQuery = baseQuery;
         } else if (
           userRole === 'Campus Director' ||
           userRole === 'Campus ODIMO'
         ) {
+          // Campus level sees all from their campus
           submissionsQuery = query(
             baseQuery,
             where('campusId', '==', userProfile.campusId)
           );
         } else if (userRole === 'Unit ODIMO') {
+          // Unit level sees all from their unit
           submissionsQuery = query(
             baseQuery,
             where('unitId', '==', userProfile.unitId)
           );
         }
-
+        
         if (!submissionsQuery) {
           setSubmissions([]);
           setIsLoading(false);
@@ -144,22 +158,26 @@ export default function ApprovalsPage() {
         }
 
         const submissionsSnapshot = await getDocs(submissionsQuery);
+        
+        let fetchedSubmissions = submissionsSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          // Ensure submissionDate is a Date object
+          const submissionDate =
+            data.submissionDate instanceof Timestamp
+              ? data.submissionDate.toDate()
+              : new Date(data.submissionDate.seconds * 1000);
+          return {
+            id: doc.id,
+            ...data,
+            submissionDate,
+            originalPath: doc.ref.path,
+          } as AggregatedSubmission;
+        });
 
-        const fetchedSubmissions = submissionsSnapshot.docs
-          .map((doc) => {
-            const data = doc.data();
-            const submissionDate =
-              data.submissionDate instanceof Timestamp
-                ? data.submissionDate.toDate()
-                : new Date(data.submissionDate.seconds * 1000);
-            return {
-              id: doc.id,
-              ...data,
-              submissionDate,
-              originalPath: doc.ref.path,
-            } as AggregatedSubmission;
-          })
-          .filter((s) => s.userId !== userProfile.id); // Filter out user's own submissions
+        // Supervisors should not see their own submissions in the approval queue
+        if (userRole !== 'Admin') {
+            fetchedSubmissions = fetchedSubmissions.filter(s => s.userId !== userProfile.id);
+        }
 
         setSubmissions(fetchedSubmissions);
       } catch (error) {
@@ -175,7 +193,7 @@ export default function ApprovalsPage() {
     };
 
     fetchSubmissions();
-  }, [firestore, userRole, userProfile, toast, users]);
+  }, [firestore, userRole, userProfile, toast, users, isAdmin]);
 
   const handleApprove = async (submissionPath: string, submissionId: string) => {
     if (!firestore) return;
@@ -332,20 +350,22 @@ export default function ApprovalsPage() {
                           <p>Reject</p>
                         </TooltipContent>
                       </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => handleOpenDialog(submission, 'view')}
-                          >
-                            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>View Comments</p>
-                        </TooltipContent>
-                      </Tooltip>
+                      {submission.comments && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => handleOpenDialog(submission, 'view')}
+                            >
+                              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>View Comments</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
