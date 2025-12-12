@@ -20,15 +20,25 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, where, getDocs, Timestamp } from 'firebase/firestore';
-import type { Submission, User as AppUser, Role } from '@/lib/types';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, query, getDocs, Timestamp } from 'firebase/firestore';
+import type { Submission, User as AppUser } from '@/lib/types';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useEffect } from 'react';
 import { FeedbackDialog } from '@/components/dashboard/feedback-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -143,7 +153,7 @@ export default function SubmissionsPage() {
       const submissionsCollection = collection(firestore, 'submissions');
 
       if (userRole === 'Admin') {
-        submissionsQuery = query(submissionsCollection, orderBy('submissionDate', 'desc'));
+        submissionsQuery = query(submissionsCollection);
       } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
         // Query without orderBy to avoid needing a composite index
         submissionsQuery = query(submissionsCollection, where('campusId', '==', userProfile.campusId));
@@ -237,12 +247,38 @@ export default function SubmissionsPage() {
         </div>
         <div className="flex items-center space-x-2">
           {!isSupervisor && (
-             <Button asChild>
-                <Link href="/submissions/new">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    New Submission
-                </Link>
-            </Button>
+             <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  New Submission
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Submission Instructions</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <ul className="list-disc space-y-2 pl-5 text-sm">
+                        <li>
+                            Ensure the document is saved on your unit's Google Drive using your RSU email and that sharing is set to "anyone with the link can view."
+                        </li>
+                        <li>
+                            The submission must be verified and approved by the QA Office.
+                        </li>
+                        <li>
+                            You may receive comments if the submission is invalid or incorrect.
+                        </li>
+                    </ul>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => router.push('/submissions/new')}>
+                    Continue
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
       </div>
@@ -301,3 +337,5 @@ export default function SubmissionsPage() {
     </>
   );
 }
+
+    
