@@ -42,9 +42,8 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import type { Unit, Role } from '@/lib/types';
+import type { Unit, Role, Campus } from '@/lib/types';
 
-// A single schema that can handle both cases. Fields are optional.
 const formSchema = z.object({
   name: z.string().optional(),
   unitId: z.string().optional(),
@@ -58,7 +57,6 @@ export function UnitManagement() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // === HOOKS AT TOP LEVEL ===
   const rolesQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'roles') : null),
     [firestore]
@@ -71,6 +69,17 @@ export function UnitManagement() {
   );
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(allUnitsQuery);
 
+   const allCampusesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'campuses') : null),
+    [firestore]
+  );
+  const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(allCampusesQuery);
+
+  const form = useForm<UnitFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { name: '', unitId: '' },
+  });
+
   const userRole = useMemo(() => {
     if (isAdmin) return 'Admin';
     if (!userProfile || !roles) return null;
@@ -79,28 +88,15 @@ export function UnitManagement() {
 
   const isCampusDirector = userRole === 'Campus Director';
 
-  const form = useForm<UnitFormValues>({
-    resolver: zodResolver(
-      z.object({
-        // Dynamic validation based on role
-        name: isAdmin
-          ? z.string().min(3, 'Unit name must be at least 3 characters.')
-          : z.string().optional(),
-        unitId: isCampusDirector
-          ? z.string().min(1, 'Please select a unit to assign.')
-          : z.string().optional(),
-      })
-    ),
-    defaultValues: {
-      name: '',
-      unitId: '',
-    },
-  });
-
   const unassignedUnits = useMemo(
     () => allUnits?.filter((unit) => !unit.campusId) || [],
     [allUnits]
   );
+  
+   const campusMap = useMemo(() => {
+    if (!allCampuses) return {};
+    return Object.fromEntries(allCampuses.map(c => [c.id, c.name]));
+   }, [allCampuses])
 
   const visibleUnits = useMemo(
     () =>
@@ -112,25 +108,36 @@ export function UnitManagement() {
     [allUnits, isAdmin, isCampusDirector, userProfile]
   );
 
-  const isLoading = isLoadingRoles || isLoadingUnits;
+  const isLoading = isLoadingRoles || isLoadingUnits || isLoadingCampuses;
 
-  // === LOGIC MOVED INTO HANDLERS ===
   const onSubmit = async (values: UnitFormValues) => {
     if (!firestore) return;
+
+    if (isAdmin) {
+      if (!values.name || values.name.length < 3) {
+        form.setError('name', { message: 'Unit name must be at least 3 characters.' });
+        return;
+      }
+    } else if (isCampusDirector) {
+      if (!values.unitId) {
+        form.setError('unitId', { message: 'Please select a unit to assign.' });
+        return;
+      }
+    }
+
+
     setIsSubmitting(true);
 
     try {
       if (isAdmin && values.name) {
-        // Admin logic: Create a new global unit
         await addDoc(collection(firestore, 'units'), {
           name: values.name,
           createdAt: serverTimestamp(),
-          campusId: '', // Admins create unassigned units
+          campusId: '',
         });
         toast({ title: 'Success', description: 'New unit created.' });
         form.reset({ name: '' });
       } else if (isCampusDirector && values.unitId && userProfile?.campusId) {
-        // Director logic: Assign a unit to their campus
         const unitRef = doc(firestore, 'units', values.unitId);
         await updateDoc(unitRef, {
           campusId: userProfile.campusId,
@@ -166,7 +173,7 @@ export function UnitManagement() {
                 <FormItem>
                   <FormLabel>Unit Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., College of Engineering" {...field} />
+                    <Input placeholder="e.g., College of Engineering" {...field} value={field.value ?? ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -199,7 +206,7 @@ export function UnitManagement() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Unassigned Unit</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value ?? ''}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select an unassigned unit" />
@@ -239,7 +246,7 @@ export function UnitManagement() {
       {isAdmin && renderAdminForm()}
       {isCampusDirector && renderDirectorForm()}
 
-      <Card>
+      <Card className={!isAdmin && !isCampusDirector ? 'col-span-2' : ''}>
         <CardHeader>
           <CardTitle>Existing Units</CardTitle>
           <CardDescription>
@@ -256,7 +263,7 @@ export function UnitManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  {isAdmin && <TableHead>Campus</TableHead>}
+                  {isAdmin && <TableHead>Assigned Campus</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -265,7 +272,9 @@ export function UnitManagement() {
                     <TableCell>{unit.name}</TableCell>
                     {isAdmin && (
                       <TableCell>
-                        {unit.campusId || <span className="text-muted-foreground">Unassigned</span>}
+                        {unit.campusId ? (
+                           campusMap[unit.campusId] || 'Unknown Campus'
+                        ) : <span className="text-muted-foreground">Unassigned</span>}
                       </TableCell>
                     )}
                   </TableRow>
@@ -283,3 +292,5 @@ export function UnitManagement() {
     </div>
   );
 }
+
+    
