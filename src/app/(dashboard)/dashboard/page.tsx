@@ -125,9 +125,9 @@ export default function DashboardPage() {
     useCollection<Submission>(submissionsQuery);
 
   const allUnitsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || (!isAdmin && !isCampusSupervisor)) return null;
     return collection(firestore, 'units');
-  }, [firestore]);
+  }, [firestore, isAdmin, isCampusSupervisor]);
 
   const { data: allUnits, isLoading: isLoadingUnits } =
     useCollection<Unit>(allUnitsQuery);
@@ -181,7 +181,8 @@ export default function DashboardPage() {
     isUserLoading ||
     isLoadingSubmissions ||
     (canViewAnnouncements && isLoadingSettings) ||
-    (isAdmin && isLoadingUnits) || (isCampusSupervisor && isLoadingUnits);
+    ((isAdmin || isCampusSupervisor) && isLoadingUnits);
+
 
   const stats = useMemo(() => {
     const defaultStats = {
