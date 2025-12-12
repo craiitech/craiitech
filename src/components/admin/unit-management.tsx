@@ -11,7 +11,7 @@ import {
   useMemoFirebase,
   useUser,
 } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -49,9 +49,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import type { Campus, Unit } from '@/lib/types';
 
-
 const unitSchema = z.object({
   name: z.string().min(3, 'Unit name must be at least 3 characters.'),
+  campusId: z.string().optional(),
+});
+
+const adminUnitSchema = unitSchema.extend({
+    campusId: z.string().min(1, 'Please select a campus.'),
 });
 
 export function UnitManagement() {
@@ -61,8 +65,8 @@ export function UnitManagement() {
   const { userProfile, isAdmin } = useUser();
 
   const form = useForm<z.infer<typeof unitSchema>>({
-    resolver: zodResolver(unitSchema),
-    defaultValues: { name: '' },
+    resolver: zodResolver(isAdmin ? adminUnitSchema : unitSchema),
+    defaultValues: { name: '', campusId: '' },
   });
 
   const campusesQuery = useMemoFirebase(
@@ -82,20 +86,21 @@ export function UnitManagement() {
     setIsSubmitting(true);
     
     try {
-        const campusIdForNewUnit = isAdmin ? '' : userProfile.campusId;
-        if (!isAdmin && !campusIdForNewUnit) {
-            toast({ title: 'Error', description: 'You are not assigned to a campus.', variant: 'destructive' });
-            setIsSubmitting(false);
-            return;
+        if (isAdmin) {
+             await addDoc(collection(firestore, 'units'), {
+                name: values.name,
+                campusId: values.campusId,
+                createdAt: serverTimestamp(),
+            });
+            toast({ title: 'Success', description: 'New unit has been created and assigned.' });
+        } else {
+             await addDoc(collection(firestore, 'units'), {
+                name: values.name,
+                campusId: userProfile.campusId, // Automatically assign to the director's campus
+                createdAt: serverTimestamp(),
+            });
+            toast({ title: 'Success', description: 'New unit has been added to your campus.' });
         }
-
-        await addDoc(collection(firestore, 'units'), {
-            name: values.name,
-            campusId: campusIdForNewUnit,
-            createdAt: serverTimestamp(),
-        });
-        toast({ title: 'Success', description: 'New unit has been created.' });
-        
         form.reset();
     } catch (error) {
         console.error('Error in unit management:', error);
@@ -121,11 +126,11 @@ export function UnitManagement() {
 
   const isLoading = isLoadingCampuses || isLoadingUnits;
   
-  const cardTitle = isAdmin ? "Add New Unit" : "Add Unit to Your Campus";
+  const cardTitle = isAdmin ? "Manage Units" : "Add Unit to Your Campus";
   const cardDescription = isAdmin 
-    ? "Create a new unit available for all campuses to assign." 
+    ? "Create new units and assign them to a campus." 
     : "Create a new unit for your campus.";
-  const buttonText = 'Add Unit';
+  const buttonText = isAdmin ? 'Create and Assign Unit' : 'Add Unit';
 
 
   return (
@@ -151,6 +156,36 @@ export function UnitManagement() {
                 </FormItem>
                 )}
               />
+              {isAdmin && (
+                <FormField
+                  control={form.control}
+                  name="campusId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Assign to Campus</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a campus" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {isLoadingCampuses ? (
+                            <SelectItem value="loading" disabled>Loading...</SelectItem>
+                          ) : (
+                            campuses?.map((campus) => (
+                              <SelectItem key={campus.id} value={campus.id}>
+                                {campus.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </CardContent>
             <CardFooter>
               <Button type="submit" disabled={isSubmitting}>
