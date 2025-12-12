@@ -1,12 +1,15 @@
+
 'use client';
 
-import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, doc } from 'firebase/firestore';
+import { Firestore, doc, collection } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
-import { useDoc, WithId } from './firestore/use-doc';
-import type { User as AppUser } from '@/lib/types';
+import { useDoc } from './firestore/use-doc';
+import { useCollection, type WithId } from './firestore/use-collection';
+import type { User as AppUser, Role } from '@/lib/types';
+import { useMemoFirebase } from './';
 
 
 interface FirebaseProviderProps {
@@ -37,6 +40,7 @@ export interface FirebaseContextState {
   isProfileLoading: boolean;
   isAdmin: boolean;
   isAdminLoading: boolean;
+  userRole: string | null;
 }
 
 // Return type for useFirebase()
@@ -52,6 +56,7 @@ export interface FirebaseServicesAndUser {
   isProfileLoading: boolean;
   isAdmin: boolean;
   isAdminLoading: boolean;
+  userRole: string | null;
 }
 
 // Return type for useUser() - specific to user auth state
@@ -61,6 +66,7 @@ export interface UserHookResult {
   isUserLoading: boolean; // Combines auth and profile loading
   userError: Error | null;
   isAdmin: boolean;
+  userRole: string | null;
 }
 
 // React Context
@@ -118,13 +124,17 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   const { data: adminDoc, isLoading: isAdminLoading } = useDoc(adminDocRef);
 
+  const rolesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'roles') : null), [firestore]);
+  const { data: roles, isLoading: isLoadingRoles } = useCollection<Role>(rolesQuery);
+  
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
     const isAdmin = !!adminDoc;
-    // The user is considered "loading" if the initial auth check is running,
-    // OR if we have a user but are still waiting for their profile and admin status.
-    const isUserLoading = userAuthState.isAuthLoading || (!!userAuthState.user && (isProfileLoading || isAdminLoading));
+    
+    const isUserLoading = userAuthState.isAuthLoading || (!!userAuthState.user && (isProfileLoading || isAdminLoading || isLoadingRoles));
+
+    const userRole = isAdmin ? 'Admin' : (userProfile && roles ? (roles.find(r => r.id === userProfile.roleId)?.name || null) : null);
 
     return {
       areServicesAvailable: servicesAvailable,
@@ -138,8 +148,9 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       isProfileLoading,
       isAdmin,
       isAdminLoading,
+      userRole,
     };
-  }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading, adminDoc, isAdminLoading]);
+  }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading, adminDoc, isAdminLoading, roles, isLoadingRoles]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>
@@ -176,6 +187,7 @@ export const useFirebase = (): FirebaseServicesAndUser | { areServicesAvailable:
     isProfileLoading: context.isProfileLoading,
     isAdmin: context.isAdmin,
     isAdminLoading: context.isAdminLoading,
+    userRole: context.userRole,
   };
 };
 
@@ -206,17 +218,6 @@ export const useFirebaseApp = (): FirebaseApp => {
   return context.firebaseApp;
 };
 
-type MemoFirebase <T> = T & {__memo?: boolean};
-
-export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | (MemoFirebase<T>) {
-  const memoized = useMemo(factory, deps);
-  
-  if(typeof memoized !== 'object' || memoized === null) return memoized;
-  (memoized as MemoFirebase<T>).__memo = true;
-  
-  return memoized;
-}
-
 /**
  * Hook specifically for accessing the authenticated user's state.
  * This provides the User object, loading status, and any auth errors.
@@ -225,8 +226,8 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | 
 export const useUser = (): UserHookResult => { 
   const context = useFirebase();
    if (!context.areServicesAvailable) {
-      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false };
+      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, userRole: null };
   }
-  const { user, userProfile, isUserLoading, userError, isAdmin } = context; 
-  return { user, userProfile, isUserLoading, userError, isAdmin };
+  const { user, userProfile, isUserLoading, userError, isAdmin, userRole } = context; 
+  return { user, userProfile, isUserLoading, userError, isAdmin, userRole };
 };

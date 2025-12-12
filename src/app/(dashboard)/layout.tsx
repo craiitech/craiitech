@@ -2,7 +2,7 @@
 'use client';
 
 import { redirect, usePathname } from 'next/navigation';
-import { useUser, useFirebase } from '@/firebase';
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { UserNav } from '@/components/dashboard/user-nav';
 import { Logo } from '@/components/logo';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,7 +16,9 @@ import {
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
 import { Button } from '@/components/ui/button';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import type { Campus, Unit } from '@/lib/types';
+import { collection } from 'firebase/firestore';
 
 const LoadingSkeleton = () => (
   <div className="flex items-start">
@@ -63,9 +65,29 @@ export default function DashboardLayout({
   }
 
   // Destructure the rest of the state only after we know services are available.
-  const { user, userProfile, isUserLoading, isAdmin, userRole } = firebaseState;
+  const { user, userProfile, isUserLoading, isAdmin, userRole, firestore } = firebaseState;
   
   const isStillLoading = isUserLoading;
+
+  const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
+  const { data: campuses } = useCollection<Campus>(campusesQuery);
+
+  const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units') : null, [firestore]);
+  const { data: units } = useCollection<Unit>(unitsQuery);
+
+  const userLocation = useMemo(() => {
+    if (!userProfile || !campuses || !units) return '';
+    const campusName = campuses.find(c => c.id === userProfile.campusId)?.name;
+    const unitName = units.find(u => u.id === userProfile.unitId)?.name;
+    let locationString = '';
+    if (campusName) {
+        locationString += ` / ${campusName}`;
+    }
+    if (unitName) {
+        locationString += ` / ${unitName}`;
+    }
+    return locationString;
+  }, [userProfile, campuses, units]);
 
   useEffect(() => {
     if (isStillLoading) return; // Don't do anything while loading
@@ -129,8 +151,9 @@ export default function DashboardLayout({
         <header className="flex h-14 items-center justify-between border-b px-4 lg:px-8">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="md:hidden" />
-            <div className="hidden md:block font-semibold">
+            <div className="hidden md:block font-semibold text-sm">
               {userRole ? `${userRole} Dashboard` : 'Dashboard'}
+              {!isAdmin && userLocation && <span className="text-muted-foreground">{userLocation}</span>}
             </div>
           </div>
           <UserNav user={user} />
