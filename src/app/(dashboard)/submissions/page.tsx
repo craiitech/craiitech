@@ -20,7 +20,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, where, collectionGroup } from 'firebase/firestore';
+import { collection, query, orderBy, where, collectionGroup, getDocs } from 'firebase/firestore';
 import type { Submission, User as AppUser, Role } from '@/lib/types';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
@@ -40,63 +40,98 @@ export default function SubmissionsPage() {
   const firestore = useFirestore();
 
   const [users, setUsers] = useState<Record<string, AppUser>>({});
+  const [roles, setRoles] = useState<Record<string, Role>>({});
 
-  const rolesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'roles') : null, [firestore]);
-  const { data: roles, isLoading: isLoadingRoles } = useCollection<Role>(rolesQuery);
-  
-  const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
-  const { data: usersData, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // This will store the final list of submissions to display
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
 
   useEffect(() => {
-    if (usersData) {
-      setUsers(Object.fromEntries(usersData.map(u => [u.id, u])));
-    }
-  }, [usersData]);
+    if (!firestore) return;
+
+    // Pre-fetch roles and users for supervisors
+    const fetchPrereqs = async () => {
+      const rolesQuery = query(collection(firestore, 'roles'));
+      const rolesSnapshot = await getDocs(rolesQuery);
+      setRoles(Object.fromEntries(rolesSnapshot.docs.map(doc => [doc.id, doc.data() as Role])));
+
+      // Only admins should fetch all users. Other supervisors will see their scope.
+      if (isAdmin) {
+        const usersQuery = query(collection(firestore, 'users'));
+        const usersSnapshot = await getDocs(usersQuery);
+        setUsers(Object.fromEntries(usersSnapshot.docs.map(doc => [doc.id, doc.data() as AppUser])));
+      }
+    };
+    fetchPrereqs();
+  }, [firestore, isAdmin]);
 
   const userRole = useMemo(() => {
     if (isAdmin) return 'Admin';
-    if (!userProfile || !roles) return null;
-    return roles.find(r => r.id === userProfile.roleId)?.name;
+    if (!userProfile || Object.keys(roles).length === 0) return null;
+    return roles[userProfile.roleId]?.name;
   }, [isAdmin, userProfile, roles]);
 
-  const submissionsQuery = useMemoFirebase(() => {
-    if (!firestore || !userRole || !userProfile) return null;
-    
-    const baseQuery = collectionGroup(firestore, 'submissions');
+  useEffect(() => {
+    if (!firestore || !userRole || !userProfile) return;
 
-    if (userRole === 'Admin') {
-      return query(baseQuery, orderBy('submissionDate', 'desc'));
-    }
-    if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-      return query(baseQuery, where('campusId', '==', userProfile.campusId), orderBy('submissionDate', 'desc'));
-    }
-    if (userRole === 'Unit ODIMO') {
-       return query(baseQuery, where('unitId', '==', userProfile.unitId), orderBy('submissionDate', 'desc'));
-    }
-    // Default to regular user
-    return query(collection(firestore, 'users', userProfile.id, 'submissions'), orderBy('submissionDate', 'desc'));
+    const fetchSubmissions = async () => {
+      setIsLoading(true);
+      let submissionsQuery;
+      
+      const baseQuery = collectionGroup(firestore, 'submissions');
 
-  }, [firestore, userRole, userProfile]);
+      if (userRole === 'Admin') {
+        submissionsQuery = query(baseQuery, orderBy('submissionDate', 'desc'));
+      } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
+        submissionsQuery = query(baseQuery, where('campusId', '==', userProfile.campusId), orderBy('submissionDate', 'desc'));
+      } else if (userRole === 'Unit ODIMO') {
+        submissionsQuery = query(baseQuery, where('unitId', '==', userProfile.unitId), orderBy('submissionDate', 'desc'));
+      } else {
+        // Regular employee
+        submissionsQuery = query(collection(firestore, 'users', userProfile.id, 'submissions'), orderBy('submissionDate', 'desc'));
+      }
 
-  const { data: submissionsData, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
+      const snapshot = await getDocs(submissionsQuery);
+      
+      const fetchedSubmissions = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          ...data,
+          id: doc.id,
+          submissionDate: (data.submissionDate as any)?.toDate ? (data.submissionDate as any).toDate() : new Date(data.submissionDate),
+        } as Submission;
+      });
 
-  const submissions = useMemo(() => {
-    return submissionsData?.map(s => ({
-        ...s,
-        submissionDate: (s.submissionDate as any)?.toDate ? (s.submissionDate as any).toDate() : new Date(s.submissionDate),
-    })) ?? [];
-  }, [submissionsData]);
+      // If supervisor, fetch needed user data for display
+      const isSupervisor = ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit ODIMO'].includes(userRole);
+      if (isSupervisor && !isAdmin) { // Admins already have all users
+         const userIds = [...new Set(fetchedSubmissions.map(s => s.userId))];
+         if (userIds.length > 0) {
+           const usersQuery = query(collection(firestore, 'users'), where('id', 'in', userIds));
+           const usersSnapshot = await getDocs(usersQuery);
+           setUsers(prevUsers => ({
+             ...prevUsers,
+             ...Object.fromEntries(usersSnapshot.docs.map(doc => [doc.id, doc.data() as AppUser]))
+           }));
+         }
+      }
+      
+      setSubmissions(fetchedSubmissions);
+      setIsLoading(false);
+    };
+
+    fetchSubmissions();
+
+  }, [firestore, userRole, userProfile, isAdmin]);
 
   
-  const pageIsLoading = isLoadingSubmissions || isLoadingRoles || isLoadingUsers;
-
   const isSupervisor = ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit ODIMO'].includes(userRole ?? '');
 
   const getUserName = (userId: string) => {
     const user = users[userId];
-    return user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
+    return user ? `${user.firstName} ${user.lastName}` : '...';
   };
-
 
   return (
     <>
@@ -108,12 +143,14 @@ export default function SubmissionsPage() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button asChild>
-            <Link href="/submissions/new">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                New Submission
-            </Link>
-          </Button>
+          {!isSupervisor && (
+             <Button asChild>
+                <Link href="/submissions/new">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    New Submission
+                </Link>
+            </Button>
+          )}
         </div>
       </div>
       <Card>
@@ -124,7 +161,7 @@ export default function SubmissionsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {pageIsLoading ? (
+          {isLoading ? (
             <div className="flex justify-center items-center h-40">
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
@@ -174,7 +211,7 @@ export default function SubmissionsPage() {
             </TableBody>
           </Table>
           )}
-          {!pageIsLoading && submissions?.length === 0 && (
+          {!isLoading && submissions?.length === 0 && (
             <div className="text-center py-10 text-muted-foreground">
               You have not made any submissions yet.
             </div>
@@ -184,3 +221,5 @@ export default function SubmissionsPage() {
     </>
   );
 }
+
+    

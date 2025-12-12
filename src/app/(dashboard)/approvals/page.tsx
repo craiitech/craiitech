@@ -84,6 +84,8 @@ export default function ApprovalsPage() {
     if (!firestore) return;
 
     const fetchPrereqs = async () => {
+      // Admins and supervisors need user data to display names.
+      // This is fetched once. Non-admins won't see this page anyway based on sidebar logic.
       const [usersSnapshot, rolesSnapshot] = await Promise.all([
         usersCollection ? getDocs(usersCollection) : Promise.resolve({ docs: [] }),
         rolesCollection ? getDocs(rolesCollection) : Promise.resolve({ docs: [] }),
