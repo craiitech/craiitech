@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -39,7 +40,6 @@ import {
   Timestamp,
   updateDoc,
   doc,
-  collectionGroup,
 } from 'firebase/firestore';
 import { useState, useEffect, useMemo } from 'react';
 import type { Submission, User as AppUser, Role } from '@/lib/types';
@@ -49,15 +49,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
-type AggregatedSubmission = Submission & {
-  originalPath: string;
-};
-
 export default function ApprovalsPage() {
   const { userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [submissions, setSubmissions] = useState<AggregatedSubmission[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [users, setUsers] = useState<Record<string, AppUser>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [roles, setRoles] = useState<Record<string, Role>>({});
@@ -65,7 +61,7 @@ export default function ApprovalsPage() {
   // State for the feedback dialog
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentSubmission, setCurrentSubmission] =
-    useState<AggregatedSubmission | null>(null);
+    useState<Submission | null>(null);
   const [feedback, setFeedback] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [dialogMode, setDialogMode] = useState<'reject' | 'view'>('view');
@@ -110,8 +106,9 @@ export default function ApprovalsPage() {
     const fetchSubmissions = async () => {
       setIsLoading(true);
       try {
+        const submissionsCollection = collection(firestore, 'submissions');
         const baseQuery = query(
-          collectionGroup(firestore, 'submissions'),
+          submissionsCollection,
           where('statusId', '==', 'submitted')
         );
 
@@ -151,8 +148,7 @@ export default function ApprovalsPage() {
             id: doc.id,
             ...data,
             submissionDate,
-            originalPath: doc.ref.path,
-          } as AggregatedSubmission;
+          } as Submission;
         });
         
         // Filter out submissions made by the approver themselves, unless they are an admin
@@ -215,11 +211,10 @@ export default function ApprovalsPage() {
   }, [firestore, submissions]);
 
   const handleApprove = async (
-    submissionPath: string,
     submissionId: string
   ) => {
     if (!firestore) return;
-    const submissionRef = doc(firestore, submissionPath);
+    const submissionRef = doc(firestore, 'submissions', submissionId);
     try {
       await updateDoc(submissionRef, { statusId: 'approved', comments: '' });
       toast({
@@ -238,7 +233,7 @@ export default function ApprovalsPage() {
   };
 
   const handleOpenDialog = (
-    submission: AggregatedSubmission,
+    submission: Submission,
     mode: 'reject' | 'view'
   ) => {
     setCurrentSubmission(submission);
@@ -258,7 +253,7 @@ export default function ApprovalsPage() {
     }
 
     setIsSubmittingFeedback(true);
-    const submissionRef = doc(firestore, currentSubmission.originalPath);
+    const submissionRef = doc(firestore, 'submissions', currentSubmission.id);
     try {
       await updateDoc(submissionRef, {
         statusId: 'rejected',
@@ -353,7 +348,6 @@ export default function ApprovalsPage() {
                             className="text-green-600 hover:text-green-700"
                             onClick={() =>
                               handleApprove(
-                                submission.originalPath,
                                 submission.id
                               )
                             }
@@ -467,3 +461,5 @@ export default function ApprovalsPage() {
     </TooltipProvider>
   );
 }
+
+    

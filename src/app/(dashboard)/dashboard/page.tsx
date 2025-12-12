@@ -23,7 +23,7 @@ import {
   useMemoFirebase,
   useDoc,
 } from '@/firebase';
-import { collection, query, where, collectionGroup, doc } from 'firebase/firestore';
+import { collection, query, where, doc } from 'firebase/firestore';
 import type { Submission } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo } from 'react';
@@ -47,29 +47,30 @@ export default function DashboardPage() {
   // Memoize the query based on the user's role
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
+    
+    const submissionsCollection = collection(firestore, 'submissions');
 
     // Admin should get all submissions, and doesn't need to wait for profile.
     if (isAdmin) {
-      return collectionGroup(firestore, 'submissions');
+      return submissionsCollection;
     }
     
     // For all other users, we must wait for the user profile to be loaded.
     if (!userProfile) return null;
 
     if (isSupervisor) {
-      const baseQuery = collectionGroup(firestore, 'submissions');
       if (
         userProfile.role === 'Campus Director' ||
         userProfile.role === 'Campus ODIMO'
       ) {
-        return query(baseQuery, where('campusId', '==', userProfile.campusId));
+        return query(submissionsCollection, where('campusId', '==', userProfile.campusId));
       }
       if (userProfile.role === 'Unit ODIMO') {
-        return query(baseQuery, where('unitId', '==', userProfile.unitId));
+        return query(submissionsCollection, where('unitId', '==', userProfile.unitId));
       }
     }
     // Default to regular user's own submissions
-    return collection(firestore, 'users', userProfile.id, 'submissions');
+    return query(submissionsCollection, where('userId', '==', userProfile.id));
   }, [firestore, userProfile, isSupervisor, isAdmin]);
 
   const { data: submissions, isLoading: isLoadingSubmissions } =
@@ -206,3 +207,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    

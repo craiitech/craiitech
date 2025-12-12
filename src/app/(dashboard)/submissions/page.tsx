@@ -20,7 +20,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, where, collectionGroup, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, where, getDocs, Timestamp } from 'firebase/firestore';
 import type { Submission, User as AppUser, Role } from '@/lib/types';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
@@ -79,17 +79,17 @@ export default function SubmissionsPage() {
       setIsLoading(true);
       let submissionsQuery;
       
-      const baseQuery = collectionGroup(firestore, 'submissions');
+      const submissionsCollection = collection(firestore, 'submissions');
 
       if (userRole === 'Admin') {
-        submissionsQuery = query(baseQuery, orderBy('submissionDate', 'desc'));
+        submissionsQuery = query(submissionsCollection, orderBy('submissionDate', 'desc'));
       } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-        submissionsQuery = query(baseQuery, where('campusId', '==', userProfile.campusId), orderBy('submissionDate', 'desc'));
+        submissionsQuery = query(submissionsCollection, where('campusId', '==', userProfile.campusId), orderBy('submissionDate', 'desc'));
       } else if (userRole === 'Unit ODIMO') {
-        submissionsQuery = query(baseQuery, where('unitId', '==', userProfile.unitId), orderBy('submissionDate', 'desc'));
+        submissionsQuery = query(submissionsCollection, where('unitId', '==', userProfile.unitId), orderBy('submissionDate', 'desc'));
       } else {
         // Regular employee
-        submissionsQuery = query(collection(firestore, 'users', userProfile.id, 'submissions'), orderBy('submissionDate', 'desc'));
+        submissionsQuery = query(submissionsCollection, where('userId', '==', userProfile.id), orderBy('submissionDate', 'desc'));
       }
 
       const snapshot = await getDocs(submissionsQuery);
@@ -226,3 +226,5 @@ export default function SubmissionsPage() {
     </>
   );
 }
+
+    

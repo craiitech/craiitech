@@ -58,7 +58,8 @@ export default function NewSubmissionPage() {
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
-      collection(firestore, 'users', user.uid, 'submissions'),
+      collection(firestore, 'submissions'),
+      where('userId', '==', user.uid),
       where('year', '==', selectedYear),
       where('cycleId', '==', selectedCycle)
     );
@@ -236,3 +237,5 @@ export default function NewSubmissionPage() {
     </div>
   );
 }
+
+    

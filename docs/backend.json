@@ -128,6 +128,14 @@
         "unitName": {
           "type": "string",
           "description": "The denormalized name of the unit for easier display."
+        },
+        "campusId": {
+          "type": "string",
+          "description": "The denormalized ID of the campus for easier querying."
+        },
+        "unitId": {
+            "type": "string",
+            "description": "The denormalized ID of the unit for easier querying."
         }
       },
       "required": [
@@ -139,7 +147,9 @@
         "statusId",
         "reportType",
         "year",
-        "unitName"
+        "unitName",
+        "campusId",
+        "unitId"
       ]
     },
     "SubmissionStatus": {
@@ -279,13 +289,27 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profile data. Uses path-based ownership, so security rules can easily verify `request.auth.uid == userId`. Includes denormalized 'roleId', 'campusId', and 'unitId' for easier access in other collections.",
+          "description": "Stores user profile data. Includes denormalized 'role', 'campusId', and 'unitId' for easier access in security rules.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier of the user."
+              "description": "The unique identifier of the user, matching request.auth.uid."
             }
           ]
+        }
+      },
+      {
+        "path": "/submissions/{submissionId}",
+        "definition": {
+            "entityName": "Submission",
+            "schema": { "$ref": "#/backend/entities/Submission" },
+            "description": "Stores all report submissions in a single top-level collection. Documents include denormalized 'userId', 'campusId', and 'unitId' to allow for efficient security rules without needing cross-collection 'get' calls during list operations.",
+            "params": [
+                {
+                    "name": "submissionId",
+                    "description": "The unique identifier of the submission."
+                }
+            ]
         }
       },
       {
@@ -300,26 +324,6 @@
             {
               "name": "roleId",
               "description": "The unique identifier of the role."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/submissions/{submissionId}",
-        "definition": {
-          "entityName": "Submission",
-          "schema": {
-            "$ref": "#/backend/entities/Submission"
-          },
-          "description": "Stores report submissions. Includes denormalized 'userId', 'cycleId', 'statusId' for authorization independence and quick access. 'userId' duplicates the parent path structure, reinforcing ownership.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who created the submission."
-            },
-            {
-              "name": "submissionId",
-              "description": "The unique identifier of the submission."
             }
           ]
         }
@@ -453,6 +457,8 @@
         }
       }
     ],
-    "reasoning": "This Firestore structure prioritizes security, scalability, and debuggability, following the core design principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). It uses denormalization, structural segregation, and standardized access modeling to simplify security rules and ensure data integrity.\n\n**Authorization Independence:**  Access control is enforced at each document level without relying on hierarchical `get()` calls. This is achieved by denormalizing relevant authorization data.  For example, user role and campus/unit information are directly embedded within the `submissions` collection to enable independent rule evaluation.\n\n**Structural Segregation:**  Data with differing access requirements are stored in separate collections.  Administrative data (roles, campuses, units, cycles, submission statuses) are stored in root-level collections. User-generated content (submissions) are stored in a path-based structure (`/users/{userId}/submissions/{submissionId}`) to easily manage ownership.\n\n**DBAC (Database-Based Access Control):** User roles and campus/unit assignments are stored in the database and used for authorization.  The security rules will use the user's `uid` from `request.auth` to verify their assigned role and campus/unit affiliation before granting access.\n\n**QAPs (Rules Are Not Filters):** The structure supports secure `list` operations. For example, listing submissions is secure because the rules ensure the requesting user has the appropriate role and/or ownership to access the submissions.\n\n**Invariants:** The structure ensures the integrity of ownership, timestamps, and denormalized data.  Path-based ownership for submissions ensures only the designated user can create/modify their submissions. Server timestamps can be used for `submissionDate`. Denormalized data (e.g., user role) is kept consistent through backend functions triggered on user role changes.\n\n**Denormalization Details**\n\n*   **Submissions:** The `submissions` collection benefits from denormalization.  While `userId` links back to the `users` collection, additional information may be denormalized for quicker access and authorization, such as copying the `roleId`, `campusId`, and `unitId` from the `User` document into the `Submission` document.\n\n\n**Role-based access is implemented as follows:**\n\n*   **Admin:** Admins have read and write access to all collections, including managing users, roles, campuses, units, cycles, and submission statuses. This is achieved by checking for the existence of a document in the `/roles_admin/{userId}` collection. Admins can also access all Submissions.\n*   **Campus Director/ODIMO:** Campus Directors/ODIMOs can access and manage submissions associated with their campus. The rule will check the `campusId` of the submission against the user's `campusId` (retrieved from their `users` document). Access to `/roles_campus_odimo/{userId}` confirms their elevated permissions.\n*   **Unit ODIMO:** Unit ODIMOs can access and manage submissions associated with their unit.  The rule will check the `unitId` of the submission against the user's `unitId` (retrieved from their `users` document). Access to `/roles_unit_odimo/{userId}` confirms their elevated permissions.\n*   **Employee:** Employees can only create, read, update (before approval), and delete their own submissions. The rule will check that the `userId` in the submission matches the authenticated user's `uid`."
+    "reasoning": "This Firestore structure prioritizes security, scalability, and query performance. The key change is moving submissions to a top-level collection, which simplifies queries for administrative and supervisory roles. This avoids the need for collection group queries for most common scenarios, making the rules and application logic more straightforward.\n\n**Top-Level Submissions:** The `/submissions/{submissionId}` collection allows admins and supervisors to easily query across all submissions (e.g., `where('statusId', '==', 'submitted')`) without needing a `collectionGroup` index. Security is maintained by embedding ownership and context fields (`userId`, `campusId`, `unitId`) directly into each submission document. Security rules can then use these fields to enforce access control.\n\n**Authorization Independence:** Access control is still enforced at the document level. Security rules check the `userId` in the submission document against the authenticated user's UID for ownership-based permissions. For supervisors, rules check the submission's `campusId` or `unitId` against the supervisor's own profile data (fetched via a `get()` call in the rule), ensuring they can only access submissions within their scope.\n\n**DBAC (Database-Based Access Control):** User roles and campus/unit assignments stored in the `/users` collection remain the source of truth for authorization. Helper functions in the security rules (`isAdmin()`, `isCampusOdimo()`, etc.) continue to provide a clear and secure way to check a user's role.\n\n**Denormalization:** The `submissions` collection relies on denormalization of `userId`, `campusId`, `unitId`, and `unitName`. This is critical for writing efficient security rules that do not require joins or multiple `get()` calls to check permissions, which is a key performance best practice for Firestore.\n\n**Invariants:** The structure ensures the integrity of ownership and denormalized data. Security rules on `create` and `update` for the `/submissions` collection will enforce that the `userId` matches the authenticated user and that the denormalized fields like `campusId` and `unitId` match the user's profile, preventing tampering."
   }
 }
+
+    

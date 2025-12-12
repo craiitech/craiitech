@@ -121,21 +121,34 @@ export function SubmissionForm({
     setIsSubmitting(true);
     try {
         const unitName = units.find((u) => u.id === userProfile.unitId)?.name || 'Unknown Unit';
-        const submissionCollectionRef = collection(firestore, 'users', user.uid, 'submissions');
+        const submissionCollectionRef = collection(firestore, 'submissions');
 
         // Check for an existing submission to update it
         const q = query(
             submissionCollectionRef,
+            where('userId', '==', user.uid),
             where('reportType', '==', reportType),
             where('year', '==', year),
             where('cycleId', '==', cycleId)
         );
         
         const querySnapshot = await getDocs(q);
+        const newSubmissionData = {
+            ...values,
+            reportType,
+            year,
+            cycleId,
+            userId: user.uid,
+            campusId: userProfile.campusId,
+            unitId: userProfile.unitId,
+            unitName: unitName,
+            statusId: 'submitted',
+            submissionDate: serverTimestamp(),
+        };
 
         if (!querySnapshot.empty) {
             // Update existing submission
-            const existingDocRef = doc(firestore, querySnapshot.docs[0].ref.path);
+            const existingDocRef = doc(firestore, 'submissions', querySnapshot.docs[0].id);
             await updateDoc(existingDocRef, {
                 ...values,
                 statusId: 'submitted', // Reset status on update
@@ -147,18 +160,7 @@ export function SubmissionForm({
             });
         } else {
             // Add new submission
-            await addDoc(submissionCollectionRef, {
-                ...values,
-                reportType,
-                year,
-                cycleId,
-                userId: user.uid,
-                campusId: userProfile.campusId,
-                unitId: userProfile.unitId,
-                unitName: unitName,
-                statusId: 'submitted',
-                submissionDate: serverTimestamp(),
-            });
+            await addDoc(submissionCollectionRef, newSubmissionData);
             toast({
                 title: 'Submission Successful!',
                 description: `Your '${reportType}' report has been submitted.`,
@@ -262,3 +264,5 @@ export function SubmissionForm({
     </Form>
   );
 }
+
+    
