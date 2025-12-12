@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -5,9 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Logo } from '@/components/logo';
 import { CheckCircle } from 'lucide-react';
+import { useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
 
 export default function AwaitingVerificationPage() {
   const router = useRouter();
+  const auth = useAuth();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/login');
+  };
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
@@ -25,7 +35,7 @@ export default function AwaitingVerificationPage() {
           <p className="text-sm text-muted-foreground">
             You will be notified via email once your account has been approved. You can then log in to access the RSU EOMS Portal.
           </p>
-          <Button onClick={() => router.push('/login')} className="w-full">
+          <Button onClick={handleLogout} className="w-full">
             Back to Login
           </Button>
         </CardContent>
@@ -33,3 +43,4 @@ export default function AwaitingVerificationPage() {
     </div>
   );
 }
+

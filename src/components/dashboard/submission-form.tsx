@@ -23,6 +23,8 @@ import { validateGoogleDriveLinkAccessibility } from '@/ai/flows/validate-google
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import type { Unit, Submission } from '@/lib/types';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const submissionSchema = z.object({
   googleDriveLink: z
@@ -119,20 +121,55 @@ export function SubmissionForm({
     }
 
     setIsSubmitting(true);
-    try {
-        const unitName = units.find((u) => u.id === userProfile.unitId)?.name || 'Unknown Unit';
-        const submissionCollectionRef = collection(firestore, 'submissions');
+    
+    const submissionCollectionRef = collection(firestore, 'submissions');
 
-        // Check for an existing submission to update it
-        const q = query(
-            submissionCollectionRef,
-            where('userId', '==', user.uid),
-            where('reportType', '==', reportType),
-            where('year', '==', year),
-            where('cycleId', '==', cycleId)
-        );
+    // Check for an existing submission to update it
+    const q = query(
+        submissionCollectionRef,
+        where('userId', '==', user.uid),
+        where('reportType', '==', reportType),
+        where('year', '==', year),
+        where('cycleId', '==', cycleId)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const unitName = units.find((u) => u.id === userProfile.unitId)?.name || 'Unknown Unit';
+
+    if (!querySnapshot.empty) {
+        // Update existing submission
+        const existingDocRef = doc(firestore, 'submissions', querySnapshot.docs[0].id);
+        const updateData = {
+          ...values,
+          statusId: 'submitted', // Reset status on update
+          submissionDate: serverTimestamp(),
+        };
         
-        const querySnapshot = await getDocs(q);
+        updateDoc(existingDocRef, updateData)
+          .then(() => {
+              toast({
+                  title: 'Submission Updated!',
+                  description: `Your '${reportType}' report has been updated.`,
+              });
+              if (onSuccess) onSuccess();
+          })
+          .catch((error) => {
+              console.error('Error updating submission:', error);
+              const permissionError = new FirestorePermissionError({
+                  path: existingDocRef.path,
+                  operation: 'update',
+                  requestResourceData: updateData,
+              });
+              errorEmitter.emit('permission-error', permissionError);
+          })
+          .finally(() => {
+              setIsSubmitting(false);
+              form.reset();
+              setValidationStatus('idle');
+          });
+
+    } else {
+        // Add new submission
         const newSubmissionData = {
             ...values,
             reportType,
@@ -146,37 +183,28 @@ export function SubmissionForm({
             submissionDate: serverTimestamp(),
         };
 
-        if (!querySnapshot.empty) {
-            // Update existing submission
-            const existingDocRef = doc(firestore, 'submissions', querySnapshot.docs[0].id);
-            await updateDoc(existingDocRef, {
-                ...values,
-                statusId: 'submitted', // Reset status on update
-                submissionDate: serverTimestamp(),
-            });
-            toast({
-                title: 'Submission Updated!',
-                description: `Your '${reportType}' report has been updated.`,
-            });
-        } else {
-            // Add new submission
-            await addDoc(submissionCollectionRef, newSubmissionData);
-            toast({
-                title: 'Submission Successful!',
-                description: `Your '${reportType}' report has been submitted.`,
-            });
-        }
-      
-      setIsSubmitting(false);
-      form.reset();
-      setValidationStatus('idle');
-      if (onSuccess) {
-        onSuccess();
-      }
-    } catch (error) {
-      console.error('Error submitting report: ', error);
-      toast({ title: 'Submission Failed', description: 'Could not submit your report.', variant: 'destructive' });
-      setIsSubmitting(false);
+        addDoc(submissionCollectionRef, newSubmissionData)
+          .then(() => {
+              toast({
+                  title: 'Submission Successful!',
+                  description: `Your '${reportType}' report has been submitted.`,
+              });
+              if (onSuccess) onSuccess();
+          })
+          .catch((error) => {
+              console.error('Error creating submission:', error);
+              const permissionError = new FirestorePermissionError({
+                  path: submissionCollectionRef.path,
+                  operation: 'create',
+                  requestResourceData: newSubmissionData,
+              });
+              errorEmitter.emit('permission-error', permissionError);
+          })
+          .finally(() => {
+              setIsSubmitting(false);
+              form.reset();
+              setValidationStatus('idle');
+          });
     }
   };
 
@@ -265,4 +293,3 @@ export function SubmissionForm({
   );
 }
 
-    

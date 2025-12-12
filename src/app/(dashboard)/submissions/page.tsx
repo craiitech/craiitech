@@ -1,7 +1,7 @@
 
 'use client';
 
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, MessageSquare, Eye } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -25,7 +25,9 @@ import type { Submission, User as AppUser, Role } from '@/lib/types';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMemo, useState, useEffect } from 'react';
+import { FeedbackDialog } from '@/components/dashboard/feedback-dialog';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -38,6 +40,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 export default function SubmissionsPage() {
   const { user, userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
 
   const [users, setUsers] = useState<Record<string, AppUser>>({});
   const [roles, setRoles] = useState<Record<string, Role>>({});
@@ -46,6 +49,11 @@ export default function SubmissionsPage() {
 
   // This will store the final list of submissions to display
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  
+  // State for feedback dialog
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+  const [feedbackToShow, setFeedbackToShow] = useState('');
+
 
   useEffect(() => {
     if (!firestore) return;
@@ -137,6 +145,11 @@ export default function SubmissionsPage() {
     const user = users[userId];
     return user ? `${user.firstName} ${user.lastName}` : '...';
   };
+  
+  const handleViewFeedback = (comments: string) => {
+    setFeedbackToShow(comments);
+    setIsFeedbackDialogOpen(true);
+  }
 
   return (
     <>
@@ -176,7 +189,6 @@ export default function SubmissionsPage() {
               <TableRow>
                 <TableHead>Report Type</TableHead>
                 {isSupervisor && <TableHead>Submitter</TableHead>}
-                <TableHead>Link</TableHead>
                 <TableHead>Unit</TableHead>
                 <TableHead>Year</TableHead>
                 <TableHead>Cycle</TableHead>
@@ -190,11 +202,6 @@ export default function SubmissionsPage() {
                 <TableRow key={submission.id}>
                   <TableCell className="font-medium">{submission.reportType}</TableCell>
                    {isSupervisor && <TableCell>{getUserName(submission.userId)}</TableCell>}
-                  <TableCell className="font-medium max-w-xs truncate">
-                    <a href={submission.googleDriveLink} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                      {submission.googleDriveLink}
-                    </a>
-                  </TableCell>
                   <TableCell>{submission.unitName}</TableCell>
                   <TableCell>{submission.year}</TableCell>
                   <TableCell className="capitalize">{submission.cycleId}</TableCell>
@@ -206,9 +213,16 @@ export default function SubmissionsPage() {
                       {submission.statusId}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
-                      View
+                  <TableCell className="text-right space-x-1">
+                     {submission.statusId === 'rejected' && submission.comments && (
+                        <Button variant="ghost" size="icon" onClick={() => handleViewFeedback(submission.comments!)}>
+                            <MessageSquare className="h-4 w-4" />
+                            <span className="sr-only">View Feedback</span>
+                        </Button>
+                     )}
+                    <Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${submission.id}`)}>
+                        <Eye className="h-4 w-4" />
+                        <span className="sr-only">View Details</span>
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -223,8 +237,12 @@ export default function SubmissionsPage() {
           )}
         </CardContent>
       </Card>
+      <FeedbackDialog 
+        isOpen={isFeedbackDialogOpen}
+        onOpenChange={setIsFeedbackDialogOpen}
+        feedback={feedbackToShow}
+      />
     </>
   );
 }
 
-    

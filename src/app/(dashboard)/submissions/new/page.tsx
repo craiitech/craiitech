@@ -13,13 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { FeedbackDialog } from '@/components/dashboard/feedback-dialog';
+
 
 const submissionTypes = [
   'Operational Plans',
@@ -221,21 +216,12 @@ export default function NewSubmissionPage() {
           </Card>
         </div>
       </div>
-      <Dialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Rejection Feedback</DialogTitle>
-                <DialogDescription>
-                    This is the feedback provided by the approver.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="mt-4 rounded-md border bg-muted p-4 text-sm">
-                {feedbackToShow}
-            </div>
-        </DialogContent>
-      </Dialog>
+      <FeedbackDialog 
+        isOpen={isFeedbackDialogOpen}
+        onOpenChange={setIsFeedbackDialogOpen}
+        feedback={feedbackToShow}
+      />
     </div>
   );
 }
 
-    
