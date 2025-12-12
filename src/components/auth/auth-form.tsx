@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -18,6 +19,8 @@ import {
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { Loader2, Mail, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Checkbox } from '../ui/checkbox';
+import { DataPrivacyDialog } from './data-privacy-dialog';
 
 interface AuthFormProps {
   initialTab: 'signin' | 'signup';
@@ -53,6 +56,8 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [privacyPolicyAgreed, setPrivacyPolicyAgreed] = useState(false);
+  const [isPrivacyDialogOpen, setIsPrivacyDialogOpen] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
@@ -91,6 +96,13 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         description: 'Please fill out all fields.',
         variant: 'destructive',
       });
+    }
+    if (!privacyPolicyAgreed) {
+        return toast({
+            title: 'Agreement Required',
+            description: 'You must agree to the Data Privacy Statement to create an account.',
+            variant: 'destructive',
+        });
     }
     setIsSubmitting(true);
     try {
@@ -277,10 +289,34 @@ export function AuthForm({ initialTab }: AuthFormProps) {
           className="bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
         />
       </div>
+      
+       <div className="flex items-center space-x-2">
+        <Checkbox 
+          id="privacy-policy" 
+          checked={privacyPolicyAgreed}
+          onCheckedChange={(checked) => setPrivacyPolicyAgreed(checked as boolean)}
+        />
+        <label
+          htmlFor="privacy-policy"
+          className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          I agree to the{' '}
+          <Button
+            type="button"
+            variant="link"
+            className="p-0 h-auto text-xs text-white hover:underline"
+            onClick={() => setIsPrivacyDialogOpen(true)}
+          >
+            Data Privacy Statement
+          </Button>
+          .
+        </label>
+      </div>
+
       <Button
         type="submit"
         className="w-full bg-white text-black hover:bg-gray-200"
-        disabled={isSubmitting}
+        disabled={isSubmitting || !privacyPolicyAgreed}
       >
         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Create an account
@@ -289,6 +325,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   );
 
   return (
+    <>
     <div className="w-full max-w-md rounded-2xl border border-gray-700/50 p-8 text-white shadow-2xl backdrop-blur-lg">
       <div className="flex justify-end">
         <Button
@@ -366,7 +403,14 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         </p>
       )}
     </div>
+    <DataPrivacyDialog 
+      isOpen={isPrivacyDialogOpen}
+      onOpenChange={setIsPrivacyDialogOpen}
+    />
+    </>
   );
 }
+
+    
 
     
