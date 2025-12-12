@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -74,14 +75,6 @@ service cloud.firestore {
      */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-    
-    /**
-     * Checks if the current user has Campus Director privileges.
-     */
-    function isCampusDirector() {
-      let userProfile = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      return userProfile.role == 'Campus Director';
     }
     
     /**
@@ -199,7 +192,7 @@ service cloud.firestore {
      * @principle Allows decentralized management of campus settings while maintaining security.
      */
     match /campusSettings/{campusId} {
-      allow read, write: if isAdmin() || ((isCampusDirector() || isCampusOdimo()) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.campusId == campusId);
+      allow read, write: if isAdmin() || (isCampusOdimo() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.campusId == campusId);
       allow list: if isAdmin();
     }
     
@@ -214,7 +207,7 @@ service cloud.firestore {
       allow get, list: if isSignedIn();
       allow create: if isAdmin();
       allow update: if isAdmin() || (
-        (isCampusDirector() || isCampusOdimo())
+        isCampusOdimo()
         && request.resource.data.keys().hasOnly(['campusId'])
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.campusId == request.resource.data.campusId
       );
@@ -261,5 +254,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
