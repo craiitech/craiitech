@@ -5,6 +5,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import { Overview } from '@/components/dashboard/overview';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
@@ -14,6 +15,10 @@ import {
   Clock,
   Users,
   Megaphone,
+  Circle,
+  Pencil,
+  FilePlus,
+  AlertCircle
 } from 'lucide-react';
 import {
   useUser,
@@ -28,9 +33,30 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { UnitsWithoutSubmissions } from '@/components/dashboard/units-without-submissions';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+import { Progress } from '@/components/ui/progress';
 
+const submissionTypes = [
+  'Operational Plans',
+  'Objectives Monitoring',
+  'Risk and Opportunity Registry Form',
+  'Risk and Opportunity Action Plan',
+  'Updated Needs and Expectation of Interested Parties',
+  'SWOT Analysis',
+];
 
 const TOTAL_REQUIRED_SUBMISSIONS = 6; // As there are 6 types of reports
+
+const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    approved: 'default',
+    pending: 'secondary',
+    rejected: 'destructive',
+    submitted: 'outline'
+}
+
 
 export default function DashboardPage() {
   const { user, userProfile, isAdmin, isUserLoading } = useUser();
@@ -222,6 +248,26 @@ export default function DashboardPage() {
       };
     }
   }, [submissions, isSupervisor, isAdmin, isCampusSupervisor, isUnitSupervisor, userCount]);
+  
+  const { submissionStatusMap, submissionProgress } = useMemo(() => {
+    if (!submissions) {
+      return { 
+        submissionStatusMap: new Map<string, Submission>(),
+        submissionProgress: 0 
+      };
+    }
+    const currentYearSubmissions = submissions.filter(s => s.year === new Date().getFullYear());
+    const statusMap = new Map(currentYearSubmissions.map((s) => [s.reportType, s]));
+    
+    const uniqueSubmissions = new Set(currentYearSubmissions.map(s => s.reportType));
+    const progress = (uniqueSubmissions.size / submissionTypes.length) * 100;
+    
+    return {
+      submissionStatusMap: statusMap,
+      submissionProgress: progress,
+    };
+  }, [submissions]);
+
 
   const renderCard = (
     title: string,
@@ -247,21 +293,109 @@ export default function DashboardPage() {
       </CardContent>
     </Card>
   );
+  
+  const getIconForStatus = (status?: string) => {
+    switch (status) {
+      case 'approved':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'rejected':
+        return <AlertCircle className="h-5 w-5 text-destructive" />;
+      case 'submitted':
+        return <Clock className="h-5 w-5 text-yellow-500" />;
+      default:
+        return <Circle className="h-5 w-5 text-muted-foreground" />;
+    }
+  };
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-      </div>
 
-      {announcement && !isLoading && (
-        <Alert>
-          <Megaphone className="h-4 w-4" />
-          <AlertTitle>Campus Announcement</AlertTitle>
-          <AlertDescription>{announcement}</AlertDescription>
-        </Alert>
-      )}
+  const renderUnitCoordinatorDashboard = () => (
+    <Tabs defaultValue="overview" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsTrigger value="actions">Submission Actions</TabsTrigger>
+        <TabsTrigger value="analytics" disabled>Analytics</TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="overview" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
+            {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
+            {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+            <Card className="col-span-4">
+              <CardHeader>
+                <CardTitle>Submissions Overview</CardTitle>
+                <CardDescription>
+                    Your monthly submission trend for the last 12 months.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pl-2">
+                <Overview submissions={submissions} isLoading={isLoading} />
+              </CardContent>
+            </Card>
+            <Card className="col-span-4 lg:col-span-3">
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>
+                  Your last 5 submissions.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <RecentActivity submissions={submissions} isLoading={isLoading} />
+              </CardContent>
+            </Card>
+          </div>
+      </TabsContent>
+      
+      <TabsContent value="actions" className="space-y-4">
+          <Card>
+            <CardHeader>
+                <CardTitle>Tactical Submission Dashboard</CardTitle>
+                <CardDescription>Quick actions for all required submissions for {new Date().getFullYear()}.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <div className="mb-4">
+                    <div className="flex justify-between text-sm font-medium mb-1">
+                        <span>Overall Progress</span>
+                        <span>{Math.round(submissionProgress)}%</span>
+                    </div>
+                    <Progress value={submissionProgress} />
+                 </div>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {submissionTypes.map(reportType => {
+                        const submission = submissionStatusMap.get(reportType);
+                        const status = submission?.statusId || 'Not Submitted';
+                        return (
+                            <Card key={reportType}>
+                                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                                     <CardTitle className="text-base font-medium">{reportType}</CardTitle>
+                                     {getIconForStatus(submission?.statusId)}
+                                </CardHeader>
+                                <CardContent>
+                                    <Badge variant={submission ? statusVariant[status] : 'outline'} className="capitalize">{status}</Badge>
+                                    {submission && <p className="text-xs text-muted-foreground mt-2">Cycle: {submission.cycleId}</p>}
+                                </CardContent>
+                                <CardFooter>
+                                     <Button asChild className="w-full">
+                                        <Link href="/submissions/new">
+                                            {submission ? <Pencil className="mr-2 h-4 w-4"/> : <FilePlus className="mr-2 h-4 w-4" />}
+                                            {submission ? 'Update Submission' : 'Add Submission'}
+                                        </Link>
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        )
+                    })}
+                </div>
+            </CardContent>
+          </Card>
+      </TabsContent>
+    </Tabs>
+  );
 
+  const renderSupervisorDashboard = () => (
+    <>
       <div className="grid gap-4 md:grid-cols-3">
         {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
         {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
@@ -302,6 +436,27 @@ export default function DashboardPage() {
             isCampusSupervisor={isCampusSupervisor}
          />
       )}
+    </>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between space-y-2">
+        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+      </div>
+
+      {announcement && !isLoading && (
+        <Alert>
+          <Megaphone className="h-4 w-4" />
+          <AlertTitle>Campus Announcement</AlertTitle>
+          <AlertDescription>{announcement}</AlertDescription>
+        </Alert>
+      )}
+
+      {isSupervisor ? renderSupervisorDashboard() : renderUnitCoordinatorDashboard()}
+
     </div>
   );
 }
+
+    
