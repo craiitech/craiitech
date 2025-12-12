@@ -25,6 +25,7 @@ import {
   Bell,
   Heart,
   XCircle,
+  History,
 } from 'lucide-react';
 import {
   useUser,
@@ -328,6 +329,11 @@ export default function DashboardPage() {
     if (!submissions) return [];
     return submissions.filter((s) => s.statusId === 'submitted');
   }, [submissions]);
+  
+  const sortedSubmissions = useMemo(() => {
+    if (!submissions) return [];
+    return [...submissions].sort((a,b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime());
+  }, [submissions]);
 
   const renderCard = (
     title: string,
@@ -391,9 +397,9 @@ export default function DashboardPage() {
                   <div key={reportType} className="flex items-center justify-between rounded-md border p-4">
                       <div className="flex items-center gap-3">
                          {isSubmitted ? (
-                          <CheckCircle className="h-6 w-6 text-green-500" />
+                          getIconForStatus(submission.statusId)
                         ) : (
-                          <XCircle className="h-6 w-6 text-destructive" />
+                          <XCircle className="h-6 w-6 text-muted-foreground" />
                         )}
                         <span className="font-medium">{reportType}</span>
                       </div>
@@ -419,7 +425,8 @@ export default function DashboardPage() {
     <Tabs defaultValue="overview" className="space-y-4">
       <TabsList>
         <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="actions">Submission Actions</TabsTrigger>
+        <TabsTrigger value="actions">Submission Checklist</TabsTrigger>
+        <TabsTrigger value="history">History</TabsTrigger>
       </TabsList>
 
       <TabsContent value="overview" className="space-y-4">
@@ -498,6 +505,55 @@ export default function DashboardPage() {
                     Manage Submissions
                 </Link>
             </Button>
+          </CardContent>
+        </Card>
+      </TabsContent>
+      <TabsContent value="history">
+        <Card>
+          <CardHeader>
+            <CardTitle>Submission History</CardTitle>
+            <CardDescription>A log of all your past submissions and their status.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Report</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  [...Array(5)].map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell colSpan={4}><Skeleton className="h-5 w-full"/></TableCell>
+                    </TableRow>
+                  ))
+                ) : sortedSubmissions.length > 0 ? (
+                  sortedSubmissions.map(s => (
+                    <TableRow key={s.id}>
+                      <TableCell>
+                        <div className="font-medium">{s.reportType}</div>
+                        <div className="text-xs text-muted-foreground capitalize">{s.cycleId} Cycle {s.year}</div>
+                      </TableCell>
+                      <TableCell>{format(new Date(s.submissionDate), 'PPp')}</TableCell>
+                      <TableCell><Badge variant={statusVariant[s.statusId]}>{s.statusId}</Badge></TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${s.id}`)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">No submissions yet.</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </TabsContent>
@@ -753,3 +809,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
