@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -93,8 +94,8 @@ export default function DashboardPage() {
 
   const isCampusSupervisor =
     userRoleName === 'Campus Director' || userRoleName === 'Campus ODIMO';
-  const isUnitSupervisor = userRoleName === 'Unit ODIMO';
-  const isSupervisor = isAdmin || isCampusSupervisor || isUnitSupervisor;
+  
+  const isSupervisor = isAdmin || isCampusSupervisor;
   const canViewAnnouncements = userProfile?.campusId;
 
   // Memoize the submissions query based on the user's role
@@ -113,18 +114,13 @@ export default function DashboardPage() {
         where('campusId', '==', userProfile.campusId)
       );
     }
-    if (isUnitSupervisor) {
-      return query(
-        collection(firestore, 'submissions'),
-        where('unitId', '==', userProfile.unitId)
-      );
-    }
-    // Default to regular user's own submissions
+    
+    // Regular user's own submissions, including Unit ODIMO's own.
     return query(
       collection(firestore, 'submissions'),
       where('userId', '==', userProfile.id)
     );
-  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isUnitSupervisor]);
+  }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
 
   const { data: submissions, isLoading: isLoadingSubmissions } =
     useCollection<Submission>(submissionsQuery);
@@ -224,83 +220,66 @@ export default function DashboardPage() {
         ? allUnits.filter((u) => u.campusId === userProfile.campusId).length
         : 0;
       const totalRequired = unitsInCampus * TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT;
+      const uniqueSubmissionsCount = new Set(currentYearSubmissions.map(s => s.reportType + s.unitId)).size;
+
 
       return {
         stat1: {
           title: 'Required Submissions',
-          value: `${currentYearSubmissions.length} of ${totalRequired}`,
+          value: `${uniqueSubmissionsCount} of ${totalRequired}`,
           description: `Across ${unitsInCampus} units`,
           icon: <FileText className="h-4 w-4 text-muted-foreground" />,
         },
         stat2: {
           title: 'Campus Submissions',
           value: submissions.length,
+          description: `Total for your campus`,
           icon: <FileText className="h-4 w-4 text-muted-foreground" />,
         },
         stat3: {
           title: 'Campus Users',
           value: userCount,
+          description: `Users in your campus`,
           icon: <Users className="h-4 w-4 text-muted-foreground" />,
         },
       };
-    } else if (isUnitSupervisor) {
-      return {
-        stat1: {
-          title: 'Unit Pending',
-          value: submissions.filter((s) => s.statusId === 'submitted').length,
-          description: `For your unit`,
-          icon: <Clock className="h-4 w-4 text-muted-foreground" />,
-        },
-        stat2: {
-          title: 'Unit Submissions',
-          value: submissions.length,
-          description: `Total for your unit`,
-          icon: <FileText className="h-4 w-4 text-muted-foreground" />,
-        },
-        stat3: {
-          title: 'Approved',
-          value: submissions.filter((s) => s.statusId === 'approved').length,
-          description: `Approved for your unit`,
-          icon: <CheckCircle className="h-4 w-4 text-muted-foreground" />,
-        },
-      };
-    } else {
-      // Regular user stats
-      const uniqueFirstCycle = new Set(
-        currentYearSubmissions
-          .filter((s) => s.cycleId === 'first')
-          .map((s) => s.reportType)
-      );
-      const uniqueFinalCycle = new Set(
-        currentYearSubmissions
-          .filter((s) => s.cycleId === 'final')
-          .map((s) => s.reportType)
-      );
+    } else { // This handles Unit ODIMO and regular Unit Coordinators
+        const uniqueFirstCycle = new Set(
+            currentYearSubmissions
+            .filter((s) => s.cycleId === 'first')
+            .map((s) => s.reportType)
+        );
+        const uniqueFinalCycle = new Set(
+            currentYearSubmissions
+            .filter((s) => s.cycleId === 'final')
+            .map((s) => s.reportType)
+        );
 
-      const firstCycleCount = uniqueFirstCycle.size;
-      const finalCycleCount = uniqueFinalCycle.size;
-
-      return {
-        stat1: {
-          title: 'Required Submissions',
-          value: `${firstCycleCount} of ${TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT}`,
-          description: `First Cycle - ${new Date().getFullYear()}`,
-          icon: <FileText className="h-4 w-4 text-muted-foreground" />,
-        },
-        stat2: {
-          title: 'Required Submissions',
-          value: `${finalCycleCount} of ${TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT}`,
-          description: `Final Cycle - ${new Date().getFullYear()}`,
-          icon: <FileText className="h-4 w-4 text-muted-foreground" />,
-        },
-        stat3: {
-          title: 'Total Approved',
-          value: submissions.filter((s) => s.statusId === 'approved').length,
-          icon: <CheckCircle className="h-4 w-4 text-muted-foreground" />,
-        },
-      };
+        const firstCycleCount = uniqueFirstCycle.size;
+        const finalCycleCount = uniqueFinalCycle.size;
+        
+        return {
+            stat1: {
+              title: 'Required Submissions',
+              value: `${firstCycleCount} of ${TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT}`,
+              description: `First Cycle - ${new Date().getFullYear()}`,
+              icon: <FileText className="h-4 w-4 text-muted-foreground" />,
+            },
+            stat2: {
+              title: 'Required Submissions',
+              value: `${finalCycleCount} of ${TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT}`,
+              description: `Final Cycle - ${new Date().getFullYear()}`,
+              icon: <FileText className="h-4 w-4 text-muted-foreground" />,
+            },
+            stat3: {
+              title: 'Total Approved',
+              value: submissions.filter((s) => s.statusId === 'approved').length,
+              description: 'Your approved submissions',
+              icon: <CheckCircle className="h-4 w-4 text-muted-foreground" />,
+            },
+        };
     }
-  }, [submissions, isSupervisor, isAdmin, isCampusSupervisor, isUnitSupervisor, userCount, userProfile, allUnits]);
+  }, [submissions, isSupervisor, isAdmin, isCampusSupervisor, userCount, userProfile, allUnits]);
 
   const { submissionStatusMap, submissionProgress } = useMemo(() => {
     if (!submissions) {

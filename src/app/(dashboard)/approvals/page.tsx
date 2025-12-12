@@ -90,6 +90,8 @@ export default function ApprovalsPage() {
         const submissionsCollection = collection(firestore, 'submissions');
         let baseQuery;
 
+        // Admins and Unit ODIMOs see submissions needing unit-level approval.
+        // Campus Directors and Campus ODIMOs see all submitted reports in their campus.
         if (userRole === 'Admin') {
           baseQuery = query(
             submissionsCollection,
@@ -105,6 +107,7 @@ export default function ApprovalsPage() {
             where('statusId', '==', 'submitted')
           );
         } else if (userRole === 'Unit ODIMO' && userProfile?.unitId) {
+          // This case is covered by campus-level for now, but could be specific if needed
           baseQuery = query(
             submissionsCollection,
             where('unitId', '==', userProfile.unitId),
