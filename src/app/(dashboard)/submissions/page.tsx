@@ -96,13 +96,13 @@ export default function SubmissionsPage() {
       } else if (userRole === 'Unit ODIMO') {
         submissionsQuery = query(submissionsCollection, where('unitId', '==', userProfile.unitId), orderBy('submissionDate', 'desc'));
       } else {
-        // Regular employee
-        submissionsQuery = query(submissionsCollection, where('userId', '==', userProfile.id), orderBy('submissionDate', 'desc'));
+        // Regular employee - remove order by to prevent index error
+        submissionsQuery = query(submissionsCollection, where('userId', '==', userProfile.id));
       }
 
       const snapshot = await getDocs(submissionsQuery);
       
-      const fetchedSubmissions = snapshot.docs.map(doc => {
+      let fetchedSubmissions = snapshot.docs.map(doc => {
         const data = doc.data();
         const submissionDateRaw = data.submissionDate;
         const submissionDate =
@@ -115,6 +115,11 @@ export default function SubmissionsPage() {
           submissionDate: submissionDate,
         } as Submission;
       });
+
+      // Sort client-side for non-supervisors
+      if (!['Admin', 'Campus Director', 'Campus ODIMO', 'Unit ODIMO'].includes(userRole)) {
+        fetchedSubmissions.sort((a, b) => b.submissionDate.getTime() - a.submissionDate.getTime());
+      }
 
       // If supervisor, fetch needed user data for display
       const isSupervisor = ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit ODIMO'].includes(userRole);
@@ -157,7 +162,7 @@ export default function SubmissionsPage() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Submissions</h2>
           <p className="text-muted-foreground">
-            {isSupervisor ? 'A list of all submissions in your scope.' : 'Here\'s a list of your report submissions.'}
+            {isSupervisor ? 'A list of all submissions in your scope.' : 'Here\\'s a list of your report submissions.'}
           </p>
         </div>
         <div className="flex items-center space-x-2">
