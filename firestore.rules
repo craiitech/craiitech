@@ -92,7 +92,10 @@ service cloud.firestore {
      * Supervisors can list users within their scope.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin() || isCampusOdimo();
+      // Allow reading your own profile (for getUserProfile()) or if you're an admin.
+      // This breaks the circular dependency where a supervisor rule depends on getting a profile,
+      // which in turn depended on the supervisor rule.
+      allow get: if isOwner(userId) || isAdmin();
       allow update: if isOwner(userId) || isAdmin();
       allow list: if isAdmin() || isCampusOdimo() || isUnitOdimo();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
