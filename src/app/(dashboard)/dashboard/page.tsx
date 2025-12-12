@@ -24,7 +24,7 @@ import {
   Search,
   Bell,
   Heart,
-  XCircle
+  XCircle,
 } from 'lucide-react';
 import {
   useUser,
@@ -282,29 +282,32 @@ export default function DashboardPage() {
     }
   }, [submissions, isCampusSupervisor, isAdmin, userCount, userProfile, allUnits]);
 
-  const { submissionStatusMap, submissionProgress } = useMemo(() => {
+  const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
+    const emptyResult = {
+        firstCycleStatusMap: new Map<string, Submission>(),
+        finalCycleStatusMap: new Map<string, Submission>(),
+    };
     if (!submissions) {
-      return {
-        submissionStatusMap: new Map<string, Submission>(),
-        submissionProgress: 0,
-      };
+      return emptyResult;
     }
     const currentYearSubmissions = submissions.filter(
-      (s) => s.year === new Date().getFullYear() && s.cycleId === 'first'
-    );
-    const statusMap = new Map(
-      currentYearSubmissions.map((s) => [s.reportType, s])
+      (s) => s.year === new Date().getFullYear()
     );
 
-    const uniqueSubmissions = new Set(
-      currentYearSubmissions.map((s) => s.reportType)
+    const firstCycleMap = new Map(
+      currentYearSubmissions
+        .filter(s => s.cycleId === 'first')
+        .map((s) => [s.reportType, s])
     );
-    const progress =
-      (uniqueSubmissions.size / submissionTypes.length) * 100;
+     const finalCycleMap = new Map(
+      currentYearSubmissions
+        .filter(s => s.cycleId === 'final')
+        .map((s) => [s.reportType, s])
+    );
 
     return {
-      submissionStatusMap: statusMap,
-      submissionProgress: progress,
+      firstCycleStatusMap: firstCycleMap,
+      finalCycleStatusMap: finalCycleMap,
     };
   }, [submissions]);
 
@@ -365,6 +368,50 @@ export default function DashboardPage() {
         return <Circle className="h-5 w-5 text-muted-foreground" />;
     }
   };
+  
+  const renderSubmissionChecklist = (cycle: 'first' | 'final', statusMap: Map<string, Submission>) => {
+    const cycleSubmissions = Array.from(statusMap.values());
+    const uniqueSubmissions = new Set(cycleSubmissions.map((s) => s.reportType));
+    const progress = (uniqueSubmissions.size / submissionTypes.length) * 100;
+    
+    return (
+        <div className="space-y-4">
+            <div className="flex justify-between text-sm font-medium mb-1">
+              <span>Overall Progress ({cycle === 'first' ? 'First' : 'Final'} Cycle)</span>
+              <span>{Math.round(progress)}%</span>
+            </div>
+            <Progress value={progress} />
+            <div className="space-y-3">
+              {submissionTypes.map((reportType) => {
+                const submission = statusMap.get(reportType);
+                const isSubmitted = !!submission;
+                return (
+                  <div key={reportType} className="flex items-center justify-between rounded-md border p-4">
+                      <div className="flex items-center gap-3">
+                         {isSubmitted ? (
+                          <CheckCircle className="h-6 w-6 text-green-500" />
+                        ) : (
+                          <XCircle className="h-6 w-6 text-destructive" />
+                        )}
+                        <span className="font-medium">{reportType}</span>
+                      </div>
+                      {isSubmitted ? (
+                         <Badge
+                            variant={statusVariant[submission.statusId]}
+                            className="capitalize"
+                        >
+                            {submission.statusId}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">Not Submitted</Badge>
+                      )}
+                  </div>
+                );
+              })}
+            </div>
+        </div>
+    );
+  }
 
   const renderUnitCoordinatorDashboard = () => (
     <Tabs defaultValue="overview" className="space-y-4">
@@ -424,48 +471,25 @@ export default function DashboardPage() {
       <TabsContent value="actions" className="space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle>First Cycle Submission Status</CardTitle>
+            <CardTitle>Submission Status</CardTitle>
             <CardDescription>
               Checklist for all required submissions for{' '}
               {new Date().getFullYear()}.
             </CardDescription>
           </CardHeader>
           <CardContent>
-             <div className="mb-4">
-              <div className="flex justify-between text-sm font-medium mb-1">
-                <span>Overall Progress (First Cycle)</span>
-                <span>{Math.round(submissionProgress)}%</span>
-              </div>
-              <Progress value={submissionProgress} />
-            </div>
-            <div className="space-y-3">
-              {submissionTypes.map((reportType) => {
-                const submission = submissionStatusMap.get(reportType);
-                const isSubmitted = !!submission;
-                return (
-                  <div key={reportType} className="flex items-center justify-between rounded-md border p-4">
-                      <div className="flex items-center gap-3">
-                         {isSubmitted ? (
-                          <CheckCircle className="h-6 w-6 text-green-500" />
-                        ) : (
-                          <XCircle className="h-6 w-6 text-destructive" />
-                        )}
-                        <span className="font-medium">{reportType}</span>
-                      </div>
-                      {isSubmitted ? (
-                         <Badge
-                            variant={statusVariant[submission.statusId]}
-                            className="capitalize"
-                        >
-                            {submission.statusId}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline">Not Submitted</Badge>
-                      )}
-                  </div>
-                );
-              })}
-            </div>
+              <Tabs defaultValue="first-cycle" className="space-y-4">
+                 <TabsList>
+                    <TabsTrigger value="first-cycle">First Cycle</TabsTrigger>
+                    <TabsTrigger value="final-cycle">Final Cycle</TabsTrigger>
+                </TabsList>
+                <TabsContent value="first-cycle">
+                    {renderSubmissionChecklist('first', firstCycleStatusMap)}
+                </TabsContent>
+                <TabsContent value="final-cycle">
+                    {renderSubmissionChecklist('final', finalCycleStatusMap)}
+                </TabsContent>
+              </Tabs>
              <Button asChild className="w-full mt-6">
                 <Link href="/submissions/new">
                     <Pencil className="mr-2 h-4 w-4" />
