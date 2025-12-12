@@ -18,7 +18,8 @@ import {
   Circle,
   Pencil,
   FilePlus,
-  AlertCircle
+  AlertCircle,
+  Eye
 } from 'lucide-react';
 import {
   useUser,
@@ -27,7 +28,7 @@ import {
   useMemoFirebase,
   useDoc,
 } from '@/firebase';
-import { collection, query, where, doc, getDocs, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, doc, getDocs, Timestamp } from 'firebase/firestore';
 import type { Submission, User as AppUser, Unit } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
@@ -38,6 +39,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Progress } from '@/components/ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { format } from 'date-fns';
+import { SubmissionAnalytics } from '@/components/dashboard/submission-analytics';
+import { useRouter } from 'next/navigation';
 
 const submissionTypes = [
   'Operational Plans',
@@ -61,8 +66,10 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 export default function DashboardPage() {
   const { user, userProfile, isAdmin, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
 
   const [userCount, setUserCount] = useState(0);
+  const [allUsers, setAllUsers] = useState<Record<string, AppUser>>({});
 
   // Determine user role and scope from the denormalized role name in userProfile
   const userRoleName = isAdmin ? 'Admin' : userProfile?.role;
@@ -112,19 +119,16 @@ export default function DashboardPage() {
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(allUnitsQuery);
 
 
-  // Fetch user count for admins and campus supervisors
+  // Fetch user count and all users for admins
   useEffect(() => {
-    if (!firestore || (!isAdmin && !isCampusSupervisor) || (isCampusSupervisor && !userProfile)) {
+    if (!firestore || (!isAdmin && !isCampusSupervisor)) {
         setUserCount(0);
         return;
     };
 
-    const fetchUserCount = async () => {
+    const fetchUsers = async () => {
         let countQuery;
         if (isAdmin) {
-            // Firestore does not have a native count of all documents in a collection on the client-side.
-            // A full read is expensive. For this purpose, we'll use getDocs and get the size.
-            // For very large collections, a cloud function to maintain a counter would be better.
             countQuery = collection(firestore, 'users');
         } else if (isCampusSupervisor && userProfile?.campusId) {
             countQuery = query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
@@ -133,10 +137,17 @@ export default function DashboardPage() {
         if (countQuery) {
             const snapshot = await getDocs(countQuery);
             setUserCount(snapshot.size);
+            if (isAdmin) {
+              const usersData: Record<string, AppUser> = {};
+              snapshot.forEach(doc => {
+                  usersData[doc.id] = { id: doc.id, ...doc.data() } as AppUser;
+              });
+              setAllUsers(usersData);
+            }
         }
     };
     
-    fetchUserCount();
+    fetchUsers();
 
   }, [firestore, isAdmin, isCampusSupervisor, userProfile]);
 
@@ -268,6 +279,10 @@ export default function DashboardPage() {
     };
   }, [submissions]);
 
+  const approvalQueue = useMemo(() => {
+    if (!submissions) return [];
+    return submissions.filter(s => s.statusId === 'submitted');
+  }, [submissions]);
 
   const renderCard = (
     title: string,
@@ -439,6 +454,70 @@ export default function DashboardPage() {
     </>
   );
 
+  const renderAdminDashboard = () => (
+     <Tabs defaultValue="overview" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsTrigger value="approvals">Approvals Queue</TabsTrigger>
+        <TabsTrigger value="analytics">Analytics</TabsTrigger>
+      </TabsList>
+      <TabsContent value="overview" className="space-y-4">
+        {renderSupervisorDashboard()}
+      </TabsContent>
+       <TabsContent value="approvals" className="space-y-4">
+         <Card>
+            <CardHeader>
+                <CardTitle>Tactical Dashboard</CardTitle>
+                <CardDescription>Submissions awaiting your approval. Click to view and take action.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Report Type</TableHead>
+                            <TableHead>Submitter</TableHead>
+                            <TableHead>Unit</TableHead>
+                            <TableHead>Submitted At</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow><TableCell colSpan={5} className="text-center h-24">Loading...</TableCell></TableRow>
+                      ) : approvalQueue.length > 0 ? (
+                          approvalQueue.map(submission => (
+                            <TableRow key={submission.id}>
+                                <TableCell className="font-medium">{submission.reportType}</TableCell>
+                                <TableCell>{allUsers[submission.userId]?.firstName} {allUsers[submission.userId]?.lastName}</TableCell>
+                                <TableCell>{submission.unitName}</TableCell>
+                                <TableCell>{format(new Date(submission.submissionDate), 'PP')}</TableCell>
+                                <TableCell className="text-right">
+                                    <Button variant="outline" size="sm" onClick={() => router.push(`/submissions/${submission.id}`)}>
+                                        <Eye className="mr-2 h-4 w-4" /> View
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                      ) : (
+                         <TableRow><TableCell colSpan={5} className="text-center h-24">The approval queue is empty.</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                </Table>
+            </CardContent>
+         </Card>
+      </TabsContent>
+      <TabsContent value="analytics" className="space-y-4">
+        <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading}/>
+      </TabsContent>
+    </Tabs>
+  )
+
+  const renderDashboardContent = () => {
+    if (isAdmin) return renderAdminDashboard();
+    if (isSupervisor) return renderSupervisorDashboard();
+    return renderUnitCoordinatorDashboard();
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between space-y-2">
@@ -461,7 +540,7 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      {isSupervisor ? renderSupervisorDashboard() : renderUnitCoordinatorDashboard()}
+      {renderDashboardContent()}
 
     </div>
   );
