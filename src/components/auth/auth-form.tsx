@@ -77,6 +77,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/dashboard');
     } catch (error) {
+      console.error('Sign in error:', error);
       toast({
         title: 'Login Failed',
         description:
@@ -131,6 +132,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       });
       router.push('/complete-registration');
     } catch (error) {
+      console.error('Sign up error:', error);
       toast({
         title: 'Registration Failed',
         description:
@@ -178,6 +180,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         router.push('/dashboard');
       }
     } catch (error) {
+      console.error('Google sign-in error:', error);
       toast({
         title: 'Google Sign-In Failed',
         description:

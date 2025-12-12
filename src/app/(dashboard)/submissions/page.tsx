@@ -148,66 +148,72 @@ export default function SubmissionsPage() {
 
     const fetchSubmissions = async () => {
       setIsLoading(true);
-      let submissionsQuery;
+      try {
+        let submissionsQuery;
       
-      const submissionsCollection = collection(firestore, 'submissions');
+        const submissionsCollection = collection(firestore, 'submissions');
 
-      if (userRole === 'Admin') {
-        submissionsQuery = query(submissionsCollection);
-      } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-        // Query without orderBy to avoid needing a composite index
-        submissionsQuery = query(submissionsCollection, where('campusId', '==', userProfile.campusId));
-      } else if (userRole === 'Unit ODIMO') {
-        // Query without orderBy to avoid needing a composite index
-        submissionsQuery = query(submissionsCollection, where('unitId', '==', userProfile.unitId));
-      } else {
-        // Regular employee - query only for their own submissions
-        submissionsQuery = query(submissionsCollection, where('userId', '==', userProfile.id));
-      }
+        if (userRole === 'Admin') {
+            submissionsQuery = query(submissionsCollection);
+        } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
+            // Query without orderBy to avoid needing a composite index
+            submissionsQuery = query(submissionsCollection, where('campusId', '==', userProfile.campusId));
+        } else if (userRole === 'Unit ODIMO') {
+            // Query without orderBy to avoid needing a composite index
+            submissionsQuery = query(submissionsCollection, where('unitId', '==', userProfile.unitId));
+        } else {
+            // Regular employee - query only for their own submissions
+            submissionsQuery = query(submissionsCollection, where('userId', '==', userProfile.id));
+        }
 
-      const snapshot = await getDocs(submissionsQuery);
+        const snapshot = await getDocs(submissionsQuery);
       
-      let fetchedSubmissions = snapshot.docs.map(doc => {
-        const data = doc.data();
-        const submissionDateRaw = data.submissionDate;
-        // Ensure submissionDate is a JS Date object
-        const submissionDate =
-          submissionDateRaw instanceof Timestamp
-            ? submissionDateRaw.toDate()
-            : new Date(submissionDateRaw.seconds * 1000);
-        return {
-          ...data,
-          id: doc.id,
-          submissionDate: submissionDate,
-        } as Submission;
-      });
+        let fetchedSubmissions = snapshot.docs.map(doc => {
+            const data = doc.data();
+            const submissionDateRaw = data.submissionDate;
+            // Ensure submissionDate is a JS Date object
+            const submissionDate =
+            submissionDateRaw instanceof Timestamp
+                ? submissionDateRaw.toDate()
+                : new Date(submissionDateRaw.seconds * 1000);
+            return {
+            ...data,
+            id: doc.id,
+            submissionDate: submissionDate,
+            } as Submission;
+        });
 
-      // Sort client-side for all roles to ensure consistent ordering
-      fetchedSubmissions.sort((a, b) => b.submissionDate.getTime() - a.submissionDate.getTime());
+        // Sort client-side for all roles to ensure consistent ordering
+        fetchedSubmissions.sort((a, b) => b.submissionDate.getTime() - a.submissionDate.getTime());
 
-      // If supervisor, fetch needed user data for display
-      if (isSupervisor) {
-          const userIds = [...new Set(fetchedSubmissions.map(s => s.userId))];
-          // Fetch all users at once if admin, otherwise fetch only needed users for supervisors
-          if (isAdmin && Object.keys(users).length === 0) { // fetch all only once
-              const usersQuery = query(collection(firestore, 'users'));
-              const usersSnapshot = await getDocs(usersQuery);
-              setUsers(Object.fromEntries(usersSnapshot.docs.map(doc => [doc.id, doc.data() as AppUser])));
-          } else if (!isAdmin && userIds.length > 0) {
-             const newUsersToFetch = userIds.filter(id => !users[id]);
-             if (newUsersToFetch.length > 0) {
-                const usersQuery = query(collection(firestore, 'users'), where('id', 'in', newUsersToFetch));
+        // If supervisor, fetch needed user data for display
+        if (isSupervisor) {
+            const userIds = [...new Set(fetchedSubmissions.map(s => s.userId))];
+            // Fetch all users at once if admin, otherwise fetch only needed users for supervisors
+            if (isAdmin && Object.keys(users).length === 0) { // fetch all only once
+                const usersQuery = query(collection(firestore, 'users'));
                 const usersSnapshot = await getDocs(usersQuery);
-                setUsers(prevUsers => ({
-                    ...prevUsers,
-                    ...Object.fromEntries(usersSnapshot.docs.map(doc => [doc.id, doc.data() as AppUser]))
-                }));
-             }
-          }
-      }
+                setUsers(Object.fromEntries(usersSnapshot.docs.map(doc => [doc.id, doc.data() as AppUser])));
+            } else if (!isAdmin && userIds.length > 0) {
+                const newUsersToFetch = userIds.filter(id => !users[id]);
+                if (newUsersToFetch.length > 0) {
+                    const usersQuery = query(collection(firestore, 'users'), where('id', 'in', newUsersToFetch));
+                    const usersSnapshot = await getDocs(usersQuery);
+                    setUsers(prevUsers => ({
+                        ...prevUsers,
+                        ...Object.fromEntries(usersSnapshot.docs.map(doc => [doc.id, doc.data() as AppUser]))
+                    }));
+                }
+            }
+        }
       
-      setSubmissions(fetchedSubmissions);
-      setIsLoading(false);
+        setSubmissions(fetchedSubmissions);
+
+      } catch (error) {
+        console.error("Failed to fetch submissions:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchSubmissions();
