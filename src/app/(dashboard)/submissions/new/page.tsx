@@ -121,25 +121,25 @@ export default function NewSubmissionPage() {
                       onOpenChange={(isOpen) => setActiveReport(isOpen ? reportType : null)}
                       className="rounded-lg border"
                     >
-                      <CollapsibleTrigger asChild>
-                        <button className="flex w-full items-center justify-between p-4 text-left hover:bg-muted/50">
-                          <div className="flex items-center gap-3">
-                            {isSubmitted ? (
-                              <CheckCircle className="h-5 w-5 text-green-500" />
-                            ) : (
-                              <Circle className="h-5 w-5 text-muted-foreground" />
-                            )}
-                            <span className="font-medium">{reportType}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {isSubmitted && <span className="text-sm text-green-600">Completed</span>}
+                      <div className="flex w-full items-center justify-between p-4 text-left">
+                        <div className="flex items-center gap-3">
+                          {isSubmitted ? (
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                          ) : (
+                            <Circle className="h-5 w-5 text-muted-foreground" />
+                          )}
+                          <span className="font-medium">{reportType}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isSubmitted && <span className="text-sm text-green-600">Completed</span>}
+                          <CollapsibleTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                                 {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                 <span className="sr-only">Toggle</span>
                             </Button>
-                          </div>
-                        </button>
-                      </CollapsibleTrigger>
+                          </CollapsibleTrigger>
+                        </div>
+                      </div>
                       <CollapsibleContent className="p-4 pt-0">
                         <p className="mb-4 text-sm text-muted-foreground">
                           {isSubmitted
