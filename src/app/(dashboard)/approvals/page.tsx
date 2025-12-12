@@ -339,7 +339,7 @@ export default function ApprovalsPage() {
                     </TableCell>
                     <TableCell>{getUserName(submission.userId)}</TableCell>
                     <TableCell>
-                      {format(new Date(submission.submissionDate), 'PP')}
+                      {submission.submissionDate instanceof Date ? format(submission.submissionDate, 'PP') : 'Invalid Date'}
                     </TableCell>
                     <TableCell className="capitalize">
                       {submission.cycleId}

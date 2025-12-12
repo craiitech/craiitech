@@ -87,7 +87,7 @@ const SubmissionsTable = ({ submissions, isSupervisor, getUserName, onEyeClick, 
                   <TableCell>{submission.year}</TableCell>
                   <TableCell className="capitalize">{submission.cycleId}</TableCell>
                   <TableCell>
-                    {format(new Date(submission.submissionDate), 'MMMM d, yyyy')}
+                    {submission.submissionDate instanceof Date ? format(submission.submissionDate, 'MMMM d, yyyy') : 'Invalid Date'}
                   </TableCell>
                   <TableCell>
                     <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">

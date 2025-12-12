@@ -690,7 +690,7 @@ export default function DashboardPage() {
                       </TableCell>
                       <TableCell>{submission.unitName}</TableCell>
                       <TableCell>
-                        {format(new Date(submission.submissionDate), 'PP')}
+                        {submission.submissionDate instanceof Date ? format(submission.submissionDate, 'PP') : 'Invalid Date'}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
