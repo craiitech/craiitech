@@ -19,6 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, where, getDocs, Timestamp } from 'firebase/firestore';
 import type { Submission, User as AppUser, Role } from '@/lib/types';
@@ -34,6 +35,72 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
     pending: 'secondary',
     rejected: 'destructive',
     submitted: 'outline'
+};
+
+const submissionTypes = [
+  'Operational Plans',
+  'Objectives Monitoring',
+  'Risk and Opportunity Registry Form',
+  'Risk and Opportunity Action Plan',
+  'Updated Needs and Expectation of Interested Parties',
+  'SWOT Analysis',
+];
+
+const SubmissionsTable = ({ submissions, isSupervisor, getUserName, onEyeClick, onViewFeedbackClick }: { submissions: Submission[], isSupervisor: boolean, getUserName: (userId: string) => string, onEyeClick: (submissionId: string) => void, onViewFeedbackClick: (comments: any) => void }) => {
+    if (submissions.length === 0) {
+        return (
+            <div className="text-center py-10 text-muted-foreground">
+                No submissions found for this category.
+            </div>
+        );
+    }
+    return (
+        <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Report Type</TableHead>
+                {isSupervisor && <TableHead>Submitter</TableHead>}
+                <TableHead>Unit</TableHead>
+                <TableHead>Year</TableHead>
+                <TableHead>Cycle</TableHead>
+                <TableHead>Submitted At</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {submissions.map((submission) => (
+                <TableRow key={submission.id}>
+                  <TableCell className="font-medium">{submission.reportType}</TableCell>
+                   {isSupervisor && <TableCell>{getUserName(submission.userId)}</TableCell>}
+                  <TableCell>{submission.unitName}</TableCell>
+                  <TableCell>{submission.year}</TableCell>
+                  <TableCell className="capitalize">{submission.cycleId}</TableCell>
+                  <TableCell>
+                    {format(new Date(submission.submissionDate), 'MMMM d, yyyy')}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
+                      {submission.statusId}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right space-x-1">
+                     {submission.statusId === 'rejected' && submission.comments && (
+                        <Button variant="ghost" size="icon" onClick={() => onViewFeedbackClick(submission.comments)}>
+                            <MessageSquare className="h-4 w-4" />
+                            <span className="sr-only">View Feedback</span>
+                        </Button>
+                     )}
+                    <Button variant="ghost" size="icon" onClick={() => onEyeClick(submission.id)}>
+                        <Eye className="h-4 w-4" />
+                        <span className="sr-only">View Details</span>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+    );
 }
 
 
@@ -144,12 +211,20 @@ export default function SubmissionsPage() {
   
   const handleViewFeedback = (comments: any) => {
     if(Array.isArray(comments) && comments.length > 0) {
-        setFeedbackToShow(comments[comments.length-1]?.text || '');
+        setFeedbackToShow(comments[comments.length-1]?.text || 'No feedback provided');
     } else if (typeof comments === 'string') { // Backwards compatibility
         setFeedbackToShow(comments);
+    } else {
+        setFeedbackToShow('No feedback provided.');
     }
     setIsFeedbackDialogOpen(true);
   }
+  
+  const handleEyeClick = (submissionId: string) => {
+      router.push(`/submissions/${submissionId}`);
+  }
+
+  const tabTriggers = ['All Submissions', ...submissionTypes];
 
   return (
     <>
@@ -179,62 +254,43 @@ export default function SubmissionsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-40">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-          ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Report Type</TableHead>
-                {isSupervisor && <TableHead>Submitter</TableHead>}
-                <TableHead>Unit</TableHead>
-                <TableHead>Year</TableHead>
-                <TableHead>Cycle</TableHead>
-                <TableHead>Submitted At</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {submissions?.map((submission) => (
-                <TableRow key={submission.id}>
-                  <TableCell className="font-medium">{submission.reportType}</TableCell>
-                   {isSupervisor && <TableCell>{getUserName(submission.userId)}</TableCell>}
-                  <TableCell>{submission.unitName}</TableCell>
-                  <TableCell>{submission.year}</TableCell>
-                  <TableCell className="capitalize">{submission.cycleId}</TableCell>
-                  <TableCell>
-                    {format(new Date(submission.submissionDate), 'MMMM d, yyyy')}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
-                      {submission.statusId}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right space-x-1">
-                     {submission.statusId === 'rejected' && submission.comments && (
-                        <Button variant="ghost" size="icon" onClick={() => handleViewFeedback(submission.comments)}>
-                            <MessageSquare className="h-4 w-4" />
-                            <span className="sr-only">View Feedback</span>
-                        </Button>
-                     )}
-                    <Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${submission.id}`)}>
-                        <Eye className="h-4 w-4" />
-                        <span className="sr-only">View Details</span>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          )}
-          {!isLoading && submissions?.length === 0 && (
-            <div className="text-center py-10 text-muted-foreground">
-              You have not made any submissions yet.
-            </div>
-          )}
+          <Tabs defaultValue="All Submissions">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+                {tabTriggers.map(tab => (
+                    <TabsTrigger key={tab} value={tab}>{tab}</TabsTrigger>
+                ))}
+            </TabsList>
+
+            {isLoading ? (
+                <div className="flex justify-center items-center h-64">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+            ) : (
+                <>
+                    <TabsContent value="All Submissions">
+                        <SubmissionsTable 
+                            submissions={submissions}
+                            isSupervisor={isSupervisor}
+                            getUserName={getUserName}
+                            onEyeClick={handleEyeClick}
+                            onViewFeedbackClick={handleViewFeedback}
+                        />
+                    </TabsContent>
+
+                    {submissionTypes.map(reportType => (
+                        <TabsContent key={reportType} value={reportType}>
+                            <SubmissionsTable 
+                                submissions={submissions.filter(s => s.reportType === reportType)}
+                                isSupervisor={isSupervisor}
+                                getUserName={getUserName}
+                                onEyeClick={handleEyeClick}
+                                onViewFeedbackClick={handleViewFeedback}
+                            />
+                        </TabsContent>
+                    ))}
+                </>
+            )}
+          </Tabs>
         </CardContent>
       </Card>
       <FeedbackDialog 
