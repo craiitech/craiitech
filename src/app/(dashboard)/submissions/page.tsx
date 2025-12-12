@@ -19,8 +19,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, where, collectionGroup, getDocs } from 'firebase/firestore';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy, where, collectionGroup, getDocs, Timestamp } from 'firebase/firestore';
 import type { Submission, User as AppUser, Role } from '@/lib/types';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
@@ -96,10 +96,15 @@ export default function SubmissionsPage() {
       
       const fetchedSubmissions = snapshot.docs.map(doc => {
         const data = doc.data();
+        const submissionDateRaw = data.submissionDate;
+        const submissionDate =
+          submissionDateRaw instanceof Timestamp
+            ? submissionDateRaw.toDate()
+            : new Date(submissionDateRaw.seconds * 1000);
         return {
           ...data,
           id: doc.id,
-          submissionDate: (data.submissionDate as any)?.toDate ? (data.submissionDate as any).toDate() : new Date(data.submissionDate),
+          submissionDate: submissionDate,
         } as Submission;
       });
 
@@ -221,5 +226,3 @@ export default function SubmissionsPage() {
     </>
   );
 }
-
-    

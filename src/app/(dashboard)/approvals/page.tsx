@@ -84,8 +84,6 @@ export default function ApprovalsPage() {
     if (!firestore) return;
 
     const fetchPrereqs = async () => {
-      // Admins and supervisors need user data to display names.
-      // This is fetched once. Non-admins won't see this page anyway based on sidebar logic.
       const [usersSnapshot, rolesSnapshot] = await Promise.all([
         usersCollection ? getDocs(usersCollection) : Promise.resolve({ docs: [] }),
         rolesCollection ? getDocs(rolesCollection) : Promise.resolve({ docs: [] }),
@@ -127,26 +125,22 @@ export default function ApprovalsPage() {
       try {
         let submissionsQuery;
 
-        // Use collectionGroup to query across all users' submissions subcollections
         const baseQuery = query(
           collectionGroup(firestore, 'submissions'),
           where('statusId', '==', 'submitted')
         );
         
         if (userRole === 'Admin') {
-          // Admin sees all submitted reports
           submissionsQuery = baseQuery;
         } else if (
           userRole === 'Campus Director' ||
           userRole === 'Campus ODIMO'
         ) {
-          // Campus level sees all from their campus
           submissionsQuery = query(
             baseQuery,
             where('campusId', '==', userProfile.campusId)
           );
         } else if (userRole === 'Unit ODIMO') {
-          // Unit level sees all from their unit
           submissionsQuery = query(
             baseQuery,
             where('unitId', '==', userProfile.unitId)
@@ -163,11 +157,11 @@ export default function ApprovalsPage() {
         
         let fetchedSubmissions = submissionsSnapshot.docs.map((doc) => {
           const data = doc.data();
-          // Ensure submissionDate is a Date object
+          const submissionDateRaw = data.submissionDate;
           const submissionDate =
-            data.submissionDate instanceof Timestamp
-              ? data.submissionDate.toDate()
-              : new Date(data.submissionDate.seconds * 1000);
+            submissionDateRaw instanceof Timestamp
+              ? submissionDateRaw.toDate()
+              : new Date(submissionDateRaw.seconds * 1000);
           return {
             id: doc.id,
             ...data,
@@ -176,8 +170,7 @@ export default function ApprovalsPage() {
           } as AggregatedSubmission;
         });
 
-        // Supervisors should not see their own submissions in the approval queue
-        if (userRole !== 'Admin') {
+        if (userRole !== 'Admin' && userProfile) {
             fetchedSubmissions = fetchedSubmissions.filter(s => s.userId !== userProfile.id);
         }
 
@@ -423,5 +416,3 @@ export default function ApprovalsPage() {
     </TooltipProvider>
   );
 }
-
-    

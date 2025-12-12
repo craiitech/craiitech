@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
-import { format, subMonths } from 'date-fns';
+import { format, subMonths, isValid } from 'date-fns';
 import type { Submission } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChartTooltipContent } from '@/components/ui/chart';
@@ -33,9 +33,11 @@ export function Overview({ submissions, isLoading }: OverviewProps) {
     if (submissions) {
       submissions.forEach((submission) => {
         const submissionDate = new Date(submission.submissionDate);
-        const monthKey = format(submissionDate, 'yyyy-MM');
-        if (monthlyData[monthKey]) {
-          monthlyData[monthKey].total += 1;
+        if (isValid(submissionDate)) {
+            const monthKey = format(submissionDate, 'yyyy-MM');
+            if (monthlyData[monthKey]) {
+              monthlyData[monthKey].total += 1;
+            }
         }
       });
     }
