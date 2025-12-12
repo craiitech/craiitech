@@ -31,7 +31,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import {
   collection,
   query,
@@ -71,32 +71,12 @@ export default function ApprovalsPage() {
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [dialogMode, setDialogMode] = useState<'reject' | 'view'>('view');
 
-  const usersCollection = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'users') : null),
-    [firestore]
-  );
-  const rolesCollection = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'roles') : null),
-    [firestore]
-  );
-
   useEffect(() => {
     if (!firestore) return;
 
-    const fetchPrereqs = async () => {
-      const [usersSnapshot, rolesSnapshot] = await Promise.all([
-        usersCollection ? getDocs(usersCollection) : Promise.resolve({ docs: [] }),
-        rolesCollection ? getDocs(rolesCollection) : Promise.resolve({ docs: [] }),
-      ]);
-
-      setUsers(
-        Object.fromEntries(
-          usersSnapshot.docs.map((d) => [
-            d.id,
-            { id: d.id, ...d.data() } as AppUser,
-          ])
-        )
-      );
+    const fetchRoles = async () => {
+      const rolesCollection = collection(firestore, 'roles');
+      const rolesSnapshot = await getDocs(rolesCollection);
       setRoles(
         Object.fromEntries(
           rolesSnapshot.docs.map((d) => [
@@ -107,8 +87,8 @@ export default function ApprovalsPage() {
       );
     };
 
-    fetchPrereqs();
-  }, [firestore, usersCollection, rolesCollection]);
+    fetchRoles();
+  }, [firestore]);
 
   const userRole = useMemo(() => {
     if (isAdmin) return 'Admin';
@@ -116,20 +96,19 @@ export default function ApprovalsPage() {
     return roles[userProfile.roleId]?.name;
   }, [isAdmin, userProfile, roles]);
 
+  // Effect to fetch submissions based on user role
   useEffect(() => {
-    if (!firestore || !userRole || !userProfile || !Object.keys(users).length)
-      return;
+    if (!firestore || !userRole || !userProfile) return;
 
     const fetchSubmissions = async () => {
       setIsLoading(true);
       try {
-        let submissionsQuery;
-
         const baseQuery = query(
           collectionGroup(firestore, 'submissions'),
           where('statusId', '==', 'submitted')
         );
-        
+
+        let submissionsQuery;
         if (userRole === 'Admin') {
           submissionsQuery = baseQuery;
         } else if (
@@ -146,7 +125,7 @@ export default function ApprovalsPage() {
             where('unitId', '==', userProfile.unitId)
           );
         }
-        
+
         if (!submissionsQuery) {
           setSubmissions([]);
           setIsLoading(false);
@@ -154,7 +133,6 @@ export default function ApprovalsPage() {
         }
 
         const submissionsSnapshot = await getDocs(submissionsQuery);
-        
         let fetchedSubmissions = submissionsSnapshot.docs.map((doc) => {
           const data = doc.data();
           const submissionDateRaw = data.submissionDate;
@@ -170,8 +148,11 @@ export default function ApprovalsPage() {
           } as AggregatedSubmission;
         });
 
-        if (userRole !== 'Admin' && userProfile) {
-            fetchedSubmissions = fetchedSubmissions.filter(s => s.userId !== userProfile.id);
+        // Filter out submissions made by the approver themselves, unless they are an admin
+        if (userRole !== 'Admin') {
+          fetchedSubmissions = fetchedSubmissions.filter(
+            (s) => s.userId !== userProfile.id
+          );
         }
 
         setSubmissions(fetchedSubmissions);
@@ -188,9 +169,47 @@ export default function ApprovalsPage() {
     };
 
     fetchSubmissions();
-  }, [firestore, userRole, userProfile, toast, users, isAdmin]);
+  }, [firestore, userRole, userProfile, toast]);
 
-  const handleApprove = async (submissionPath: string, submissionId: string) => {
+  // Effect to fetch users for the loaded submissions
+  useEffect(() => {
+    if (!firestore || submissions.length === 0) return;
+
+    const fetchUsers = async () => {
+      const userIds = [...new Set(submissions.map((s) => s.userId))];
+      const newUsers: Record<string, AppUser> = {};
+
+      if (userIds.length > 0) {
+        // Firestore 'in' query limit is 30. Chunk if necessary.
+        const chunks: string[][] = [];
+        for (let i = 0; i < userIds.length; i += 30) {
+          chunks.push(userIds.slice(i, i + 30));
+        }
+
+        await Promise.all(
+          chunks.map(async (chunk) => {
+            const usersQuery = query(
+              collection(firestore, 'users'),
+              where('id', 'in', chunk)
+            );
+            const usersSnapshot = await getDocs(usersQuery);
+            usersSnapshot.forEach((doc) => {
+              newUsers[doc.id] = { id: doc.id, ...doc.data() } as AppUser;
+            });
+          })
+        );
+      }
+
+      setUsers((prevUsers) => ({ ...prevUsers, ...newUsers }));
+    };
+
+    fetchUsers();
+  }, [firestore, submissions]);
+
+  const handleApprove = async (
+    submissionPath: string,
+    submissionId: string
+  ) => {
     if (!firestore) return;
     const submissionRef = doc(firestore, submissionPath);
     try {
@@ -219,22 +238,31 @@ export default function ApprovalsPage() {
     setDialogMode(mode);
     setIsDialogOpen(true);
   };
-  
+
   const handleRejectWithFeedback = async () => {
     if (!firestore || !currentSubmission || !feedback) {
-        toast({ title: 'Error', description: 'Feedback cannot be empty.', variant: 'destructive'});
-        return;
-    };
+      toast({
+        title: 'Error',
+        description: 'Feedback cannot be empty.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setIsSubmittingFeedback(true);
     const submissionRef = doc(firestore, currentSubmission.originalPath);
     try {
-      await updateDoc(submissionRef, { statusId: 'rejected', comments: feedback });
+      await updateDoc(submissionRef, {
+        statusId: 'rejected',
+        comments: feedback,
+      });
       toast({
         title: 'Success',
         description: `Submission has been rejected.`,
       });
-      setSubmissions(submissions.filter(s => s.id !== currentSubmission.id));
+      setSubmissions(
+        submissions.filter((s) => s.id !== currentSubmission.id)
+      );
       setIsDialogOpen(false);
     } catch (error) {
       console.error('Error rejecting submission:', error);
@@ -244,14 +272,13 @@ export default function ApprovalsPage() {
         variant: 'destructive',
       });
     } finally {
-        setIsSubmittingFeedback(false);
+      setIsSubmittingFeedback(false);
     }
-  }
-
+  };
 
   const getUserName = (userId: string) => {
     const user = users[userId];
-    return user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
+    return user ? `${user.firstName} ${user.lastName}` : 'Loading...';
   };
 
   if (isLoading) {
@@ -336,7 +363,9 @@ export default function ApprovalsPage() {
                             variant="ghost"
                             size="icon"
                             className="text-red-600 hover:text-red-700"
-                            onClick={() => handleOpenDialog(submission, 'reject')}
+                            onClick={() =>
+                              handleOpenDialog(submission, 'reject')
+                            }
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -348,10 +377,12 @@ export default function ApprovalsPage() {
                       {submission.comments && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="icon"
-                              onClick={() => handleOpenDialog(submission, 'view')}
+                              onClick={() =>
+                                handleOpenDialog(submission, 'view')
+                              }
                             >
                               <MessageSquare className="h-4 w-4 text-muted-foreground" />
                             </Button>
@@ -375,14 +406,18 @@ export default function ApprovalsPage() {
         </Card>
       </div>
 
-       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-                {dialogMode === 'reject' ? 'Provide Feedback for Rejection' : 'View Submission Comments'}
+              {dialogMode === 'reject'
+                ? 'Provide Feedback for Rejection'
+                : 'View Submission Comments'}
             </DialogTitle>
             <DialogDescription>
-             {dialogMode === 'reject' ? 'Please provide a reason for rejecting this submission. This feedback will be sent to the user.' : 'Viewing comments for the submission.'}
+              {dialogMode === 'reject'
+                ? 'Please provide a reason for rejecting this submission. This feedback will be sent to the user.'
+                : 'Viewing comments for the submission.'}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -396,23 +431,33 @@ export default function ApprovalsPage() {
                 onChange={(e) => setFeedback(e.target.value)}
                 className="col-span-3"
                 readOnly={dialogMode === 'view'}
-                placeholder={dialogMode === 'reject' ? 'Type your feedback here...' : 'No comments provided.'}
+                placeholder={
+                  dialogMode === 'reject'
+                    ? 'Type your feedback here...'
+                    : 'No comments provided.'
+                }
               />
             </div>
           </div>
           <DialogFooter>
             {dialogMode === 'reject' ? (
-                <Button onClick={handleRejectWithFeedback} disabled={isSubmittingFeedback}>
-                    {isSubmittingFeedback && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Submit Rejection
-                </Button>
+              <Button
+                onClick={handleRejectWithFeedback}
+                disabled={isSubmittingFeedback}
+              >
+                {isSubmittingFeedback && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Submit Rejection
+              </Button>
             ) : (
-                <Button onClick={() => setIsDialogOpen(false)}>Close</Button>
+              <Button onClick={() => setIsDialogOpen(false)}>Close</Button>
             )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </TooltipProvider>
   );
 }
+
+    
