@@ -154,7 +154,7 @@ export function UnitManagement() {
   const unassignedUnits = useMemo(() => {
       if (!allUnits) return [];
       return allUnits.filter(u => !u.campusId);
-  }, [allUnits]);
+  }, [allUnits, isAdmin, userProfile]);
 
   const visibleUnits = useMemo(() => {
     if (isAdmin) return allUnits;
