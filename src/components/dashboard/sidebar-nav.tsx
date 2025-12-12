@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   useUser,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../ui/sidebar';
 
 export function SidebarNav({
@@ -59,16 +59,28 @@ export function SidebarNav({
   });
 
   return (
-    <SidebarMenu>
-      {visibleRoutes.map((route) => (
-        <SidebarMenuItem key={route.href}>
-          <Link href={route.href} passHref>
-            <SidebarMenuButton as="a" isActive={route.active} icon={route.icon} {...props}>
-              {route.label}
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
-      ))}
-    </SidebarMenu>
+    <div className="flex flex-col h-full">
+      <SidebarMenu className="flex-1">
+        {visibleRoutes.map((route) => (
+          <SidebarMenuItem key={route.href} className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md">
+            <Link href={route.href} passHref>
+              <SidebarMenuButton as="a" isActive={route.active} icon={route.icon} {...props} className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground hover:bg-sidebar-accent">
+                {route.label}
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
+      <div className="mt-auto">
+         <SidebarMenu>
+            <SidebarMenuItem>
+                <SidebarMenuButton icon={<HelpCircle/>} className="hover:bg-sidebar-accent">Help</SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+                <SidebarMenuButton icon={<LogOut/>} className="hover:bg-sidebar-accent">Logout</SidebarMenuButton>
+            </SidebarMenuItem>
+        </SidebarMenu>
+      </div>
+    </div>
   );
 }

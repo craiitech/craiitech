@@ -13,12 +13,14 @@ import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
+  SidebarFooter
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
 import { Button } from '@/components/ui/button';
 import { useEffect, useMemo } from 'react';
 import type { Campus, Unit } from '@/lib/types';
 import { collection } from 'firebase/firestore';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const LoadingSkeleton = () => (
   <div className="flex items-start">
@@ -58,13 +60,10 @@ export default function DashboardLayout({
   const firebaseState = useFirebase();
   const pathname = usePathname();
 
-  // If services aren't available yet, show a loading skeleton and stop rendering further.
-  // This is the main gate to prevent premature data fetches.
   if (!firebaseState.areServicesAvailable) {
     return <LoadingSkeleton />;
   }
 
-  // Destructure the rest of the state only after we know services are available.
   const { user, userProfile, isUserLoading, isAdmin, userRole, firestore } = firebaseState;
   
   const isStillLoading = isUserLoading;
@@ -79,10 +78,7 @@ export default function DashboardLayout({
     if (!userProfile || !campuses || !units) return '';
     const campusName = campuses.find(c => c.id === userProfile.campusId)?.name;
     const unitName = units.find(u => u.id === userProfile.unitId)?.name;
-    let locationString = '';
-    if (campusName) {
-        locationString += ` / ${campusName}`;
-    }
+    let locationString = campusName || 'Campus';
     if (unitName) {
         locationString += ` / ${unitName}`;
     }
@@ -90,14 +86,13 @@ export default function DashboardLayout({
   }, [userProfile, campuses, units]);
 
   useEffect(() => {
-    if (isStillLoading) return; // Don't do anything while loading
+    if (isStillLoading) return;
 
     if (!user) {
       redirect('/login');
       return;
     }
 
-    // Allow users to be on these specific pages without checks
     if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
       return;
     }
@@ -106,7 +101,6 @@ export default function DashboardLayout({
       const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
       const isCampusLevelUser = userRole ? campusLevelRoles.some(r => userRole.toLowerCase() === r.toLowerCase()) : false;
 
-      // Check if essential fields are missing
       const isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || (!isCampusLevelUser && !userProfile.unitId);
 
       if (isProfileIncomplete) {
@@ -126,7 +120,6 @@ export default function DashboardLayout({
     return <LoadingSkeleton />;
   }
 
-  // If we have a user but they are about to be redirected, show a minimal layout
   if (!user || (user && !userProfile && !isAdmin && pathname !== '/complete-registration')) {
      return <div className="flex h-screen w-screen items-center justify-center"><Skeleton className="h-16 w-16" /></div>;
   }
@@ -134,28 +127,32 @@ export default function DashboardLayout({
   return (
     <SidebarProvider>
       <Sidebar variant="sidebar" collapsible="icon">
-        <SidebarHeader>
-          <Button variant="ghost" className="h-8 w-full justify-start gap-2 px-2">
-            <Logo className="size-5" />
-            <span className="text-lg font-semibold">RSU EOMS</span>
-          </Button>
+        <SidebarHeader className="items-center justify-center text-center p-4">
+           <Avatar className="h-20 w-20">
+              <AvatarImage src={userProfile?.avatar} alt={userProfile?.firstName} />
+              <AvatarFallback className="text-2xl">
+                {userProfile?.firstName?.charAt(0)}
+                {userProfile?.lastName?.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="mt-2">
+                <p className="font-semibold text-lg">{userProfile?.firstName} {userProfile?.lastName}</p>
+                 <p className="text-xs text-sidebar-foreground/70">{userRole}</p>
+            </div>
         </SidebarHeader>
-        <SidebarContent>
+        <SidebarContent className="p-4">
           <SidebarNav />
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 items-center justify-between border-b px-4 lg:px-8">
+        <header className="flex h-16 items-center justify-between border-b px-4 lg:px-8 bg-card">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="md:hidden" />
-            <div className="hidden md:block font-semibold text-sm">
-              {userRole ? `${userRole} Dashboard` : 'Dashboard'}
-              {!isAdmin && userLocation && <span className="text-muted-foreground">{userLocation}</span>}
-            </div>
+            <h1 className="font-semibold text-lg">{pathname.split('/').pop()?.charAt(0).toUpperCase() + pathname.slice(2)}</h1>
           </div>
           <UserNav user={user} />
         </header>
-        <main className="p-4 lg:p-8">{children}</main>
+        <main className="p-4 lg:p-8 bg-background/90">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );

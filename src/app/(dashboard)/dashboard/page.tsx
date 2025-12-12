@@ -21,6 +21,9 @@ import {
   FilePlus,
   AlertCircle,
   Eye,
+  Search,
+  Bell,
+  Heart
 } from 'lucide-react';
 import {
   useUser,
@@ -59,6 +62,7 @@ import {
 import { format } from 'date-fns';
 import { SubmissionAnalytics } from '@/components/dashboard/submission-analytics';
 import { useRouter } from 'next/navigation';
+import { Input } from '@/components/ui/input';
 
 const submissionTypes = [
   'Operational Plans',
@@ -89,7 +93,6 @@ export default function DashboardPage() {
   const [userCount, setUserCount] = useState(0);
   const [allUsers, setAllUsers] = useState<Record<string, AppUser>>({});
 
-  // Determine user role and scope from the denormalized role name in userProfile
   const userRoleName = userRole;
 
   const isCampusSupervisor =
@@ -97,7 +100,6 @@ export default function DashboardPage() {
   
   const canViewAnnouncements = userProfile?.campusId;
 
-  // Memoize the submissions query based on the user's role
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
 
@@ -114,7 +116,6 @@ export default function DashboardPage() {
       );
     }
     
-    // Regular user's own submissions, including Unit ODIMO's own.
     return query(
       collection(firestore, 'submissions'),
       where('userId', '==', userProfile.id)
@@ -132,7 +133,6 @@ export default function DashboardPage() {
   const { data: allUnits, isLoading: isLoadingUnits } =
     useCollection<Unit>(allUnitsQuery);
 
-  // Fetch user count and all users for admins
   useEffect(() => {
     if (!firestore || (!isAdmin && !isCampusSupervisor)) {
       setUserCount(0);
@@ -202,17 +202,17 @@ export default function DashboardPage() {
         stat1: {
           title: 'Pending Approvals',
           value: submissions.filter((s) => s.statusId === 'submitted').length,
-          icon: <Clock className="h-4 w-4 text-muted-foreground" />,
+          icon: <Clock className="h-6 w-6 text-primary" />,
         },
         stat2: {
           title: 'Total Submissions',
           value: submissions.length,
-          icon: <FileText className="h-4 w-4 text-muted-foreground" />,
+          icon: <FileText className="h-6 w-6 text-primary" />,
         },
         stat3: {
           title: 'Total Users',
           value: userCount,
-          icon: <Users className="h-4 w-4 text-muted-foreground" />,
+          icon: <Users className="h-6 w-6 text-primary" />,
         },
       };
     } else if (isCampusSupervisor) {
@@ -228,22 +228,22 @@ export default function DashboardPage() {
           title: 'Required Submissions',
           value: `${uniqueSubmissionsCount} of ${totalRequired}`,
           description: `Across ${unitsInCampus} units`,
-          icon: <FileText className="h-4 w-4 text-muted-foreground" />,
+          icon: <FileText className="h-6 w-6 text-primary" />,
         },
         stat2: {
           title: 'Campus Submissions',
           value: currentYearSubmissions.length,
           description: `Total for your campus this year`,
-          icon: <FileText className="h-4 w-4 text-muted-foreground" />,
+          icon: <FileText className="h-6 w-6 text-primary" />,
         },
         stat3: {
           title: 'Campus Users',
           value: userCount,
           description: `Users in your campus`,
-          icon: <Users className="h-4 w-4 text-muted-foreground" />,
+          icon: <Users className="h-6 w-6 text-primary" />,
         },
       };
-    } else { // This handles Unit ODIMO and regular Unit Coordinators
+    } else {
         const uniqueFirstCycle = new Set(
             currentYearSubmissions
             .filter((s) => s.cycleId === 'first')
@@ -260,22 +260,22 @@ export default function DashboardPage() {
         
         return {
             stat1: {
-              title: 'Required Submissions',
+              title: 'First Cycle',
               value: `${firstCycleCount} of ${TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT}`,
-              description: `First Cycle - ${new Date().getFullYear()}`,
-              icon: <FileText className="h-4 w-4 text-muted-foreground" />,
+              description: `Submissions for ${new Date().getFullYear()}`,
+              icon: <FileText className="h-6 w-6 text-primary" />,
             },
             stat2: {
-              title: 'Required Submissions',
+              title: 'Final Cycle',
               value: `${finalCycleCount} of ${TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT}`,
-              description: `Final Cycle - ${new Date().getFullYear()}`,
-              icon: <FileText className="h-4 w-4 text-muted-foreground" />,
+              description: `Submissions for ${new Date().getFullYear()}`,
+              icon: <FileText className="h-6 w-6 text-primary" />,
             },
             stat3: {
               title: 'Total Approved',
               value: submissions.filter((s) => s.statusId === 'approved').length,
-              description: 'Your approved submissions',
-              icon: <CheckCircle className="h-4 w-4 text-muted-foreground" />,
+              description: 'All your approved submissions',
+              icon: <CheckCircle className="h-6 w-6 text-primary" />,
             },
         };
     }
@@ -331,9 +331,11 @@ export default function DashboardPage() {
     description?: string
   ) => (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon}
+      <CardHeader className="pb-2">
+        <div className='flex justify-between items-start'>
+            <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            {icon}
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -717,18 +719,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        {!isCampusSupervisor && !isAdmin && (
-          <Button asChild>
-            <Link href="/submissions/new">
-              <FilePlus className="mr-2 h-4 w-4" />
-              Submit EOMS Document
-            </Link>
-          </Button>
-        )}
-      </div>
-
       {announcement && !isLoading && (
         <Alert>
           <Megaphone className="h-4 w-4" />
