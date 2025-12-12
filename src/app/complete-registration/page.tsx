@@ -79,7 +79,7 @@ export default function CompleteRegistrationPage() {
   const isUnitRequired = useMemo(() => {
     if (!selectedRole) return true; // Default to required if data is not loaded
     const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
-    // Make the check case-insensitive for 'Campus ODIMO'
+    // Make the check case-insensitive
     return !campusLevelRoles.some(r => r.toLowerCase() === selectedRole.name.toLowerCase());
   }, [selectedRole]);
 
@@ -172,7 +172,7 @@ export default function CompleteRegistrationPage() {
 
       await updateDoc(userDocRef, {
         campusId: values.campusId,
-        unitId: values.unitId || '',
+        unitId: isUnitRequired ? values.unitId : '',
         roleId: values.roleId,
         role: selectedRoleObject ? selectedRoleObject.name : '',
         verified: false,
@@ -279,7 +279,7 @@ export default function CompleteRegistrationPage() {
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder={"Select your unit"} />
-                            </SelectTrigger>
+                            </Trigger>
                         </FormControl>
                         <SelectContent>
                             {units?.map((unit) => (
