@@ -127,8 +127,19 @@ export default function HomePage() {
     );
   }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
 
-  const { data: submissions, isLoading: isLoadingSubmissions } =
+  const { data: rawSubmissions, isLoading: isLoadingSubmissions } =
     useCollection<Submission>(submissionsQuery);
+
+  const submissions = useMemo(() => {
+    if (!rawSubmissions) return null;
+    return rawSubmissions.map(s => {
+      const date = s.submissionDate;
+      return {
+        ...s,
+        submissionDate: date instanceof Timestamp ? date.toDate() : new Date(date)
+      }
+    });
+  }, [rawSubmissions]);
 
   const allUnitsQuery = useMemoFirebase(() => {
     if (!firestore || (!isAdmin && !isCampusSupervisor)) return null;
@@ -867,5 +878,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    

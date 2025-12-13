@@ -267,7 +267,7 @@ export default function SubmissionsPage() {
             const submissionDate =
             submissionDateRaw instanceof Timestamp
                 ? submissionDateRaw.toDate()
-                : new Date(submissionDateRaw.seconds * 1000);
+                : new Date(submissionDateRaw?.seconds * 1000);
             return {
             ...data,
             id: doc.id,

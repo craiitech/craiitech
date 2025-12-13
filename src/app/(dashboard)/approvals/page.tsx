@@ -127,7 +127,7 @@ export default function ApprovalsPage() {
           const submissionDate =
             submissionDateRaw instanceof Timestamp
               ? submissionDateRaw.toDate()
-              : new Date(submissionDateRaw.seconds * 1000);
+              : new Date(submissionDateRaw?.seconds * 1000);
           return {
             id: doc.id,
             ...data,
@@ -458,5 +458,3 @@ export default function ApprovalsPage() {
     </TooltipProvider>
   );
 }
-
-    
