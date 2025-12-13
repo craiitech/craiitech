@@ -1,7 +1,7 @@
 
 'use client';
 
-import { PlusCircle, MessageSquare, Eye } from 'lucide-react';
+import { PlusCircle, MessageSquare, Eye, ArrowUpDown } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -63,7 +63,29 @@ const submissionTypes = [
   'SWOT Analysis',
 ];
 
-const SubmissionsTable = ({ submissions, isSupervisor, getUserName, onEyeClick, onViewFeedbackClick }: { submissions: Submission[], isSupervisor: boolean, getUserName: (userId: string) => string, onEyeClick: (submissionId: string) => void, onViewFeedbackClick: (comments: any) => void }) => {
+type SortConfig = {
+    key: keyof Submission | 'submitterName';
+    direction: 'ascending' | 'descending';
+} | null;
+
+
+const SubmissionsTable = ({ 
+    submissions, 
+    isSupervisor, 
+    getUserName, 
+    onEyeClick, 
+    onViewFeedbackClick,
+    sortConfig,
+    requestSort
+}: { 
+    submissions: Submission[], 
+    isSupervisor: boolean, 
+    getUserName: (userId: string) => string, 
+    onEyeClick: (submissionId: string) => void, 
+    onViewFeedbackClick: (comments: any) => void,
+    sortConfig: SortConfig,
+    requestSort: (key: keyof Submission | 'submitterName') => void
+ }) => {
     if (submissions.length === 0) {
         return (
             <div className="text-center py-10 text-muted-foreground">
@@ -71,17 +93,62 @@ const SubmissionsTable = ({ submissions, isSupervisor, getUserName, onEyeClick, 
             </div>
         );
     }
+
+    const getSortIndicator = (key: keyof Submission | 'submitterName') => {
+      if (!sortConfig || sortConfig.key !== key) {
+        return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
+      }
+      return sortConfig.direction === 'ascending' ? ' ▲' : ' ▼';
+    };
+
     return (
         <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Report Type</TableHead>
-                {isSupervisor && <TableHead>Submitter</TableHead>}
-                <TableHead>Unit</TableHead>
-                <TableHead>Year</TableHead>
-                <TableHead>Cycle</TableHead>
-                <TableHead>Submitted At</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>
+                   <Button variant="ghost" onClick={() => requestSort('reportType')}>
+                        Report Type
+                        {getSortIndicator('reportType')}
+                    </Button>
+                </TableHead>
+                {isSupervisor && (
+                    <TableHead>
+                        <Button variant="ghost" onClick={() => requestSort('submitterName')}>
+                            Submitter
+                            {getSortIndicator('submitterName')}
+                        </Button>
+                    </TableHead>
+                )}
+                <TableHead>
+                     <Button variant="ghost" onClick={() => requestSort('unitName')}>
+                        Unit
+                        {getSortIndicator('unitName')}
+                    </Button>
+                </TableHead>
+                <TableHead>
+                    <Button variant="ghost" onClick={() => requestSort('year')}>
+                        Year
+                        {getSortIndicator('year')}
+                    </Button>
+                </TableHead>
+                <TableHead>
+                    <Button variant="ghost" onClick={() => requestSort('cycleId')}>
+                        Cycle
+                        {getSortIndicator('cycleId')}
+                    </Button>
+                </TableHead>
+                <TableHead>
+                    <Button variant="ghost" onClick={() => requestSort('submissionDate')}>
+                        Submitted At
+                        {getSortIndicator('submissionDate')}
+                    </Button>
+                </TableHead>
+                <TableHead>
+                     <Button variant="ghost" onClick={() => requestSort('statusId')}>
+                        Status
+                        {getSortIndicator('statusId')}
+                    </Button>
+                </TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -137,6 +204,7 @@ export default function SubmissionsPage() {
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [feedbackToShow, setFeedbackToShow] = useState('');
   const [activeFilter, setActiveFilter] = useState<string>('All Submissions');
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'submissionDate', direction: 'descending'});
 
   const isSupervisor = useMemo(() => {
     if (!userRole) return false;
@@ -190,9 +258,6 @@ export default function SubmissionsPage() {
             submissionDate: submissionDate,
             } as Submission;
         });
-
-        // Sort client-side for all roles to ensure consistent ordering
-        fetchedSubmissions.sort((a, b) => b.submissionDate.getTime() - a.submissionDate.getTime());
 
         // If supervisor, fetch needed user data for display
         if (isSupervisor) {
@@ -248,12 +313,44 @@ export default function SubmissionsPage() {
       router.push(`/submissions/${submissionId}`);
   }
 
-  const filteredSubmissions = useMemo(() => {
-    if (activeFilter === 'All Submissions') {
-      return submissions;
+  const requestSort = (key: keyof Submission | 'submitterName') => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+        direction = 'descending';
     }
-    return submissions.filter(s => s.reportType === activeFilter);
-  }, [submissions, activeFilter]);
+    setSortConfig({ key, direction });
+  };
+
+  const sortedSubmissions = useMemo(() => {
+    let sortableItems = [...submissions];
+    if (activeFilter !== 'All Submissions') {
+      sortableItems = sortableItems.filter(s => s.reportType === activeFilter);
+    }
+
+    if (sortConfig !== null) {
+        sortableItems.sort((a, b) => {
+            let aValue, bValue;
+
+            if (sortConfig.key === 'submitterName') {
+                aValue = getUserName(a.userId);
+                bValue = getUserName(b.userId);
+            } else {
+                aValue = a[sortConfig.key];
+                bValue = b[sortConfig.key];
+            }
+
+            if (aValue < bValue) {
+                return sortConfig.direction === 'ascending' ? -1 : 1;
+            }
+            if (aValue > bValue) {
+                return sortConfig.direction === 'ascending' ? 1 : -1;
+            }
+            return 0;
+        });
+    }
+
+    return sortableItems;
+  }, [submissions, activeFilter, sortConfig, users]);
 
 
   return (
@@ -337,11 +434,13 @@ export default function SubmissionsPage() {
                 </div>
             ) : (
                 <SubmissionsTable 
-                    submissions={filteredSubmissions}
+                    submissions={sortedSubmissions}
                     isSupervisor={isSupervisor}
                     getUserName={getUserName}
                     onEyeClick={handleEyeClick}
                     onViewFeedbackClick={handleViewFeedback}
+                    sortConfig={sortConfig}
+                    requestSort={requestSort}
                 />
             )}
         </CardContent>
