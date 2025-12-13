@@ -355,6 +355,11 @@ export default function HomePage() {
         return dateB - dateA;
     });
   }, [submissions]);
+  
+  const campusMap = useMemo(() => {
+    if (!allCampuses) return new Map<string, string>();
+    return new Map(allCampuses.map(c => [c.id, c.name]));
+  }, [allCampuses]);
 
   const renderCard = (
     title: string,
@@ -772,6 +777,7 @@ export default function HomePage() {
                   <TableHead>Report Type</TableHead>
                   <TableHead>Submitter</TableHead>
                   <TableHead>Unit</TableHead>
+                  <TableHead>Campus</TableHead>
                   <TableHead>Submitted At</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -779,7 +785,7 @@ export default function HomePage() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center h-24">
+                    <TableCell colSpan={6} className="text-center h-24">
                       Loading...
                     </TableCell>
                   </TableRow>
@@ -794,6 +800,7 @@ export default function HomePage() {
                         {allUsers[submission.userId]?.lastName}
                       </TableCell>
                       <TableCell>{submission.unitName}</TableCell>
+                      <TableCell>{campusMap.get(submission.campusId)}</TableCell>
                       <TableCell>
                         {submission.submissionDate instanceof Date ? format(submission.submissionDate, 'PP') : 'Invalid Date'}
                       </TableCell>
@@ -812,7 +819,7 @@ export default function HomePage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center h-24">
+                    <TableCell colSpan={6} className="text-center h-24">
                       The approval queue is empty.
                     </TableCell>
                   </TableRow>
