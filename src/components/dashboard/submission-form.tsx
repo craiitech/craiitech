@@ -99,6 +99,29 @@ export function SubmissionForm({
       comments: '',
     },
   });
+  
+  // Effect to pre-fill form if an existing submission exists
+  useEffect(() => {
+    const fetchExistingSubmission = async () => {
+        if (!firestore || !user) return;
+        const q = query(
+            collection(firestore, 'submissions'),
+            where('userId', '==', user.uid),
+            where('reportType', '==', reportType),
+            where('year', '==', year),
+            where('cycleId', '==', cycleId)
+        );
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            const existingData = querySnapshot.docs[0].data() as Submission;
+            if (existingData.googleDriveLink) {
+              form.setValue('googleDriveLink', existingData.googleDriveLink);
+              handleLinkValidation(existingData.googleDriveLink);
+            }
+        }
+    }
+    fetchExistingSubmission();
+  }, [firestore, user, reportType, year, cycleId, form]);
 
   const googleDriveLinkValue = form.watch('googleDriveLink');
   useEffect(() => {
