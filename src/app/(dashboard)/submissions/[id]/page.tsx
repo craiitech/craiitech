@@ -133,7 +133,7 @@ export default function SubmissionDetailPage() {
 
   const canApprove = useMemo(() => {
       if (!userRole) return false;
-      return ['Admin', 'Unit ODIMO'].includes(userRole);
+      return ['Admin', 'Campus ODIMO'].includes(userRole);
   }, [userRole]);
   
   const isApprover = 
@@ -420,5 +420,3 @@ export default function SubmissionDetailPage() {
     </div>
   );
 }
-
-    

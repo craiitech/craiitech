@@ -68,7 +68,7 @@ export default function ApprovalsPage() {
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [dialogMode, setDialogMode] = useState<'reject' | 'view'>('view');
   
-  const canApprove = userRole === 'Admin' || userRole === 'Unit ODIMO' || userRole === 'Campus ODIMO';
+  const canApprove = userRole === 'Admin' || userRole === 'Campus ODIMO';
 
 
   // Effect to fetch submissions based on user role
@@ -89,8 +89,7 @@ export default function ApprovalsPage() {
         const submissionsCollection = collection(firestore, 'submissions');
         let baseQuery;
 
-        // Admins and Unit ODIMOs see submissions needing unit-level approval.
-        // Campus Directors and Campus ODIMOs see all submitted reports in their campus.
+        // Admins and Campus ODIMOs see submissions needing approval.
         if (userRole === 'Admin') {
           baseQuery = query(
             submissionsCollection,
@@ -103,13 +102,6 @@ export default function ApprovalsPage() {
           baseQuery = query(
             submissionsCollection,
             where('campusId', '==', userProfile.campusId),
-            where('statusId', '==', 'submitted')
-          );
-        } else if (userRole === 'Unit ODIMO' && userProfile?.unitId) {
-          // This case is covered by campus-level for now, but could be specific if needed
-          baseQuery = query(
-            submissionsCollection,
-            where('unitId', '==', userProfile.unitId),
             where('statusId', '==', 'submitted')
           );
         }
@@ -333,7 +325,7 @@ export default function ApprovalsPage() {
                         rel="noopener noreferrer"
                         className="hover:underline"
                       >
-                        {submission.googleDriveLink}
+                        {submission.reportType}
                       </a>
                     </TableCell>
                     <TableCell>{getUserName(submission.userId)}</TableCell>
