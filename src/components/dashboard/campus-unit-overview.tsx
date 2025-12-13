@@ -8,7 +8,7 @@ import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
+import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/app/(dashboard)/dashboard/page';
 
 interface CampusUnitOverviewProps {
   allUnits: Unit[] | null;
@@ -34,8 +34,9 @@ export function CampusUnitOverview({
 
     return campusUnits.map(unit => {
       const unitSubmissions = allSubmissions.filter(s => s.unitId === unit.id && s.year === currentYear);
-      const uniqueReports = new Set(unitSubmissions.map(s => s.reportType));
-      const submissionCount = uniqueReports.size;
+      // A unique submission is a combination of report type and cycle
+      const uniqueSubmissions = new Set(unitSubmissions.map(s => `${s.reportType}-${s.cycleId}`));
+      const submissionCount = uniqueSubmissions.size;
       const progress = (submissionCount / TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT) * 100;
 
       return {

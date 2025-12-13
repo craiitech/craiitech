@@ -54,11 +54,12 @@ export function CompletedSubmissions({
         const campusUnits = unitsByCampus[campus.id] || [];
         const completedUnits = campusUnits.map(unit => {
             const unitSubmissions = allSubmissions.filter(s => s.unitId === unit.id && s.year === currentYear);
-            const uniqueReports = new Set(unitSubmissions.map(s => s.reportType));
+            // A unique submission is a combination of report type and cycle
+            const uniqueSubmissions = new Set(unitSubmissions.map(s => `${s.reportType}-${s.cycleId}`));
             return {
                 id: unit.id,
                 name: unit.name,
-                count: uniqueReports.size
+                count: uniqueSubmissions.size
             };
         }).filter(unit => unit.count >= TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT);
         

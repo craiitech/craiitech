@@ -80,7 +80,7 @@ export const submissionTypes = [
   'SWOT Analysis',
 ];
 
-export const TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT = 6;
+export const TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT = 12; // 6 for First, 6 for Final
 
 const statusVariant: Record<
   string,
@@ -248,7 +248,7 @@ export default function HomePage() {
       };
     } else if (isCampusSupervisor) {
       const totalRequired = unitsInCampus.length * TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT;
-      const uniqueSubmissionsCount = new Set(currentYearSubmissions.map(s => s.reportType + s.unitId)).size;
+      const uniqueSubmissionsCount = new Set(currentYearSubmissions.map(s => s.reportType + s.unitId + s.cycleId)).size;
 
       return {
         stat1: {
@@ -288,13 +288,13 @@ export default function HomePage() {
         return {
             stat1: {
               title: 'First Cycle',
-              value: `${firstCycleCount} of ${TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT}`,
+              value: `${firstCycleCount} of ${submissionTypes.length}`,
               description: `Submissions for ${new Date().getFullYear()}`,
               icon: <FileText className="h-6 w-6 text-primary" />,
             },
             stat2: {
               title: 'Final Cycle',
-              value: `${finalCycleCount} of ${TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT}`,
+              value: `${finalCycleCount} of ${submissionTypes.length}`,
               description: `Submissions for ${new Date().getFullYear()}`,
               icon: <FileText className="h-6 w-6 text-primary" />,
             },
