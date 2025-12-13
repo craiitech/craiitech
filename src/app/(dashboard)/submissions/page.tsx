@@ -1,7 +1,7 @@
 
 'use client';
 
-import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2 } from 'lucide-react';
+import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2, Printer, FileDown } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -47,6 +47,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useSessionActivity } from '@/lib/activity-log-provider';
+import * as XLSX from 'xlsx';
+
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -459,10 +461,41 @@ export default function SubmissionsPage() {
     return sortableItems;
   }, [submissions, activeFilter, sortConfig, users, campuses]);
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleExportToExcel = () => {
+    const dataToExport = sortedSubmissions.map(s => {
+        const baseData: any = {
+            'Report Type': s.reportType,
+            'Unit': s.unitName,
+            'Year': s.year,
+            'Cycle': s.cycleId,
+            'Submitted At': format(s.submissionDate, 'yyyy-MM-dd HH:mm'),
+            'Status': s.statusId,
+            'Link': s.googleDriveLink,
+        };
+
+        if (isAdmin) {
+            baseData['Campus'] = getCampusName(s.campusId);
+        }
+        if (isSupervisor) {
+            baseData['Submitter'] = getUserName(s.userId);
+        }
+        return baseData;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Submissions');
+    XLSX.writeFile(workbook, 'submissions-export.xlsx');
+  };
+
 
   return (
     <>
-      <div className="flex items-center justify-between space-y-2">
+      <div className="flex items-start justify-between space-y-2 print:hidden">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Submissions</h2>
           <p className="text-muted-foreground">
@@ -470,6 +503,14 @@ export default function SubmissionsPage() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
+            <Button variant="outline" onClick={handlePrint}>
+                <Printer className="mr-2 h-4 w-4" />
+                Print Report
+            </Button>
+            <Button variant="outline" onClick={handleExportToExcel}>
+                <FileDown className="mr-2 h-4 w-4" />
+                Export to Excel
+            </Button>
           {!isSupervisor && (
              <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -509,8 +550,12 @@ export default function SubmissionsPage() {
           )}
         </div>
       </div>
+      <div className="hidden print:block text-center mb-4">
+          <h1 className="text-2xl font-bold">Submissions Report</h1>
+          <p className="text-muted-foreground">Generated on: {new Date().toLocaleDateString()}</p>
+      </div>
       <Card>
-        <CardHeader>
+        <CardHeader className="print:hidden">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div className='mb-4 md:mb-0'>
                 <CardTitle>{isSupervisor ? 'All Submissions' : 'My Submissions'}</CardTitle>
@@ -592,5 +637,3 @@ export default function SubmissionsPage() {
     </>
   );
 }
-
-    
