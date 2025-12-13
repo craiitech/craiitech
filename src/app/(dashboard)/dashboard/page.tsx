@@ -69,6 +69,7 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { UnitUserOverview } from '@/components/dashboard/unit-user-overview';
 import { IncompleteCampusSubmissions } from '@/components/dashboard/incomplete-campus-submissions';
+import { CompletedSubmissions } from '@/components/dashboard/completed-submissions';
 
 export const submissionTypes = [
   'Operational Plans',
@@ -167,9 +168,9 @@ export default function HomePage() {
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(allUnitsQuery);
 
    const allCampusesQuery = useMemoFirebase(() => {
-    if (!firestore || !isAdmin) return null;
+    if (!firestore) return null;
     return collection(firestore, 'campuses');
-  }, [firestore, isAdmin]);
+  }, [firestore]);
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(allCampusesQuery);
   
 
@@ -648,21 +649,31 @@ export default function HomePage() {
             </CardContent>
           </Card>
         </div>
+        <div className="grid gap-4 md:grid-cols-2">
+            <CompletedSubmissions 
+                allUnits={allUnits}
+                allCampuses={allCampuses}
+                allSubmissions={submissions}
+                isLoading={isLoading}
+                userProfile={userProfile}
+                isCampusSupervisor={isCampusSupervisor}
+            />
+            <UnitsWithoutSubmissions
+                allUnits={allUnits}
+                allCampuses={allCampuses}
+                allSubmissions={submissions}
+                isLoading={isLoading}
+                userProfile={userProfile}
+                isAdmin={isAdmin}
+                isCampusSupervisor={isCampusSupervisor}
+            />
+        </div>
          <CampusUnitOverview 
             allUnits={allUnits}
             allSubmissions={submissions}
             isLoading={isLoading}
             userProfile={userProfile}
          />
-        <UnitsWithoutSubmissions
-          allUnits={allUnits}
-          allCampuses={allCampuses}
-          allSubmissions={submissions}
-          isLoading={isLoading}
-          userProfile={userProfile}
-          isAdmin={isAdmin}
-          isCampusSupervisor={isCampusSupervisor}
-        />
       </TabsContent>
        <TabsContent value="analytics" className="space-y-4">
         <SubmissionAnalytics
@@ -739,21 +750,31 @@ export default function HomePage() {
             </CardContent>
           </Card>
         </div>
+        <div className="grid gap-4 md:grid-cols-2">
+            <CompletedSubmissions 
+                allUnits={allUnits}
+                allCampuses={allCampuses}
+                allSubmissions={submissions}
+                isLoading={isLoading}
+                userProfile={userProfile}
+                isCampusSupervisor={isCampusSupervisor}
+            />
+            <UnitsWithoutSubmissions
+                allUnits={allUnits}
+                allCampuses={allCampuses}
+                allSubmissions={submissions}
+                isLoading={isLoading}
+                userProfile={userProfile}
+                isAdmin={isAdmin}
+                isCampusSupervisor={isCampusSupervisor}
+            />
+        </div>
          <IncompleteCampusSubmissions
             allSubmissions={submissions}
             allCampuses={allCampuses}
             allUnits={allUnits}
             isLoading={isLoading}
          />
-         <UnitsWithoutSubmissions
-          allUnits={allUnits}
-          allCampuses={allCampuses}
-          allSubmissions={submissions}
-          isLoading={isLoading}
-          userProfile={userProfile}
-          isAdmin={isAdmin}
-          isCampusSupervisor={isCampusSupervisor}
-        />
       </TabsContent>
       <TabsContent value="approvals" className="space-y-4">
         <Card>
