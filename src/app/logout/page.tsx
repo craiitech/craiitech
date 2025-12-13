@@ -24,7 +24,7 @@ import { useSessionActivity } from '@/lib/activity-log-provider';
 export default function LogoutPage() {
   const router = useRouter();
   const auth = useAuth();
-  const { user } = useUser();
+  const { user, userProfile, userRole } = useUser();
   const { toast } = useToast();
   const { sessionLogs, clearSessionLogs } = useSessionActivity();
   const [countdown, setCountdown] = useState(5);
@@ -47,9 +47,10 @@ export default function LogoutPage() {
 
     if (auth) {
       try {
-        if (user) {
+        if (user && userProfile && userRole) {
           // It's good practice to log the logout action before actually signing out
-          await logUserActivity(user.uid, 'user_logout', { method: 'manual' });
+          const userName = `${userProfile.firstName} ${userProfile.lastName}`;
+          await logUserActivity(user.uid, userName, userRole, 'user_logout', { method: 'manual' });
         }
         await signOut(auth);
         clearSessionLogs(); // Clear the logs from the client-side context

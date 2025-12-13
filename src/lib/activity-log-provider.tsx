@@ -24,7 +24,7 @@ const ActivityLogContext = createContext<ActivityLogContextType | undefined>(und
 // Provider component
 export const ActivityLogProvider = ({ children }: { children: ReactNode }) => {
   const [sessionLogs, setSessionLogs] = useState<SessionLog[]>([]);
-  const { user } = useUser();
+  const { user, userProfile, userRole } = useUser();
 
   const logSessionActivity = useCallback(
     (message: string, details: Record<string, any> = {}) => {
@@ -33,16 +33,17 @@ export const ActivityLogProvider = ({ children }: { children: ReactNode }) => {
       setSessionLogs(prevLogs => [...prevLogs, newLog]);
 
       // 2. Persist to the permanent server-side log
-      if (user?.uid) {
-        // The action is often part of the details object
+      if (user?.uid && userProfile && userRole) {
         const action = details.action || 'user_action'; 
-        logToServer(user.uid, action, details).catch(error => {
+        const userName = `${userProfile.firstName} ${userProfile.lastName}`;
+
+        logToServer(user.uid, userName, userRole, action, details).catch(error => {
           console.error("Failed to persist activity log to server:", error);
           // Optionally, handle this error, e.g., with a toast notification
         });
       }
     },
-    [user] // Dependency on the user object to ensure we have the UID
+    [user, userProfile, userRole] // Dependency on the user object to ensure we have the UID
   );
 
   const clearSessionLogs = () => {

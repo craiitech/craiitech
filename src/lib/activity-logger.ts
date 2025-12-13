@@ -8,7 +8,11 @@ import { getFirestore, serverTimestamp } from 'firebase-admin/firestore';
 if (!getApps().length) {
     // When running in a Google Cloud environment, the SDK can automatically
     // find the service account credentials from the environment.
-    initializeApp();
+     try {
+        initializeApp();
+    } catch (e) {
+        console.error("Firebase Admin SDK initialization failed:", e);
+    }
 }
 
 const firestore = getFirestore();
@@ -17,31 +21,24 @@ const firestore = getFirestore();
  * Logs a user activity to the 'activityLogs' collection in Firestore.
  * This is a server action and should only be called from the server.
  * @param userId - The ID of the user performing the action.
+ * @param userName - The name of the user.
+ * @param userRole - The role of the user.
  * @param action - A string describing the action (e.g., 'user_login', 'create_submission').
  * @param details - An object containing additional details about the action.
  */
 export async function logUserActivity(
   userId: string,
+  userName: string,
+  userRole: string,
   action: string,
   details: Record<string, any> = {}
 ) {
-  if (!userId || !action) {
-    console.error('logUserActivity: userId and action are required.');
+  if (!userId || !action || !userName || !userRole) {
+    console.error('logUserActivity: userId, userName, userRole, and action are required.');
     return;
   }
 
   try {
-    const userDoc = await firestore.collection('users').doc(userId).get();
-    
-    let userName = 'Unknown User';
-    let userRole = 'Unknown';
-
-    if (userDoc.exists) {
-        const userData = userDoc.data();
-        userName = `${userData?.firstName} ${userData?.lastName}`;
-        userRole = userData?.role || 'N/A';
-    }
-
     await firestore.collection('activityLogs').add({
       userId,
       userName,

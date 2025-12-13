@@ -102,8 +102,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     setIsSubmitting(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      // Log successful login
-      await logUserActivity(userCredential.user.uid, 'user_login', { method: 'email' });
+      // We don't log here, the provider will log on auth state change
       router.push('/dashboard');
     } catch (error) {
       console.error('Sign in error:', error);
@@ -143,7 +142,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       );
       const user = userCredential.user;
 
-      await setDoc(doc(firestore, 'users', user.uid), {
+      const userData = {
         id: user.uid,
         email: user.email,
         firstName: firstName,
@@ -154,10 +153,12 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         unitId: '',
         verified: false,
         ndaAccepted: false,
-      });
+      };
+
+      await setDoc(doc(firestore, 'users', user.uid), userData);
 
       // Log successful account creation
-      await logUserActivity(user.uid, 'user_register', { method: 'email' });
+      await logUserActivity(user.uid, `${firstName} ${lastName}`, 'New User', 'user_register', { method: 'email' });
 
       setFirstName('');
       setLastName('');
@@ -189,10 +190,10 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       .then(async (result) => {
         const user = result.user;
         const additionalInfo = getAdditionalUserInfo(result);
+        const [first = '', last = ''] = user.displayName?.split(' ') || [];
 
         if (additionalInfo?.isNewUser) {
           const userDocRef = doc(firestore, 'users', user.uid);
-          const [first = '', last = ''] = user.displayName?.split(' ') || [];
           await setDoc(userDocRef, {
             id: user.uid,
             email: user.email,
@@ -206,7 +207,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             verified: false,
             ndaAccepted: false,
           });
-          await logUserActivity(user.uid, 'user_register', { method: 'google' });
+          await logUserActivity(user.uid, user.displayName || 'Unknown', 'New User', 'user_register', { method: 'google' });
           toast({
             title: 'Account Created!',
             description: 'Please complete your registration.',
@@ -217,7 +218,6 @@ export function AuthForm({ initialTab }: AuthFormProps) {
           const userDocRef = doc(firestore, 'users', user.uid);
           const userDoc = await getDoc(userDocRef);
           if (!userDoc.exists()) {
-             const [first = '', last = ''] = user.displayName?.split(' ') || [];
              await setDoc(userDocRef, {
                 id: user.uid,
                 email: user.email,
@@ -233,7 +233,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             });
              router.push('/complete-registration');
           } else {
-            await logUserActivity(user.uid, 'user_login', { method: 'google' });
+            // We don't log here, the provider will log on auth state change
             router.push('/dashboard');
           }
         }
