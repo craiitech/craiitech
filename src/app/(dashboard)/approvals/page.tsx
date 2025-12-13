@@ -68,7 +68,7 @@ export default function ApprovalsPage() {
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [dialogMode, setDialogMode] = useState<'reject' | 'view'>('view');
   
-  const canApprove = userRole === 'Admin' || userRole === 'Unit ODIMO';
+  const canApprove = userRole === 'Admin' || userRole === 'Unit ODIMO' || userRole === 'Campus ODIMO';
 
 
   // Effect to fetch submissions based on user role
