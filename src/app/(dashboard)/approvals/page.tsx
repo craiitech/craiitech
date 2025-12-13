@@ -89,7 +89,7 @@ export default function ApprovalsPage() {
         const submissionsCollection = collection(firestore, 'submissions');
         let baseQuery;
 
-        // Admins and Campus ODIMOs see submissions needing approval.
+        // Admins, Campus ODIMOs and Campus Directors see submissions needing approval.
         if (userRole === 'Admin') {
           baseQuery = query(
             submissionsCollection,
