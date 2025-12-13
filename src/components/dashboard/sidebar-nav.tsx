@@ -1,22 +1,46 @@
+
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   useUser,
+  useAuth,
 } from '@/firebase';
 import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../ui/sidebar';
+import { signOut } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 export function SidebarNav({
   className,
   ...props
 }: React.HTMLAttributes<HTMLElement>) {
   const pathname = usePathname();
+  const router = useRouter();
+  const auth = useAuth();
+  const { toast } = useToast();
   const { userProfile, isAdmin } = useUser();
 
   const userRole = isAdmin ? 'Admin' : userProfile?.role;
   const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+  
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast({
+        title: 'Logged Out',
+        description: 'You have been successfully logged out.',
+      });
+      router.push('/login');
+    } catch (error) {
+       toast({
+        title: 'Logout Failed',
+        description: 'An error occurred while logging out. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const allRoutes = [
     {
@@ -74,10 +98,16 @@ export function SidebarNav({
       <div className="mt-auto">
          <SidebarMenu>
             <SidebarMenuItem>
-                <SidebarMenuButton icon={<HelpCircle/>} className="hover:bg-sidebar-accent">Help</SidebarMenuButton>
+                <Link href="/help" passHref>
+                    <SidebarMenuButton as="a" isActive={pathname.startsWith('/help')} icon={<HelpCircle/>} className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground hover:bg-sidebar-accent">
+                        Help
+                    </SidebarMenuButton>
+                </Link>
             </SidebarMenuItem>
              <SidebarMenuItem>
-                <SidebarMenuButton icon={<LogOut/>} className="hover:bg-sidebar-accent">Logout</SidebarMenuButton>
+                <SidebarMenuButton onClick={handleLogout} icon={<LogOut/>} className="hover:bg-sidebar-accent">
+                    Logout
+                </SidebarMenuButton>
             </SidebarMenuItem>
         </SidebarMenu>
       </div>
