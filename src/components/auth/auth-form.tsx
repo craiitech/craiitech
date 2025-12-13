@@ -322,6 +322,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             className="pl-9 bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
           />
         </div>
+        <p className="text-xs text-muted-foreground pt-1">Please use your official RSU email address.</p>
       </div>
        <div className="space-y-2">
         <Label htmlFor="password-signup">Password</Label>
