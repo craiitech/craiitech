@@ -101,10 +101,12 @@ export default function SettingsPage() {
                     {unitManagementComponent}
                 </div>
             )}
-             <div>
-                <h3 className="text-xl font-semibold tracking-tight mb-2">Campus Announcement</h3>
-                <CampusSettingsManagement />
-            </div>
+             {userRole === 'Campus ODIMO' && (
+                 <div>
+                    <h3 className="text-xl font-semibold tracking-tight mb-2">Campus Announcement</h3>
+                    <CampusSettingsManagement />
+                </div>
+             )}
         </div>
       )
   }

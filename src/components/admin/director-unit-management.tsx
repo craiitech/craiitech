@@ -2,8 +2,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, updateDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -11,6 +14,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import {
   Table,
@@ -26,6 +30,13 @@ import type { Unit } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { ScrollArea } from '../ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
+import { Input } from '../ui/input';
+
+const newUnitSchema = z.object({
+  name: z.string().min(3, 'Unit name must be at least 3 characters.'),
+});
 
 export function DirectorUnitManagement() {
   const { userProfile } = useUser();
@@ -45,13 +56,50 @@ export function DirectorUnitManagement() {
     }
     const unitsInCampus = allUnits.filter((unit) => unit.campusId === userProfile.campusId);
     const unassigned = allUnits.filter((unit) => !unit.campusId);
-    
+
     return { unitsInCampus, availableUnits: unassigned };
   }, [allUnits, userProfile]);
+
+  const form = useForm<z.infer<typeof newUnitSchema>>({
+    resolver: zodResolver(newUnitSchema),
+    defaultValues: { name: '' },
+  });
 
   const isLoading = isLoadingUnits;
 
   const handleAddUnitToCampus = async (unit: Unit) => {
+    if (!firestore || !userProfile?.campusId) {
+      toast({
+        title: 'Error',
+        description: 'Your campus information is not available.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setIsSubmitting(true);
+
+    const unitRef = doc(firestore, 'units', unit.id);
+    const updateData = { campusId: userProfile.campusId };
+
+    try {
+      await updateDoc(unitRef, updateData);
+      toast({
+        title: 'Unit Assigned',
+        description: `"${unit.name}" has been added to your campus.`,
+      });
+    } catch (error) {
+      console.error('Error assigning unit:', error);
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: unitRef.path,
+        operation: 'update',
+        requestResourceData: updateData,
+      }));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const handleCreateNewUnit = async (values: z.infer<typeof newUnitSchema>) => {
     if (!firestore || !userProfile?.campusId) {
         toast({
             title: 'Error',
@@ -61,29 +109,31 @@ export function DirectorUnitManagement() {
         return;
     }
     setIsSubmitting(true);
-    
-    const unitRef = doc(firestore, 'units', unit.id);
-    const updateData = { campusId: userProfile.campusId };
 
-    updateDoc(unitRef, updateData)
-      .then(() => {
-          toast({
-              title: 'Unit Assigned',
-              description: `"${unit.name}" has been added to your campus.`,
-          });
-      })
-      .catch((error) => {
-          console.error('Error assigning unit:', error);
-          errorEmitter.emit('permission-error', new FirestorePermissionError({
-              path: unitRef.path,
-              operation: 'update',
-              requestResourceData: updateData,
-          }));
-      })
-      .finally(() => {
-          setIsSubmitting(false);
-      });
-  };
+    const newUnitData = {
+        name: values.name,
+        campusId: userProfile.campusId,
+        createdAt: serverTimestamp(),
+    };
+
+    try {
+        await addDoc(collection(firestore, 'units'), newUnitData);
+        toast({
+            title: 'Unit Created',
+            description: `The unit "${values.name}" has been created and assigned to your campus.`
+        });
+        form.reset();
+    } catch (error) {
+        console.error('Error creating new unit:', error);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: 'units',
+            operation: 'create',
+            requestResourceData: newUnitData,
+        }));
+    } finally {
+        setIsSubmitting(false);
+    }
+  }
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -94,30 +144,30 @@ export function DirectorUnitManagement() {
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-96">
-             {isLoading ? (
-                <div className="flex items-center justify-center h-40">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-                ) : (
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Name</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                    {unitsInCampus.map((unit) => (
-                        <TableRow key={unit.id}>
-                            <TableCell>{unit.name}</TableCell>
-                        </TableRow>
-                    ))}
-                    </TableBody>
-                </Table>
-             )}
-             {!isLoading && unitsInCampus.length === 0 && (
-                <div className="text-center py-10 text-muted-foreground">
-                    No units have been assigned to your campus yet.
-                </div>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {unitsInCampus.map((unit) => (
+                    <TableRow key={unit.id}>
+                      <TableCell>{unit.name}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+            {!isLoading && unitsInCampus.length === 0 && (
+              <div className="text-center py-10 text-muted-foreground">
+                No units have been assigned to your campus yet.
+              </div>
             )}
           </ScrollArea>
         </CardContent>
@@ -125,51 +175,83 @@ export function DirectorUnitManagement() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Available System Units</CardTitle>
-          <CardDescription>Assign official, unassigned units to your campus.</CardDescription>
+          <CardTitle>Manage Units</CardTitle>
+          <CardDescription>Assign an official system unit or create a new unit unique to your campus.</CardDescription>
         </CardHeader>
         <CardContent>
-           <ScrollArea className="h-96">
+          <Tabs defaultValue="add-existing">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="add-existing">Add Existing Unit</TabsTrigger>
+              <TabsTrigger value="create-new">Create New Unit</TabsTrigger>
+            </TabsList>
+            <TabsContent value="add-existing">
+              <ScrollArea className="h-96 pt-4">
                 {isLoading ? (
-                    <div className="flex items-center justify-center h-40">
-                        <Loader2 className="h-8 w-8 animate-spin" />
-                    </div>
+                  <div className="flex items-center justify-center h-40">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
                 ) : (
-                <Table>
+                  <Table>
                     <TableHeader>
-                        <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead className="text-right">Action</TableHead>
-                        </TableRow>
+                      <TableRow>
+                        <TableHead>Available System Units</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {availableUnits.map((unit) => (
+                      {availableUnits.map((unit) => (
                         <TableRow key={unit.id}>
-                            <TableCell>{unit.name}</TableCell>
-                            <TableCell className="text-right">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleAddUnitToCampus(unit)}
-                                    disabled={isSubmitting}
-                                >
-                                    <PlusCircle className="mr-2 h-4 w-4" />
-                                    Add to Campus
-                                </Button>
-                            </TableCell>
+                          <TableCell>{unit.name}</TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleAddUnitToCampus(unit)}
+                              disabled={isSubmitting}
+                            >
+                              <PlusCircle className="mr-2 h-4 w-4" />
+                              Add
+                            </Button>
+                          </TableCell>
                         </TableRow>
-                    ))}
+                      ))}
                     </TableBody>
-                </Table>
+                  </Table>
                 )}
                 {!isLoading && availableUnits.length === 0 && (
-                    <div className="text-center py-10 text-muted-foreground">
-                        No unassigned units are available. Please contact an admin.
-                    </div>
+                  <div className="text-center py-10 text-muted-foreground">
+                    No unassigned system units are available.
+                  </div>
                 )}
-           </ScrollArea>
+              </ScrollArea>
+            </TabsContent>
+            <TabsContent value="create-new">
+               <Form {...form}>
+                  <form onSubmit={form.handleSubmit(handleCreateNewUnit)} className="space-y-6 pt-4">
+                     <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>New Unit Name</FormLabel>
+                            <FormControl>
+                            <Input placeholder="e.g., Institute of Marine Sciences" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Create and Add Unit
+                    </Button>
+                  </form>
+                </Form>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
   );
 }
+
