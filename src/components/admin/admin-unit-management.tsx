@@ -1,0 +1,181 @@
+'use client';
+
+import { useState, useMemo } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
+import type { Unit, Campus } from '@/lib/types';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+
+const formSchema = z.object({
+  name: z.string().min(3, 'Unit name must be at least 3 characters.'),
+});
+
+type UnitFormValues = z.infer<typeof formSchema>;
+
+export function AdminUnitManagement() {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const allUnitsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'units') : null),
+    [firestore]
+  );
+  const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(allUnitsQuery);
+
+  const allCampusesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'campuses') : null),
+    [firestore]
+  );
+  const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(allCampusesQuery);
+
+  const form = useForm<UnitFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { name: '' },
+  });
+
+  const campusMap = useMemo(() => {
+    if (!allCampuses) return {};
+    return Object.fromEntries(allCampuses.map(c => [c.id, c.name]));
+  }, [allCampuses]);
+
+  const isLoading = isLoadingUnits || isLoadingCampuses;
+
+  const onSubmit = async (values: UnitFormValues) => {
+    if (!firestore) return;
+    setIsSubmitting(true);
+    
+    const newUnitData = {
+        name: values.name,
+        createdAt: serverTimestamp(),
+        campusId: '',
+    };
+    
+    const unitsCollectionRef = collection(firestore, 'units');
+
+    addDoc(unitsCollectionRef, newUnitData)
+        .then(() => {
+            toast({ title: 'Success', description: 'New unit created.' });
+            form.reset({ name: '' });
+        })
+        .catch((error) => {
+            console.error('Error creating unit:', error);
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: unitsCollectionRef.path,
+                operation: 'create',
+                requestResourceData: newUnitData
+            }));
+        })
+        .finally(() => {
+            setIsSubmitting(false);
+        });
+  };
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle>Add New Unit</CardTitle>
+          <CardDescription>Create a new global unit for assignment.</CardDescription>
+        </CardHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <CardContent>
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unit Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., College of Engineering" {...field} value={field.value ?? ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+            <CardFooter>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Add Unit
+              </Button>
+            </CardFooter>
+          </form>
+        </Form>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>All System Units</CardTitle>
+          <CardDescription>A list of all units and their campus assignments.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-40">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Assigned Campus</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {allUnits?.map((unit) => (
+                  <TableRow key={unit.id}>
+                    <TableCell>{unit.name}</TableCell>
+                    <TableCell>
+                      {unit.campusId ? (
+                        campusMap[unit.campusId] || 'Unknown Campus'
+                      ) : <span className="text-muted-foreground">Unassigned</span>}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+          {!isLoading && allUnits?.length === 0 && (
+            <div className="text-center py-10 text-muted-foreground">
+              No units found.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

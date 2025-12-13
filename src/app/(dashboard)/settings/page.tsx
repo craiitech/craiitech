@@ -8,16 +8,18 @@ import {
 } from '@/components/ui/tabs';
 import { UserManagement } from '@/components/admin/user-management';
 import { CampusManagement } from '@/components/admin/campus-management';
-import { UnitManagement } from '@/components/admin/unit-management';
 import { RoleManagement } from '@/components/admin/role-management';
 import { CampusSettingsManagement } from '@/components/admin/campus-settings-management';
 import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AdminUnitManagement } from '@/components/admin/admin-unit-management';
+import { DirectorUnitManagement } from '@/components/admin/director-unit-management';
+
 
 export default function SettingsPage() {
-  const { userProfile, isAdmin, isUserLoading } = useUser();
+  const { userProfile, isAdmin, isUserLoading, userRole } = useUser();
   
-  const isCampusSupervisor = userProfile?.role === 'Campus Director' || userProfile?.role === 'Campus ODIMO';
+  const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
 
   if (isUserLoading) {
      return (
@@ -30,6 +32,16 @@ export default function SettingsPage() {
         </div>
       </div>
     );
+  }
+  
+  const renderUnitManagement = () => {
+    if (isAdmin) {
+      return <AdminUnitManagement />;
+    }
+    if (userRole === 'Campus Director') {
+      return <DirectorUnitManagement />;
+    }
+    return null;
   }
 
   if (isAdmin) {
@@ -56,7 +68,7 @@ export default function SettingsPage() {
             <CampusManagement />
           </TabsContent>
           <TabsContent value="units" className="space-y-4">
-            <UnitManagement />
+            {renderUnitManagement()}
           </TabsContent>
           <TabsContent value="roles" className="space-y-4">
             <RoleManagement />
@@ -78,6 +90,7 @@ export default function SettingsPage() {
                 Manage settings specific to your campus.
               </p>
             </div>
+            { userRole === 'Campus Director' && renderUnitManagement() }
             <CampusSettingsManagement />
         </div>
       )

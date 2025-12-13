@@ -19,7 +19,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, query, getDocs, Timestamp, where } from 'firebase/firestore';
 import type { Submission, User as AppUser } from '@/lib/types';
@@ -48,6 +54,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 };
 
 const submissionTypes = [
+  'All Submissions',
   'Operational Plans',
   'Objectives Monitoring',
   'Risk and Opportunity Registry Form',
@@ -129,6 +136,7 @@ export default function SubmissionsPage() {
   // State for feedback dialog
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [feedbackToShow, setFeedbackToShow] = useState('');
+  const [activeFilter, setActiveFilter] = useState<string>('All Submissions');
 
   const isSupervisor = useMemo(() => {
     if (!userRole) return false;
@@ -240,7 +248,13 @@ export default function SubmissionsPage() {
       router.push(`/submissions/${submissionId}`);
   }
 
-  const tabTriggers = ['All Submissions', ...submissionTypes];
+  const filteredSubmissions = useMemo(() => {
+    if (activeFilter === 'All Submissions') {
+      return submissions;
+    }
+    return submissions.filter(s => s.reportType === activeFilter);
+  }, [submissions, activeFilter]);
+
 
   return (
     <>
@@ -293,49 +307,43 @@ export default function SubmissionsPage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>{isSupervisor ? 'All Submissions' : 'My Submissions'}</CardTitle>
-          <CardDescription>
-            {isSupervisor ? 'A history of all reports submitted by users in your campus/unit.' : 'A history of all reports you have submitted.'}
-          </CardDescription>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div className='mb-4 md:mb-0'>
+                <CardTitle>{isSupervisor ? 'All Submissions' : 'My Submissions'}</CardTitle>
+                <CardDescription>
+                    {isSupervisor ? 'A history of all reports submitted by users in your campus/unit.' : 'A history of all reports you have submitted.'}
+                </CardDescription>
+            </div>
+            <div className="w-full md:w-auto">
+              <Select value={activeFilter} onValueChange={setActiveFilter}>
+                <SelectTrigger className="w-full md:w-[280px]">
+                  <SelectValue placeholder="Filter by report type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {submissionTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="All Submissions">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
-                {tabTriggers.map(tab => (
-                    <TabsTrigger key={tab} value={tab}>{tab}</TabsTrigger>
-                ))}
-            </TabsList>
-
-            {isLoading ? (
+           {isLoading ? (
                 <div className="flex justify-center items-center h-64">
                     <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
             ) : (
-                <>
-                    <TabsContent value="All Submissions">
-                        <SubmissionsTable 
-                            submissions={submissions}
-                            isSupervisor={isSupervisor}
-                            getUserName={getUserName}
-                            onEyeClick={handleEyeClick}
-                            onViewFeedbackClick={handleViewFeedback}
-                        />
-                    </TabsContent>
-
-                    {submissionTypes.map(reportType => (
-                        <TabsContent key={reportType} value={reportType}>
-                            <SubmissionsTable 
-                                submissions={submissions.filter(s => s.reportType === reportType)}
-                                isSupervisor={isSupervisor}
-                                getUserName={getUserName}
-                                onEyeClick={handleEyeClick}
-                                onViewFeedbackClick={handleViewFeedback}
-                            />
-                        </TabsContent>
-                    ))}
-                </>
+                <SubmissionsTable 
+                    submissions={filteredSubmissions}
+                    isSupervisor={isSupervisor}
+                    getUserName={getUserName}
+                    onEyeClick={handleEyeClick}
+                    onViewFeedbackClick={handleViewFeedback}
+                />
             )}
-          </Tabs>
         </CardContent>
       </Card>
       <FeedbackDialog 

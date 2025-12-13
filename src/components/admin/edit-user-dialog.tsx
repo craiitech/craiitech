@@ -31,9 +31,11 @@ import { z } from 'zod';
 import { useFirestore } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { User, Role, Campus, Unit } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface EditUserDialogProps {
   user: User;
@@ -49,7 +51,7 @@ const editUserSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   roleId: z.string().min(1, 'Role is required'),
   campusId: z.string().min(1, 'Campus is required'),
-  unitId: z.string().min(1, 'Unit is required'),
+  unitId: z.string().optional(),
 });
 
 export function EditUserDialog({
@@ -86,35 +88,62 @@ export function EditUserDialog({
       });
     }
   }, [user, form]);
+  
+  const selectedRoleId = form.watch('roleId');
+  const isUnitRequired = useMemo(() => {
+    if (!selectedRoleId || !roles) return false;
+    const selectedRole = roles.find((r) => r.id === selectedRoleId);
+    if (!selectedRole) return false;
+    const campusLevelRoles = ['campus director', 'campus odimo'];
+    return !campusLevelRoles.includes(selectedRole.name.toLowerCase());
+  }, [selectedRoleId, roles]);
+
+  useEffect(() => {
+    if (!isUnitRequired) {
+      form.setValue('unitId', undefined);
+      form.clearErrors('unitId');
+    }
+  }, [isUnitRequired, form]);
+
 
   const onSubmit = async (values: z.infer<typeof editUserSchema>) => {
     if (!firestore) return;
-    setIsSubmitting(true);
-
-    try {
-      const userRef = doc(firestore, 'users', user.id);
-      const selectedRole = roles.find(r => r.id === values.roleId);
-
-      await updateDoc(userRef, {
-        ...values,
-        role: selectedRole ? selectedRole.name : '',
-      });
-
-      toast({
-        title: 'User Updated',
-        description: `${values.firstName} ${values.lastName}'s profile has been updated.`,
-      });
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Error updating user:', error);
-      toast({
-        title: 'Update Failed',
-        description: 'An error occurred while updating the user.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSubmitting(false);
+    
+    if (isUnitRequired && !values.unitId) {
+        form.setError('unitId', { type: 'manual', message: 'Unit is required for this role.' });
+        return;
     }
+
+    setIsSubmitting(true);
+    
+    const userRef = doc(firestore, 'users', user.id);
+    const selectedRole = roles.find(r => r.id === values.roleId);
+    
+    const updateData = {
+        ...values,
+        unitId: isUnitRequired ? values.unitId : '',
+        role: selectedRole ? selectedRole.name : '',
+    };
+
+    updateDoc(userRef, updateData)
+        .then(() => {
+            toast({
+                title: 'User Updated',
+                description: `${values.firstName} ${values.lastName}'s profile has been updated.`,
+            });
+            onOpenChange(false);
+        })
+        .catch((error) => {
+            console.error('Error updating user:', error);
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: userRef.path,
+                operation: 'update',
+                requestResourceData: updateData
+            }));
+        })
+        .finally(() => {
+            setIsSubmitting(false);
+        });
   };
 
   return (
@@ -202,30 +231,32 @@ export function EditUserDialog({
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="unitId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Unit</FormLabel>
-                   <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a unit" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {units.map((unit) => (
-                        <SelectItem key={unit.id} value={unit.id}>
-                          {unit.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {isUnitRequired && (
+                <FormField
+                control={form.control}
+                name="unitId"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Unit</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a unit" />
+                        </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                        {units.map((unit) => (
+                            <SelectItem key={unit.id} value={unit.id}>
+                            {unit.name}
+                            </SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            )}
             <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
                 <Button type="submit" disabled={isSubmitting}>
