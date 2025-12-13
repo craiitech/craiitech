@@ -80,10 +80,11 @@ export function AdminUnitManagement() {
     if (!firestore) return;
     setIsSubmitting(true);
     
+    // Admin creates a unit and assigns it to an initial campus
     const newUnitData = {
         name: values.name,
         createdAt: serverTimestamp(),
-        campusId: values.campusId,
+        campusIds: [values.campusId],
     };
     
     const unitsCollectionRef = collection(firestore, 'units');
@@ -111,7 +112,7 @@ export function AdminUnitManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Add New Unit</CardTitle>
-          <CardDescription>Create a new unit and assign it to a campus.</CardDescription>
+          <CardDescription>Create a new official system unit and assign it to an initial campus.</CardDescription>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -134,7 +135,7 @@ export function AdminUnitManagement() {
                 name="campusId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Assign to Campus</FormLabel>
+                    <FormLabel>Assign to Initial Campus</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value ?? ''}>
                       <FormControl>
                         <SelectTrigger>
@@ -179,7 +180,7 @@ export function AdminUnitManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Assigned Campus</TableHead>
+                  <TableHead>Assigned Campuses</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -187,8 +188,8 @@ export function AdminUnitManagement() {
                   <TableRow key={unit.id}>
                     <TableCell>{unit.name}</TableCell>
                     <TableCell>
-                      {unit.campusId ? (
-                        campusMap[unit.campusId] || 'Unknown Campus'
+                      {unit.campusIds && unit.campusIds.length > 0 ? (
+                        unit.campusIds.map(id => campusMap[id] || 'Unknown').join(', ')
                       ) : <span className="text-muted-foreground">Unassigned</span>}
                     </TableCell>
                   </TableRow>

@@ -57,7 +57,7 @@ export default function ReportsPage() {
 
   const unitsInSelectedCampus = useMemo(() => {
     if (!selectedCampusId || !allUnits) return [];
-    return allUnits.filter(unit => unit.campusId === selectedCampusId);
+    return allUnits.filter(unit => unit.campusIds?.includes(selectedCampusId));
   }, [selectedCampusId, allUnits]);
 
   const submittedUnits = useMemo(() => {
@@ -165,7 +165,7 @@ export default function ReportsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Unit Name</TableHead>
-                      <TableHead>Campus</TableHead>
+                      <TableHead>Campuses</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -173,7 +173,7 @@ export default function ReportsPage() {
                       submittedUnits.map(unit => (
                         <TableRow key={unit.id}>
                           <TableCell>{unit.name}</TableCell>
-                          <TableCell>{campusMap.get(unit.campusId!) || 'N/A'}</TableCell>
+                          <TableCell>{unit.campusIds?.map(id => campusMap.get(id)).join(', ') || 'N/A'}</TableCell>
                         </TableRow>
                       ))
                     ) : (

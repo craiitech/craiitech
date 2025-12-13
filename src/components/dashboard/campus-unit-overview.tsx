@@ -30,7 +30,7 @@ export function CampusUnitOverview({
     }
 
     const currentYear = new Date().getFullYear();
-    const campusUnits = allUnits.filter(u => u.campusId === userProfile.campusId);
+    const campusUnits = allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
 
     return campusUnits.map(unit => {
       const unitSubmissions = allSubmissions.filter(s => s.unitId === unit.id && s.year === currentYear);

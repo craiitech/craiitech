@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -39,12 +40,12 @@ export function UnitsWithoutSubmissions({
 
     // Create a map of units grouped by campusId
     const unitsByCampus = allUnits.reduce((acc, unit) => {
-      if (unit.campusId) {
-        if (!acc[unit.campusId]) {
-          acc[unit.campusId] = [];
+      unit.campusIds?.forEach(campusId => {
+        if (!acc[campusId]) {
+          acc[campusId] = [];
         }
-        acc[unit.campusId].push(unit);
-      }
+        acc[campusId].push(unit);
+      });
       return acc;
     }, {} as Record<string, Unit[]>);
     

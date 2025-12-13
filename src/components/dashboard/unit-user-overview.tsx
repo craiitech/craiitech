@@ -29,7 +29,7 @@ export function UnitUserOverview({
       return [];
     }
 
-    const campusUnits = allUnits.filter(u => u.campusId === userProfile.campusId);
+    const campusUnits = allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
     
     const unitMap = new Map(campusUnits.map(unit => [unit.id, { ...unit, users: [] as AppUser[] }]));
 

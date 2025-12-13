@@ -83,7 +83,7 @@ export default function CompleteRegistrationPage() {
 
   const unitsForSelectedCampus = useMemo(() => {
     if (!selectedCampusId || !allUnits) return [];
-    return allUnits.filter(unit => unit.campusId === selectedCampusId);
+    return allUnits.filter(unit => unit.campusIds?.includes(selectedCampusId));
   }, [selectedCampusId, allUnits]);
 
 

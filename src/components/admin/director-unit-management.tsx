@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, updateDoc, addDoc, serverTimestamp, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -65,10 +65,11 @@ export function DirectorUnitManagement() {
     if (!allUnits || !userProfile?.campusId) {
       return { unitsInCampus: [], availableUnits: [] };
     }
-    const unitsInCampus = allUnits.filter((unit) => unit.campusId === userProfile.campusId);
-    const unassigned = allUnits.filter((unit) => !unit.campusId);
+    const unitsInCampus = allUnits.filter((unit) => unit.campusIds?.includes(userProfile.campusId));
+    // A unit is available if it's NOT in the current campus
+    const available = allUnits.filter((unit) => !unit.campusIds?.includes(userProfile.campusId));
 
-    return { unitsInCampus, availableUnits: unassigned };
+    return { unitsInCampus, availableUnits: available };
   }, [allUnits, userProfile]);
 
   const form = useForm<z.infer<typeof newUnitSchema>>({
@@ -90,7 +91,7 @@ export function DirectorUnitManagement() {
     setIsSubmitting(true);
 
     const unitRef = doc(firestore, 'units', unit.id);
-    const updateData = { campusId: userProfile.campusId };
+    const updateData = { campusIds: arrayUnion(userProfile.campusId) };
 
     try {
       await updateDoc(unitRef, updateData);
@@ -111,13 +112,13 @@ export function DirectorUnitManagement() {
   };
 
   const handleRemoveUnitFromCampus = async () => {
-    if (!firestore || !unitToRemove) {
+    if (!firestore || !unitToRemove || !userProfile?.campusId) {
       return;
     }
     setIsSubmitting(true);
 
     const unitRef = doc(firestore, 'units', unitToRemove.id);
-    const updateData = { campusId: '' }; // Unassign the campus
+    const updateData = { campusIds: arrayRemove(userProfile.campusId) }; 
 
     try {
       await updateDoc(unitRef, updateData);
@@ -151,7 +152,7 @@ export function DirectorUnitManagement() {
 
     const newUnitData = {
         name: values.name,
-        campusId: userProfile.campusId,
+        campusIds: [userProfile.campusId], // Assign to current campus on creation
         createdAt: serverTimestamp(),
     };
 
@@ -283,7 +284,7 @@ export function DirectorUnitManagement() {
                 )}
                 {!isLoading && availableUnits.length === 0 && (
                   <div className="text-center py-10 text-muted-foreground">
-                    No unassigned system units are available.
+                    All system units are already assigned to your campus.
                   </div>
                 )}
               </ScrollArea>
@@ -321,7 +322,7 @@ export function DirectorUnitManagement() {
             <AlertDialogHeader>
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    This will remove the unit "{unitToRemove?.name}" from your campus. This action does not delete the unit itself. You can add it back later.
+                    This will remove the unit "{unitToRemove?.name}" from your campus. Other campuses will not be affected.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
