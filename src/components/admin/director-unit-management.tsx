@@ -24,7 +24,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Search } from 'lucide-react';
 import type { Unit } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -54,6 +54,8 @@ export function DirectorUnitManagement() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [unitToRemove, setUnitToRemove] = useState<Unit | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
 
   const allUnitsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'units') : null),
@@ -71,6 +73,14 @@ export function DirectorUnitManagement() {
 
     return { unitsInCampus, availableUnits: available };
   }, [allUnits, userProfile]);
+  
+  const filteredAvailableUnits = useMemo(() => {
+    if (!availableUnits) return [];
+    return availableUnits.filter(unit =>
+        unit.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [availableUnits, searchTerm]);
+
 
   const form = useForm<z.infer<typeof newUnitSchema>>({
     resolver: zodResolver(newUnitSchema),
@@ -248,8 +258,17 @@ export function DirectorUnitManagement() {
               <TabsTrigger value="add-existing">Add Existing Unit</TabsTrigger>
               <TabsTrigger value="create-new">Create New Unit</TabsTrigger>
             </TabsList>
-            <TabsContent value="add-existing">
-              <ScrollArea className="h-96 pt-4">
+            <TabsContent value="add-existing" className="pt-4 space-y-4">
+               <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search for a unit..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <ScrollArea className="h-80">
                 {isLoading ? (
                   <div className="flex items-center justify-center h-40">
                     <Loader2 className="h-8 w-8 animate-spin" />
@@ -263,7 +282,7 @@ export function DirectorUnitManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {availableUnits.map((unit) => (
+                      {filteredAvailableUnits.map((unit) => (
                         <TableRow key={unit.id}>
                           <TableCell>{unit.name}</TableCell>
                           <TableCell className="text-right">
@@ -282,9 +301,9 @@ export function DirectorUnitManagement() {
                     </TableBody>
                   </Table>
                 )}
-                {!isLoading && availableUnits.length === 0 && (
+                {!isLoading && filteredAvailableUnits.length === 0 && (
                   <div className="text-center py-10 text-muted-foreground">
-                    All system units are already assigned to your campus.
+                     {searchTerm ? 'No units match your search.' : 'All system units are already assigned to your campus.'}
                   </div>
                 )}
               </ScrollArea>
