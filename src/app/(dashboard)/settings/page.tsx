@@ -37,12 +37,9 @@ export default function SettingsPage() {
     );
   }
   
-  const renderUnitManagement = () => {
-    if (isAdmin) {
-      return <AdminUnitManagement />;
-    }
-    // Only Campus Directors should be able to create/manage units for their campus.
-    if (userRole === 'Campus Director') {
+  const renderUnitManagementForSupervisor = () => {
+    // Both Campus Director and Campus ODIMO should have the same unit management capabilities
+    if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
       return <DirectorUnitManagement />;
     }
     return null;
@@ -72,7 +69,7 @@ export default function SettingsPage() {
             <CampusManagement />
           </TabsContent>
           <TabsContent value="units" className="space-y-4">
-            {renderUnitManagement()}
+            <AdminUnitManagement />
           </TabsContent>
           <TabsContent value="roles" className="space-y-4">
             <RoleManagement />
@@ -86,7 +83,6 @@ export default function SettingsPage() {
   }
   
   if (isCampusSupervisor) {
-      const unitManagementComponent = renderUnitManagement();
       return (
          <div className="space-y-6">
             <div>
@@ -95,18 +91,14 @@ export default function SettingsPage() {
                 Manage settings and resources specific to your campus.
               </p>
             </div>
-            {unitManagementComponent && (
-                <div>
-                     <h3 className="text-xl font-semibold tracking-tight mb-2">Unit Management</h3>
-                    {unitManagementComponent}
-                </div>
-            )}
-             {userRole === 'Campus ODIMO' && (
-                 <div>
-                    <h3 className="text-xl font-semibold tracking-tight mb-2">Campus Announcement</h3>
-                    <CampusSettingsManagement />
-                </div>
-             )}
+            <div>
+                 <h3 className="text-xl font-semibold tracking-tight mb-2">Unit Management</h3>
+                <DirectorUnitManagement />
+            </div>
+             <div>
+                <h3 className="text-xl font-semibold tracking-tight mb-2">Campus Announcement</h3>
+                <CampusSettingsManagement />
+            </div>
         </div>
       )
   }
