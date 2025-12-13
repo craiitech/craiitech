@@ -8,13 +8,22 @@ import type { Submission } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
-import { CheckCircle, Circle, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
+import { CheckCircle, Circle, ChevronDown, ChevronUp, MessageSquare, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { FeedbackDialog } from '@/components/dashboard/feedback-dialog';
 import { Progress } from '@/components/ui/progress';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 
 export const submissionTypes = [
@@ -152,6 +161,44 @@ export default function NewSubmissionPage() {
                     <SelectItem value="final">Final Submission</SelectItem>
                   </SelectContent>
                 </Select>
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="link" className="p-0 h-auto">
+                            <HelpCircle className="mr-2 h-4 w-4"/>
+                            How to get Google Drive link
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>How to Get Your Google Drive File Link</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Follow these steps to ensure your file is shared correctly for submission.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <ol className="list-decimal space-y-3 pl-5 text-sm text-muted-foreground">
+                            <li>Open your file in Google Drive.</li>
+                            <li>Click the blue <strong>"Share"</strong> button in the top right corner.</li>
+                            <li>
+                                In the popup window, find the <strong>"General access"</strong> section. If it says "Restricted", click on it.
+                            </li>
+                            <li>
+                                Select <strong>"Anyone with the link"</strong> from the dropdown menu. This is critical for the QA Office to be able to view your file.
+                            </li>
+                             <li>
+                                To the right of "Anyone with the link", ensure the role is set to <strong>"Viewer"</strong>.
+                            </li>
+                            <li>
+                                Finally, click the <strong>"Copy link"</strong> button. The link is now copied to your clipboard.
+                            </li>
+                            <li>
+                                Paste the copied link into the "Google Drive Link" field in the submission form on this page.
+                            </li>
+                        </ol>
+                        <AlertDialogFooter>
+                             <AlertDialogAction>Got it!</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
