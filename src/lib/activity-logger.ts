@@ -1,16 +1,14 @@
 
 'use server';
 
-import { auth } from 'firebase-admin';
+import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
 import { getFirestore, serverTimestamp } from 'firebase-admin/firestore';
-import { initializeApp, getApps } from 'firebase-admin/app';
 import { firebaseAdminConfig } from '@/firebase/config-admin';
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!getApps().length) {
   initializeApp({
-    credential: auth.ApplicationDefault(),
-    databaseURL: `https://${firebaseAdminConfig.projectId}.firebaseio.com`,
+    // Use application default credentials
   });
 }
 
@@ -64,5 +62,3 @@ export async function logUserActivity(
     // or handle it silently. For an audit log, failing silently might be undesirable.
   }
 }
-
-    

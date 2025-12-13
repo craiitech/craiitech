@@ -14,6 +14,7 @@ export default function LoginPage() {
           src={bgImage.imageUrl}
           alt={bgImage.description}
           fill
+          priority
           className="-z-10 object-cover"
           data-ai-hint={bgImage.imageHint}
         />
