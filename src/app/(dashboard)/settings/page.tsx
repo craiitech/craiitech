@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -24,8 +25,10 @@ export default function SettingsPage() {
   if (isUserLoading) {
      return (
        <div className="space-y-4">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-6 w-96" />
+        <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
+        <p className="text-muted-foreground">
+            Loading settings...
+        </p>
         <div className="space-y-4 pt-4">
             <Skeleton className="h-10 w-[400px]" />
             <Skeleton className="h-64 w-full" />
@@ -38,6 +41,7 @@ export default function SettingsPage() {
     if (isAdmin) {
       return <AdminUnitManagement />;
     }
+    // Only Campus Directors should be able to create/manage units for their campus.
     if (userRole === 'Campus Director') {
       return <DirectorUnitManagement />;
     }
@@ -82,16 +86,25 @@ export default function SettingsPage() {
   }
   
   if (isCampusSupervisor) {
+      const unitManagementComponent = renderUnitManagement();
       return (
-         <div className="space-y-4">
+         <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-bold tracking-tight">Campus Settings</h2>
               <p className="text-muted-foreground">
-                Manage settings specific to your campus.
+                Manage settings and resources specific to your campus.
               </p>
             </div>
-            { userRole === 'Campus Director' && renderUnitManagement() }
-            <CampusSettingsManagement />
+            {unitManagementComponent && (
+                <div>
+                     <h3 className="text-xl font-semibold tracking-tight mb-2">Unit Management</h3>
+                    {unitManagementComponent}
+                </div>
+            )}
+             <div>
+                <h3 className="text-xl font-semibold tracking-tight mb-2">Campus Announcement</h3>
+                <CampusSettingsManagement />
+            </div>
         </div>
       )
   }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -5,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -31,21 +32,15 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import type { Unit } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Input } from '../ui/input';
 
 const formSchema = z.object({
-  unitId: z.string().min(1, 'Please select a unit to assign.'),
+  name: z.string().min(3, 'Unit name must be at least 3 characters.'),
 });
 
 type UnitFormValues = z.infer<typeof formSchema>;
@@ -64,15 +59,10 @@ export function DirectorUnitManagement() {
 
   const form = useForm<UnitFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { unitId: '' },
+    defaultValues: { name: '' },
   });
 
-  const unassignedUnits = useMemo(
-    () => allUnits?.filter((unit) => !unit.campusId) || [],
-    [allUnits]
-  );
-
-  const visibleUnits = useMemo(
+  const unitsInCampus = useMemo(
     () => allUnits?.filter((unit) => unit.campusId === userProfile?.campusId) || [],
     [allUnits, userProfile]
   );
@@ -80,23 +70,35 @@ export function DirectorUnitManagement() {
   const isLoading = isLoadingUnits;
 
   const onSubmit = async (values: UnitFormValues) => {
-    if (!firestore || !userProfile?.campusId) return;
+    if (!firestore || !userProfile?.campusId) {
+      toast({
+        title: 'Error',
+        description: 'Cannot create unit. Campus information is missing.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setIsSubmitting(true);
-    const unitRef = doc(firestore, 'units', values.unitId);
-    const updateData = { campusId: userProfile.campusId };
+    const newUnitData = {
+      name: values.name,
+      campusId: userProfile.campusId,
+      createdAt: serverTimestamp(),
+    };
 
-    updateDoc(unitRef, updateData)
+    const unitsCollectionRef = collection(firestore, 'units');
+
+    addDoc(unitsCollectionRef, newUnitData)
       .then(() => {
-        toast({ title: 'Success', description: 'Unit has been assigned to your campus.' });
-        form.reset({ unitId: '' });
+        toast({ title: 'Success', description: `New unit "${values.name}" created.` });
+        form.reset({ name: '' });
       })
       .catch((error) => {
-        console.error('Error assigning unit:', error);
+        console.error('Error creating unit:', error);
         errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: unitRef.path,
-            operation: 'update',
-            requestResourceData: updateData
+            path: unitsCollectionRef.path,
+            operation: 'create',
+            requestResourceData: newUnitData,
         }));
       })
       .finally(() => {
@@ -108,46 +110,30 @@ export function DirectorUnitManagement() {
     <div className="grid gap-4 md:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Assign Unit to Your Campus</CardTitle>
-          <CardDescription>Select a unit to make it available for your campus.</CardDescription>
+          <CardTitle>Add New Unit</CardTitle>
+          <CardDescription>Create a new unit for your campus.</CardDescription>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent>
               <FormField
                 control={form.control}
-                name="unitId"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Unassigned Unit</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select an unassigned unit" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {unassignedUnits.map((unit) => (
-                          <SelectItem key={unit.id} value={unit.id}>
-                            {unit.name}
-                          </SelectItem>
-                        ))}
-                        {unassignedUnits.length === 0 && (
-                          <div className="p-4 text-sm text-muted-foreground">
-                            No unassigned units available.
-                          </div>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Unit Name</FormLabel>
+                    <FormControl>
+                        <Input placeholder="e.g., College of Arts and Sciences" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </CardContent>
             <CardFooter>
-              <Button type="submit" disabled={isSubmitting || !form.watch('unitId')}>
+              <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Assign Unit
+                Create Unit
               </Button>
             </CardFooter>
           </form>
@@ -172,7 +158,7 @@ export function DirectorUnitManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {visibleUnits.map((unit) => (
+                {unitsInCampus.map((unit) => (
                   <TableRow key={unit.id}>
                     <TableCell>{unit.name}</TableCell>
                   </TableRow>
@@ -180,9 +166,9 @@ export function DirectorUnitManagement() {
               </TableBody>
             </Table>
           )}
-          {!isLoading && visibleUnits.length === 0 && (
+          {!isLoading && unitsInCampus.length === 0 && (
             <div className="text-center py-10 text-muted-foreground">
-              No units assigned to your campus.
+              No units have been added to your campus yet.
             </div>
           )}
         </CardContent>
