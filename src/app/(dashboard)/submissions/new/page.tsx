@@ -8,7 +8,7 @@ import type { Submission } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
-import { CheckCircle, Circle, ChevronDown, ChevronUp, MessageSquare, HelpCircle } from 'lucide-react';
+import { CheckCircle, Circle, ChevronDown, ChevronUp, MessageSquare, HelpCircle, Download, FileCheck, Scan, Link as LinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,6 +26,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { SubmissionChecklist } from '@/components/dashboard/submission-checklist';
+import Link from 'next/link';
 
 
 export const submissionTypes = [
@@ -122,7 +123,7 @@ export default function NewSubmissionPage() {
         <CardHeader>
           <CardTitle>Submission Progress</CardTitle>
            <CardDescription>
-            You have completed {submissionStatusMap.size} of {submissionTypes.length} required submissions.
+            You have completed {submissionStatusMap.size} of {submissionTypes.length} required submissions for this cycle.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -289,11 +290,47 @@ export default function NewSubmissionPage() {
           </Card>
         </div>
 
-        {/* --- RIGHT COLUMN: PREVIEW & CHECKLIST --- */}
+        {/* --- RIGHT COLUMN: PREVIEW & INSTRUCTIONS --- */}
         <div className="space-y-4">
+             <Card>
+                <CardHeader>
+                    <CardTitle>General Instructions</CardTitle>
+                    <CardDescription>Follow these steps to ensure your submission is processed correctly.</CardDescription>
+                </CardHeader>
+                <CardContent className="text-sm space-y-4">
+                    <div className="flex items-start gap-3">
+                        <Download className="h-5 w-5 text-primary flex-shrink-0 mt-1"/>
+                        <div>
+                            <span className="font-semibold">1. Download Templates:</span> All report templates are available in the official EOMS Google Drive folder. 
+                            <Button variant="link" asChild className="p-0 h-auto ml-1">
+                                <Link href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank">Access templates here.</Link>
+                            </Button>
+                        </div>
+                    </div>
+                     <div className="flex items-start gap-3">
+                        <FileCheck className="h-5 w-5 text-primary flex-shrink-0 mt-1"/>
+                        <div>
+                            <span className="font-semibold">2. Complete Staff Work (CSW):</span> Ensure your report is finalized and adheres to the Complete Staff Work format before submission.
+                        </div>
+                    </div>
+                     <div className="flex items-start gap-3">
+                        <Scan className="h-5 w-5 text-primary flex-shrink-0 mt-1"/>
+                        <div>
+                            <span className="font-semibold">3. Upload and Share:</span> Scan the signed, final document and upload it to your unit's Google Drive. Set the sharing permission to "Anyone with the link can view".
+                        </div>
+                    </div>
+                     <div className="flex items-start gap-3">
+                        <LinkIcon className="h-5 w-5 text-primary flex-shrink-0 mt-1"/>
+                        <div>
+                            <span className="font-semibold">4. Copy and Submit Link:</span> Copy the sharing link from Google Drive and paste it into the submission form on this page.
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
             {activeReport && (
               <>
-              <Card className="sticky top-4">
+              <Card className="sticky top-20">
                 <CardHeader>
                   <CardTitle>Document Preview</CardTitle>
                   <CardDescription>A preview of the Google Drive link will be shown here.</CardDescription>
