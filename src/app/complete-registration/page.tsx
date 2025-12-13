@@ -59,6 +59,16 @@ export default function CompleteRegistrationPage() {
 
   const rolesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'roles'): null, [firestore]);
   const { data: roles, isLoading: isLoadingRoles } = useCollection<Role>(rolesQuery);
+  
+  const assignableRoles = useMemo(() => {
+    if (!roles) return [];
+    // Filter out high-privilege roles that should not be self-assigned.
+    const restrictedRoles = ['admin', 'vice president'];
+    return roles.filter(role => 
+        !restrictedRoles.some(restricted => role.name.toLowerCase().includes(restricted))
+    );
+  }, [roles]);
+
 
   const form = useForm<z.infer<typeof registrationSchema>>({
     resolver: zodResolver(registrationSchema),
@@ -208,7 +218,7 @@ export default function CompleteRegistrationPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {roles?.filter(r => r.name !== 'Admin').map((role) => (
+                        {assignableRoles.map((role) => (
                           <SelectItem key={role.id} value={role.id}>
                             {role.name}
                           </SelectItem>
