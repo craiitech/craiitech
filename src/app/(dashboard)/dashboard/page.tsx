@@ -27,6 +27,7 @@ import {
   XCircle,
   History,
   Settings,
+  Globe,
 } from 'lucide-react';
 import {
   useUser,
@@ -98,6 +99,7 @@ export default function HomePage() {
   const [userCount, setUserCount] = useState(0);
   const [allUsers, setAllUsers] = useState<Record<string, AppUser>>({});
   const [isAnnouncementVisible, setIsAnnouncementVisible] = useState(true);
+  const [isGlobalAnnouncementVisible, setIsGlobalAnnouncementVisible] = useState(true);
 
   const userRoleName = userRole;
 
@@ -205,12 +207,26 @@ export default function HomePage() {
   const { data: campusSetting, isLoading: isLoadingSettings } =
     useDoc(campusSettingsDocRef);
 
+  const globalAnnouncementDocRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'campusSettings', 'global');
+  }, [firestore]);
+  
+  const { data: globalSetting, isLoading: isLoadingGlobalSettings } = useDoc(globalAnnouncementDocRef);
+
+
   const announcement = campusSetting?.announcement;
+  const globalAnnouncement = globalSetting?.announcement;
   
   // Reset announcement visibility when the announcement text changes
   useEffect(() => {
     setIsAnnouncementVisible(true);
   }, [announcement]);
+  
+   useEffect(() => {
+    setIsGlobalAnnouncementVisible(true);
+  }, [globalAnnouncement]);
+
   
   const unitsInCampus = useMemo(() => {
       if (!allUnits || !userProfile?.campusId) return [];
@@ -223,7 +239,8 @@ export default function HomePage() {
     isLoadingSubmissions ||
     (canViewAnnouncements && isLoadingSettings) ||
     ((isAdmin || isCampusSupervisor) && isLoadingUnits) ||
-    isLoadingCampuses;
+    isLoadingCampuses ||
+    isLoadingGlobalSettings;
 
 
   const stats = useMemo(() => {
@@ -871,21 +888,33 @@ export default function HomePage() {
 
   return (
     <div className="space-y-4">
-       <div className="flex justify-between items-start">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Home</h2>
-          <p className="text-muted-foreground">
-            Welcome back, {userProfile?.firstName}! Here's your overview.
-          </p>
+       <div className="flex flex-col gap-4">
+        <div className='flex justify-between items-start'>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Home</h2>
+            <p className="text-muted-foreground">
+              Welcome back, {userProfile?.firstName}! Here's your overview.
+            </p>
+          </div>
         </div>
-         {announcement && isAnnouncementVisible && !isLoading && (
-            <Alert className="max-w-md">
-                <Megaphone className="h-4 w-4" />
-                <AlertTitle>Campus Announcement</AlertTitle>
-                <AlertDescription>{announcement}</AlertDescription>
-                <AlertCloseButton onClick={() => setIsAnnouncementVisible(false)} />
-            </Alert>
-        )}
+         <div className='flex flex-col gap-2'>
+            {globalAnnouncement && isGlobalAnnouncementVisible && !isLoading && (
+                <Alert>
+                    <Globe className="h-4 w-4" />
+                    <AlertTitle>Global Announcement</AlertTitle>
+                    <AlertDescription>{globalAnnouncement}</AlertDescription>
+                    <AlertCloseButton onClick={() => setIsGlobalAnnouncementVisible(false)} />
+                </Alert>
+            )}
+            {announcement && isAnnouncementVisible && !isLoading && (
+                <Alert>
+                    <Megaphone className="h-4 w-4" />
+                    <AlertTitle>Campus Announcement</AlertTitle>
+                    <AlertDescription>{announcement}</AlertDescription>
+                    <AlertCloseButton onClick={() => setIsAnnouncementVisible(false)} />
+                </Alert>
+            )}
+         </div>
       </div>
 
 

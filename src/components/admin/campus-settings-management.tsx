@@ -124,7 +124,7 @@ export function CampusSettingsManagement() {
         <CardTitle>Campus Announcement</CardTitle>
         <CardDescription>
           Set an announcement that will appear on the Home page for all users in
-          {isAdmin ? ' the selected campus' : ' your campus'}.
+          {isAdmin ? ' the selected campus or all campuses' : ' your campus'}.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
@@ -132,7 +132,7 @@ export function CampusSettingsManagement() {
           <CardContent className="space-y-4">
             {isAdmin && (
               <FormItem>
-                <FormLabel>Select Campus</FormLabel>
+                <FormLabel>Select Target</FormLabel>
                 <Select
                   onValueChange={(value) => {
                     setSelectedCampusId(value);
@@ -142,18 +142,23 @@ export function CampusSettingsManagement() {
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a campus to manage" />
+                      <SelectValue placeholder="Select a campus or global" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {isLoadingCampuses ? (
                         <div className="p-4 text-sm text-muted-foreground">Loading...</div>
                     ) : (
-                        campuses?.map((campus) => (
+                      <>
+                        <SelectItem value="global">
+                            Global Announcement (Send to All)
+                        </SelectItem>
+                        {campuses?.map((campus) => (
                           <SelectItem key={campus.id} value={campus.id}>
                             {campus.name}
                           </SelectItem>
-                        ))
+                        ))}
+                      </>
                     )}
                   </SelectContent>
                 </Select>
