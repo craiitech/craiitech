@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, MoreHorizontal } from 'lucide-react';
-import type { Unit, Campus } from '@/lib/types';
+import type { Unit, Campus, User } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -85,18 +85,30 @@ export function AdminUnitManagement() {
     [firestore]
   );
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(allCampusesQuery);
+  
+  const usersQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'users') : null),
+    [firestore]
+  );
+  const { data: allUsers, isLoading: isLoadingUsers } = useCollection<User>(usersQuery);
 
-  const form = useForm<UnitFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: { name: '', campusId: '' },
-  });
+  const vicePresidents = useMemo(() => {
+    if (!allUsers) return [];
+    return allUsers.filter(user => user.role === 'Vice President');
+  }, [allUsers]);
 
   const campusMap = useMemo(() => {
     if (!allCampuses) return {};
     return Object.fromEntries(allCampuses.map(c => [c.id, c.name]));
   }, [allCampuses]);
 
-  const isLoading = isLoadingUnits || isLoadingCampuses;
+  const isLoading = isLoadingUnits || isLoadingCampuses || isLoadingUsers;
+
+  const form = useForm<UnitFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { name: '', campusId: '' },
+  });
+
 
   const onSubmit = async (values: UnitFormValues) => {
     if (!firestore) return;
@@ -276,6 +288,7 @@ export function AdminUnitManagement() {
         <EditUnitDialog
             unit={editingUnit}
             allCampuses={allCampuses}
+            vicePresidents={vicePresidents}
             isOpen={!!editingUnit}
             onOpenChange={() => setEditingUnit(null)}
         />

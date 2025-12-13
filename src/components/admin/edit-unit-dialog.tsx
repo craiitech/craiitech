@@ -38,12 +38,13 @@ import { useFirestore } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
-import type { Unit, Campus } from '@/lib/types';
+import type { Unit, Campus, User } from '@/lib/types';
 import { Loader2, Check, ChevronsUpDown } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 
 interface EditUnitDialogProps {
@@ -51,18 +52,21 @@ interface EditUnitDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   allCampuses: Campus[];
+  vicePresidents: User[];
 }
 
 const editUnitSchema = z.object({
   name: z.string().min(1, 'Unit name is required'),
   campusIds: z.array(z.string()).optional(),
+  vicePresidentId: z.string().optional(),
 });
 
 export function EditUnitDialog({
   unit,
   isOpen,
   onOpenChange,
-  allCampuses
+  allCampuses,
+  vicePresidents,
 }: EditUnitDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -74,6 +78,7 @@ export function EditUnitDialog({
     defaultValues: {
       name: '',
       campusIds: [],
+      vicePresidentId: '',
     },
   });
 
@@ -82,6 +87,7 @@ export function EditUnitDialog({
       form.reset({
         name: unit.name,
         campusIds: unit.campusIds || [],
+        vicePresidentId: unit.vicePresidentId || '',
       });
     }
   }, [unit, form]);
@@ -96,6 +102,7 @@ export function EditUnitDialog({
     const updateData = {
         name: values.name,
         campusIds: values.campusIds || [],
+        vicePresidentId: values.vicePresidentId || '',
     };
 
     updateDoc(unitRef, updateData)
@@ -214,6 +221,33 @@ export function EditUnitDialog({
                     </FormItem>
                 )}
             />
+            <FormField
+              control={form.control}
+              name="vicePresidentId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Vice President</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Assign a Vice President" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">
+                        None
+                      </SelectItem>
+                      {vicePresidents.map((vp) => (
+                        <SelectItem key={vp.id} value={vp.id}>
+                          {vp.firstName} {vp.lastName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
@@ -228,4 +262,3 @@ export function EditUnitDialog({
     </Dialog>
   );
 }
-
