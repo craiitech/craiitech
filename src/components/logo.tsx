@@ -9,7 +9,6 @@ export function Logo({ className, ...props }: { className?: string }) {
       height={100}
       className={className}
       {...props}
-      style={{ width: 'auto', height: 'auto' }}
     />
   );
 }
