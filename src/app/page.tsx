@@ -21,7 +21,7 @@ export default function Home() {
         )}
         <div className="absolute inset-0 bg-black/50 -z-10" />
 
-        <div className="flex flex-col items-center justify-center space-y-6">
+        <div className="flex flex-col items-center justify-center space-y-6 p-4">
             <div className="flex items-center justify-center gap-4">
                 <Logo className="h-12 w-12 text-white" />
                 <h1 className="text-4xl font-bold tracking-tighter sm:text-6xl xl:text-7xl/none">
@@ -31,7 +31,7 @@ export default function Home() {
             <p className="max-w-[600px] text-white/80 md:text-xl">
                 Educational Organizations Management System or ISO 21001:2018 Submission Portal
             </p>
-            <div className="flex flex-col gap-4 min-[400px]:flex-row">
+            <div className="flex flex-wrap justify-center gap-4">
                 <Button asChild size="lg" variant="secondary">
                     <Link href="/login">
                         Login
@@ -40,6 +40,11 @@ export default function Home() {
                 <Button asChild size="lg">
                     <Link href="/register">
                         Register
+                    </Link>
+                </Button>
+                 <Button asChild size="lg" variant="outline" className="bg-transparent text-white border-white hover:bg-white/10">
+                    <Link href="/help">
+                        Support
                     </Link>
                 </Button>
             </div>
