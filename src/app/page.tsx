@@ -1,9 +1,21 @@
 
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero-landing');
@@ -47,6 +59,42 @@ export default function Home() {
                         Support
                     </Link>
                 </Button>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button size="lg" variant="outline" className="bg-transparent text-white border-white hover:bg-white/10">
+                            About
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="text-left text-foreground">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>About the Project</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This project is a collaboration between the Quality Assurance Office and the Center for Research in Artificial Intelligence and Information Technologies (CRAIITech).
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <div className="text-sm space-y-3">
+                            <div>
+                                <p className="font-semibold">Project Leader:</p>
+                                <p>Dr. Marvin Rick G. Forcado</p>
+                            </div>
+                            <div>
+                                <p className="font-semibold">Members:</p>
+                                <ul className="list-disc list-inside text-muted-foreground">
+                                    <li>Ms. Sarah Jane F. Fallaria</li>
+                                    <li>Ms. Zachary F. Fetalco</li>
+                                    <li>Ms. Aimelyn D. Rufon</li>
+                                    <li>Ms. Bea Trixia F. Veneracion</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <AlertDialogFooter>
+                            <div className="text-xs text-muted-foreground w-full text-center">
+                                Copyright 2025 RSU-CRAIITech
+                            </div>
+                            <AlertDialogAction>Close</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
              <p className="text-xs text-white/60">&copy; 2024 Romblon State University. All rights reserved.</p>
         </div>
