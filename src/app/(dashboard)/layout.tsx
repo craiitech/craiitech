@@ -19,10 +19,13 @@ import { SidebarNav } from '@/components/dashboard/sidebar-nav';
 import { Button } from '@/components/ui/button';
 import { useEffect, useMemo } from 'react';
 import type { Campus, Unit } from '@/lib/types';
-import { collection } from 'firebase/firestore';
+import { collection, getDoc, doc, setDoc } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Building2 } from 'lucide-react';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';
+import { getRedirectResult } from 'firebase/auth';
+import { logUserActivity } from '@/lib/activity-logger';
+import { useToast } from '@/hooks/use-toast';
 
 const LoadingSkeleton = () => (
   <div className="flex items-start">
@@ -61,14 +64,72 @@ export default function DashboardLayout({
 }) {
   const firebaseState = useFirebase();
   const pathname = usePathname();
+  const { toast } = useToast();
+  const router = useRouter();
+
 
   if (!firebaseState.areServicesAvailable) {
     return <LoadingSkeleton />;
   }
 
-  const { user, userProfile, isUserLoading, isAdmin, userRole, firestore } = firebaseState;
+  const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, auth } = firebaseState;
   
   const isStillLoading = isUserLoading;
+
+  // This effect handles the result of a Google Sign-In redirect
+  useEffect(() => {
+    if (!auth || !firestore) return;
+
+    const handleRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          const user = result.user;
+          const userDocRef = doc(firestore, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+
+          if (!userDoc.exists()) {
+            // This is a new user, create their document
+            const [first = '', last = ''] = user.displayName?.split(' ') || [];
+            await setDoc(userDocRef, {
+              id: user.uid,
+              email: user.email,
+              firstName: first,
+              lastName: last,
+              avatar: user.photoURL,
+              roleId: '',
+              role: '',
+              campusId: '',
+              unitId: '',
+              verified: false,
+              ndaAccepted: false,
+            });
+
+            await logUserActivity(user.uid, 'user_register', { method: 'google' });
+            
+            toast({
+                title: 'Account Created!',
+                description: 'Please complete your registration.',
+            });
+            router.push('/complete-registration');
+          } else {
+            // Existing user, just log login and go to dashboard
+            await logUserActivity(user.uid, 'user_login', { method: 'google' });
+            router.push('/dashboard');
+          }
+        }
+      } catch (error) {
+        console.error("Error handling Google sign-in redirect:", error);
+        toast({
+            title: 'Google Sign-In Failed',
+            description: error instanceof Error ? error.message : 'An unknown error occurred.',
+            variant: 'destructive',
+        });
+      }
+    };
+
+    handleRedirect();
+  }, [auth, firestore, router, toast]);
 
   const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
@@ -174,3 +235,5 @@ export default function DashboardLayout({
     </SidebarProvider>
   );
 }
+
+    

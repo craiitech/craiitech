@@ -12,7 +12,7 @@ import { useAuth, useFirestore } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
   GoogleAuthProvider,
   getAdditionalUserInfo,
 } from 'firebase/auth';
@@ -152,7 +152,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         campusId: '',
         unitId: '',
         verified: false,
-        ndaAccepted: false, 
+        ndaAccepted: false,
       });
 
       // Log successful account creation
@@ -185,43 +185,11 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     setIsSubmitting(true);
     try {
       const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      // Check if the user document already exists
-      const userDocRef = doc(firestore, 'users', user.uid);
-      const userDoc = await getDoc(userDocRef);
-
-      if (!userDoc.exists()) {
-        // This is a new user, create their document
-        const [first = '', last = ''] = user.displayName?.split(' ') || [];
-        await setDoc(userDocRef, {
-          id: user.uid,
-          email: user.email,
-          firstName: first,
-          lastName: last,
-          avatar: user.photoURL,
-          roleId: '',
-          role: '',
-          campusId: '',
-          unitId: '',
-          verified: false,
-          ndaAccepted: false,
-        });
-
-        // Log successful registration via Google
-        await logUserActivity(user.uid, 'user_register', { method: 'google' });
-        
-        toast({
-            title: 'Account Created!',
-            description: 'Please complete your registration.',
-        });
-        router.push('/complete-registration');
-      } else {
-        // Existing user, just log login and go to dashboard
-        await logUserActivity(user.uid, 'user_login', { method: 'google' });
-        router.push('/dashboard');
-      }
+      // Use signInWithRedirect instead of signInWithPopup
+      await signInWithRedirect(auth, provider);
+      // The rest of the logic (creating user doc, etc.) will be handled
+      // by a listener on the main app component that catches the redirect result.
+      // For now, we don't need to do anything else here.
     } catch (error) {
       console.error('Google sign-in error:', error);
       toast({
@@ -230,8 +198,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
           error instanceof Error ? error.message : 'An unknown error occurred.',
         variant: 'destructive',
       });
-    } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false); // Only set this to false on error
     }
   }
 
@@ -479,3 +446,5 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     </>
   );
 }
+
+    
