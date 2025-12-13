@@ -422,7 +422,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       </div>
 
       <h2 className="text-2xl font-bold mb-6 text-center">
-        {activeTab === 'signup' ? 'Create an account' : 'Sign in to your account'}
+        {activeTab === 'signup' ? 'Create your RSU EOMS Account' : 'RSU EOMS Submission Portal'}
       </h2>
 
       {activeTab === 'signup' ? renderSignUp() : renderSignIn()}
@@ -470,5 +470,3 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     </>
   );
 }
-
-    
