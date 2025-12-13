@@ -66,8 +66,9 @@ import { SubmissionAnalytics } from '@/components/dashboard/submission-analytics
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { UnitUserOverview } from '@/components/dashboard/unit-user-overview';
+import { IncompleteCampusSubmissions } from '@/components/dashboard/incomplete-campus-submissions';
 
-const submissionTypes = [
+export const submissionTypes = [
   'Operational Plans',
   'Objectives Monitoring',
   'Risk and Opportunity Registry Form',
@@ -333,7 +334,11 @@ export default function HomePage() {
   
   const sortedSubmissions = useMemo(() => {
     if (!submissions) return [];
-    return [...submissions].sort((a,b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime());
+    return [...submissions].sort((a,b) => {
+        const dateA = a.submissionDate instanceof Date ? a.submissionDate.getTime() : 0;
+        const dateB = b.submissionDate instanceof Date ? b.submissionDate.getTime() : 0;
+        return dateB - dateA;
+    });
   }, [submissions]);
 
   const renderCard = (
@@ -707,6 +712,12 @@ export default function HomePage() {
             </CardContent>
           </Card>
         </div>
+         <IncompleteCampusSubmissions
+            allSubmissions={submissions}
+            allCampuses={allCampuses}
+            allUnits={allUnits}
+            isLoading={isLoading}
+         />
          <UnitsWithoutSubmissions
           allUnits={allUnits}
           allCampuses={allCampuses}
@@ -796,6 +807,21 @@ export default function HomePage() {
   );
 
   const renderHomeContent = () => {
+    if (isLoading) {
+         return (
+             <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                    <Skeleton className="h-28"/>
+                    <Skeleton className="h-28"/>
+                    <Skeleton className="h-28"/>
+                </div>
+                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                    <Skeleton className="col-span-4 h-80" />
+                    <Skeleton className="col-span-3 h-80" />
+                </div>
+            </div>
+         )
+    }
     if (isAdmin) return renderAdminHome();
     if (isCampusSupervisor) return renderSupervisorHome();
     return renderUnitCoordinatorHome();
@@ -803,13 +829,22 @@ export default function HomePage() {
 
   return (
     <div className="space-y-4">
-      {announcement && !isLoading && (
-        <Alert>
-          <Megaphone className="h-4 w-4" />
-          <AlertTitle>Campus Announcement</AlertTitle>
-          <AlertDescription>{announcement}</AlertDescription>
-        </Alert>
-      )}
+       <div className="flex justify-between items-start">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Home</h2>
+          <p className="text-muted-foreground">
+            Welcome back, {userProfile?.firstName}! Here's your overview.
+          </p>
+        </div>
+         {announcement && !isLoading && (
+            <Alert className="max-w-md">
+                <Megaphone className="h-4 w-4" />
+                <AlertTitle>Campus Announcement</AlertTitle>
+                <AlertDescription>{announcement}</AlertDescription>
+            </Alert>
+        )}
+      </div>
+
 
       {renderHomeContent()}
     </div>
