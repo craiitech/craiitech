@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -64,6 +64,14 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
+
+  useEffect(() => {
+    // This effect ensures the dialog opens on initial render of the signup form
+    if (activeTab === 'signup' && !privacyPolicyAgreed) {
+      setIsPrivacyDialogOpen(true);
+    }
+  }, [activeTab]);
+
 
   const togglePasswordVisibility = () => setIsPasswordVisible(!isPasswordVisible);
   
