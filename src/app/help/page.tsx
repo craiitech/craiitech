@@ -44,8 +44,12 @@ const faqs = [
       },
       {
         question: 'What do the different submission statuses mean?',
-        answer:
-          '<ul><li><b>Not Submitted:</b> You have not uploaded this report for the selected period.</li><li><b>Submitted:</b> The report has been sent and is awaiting review.</li><li><b>Approved:</b> The submission has been approved by the designated approver.</li><li><b>Rejected:</b> The submission was not accepted. You must review the feedback, make corrections, and resubmit.</li></ul>',
+        answerBlocks: [
+          { type: 'list-item', content: '<strong>Not Submitted:</strong> You have not uploaded this report for the selected period.' },
+          { type: 'list-item', content: '<strong>Submitted:</strong> The report has been sent and is awaiting review.' },
+          { type: 'list-item', content: '<strong>Approved:</strong> The submission has been approved by the designated approver.' },
+          { type: 'list-item', content: '<strong>Rejected:</strong> The submission was not accepted. You must review the feedback, make corrections, and resubmit.' },
+        ],
       },
       {
         question: 'My submission was rejected. What do I do?',
@@ -137,10 +141,16 @@ export default function HelpPage() {
               <AccordionItem key={index} value={`${section.role}-${index}`}>
                 <AccordionTrigger>{faq.question}</AccordionTrigger>
                 <AccordionContent>
-                  <div
-                    className="prose prose-sm max-w-none text-muted-foreground"
-                    dangerouslySetInnerHTML={{ __html: faq.answer }}
-                  />
+                  <div className="prose prose-sm max-w-none text-muted-foreground space-y-2">
+                    {faq.answer && <p>{faq.answer}</p>}
+                    {faq.answerBlocks && (
+                      <ul className="list-disc pl-5 space-y-1">
+                        {faq.answerBlocks.map((block, i) => (
+                          <li key={i} dangerouslySetInnerHTML={{ __html: block.content }} />
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </AccordionContent>
               </AccordionItem>
             ))}

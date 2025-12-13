@@ -96,8 +96,8 @@ export function RecentActivity({ submissions, isLoading: isLoadingSubmissions }:
 
   if (!recentSubmissions || recentSubmissions.length === 0) {
       return (
-          <div className="flex h-full items-center justify-center text-muted-foreground">
-              No recent activity.
+          <div className="flex h-[280px] items-center justify-center text-center text-sm text-muted-foreground">
+              No recent activity to display.
           </div>
       )
   }

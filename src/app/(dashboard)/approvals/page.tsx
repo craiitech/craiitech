@@ -345,20 +345,13 @@ export default function ApprovalsPage() {
                       {submission.cycleId}
                     </TableCell>
                     <TableCell className="text-right space-x-1">
-                      <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => router.push(`/submissions/${submission.id}`)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>View Details</p>
-                          </TooltipContent>
-                        </Tooltip>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push(`/submissions/${submission.id}`)}
+                      >
+                        <Eye className="mr-2 h-4 w-4" /> View
+                      </Button>
                       {canApprove && (
                         <>
                           <Tooltip>
