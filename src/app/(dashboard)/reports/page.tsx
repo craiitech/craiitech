@@ -1,27 +1,241 @@
 
 'use client';
 
+import { useState, useMemo } from 'react';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import type { Campus, Unit, Submission, User as AppUser } from '@/lib/types';
+import { collection } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Loader2, School, Users, FileCheck2 } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function ReportsPage() {
+  const { isAdmin, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  const [selectedCampusId, setSelectedCampusId] = useState<string | null>(null);
+
+  const campusesQuery = useMemoFirebase(
+    () => (firestore && isAdmin ? collection(firestore, 'campuses') : null),
+    [firestore, isAdmin]
+  );
+  const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
+
+  const unitsQuery = useMemoFirebase(
+    () => (firestore && isAdmin ? collection(firestore, 'units') : null),
+    [firestore, isAdmin]
+  );
+  const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+
+  const submissionsQuery = useMemoFirebase(
+    () => (firestore && isAdmin ? collection(firestore, 'submissions') : null),
+    [firestore, isAdmin]
+  );
+  const { data: allSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
+
+  const usersQuery = useMemoFirebase(
+    () => (firestore && isAdmin ? collection(firestore, 'users') : null),
+    [firestore, isAdmin]
+  );
+  const { data: allUsers, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
+
+  const unitsInSelectedCampus = useMemo(() => {
+    if (!selectedCampusId || !allUnits) return [];
+    return allUnits.filter(unit => unit.campusId === selectedCampusId);
+  }, [selectedCampusId, allUnits]);
+
+  const submittedUnits = useMemo(() => {
+    if (!allSubmissions || !allUnits) return [];
+    const submittedUnitIds = new Set(allSubmissions.map(s => s.unitId));
+    return allUnits.filter(unit => submittedUnitIds.has(unit.id));
+  }, [allSubmissions, allUnits]);
+
+  const campusMap = useMemo(() => {
+    if (!allCampuses) return new Map();
+    return new Map(allCampuses.map(c => [c.id, c.name]));
+  }, [allCampuses]);
+
+  const isLoading = isUserLoading || isLoadingCampuses || isLoadingUnits || isLoadingSubmissions || isLoadingUsers;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Reports</h2>
+          <p className="text-muted-foreground">You do not have permission to view this page.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-       <div>
-          <h2 className="text-2xl font-bold tracking-tight">Reports</h2>
-          <p className="text-muted-foreground">
-            Generate and view system reports.
-          </p>
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Reports</h2>
+        <p className="text-muted-foreground">Generate and view system-wide reports.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Campus and Units Report */}
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <School className="h-5 w-5" />
+              Campuses and Units
+            </CardTitle>
+            <CardDescription>Select a campus to view its assigned units.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Select onValueChange={setSelectedCampusId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a campus..." />
+              </SelectTrigger>
+              <SelectContent>
+                {allCampuses?.map(campus => (
+                  <SelectItem key={campus.id} value={campus.id}>
+                    {campus.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <ScrollArea className="h-72 rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Units in {campusMap.get(selectedCampusId!) || 'Selected Campus'}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {selectedCampusId && unitsInSelectedCampus.length > 0 ? (
+                    unitsInSelectedCampus.map(unit => (
+                      <TableRow key={unit.id}>
+                        <TableCell>{unit.name}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell className="text-center text-muted-foreground">
+                        {selectedCampusId ? 'No units found for this campus.' : 'Please select a campus.'}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+
+        {/* Submitted Units and All Users Reports */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileCheck2 className="h-5 w-5" />
+                Units With Submissions
+              </CardTitle>
+              <CardDescription>A list of all units that have made at least one submission.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-48 rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Unit Name</TableHead>
+                      <TableHead>Campus</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {submittedUnits.length > 0 ? (
+                      submittedUnits.map(unit => (
+                        <TableRow key={unit.id}>
+                          <TableCell>{unit.name}</TableCell>
+                          <TableCell>{campusMap.get(unit.campusId!) || 'N/A'}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={2} className="text-center text-muted-foreground">
+                          No units have submitted reports yet.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                All Registered Users
+              </CardTitle>
+              <CardDescription>A complete list of all users in the system.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-96 rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Campus / Unit</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allUsers?.map(user => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={user.avatar} />
+                              <AvatarFallback>
+                                {user.firstName?.charAt(0)}
+                                {user.lastName?.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{user.firstName} {user.lastName}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                            <div className="text-sm">{campusMap.get(user.campusId) || 'N/A'}</div>
+                            <div className="text-xs text-muted-foreground">{allUnits?.find(u => u.id === user.unitId)?.name || ''}</div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </CardContent>
+          </Card>
         </div>
-      <Card className="flex h-[450px] w-full items-center justify-center border-dashed">
-        <div className="text-center">
-            <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-semibold">No Reports Generated</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-                This section is under development. Reporting features will be available here soon.
-            </p>
-        </div>
-      </Card>
+      </div>
     </div>
   );
 }
