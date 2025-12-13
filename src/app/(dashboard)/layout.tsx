@@ -134,43 +134,41 @@ export default function DashboardLayout({
   }
 
   return (
-    <ActivityLogProvider>
-      <SidebarProvider>
-        <Sidebar variant="sidebar" collapsible="icon">
-          <SidebarHeader className="items-center justify-center text-center p-4">
-            <Avatar className="h-20 w-20">
-                <AvatarImage src={userProfile?.avatar} alt={userProfile?.firstName} />
-                <AvatarFallback className="text-2xl">
-                  {userProfile?.firstName?.charAt(0)}
-                  {userProfile?.lastName?.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="mt-2 text-center">
-                  <p className="font-semibold text-lg">{userProfile?.firstName} {userProfile?.lastName}</p>
-                  <p className="text-xs text-sidebar-primary font-medium">{userRole}</p>
-                  {userLocation && (
-                      <div className="flex items-center justify-center gap-1 text-xs text-sidebar-foreground/70 mt-1">
-                          <Building2 className="h-3 w-3"/>
-                          <span>{userLocation}</span>
-                      </div>
-                  )}
-              </div>
-          </SidebarHeader>
-          <SidebarContent className="p-4">
-            <SidebarNav />
-          </SidebarContent>
-        </Sidebar>
-        <SidebarInset>
-          <header className="flex h-16 items-center justify-between border-b px-4 lg:px-8 bg-card">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="md:hidden" />
-              <h1 className="font-semibold text-lg">{getPageTitle(pathname)}</h1>
+    <SidebarProvider>
+      <Sidebar variant="sidebar" collapsible="icon">
+        <SidebarHeader className="items-center justify-center text-center p-4">
+          <Avatar className="h-20 w-20">
+              <AvatarImage src={userProfile?.avatar} alt={userProfile?.firstName} />
+              <AvatarFallback className="text-2xl">
+                {userProfile?.firstName?.charAt(0)}
+                {userProfile?.lastName?.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="mt-2 text-center">
+                <p className="font-semibold text-lg">{userProfile?.firstName} {userProfile?.lastName}</p>
+                <p className="text-xs text-sidebar-primary font-medium">{userRole}</p>
+                {userLocation && (
+                    <div className="flex items-center justify-center gap-1 text-xs text-sidebar-foreground/70 mt-1">
+                        <Building2 className="h-3 w-3"/>
+                        <span>{userLocation}</span>
+                    </div>
+                )}
             </div>
-            <UserNav user={user} />
-          </header>
-          <main className="p-4 lg:p-8 bg-background/90">{children}</main>
-        </SidebarInset>
-      </SidebarProvider>
-    </ActivityLogProvider>
+        </SidebarHeader>
+        <SidebarContent className="p-4">
+          <SidebarNav />
+        </SidebarContent>
+      </Sidebar>
+      <SidebarInset>
+        <header className="flex h-16 items-center justify-between border-b px-4 lg:px-8 bg-card">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="md:hidden" />
+            <h1 className="font-semibold text-lg">{getPageTitle(pathname)}</h1>
+          </div>
+          <UserNav user={user} />
+        </header>
+        <main className="p-4 lg:p-8 bg-background/90">{children}</main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
