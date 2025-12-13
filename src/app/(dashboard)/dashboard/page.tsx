@@ -65,6 +65,7 @@ import { format } from 'date-fns';
 import { SubmissionAnalytics } from '@/components/dashboard/submission-analytics';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
+import { UnitUserOverview } from '@/components/dashboard/unit-user-overview';
 
 const submissionTypes = [
   'Operational Plans',
@@ -565,6 +566,7 @@ export default function DashboardPage() {
       <TabsList>
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        <TabsTrigger value="users">Users</TabsTrigger>
       </TabsList>
       <TabsContent value="overview" className="space-y-4">
          <div className="grid gap-4 md:grid-cols-3">
@@ -636,6 +638,14 @@ export default function DashboardPage() {
           allUnits={allUnits}
           isLoading={isLoading}
           isAdmin={isAdmin}
+          userProfile={userProfile}
+        />
+      </TabsContent>
+       <TabsContent value="users" className="space-y-4">
+        <UnitUserOverview
+          allUsers={Object.values(allUsers)}
+          allUnits={allUnits}
+          isLoading={isLoading}
           userProfile={userProfile}
         />
       </TabsContent>
@@ -805,3 +815,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
