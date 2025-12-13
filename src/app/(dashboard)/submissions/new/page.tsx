@@ -221,41 +221,41 @@ export default function NewSubmissionPage() {
                       onOpenChange={(isOpen) => setActiveReport(isOpen ? reportType : null)}
                       className="rounded-lg border"
                     >
-                      <div className="flex w-full items-center justify-between p-4 text-left">
-                        <div className="flex items-center gap-3">
-                           {submission ? (
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                          ) : (
-                            <Circle className="h-5 w-5 text-muted-foreground" />
-                          )}
-                          <span className="font-medium">{reportType}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                           {submission && (
-                            <div className="flex items-center gap-2">
-                                <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
-                                    {submission.statusId}
-                                </Badge>
-                                {submission.statusId === 'submitted' && (
-                                  <p className="text-sm text-muted-foreground">
-                                    Awaiting Review and Approval
-                                  </p>
-                                )}
-                                {submission.statusId === 'rejected' && submission.comments && (
-                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); handleViewFeedback(submission.comments)} }>
-                                        <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                                    </Button>
-                                )}
+                      <CollapsibleTrigger asChild>
+                         <button className="flex w-full items-center justify-between p-4 text-left hover:bg-muted/50 rounded-t-lg">
+                            <div className="flex flex-1 items-center gap-3">
+                              {submission ? (
+                                <CheckCircle className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <Circle className="h-5 w-5 text-muted-foreground" />
+                              )}
+                              <span className="font-medium flex-1">{reportType}</span>
                             </div>
-                          )}
-                          <CollapsibleTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <div className="flex items-center gap-2">
+                              {submission && (
+                                <div className="flex items-center gap-2">
+                                  <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
+                                    {submission.statusId}
+                                  </Badge>
+                                  {submission.statusId === 'submitted' && (
+                                    <p className="text-sm text-muted-foreground hidden md:block">
+                                      Awaiting Review
+                                    </p>
+                                  )}
+                                  {submission.statusId === 'rejected' && submission.comments && (
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); handleViewFeedback(submission.comments)} }>
+                                      <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+                              <div className="h-8 w-8 flex items-center justify-center">
                                 {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                 <span className="sr-only">Toggle</span>
-                            </Button>
-                          </CollapsibleTrigger>
-                        </div>
-                      </div>
+                              </div>
+                            </div>
+                          </button>
+                      </CollapsibleTrigger>
                       <CollapsibleContent className="p-4 pt-0">
                         <p className="mb-4 text-sm text-muted-foreground">
                           {submission
