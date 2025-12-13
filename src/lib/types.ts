@@ -58,7 +58,8 @@ export type Campus = {
 export type Unit = {
     id: string;
     name: string;
-    campusIds?: string[]; // Changed from campusId to campusIds
+    vicePresidentId?: string;
+    campusIds?: string[];
 }
 
 export type CampusSetting = {

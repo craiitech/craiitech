@@ -85,7 +85,7 @@ export default function DashboardLayout({
     const campusName = campuses.find(c => c.id === userProfile.campusId)?.name;
     const unitName = units.find(u => u.id === userProfile.unitId)?.name;
     let locationString = campusName || '';
-    if (unitName && userRole !== 'Campus Director' && userRole !== 'Campus ODIMO') {
+    if (unitName && userRole !== 'Campus Director' && userRole !== 'Campus ODIMO' && !userRole?.toLowerCase().includes('vice president')) {
         locationString += ` / ${unitName}`;
     }
     return locationString;
@@ -104,22 +104,21 @@ export default function DashboardLayout({
     }
 
     if (userProfile && !isAdmin) {
-      const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
-      const isCampusLevelUser = userRole ? campusLevelRoles.some(r => userRole.toLowerCase().includes(r.toLowerCase())) : false;
-      const isVP = userRole ? userRole.toLowerCase().includes('vice president') : false;
+      const isVP = userRole?.toLowerCase().includes('vice president');
+      const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
 
-      // VPs do not need a unit, but they need a campus and role.
+      let isProfileIncomplete = false;
       if (isVP) {
-        if (!userProfile.campusId || !userProfile.roleId) {
-          redirect('/complete-registration');
-          return;
-        }
+        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
+      } else if (isCampusLevelUser) {
+        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
       } else {
-        const isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || (!isCampusLevelUser && !userProfile.unitId);
-        if (isProfileIncomplete) {
-          redirect('/complete-registration');
-          return;
-        }
+        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
+      }
+
+      if (isProfileIncomplete) {
+        redirect('/complete-registration');
+        return;
       }
       
       if (!userProfile.verified) {
