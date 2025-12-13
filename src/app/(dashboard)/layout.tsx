@@ -124,6 +124,13 @@ export default function DashboardLayout({
   if (!user || (user && !userProfile && !isAdmin && pathname !== '/complete-registration')) {
      return <div className="flex h-screen w-screen items-center justify-center"><Skeleton className="h-16 w-16" /></div>;
   }
+  
+  const getPageTitle = (path: string) => {
+    if (path === '/dashboard') return 'Home';
+    const lastSegment = path.split('/').pop();
+    // A simple way to capitalize the first letter
+    return lastSegment ? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1) : '';
+  }
 
   return (
     <SidebarProvider>
@@ -155,7 +162,7 @@ export default function DashboardLayout({
         <header className="flex h-16 items-center justify-between border-b px-4 lg:px-8 bg-card">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="md:hidden" />
-            <h1 className="font-semibold text-lg capitalize">{pathname.split('/').pop()}</h1>
+            <h1 className="font-semibold text-lg">{getPageTitle(pathname)}</h1>
           </div>
           <UserNav user={user} />
         </header>
