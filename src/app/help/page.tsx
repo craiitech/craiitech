@@ -38,7 +38,7 @@ const faqs = [
     ],
   },
   {
-    role: 'Employee / Unit Coordinator',
+    role: 'Employee / Unit Coordinator / Unit ODIMO',
     questions: [
       {
         question: 'How do I submit a report?',
@@ -54,7 +54,7 @@ const faqs = [
         question: 'What do the different submission statuses mean?',
         answerBlocks: [
           { type: 'list-item', content: '<strong>Not Submitted:</strong> You have not uploaded this report for the selected period.' },
-          { type: 'list-item', content: '<strong>Submitted:</strong> The report has been sent and is awaiting review from your Unit ODIMO.' },
+          { type: 'list-item', content: '<strong>Submitted:</strong> The report has been sent and is awaiting review from an approver.' },
           { type: 'list-item', content: '<strong>Approved:</strong> The submission has been reviewed and approved.' },
           { type: 'list-item', content: '<strong>Rejected:</strong> The submission was not accepted. You must review the feedback, make corrections, and resubmit.' },
         ],
@@ -67,42 +67,27 @@ const faqs = [
     ],
   },
   {
-    role: 'Unit ODIMO',
+    role: 'Campus Director / Campus ODIMO',
     questions: [
       {
-        question: 'How do I review submissions from my unit?',
+        question: 'How do I review submissions from my campus?',
         answer:
-          'Navigate to the "Approvals" page. You will see a queue of submissions from your unit that are awaiting your review. You can click on the "View" button to inspect the submission details and document preview.',
+          'Navigate to the "Approvals" page. You will see a queue of submissions from your campus that are awaiting your review. You can click on the "View" button to inspect the submission details and document preview.',
       },
       {
         question: 'How do I approve or reject a submission?',
         answer:
           'On the "Approvals" page, you can quickly approve with the green checkmark button. To reject, click the red "X" button, which opens a dialog where you must provide feedback. Alternatively, you can manage approvals from the submission\'s detail page.',
       },
+      {
+        question: 'How can I monitor the submission progress of my campus?',
+        answer:
+          'Your Home page provides several dashboard cards and analytics. "Submission Status per Unit" shows the completion progress for each unit, and the "Analytics" tab provides charts for submissions by unit and status.',
+      },
        {
         question: 'Can I approve my own submissions?',
         answer:
           'No, the system automatically filters your own submissions out of your approval queue to ensure a proper review process.',
-      },
-    ],
-  },
-  {
-    role: 'Campus Director / Campus ODIMO',
-    questions: [
-      {
-        question: 'How can I monitor the submission progress of my campus?',
-        answer:
-          'Your Home page provides several dashboard cards. "Submission Status per Unit" shows the completion progress for each unit. "Incomplete Submissions by Campus" highlights units that are falling behind on their required reports for the year.',
-      },
-      {
-        question: 'How do I manage campus-specific settings?',
-        answer:
-          'Navigate to the "Settings" page. As a Campus Director, you can create new units or assign existing unassigned units to your campus. As a Campus ODIMO, you can post a campus-wide announcement that will appear on the dashboard for all users in your campus.',
-      },
-        {
-        question: 'Can I see all submissions from my campus?',
-        answer:
-          'Yes, the "Submissions" page will show you a complete history of all submissions from all units within your assigned campus, allowing you to filter and review as needed. The "Analytics" tab on your dashboard also provides charts for submissions by unit and status.',
       },
     ],
   },

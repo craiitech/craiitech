@@ -67,7 +67,7 @@ const manualSections = [
     ],
   },
   {
-    role: 'Employee / Unit Coordinator',
+    role: 'Employee / Unit Coordinator / Unit ODIMO',
     sections: [
         {
             title: 'Dashboard Overview',
@@ -112,14 +112,14 @@ const manualSections = [
     ]
   },
   {
-      role: 'Unit ODIMO / Approver',
+      role: 'Campus Director & Campus ODIMO (Approvers)',
       sections: [
           {
               title: 'Approvals Page',
               content: `
-                <p>The "Approvals" page is your primary workspace for reviewing submissions from your unit.</p>
+                <p>The "Approvals" page is your primary workspace for reviewing submissions from your campus.</p>
                  <ul class="list-disc spacey-y-2 pl-6">
-                    <li>This page lists all submissions with a "Submitted" status from users within your assigned unit.</li>
+                    <li>This page lists all submissions with a "Submitted" status from users within your assigned campus.</li>
                     <li>You will not see your own submissions in this queue, as self-approval is not permitted.</li>
                 </ul>
               `
@@ -134,31 +134,15 @@ const manualSections = [
                     <li>Alternatively, click the <strong>View (eye) icon</strong> to go to the detail page. Here you can preview the document and use the "Take Action" card to approve or reject with feedback.</li>
                 </ol>
               `
-          }
-      ]
-  },
-  {
-      role: 'Campus Director & Campus ODIMO',
-      sections: [
-          {
-              title: 'Campus Dashboard',
-              content: `
-                <p>Your dashboard provides a high-level overview of your entire campus.</p>
-                 <ul class="list-disc spacey-y-2 pl-6">
-                    <li><strong>Stats Cards:</strong> Track overall submission progress, total submissions, and the number of users in your campus.</li>
-                    <li><strong>Analytics:</strong> The "Analytics" tab provides charts showing submissions by unit and status, helping you identify which units are performing well and which may need support.</li>
-                    <li><strong>User Overview:</strong> The "Users" tab shows a breakdown of all registered users in each unit of your campus.</li>
-                    <li><strong>Incomplete Submissions:</strong> A critical report on your main dashboard that shows units that have not completed all their required submissions for the year.</li>
-                </ul>
-              `
           },
           {
-              title: 'Campus Settings Management',
+              title: 'Campus Dashboard & Settings',
               content: `
-                <p>Campus-level officials have special permissions on the "Settings" page.</p>
+                <p>Your dashboard provides a high-level overview of your entire campus. You also have special permissions on the "Settings" page.</p>
                  <ul class="list-disc spacey-y-2 pl-6">
-                    <li><strong>Campus Directors:</strong> Can manage units for their campus. This includes creating new units specific to the campus or assigning existing, unassigned university-wide units to their campus.</li>
-                    <li><strong>Campus ODIMOs:</strong> Can post a campus-wide announcement. This message will appear in an alert box on the dashboard for every user registered under that campus.</li>
+                    <li><strong>Dashboard Analytics:</strong> The "Analytics" tab provides charts showing submissions by unit and status, helping you identify which units are performing well and which may need support.</li>
+                    <li><strong>Campus Directors (Unit Management):</strong> Can manage units for their campus. This includes creating new units specific to the campus or assigning existing, unassigned university-wide units to their campus.</li>
+                    <li><strong>Campus ODIMOs (Announcements):</strong> Can post a campus-wide announcement. This message will appear in an alert box on the dashboard for every user registered under that campus.</li>
                 </ul>
               `
           }
