@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -20,15 +20,27 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { validateGoogleDriveLinkAccessibility } from '@/ai/flows/validate-google-drive-link-accessibility';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, arrayUnion } from 'firebase/firestore';
 import type { Unit, Submission, Comment } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useSessionActivity } from '@/lib/activity-log-provider';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/card';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { useMemoFirebase, useCollection } from '@/firebase';
+
 
 const submissionSchema = z.object({
   googleDriveLink: z
@@ -48,7 +60,6 @@ interface SubmissionFormProps {
   year: number;
   cycleId: 'first' | 'final';
   onSuccess?: () => void;
-  onLinkChange: (link: string) => void;
 }
 
 export function SubmissionForm({
@@ -56,7 +67,6 @@ export function SubmissionForm({
   year,
   cycleId,
   onSuccess,
-  onLinkChange,
 }: SubmissionFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationStatus, setValidationStatus] = useState<ValidationStatus>('idle');
@@ -64,8 +74,8 @@ export function SubmissionForm({
   const { user, userProfile, userRole } = useUser();
   const firestore = useFirestore();
   const { logSessionActivity } = useSessionActivity();
+  const [previewUrl, setPreviewUrl] = useState<string>('');
 
-  // --- Checklist State ---
   const checklistItems = [
     { id: 'correctDoc', label: `Is this the correct "${reportType}" for the ${cycleId} cycle for year ${year}?` },
     { id: 'year', label: 'Is the Year in the document correct?' },
@@ -87,7 +97,6 @@ export function SubmissionForm({
       [id]: !prevState[id],
     }));
   };
-  // --- End Checklist State ---
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
@@ -99,11 +108,29 @@ export function SubmissionForm({
       comments: '',
     },
   });
+
+  const handleLinkChange = (link: string) => {
+    if (link && link.startsWith('https://drive.google.com/')) {
+      const embedUrl = link.replace('/view', '/preview').replace('?usp=sharing', '');
+      setPreviewUrl(embedUrl);
+    } else {
+      setPreviewUrl('');
+    }
+  };
   
-  // Effect to pre-fill form if an existing submission exists
+  const googleDriveLinkValue = form.watch('googleDriveLink');
+  useEffect(() => {
+    handleLinkChange(googleDriveLinkValue);
+  }, [googleDriveLinkValue]);
+
+
   useEffect(() => {
     const fetchExistingSubmission = async () => {
         if (!firestore || !user) return;
+        setValidationStatus('idle'); // Reset on change
+        form.reset({ googleDriveLink: '', comments: '' }); // Clear form
+        setCheckedState(checklistItems.reduce((acc, item) => ({ ...acc, [item.id]: false }), {})); // Reset checklist
+        
         const q = query(
             collection(firestore, 'submissions'),
             where('userId', '==', user.uid),
@@ -121,12 +148,7 @@ export function SubmissionForm({
         }
     }
     fetchExistingSubmission();
-  }, [firestore, user, reportType, year, cycleId, form]);
-
-  const googleDriveLinkValue = form.watch('googleDriveLink');
-  useEffect(() => {
-    onLinkChange(googleDriveLinkValue);
-  }, [googleDriveLinkValue, onLinkChange]);
+  }, [firestore, user, reportType, year, cycleId]);
 
 
   const handleLinkValidation = async (link: string) => {
@@ -176,7 +198,6 @@ export function SubmissionForm({
     
     const submissionCollectionRef = collection(firestore, 'submissions');
 
-    // Check for an existing submission to update it
     const q = query(
         submissionCollectionRef,
         where('userId', '==', user.uid),
@@ -197,11 +218,10 @@ export function SubmissionForm({
     } : null;
 
     if (!querySnapshot.empty) {
-        // Update existing submission
         const existingDocRef = doc(firestore, 'submissions', querySnapshot.docs[0].id);
         const updateData: any = {
           googleDriveLink: values.googleDriveLink,
-          statusId: 'submitted', // Reset status on update
+          statusId: 'submitted',
           submissionDate: new Date(),
         };
 
@@ -233,12 +253,9 @@ export function SubmissionForm({
           })
           .finally(() => {
               setIsSubmitting(false);
-              form.reset();
-              setValidationStatus('idle');
           });
 
     } else {
-        // Add new submission
         const newSubmissionData: any = {
             googleDriveLink: values.googleDriveLink,
             reportType,
@@ -277,8 +294,6 @@ export function SubmissionForm({
           })
           .finally(() => {
               setIsSubmitting(false);
-              form.reset();
-              setValidationStatus('idle');
           });
     }
   };
@@ -299,6 +314,16 @@ export function SubmissionForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="aspect-video w-full rounded-lg border bg-muted mb-6">
+            {previewUrl ? (
+                <iframe src={previewUrl} className="h-full w-full" allow="autoplay"></iframe>
+            ) : (
+                <div className="flex h-full items-center justify-center text-muted-foreground p-4 text-center">
+                    <p>A preview of your Google Drive file will appear here.</p>
+                </div>
+            )}
+        </div>
+        
         <FormField
           control={form.control}
           name="googleDriveLink"
@@ -321,8 +346,45 @@ export function SubmissionForm({
                 </div>
               </FormControl>
               {!fieldState.error && (
-                <FormDescription>
-                  Make sure the link sharing is set to 'Anyone with the link'.
+                 <FormDescription className="flex items-center gap-1">
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="link" className="p-0 h-auto text-xs">
+                                <HelpCircle className="mr-1 h-3 w-3"/>
+                                How to get the correct link?
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>How to Get Your Google Drive File Link</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Follow these steps to ensure your file is shared correctly for submission.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <ol className="list-decimal space-y-3 pl-5 text-sm text-muted-foreground">
+                                <li>Open your file in Google Drive.</li>
+                                <li>Click the blue <strong>"Share"</strong> button in the top right corner.</li>
+                                <li>
+                                    In the popup window, find the <strong>"General access"</strong> section. If it says "Restricted", click on it.
+                                </li>
+                                <li>
+                                    Select <strong>"Anyone with the link"</strong> from the dropdown menu. This is critical for the QA Office to be able to view your file.
+                                </li>
+                                 <li>
+                                    To the right of "Anyone with the link", ensure the role is set to <strong>"Viewer"</strong>.
+                                </li>
+                                <li>
+                                    Finally, click the <strong>"Copy link"</strong> button. The link is now copied to your clipboard.
+                                </li>
+                                <li>
+                                    Paste the copied link into the "Google Drive Link" field in the submission form.
+                                </li>
+                            </ol>
+                            <AlertDialogFooter>
+                                 <AlertDialogAction>Got it!</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </FormDescription>
               )}
               <FormMessage />
@@ -348,21 +410,21 @@ export function SubmissionForm({
         
         <Card>
             <CardHeader>
-                <CardTitle>Final Check</CardTitle>
-                <CardDescription>
-                Please confirm the following details before submitting. You must check all boxes to enable the submit button.
+                <CardTitle className="text-base">Final Check</CardTitle>
+                <CardDescription className="text-xs">
+                    Please confirm the following details before submitting.
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
                 {checklistItems.map(item => (
-                <div key={item.id} className="flex items-start space-x-3 rounded-md border p-4">
+                <div key={item.id} className="flex items-start space-x-3">
                     <Checkbox
-                    id={`${reportType}-${item.id}`} // Ensure unique ID per form instance
-                    checked={checkedState[item.id]}
-                    onCheckedChange={() => handleCheckboxChange(item.id)}
+                        id={`${reportType}-${item.id}`}
+                        checked={checkedState[item.id]}
+                        onCheckedChange={() => handleCheckboxChange(item.id)}
                     />
-                    <Label htmlFor={`${reportType}-${item.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    {item.label}
+                    <Label htmlFor={`${reportType}-${item.id}`} className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        {item.label}
                     </Label>
                 </div>
                 ))}
@@ -392,3 +454,5 @@ export function SubmissionForm({
     </Form>
   );
 }
+
+    

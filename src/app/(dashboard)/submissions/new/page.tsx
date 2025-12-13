@@ -8,13 +8,11 @@ import type { Submission } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
-import { CheckCircle, Circle, ChevronDown, ChevronUp, MessageSquare, HelpCircle, Download, FileCheck, Scan, Link as LinkIcon } from 'lucide-react';
+import { CheckCircle, Circle, HelpCircle, Download, FileCheck, Scan, Link as LinkIcon, AlertCircle, XCircle, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { FeedbackDialog } from '@/components/dashboard/feedback-dialog';
-import { Progress } from '@/components/ui/progress';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 
 export const submissionTypes = [
@@ -54,8 +53,7 @@ export default function NewSubmissionPage() {
 
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedCycle, setSelectedCycle] = useState<'first' | 'final'>('first');
-  const [activeReport, setActiveReport] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [selectedReport, setSelectedReport] = useState<string>(submissionTypes[0]);
   
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [feedbackToShow, setFeedbackToShow] = useState('');
@@ -73,32 +71,17 @@ export default function NewSubmissionPage() {
 
   const { data: submissions, isLoading } = useCollection<Submission>(submissionsQuery);
 
-  const { submissionStatusMap, submissionProgress } = useMemo(() => {
+  const submissionStatusMap = useMemo(() => {
     if (!submissions) {
-      return { 
-        submissionStatusMap: new Map<string, Submission>(),
-        submissionProgress: 0 
-      };
+      return new Map<string, Submission>();
     }
-    const statusMap = new Map(submissions.map((s) => [s.reportType, s]));
-    const progress = (statusMap.size / submissionTypes.length) * 100;
-    return {
-      submissionStatusMap: statusMap,
-      submissionProgress: progress,
-    };
+    return new Map(submissions.map((s) => [s.reportType, s]));
   }, [submissions]);
 
-  const handleLinkChange = (link: string) => {
-    if (link && link.startsWith('https://drive.google.com/')) {
-      const embedUrl = link.replace('/view', '/preview').replace('?usp=sharing', '');
-      setPreviewUrl(embedUrl);
-    } else {
-      setPreviewUrl('');
-    }
-  };
-
   const handleFormSuccess = () => {
-    setActiveReport(null); 
+    // This function is called when a form is successfully submitted.
+    // It can be used to refetch data or update UI if needed.
+    // For now, the real-time listener of useCollection handles the update automatically.
   };
   
   const handleViewFeedback = (comments: any) => {
@@ -109,6 +92,20 @@ export default function NewSubmissionPage() {
     }
     setIsFeedbackDialogOpen(true);
   };
+  
+  const getIconForStatus = (status?: string) => {
+    switch (status) {
+      case 'approved':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'rejected':
+        return <AlertCircle className="h-5 w-5 text-destructive" />;
+      case 'submitted':
+        return <Circle className="h-5 w-5 text-yellow-500" />;
+      default:
+        return <XCircle className="h-5 w-5 text-muted-foreground" />;
+    }
+  };
+
 
   return (
     <div className="space-y-4">
@@ -116,183 +113,84 @@ export default function NewSubmissionPage() {
         <h2 className="text-2xl font-bold tracking-tight">New Submission</h2>
         <p className="text-muted-foreground">Select a report to submit for the chosen year and cycle.</p>
       </div>
-      
-       <Card>
-        <CardHeader>
-          <CardTitle>Submission Progress</CardTitle>
-           <CardDescription>
-            You have completed {submissionStatusMap.size} of {submissionTypes.length} required submissions for this cycle.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <Skeleton className="h-4 w-full" />
-          ) : (
-            <Progress value={submissionProgress} className="w-full" />
-          )}
-        </CardContent>
-      </Card>
 
-
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        {/* --- LEFT COLUMN: CHECKLIST --- */}
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Submission Checklist</CardTitle>
-              <CardDescription>Select the year and cycle to view submission status.</CardDescription>
-              <div className="flex items-center gap-4 pt-2">
-                <Select value={String(selectedYear)} onValueChange={(value) => setSelectedYear(Number(value))}>
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue placeholder="Year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map((year) => (
-                      <SelectItem key={year} value={String(year)}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={selectedCycle} onValueChange={(value: 'first' | 'final') => setSelectedCycle(value)}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Cycle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="first">First Submission</SelectItem>
-                    <SelectItem value="final">Final Submission</SelectItem>
-                  </SelectContent>
-                </Select>
-                 <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="link" className="p-0 h-auto">
-                            <HelpCircle className="mr-2 h-4 w-4"/>
-                            How to get Google Drive link
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>How to Get Your Google Drive File Link</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Follow these steps to ensure your file is shared correctly for submission.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <ol className="list-decimal space-y-3 pl-5 text-sm text-muted-foreground">
-                            <li>Open your file in Google Drive.</li>
-                            <li>Click the blue <strong>"Share"</strong> button in the top right corner.</li>
-                            <li>
-                                In the popup window, find the <strong>"General access"</strong> section. If it says "Restricted", click on it.
-                            </li>
-                            <li>
-                                Select <strong>"Anyone with the link"</strong> from the dropdown menu. This is critical for the QA Office to be able to view your file.
-                            </li>
-                             <li>
-                                To the right of "Anyone with the link", ensure the role is set to <strong>"Viewer"</strong>.
-                            </li>
-                            <li>
-                                Finally, click the <strong>"Copy link"</strong> button. The link is now copied to your clipboard.
-                            </li>
-                            <li>
-                                Paste the copied link into the "Google Drive Link" field in the submission form on this page.
-                            </li>
-                        </ol>
-                        <AlertDialogFooter>
-                             <AlertDialogAction>Got it!</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {isLoading ? (
-                <div className="space-y-4">
-                  {[...Array(6)].map((_, i) => (
-                    <Skeleton key={i} className="h-14 w-full" />
-                  ))}
+       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        {/* --- LEFT COLUMN: CHECKLIST & INSTRUCTIONS --- */}
+        <div className="lg:col-span-1 space-y-4">
+            <Card>
+                <CardHeader>
+                <CardTitle>Submission Status</CardTitle>
+                <CardDescription>Select the year and cycle to view submission status.</CardDescription>
+                <div className="flex items-center gap-4 pt-2">
+                    <Select value={String(selectedYear)} onValueChange={(value) => setSelectedYear(Number(value))}>
+                    <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="Year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {years.map((year) => (
+                        <SelectItem key={year} value={String(year)}>
+                            {year}
+                        </SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                    <Select value={selectedCycle} onValueChange={(value: 'first' | 'final') => setSelectedCycle(value)}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Cycle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="first">First Submission</SelectItem>
+                        <SelectItem value="final">Final Submission</SelectItem>
+                    </SelectContent>
+                    </Select>
                 </div>
-              ) : (
-                submissionTypes.map((reportType) => {
-                  const submission = submissionStatusMap.get(reportType);
-                  const isExpanded = activeReport === reportType;
-
-                  return (
-                    <Collapsible
-                      key={reportType}
-                      open={isExpanded}
-                      onOpenChange={(isOpen) => {
-                        setActiveReport(isOpen ? reportType : null);
-                      }}
-                      className="rounded-lg border"
-                    >
-                      <CollapsibleTrigger asChild>
-                         <div role="button" className="flex w-full items-center justify-between p-4 text-left hover:bg-muted/50 rounded-t-lg cursor-pointer">
+                </CardHeader>
+                <CardContent className="space-y-2">
+                {isLoading ? (
+                    <div className="space-y-4">
+                    {[...Array(6)].map((_, i) => (
+                        <Skeleton key={i} className="h-14 w-full" />
+                    ))}
+                    </div>
+                ) : (
+                    submissionTypes.map((reportType) => {
+                    const submission = submissionStatusMap.get(reportType);
+                    const isSelected = selectedReport === reportType;
+                    return (
+                        <div
+                            key={reportType}
+                            role="button"
+                            onClick={() => setSelectedReport(reportType)}
+                            className={cn(
+                                "flex w-full items-center justify-between p-3 text-left rounded-lg cursor-pointer border transition-colors",
+                                isSelected ? "bg-muted ring-2 ring-primary" : "hover:bg-muted/50"
+                            )}
+                        >
                             <div className="flex flex-1 items-center gap-3">
-                              {submission ? (
-                                <CheckCircle className="h-5 w-5 text-green-500" />
-                              ) : (
-                                <Circle className="h-5 w-5 text-muted-foreground" />
-                              )}
-                              <span className="font-medium flex-1">{reportType}</span>
+                                {getIconForStatus(submission?.statusId)}
+                                <span className="font-medium flex-1">{reportType}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              {submission && (
-                                <div className="flex items-center gap-2">
-                                  <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
-                                    {submission.statusId}
-                                  </Badge>
-                                  {submission.statusId === 'submitted' && (
-                                    <p className="text-sm text-muted-foreground hidden md:block">
-                                      Awaiting Review
-                                    </p>
-                                  )}
-                                  {submission.statusId === 'rejected' && submission.comments && (
-                                    <div onClick={(e) => { e.stopPropagation(); handleViewFeedback(submission.comments); }}>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                                            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                                        </Button>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              <div className="h-8 w-8 flex items-center justify-center">
-                                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                                <span className="sr-only">Toggle</span>
-                              </div>
+                                {submission && (
+                                    <Badge variant={statusVariant[submission.statusId]} className="capitalize">
+                                        {submission.statusId}
+                                    </Badge>
+                                )}
+                                <ChevronRight className="h-5 w-5 text-muted-foreground" />
                             </div>
-                          </div>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="p-4 pt-0">
-                        <p className="mb-4 text-sm text-muted-foreground">
-                          {submission
-                            ? 'You have already submitted this report for the selected period. You can update it by submitting again.'
-                            : 'Fill out the form below to submit this report.'}
-                        </p>
-                        <SubmissionForm
-                          reportType={reportType}
-                          year={selectedYear}
-                          cycleId={selectedCycle}
-                          onLinkChange={handleLinkChange}
-                          onSuccess={handleFormSuccess}
-                          key={`${reportType}-${selectedYear}-${selectedCycle}`}
-                        />
-                      </CollapsibleContent>
-                    </Collapsible>
-                  );
-                })
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                        </div>
+                    );
+                    })
+                )}
+                </CardContent>
+            </Card>
 
-        {/* --- RIGHT COLUMN: PREVIEW & INSTRUCTIONS --- */}
-        <div className="space-y-4">
-             <Card>
+            <Card>
                 <CardHeader>
                     <CardTitle>General Instructions</CardTitle>
-                    <CardDescription>Follow these steps to ensure your submission is processed correctly.</CardDescription>
                 </CardHeader>
                 <CardContent className="text-sm space-y-4">
-                    <div className="flex items-start gap-3">
+                     <div className="flex items-start gap-3">
                         <Download className="h-5 w-5 text-primary flex-shrink-0 mt-1"/>
                         <div>
                             <span className="font-semibold">1. Download Templates:</span> All report templates are available in the official EOMS Google Drive folder. 
@@ -316,31 +214,34 @@ export default function NewSubmissionPage() {
                      <div className="flex items-start gap-3">
                         <LinkIcon className="h-5 w-5 text-primary flex-shrink-0 mt-1"/>
                         <div>
-                            <span className="font-semibold">4. Copy and Submit Link:</span> Copy the sharing link from Google Drive and paste it into the submission form on this page.
+                            <span className="font-semibold">4. Copy and Submit Link:</span> Copy the sharing link from Google Drive and paste it into the submission form. Use the helper button below the form for a guide.
                         </div>
                     </div>
                 </CardContent>
             </Card>
+        </div>
 
-            {activeReport && (
-              <Card className="sticky top-20">
+        {/* --- RIGHT COLUMN: PREVIEW & FORM --- */}
+        <div className="lg:col-span-2">
+            <Card className="sticky top-20">
                 <CardHeader>
-                  <CardTitle>Document Preview</CardTitle>
-                  <CardDescription>A preview of the Google Drive link will be shown here.</CardDescription>
+                    <CardTitle>Submit: {selectedReport}</CardTitle>
+                    <CardDescription>
+                        {submissionStatusMap.get(selectedReport)
+                            ? `You have already submitted this report. You can update it by submitting again.`
+                            : `Fill out the form below to submit this report.`}
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="aspect-video w-full rounded-lg border bg-muted">
-                    {previewUrl ? (
-                      <iframe src={previewUrl} className="h-full w-full" allow="autoplay"></iframe>
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-muted-foreground">
-                        <p>Enter a valid Google Drive link to see a preview.</p>
-                      </div>
-                    )}
-                  </div>
+                    <SubmissionForm
+                        reportType={selectedReport}
+                        year={selectedYear}
+                        cycleId={selectedCycle}
+                        onSuccess={handleFormSuccess}
+                        key={`${selectedReport}-${selectedYear}-${selectedCycle}`}
+                    />
                 </CardContent>
-              </Card>
-            )}
+            </Card>
         </div>
       </div>
       <FeedbackDialog 
