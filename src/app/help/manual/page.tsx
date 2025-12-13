@@ -9,6 +9,9 @@ import {
 } from '@/components/ui/accordion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { List, ListItem } from '@/components/ui/list';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ShieldCheck } from 'lucide-react';
+
 
 const manualSections = [
   {
@@ -210,6 +213,14 @@ export default function UserManualPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <Alert variant="default" className="mb-6">
+          <ShieldCheck className="h-4 w-4" />
+          <AlertTitle>For Authorized Use Only</AlertTitle>
+          <AlertDescription>
+            This portal is for the exclusive use of bona fide and selected employees of Romblon State University involved in the EOMS process. It is not intended for general public use.
+          </AlertDescription>
+        </Alert>
+
         <Accordion type="multiple" className="w-full">
           {manualSections.map((roleSection) => (
             <div key={roleSection.role}>

@@ -16,9 +16,14 @@ const faqs = [
     role: 'General',
     questions: [
       {
+        question: 'Who can use this application?',
+        answer:
+          'This application is not for general use. Access is restricted to bona fide and selected employees of Romblon State University who are directly involved in the Educational Organizations Management System (EOMS) submission and review process. All accounts are subject to verification and approval by the Quality Assurance Office.',
+      },
+      {
         question: 'How do I register for an account?',
         answer:
-          'Click the "Register" button on the homepage. You can sign up using your RSU email and a password or with your Google account. You must agree to the Data Privacy Statement to proceed.',
+          'If you are an authorized employee, click the "Register" button on the homepage. You must sign up using your official RSU email. You must agree to the Data Privacy Statement to proceed.',
       },
       {
         question: 'What happens after I sign up?',
