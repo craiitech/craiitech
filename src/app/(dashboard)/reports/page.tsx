@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -74,6 +73,10 @@ export default function ReportsPage() {
 
   const isLoading = isUserLoading || isLoadingCampuses || isLoadingUnits || isLoadingSubmissions || isLoadingUsers;
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -100,7 +103,7 @@ export default function ReportsPage() {
           <h2 className="text-2xl font-bold tracking-tight">Reports</h2>
           <p className="text-muted-foreground">Generate and view system-wide reports.</p>
         </div>
-        <Button onClick={() => window.print()}>
+        <Button onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
             Print Report
         </Button>
