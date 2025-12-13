@@ -11,6 +11,7 @@ import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, B
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../ui/sidebar';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { useSessionActivity } from '@/lib/activity-log-provider';
 
 export function SidebarNav({
   className,
@@ -20,14 +21,17 @@ export function SidebarNav({
   const router = useRouter();
   const auth = useAuth();
   const { toast } = useToast();
-  const { userProfile, isAdmin } = useUser();
+  const { user, userProfile, isAdmin, userRole } = useUser();
+  const { logSessionActivity } = useSessionActivity();
 
-  const userRole = isAdmin ? 'Admin' : userProfile?.role;
-  const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
-  
   const handleLogout = () => {
-    // Instead of signing out directly, redirect to the logout page
-    // which will show the summary and then handle the sign-out.
+    if (user && userProfile && userRole) {
+      logSessionActivity('User logged out from sidebar', {
+        action: 'user_logout',
+        details: { method: 'manual' },
+      });
+    }
+    // Redirect to the logout page which will show the summary and then handle the sign-out.
     router.push('/logout');
   };
 
@@ -117,5 +121,3 @@ export function SidebarNav({
     </div>
   );
 }
-
-    

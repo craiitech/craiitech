@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect, useRef } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore, doc, collection } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
@@ -10,6 +10,7 @@ import { useDoc } from './firestore/use-doc';
 import { useCollection, type WithId } from './firestore/use-collection';
 import type { User as AppUser, Role } from '@/lib/types';
 import { useMemoFirebase } from './';
+import { useSessionActivity, ActivityLogProvider } from '@/lib/activity-log-provider';
 
 
 interface FirebaseProviderProps {
@@ -87,6 +88,9 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     userError: null,
   });
 
+  // Use a ref to track if the initial login has been logged for the session
+  const loginLoggedRef = useRef(false);
+
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
     if (!auth) { // If no Auth service instance, cannot determine user state
@@ -100,6 +104,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       (firebaseUser) => { // Auth state determined
         setUserAuthState({ user: firebaseUser, isAuthLoading: false, userError: null });
+        if (!firebaseUser) {
+           // Reset the login logged flag when user logs out
+           loginLoggedRef.current = false;
+        }
       },
       (error) => { // Auth listener error
         console.error("FirebaseProvider: onAuthStateChanged error:", error);
@@ -107,7 +115,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       }
     );
     return () => unsubscribe(); // Cleanup
-  }, [auth]); // Depends on the auth instance
+  }, [auth]);
 
 
   const userDocRef = useMemoFirebase(() => {
@@ -152,11 +160,34 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       userRole,
     };
   }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading, adminDoc, isAdminLoading, roles, isLoadingRoles]);
+  
+  // A separate component or hook is needed to use the Activity Log context
+  function ActivityLogger() {
+    const { logSessionActivity } = useSessionActivity();
+    const { user, userProfile, userRole, isUserLoading } = useContext(FirebaseContext)!;
+
+    useEffect(() => {
+      // Log the login event only once per session when all user data is ready
+      if (user && userProfile && userRole && !isUserLoading && !loginLoggedRef.current) {
+        logSessionActivity('User logged in', {
+          action: 'user_login',
+          details: { method: user.providerData[0]?.providerId || 'email' },
+        });
+        loginLoggedRef.current = true; // Mark as logged for this session
+      }
+    }, [user, userProfile, userRole, isUserLoading, logSessionActivity]);
+
+    return null; // This component does not render anything
+  }
+
 
   return (
     <FirebaseContext.Provider value={contextValue}>
       <FirebaseErrorListener />
-      {children}
+      <ActivityLogProvider>
+        <ActivityLogger />
+        {children}
+      </ActivityLogProvider>
     </FirebaseContext.Provider>
   );
 };

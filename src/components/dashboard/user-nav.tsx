@@ -18,11 +18,21 @@ import type { User as FirebaseAuthUser } from 'firebase/auth';
 import type { User as AppUser } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useSessionActivity } from '@/lib/activity-log-provider';
+import { useUser } from '@/firebase';
 
 export function UserNav({ user, userProfile }: { user: FirebaseAuthUser | null, userProfile: AppUser | null }) {
   const router = useRouter();
+  const { logSessionActivity } = useSessionActivity();
+  const { userRole } = useUser();
   
   const handleLogout = () => {
+    if (user && userProfile && userRole) {
+      logSessionActivity('User logged out from user nav', {
+        action: 'user_logout',
+        details: { method: 'manual' },
+      });
+    }
     router.push('/logout');
   };
 

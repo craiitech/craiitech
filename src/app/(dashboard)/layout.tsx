@@ -105,13 +105,21 @@ export default function DashboardLayout({
 
     if (userProfile && !isAdmin) {
       const campusLevelRoles = ['Campus Director', 'Campus ODIMO'];
-      const isCampusLevelUser = userRole ? campusLevelRoles.some(r => userRole.toLowerCase() === r.toLowerCase()) : false;
+      const isCampusLevelUser = userRole ? campusLevelRoles.some(r => userRole.toLowerCase().includes(r.toLowerCase())) : false;
+      const isVP = userRole ? userRole.toLowerCase().includes('vice president') : false;
 
-      const isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || (!isCampusLevelUser && !userProfile.unitId);
-
-      if (isProfileIncomplete) {
-        redirect('/complete-registration');
-        return;
+      // VPs do not need a unit, but they need a campus and role.
+      if (isVP) {
+        if (!userProfile.campusId || !userProfile.roleId) {
+          redirect('/complete-registration');
+          return;
+        }
+      } else {
+        const isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || (!isCampusLevelUser && !userProfile.unitId);
+        if (isProfileIncomplete) {
+          redirect('/complete-registration');
+          return;
+        }
       }
       
       if (!userProfile.verified) {

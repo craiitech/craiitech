@@ -6,12 +6,21 @@ import { getFirestore, serverTimestamp } from 'firebase-admin/firestore';
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!getApps().length) {
-    // When running in a Google Cloud environment, the SDK can automatically
-    // find the service account credentials from the environment.
-     try {
-        initializeApp();
+    try {
+        const serviceAccount = JSON.parse(
+            process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string
+        );
+        initializeApp({
+            credential: cert(serviceAccount),
+        });
     } catch (e) {
-        console.error("Firebase Admin SDK initialization failed:", e);
+        console.error("Firebase Admin SDK initialization failed. Ensure FIREBASE_SERVICE_ACCOUNT_KEY is set in .env.local", e);
+        // Fallback for environments where it might be auto-configured (like Google Cloud Run)
+        try {
+            initializeApp();
+        } catch (autoInitError) {
+             console.error("Firebase Admin SDK auto-initialization also failed.", autoInitError);
+        }
     }
 }
 
@@ -39,7 +48,8 @@ export async function logUserActivity(
   }
 
   try {
-    await firestore.collection('activityLogs').add({
+    const logCollection = firestore.collection('activityLogs');
+    await logCollection.add({
       userId,
       userName,
       userRole,
