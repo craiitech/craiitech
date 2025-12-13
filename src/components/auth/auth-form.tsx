@@ -152,7 +152,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         campusId: '',
         unitId: '',
         verified: false,
-        ndaAccepted: true, // Agreeing to policy is part of signup
+        ndaAccepted: false, 
       });
 
       // Log successful account creation
@@ -206,7 +206,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
           campusId: '',
           unitId: '',
           verified: false,
-          ndaAccepted: true,
+          ndaAccepted: false,
         });
 
         // Log successful registration via Google
