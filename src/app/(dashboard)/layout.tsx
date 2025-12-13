@@ -12,7 +12,8 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarTrigger,
-  SidebarFooter
+  SidebarFooter,
+  SidebarProvider,
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
 import { Button } from '@/components/ui/button';
