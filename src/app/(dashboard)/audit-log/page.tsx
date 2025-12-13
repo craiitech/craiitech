@@ -23,10 +23,12 @@ export default function AuditLogPage() {
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
 
+  // This query will only be constructed when firestore is ready and isAdmin is true.
   const logsQuery = useMemoFirebase(
     () => (firestore && isAdmin ? query(collection(firestore, 'activityLogs'), orderBy('timestamp', 'desc')) : null),
     [firestore, isAdmin]
   );
+
   const { data: logs, isLoading: isLoadingLogs } = useCollection<ActivityLog>(logsQuery);
 
   const filteredLogs = useMemo(() => {
@@ -34,14 +36,15 @@ export default function AuditLogPage() {
     const lowercasedFilter = searchTerm.toLowerCase();
     return logs.filter(log => {
       return (
-        log.userName.toLowerCase().includes(lowercasedFilter) ||
-        log.userRole.toLowerCase().includes(lowercasedFilter) ||
-        log.action.toLowerCase().includes(lowercasedFilter) ||
-        JSON.stringify(log.details).toLowerCase().includes(lowercasedFilter)
+        log.userName?.toLowerCase().includes(lowercasedFilter) ||
+        log.userRole?.toLowerCase().includes(lowercasedFilter) ||
+        log.action?.toLowerCase().includes(lowercasedFilter) ||
+        (log.details && JSON.stringify(log.details).toLowerCase().includes(lowercasedFilter))
       );
     });
   }, [logs, searchTerm]);
 
+  // Combined loading state: still loading user data OR user is an admin and logs are loading.
   const isLoading = isUserLoading || (isAdmin && isLoadingLogs);
 
   if (isLoading) {
