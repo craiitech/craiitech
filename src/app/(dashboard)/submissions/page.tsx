@@ -1,7 +1,7 @@
 
 'use client';
 
-import { PlusCircle, MessageSquare, Eye, ArrowUpDown } from 'lucide-react';
+import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -27,10 +27,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, getDocs, Timestamp, where } from 'firebase/firestore';
+import { collection, query, getDocs, Timestamp, where, doc, deleteDoc } from 'firebase/firestore';
 import type { Submission, User as AppUser, Campus } from '@/lib/types';
 import { format } from 'date-fns';
-import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useEffect } from 'react';
 import { FeedbackDialog } from '@/components/dashboard/feedback-dialog';
@@ -45,6 +44,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { useSessionActivity } from '@/lib/activity-log-provider';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -77,6 +79,7 @@ const SubmissionsTable = ({
     getCampusName,
     onEyeClick, 
     onViewFeedbackClick,
+    onDeleteClick,
     sortConfig,
     requestSort
 }: { 
@@ -87,6 +90,7 @@ const SubmissionsTable = ({
     getCampusName: (campusId: string) => string,
     onEyeClick: (submissionId: string) => void, 
     onViewFeedbackClick: (comments: any) => void,
+    onDeleteClick: (submission: Submission) => void,
     sortConfig: SortConfig,
     requestSort: (key: keyof Submission | 'submitterName' | 'campusName') => void
  }) => {
@@ -192,6 +196,12 @@ const SubmissionsTable = ({
                         <Eye className="h-4 w-4" />
                         <span className="sr-only">View Details</span>
                     </Button>
+                    {isAdmin && (
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => onDeleteClick(submission)}>
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete Submission</span>
+                        </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -205,6 +215,8 @@ export default function SubmissionsPage() {
   const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
+  const { logSessionActivity } = useSessionActivity();
 
   const [users, setUsers] = useState<Record<string, AppUser>>({});
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
@@ -221,6 +233,12 @@ export default function SubmissionsPage() {
   const [feedbackToShow, setFeedbackToShow] = useState('');
   const [activeFilter, setActiveFilter] = useState<string>('All Submissions');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'submissionDate', direction: 'descending'});
+
+  // State for delete dialog
+  const [deletingSubmission, setDeletingSubmission] = useState<Submission | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmationText, setConfirmationText] = useState('');
+  const [challengeText, setChallengeText] = useState('');
 
   const isSupervisor = useMemo(() => {
     if (!userRole) return false;
@@ -332,6 +350,45 @@ export default function SubmissionsPage() {
   const handleEyeClick = (submissionId: string) => {
       router.push(`/submissions/${submissionId}`);
   }
+
+  const handleDeleteClick = (submission: Submission) => {
+    setDeletingSubmission(submission);
+    const randomId = Math.floor(1000 + Math.random() * 9000);
+    setChallengeText(`delete-${randomId}`);
+    setConfirmationText('');
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!firestore || !deletingSubmission) return;
+
+    setIsDeleting(true);
+    try {
+        const submissionRef = doc(firestore, 'submissions', deletingSubmission.id);
+        await deleteDoc(submissionRef);
+        
+        setSubmissions(prev => prev.filter(s => s.id !== deletingSubmission.id));
+        logSessionActivity(`Deleted submission: ${deletingSubmission.reportType} (ID: ${deletingSubmission.id})`, {
+          action: 'delete_submission',
+          details: { submissionId: deletingSubmission.id },
+        });
+
+        toast({
+            title: 'Submission Deleted',
+            description: 'The submission has been permanently removed.'
+        });
+    } catch (error) {
+         console.error('Error deleting submission:', error);
+         toast({
+            title: 'Error',
+            description: 'Could not delete the submission.',
+            variant: 'destructive'
+         });
+    } finally {
+        setIsDeleting(false);
+        setDeletingSubmission(null);
+    }
+  }
+
 
   const requestSort = (key: keyof Submission | 'submitterName' | 'campusName') => {
     let direction: 'ascending' | 'descending' = 'ascending';
@@ -465,6 +522,7 @@ export default function SubmissionsPage() {
                     getCampusName={getCampusName}
                     onEyeClick={handleEyeClick}
                     onViewFeedbackClick={handleViewFeedback}
+                    onDeleteClick={handleDeleteClick}
                     sortConfig={sortConfig}
                     requestSort={requestSort}
                 />
@@ -476,6 +534,35 @@ export default function SubmissionsPage() {
         onOpenChange={setIsFeedbackDialogOpen}
         feedback={feedbackToShow}
       />
+      <AlertDialog open={!!deletingSubmission} onOpenChange={() => setDeletingSubmission(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the submission for <strong>{deletingSubmission?.reportType}</strong> from <strong>{deletingSubmission?.unitName}</strong>.
+                    <br/><br/>
+                    Please type <strong className="text-destructive">{challengeText}</strong> to confirm.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <Input 
+                value={confirmationText}
+                onChange={(e) => setConfirmationText(e.target.value)}
+                placeholder={`Type "${challengeText}" to confirm`}
+                className="bg-muted"
+            />
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                    onClick={handleConfirmDelete} 
+                    disabled={isDeleting || confirmationText !== challengeText}
+                    className="bg-destructive hover:bg-destructive/90"
+                >
+                    {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                    Delete Submission
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
