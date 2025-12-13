@@ -17,7 +17,7 @@ import { FeedbackDialog } from '@/components/dashboard/feedback-dialog';
 import { Progress } from '@/components/ui/progress';
 
 
-const submissionTypes = [
+export const submissionTypes = [
   'Operational Plans',
   'Objectives Monitoring',
   'Risk and Opportunity Registry Form',

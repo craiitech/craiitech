@@ -3,13 +3,13 @@
 import { useMemo } from 'react';
 import type { Submission, Unit, User as AppUser } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Skeleton } from '../ui/skeleton';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Campus } from '@/lib/types';
 import { ChartContainer, ChartTooltipContent } from '../ui/chart';
+import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 
 
 interface SubmissionAnalyticsProps {
@@ -25,6 +25,16 @@ const STATUS_COLORS: Record<string, string> = {
   approved: 'hsl(var(--chart-2))',
   rejected: 'hsl(var(--chart-3))',
 };
+
+const REPORT_TYPE_COLORS: Record<string, string> = {
+    'Operational Plans': 'hsl(var(--chart-1))',
+    'Objectives Monitoring': 'hsl(var(--chart-2))',
+    'Risk and Opportunity Registry Form': 'hsl(var(--chart-3))',
+    'Risk and Opportunity Action Plan': 'hsl(var(--chart-4))',
+    'Updated Needs and Expectation of Interested Parties': 'hsl(var(--chart-5))',
+    'SWOT Analysis': 'hsl(var(--chart-1))', // repeating color
+}
+
 
 export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdmin, userProfile }: SubmissionAnalyticsProps) {
   const firestore = useFirestore();
@@ -72,36 +82,46 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
 
     return Object.entries(unitCounts).map(([name, total]) => ({ name, total }));
   }, [allSubmissions, allUnits, userProfile]);
+  
+  const submissionsByReportTypeData = useMemo(() => {
+    if (!allSubmissions) return [];
+
+    const reportTypeCounts = allSubmissions.reduce((acc, submission) => {
+        acc[submission.reportType] = (acc[submission.reportType] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+    
+    // Ensure all report types are present, even with 0 count
+    const data = submissionTypes.map(type => ({
+        name: type,
+        total: reportTypeCounts[type] || 0,
+    }));
+
+    return data;
+  }, [allSubmissions]);
 
   const isDataLoading = isLoading || isLoadingCampuses;
 
   if (isDataLoading) {
     return (
-        <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-                <CardHeader>
-                    <Skeleton className="h-6 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                </CardHeader>
-                <CardContent>
-                    <Skeleton className="h-[300px] w-full" />
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <Skeleton className="h-6 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                </CardHeader>
-                <CardContent>
-                    <Skeleton className="h-[300px] w-full" />
-                </CardContent>
-            </Card>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[...Array(3)].map((_, i) => (
+                 <Card key={i}>
+                    <CardHeader>
+                        <Skeleton className="h-6 w-3/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                    </CardHeader>
+                    <CardContent>
+                        <Skeleton className="h-[300px] w-full" />
+                    </CardContent>
+                </Card>
+            ))}
         </div>
     )
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <Card>
         <CardHeader>
           <CardTitle>Submissions by Status</CardTitle>
@@ -155,13 +175,40 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
                 <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={isAdmin ? submissionsByCampusData : submissionsByUnitData} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" />
-                     <XAxis type="number" />
-                     <YAxis dataKey="name" type="category" width={120} />
+                     <XAxis type="number" allowDecimals={false} />
+                     <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 10 }} />
                      <Tooltip
                         cursor={{ fill: 'hsl(var(--muted))' }}
                         content={<ChartTooltipContent />}
                      />
                     <Bar dataKey="total" fill="hsl(var(--primary))" background={{ fill: 'hsl(var(--muted))' }} />
+                    </BarChart>
+                </ResponsiveContainer>
+            </ChartContainer>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+            <CardTitle>Submissions by Report Type</CardTitle>
+            <CardDescription>Total number of submissions for each report type.</CardDescription>
+        </CardHeader>
+        <CardContent>
+             <ChartContainer config={{}} className="min-h-[200px] w-full">
+                <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={submissionsByReportTypeData} layout="horizontal">
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={80} interval={0} />
+                        <YAxis allowDecimals={false}/>
+                         <Tooltip
+                            cursor={{ fill: 'hsl(var(--muted))' }}
+                            content={<ChartTooltipContent />}
+                         />
+                        <Bar dataKey="total" fill="hsl(var(--accent))">
+                             {submissionsByReportTypeData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={REPORT_TYPE_COLORS[entry.name] || '#cccccc'} />
+                            ))}
+                        </Bar>
                     </BarChart>
                 </ResponsiveContainer>
             </ChartContainer>
