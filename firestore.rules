@@ -173,9 +173,10 @@ service cloud.firestore {
     
     /**
      * @description Campus-specific settings can be managed by campus-level users or admins.
+     * Any signed-in user can read announcements for their campus or global announcements.
      */
     match /campusSettings/{campusId} {
-      allow get: if (isSignedIn() && getUserProfile().campusId == campusId) || isAdmin();
+      allow get: if (isSignedIn() && (getUserProfile().campusId == campusId || campusId == 'global')) || isAdmin();
       allow write: if isAdmin() || (isCampusOdimo() && getUserProfile().campusId == campusId);
       allow list: if isAdmin();
     }
