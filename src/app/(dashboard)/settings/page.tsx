@@ -15,6 +15,8 @@ import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AdminUnitManagement } from '@/components/admin/admin-unit-management';
 import { DirectorUnitManagement } from '@/components/admin/director-unit-management';
+import { AnnouncementManagement } from '@/components/admin/announcement-management';
+import { Separator } from '@/components/ui/separator';
 
 
 export default function SettingsPage() {
@@ -74,8 +76,10 @@ export default function SettingsPage() {
           <TabsContent value="roles" className="space-y-4">
             <RoleManagement />
           </TabsContent>
-           <TabsContent value="campus-settings" className="space-y-4">
+           <TabsContent value="campus-settings" className="space-y-6">
             <CampusSettingsManagement />
+            <Separator />
+            <AnnouncementManagement />
           </TabsContent>
         </Tabs>
       </div>
