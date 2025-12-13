@@ -1,7 +1,7 @@
 
 'use client';
 
-import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2, Printer, FileDown, Download } from 'lucide-react';
+import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2, Printer, FileDown, Download, AlertCircle } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/select';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, getDocs, Timestamp, where, doc, deleteDoc } from 'firebase/firestore';
-import type { Submission, User as AppUser, Campus } from '@/lib/types';
+import type { Submission, User as AppUser, Campus, Cycle } from '@/lib/types';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useEffect } from 'react';
@@ -93,7 +93,8 @@ const SubmissionsTable = ({
     onViewFeedbackClick,
     onDeleteClick,
     sortConfig,
-    requestSort
+    requestSort,
+    cycles,
 }: { 
     submissions: Submission[], 
     isSupervisor: boolean, 
@@ -104,7 +105,8 @@ const SubmissionsTable = ({
     onViewFeedbackClick: (comments: any) => void,
     onDeleteClick: (submission: Submission) => void,
     sortConfig: SortConfig,
-    requestSort: (key: keyof Submission | 'submitterName' | 'campusName') => void
+    requestSort: (key: keyof Submission | 'submitterName' | 'campusName') => void,
+    cycles: Map<string, Cycle>
  }) => {
     if (submissions.length === 0) {
         return (
@@ -120,6 +122,17 @@ const SubmissionsTable = ({
       }
       return sortConfig.direction === 'ascending' ? ' ▲' : ' ▼';
     };
+    
+    const isLate = (submission: Submission): boolean => {
+      const cycle = cycles.get(submission.cycleId);
+      if (!cycle || !cycle.endDate) {
+        return false;
+      }
+      const deadline = cycle.endDate instanceof Timestamp ? cycle.endDate.toDate() : new Date(cycle.endDate);
+      const submissionDate = submission.submissionDate instanceof Timestamp ? submission.submissionDate.toDate() : new Date(submission.submissionDate);
+      return submissionDate > deadline;
+    }
+
 
     return (
         <Table>
@@ -193,9 +206,21 @@ const SubmissionsTable = ({
                     {submission.submissionDate instanceof Date ? format(submission.submissionDate, 'MMMM d, yyyy') : 'Invalid Date'}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
-                      {submission.statusId}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                        <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
+                          {submission.statusId}
+                        </Badge>
+                        {isLate(submission) && (
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <AlertCircle className="h-4 w-4 text-destructive" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Submitted after deadline</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right space-x-1">
                      {submission.statusId === 'rejected' && submission.comments && (
@@ -256,6 +281,8 @@ export default function SubmissionsPage() {
   const [users, setUsers] = useState<Record<string, AppUser>>({});
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
+  const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
+  const { data: cycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
 
 
   const [isLoading, setIsLoading] = useState(true);
@@ -447,6 +474,12 @@ export default function SubmissionsPage() {
     }
     setSortConfig({ key, direction });
   };
+  
+  const cycleMap = useMemo(() => {
+    if (!cycles) return new Map<string, Cycle>();
+    return new Map(cycles.map(c => [c.id, c]));
+  }, [cycles]);
+
 
   const sortedSubmissions = useMemo(() => {
     let sortableItems = [...submissions];
@@ -614,7 +647,7 @@ export default function SubmissionsPage() {
           </div>
         </CardHeader>
         <CardContent>
-           {isLoading || (isAdmin && isLoadingCampuses) ? (
+           {isLoading || isLoadingCampuses || isLoadingCycles ? (
                 <div className="flex justify-center items-center h-64">
                     <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
@@ -630,6 +663,7 @@ export default function SubmissionsPage() {
                     onDeleteClick={handleDeleteClick}
                     sortConfig={sortConfig}
                     requestSort={requestSort}
+                    cycles={cycleMap}
                 />
             )}
         </CardContent>

@@ -1,5 +1,6 @@
 
 
+
 // This file can be used for mock data types, but for Firebase, 
 // consider using Zod schemas and inferring types from them, 
 // especially for a Firestore documents.
@@ -77,5 +78,11 @@ export type ActivityLog = {
     timestamp: any; // serverTimestamp()
 }
     
-
+export type Cycle = {
+  id: string;
+  name: string;
+  year: number;
+  startDate: any; // Can be Timestamp
+  endDate: any; // Can be Timestamp
+}
     

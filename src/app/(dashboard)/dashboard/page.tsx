@@ -44,7 +44,7 @@ import {
   getDocs,
   Timestamp,
 } from 'firebase/firestore';
-import type { Submission, User as AppUser, Unit, Campus } from '@/lib/types';
+import type { Submission, User as AppUser, Unit, Campus, Cycle } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle, AlertCloseButton } from '@/components/ui/alert';
@@ -70,6 +70,7 @@ import { Input } from '@/components/ui/input';
 import { UnitUserOverview } from '@/components/dashboard/unit-user-overview';
 import { IncompleteCampusSubmissions } from '@/components/dashboard/incomplete-campus-submissions';
 import { CompletedSubmissions } from '@/components/dashboard/completed-submissions';
+import { NonCompliantUnits } from '@/components/dashboard/non-compliant-units';
 
 export const submissionTypes = [
   'Operational Plans',
@@ -173,6 +174,9 @@ export default function HomePage() {
   }, [firestore]);
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(allCampusesQuery);
   
+  const allCyclesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'cycles') : null, [firestore]);
+  const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(allCyclesQuery);
+  
 
   const campusSettingsDocRef = useMemoFirebase(() => {
     if (!firestore || !userProfile?.campusId || !canViewAnnouncements)
@@ -211,6 +215,7 @@ export default function HomePage() {
     isLoadingUnits ||
     isLoadingCampuses ||
     isLoadingGlobalSettings ||
+    isLoadingCycles ||
     ((isAdmin || isCampusSupervisor) && isLoadingUsers);
 
 
@@ -625,6 +630,7 @@ export default function HomePage() {
             (stats.stat3 as any).description
           )}
         </div>
+        <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading}/>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
             <CardHeader>
@@ -726,6 +732,7 @@ export default function HomePage() {
             (stats.stat3 as any).description
           )}
         </div>
+        <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading}/>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
             <CardHeader>
