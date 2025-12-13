@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -34,11 +34,30 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MoreHorizontal } from 'lucide-react';
 import type { Unit, Campus } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { EditUnitDialog } from './edit-unit-dialog';
+
 
 const formSchema = z.object({
   name: z.string().min(3, 'Unit name must be at least 3 characters.'),
@@ -51,6 +70,9 @@ export function AdminUnitManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
+  const [deletingUnit, setDeletingUnit] = useState<Unit | null>(null);
+
 
   const allUnitsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'units') : null),
@@ -107,7 +129,32 @@ export function AdminUnitManagement() {
         });
   };
 
+  const handleDeleteUnit = async () => {
+    if (!firestore || !deletingUnit) return;
+    setIsSubmitting(true);
+    const unitRef = doc(firestore, 'units', deletingUnit.id);
+    try {
+        await deleteDoc(unitRef);
+        toast({
+            title: "Unit Deleted",
+            description: `The unit "${deletingUnit.name}" has been permanently removed.`,
+        });
+        setDeletingUnit(null);
+    } catch (error) {
+        console.error("Error deleting unit:", error);
+        toast({
+            title: "Error",
+            description: "Could not delete unit.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
+
   return (
+    <>
     <div className="grid gap-4 md:grid-cols-2">
       <Card>
         <CardHeader>
@@ -181,6 +228,7 @@ export function AdminUnitManagement() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Assigned Campuses</TableHead>
+                  <TableHead><span className="sr-only">Actions</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -191,6 +239,24 @@ export function AdminUnitManagement() {
                       {unit.campusIds && unit.campusIds.length > 0 ? (
                         unit.campusIds.map(id => campusMap[id] || 'Unknown').join(', ')
                       ) : <span className="text-muted-foreground">Unassigned</span>}
+                    </TableCell>
+                    <TableCell className="text-right">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => setEditingUnit(unit)}>
+                                    Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive" onClick={() => setDeletingUnit(unit)}>
+                                    Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -205,5 +271,33 @@ export function AdminUnitManagement() {
         </CardContent>
       </Card>
     </div>
+
+    {editingUnit && allCampuses && (
+        <EditUnitDialog
+            unit={editingUnit}
+            allCampuses={allCampuses}
+            isOpen={!!editingUnit}
+            onOpenChange={() => setEditingUnit(null)}
+        />
+    )}
+
+    <AlertDialog open={!!deletingUnit} onOpenChange={() => setDeletingUnit(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the unit "{deletingUnit?.name}".
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteUnit} disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Delete
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

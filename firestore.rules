@@ -184,10 +184,7 @@ service cloud.firestore {
       allow get, list: if isSignedIn();
       allow create: if isAdmin() || 
                        (isCampusDirector() && request.resource.data.campusId == getUserProfile().campusId);
-      allow update: if isAdmin() ||
-                       (isCampusDirector() && request.resource.data.campusId == getUserProfile().campusId) || // Assigning
-                       (isCampusDirector() && resource.data.campusId == getUserProfile().campusId); // Un-assigning
-      allow delete: if isAdmin();
+      allow update, delete: if isAdmin();
     }
     
     /**
@@ -209,6 +206,7 @@ service cloud.firestore {
     }
 
     /**
+
      * @description The collection for assigning Unit ODIMO roles. Only Admins can manage this list.
      */
     match /roles_unit_odimo/{userId} {
