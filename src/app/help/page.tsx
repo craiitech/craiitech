@@ -20,7 +20,7 @@ const faqs = [
       {
         question: 'What happens after I complete my registration?',
         answer:
-          'Your account will be placed in a "pending" state. An administrator must verify and approve your account before you can log in and access the dashboard. You will be notified by email once your account is active.',
+          'Your account will be placed in a "pending" state. An administrator must verify and approve your account before you can log in and access the portal. You will be notified by email once your account is active.',
       },
        {
         question: 'I forgot my password. How can I reset it?',
@@ -40,7 +40,7 @@ const faqs = [
       {
         question: 'How do I check the status of my submissions?',
         answer:
-          'The dashboard provides a "Submission Checklist" tab that shows the status of each required document (Not Submitted, Submitted, Approved, Rejected) for the selected year and cycle. You can also view a complete history on the "Submissions" page.',
+          'The Home page provides a "Submission Checklist" tab that shows the status of each required document (Not Submitted, Submitted, Approved, Rejected) for the selected year and cycle. You can also view a complete history on the "Submissions" page.',
       },
       {
         question: 'What do the different submission statuses mean?',
@@ -84,12 +84,12 @@ const faqs = [
       {
         question: 'How can I monitor the submission progress of my campus?',
         answer:
-          'Your dashboard provides several tools. The "Submission Status per Unit" card shows the completion progress for each unit in your campus. The "Incomplete Submissions by Campus" card highlights units that are falling behind.',
+          'Your Home page provides several tools. The "Submission Status per Unit" card shows the completion progress for each unit in your campus. The "Incomplete Submissions by Campus" card highlights units that are falling behind.',
       },
       {
         question: 'How do I manage settings for my campus?',
         answer:
-          'Navigate to the "Settings" page. As a Campus Supervisor, you can post a campus-wide announcement that will appear on the dashboard for all users in your campus.',
+          'Navigate to the "Settings" page. As a Campus Supervisor, you can post a campus-wide announcement that will appear on the Home page for all users in your campus.',
       },
         {
         question: 'Can I see all submissions from my campus?',

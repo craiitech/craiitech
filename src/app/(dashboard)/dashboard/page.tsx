@@ -88,7 +88,7 @@ const statusVariant: Record<
   submitted: 'outline',
 };
 
-export default function DashboardPage() {
+export default function HomePage() {
   const { user, userProfile, isAdmin, isUserLoading, userRole } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
@@ -422,7 +422,7 @@ export default function DashboardPage() {
     );
   }
 
-  const renderUnitCoordinatorDashboard = () => (
+  const renderUnitCoordinatorHome = () => (
     <Tabs defaultValue="overview" className="space-y-4">
       <TabsList>
         <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -561,7 +561,7 @@ export default function DashboardPage() {
     </Tabs>
   );
 
-  const renderSupervisorDashboard = () => (
+  const renderSupervisorHome = () => (
      <Tabs defaultValue="overview" className="space-y-4">
       <TabsList>
         <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -652,7 +652,7 @@ export default function DashboardPage() {
     </Tabs>
   );
 
-  const renderAdminDashboard = () => (
+  const renderAdminHome = () => (
     <Tabs defaultValue="overview" className="space-y-4">
       <TabsList>
         <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -795,10 +795,10 @@ export default function DashboardPage() {
     </Tabs>
   );
 
-  const renderDashboardContent = () => {
-    if (isAdmin) return renderAdminDashboard();
-    if (isCampusSupervisor) return renderSupervisorDashboard();
-    return renderUnitCoordinatorDashboard();
+  const renderHomeContent = () => {
+    if (isAdmin) return renderAdminHome();
+    if (isCampusSupervisor) return renderSupervisorHome();
+    return renderUnitCoordinatorHome();
   };
 
   return (
@@ -811,7 +811,7 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      {renderDashboardContent()}
+      {renderHomeContent()}
     </div>
   );
 }

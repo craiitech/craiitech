@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -122,7 +123,7 @@ export function CampusSettingsManagement() {
       <CardHeader>
         <CardTitle>Campus Announcement</CardTitle>
         <CardDescription>
-          Set an announcement that will appear on the dashboard for all users in
+          Set an announcement that will appear on the Home page for all users in
           {isAdmin ? ' the selected campus' : ' your campus'}.
         </CardDescription>
       </CardHeader>

@@ -45,7 +45,7 @@ export function SidebarNav({
   const allRoutes = [
     {
       href: '/dashboard',
-      label: 'Dashboard',
+      label: 'Home',
       active: pathname === '/dashboard',
       icon: <LayoutDashboard />,
     },
