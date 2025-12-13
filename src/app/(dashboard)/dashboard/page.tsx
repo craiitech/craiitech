@@ -96,42 +96,32 @@ export default function HomePage() {
   const firestore = useFirestore();
   const router = useRouter();
 
-  const [userCount, setUserCount] = useState(0);
-  const [allUsers, setAllUsers] = useState<Record<string, AppUser>>({});
   const [isAnnouncementVisible, setIsAnnouncementVisible] = useState(true);
   const [isGlobalAnnouncementVisible, setIsGlobalAnnouncementVisible] = useState(true);
 
-  const userRoleName = userRole;
-
   const isCampusSupervisor =
-    userRoleName === 'Campus Director' || userRoleName === 'Campus ODIMO';
+    userRole === 'Campus Director' || userRole === 'Campus ODIMO';
   
   const canViewAnnouncements = userProfile?.campusId;
 
+  // Fetch submissions based on role
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-
-    if (isAdmin) {
-      return collection(firestore, 'submissions');
-    }
-
+    if (isAdmin) return collection(firestore, 'submissions');
     if (!userProfile) return null;
-
     if (isCampusSupervisor) {
       return query(
         collection(firestore, 'submissions'),
         where('campusId', '==', userProfile.campusId)
       );
     }
-    
     return query(
       collection(firestore, 'submissions'),
       where('userId', '==', userProfile.id)
     );
   }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
 
-  const { data: rawSubmissions, isLoading: isLoadingSubmissions } =
-    useCollection<Submission>(submissionsQuery);
+  const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
   const submissions = useMemo(() => {
     if (!rawSubmissions) return null;
@@ -144,58 +134,43 @@ export default function HomePage() {
     });
   }, [rawSubmissions]);
 
+  // Fetch users based on role
+  const usersQuery = useMemoFirebase(() => {
+      if (!firestore) return null;
+      if (isAdmin) return collection(firestore, 'users');
+      if (isCampusSupervisor && userProfile?.campusId) {
+          return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
+      }
+      return null; // Regular users don't need to fetch other users.
+  }, [firestore, isAdmin, isCampusSupervisor, userProfile]);
+
+  const { data: allUsersData, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
+
+  const allUsersMap = useMemo(() => {
+    const userMap = new Map<string, AppUser>();
+    if (allUsersData) {
+        allUsersData.forEach(u => userMap.set(u.id, u));
+    }
+    // For regular users, add their own profile to the map
+    if (userProfile && !isCampusSupervisor && !isAdmin) {
+        userMap.set(userProfile.id, userProfile);
+    }
+    return userMap;
+  }, [allUsersData, userProfile, isCampusSupervisor, isAdmin]);
+
+
   const allUnitsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'units');
   }, [firestore]);
 
-  const { data: allUnits, isLoading: isLoadingUnits } =
-    useCollection<Unit>(allUnitsQuery);
+  const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(allUnitsQuery);
 
    const allCampusesQuery = useMemoFirebase(() => {
     if (!firestore || !isAdmin) return null;
     return collection(firestore, 'campuses');
   }, [firestore, isAdmin]);
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(allCampusesQuery);
-
-
-  useEffect(() => {
-    if (!firestore) return;
-    
-    if (!isAdmin && !isCampusSupervisor && !userProfile) {
-        return;
-    }
-
-    const fetchUsers = async () => {
-        let usersQuery;
-        if (isAdmin) {
-            usersQuery = collection(firestore, 'users');
-        } else if (isCampusSupervisor && userProfile?.campusId) {
-            usersQuery = query(
-                collection(firestore, 'users'),
-                where('campusId', '==', userProfile.campusId)
-            );
-        }
-
-        if (usersQuery) {
-            const snapshot = await getDocs(usersQuery);
-            setUserCount(snapshot.size);
-            const usersData: Record<string, AppUser> = {};
-            snapshot.forEach((doc) => {
-                usersData[doc.id] = { id: doc.id, ...doc.data() } as AppUser;
-            });
-            setAllUsers(usersData);
-        } else if (userProfile) { // Case for a regular user
-             setAllUsers({ [userProfile.id]: userProfile });
-             setUserCount(1);
-        } else {
-             setUserCount(0);
-             setAllUsers({});
-        }
-    };
-
-    fetchUsers();
-  }, [firestore, isAdmin, isCampusSupervisor, userProfile]);
   
 
   const campusSettingsDocRef = useMemoFirebase(() => {
@@ -218,14 +193,8 @@ export default function HomePage() {
   const announcement = campusSetting?.announcement;
   const globalAnnouncement = globalSetting?.announcement;
   
-  // Reset announcement visibility when the announcement text changes
-  useEffect(() => {
-    setIsAnnouncementVisible(true);
-  }, [announcement]);
-  
-   useEffect(() => {
-    setIsGlobalAnnouncementVisible(true);
-  }, [globalAnnouncement]);
+  useEffect(() => { setIsAnnouncementVisible(true); }, [announcement]);
+  useEffect(() => { setIsGlobalAnnouncementVisible(true); }, [globalAnnouncement]);
 
   
   const unitsInCampus = useMemo(() => {
@@ -238,9 +207,10 @@ export default function HomePage() {
     isUserLoading ||
     isLoadingSubmissions ||
     (canViewAnnouncements && isLoadingSettings) ||
-    ((isAdmin || isCampusSupervisor) && isLoadingUnits) ||
+    isLoadingUnits ||
     isLoadingCampuses ||
-    isLoadingGlobalSettings;
+    isLoadingGlobalSettings ||
+    ((isAdmin || isCampusSupervisor) && isLoadingUsers);
 
 
   const stats = useMemo(() => {
@@ -251,7 +221,8 @@ export default function HomePage() {
     };
 
     if (!submissions || !userProfile) return defaultStats;
-
+    
+    const userCount = allUsersMap.size;
     const currentYearSubmissions = submissions.filter(
       (s) => s.year === new Date().getFullYear()
     );
@@ -277,7 +248,6 @@ export default function HomePage() {
     } else if (isCampusSupervisor) {
       const totalRequired = unitsInCampus.length * TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT;
       const uniqueSubmissionsCount = new Set(currentYearSubmissions.map(s => s.reportType + s.unitId)).size;
-
 
       return {
         stat1: {
@@ -335,7 +305,7 @@ export default function HomePage() {
             },
         };
     }
-  }, [submissions, isCampusSupervisor, isAdmin, userCount, userProfile, unitsInCampus]);
+  }, [submissions, isCampusSupervisor, isAdmin, allUsersMap, userProfile, unitsInCampus]);
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
     const emptyResult = {
@@ -521,7 +491,7 @@ export default function HomePage() {
               <CardDescription>Your last 5 submissions.</CardDescription>
             </CardHeader>
             <CardContent>
-              <RecentActivity submissions={submissions} isLoading={isLoading} />
+              <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
             </CardContent>
           </Card>
         </div>
@@ -674,7 +644,7 @@ export default function HomePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <RecentActivity submissions={submissions} isLoading={isLoading} />
+              <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
             </CardContent>
           </Card>
         </div>
@@ -705,7 +675,7 @@ export default function HomePage() {
       </TabsContent>
        <TabsContent value="users" className="space-y-4">
         <UnitUserOverview
-          allUsers={Object.values(allUsers)}
+          allUsers={Array.from(allUsersMap.values())}
           allUnits={allUnits}
           isLoading={isLoading}
           userProfile={userProfile}
@@ -765,7 +735,7 @@ export default function HomePage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <RecentActivity submissions={submissions} isLoading={isLoading} />
+              <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
             </CardContent>
           </Card>
         </div>
@@ -820,8 +790,8 @@ export default function HomePage() {
                         {submission.reportType}
                       </TableCell>
                       <TableCell>
-                        {allUsers[submission.userId]?.firstName}{' '}
-                        {allUsers[submission.userId]?.lastName}
+                        {allUsersMap.get(submission.userId)?.firstName}{' '}
+                        {allUsersMap.get(submission.userId)?.lastName}
                       </TableCell>
                       <TableCell>{submission.unitName}</TableCell>
                       <TableCell>{campusMap.get(submission.campusId)}</TableCell>

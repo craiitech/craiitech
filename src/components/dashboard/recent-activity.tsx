@@ -5,12 +5,10 @@ import {
   AvatarFallback,
   AvatarImage,
 } from '@/components/ui/avatar';
-import { useFirestore, useUser } from '@/firebase';
 import type { Submission, User as AppUser } from '@/lib/types';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -22,50 +20,11 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 interface RecentActivityProps {
     submissions: Submission[] | null;
     isLoading: boolean;
+    users: Map<string, AppUser>;
+    userProfile: AppUser | null;
 }
 
-export function RecentActivity({ submissions, isLoading: isLoadingSubmissions }: RecentActivityProps) {
-  const { userProfile, isAdmin, userRole } = useUser();
-  const firestore = useFirestore();
-  const [users, setUsers] = useState<Record<string, AppUser>>({});
-  const [isFetchingUsers, setIsFetchingUsers] = useState(false);
-
-  const isSupervisor = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole === 'Unit ODIMO';
-
-
-  useEffect(() => {
-    if (!isSupervisor || !submissions || submissions.length === 0 || !firestore) return;
-
-    const fetchUsers = async () => {
-        setIsFetchingUsers(true);
-        const userIdsToFetch = [...new Set(submissions.map(s => s.userId))].filter(id => !users[id]);
-        
-        if (userIdsToFetch.length > 0) {
-            try {
-                // Firestore 'in' query is limited to 30 elements. We need to chunk it.
-                const chunks: string[][] = [];
-                for (let i = 0; i < userIdsToFetch.length; i += 30) {
-                    chunks.push(userIdsToFetch.slice(i, i + 30));
-                }
-                const userPromises = chunks.map(chunk => 
-                    getDocs(query(collection(firestore, 'users'), where('id', 'in', chunk)))
-                );
-                const userSnapshots = await Promise.all(userPromises);
-                const fetchedUsers: Record<string, AppUser> = {};
-                userSnapshots.forEach(snap => {
-                     snap.docs.forEach(doc => {
-                        fetchedUsers[doc.id] = doc.data() as AppUser;
-                    });
-                });
-                setUsers(prev => ({...prev, ...fetchedUsers}));
-            } catch (error) {
-                console.error("Error fetching users for recent activity:", error);
-            }
-        }
-        setIsFetchingUsers(false);
-    }
-    fetchUsers();
-  }, [submissions, isSupervisor, firestore, users]);
+export function RecentActivity({ submissions, isLoading, users, userProfile }: RecentActivityProps) {
   
   const recentSubmissions = useMemo(() => {
     if (!submissions) return [];
@@ -75,8 +34,6 @@ export function RecentActivity({ submissions, isLoading: isLoadingSubmissions }:
       .slice(0, 5);
   }, [submissions]);
 
-  const isLoading = isLoadingSubmissions || (isSupervisor && isFetchingUsers);
-  
   if (isLoading) {
     return (
         <div className="space-y-8">
@@ -103,15 +60,11 @@ export function RecentActivity({ submissions, isLoading: isLoadingSubmissions }:
   }
 
   const getUserName = (userId: string) => {
-    if (isSupervisor) {
-        const user = users[userId];
-        return user ? `${user.firstName} ${user.lastName}` : '...';
-    }
-    return userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : 'You';
+    const user = users.get(userId);
+    return user ? `${user.firstName} ${user.lastName}` : '...';
   }
    const getUserAvatar = (userId: string) => {
-    if (isSupervisor) return users[userId]?.avatar;
-    return userProfile?.avatar;
+    return users.get(userId)?.avatar;
    }
    const getUserFallback = (userId: string) => {
       const name = getUserName(userId);
