@@ -129,38 +129,36 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
         </CardHeader>
         <CardContent>
            <ChartContainer config={{}} className="min-h-[200px] w-full aspect-square">
-                <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                    <Tooltip
-                        cursor={{ fill: 'hsl(var(--muted))' }}
-                        content={<ChartTooltipContent hideLabel />}
-                    />
-                    <Pie
-                        data={submissionStatusData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={100}
-                        labelLine={false}
-                        label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
-                            const RADIAN = Math.PI / 180;
-                            const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                            const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                            const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                            return (
-                                <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
-                                    {`${(percent * 100).toFixed(0)}%`}
-                                </text>
-                            );
-                        }}
-                    >
-                        {submissionStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name.toLowerCase()] || '#cccccc'} />
-                        ))}
-                    </Pie>
-                    </PieChart>
-                </ResponsiveContainer>
+                <PieChart>
+                <Tooltip
+                    cursor={{ fill: 'hsl(var(--muted))' }}
+                    content={<ChartTooltipContent hideLabel />}
+                />
+                <Pie
+                    data={submissionStatusData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    labelLine={false}
+                    label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
+                        const RADIAN = Math.PI / 180;
+                        const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                        return (
+                            <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
+                                {`${(percent * 100).toFixed(0)}%`}
+                            </text>
+                        );
+                    }}
+                >
+                    {submissionStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name.toLowerCase()] || '#cccccc'} />
+                    ))}
+                </Pie>
+                </PieChart>
             </ChartContainer>
         </CardContent>
       </Card>

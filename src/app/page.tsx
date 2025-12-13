@@ -25,9 +25,9 @@ export default function Home() {
             <Image
                 src={heroImage.imageUrl}
                 alt={heroImage.description}
-                layout="fill"
-                objectFit="cover"
-                className="-z-20"
+                fill
+                priority
+                className="-z-20 object-cover"
                 data-ai-hint={heroImage.imageHint}
             />
         )}

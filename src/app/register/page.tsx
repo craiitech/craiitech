@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AuthForm } from '@/components/auth/auth-form';
@@ -12,9 +13,8 @@ export default function RegisterPage() {
         <Image
           src={bgImage.imageUrl}
           alt={bgImage.description}
-          layout="fill"
-          objectFit="cover"
-          className="-z-10"
+          fill
+          className="-z-10 object-cover"
           data-ai-hint={bgImage.imageHint}
         />
       )}

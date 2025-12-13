@@ -97,7 +97,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isSignedIn();
       allow update: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin() || isCampusOdimo() || isUnitOdimo();
+      allow list: if isSignedIn(); // Allow any signed-in user to list/query users. Filtering is done client-side.
       allow create: if isOwner(userId); // A user can create their own document.
       allow delete: if isOwner(userId) || isAdmin();
     }
