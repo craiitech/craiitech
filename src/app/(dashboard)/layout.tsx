@@ -23,6 +23,7 @@ import { collection } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ActivityLogProvider } from '@/lib/activity-log-provider';
 
 const LoadingSkeleton = () => (
   <div className="flex items-start">
@@ -137,43 +138,45 @@ export default function DashboardLayout({
   }
 
   return (
-    <SidebarProvider>
-      <Sidebar variant="sidebar" collapsible="icon">
-        <SidebarHeader className="items-center justify-center text-center p-4">
-          {userProfile?.avatar && (
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={userProfile.avatar} alt={`${userProfile.firstName} ${userProfile.lastName}`} />
-              <AvatarFallback>
-                {userProfile.firstName?.charAt(0)}
-                {userProfile.lastName?.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-          )}
-            <div className="mt-2 text-center">
-                <p className="font-semibold text-lg">{userProfile?.firstName} {userProfile?.lastName}</p>
-                <p className="text-sm text-sidebar-primary font-medium">{userRole}</p>
-                {userLocation && (
-                    <div className="flex items-center justify-center gap-1 text-sm text-sidebar-foreground/80 mt-1">
-                        <Building2 className="h-4 w-4"/>
-                        <span>{userLocation}</span>
-                    </div>
-                )}
+    <ActivityLogProvider>
+      <SidebarProvider>
+        <Sidebar variant="sidebar" collapsible="icon">
+          <SidebarHeader className="items-center justify-center text-center p-4">
+            {userProfile?.avatar && (
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={userProfile.avatar} alt={`${userProfile.firstName} ${userProfile.lastName}`} />
+                <AvatarFallback>
+                  {userProfile.firstName?.charAt(0)}
+                  {userProfile.lastName?.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+            )}
+              <div className="mt-2 text-center">
+                  <p className="font-semibold text-lg">{userProfile?.firstName} {userProfile?.lastName}</p>
+                  <p className="text-sm text-sidebar-primary font-medium">{userRole}</p>
+                  {userLocation && (
+                      <div className="flex items-center justify-center gap-1 text-sm text-sidebar-foreground/80 mt-1">
+                          <Building2 className="h-4 w-4"/>
+                          <span>{userLocation}</span>
+                      </div>
+                  )}
+              </div>
+          </SidebarHeader>
+          <SidebarContent className="p-4">
+            <SidebarNav />
+          </SidebarContent>
+        </Sidebar>
+        <SidebarInset>
+          <header className="flex h-16 items-center justify-between border-b px-4 lg:px-8 bg-card">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="md:hidden" />
+              <h1 className="font-semibold text-lg">{getPageTitle(pathname)}</h1>
             </div>
-        </SidebarHeader>
-        <SidebarContent className="p-4">
-          <SidebarNav />
-        </SidebarContent>
-      </Sidebar>
-      <SidebarInset>
-        <header className="flex h-16 items-center justify-between border-b px-4 lg:px-8 bg-card">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger className="md:hidden" />
-            <h1 className="font-semibold text-lg">{getPageTitle(pathname)}</h1>
-          </div>
-          <UserNav user={user} userProfile={userProfile} />
-        </header>
-        <main className="p-4 lg:p-8 bg-background/90">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+            <UserNav user={user} userProfile={userProfile} />
+          </header>
+          <main className="p-4 lg:p-8 bg-background/90">{children}</main>
+        </SidebarInset>
+      </SidebarProvider>
+    </ActivityLogProvider>
   );
 }
