@@ -37,7 +37,7 @@ export default function Home() {
             <div className="flex items-center justify-center gap-4">
                 <Logo className="h-12 w-12 text-white" />
                 <h1 className="text-4xl font-bold tracking-tighter sm:text-6xl xl:text-7xl/none">
-                    RSU EOMS
+                    RSU EOMS Submission Tracker
                 </h1>
             </div>
             <p className="max-w-[600px] text-white/80 md:text-xl">
