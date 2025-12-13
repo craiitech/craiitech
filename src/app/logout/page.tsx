@@ -44,7 +44,7 @@ export default function LogoutPage() {
     }
     clearSessionLogs();
     // Use window.location to force a full refresh, clearing all client-side state
-    window.location.href = '/login';
+    window.location.href = '/';
   };
 
   return (
@@ -84,10 +84,10 @@ export default function LogoutPage() {
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">
-            Redirecting to login in {countdown}...
+            Redirecting to home page in {countdown}...
           </p>
           <Button onClick={handleFinalLogout} className="w-full">
-            Login Now
+            Go to Home
           </Button>
         </CardFooter>
       </Card>
