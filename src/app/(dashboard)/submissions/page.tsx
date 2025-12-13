@@ -1,7 +1,7 @@
 
 'use client';
 
-import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2, Printer, FileDown } from 'lucide-react';
+import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2, Printer, FileDown, Download } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -72,6 +72,14 @@ type SortConfig = {
     direction: 'ascending' | 'descending';
 } | null;
 
+const getGoogleDriveDownloadLink = (url: string) => {
+    const fileId = url.match(/d\/([^/]+)/);
+    if (fileId && fileId[1]) {
+        return `https://drive.google.com/uc?export=download&id=${fileId[1]}`;
+    }
+    // Fallback for different URL format or if regex fails
+    return url;
+};
 
 const SubmissionsTable = ({ 
     submissions, 
@@ -199,10 +207,18 @@ const SubmissionsTable = ({
                         <span className="sr-only">View Details</span>
                     </Button>
                     {isAdmin && (
+                        <>
+                        <a href={getGoogleDriveDownloadLink(submission.googleDriveLink)} target="_blank" rel="noopener noreferrer">
+                            <Button variant="ghost" size="icon">
+                                <Download className="h-4 w-4" />
+                                <span className="sr-only">Download File</span>
+                            </Button>
+                        </a>
                         <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => onDeleteClick(submission)}>
                             <Trash2 className="h-4 w-4" />
                             <span className="sr-only">Delete Submission</span>
                         </Button>
+                        </>
                     )}
                   </TableCell>
                 </TableRow>
