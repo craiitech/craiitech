@@ -539,7 +539,7 @@ export default function DashboardPage() {
                         <div className="font-medium">{s.reportType}</div>
                         <div className="text-xs text-muted-foreground capitalize">{s.cycleId} Cycle {s.year}</div>
                       </TableCell>
-                      <TableCell>{format(new Date(s.submissionDate), 'PPp')}</TableCell>
+                      <TableCell>{s.submissionDate instanceof Date ? format(s.submissionDate, 'PPp') : 'Invalid Date'}</TableCell>
                       <TableCell><Badge variant={statusVariant[s.statusId]}>{s.statusId}</Badge></TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${s.id}`)}>
@@ -815,3 +815,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
