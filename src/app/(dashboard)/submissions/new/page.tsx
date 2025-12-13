@@ -25,7 +25,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { SubmissionChecklist } from '@/components/dashboard/submission-checklist';
 import Link from 'next/link';
 
 
@@ -60,7 +59,6 @@ export default function NewSubmissionPage() {
   
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [feedbackToShow, setFeedbackToShow] = useState('');
-  const [isChecklistComplete, setIsChecklistComplete] = useState(false);
 
 
   const submissionsQuery = useMemoFirebase(() => {
@@ -223,9 +221,6 @@ export default function NewSubmissionPage() {
                       open={isExpanded}
                       onOpenChange={(isOpen) => {
                         setActiveReport(isOpen ? reportType : null);
-                        if (!isOpen) {
-                          setIsChecklistComplete(false); // Reset checklist on collapse
-                        }
                       }}
                       className="rounded-lg border"
                     >
@@ -278,7 +273,6 @@ export default function NewSubmissionPage() {
                           cycleId={selectedCycle}
                           onLinkChange={handleLinkChange}
                           onSuccess={handleFormSuccess}
-                          isChecklistComplete={isChecklistComplete}
                           key={`${reportType}-${selectedYear}-${selectedCycle}`}
                         />
                       </CollapsibleContent>
@@ -329,7 +323,6 @@ export default function NewSubmissionPage() {
             </Card>
 
             {activeReport && (
-              <>
               <Card className="sticky top-20">
                 <CardHeader>
                   <CardTitle>Document Preview</CardTitle>
@@ -347,13 +340,6 @@ export default function NewSubmissionPage() {
                   </div>
                 </CardContent>
               </Card>
-               <SubmissionChecklist
-                  reportType={activeReport}
-                  cycle={selectedCycle}
-                  year={selectedYear}
-                  onChecklistChange={setIsChecklistComplete}
-                />
-              </>
             )}
         </div>
       </div>
