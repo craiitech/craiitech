@@ -119,7 +119,7 @@ const faqs = [
 
 export default function HelpPage() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Support Center</h2>
         <p className="text-muted-foreground">
@@ -150,4 +150,3 @@ export default function HelpPage() {
     </div>
   );
 }
-
