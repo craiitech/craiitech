@@ -178,14 +178,15 @@ service cloud.firestore {
     /**
      * @description Unit definitions are readable by anyone.
      * Creation is allowed for Admins or Campus Directors (for their own campus).
-     * Updates are allowed for Admins or Campus Directors assigning a unit to their campus.
+     * Updates are allowed for Admins or Campus Directors assigning/un-assigning a unit to their campus.
      */
     match /units/{unitId} {
       allow get, list: if isSignedIn();
       allow create: if isAdmin() || 
                        (isCampusDirector() && request.resource.data.campusId == getUserProfile().campusId);
-      allow update: if isAdmin() || 
-                       (isCampusDirector() && request.resource.data.campusId == getUserProfile().campusId);
+      allow update: if isAdmin() ||
+                       (isCampusDirector() && request.resource.data.campusId == getUserProfile().campusId) || // Assigning
+                       (isCampusDirector() && resource.data.campusId == getUserProfile().campusId); // Un-assigning
       allow delete: if isAdmin();
     }
     

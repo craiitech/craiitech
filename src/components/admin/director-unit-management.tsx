@@ -14,7 +14,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
 import {
   Table,
@@ -25,7 +24,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
 import type { Unit } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -33,6 +32,17 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Input } from '../ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 
 const newUnitSchema = z.object({
   name: z.string().min(3, 'Unit name must be at least 3 characters.'),
@@ -43,6 +53,7 @@ export function DirectorUnitManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [unitToRemove, setUnitToRemove] = useState<Unit | null>(null);
 
   const allUnitsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'units') : null),
@@ -98,6 +109,34 @@ export function DirectorUnitManagement() {
       setIsSubmitting(false);
     }
   };
+
+  const handleRemoveUnitFromCampus = async () => {
+    if (!firestore || !unitToRemove) {
+      return;
+    }
+    setIsSubmitting(true);
+
+    const unitRef = doc(firestore, 'units', unitToRemove.id);
+    const updateData = { campusId: '' }; // Unassign the campus
+
+    try {
+      await updateDoc(unitRef, updateData);
+      toast({
+        title: 'Unit Removed',
+        description: `"${unitToRemove.name}" has been removed from your campus.`,
+      });
+    } catch (error) {
+      console.error('Error removing unit:', error);
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: unitRef.path,
+        operation: 'update',
+        requestResourceData: updateData,
+      }));
+    } finally {
+      setIsSubmitting(false);
+      setUnitToRemove(null);
+    }
+  };
   
   const handleCreateNewUnit = async (values: z.infer<typeof newUnitSchema>) => {
     if (!firestore || !userProfile?.campusId) {
@@ -136,7 +175,6 @@ export function DirectorUnitManagement() {
     }
   }
 
-  // A campus director should be able to manage units.
   if (userRole !== 'Campus Director') {
     return (
          <Card>
@@ -149,6 +187,7 @@ export function DirectorUnitManagement() {
   }
 
   return (
+    <>
     <div className="grid gap-6 md:grid-cols-2">
       <Card>
         <CardHeader>
@@ -166,12 +205,23 @@ export function DirectorUnitManagement() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {unitsInCampus.map((unit) => (
                     <TableRow key={unit.id}>
                       <TableCell>{unit.name}</TableCell>
+                      <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setUnitToRemove(unit)}
+                            disabled={isSubmitting}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -265,5 +315,24 @@ export function DirectorUnitManagement() {
         </CardContent>
       </Card>
     </div>
+    
+    <AlertDialog open={!!unitToRemove} onOpenChange={(isOpen) => !isOpen && setUnitToRemove(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This will remove the unit "{unitToRemove?.name}" from your campus. This action does not delete the unit itself. You can add it back later.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleRemoveUnitFromCampus} disabled={isSubmitting}>
+                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Continue
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
