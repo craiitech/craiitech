@@ -429,7 +429,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       {activeTab === 'signup' && (
         <p className="mt-6 text-center text-xs text-gray-400">
           By creating an account, you agree to our{' '}
-          <Link href="#" className="underline hover:text-white">
+          <Link href="/terms" className="underline hover:text-white">
             Terms & Service
           </Link>
         </p>
@@ -446,5 +446,3 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     </>
   );
 }
-
-    
