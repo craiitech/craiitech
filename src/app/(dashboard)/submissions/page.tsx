@@ -48,6 +48,8 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import * as XLSX from 'xlsx';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import Link from 'next/link';
 
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -208,16 +210,31 @@ const SubmissionsTable = ({
                     </Button>
                     {isAdmin && (
                         <>
-                        <a href={getGoogleDriveDownloadLink(submission.googleDriveLink)} target="_blank" rel="noopener noreferrer">
-                            <Button variant="ghost" size="icon">
-                                <Download className="h-4 w-4" />
-                                <span className="sr-only">Download File</span>
-                            </Button>
-                        </a>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => onDeleteClick(submission)}>
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Delete Submission</span>
-                        </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" asChild>
+                                <Link href={getGoogleDriveDownloadLink(submission.googleDriveLink)} target="_blank" rel="noopener noreferrer">
+                                  <Download className="h-4 w-4" />
+                                  <span className="sr-only">Download File</span>
+                                </Link>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Download File</p>
+                            </TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => onDeleteClick(submission)}>
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Delete Submission</span>
+                              </Button>
+                            </TooltipTrigger>
+                             <TooltipContent>
+                              <p>Delete Submission</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </>
                     )}
                   </TableCell>
@@ -511,6 +528,7 @@ export default function SubmissionsPage() {
 
   return (
     <>
+    <TooltipProvider>
       <div className="flex items-start justify-between space-y-2 print:hidden">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Submissions</h2>
@@ -616,6 +634,7 @@ export default function SubmissionsPage() {
             )}
         </CardContent>
       </Card>
+      </TooltipProvider>
       <FeedbackDialog 
         isOpen={isFeedbackDialogOpen}
         onOpenChange={setIsFeedbackDialogOpen}
