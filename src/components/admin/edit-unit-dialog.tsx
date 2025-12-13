@@ -102,7 +102,7 @@ export function EditUnitDialog({
     const updateData = {
         name: values.name,
         campusIds: values.campusIds || [],
-        vicePresidentId: values.vicePresidentId || '',
+        vicePresidentId: values.vicePresidentId === 'none' ? '' : values.vicePresidentId || '',
     };
 
     updateDoc(unitRef, updateData)
@@ -234,7 +234,7 @@ export function EditUnitDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">
+                      <SelectItem value="none">
                         None
                       </SelectItem>
                       {vicePresidents.map((vp) => (
