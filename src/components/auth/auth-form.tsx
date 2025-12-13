@@ -66,6 +66,20 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const firestore = useFirestore();
 
   const togglePasswordVisibility = () => setIsPasswordVisible(!isPasswordVisible);
+  
+  const handleTabChange = (tab: 'signin' | 'signup') => {
+    setActiveTab(tab);
+    // Clear credentials when switching tabs
+    setEmail('');
+    setPassword('');
+    setFirstName('');
+    setLastName('');
+    setIsPasswordVisible(false);
+
+    if (tab === 'signup' && !privacyPolicyAgreed) {
+        setIsPrivacyDialogOpen(true);
+    }
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -383,10 +397,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       <div className="flex justify-center mb-6">
         <div className="flex rounded-full bg-gray-800/50 p-1 border border-gray-700/50">
           <Button
-            onClick={() => {
-              setActiveTab('signup');
-              setIsPrivacyDialogOpen(true);
-            }}
+            onClick={() => handleTabChange('signup')}
             className={cn(
               'rounded-full px-6 py-1 text-sm',
               activeTab === 'signup'
@@ -397,7 +408,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             Sign up
           </Button>
           <Button
-            onClick={() => setActiveTab('signin')}
+            onClick={() => handleTabChange('signin')}
             className={cn(
               'rounded-full px-6 py-1 text-sm',
               activeTab === 'signin'
@@ -459,3 +470,5 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     </>
   );
 }
+
+    
