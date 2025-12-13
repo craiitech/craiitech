@@ -229,7 +229,7 @@ export default function NewSubmissionPage() {
                       className="rounded-lg border"
                     >
                       <CollapsibleTrigger asChild>
-                         <button className="flex w-full items-center justify-between p-4 text-left hover:bg-muted/50 rounded-t-lg">
+                         <div role="button" className="flex w-full items-center justify-between p-4 text-left hover:bg-muted/50 rounded-t-lg cursor-pointer">
                             <div className="flex flex-1 items-center gap-3">
                               {submission ? (
                                 <CheckCircle className="h-5 w-5 text-green-500" />
@@ -250,9 +250,11 @@ export default function NewSubmissionPage() {
                                     </p>
                                   )}
                                   {submission.statusId === 'rejected' && submission.comments && (
-                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); handleViewFeedback(submission.comments)} }>
-                                      <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                                    </Button>
+                                    <div onClick={(e) => { e.stopPropagation(); handleViewFeedback(submission.comments); }}>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                                            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                                        </Button>
+                                    </div>
                                   )}
                                 </div>
                               )}
@@ -261,7 +263,7 @@ export default function NewSubmissionPage() {
                                 <span className="sr-only">Toggle</span>
                               </div>
                             </div>
-                          </button>
+                          </div>
                       </CollapsibleTrigger>
                       <CollapsibleContent className="p-4 pt-0">
                         <p className="mb-4 text-sm text-muted-foreground">
