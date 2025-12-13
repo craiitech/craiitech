@@ -19,7 +19,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MoreHorizontal, Loader2 } from 'lucide-react';
+import { MoreHorizontal, Loader2, ShieldQuestion } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,6 +43,12 @@ import { collection, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import type { User, Role, Campus, Unit } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { EditUserDialog } from './edit-user-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 type FilterStatus = 'all' | 'pending' | 'verified';
 
@@ -152,8 +158,19 @@ export function UserManagement() {
     verified: `There are ${filteredUsers.length} verified users.`,
   };
 
+  const getStatus = (user: User) => {
+    if (user.verified) {
+        return { variant: 'default', text: 'Verified' };
+    }
+    if (!user.ndaAccepted) {
+        return { variant: 'destructive', text: 'Awaiting NDA' };
+    }
+    return { variant: 'secondary', text: 'Pending QA' };
+  }
+
   return (
     <>
+    <TooltipProvider>
     <Card>
       <CardHeader>
         <div className="flex justify-between items-start">
@@ -192,7 +209,9 @@ export function UserManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.map((user) => (
+              {filteredUsers.map((user) => {
+                const status = getStatus(user);
+                return (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -217,8 +236,8 @@ export function UserManagement() {
                   <TableCell>{getCampusName(user.campusId)}</TableCell>
                   <TableCell>{getUnitName(user.unitId)}</TableCell>
                   <TableCell>
-                    <Badge variant={user.verified ? 'default' : 'secondary'}>
-                      {user.verified ? 'Verified' : 'Pending'}
+                    <Badge variant={status.variant as any}>
+                      {status.text}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -239,8 +258,15 @@ export function UserManagement() {
                           onClick={() =>
                             handleVerification(user.id, !user.verified)
                           }
+                          disabled={!user.ndaAccepted && !user.verified}
                         >
                           {user.verified ? 'Mark as Pending' : 'Verify User'}
+                           {!user.ndaAccepted && !user.verified && (
+                             <Tooltip>
+                                <TooltipTrigger asChild><ShieldQuestion className="ml-2 h-4 w-4 text-destructive"/></TooltipTrigger>
+                                <TooltipContent><p>User has not accepted the NDA.</p></TooltipContent>
+                             </Tooltip>
+                           )}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setEditingUser(user)}>
                             Edit
@@ -252,7 +278,8 @@ export function UserManagement() {
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))}
+                )
+              })}
             </TableBody>
           </Table>
         )}
@@ -263,6 +290,7 @@ export function UserManagement() {
         )}
       </CardContent>
     </Card>
+    </TooltipProvider>
     {editingUser && (
         <EditUserDialog 
             user={editingUser}

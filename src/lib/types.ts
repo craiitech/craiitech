@@ -21,6 +21,7 @@ export type User = {
   campusId: string;
   unitId: string;
   verified: boolean;
+  ndaAccepted?: boolean;
 };
 
 export type Status = 'Pending' | 'Approved' | 'Rejected' | 'Submitted';
