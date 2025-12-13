@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { SubmissionChecklist } from '@/components/dashboard/submission-checklist';
 
 
 export const submissionTypes = [
@@ -58,6 +59,7 @@ export default function NewSubmissionPage() {
   
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [feedbackToShow, setFeedbackToShow] = useState('');
+  const [isChecklistComplete, setIsChecklistComplete] = useState(false);
 
 
   const submissionsQuery = useMemoFirebase(() => {
@@ -218,7 +220,12 @@ export default function NewSubmissionPage() {
                     <Collapsible
                       key={reportType}
                       open={isExpanded}
-                      onOpenChange={(isOpen) => setActiveReport(isOpen ? reportType : null)}
+                      onOpenChange={(isOpen) => {
+                        setActiveReport(isOpen ? reportType : null);
+                        if (!isOpen) {
+                          setIsChecklistComplete(false); // Reset checklist on collapse
+                        }
+                      }}
                       className="rounded-lg border"
                     >
                       <CollapsibleTrigger asChild>
@@ -268,6 +275,7 @@ export default function NewSubmissionPage() {
                           cycleId={selectedCycle}
                           onLinkChange={handleLinkChange}
                           onSuccess={handleFormSuccess}
+                          isChecklistComplete={isChecklistComplete}
                           key={`${reportType}-${selectedYear}-${selectedCycle}`}
                         />
                       </CollapsibleContent>
@@ -279,9 +287,10 @@ export default function NewSubmissionPage() {
           </Card>
         </div>
 
-        {/* --- RIGHT COLUMN: PREVIEW --- */}
+        {/* --- RIGHT COLUMN: PREVIEW & CHECKLIST --- */}
         <div className="space-y-4">
             {activeReport && (
+              <>
               <Card className="sticky top-4">
                 <CardHeader>
                   <CardTitle>Document Preview</CardTitle>
@@ -299,6 +308,13 @@ export default function NewSubmissionPage() {
                   </div>
                 </CardContent>
               </Card>
+               <SubmissionChecklist
+                  reportType={activeReport}
+                  cycle={selectedCycle}
+                  year={selectedYear}
+                  onChecklistChange={setIsChecklistComplete}
+                />
+              </>
             )}
         </div>
       </div>

@@ -45,6 +45,7 @@ interface SubmissionFormProps {
   cycleId: 'first' | 'final';
   onSuccess?: () => void;
   onLinkChange: (link: string) => void;
+  isChecklistComplete: boolean;
 }
 
 export function SubmissionForm({
@@ -53,6 +54,7 @@ export function SubmissionForm({
   cycleId,
   onSuccess,
   onLinkChange,
+  isChecklistComplete
 }: SubmissionFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationStatus, setValidationStatus] = useState<ValidationStatus>('idle');
@@ -289,7 +291,8 @@ export function SubmissionForm({
           disabled={
             isSubmitting ||
             validationStatus === 'validating' ||
-            validationStatus === 'invalid'
+            validationStatus === 'invalid' ||
+            !isChecklistComplete
           }
         >
           {isSubmitting ? (
@@ -305,5 +308,3 @@ export function SubmissionForm({
     </Form>
   );
 }
-
-    
