@@ -148,10 +148,10 @@ export default function DashboardLayout({
           )}
             <div className="mt-2 text-center">
                 <p className="font-semibold text-lg">{userProfile?.firstName} {userProfile?.lastName}</p>
-                <p className="text-xs text-sidebar-primary font-medium">{userRole}</p>
+                <p className="text-sm text-sidebar-primary font-medium">{userRole}</p>
                 {userLocation && (
-                    <div className="flex items-center justify-center gap-1 text-xs text-sidebar-foreground/70 mt-1">
-                        <Building2 className="h-3 w-3"/>
+                    <div className="flex items-center justify-center gap-1 text-sm text-sidebar-foreground/80 mt-1">
+                        <Building2 className="h-4 w-4"/>
                         <span>{userLocation}</span>
                     </div>
                 )}
