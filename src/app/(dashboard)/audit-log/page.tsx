@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import type { ActivityLog } from '@/lib/types';
@@ -22,10 +22,20 @@ export default function AuditLogPage() {
   const { isAdmin, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
+  const [canQuery, setCanQuery] = useState(false);
+
+  // This effect will run when the user's loading state changes.
+  // It ensures we only attempt the Firestore query *after* we know for sure if the user is an admin.
+  useEffect(() => {
+    if (!isUserLoading) {
+      setCanQuery(true);
+    }
+  }, [isUserLoading]);
+
 
   const logsQuery = useMemoFirebase(
-    () => (firestore && isAdmin ? query(collection(firestore, 'activityLogs'), orderBy('timestamp', 'desc')) : null),
-    [firestore, isAdmin]
+    () => (firestore && isAdmin && canQuery ? query(collection(firestore, 'activityLogs'), orderBy('timestamp', 'desc')) : null),
+    [firestore, isAdmin, canQuery]
   );
   const { data: logs, isLoading: isLoadingLogs } = useCollection<ActivityLog>(logsQuery);
 
@@ -42,7 +52,7 @@ export default function AuditLogPage() {
     });
   }, [logs, searchTerm]);
 
-  const isLoading = isUserLoading || isLoadingLogs;
+  const isLoading = isUserLoading || (canQuery && isLoadingLogs);
 
   if (isLoading) {
     return (
@@ -128,5 +138,3 @@ export default function AuditLogPage() {
     </div>
   );
 }
-
-    
