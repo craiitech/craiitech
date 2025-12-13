@@ -32,7 +32,7 @@ export default function LogoutPage() {
     } else {
       handleFinalLogout();
     }
-  }, [countdown, auth, router]);
+  }, [countdown]);
 
   const handleFinalLogout = async () => {
     if (auth) {
@@ -43,7 +43,7 @@ export default function LogoutPage() {
       }
     }
     clearSessionLogs();
-    // Use window.location to force a full refresh, clearing all client-side state
+    // Use window.location to force a full refresh to the landing page.
     window.location.href = '/';
   };
 
