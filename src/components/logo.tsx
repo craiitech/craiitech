@@ -1,12 +1,8 @@
-import Image from 'next/image';
+import { FileText } from 'lucide-react';
 
 export function Logo({ className, ...props }: { className?: string }) {
   return (
-    <Image
-      src="/qa_logo.png"
-      alt="RSU Quality Assurance Office Logo"
-      width={100}
-      height={100}
+    <FileText
       className={className}
       {...props}
     />
