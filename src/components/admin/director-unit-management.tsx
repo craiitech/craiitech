@@ -39,7 +39,7 @@ const newUnitSchema = z.object({
 });
 
 export function DirectorUnitManagement() {
-  const { userProfile } = useUser();
+  const { userProfile, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,7 +117,8 @@ export function DirectorUnitManagement() {
     };
 
     try {
-        await addDoc(collection(firestore, 'units'), newUnitData);
+        const unitsCollection = collection(firestore, 'units');
+        await addDoc(unitsCollection, newUnitData);
         toast({
             title: 'Unit Created',
             description: `The unit "${values.name}" has been created and assigned to your campus.`
@@ -133,6 +134,18 @@ export function DirectorUnitManagement() {
     } finally {
         setIsSubmitting(false);
     }
+  }
+
+  // A campus director should be able to manage units.
+  if (userRole !== 'Campus Director') {
+    return (
+         <Card>
+            <CardHeader>
+                <CardTitle>Permission Denied</CardTitle>
+                <CardDescription>Only Campus Directors can manage units for their campus.</CardDescription>
+            </CardHeader>
+         </Card>
+    );
   }
 
   return (
@@ -254,4 +267,3 @@ export function DirectorUnitManagement() {
     </div>
   );
 }
-

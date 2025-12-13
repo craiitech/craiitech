@@ -67,6 +67,14 @@ service cloud.firestore {
     function isCampusOdimo() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_campus_odimo/$(request.auth.uid));
     }
+
+    /**
+     * Checks if the current user has Campus Director privileges.
+     * Note: Campus Directors are a type of Campus ODIMO but with more permissions.
+     */
+    function isCampusDirector() {
+        return getUserProfile().role == 'Campus Director';
+    }
     
     /**
      * Checks if the current user has Unit ODIMO privileges.
@@ -168,11 +176,17 @@ service cloud.firestore {
     }
     
     /**
-     * @description Global unit definitions are readable by anyone, but only managed by Admins.
+     * @description Unit definitions are readable by anyone.
+     * Creation is allowed for Admins or Campus Directors (for their own campus).
+     * Updates are allowed for Admins or Campus Directors assigning a unit to their campus.
      */
     match /units/{unitId} {
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isAdmin();
+      allow create: if isAdmin() || 
+                       (isCampusDirector() && request.resource.data.campusId == getUserProfile().campusId);
+      allow update: if isAdmin() || 
+                       (isCampusDirector() && request.resource.data.campusId == getUserProfile().campusId);
+      allow delete: if isAdmin();
     }
     
     /**
