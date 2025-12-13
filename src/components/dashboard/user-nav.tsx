@@ -14,40 +14,41 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAuth } from '@/firebase';
-import { signOut, type User } from 'firebase/auth';
+import type { User as FirebaseAuthUser } from 'firebase/auth';
+import type { User as AppUser } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useToast } from '@/hooks/use-toast';
 
-export function UserNav({ user }: { user: User | null }) {
+export function UserNav({ user, userProfile }: { user: FirebaseAuthUser | null, userProfile: AppUser | null }) {
   const router = useRouter();
   
   const handleLogout = () => {
-    // Instead of signing out directly, redirect to the logout page.
     router.push('/logout');
   };
 
-  if (!user) {
+  if (!user || !userProfile) {
     return null;
   }
+
+  const { firstName, lastName, email, avatar } = userProfile;
+  const fallback = `${firstName?.charAt(0) ?? ''}${lastName?.charAt(0) ?? ''}`;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user.photoURL ?? undefined} alt={`@${user.displayName}`} />
-            <AvatarFallback>{user.displayName?.charAt(0) ?? user.email?.charAt(0)}</AvatarFallback>
+            <AvatarImage src={avatar} alt={`@${firstName}`} />
+            <AvatarFallback>{fallback}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.displayName}</p>
+            <p className="text-sm font-medium leading-none">{firstName} {lastName}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user.email}
+              {email}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -76,5 +77,3 @@ export function UserNav({ user }: { user: User | null }) {
     </DropdownMenu>
   );
 }
-
-    

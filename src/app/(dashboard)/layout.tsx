@@ -165,7 +165,7 @@ export default function DashboardLayout({
             <SidebarTrigger className="md:hidden" />
             <h1 className="font-semibold text-lg">{getPageTitle(pathname)}</h1>
           </div>
-          <UserNav user={user} />
+          <UserNav user={user} userProfile={userProfile} />
         </header>
         <main className="p-4 lg:p-8 bg-background/90">{children}</main>
       </SidebarInset>
