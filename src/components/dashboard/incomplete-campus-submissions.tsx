@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FileWarning, School } from 'lucide-react';
-import { submissionTypes, TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
+import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
+import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
 
 interface IncompleteCampusSubmissionsProps {
   allSubmissions: Submission[] | null;
