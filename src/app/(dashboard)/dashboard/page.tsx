@@ -46,7 +46,7 @@ import {
 import type { Submission, User as AppUser, Unit, Campus } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle, AlertCloseButton } from '@/components/ui/alert';
 import { UnitsWithoutSubmissions } from '@/components/dashboard/units-without-submissions';
 import { CampusUnitOverview } from '@/components/dashboard/campus-unit-overview';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -97,6 +97,7 @@ export default function HomePage() {
 
   const [userCount, setUserCount] = useState(0);
   const [allUsers, setAllUsers] = useState<Record<string, AppUser>>({});
+  const [isAnnouncementVisible, setIsAnnouncementVisible] = useState(true);
 
   const userRoleName = userRole;
 
@@ -205,6 +206,11 @@ export default function HomePage() {
     useDoc(campusSettingsDocRef);
 
   const announcement = campusSetting?.announcement;
+  
+  // Reset announcement visibility when the announcement text changes
+  useEffect(() => {
+    setIsAnnouncementVisible(true);
+  }, [announcement]);
   
   const unitsInCampus = useMemo(() => {
       if (!allUnits || !userProfile?.campusId) return [];
@@ -872,11 +878,12 @@ export default function HomePage() {
             Welcome back, {userProfile?.firstName}! Here's your overview.
           </p>
         </div>
-         {announcement && !isLoading && (
+         {announcement && isAnnouncementVisible && !isLoading && (
             <Alert className="max-w-md">
                 <Megaphone className="h-4 w-4" />
                 <AlertTitle>Campus Announcement</AlertTitle>
                 <AlertDescription>{announcement}</AlertDescription>
+                <AlertCloseButton onClick={() => setIsAnnouncementVisible(false)} />
             </Alert>
         )}
       </div>
