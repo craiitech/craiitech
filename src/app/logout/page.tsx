@@ -19,17 +19,16 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { LogOut, Activity, Loader2 } from 'lucide-react';
 import { logUserActivity } from '@/lib/activity-logger';
 import { useToast } from '@/hooks/use-toast';
+import { useSessionActivity } from '@/lib/activity-log-provider';
 
 export default function LogoutPage() {
   const router = useRouter();
   const auth = useAuth();
   const { user } = useUser();
   const { toast } = useToast();
+  const { sessionLogs, clearSessionLogs } = useSessionActivity();
   const [countdown, setCountdown] = useState(5);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  // We don't have session logs anymore in this simplified setup.
-  // This could be replaced with something else if needed.
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -53,6 +52,7 @@ export default function LogoutPage() {
           await logUserActivity(user.uid, 'user_logout', { method: 'manual' });
         }
         await signOut(auth);
+        clearSessionLogs(); // Clear the logs from the client-side context
       } catch (error) {
         console.error('Error signing out: ', error);
         toast({
@@ -81,10 +81,28 @@ export default function LogoutPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-           <div className="flex h-32 items-center justify-center rounded-md border text-center text-sm text-muted-foreground">
+            <h3 className="mb-2 flex items-center text-sm font-semibold">
                 <Activity className="mr-2 h-4 w-4" />
-                Your session has ended securely.
-            </div>
+                Session Activity Summary
+            </h3>
+            <ScrollArea className="h-32 rounded-md border">
+                {sessionLogs.length > 0 ? (
+                    <List className="p-2">
+                        {sessionLogs.map((log, index) => (
+                            <ListItem key={index} className="flex justify-between border-b p-2">
+                                <span className="text-xs">{log.message}</span>
+                                <span className="text-xs text-muted-foreground">
+                                    {new Date(log.timestamp).toLocaleTimeString()}
+                                </span>
+                            </ListItem>
+                        ))}
+                    </List>
+                ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                        No activity recorded this session.
+                    </div>
+                )}
+            </ScrollArea>
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">
