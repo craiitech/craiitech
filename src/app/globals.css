@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -91,4 +92,60 @@
       -webkit-backdrop-filter: blur(16px);
       backdrop-filter: blur(16px);
   }
+}
+
+@layer utilities {
+    @media print {
+        /* Hide all elements by default */
+        body * {
+            visibility: hidden;
+        }
+
+        /* Show the main content area and its children */
+        main, main * {
+            visibility: visible;
+        }
+        
+        main {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0;
+            padding: 1rem;
+        }
+
+        /* Hide specific elements that are not needed for print */
+        .print\:hidden {
+            display: none;
+        }
+        
+        .print\:block {
+            display: block;
+        }
+        
+        /* Ensure cards don't break across pages */
+        .print\:break-inside-avoid {
+            break-inside: avoid;
+        }
+
+        .print\:grid-cols-1 {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }
+
+        .print\:space-y-8 > :not([hidden]) ~ :not([hidden]) {
+            --tw-space-y-reverse: 0;
+            margin-top: calc(2rem * calc(1 - var(--tw-space-y-reverse)));
+            margin-bottom: calc(2rem * var(--tw-space-y-reverse));
+        }
+
+        .print\:h-auto {
+            height: auto;
+        }
+        
+        .print\:border-none {
+            border: none;
+        }
+
+    }
 }

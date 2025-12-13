@@ -22,8 +22,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, School, Users, FileCheck2 } from 'lucide-react';
+import { Loader2, School, Users, FileCheck2, Printer } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 
 export default function ReportsPage() {
   const { isAdmin, isUserLoading } = useUser();
@@ -93,15 +94,27 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Reports</h2>
-        <p className="text-muted-foreground">Generate and view system-wide reports.</p>
+    <div className="space-y-4 print:space-y-8">
+      <div className="flex items-center justify-between print:hidden">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Reports</h2>
+          <p className="text-muted-foreground">Generate and view system-wide reports.</p>
+        </div>
+        <Button onClick={() => window.print()}>
+            <Printer className="mr-2 h-4 w-4" />
+            Print Report
+        </Button>
+      </div>
+      
+      <div className="hidden print:block text-center mb-8">
+          <h1 className="text-3xl font-bold">RSU EOMS - System Report</h1>
+          <p className="text-muted-foreground">Generated on: {new Date().toLocaleDateString()}</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:grid-cols-1">
         {/* Campus and Units Report */}
-        <Card className="lg:col-span-1">
+        <Card className="lg:col-span-1 print:break-inside-avoid">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <School className="h-5 w-5" />
@@ -111,7 +124,7 @@ export default function ReportsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <Select onValueChange={setSelectedCampusId}>
-              <SelectTrigger>
+              <SelectTrigger className="print:hidden">
                 <SelectValue placeholder="Select a campus..." />
               </SelectTrigger>
               <SelectContent>
@@ -122,7 +135,10 @@ export default function ReportsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <ScrollArea className="h-72 rounded-md border">
+            <ScrollArea className="h-72 rounded-md border print:h-auto print:border-none">
+              <div className="hidden print:block mb-2">
+                  <p className="font-semibold">Viewing Units for: {selectedCampusId ? campusMap.get(selectedCampusId) : 'All Campuses'}</p>
+              </div>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -150,8 +166,8 @@ export default function ReportsPage() {
         </Card>
 
         {/* Submitted Units and All Users Reports */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
+        <div className="lg:col-span-2 space-y-6 print:col-span-1">
+          <Card className="print:break-inside-avoid">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileCheck2 className="h-5 w-5" />
@@ -160,7 +176,7 @@ export default function ReportsPage() {
               <CardDescription>A list of all units that have made at least one submission.</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-48 rounded-md border">
+              <ScrollArea className="h-48 rounded-md border print:h-auto print:border-none">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -189,7 +205,7 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="print:break-inside-avoid">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
@@ -198,7 +214,7 @@ export default function ReportsPage() {
               <CardDescription>A complete list of all users in the system.</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96 rounded-md border">
+              <ScrollArea className="h-96 rounded-md border print:h-auto print:border-none">
                 <Table>
                   <TableHeader>
                     <TableRow>
