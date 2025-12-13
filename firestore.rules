@@ -83,10 +83,10 @@ service cloud.firestore {
     }
 
     /**
-     * Checks if the current user has Vice President privileges.
+     * Checks if the current user has Vice President privileges by checking if their role name contains "Vice President".
      */
     function isVicePresident() {
-        return isSignedIn() && exists(/databases/$(database)/documents/roles_vice_president/$(request.auth.uid));
+        return isSignedIn() && getUserProfile().role.matches("Vice President");
     }
     
     /**
@@ -253,5 +253,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
