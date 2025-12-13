@@ -3,13 +3,12 @@
 
 import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
 import { getFirestore, serverTimestamp } from 'firebase-admin/firestore';
-import { firebaseAdminConfig } from '@/firebase/config-admin';
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!getApps().length) {
-  initializeApp({
-    // Use application default credentials
-  });
+    // When running in a Google Cloud environment, the SDK can automatically
+    // find the service account credentials from the environment.
+    initializeApp();
 }
 
 const firestore = getFirestore();
@@ -33,32 +32,26 @@ export async function logUserActivity(
 
   try {
     const userDoc = await firestore.collection('users').doc(userId).get();
-    if (!userDoc.exists) {
-        // Fallback if user profile doesn't exist for some reason
-        await firestore.collection('activityLogs').add({
-            userId,
-            userName: 'Unknown User',
-            userRole: 'Unknown',
-            action,
-            details,
-            timestamp: serverTimestamp(),
-        });
-        return;
-    }
     
-    const userData = userDoc.data();
+    let userName = 'Unknown User';
+    let userRole = 'Unknown';
+
+    if (userDoc.exists) {
+        const userData = userDoc.data();
+        userName = `${userData?.firstName} ${userData?.lastName}`;
+        userRole = userData?.role || 'N/A';
+    }
 
     await firestore.collection('activityLogs').add({
       userId,
-      userName: `${userData?.firstName} ${userData?.lastName}`,
-      userRole: userData?.role || 'N/A',
+      userName,
+      userRole,
       action,
       details,
       timestamp: serverTimestamp(),
     });
   } catch (error) {
     console.error('Failed to log user activity:', error);
-    // Depending on the desired behavior, you might want to re-throw the error
-    // or handle it silently. For an audit log, failing silently might be undesirable.
+    // In a production environment, you might want to re-throw or handle this more gracefully.
   }
 }
