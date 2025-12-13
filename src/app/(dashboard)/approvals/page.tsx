@@ -68,7 +68,7 @@ export default function ApprovalsPage() {
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [dialogMode, setDialogMode] = useState<'reject' | 'view'>('view');
   
-  const canApprove = userRole === 'Admin' || userRole === 'Campus ODIMO';
+  const canApprove = userRole === 'Admin' || userRole === 'Campus ODIMO' || userRole === 'Campus Director';
 
 
   // Effect to fetch submissions based on user role
@@ -286,6 +286,17 @@ export default function ApprovalsPage() {
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
+  }
+  
+  if (!canApprove) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
+          <p className="text-muted-foreground">You do not have permission to view this page.</p>
+        </div>
+      </div>
+    )
   }
 
   return (

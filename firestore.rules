@@ -120,7 +120,8 @@ service cloud.firestore {
     match /submissions/{submissionId} {
       allow get: if isOwner(resource.data.userId) 
                     || (isCampusOdimo() && getUserProfile().campusId == resource.data.campusId) 
-                    || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId) 
+                    || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId)
+                    || (isCampusDirector() && getUserProfile().campusId == resource.data.campusId)
                     || isAdmin();
       allow list: if isSignedIn(); // Further filtering must be done in the query.
       
@@ -129,7 +130,10 @@ service cloud.firestore {
                     && request.resource.data.campusId == getUserProfile().campusId
                     && request.resource.data.unitId == getUserProfile().unitId;
 
-      allow update: if isOwner(resource.data.userId) || (isCampusOdimo() && getUserProfile().campusId == resource.data.campusId) || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId) || isAdmin();
+      allow update: if isOwner(resource.data.userId) 
+                    || (isCampusOdimo() && getUserProfile().campusId == resource.data.campusId) 
+                    || (isCampusDirector() && getUserProfile().campusId == resource.data.campusId) 
+                    || isAdmin();
 
       allow delete: if isOwner(resource.data.userId);
     }
@@ -230,5 +234,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

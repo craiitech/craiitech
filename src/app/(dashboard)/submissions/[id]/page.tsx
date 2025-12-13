@@ -133,7 +133,7 @@ export default function SubmissionDetailPage() {
 
   const canApprove = useMemo(() => {
       if (!userRole) return false;
-      return ['Admin', 'Campus ODIMO'].includes(userRole);
+      return ['Admin', 'Campus ODIMO', 'Campus Director'].includes(userRole);
   }, [userRole]);
   
   const isApprover = 
