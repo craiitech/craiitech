@@ -7,7 +7,7 @@ import {
   useUser,
   useAuth,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../ui/sidebar';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -61,6 +61,13 @@ export function SidebarNav({
       active: pathname.startsWith('/approvals'),
       roles: ['Campus Director', 'Campus ODIMO', 'Unit ODIMO', 'Admin'],
       icon: <CheckSquare />,
+    },
+     {
+      href: '/reports',
+      label: 'Reports',
+      active: pathname.startsWith('/reports'),
+      roles: ['Admin'],
+      icon: <BarChart />,
     },
     {
         href: '/settings',
