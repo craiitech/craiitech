@@ -25,6 +25,7 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, 
 import type { Unit, Submission, Comment } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { useSessionActivity } from '@/lib/activity-log-provider';
 
 const submissionSchema = z.object({
   googleDriveLink: z
@@ -61,6 +62,7 @@ export function SubmissionForm({
   const { toast } = useToast();
   const { user, userProfile, userRole } = useUser();
   const firestore = useFirestore();
+  const { logSessionActivity } = useSessionActivity();
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
@@ -161,6 +163,11 @@ export function SubmissionForm({
         
         updateDoc(existingDocRef, updateData)
           .then(() => {
+              const logMessage = `Updated submission: ${reportType}`;
+              logSessionActivity(logMessage, {
+                action: 'update_submission',
+                details: { submissionId: existingDocRef.id, reportType },
+              });
               toast({
                   title: 'Submission Updated!',
                   description: `Your '${reportType}' report has been updated.`,
@@ -199,7 +206,12 @@ export function SubmissionForm({
         };
 
         addDoc(submissionCollectionRef, newSubmissionData)
-          .then(() => {
+          .then((docRef) => {
+              const logMessage = `Created new submission: ${reportType}`;
+              logSessionActivity(logMessage, {
+                action: 'create_submission',
+                details: { submissionId: docRef.id, reportType },
+              });
               toast({
                   title: 'Submission Successful!',
                   description: `Your '${reportType}' report has been submitted.`,

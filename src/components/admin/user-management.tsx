@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -49,6 +50,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useSessionActivity } from '@/lib/activity-log-provider';
+
 
 type FilterStatus = 'all' | 'pending' | 'verified';
 
@@ -59,6 +62,7 @@ export function UserManagement() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { logSessionActivity } = useSessionActivity();
 
 
   const usersQuery = useMemoFirebase(
@@ -104,11 +108,14 @@ export function UserManagement() {
   const getUnitName = (unitId: string) =>
     units?.find((u) => u.id === unitId)?.name || 'N/A';
 
-  const handleVerification = async (userId: string, isVerified: boolean) => {
+  const handleVerification = async (userToVerify: User, isVerified: boolean) => {
     if (!firestore) return;
-    const userRef = doc(firestore, 'users', userId);
+    const userRef = doc(firestore, 'users', userToVerify.id);
     try {
       await updateDoc(userRef, { verified: isVerified });
+      const action = isVerified ? 'verify_user' : 'unverify_user';
+      const description = `User ${userToVerify.email} has been ${isVerified ? 'verified' : 'unverified'}.`;
+      logSessionActivity(description, { action, affectedUserId: userToVerify.id });
       toast({
         title: 'Success',
         description: `User has been ${
@@ -131,6 +138,10 @@ export function UserManagement() {
     const userRef = doc(firestore, 'users', deletingUser.id);
     try {
         await deleteDoc(userRef);
+        logSessionActivity(`Deleted user: ${deletingUser.email}`, {
+          action: 'delete_user',
+          affectedUserId: deletingUser.id,
+        });
         toast({
             title: "User Deleted",
             description: `${deletingUser.firstName} ${deletingUser.lastName} has been removed.`,
@@ -256,7 +267,7 @@ export function UserManagement() {
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem
                           onClick={() =>
-                            handleVerification(user.id, !user.verified)
+                            handleVerification(user, !user.verified)
                           }
                           disabled={!user.ndaAccepted && !user.verified}
                         >
