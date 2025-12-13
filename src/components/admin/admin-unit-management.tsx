@@ -37,9 +37,11 @@ import { Loader2 } from 'lucide-react';
 import type { Unit, Campus } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const formSchema = z.object({
   name: z.string().min(3, 'Unit name must be at least 3 characters.'),
+  campusId: z.string().min(1, 'Please select a campus for the unit.'),
 });
 
 type UnitFormValues = z.infer<typeof formSchema>;
@@ -63,7 +65,7 @@ export function AdminUnitManagement() {
 
   const form = useForm<UnitFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '' },
+    defaultValues: { name: '', campusId: '' },
   });
 
   const campusMap = useMemo(() => {
@@ -80,7 +82,7 @@ export function AdminUnitManagement() {
     const newUnitData = {
         name: values.name,
         createdAt: serverTimestamp(),
-        campusId: '',
+        campusId: values.campusId,
     };
     
     const unitsCollectionRef = collection(firestore, 'units');
@@ -88,7 +90,7 @@ export function AdminUnitManagement() {
     addDoc(unitsCollectionRef, newUnitData)
         .then(() => {
             toast({ title: 'Success', description: 'New unit created.' });
-            form.reset({ name: '' });
+            form.reset({ name: '', campusId: '' });
         })
         .catch((error) => {
             console.error('Error creating unit:', error);
@@ -108,11 +110,11 @@ export function AdminUnitManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Add New Unit</CardTitle>
-          <CardDescription>Create a new global unit for assignment.</CardDescription>
+          <CardDescription>Create a new unit and assign it to a campus.</CardDescription>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardContent>
+            <CardContent className="space-y-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -122,6 +124,30 @@ export function AdminUnitManagement() {
                     <FormControl>
                       <Input placeholder="e.g., College of Engineering" {...field} value={field.value ?? ''} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="campusId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Assign to Campus</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a campus" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {allCampuses?.map((campus) => (
+                          <SelectItem key={campus.id} value={campus.id}>
+                            {campus.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
