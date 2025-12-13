@@ -46,7 +46,7 @@ export function CampusUnitOverview({
       };
     });
 
-  }, [allUnits, allSubmissions, userProfile]);
+  }, [allUnits, allSubmissions, userProfile?.campusId]);
 
   if (isLoading) {
     return (

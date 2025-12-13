@@ -90,7 +90,7 @@ export default function CompleteRegistrationPage() {
   // When isUnitRequired changes, we might need to clear errors or values
   useEffect(() => {
     if (!isUnitRequired) {
-      form.setValue('unitId', undefined); // Use undefined to clear the value
+      form.setValue('unitId', ''); // Clear the value
       form.clearErrors('unitId');
     }
   }, [isUnitRequired, form]);
@@ -275,5 +275,3 @@ export default function CompleteRegistrationPage() {
       </Card>
   );
 }
-
-    

@@ -132,10 +132,11 @@ service cloud.firestore {
 
       allow update: if isOwner(resource.data.userId) 
                     || (isCampusOdimo() && getUserProfile().campusId == resource.data.campusId) 
+                    || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId)
                     || (isCampusDirector() && getUserProfile().campusId == resource.data.campusId) 
                     || isAdmin();
 
-      allow delete: if isOwner(resource.data.userId);
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
     }
 
     /**

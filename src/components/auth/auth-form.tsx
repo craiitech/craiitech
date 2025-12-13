@@ -15,6 +15,7 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   getAdditionalUserInfo,
+  signInWithRedirect,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { Loader2, Mail, X, Eye, EyeOff } from 'lucide-react';
@@ -181,7 +182,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     }
   };
 
-  const handleGoogleSignIn = () => {
+  const processGoogleSignIn = () => {
     setIsSubmitting(true);
     const provider = new GoogleAuthProvider();
     signInWithPopup(auth, provider)
@@ -212,8 +213,29 @@ export function AuthForm({ initialTab }: AuthFormProps) {
           });
           router.push('/complete-registration');
         } else {
-          await logUserActivity(user.uid, 'user_login', { method: 'google' });
-          router.push('/dashboard');
+          // Check if user document exists for returning user, create if not
+          const userDocRef = doc(firestore, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (!userDoc.exists()) {
+             const [first = '', last = ''] = user.displayName?.split(' ') || [];
+             await setDoc(userDocRef, {
+                id: user.uid,
+                email: user.email,
+                firstName: first,
+                lastName: last,
+                avatar: user.photoURL,
+                roleId: '',
+                role: '',
+                campusId: '',
+                unitId: '',
+                verified: false,
+                ndaAccepted: false,
+            });
+             router.push('/complete-registration');
+          } else {
+            await logUserActivity(user.uid, 'user_login', { method: 'google' });
+            router.push('/dashboard');
+          }
         }
       })
       .catch((error) => {
@@ -445,7 +467,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         <Button
           variant="outline"
           className="bg-gray-800/50 border-gray-700 hover:bg-gray-700/50 text-white"
-          onClick={handleGoogleSignIn}
+          onClick={processGoogleSignIn}
           disabled={isSubmitting}
         >
           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

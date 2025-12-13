@@ -32,7 +32,7 @@ export function IncompleteCampusSubmissions({
 
     return allCampuses.map(campus => {
       // Get all unit IDs for the current campus
-      const campusUnitIds = allUnits.filter(u => u.campusId === campus.id).map(u => u.id);
+      const campusUnitIds = allUnits.filter(u => u.campusIds?.includes(campus.id)).map(u => u.id);
       
       // Get all submissions from those units for the current year
       const campusSubmissions = allSubmissions.filter(s => 
@@ -110,4 +110,3 @@ export function IncompleteCampusSubmissions({
     </Card>
   );
 }
-
