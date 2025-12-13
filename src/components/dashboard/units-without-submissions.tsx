@@ -1,15 +1,22 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { Unit, Submission, User as AppUser, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building, AlertCircle } from 'lucide-react';
+import { Building, AlertCircle, Send, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
+import { Button } from '../ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+import { useFirestore } from '@/firebase';
+import { doc, writeBatch } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface UnitsWithoutSubmissionsProps {
   allUnits: Unit[] | null;
@@ -30,6 +37,11 @@ export function UnitsWithoutSubmissions({
   isAdmin,
   isCampusSupervisor,
 }: UnitsWithoutSubmissionsProps) {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isReminderDialogOpen, setIsReminderDialogOpen] = useState(false);
+  const [isSendingReminders, setIsSendingReminders] = useState(false);
+
 
   const incompleteSubmissionsByCampus = useMemo(() => {
     if (!allUnits || !allSubmissions || !allCampuses) {
@@ -76,6 +88,39 @@ export function UnitsWithoutSubmissions({
     }).filter(campus => campus.incompleteUnits.length > 0); // Only include campuses with incomplete units
 
   }, [allUnits, allCampuses, allSubmissions, isCampusSupervisor, userProfile]);
+  
+  const handleSendReminders = async () => {
+    if (!firestore || incompleteSubmissionsByCampus.length === 0) return;
+    setIsSendingReminders(true);
+
+    const batch = writeBatch(firestore);
+    const reminderMessage = `Reminder: Please ensure all ${TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT} required EOMS reports for ${new Date().getFullYear()} are submitted as soon as possible.`;
+
+    const campusIdsToRemind = incompleteSubmissionsByCampus.map(c => c.campusId);
+
+    for (const campusId of campusIdsToRemind) {
+        const settingRef = doc(firestore, 'campusSettings', campusId);
+        batch.set(settingRef, { id: campusId, announcement: reminderMessage }, { merge: true });
+    }
+
+    try {
+        await batch.commit();
+        toast({
+            title: 'Reminders Sent',
+            description: `A reminder announcement has been posted to ${campusIdsToRemind.length} campus(es).`
+        });
+    } catch(e) {
+        console.error("Error sending reminders:", e);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: 'campusSettings',
+            operation: 'write',
+            requestResourceData: { announcement: reminderMessage },
+        }));
+    } finally {
+        setIsSendingReminders(false);
+        setIsReminderDialogOpen(false);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -100,15 +145,22 @@ export function UnitsWithoutSubmissions({
   }
 
   return (
+    <>
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-            <AlertCircle className="text-destructive" />
-            Incomplete Submissions by Campus
-        </CardTitle>
-        <CardDescription>
-          The following campuses have units that have not completed all {TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT} required submissions for {new Date().getFullYear()}.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between">
+        <div>
+            <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="text-destructive" />
+                Incomplete Submissions by Campus
+            </CardTitle>
+            <CardDescription>
+            The following campuses have units that have not completed all {TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT} required submissions for {new Date().getFullYear()}.
+            </CardDescription>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setIsReminderDialogOpen(true)}>
+            <Send className="mr-2 h-4 w-4"/>
+            Send Reminders
+        </Button>
       </CardHeader>
       <CardContent>
         <Accordion type="multiple" className="w-full">
@@ -137,5 +189,24 @@ export function UnitsWithoutSubmissions({
         </Accordion>
       </CardContent>
     </Card>
+
+    <AlertDialog open={isReminderDialogOpen} onOpenChange={setIsReminderDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Confirm Reminders</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This will post a standard reminder announcement to the dashboard of all users in the {incompleteSubmissionsByCampus.length} campus(es) listed with incomplete submissions. Are you sure?
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleSendReminders} disabled={isSendingReminders}>
+                    {isSendingReminders ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
+                    Yes, Send Reminders
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
