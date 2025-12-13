@@ -71,15 +71,7 @@ import { UnitUserOverview } from '@/components/dashboard/unit-user-overview';
 import { IncompleteCampusSubmissions } from '@/components/dashboard/incomplete-campus-submissions';
 import { CompletedSubmissions } from '@/components/dashboard/completed-submissions';
 import { NonCompliantUnits } from '@/components/dashboard/non-compliant-units';
-
-export const submissionTypes = [
-  'Operational Plans',
-  'Objectives Monitoring',
-  'Risk and Opportunity Registry Form',
-  'Risk and Opportunity Action Plan',
-  'Updated Needs and Expectation of Interested Parties',
-  'SWOT Analysis',
-];
+import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 
 export const TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT = 12; // 6 for First, 6 for Final
 

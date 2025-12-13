@@ -8,7 +8,7 @@ import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, submissionTypes } from '@/app/(dashboard)/dashboard/page';
+import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
 
 interface CampusUnitOverviewProps {
   allUnits: Unit[] | null;

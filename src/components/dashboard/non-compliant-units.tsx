@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, Building, CalendarOff } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Timestamp } from 'firebase/firestore';
-import { submissionTypes } from './campus-unit-overview';
+import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { isAfter } from 'date-fns';
 
 interface NonCompliantUnitsProps {
