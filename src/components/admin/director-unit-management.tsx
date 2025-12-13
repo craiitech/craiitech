@@ -194,7 +194,7 @@ export function DirectorUnitManagement() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Available System Units</TableHead>
+                        <TableHead>University Units / Offices</TableHead>
                         <TableHead className="text-right">Action</TableHead>
                       </TableRow>
                     </TableHeader>
