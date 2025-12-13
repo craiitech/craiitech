@@ -242,14 +242,5 @@ service cloud.firestore {
       allow list: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
-
-     /**
-     * @description The collection for assigning Vice President roles. Only Admins can manage this list.
-     */
-    match /roles_vice_president/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create, update, delete: if isAdmin();
-    }
   }
 }

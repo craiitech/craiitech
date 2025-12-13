@@ -116,7 +116,7 @@ export function UserManagement() {
       await updateDoc(userRef, { verified: newStatus });
       const action = newStatus ? 'activate_user' : 'deactivate_user';
       const description = `User ${userToToggle.email} has been ${newStatus ? 'activated' : 'deactivated'}.`;
-      logSessionActivity(description, { action, affectedUserId: userToToggle.id });
+      logSessionActivity(description, { action, details: { affectedUserId: userToToggle.id }});
       toast({
         title: 'Success',
         description: `User account has been ${
@@ -141,7 +141,7 @@ export function UserManagement() {
         await deleteDoc(userRef);
         logSessionActivity(`Deleted user: ${deletingUser.email}`, {
           action: 'delete_user',
-          affectedUserId: deletingUser.id,
+          details: { affectedUserId: deletingUser.id },
         });
         toast({
             title: "User Deleted",

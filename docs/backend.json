@@ -553,26 +553,8 @@
             }
           ]
         }
-      },
-      {
-        "path": "/roles_vice_president/{userId}",
-        "definition": {
-          "entityName": "vicePresidentRole",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Documents in this collection denote Vice President privileges. Authorization rules check for the existence of a document with the user's UID in this collection. Existence, not content, is important.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who is a Vice President."
-            }
-          ]
-        }
       }
     ],
     "reasoning": "This Firestore structure prioritizes security, scalability, and query performance. The key change is moving submissions to a top-level collection, which simplifies queries for administrative and supervisory roles. This avoids the need for collection group queries for most common scenarios, making the rules and application logic more straightforward.\n\n**Top-Level Submissions:** The `/submissions/{submissionId}` collection allows admins and supervisors to easily query across all submissions (e.g., `where('statusId', '==', 'submitted')`) without needing a `collectionGroup` index. Security is maintained by embedding ownership and context fields (`userId`, `campusId`, `unitId`) directly into each submission document. Security rules can then use these fields to enforce access control.\n\n**Authorization Independence:** Access control is still enforced at the document level. Security rules check the `userId` in the submission document against the authenticated user's UID for ownership-based permissions. For supervisors, rules check the submission's `campusId` or `unitId` against the supervisor's own profile data (fetched via a `get()` call in the rule), ensuring they can only access submissions within their scope.\n\n**DBAC (Database-Based Access Control):** User roles and campus/unit assignments stored in the `/users` collection remain the source of truth for authorization. Helper functions in the security rules (`isAdmin()`, `isCampusOdimo()`, etc.) continue to provide a clear and secure way to check a user's role.\n\n**Denormalization:** The `submissions` collection relies on denormalization of `userId`, `campusId`, `unitId`, and `unitName`. This is critical for writing efficient security rules that do not require joins or multiple `get()` calls to check permissions, which is a key performance best practice for Firestore.\n\n**Invariants:** The structure ensures the integrity of ownership and denormalized data. Security rules on `create` and `update` for the `/submissions` collection will enforce that the `userId` matches the authenticated user and that the denormalized fields like `campusId` and `unitId` match the user's profile, preventing tampering."
   }
 }
-
-    
