@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { useEffect, useMemo } from 'react';
 import type { Campus, Unit } from '@/lib/types';
 import { collection } from 'firebase/firestore';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Building2 } from 'lucide-react';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';
 
@@ -137,13 +137,15 @@ export default function DashboardLayout({
     <SidebarProvider>
       <Sidebar variant="sidebar" collapsible="icon">
         <SidebarHeader className="items-center justify-center text-center p-4">
-          <Avatar className="h-20 w-20">
-              <AvatarImage src={userProfile?.avatar} alt={userProfile?.firstName} />
-              <AvatarFallback className="text-2xl">
-                {userProfile?.firstName?.charAt(0)}
-                {userProfile?.lastName?.charAt(0)}
+          {userProfile?.avatar && (
+            <Avatar className="h-20 w-20">
+              <AvatarImage src={userProfile.avatar} alt={`${userProfile.firstName} ${userProfile.lastName}`} />
+              <AvatarFallback>
+                {userProfile.firstName?.charAt(0)}
+                {userProfile.lastName?.charAt(0)}
               </AvatarFallback>
             </Avatar>
+          )}
             <div className="mt-2 text-center">
                 <p className="font-semibold text-lg">{userProfile?.firstName} {userProfile?.lastName}</p>
                 <p className="text-xs text-sidebar-primary font-medium">{userRole}</p>
