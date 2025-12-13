@@ -22,24 +22,10 @@ import { useToast } from '@/hooks/use-toast';
 
 export function UserNav({ user }: { user: User | null }) {
   const router = useRouter();
-  const auth = useAuth();
-  const { toast } = useToast();
   
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      toast({
-        title: 'Logged Out',
-        description: 'You have been successfully logged out.',
-      });
-      router.push('/login');
-    } catch (error) {
-       toast({
-        title: 'Logout Failed',
-        description: 'An error occurred while logging out. Please try again.',
-        variant: 'destructive',
-      });
-    }
+  const handleLogout = () => {
+    // Instead of signing out directly, redirect to the logout page.
+    router.push('/logout');
   };
 
   if (!user) {
@@ -90,3 +76,5 @@ export function UserNav({ user }: { user: User | null }) {
     </DropdownMenu>
   );
 }
+
+    

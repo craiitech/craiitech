@@ -66,4 +66,15 @@ export type CampusSetting = {
     announcement?: string;
 }
 
+export type ActivityLog = {
+    id: string;
+    userId: string;
+    userName: string;
+    userRole: string;
+    action: string;
+    details: Record<string, any>;
+    timestamp: any; // serverTimestamp()
+}
+    
+
     

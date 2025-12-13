@@ -304,6 +304,49 @@
       "required": [
         "id"
       ]
+    },
+    "ActivityLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ActivityLog",
+      "type": "object",
+      "description": "Represents a single logged user action for auditing.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ActivityLog entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who performed the action."
+        },
+        "userName": {
+          "type": "string",
+          "description": "Denormalized name of the user for easy display."
+        },
+        "userRole": {
+          "type": "string",
+          "description": "Denormalized role of the user at the time of the action."
+        },
+        "action": {
+          "type": "string",
+          "description": "A short, machine-readable description of the action (e.g., 'user_login', 'create_submission')."
+        },
+        "details": {
+          "type": "object",
+          "description": "A flexible object to store additional context about the action.",
+          "properties": {
+             "submissionId": { "type": "string" },
+             "reportType": { "type": "string" },
+             "affectedUserId": { "type": "string" }
+          }
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The server timestamp when the action occurred.",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "userName", "userRole", "action", "timestamp"]
     }
   },
   "auth": {
@@ -441,6 +484,20 @@
         }
       },
       {
+        "path": "/activityLogs/{logId}",
+        "definition": {
+          "entityName": "ActivityLog",
+          "schema": { "$ref": "#/backend/entities/ActivityLog" },
+          "description": "Stores an immutable record of user actions for auditing purposes. Write-only for users, read-only for admins.",
+          "params": [
+            {
+              "name": "logId",
+              "description": "The unique identifier of the log entry."
+            }
+          ]
+        }
+      },
+      {
         "path": "/roles_admin/{userId}",
         "definition": {
           "entityName": "adminRole",
@@ -492,3 +549,5 @@
     "reasoning": "This Firestore structure prioritizes security, scalability, and query performance. The key change is moving submissions to a top-level collection, which simplifies queries for administrative and supervisory roles. This avoids the need for collection group queries for most common scenarios, making the rules and application logic more straightforward.\n\n**Top-Level Submissions:** The `/submissions/{submissionId}` collection allows admins and supervisors to easily query across all submissions (e.g., `where('statusId', '==', 'submitted')`) without needing a `collectionGroup` index. Security is maintained by embedding ownership and context fields (`userId`, `campusId`, `unitId`) directly into each submission document. Security rules can then use these fields to enforce access control.\n\n**Authorization Independence:** Access control is still enforced at the document level. Security rules check the `userId` in the submission document against the authenticated user's UID for ownership-based permissions. For supervisors, rules check the submission's `campusId` or `unitId` against the supervisor's own profile data (fetched via a `get()` call in the rule), ensuring they can only access submissions within their scope.\n\n**DBAC (Database-Based Access Control):** User roles and campus/unit assignments stored in the `/users` collection remain the source of truth for authorization. Helper functions in the security rules (`isAdmin()`, `isCampusOdimo()`, etc.) continue to provide a clear and secure way to check a user's role.\n\n**Denormalization:** The `submissions` collection relies on denormalization of `userId`, `campusId`, `unitId`, and `unitName`. This is critical for writing efficient security rules that do not require joins or multiple `get()` calls to check permissions, which is a key performance best practice for Firestore.\n\n**Invariants:** The structure ensures the integrity of ownership and denormalized data. Security rules on `create` and `update` for the `/submissions` collection will enforce that the `userId` matches the authenticated user and that the denormalized fields like `campusId` and `unitId` match the user's profile, preventing tampering."
   }
 }
+
+    

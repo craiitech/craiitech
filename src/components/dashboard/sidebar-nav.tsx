@@ -7,7 +7,7 @@ import {
   useUser,
   useAuth,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../ui/sidebar';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -25,21 +25,10 @@ export function SidebarNav({
   const userRole = isAdmin ? 'Admin' : userProfile?.role;
   const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
   
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      toast({
-        title: 'Logged Out',
-        description: 'You have been successfully logged out.',
-      });
-      router.push('/login');
-    } catch (error) {
-       toast({
-        title: 'Logout Failed',
-        description: 'An error occurred while logging out. Please try again.',
-        variant: 'destructive',
-      });
-    }
+  const handleLogout = () => {
+    // Instead of signing out directly, redirect to the logout page
+    // which will show the summary and then handle the sign-out.
+    router.push('/logout');
   };
 
   const allRoutes = [
@@ -75,7 +64,14 @@ export function SidebarNav({
         active: pathname.startsWith('/settings'),
         roles: ['Admin', 'Campus Director', 'Campus ODIMO'],
         icon: <Settings />,
-    }
+    },
+    {
+      href: '/audit-log',
+      label: 'Audit Log',
+      active: pathname.startsWith('/audit-log'),
+      roles: ['Admin'],
+      icon: <History />,
+    },
   ];
 
   const visibleRoutes = allRoutes.filter((route) => {
@@ -121,3 +117,5 @@ export function SidebarNav({
     </div>
   );
 }
+
+    

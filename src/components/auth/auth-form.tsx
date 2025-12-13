@@ -16,11 +16,12 @@ import {
   GoogleAuthProvider,
   getAdditionalUserInfo,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { Loader2, Mail, X, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';
 import { DataPrivacyDialog } from './data-privacy-dialog';
+import { logUserActivity } from '@/lib/activity-logger';
 
 interface AuthFormProps {
   initialTab: 'signin' | 'signup';
@@ -77,7 +78,9 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     }
     setIsSubmitting(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Log successful login
+      await logUserActivity(userCredential.user.uid, 'user_login', { method: 'email' });
       router.push('/dashboard');
     } catch (error) {
       console.error('Sign in error:', error);
@@ -129,6 +132,9 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         verified: false,
       });
 
+      // Log successful account creation
+      await logUserActivity(user.uid, 'user_register', { method: 'email' });
+
       setFirstName('');
       setLastName('');
       setEmail('');
@@ -178,13 +184,18 @@ export function AuthForm({ initialTab }: AuthFormProps) {
           unitId: '',
           verified: false,
         });
+
+        // Log successful registration via Google
+        await logUserActivity(user.uid, 'user_register', { method: 'google' });
+        
         toast({
             title: 'Account Created!',
             description: 'Please complete your registration.',
         });
         router.push('/complete-registration');
       } else {
-        // Existing user, just go to dashboard
+        // Existing user, just log login and go to dashboard
+        await logUserActivity(user.uid, 'user_login', { method: 'google' });
         router.push('/dashboard');
       }
     } catch (error) {
@@ -446,3 +457,5 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     </>
   );
 }
+
+    

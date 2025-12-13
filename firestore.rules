@@ -188,6 +188,18 @@ service cloud.firestore {
                        (isCampusDirector() && request.resource.data.campusIds.hasAny([getUserProfile().campusId]));
       allow delete: if isAdmin();
     }
+
+    /**
+     * @description Activity logs for auditing.
+     * - Create: Any signed-in user can create a log entry for their own actions.
+     * - Read/List: Only Admins can read or list logs.
+     * - Update/Delete: No one can modify or delete logs to ensure audit trail integrity.
+     */
+    match /activityLogs/{logId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read, list: if isAdmin();
+      allow update, delete: if false;
+    }
     
     /**
      * @description The collection for assigning Admin roles. Only other Admins can manage this list.
@@ -218,3 +230,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
