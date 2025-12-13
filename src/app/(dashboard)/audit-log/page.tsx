@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -23,12 +22,14 @@ export default function AuditLogPage() {
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // This query will only be constructed when firestore is ready and isAdmin is true.
+  // This query is now strictly conditional. It will only be constructed when firestore is ready
+  // AND the isAdmin flag is definitively true. Otherwise, it's null.
   const logsQuery = useMemoFirebase(
     () => (firestore && isAdmin ? query(collection(firestore, 'activityLogs'), orderBy('timestamp', 'desc')) : null),
     [firestore, isAdmin]
   );
 
+  // useCollection will receive null for non-admins or during initial load, preventing it from running.
   const { data: logs, isLoading: isLoadingLogs } = useCollection<ActivityLog>(logsQuery);
 
   const filteredLogs = useMemo(() => {
@@ -44,7 +45,7 @@ export default function AuditLogPage() {
     });
   }, [logs, searchTerm]);
 
-  // If the main user object is still loading, show a loader.
+  // If the main user object is still loading, show a loader. This is the first gate.
   if (isUserLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -53,7 +54,7 @@ export default function AuditLogPage() {
     );
   }
 
-  // After user loading is complete, if the user is NOT an admin, deny access.
+  // After loading is complete, if the user is NOT an admin, deny access. This is the second gate.
   if (!isAdmin) {
     return (
       <div className="space-y-4">
@@ -65,7 +66,7 @@ export default function AuditLogPage() {
     );
   }
 
-  // If the user is confirmed as an admin, but the logs are still loading, show a loader.
+  // If we reach here, the user is an admin. Now we can check if the logs are loading.
   if (isLoadingLogs) {
       return (
       <div className="flex items-center justify-center h-64">
@@ -74,7 +75,7 @@ export default function AuditLogPage() {
     );
   }
 
-
+  // Final render for the admin with the loaded logs.
   return (
     <div className="space-y-4">
       <div>
