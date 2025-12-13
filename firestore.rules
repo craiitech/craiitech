@@ -175,7 +175,7 @@ service cloud.firestore {
      * @description Campus-specific settings can be managed by campus-level users or admins.
      */
     match /campusSettings/{campusId} {
-      allow get: if isSignedIn() && getUserProfile().campusId == campusId;
+      allow get: if (isSignedIn() && getUserProfile().campusId == campusId) || isAdmin();
       allow write: if isAdmin() || (isCampusOdimo() && getUserProfile().campusId == campusId);
       allow list: if isAdmin();
     }
