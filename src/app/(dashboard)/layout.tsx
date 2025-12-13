@@ -134,7 +134,7 @@ export default function DashboardLayout({
     return <LoadingSkeleton />;
   }
 
-  if (!user || (user && !userProfile && !isAdmin && pathname !== '/complete-registration')) {
+  if (!user || (user && !userProfile && !isAdmin && pathname !== '/complete-registration' && pathname !== '/awaiting-verification')) {
      return <div className="flex h-screen w-screen items-center justify-center"><Skeleton className="h-16 w-16" /></div>;
   }
   
