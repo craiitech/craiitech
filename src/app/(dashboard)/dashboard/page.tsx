@@ -142,9 +142,9 @@ export default function HomePage() {
   }, [rawSubmissions]);
 
   const allUnitsQuery = useMemoFirebase(() => {
-    if (!firestore || (!isAdmin && !isCampusSupervisor)) return null;
+    if (!firestore) return null;
     return collection(firestore, 'units');
-  }, [firestore, isAdmin, isCampusSupervisor]);
+  }, [firestore]);
 
   const { data: allUnits, isLoading: isLoadingUnits } =
     useCollection<Unit>(allUnitsQuery);
@@ -208,7 +208,7 @@ export default function HomePage() {
   
   const unitsInCampus = useMemo(() => {
       if (!allUnits || !userProfile?.campusId) return [];
-      return allUnits.filter(u => u.campusId === userProfile.campusId);
+      return allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
   }, [allUnits, userProfile]);
 
 
@@ -216,7 +216,8 @@ export default function HomePage() {
     isUserLoading ||
     isLoadingSubmissions ||
     (canViewAnnouncements && isLoadingSettings) ||
-    ((isAdmin || isCampusSupervisor) && (isLoadingUnits || isLoadingCampuses));
+    ((isAdmin || isCampusSupervisor) && isLoadingUnits) ||
+    isLoadingCampuses;
 
 
   const stats = useMemo(() => {
@@ -311,7 +312,7 @@ export default function HomePage() {
             },
         };
     }
-  }, [submissions, isCampusSupervisor, isAdmin, userCount, userProfile, allUnits, unitsInCampus]);
+  }, [submissions, isCampusSupervisor, isAdmin, userCount, userProfile, unitsInCampus]);
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
     const emptyResult = {
