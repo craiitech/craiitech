@@ -55,7 +55,7 @@ export default function CompleteRegistrationPage() {
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
   const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units'): null, [firestore]);
-  const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+  const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const rolesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'roles'): null, [firestore]);
   const { data: roles, isLoading: isLoadingRoles } = useCollection<Role>(rolesQuery);
@@ -70,6 +70,7 @@ export default function CompleteRegistrationPage() {
   });
 
   const selectedRoleId = form.watch('roleId');
+  const selectedCampusId = form.watch('campusId');
   
   const isUnitRequired = useMemo(() => {
     if (!selectedRoleId || !roles) return true; // Default to required if data is missing
@@ -80,6 +81,11 @@ export default function CompleteRegistrationPage() {
     return !campusLevelRoles.includes(selectedRole.name.toLowerCase());
   }, [selectedRoleId, roles]);
 
+  const unitsForSelectedCampus = useMemo(() => {
+    if (!selectedCampusId || !allUnits) return [];
+    return allUnits.filter(unit => unit.campusId === selectedCampusId);
+  }, [selectedCampusId, allUnits]);
+
 
   // When isUnitRequired changes, we might need to clear errors or values
   useEffect(() => {
@@ -88,6 +94,12 @@ export default function CompleteRegistrationPage() {
       form.clearErrors('unitId');
     }
   }, [isUnitRequired, form]);
+  
+   // Reset unitId if campus changes
+  useEffect(() => {
+    form.setValue('unitId', '');
+  }, [selectedCampusId, form]);
+
   
   const onSubmit = async (values: z.infer<typeof registrationSchema>) => {
     if (!user || !firestore || !roles) {
@@ -216,18 +228,27 @@ export default function CompleteRegistrationPage() {
                         <FormLabel>
                             Unit
                         </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <Select 
+                            onValueChange={field.onChange} 
+                            value={field.value || ""} 
+                            disabled={!selectedCampusId}
+                        >
                         <FormControl>
                             <SelectTrigger>
-                            <SelectValue placeholder={"Select your unit"} />
+                            <SelectValue placeholder={selectedCampusId ? "Select your unit" : "Select a campus first"} />
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            {units?.map((unit) => (
+                            {unitsForSelectedCampus.map((unit) => (
                                 <SelectItem key={unit.id} value={unit.id}>
                                 {unit.name}
                                 </SelectItem>
                             ))}
+                             {selectedCampusId && unitsForSelectedCampus.length === 0 && (
+                                <div className="p-4 text-sm text-muted-foreground">
+                                    No units found for this campus.
+                                </div>
+                            )}
                         </SelectContent>
                         </Select>
                         <FormMessage />
@@ -254,3 +275,5 @@ export default function CompleteRegistrationPage() {
       </Card>
   );
 }
+
+    
