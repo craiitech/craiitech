@@ -12,11 +12,11 @@ import { useAuth, useFirestore } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithRedirect,
+  signInWithPopup,
   GoogleAuthProvider,
   getAdditionalUserInfo,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { Loader2, Mail, X, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';
@@ -67,7 +67,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
   useEffect(() => {
     // This effect ensures the dialog opens on initial render of the signup form
-    if (activeTab === 'signup' && !privacyPolicyAgreed) {
+    if (activeTab === 'signup') {
       setIsPrivacyDialogOpen(true);
     }
   }, [activeTab]);
@@ -84,7 +84,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     setLastName('');
     setIsPasswordVisible(false);
 
-    if (tab === 'signup' && !privacyPolicyAgreed) {
+    if (tab === 'signup') {
         setIsPrivacyDialogOpen(true);
     }
   };
@@ -181,26 +181,53 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = () => {
     setIsSubmitting(true);
-    try {
-      const provider = new GoogleAuthProvider();
-      // Use signInWithRedirect instead of signInWithPopup
-      await signInWithRedirect(auth, provider);
-      // The rest of the logic (creating user doc, etc.) will be handled
-      // by a listener on the main app component that catches the redirect result.
-      // For now, we don't need to do anything else here.
-    } catch (error) {
-      console.error('Google sign-in error:', error);
-      toast({
-        title: 'Google Sign-In Failed',
-        description:
-          error instanceof Error ? error.message : 'An unknown error occurred.',
-        variant: 'destructive',
+    const provider = new GoogleAuthProvider();
+    signInWithPopup(auth, provider)
+      .then(async (result) => {
+        const user = result.user;
+        const additionalInfo = getAdditionalUserInfo(result);
+
+        if (additionalInfo?.isNewUser) {
+          const userDocRef = doc(firestore, 'users', user.uid);
+          const [first = '', last = ''] = user.displayName?.split(' ') || [];
+          await setDoc(userDocRef, {
+            id: user.uid,
+            email: user.email,
+            firstName: first,
+            lastName: last,
+            avatar: user.photoURL,
+            roleId: '',
+            role: '',
+            campusId: '',
+            unitId: '',
+            verified: false,
+            ndaAccepted: false,
+          });
+          await logUserActivity(user.uid, 'user_register', { method: 'google' });
+          toast({
+            title: 'Account Created!',
+            description: 'Please complete your registration.',
+          });
+          router.push('/complete-registration');
+        } else {
+          await logUserActivity(user.uid, 'user_login', { method: 'google' });
+          router.push('/dashboard');
+        }
+      })
+      .catch((error) => {
+        console.error('Google sign-in error:', error);
+        toast({
+          title: 'Google Sign-In Failed',
+          description: error.message || 'An unknown error occurred.',
+          variant: 'destructive',
+        });
+      })
+      .finally(() => {
+        setIsSubmitting(false);
       });
-      setIsSubmitting(false); // Only set this to false on error
-    }
-  }
+  };
 
   const renderSignIn = () => (
     <form onSubmit={handleSignIn} className="space-y-6">

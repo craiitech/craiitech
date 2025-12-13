@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import {
   Card,
@@ -16,34 +16,53 @@ import {
 import { Button } from '@/components/ui/button';
 import { List, ListItem } from '@/components/ui/list';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { LogOut, Activity } from 'lucide-react';
-import { useSessionActivity } from '@/lib/activity-log-provider';
+import { LogOut, Activity, Loader2 } from 'lucide-react';
+import { logUserActivity } from '@/lib/activity-logger';
+import { useToast } from '@/hooks/use-toast';
 
 export default function LogoutPage() {
   const router = useRouter();
   const auth = useAuth();
+  const { user } = useUser();
+  const { toast } = useToast();
   const [countdown, setCountdown] = useState(5);
-  const { sessionLogs, clearSessionLogs } = useSessionActivity();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // We don't have session logs anymore in this simplified setup.
+  // This could be replaced with something else if needed.
 
   useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    } else {
-      handleFinalLogout();
-    }
+    const timer = setTimeout(() => {
+      if (countdown > 1) {
+        setCountdown(countdown - 1);
+      } else {
+        handleFinalLogout();
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
   }, [countdown]);
 
   const handleFinalLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+
     if (auth) {
       try {
+        if (user) {
+          // It's good practice to log the logout action before actually signing out
+          await logUserActivity(user.uid, 'user_logout', { method: 'manual' });
+        }
         await signOut(auth);
       } catch (error) {
         console.error('Error signing out: ', error);
+        toast({
+          title: "Logout Error",
+          description: "There was an issue logging you out.",
+          variant: 'destructive',
+        });
       }
     }
-    clearSessionLogs();
-    // Use window.location to force a full refresh to the landing page.
+    // Force a full refresh to the landing page.
     window.location.href = '/';
   };
 
@@ -58,33 +77,18 @@ export default function LogoutPage() {
             You have been logged out
           </CardTitle>
           <CardDescription>
-            Here is a summary of your activity during this session.
+            Thank you for using the RSU EOMS Portal.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {sessionLogs.length > 0 ? (
-            <ScrollArea className="h-48 rounded-md border">
-              <List className="p-2">
-                {sessionLogs.map((log, index) => (
-                  <ListItem key={index} className="flex justify-between text-sm">
-                    <span>{log.message}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(log.timestamp).toLocaleTimeString()}
-                    </span>
-                  </ListItem>
-                ))}
-              </List>
-            </ScrollArea>
-          ) : (
-             <div className="flex h-48 items-center justify-center rounded-md border text-center text-sm text-muted-foreground">
+           <div className="flex h-32 items-center justify-center rounded-md border text-center text-sm text-muted-foreground">
                 <Activity className="mr-2 h-4 w-4" />
-                No activity was recorded this session.
+                Your session has ended securely.
             </div>
-          )}
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">
-            Redirecting to home page in {countdown}...
+            Redirecting to the home page in {countdown}...
           </p>
         </CardFooter>
       </Card>
