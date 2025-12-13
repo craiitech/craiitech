@@ -247,83 +247,98 @@ export default function SubmissionsPage() {
 
 
   useEffect(() => {
-    // Wait until firestore and the user's role and profile are available.
     if (!firestore || !userRole || !userProfile) {
-        if (!isSupervisor && firestore && userProfile) {
-            // continue for regular users
-        } else {
-             return;
+        return;
+    }
+    
+    const fetchSupervisorData = async () => {
+        setIsLoading(true);
+        try {
+            // 1. Fetch relevant users first
+            let usersQuery;
+            const usersCollection = collection(firestore, 'users');
+
+            if (userRole === 'Admin') {
+                usersQuery = query(usersCollection);
+            } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
+                usersQuery = query(usersCollection, where('campusId', '==', userProfile.campusId));
+            } else if (userRole === 'Unit ODIMO') {
+                usersQuery = query(usersCollection, where('unitId', '==', userProfile.unitId));
+            }
+
+            if (!usersQuery) {
+                 setIsLoading(false);
+                 return;
+            }
+
+            const usersSnapshot = await getDocs(usersQuery);
+            const fetchedUsers = Object.fromEntries(usersSnapshot.docs.map(doc => [doc.id, doc.data() as AppUser]));
+            setUsers(fetchedUsers);
+
+            // 2. Fetch submissions for those users
+            const userIds = Object.keys(fetchedUsers);
+            if (userIds.length === 0) {
+                setSubmissions([]);
+                setIsLoading(false);
+                return;
+            }
+
+            const submissionsCollection = collection(firestore, 'submissions');
+            const submissionsPromises = [];
+            // Firestore 'in' query limit is 30
+            for (let i = 0; i < userIds.length; i += 30) {
+                const chunk = userIds.slice(i, i + 30);
+                submissionsPromises.push(getDocs(query(submissionsCollection, where('userId', 'in', chunk))));
+            }
+            
+            const submissionsSnapshots = await Promise.all(submissionsPromises);
+            const allSubmissions = submissionsSnapshots.flatMap(snap => snap.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    ...data,
+                    id: doc.id,
+                    submissionDate: (data.submissionDate as Timestamp).toDate(),
+                } as Submission;
+            }));
+
+            setSubmissions(allSubmissions);
+
+        } catch (error) {
+            console.error("Failed to fetch supervisor data:", error);
+            toast({ title: 'Error', description: 'Could not load data.', variant: 'destructive'});
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const fetchUserData = async () => {
+        setIsLoading(true);
+        try {
+             const submissionsCollection = collection(firestore, 'submissions');
+             const submissionsQuery = query(submissionsCollection, where('userId', '==', userProfile.id));
+             const snapshot = await getDocs(submissionsQuery);
+             const fetchedSubmissions = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    ...data,
+                    id: doc.id,
+                    submissionDate: (data.submissionDate as Timestamp).toDate(),
+                } as Submission;
+            });
+            setSubmissions(fetchedSubmissions);
+        } catch (error) {
+             console.error("Failed to fetch user submissions:", error);
+             toast({ title: 'Error', description: 'Could not load your submissions.', variant: 'destructive'});
+        } finally {
+            setIsLoading(false);
         }
     }
 
-    const fetchSubmissions = async () => {
-      setIsLoading(true);
-      try {
-        let submissionsQuery;
-      
-        const submissionsCollection = collection(firestore, 'submissions');
-
-        if (userRole === 'Admin') {
-            submissionsQuery = query(submissionsCollection);
-        } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-            // Query without orderBy to avoid needing a composite index
-            submissionsQuery = query(submissionsCollection, where('campusId', '==', userProfile.campusId));
-        } else if (userRole === 'Unit ODIMO') {
-            // Query without orderBy to avoid needing a composite index
-            submissionsQuery = query(submissionsCollection, where('unitId', '==', userProfile.unitId));
-        } else {
-            // Regular employee - query only for their own submissions
-            submissionsQuery = query(submissionsCollection, where('userId', '==', userProfile.id));
-        }
-
-        const snapshot = await getDocs(submissionsQuery);
-      
-        let fetchedSubmissions = snapshot.docs.map(doc => {
-            const data = doc.data();
-            const submissionDateRaw = data.submissionDate;
-            // Ensure submissionDate is a JS Date object
-            const submissionDate =
-            submissionDateRaw instanceof Timestamp
-                ? submissionDateRaw.toDate()
-                : new Date(submissionDateRaw?.seconds * 1000);
-            return {
-            ...data,
-            id: doc.id,
-            submissionDate: submissionDate,
-            } as Submission;
-        });
-
-        // If supervisor, fetch needed user data for display
-        if (isSupervisor) {
-            const userIds = [...new Set(fetchedSubmissions.map(s => s.userId))];
-            // Fetch all users at once if admin, otherwise fetch only needed users for supervisors
-            if (isAdmin && Object.keys(users).length === 0) { // fetch all only once
-                const usersQuery = query(collection(firestore, 'users'));
-                const usersSnapshot = await getDocs(usersQuery);
-                setUsers(Object.fromEntries(usersSnapshot.docs.map(doc => [doc.id, doc.data() as AppUser])));
-            } else if (!isAdmin && userIds.length > 0) {
-                const newUsersToFetch = userIds.filter(id => !users[id]);
-                if (newUsersToFetch.length > 0) {
-                    const usersQuery = query(collection(firestore, 'users'), where('id', 'in', newUsersToFetch));
-                    const usersSnapshot = await getDocs(usersQuery);
-                    setUsers(prevUsers => ({
-                        ...prevUsers,
-                        ...Object.fromEntries(usersSnapshot.docs.map(doc => [doc.id, doc.data() as AppUser]))
-                    }));
-                }
-            }
-        }
-      
-        setSubmissions(fetchedSubmissions);
-
-      } catch (error) {
-        console.error("Failed to fetch submissions:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSubmissions();
+    if (isSupervisor) {
+      fetchSupervisorData();
+    } else {
+      fetchUserData();
+    }
 
   }, [firestore, userRole, userProfile, isAdmin, isSupervisor]);
 
@@ -418,6 +433,17 @@ export default function SubmissionsPage() {
             else {
                 aValue = a[sortConfig.key as keyof Submission];
                 bValue = b[sortConfig.key as keyof Submission];
+            }
+            
+            // Handle date sorting
+            if (aValue instanceof Date && bValue instanceof Date) {
+                 if (aValue.getTime() < bValue.getTime()) {
+                    return sortConfig.direction === 'ascending' ? -1 : 1;
+                }
+                if (aValue.getTime() > bValue.getTime()) {
+                    return sortConfig.direction === 'ascending' ? 1 : -1;
+                }
+                return 0;
             }
 
             if (aValue < bValue) {
@@ -566,3 +592,5 @@ export default function SubmissionsPage() {
     </>
   );
 }
+
+    
