@@ -1,9 +1,10 @@
+
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Campus, Unit, Submission, User as AppUser } from '@/lib/types';
-import { collection } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -26,32 +27,67 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 
 export default function ReportsPage() {
-  const { isAdmin, isUserLoading } = useUser();
+  const { userProfile, isAdmin, isUserLoading, userRole } = useUser();
   const firestore = useFirestore();
 
   const [selectedCampusId, setSelectedCampusId] = useState<string | null>(null);
 
+  const canViewReports = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+
+  useEffect(() => {
+    if (!isAdmin && userProfile?.campusId) {
+      setSelectedCampusId(userProfile.campusId);
+    }
+  }, [isAdmin, userProfile]);
+
   const campusesQuery = useMemoFirebase(
-    () => (firestore && isAdmin ? collection(firestore, 'campuses') : null),
-    [firestore, isAdmin]
+    () => {
+        if (!firestore || !canViewReports) return null;
+        if (isAdmin) {
+            return collection(firestore, 'campuses');
+        }
+        if (userProfile?.campusId) {
+            return query(collection(firestore, 'campuses'), where('id', '==', userProfile.campusId));
+        }
+        return null;
+    },
+    [firestore, canViewReports, isAdmin, userProfile]
   );
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
   const unitsQuery = useMemoFirebase(
-    () => (firestore && isAdmin ? collection(firestore, 'units') : null),
-    [firestore, isAdmin]
+    () => (firestore && canViewReports ? collection(firestore, 'units') : null),
+    [firestore, canViewReports]
   );
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const submissionsQuery = useMemoFirebase(
-    () => (firestore && isAdmin ? collection(firestore, 'submissions') : null),
-    [firestore, isAdmin]
+    () => {
+        if (!firestore || !canViewReports) return null;
+        if (isAdmin) {
+            return collection(firestore, 'submissions');
+        }
+        if (userProfile?.campusId) {
+            return query(collection(firestore, 'submissions'), where('campusId', '==', userProfile.campusId));
+        }
+        return null;
+    },
+    [firestore, canViewReports, isAdmin, userProfile]
   );
   const { data: allSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
   const usersQuery = useMemoFirebase(
-    () => (firestore && isAdmin ? collection(firestore, 'users') : null),
-    [firestore, isAdmin]
+    () => {
+        if (!firestore || !canViewReports) return null;
+        if (isAdmin) {
+            return collection(firestore, 'users');
+        }
+        if (userProfile?.campusId) {
+            return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
+        }
+        return null;
+    },
+    [firestore, canViewReports, isAdmin, userProfile]
   );
   const { data: allUsers, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
 
@@ -85,7 +121,7 @@ export default function ReportsPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!canViewReports) {
     return (
       <div className="space-y-4">
         <div>
@@ -126,7 +162,7 @@ export default function ReportsPage() {
             <CardDescription>Select a campus to view its assigned units.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Select onValueChange={setSelectedCampusId}>
+            <Select onValueChange={setSelectedCampusId} value={selectedCampusId || ''} disabled={!isAdmin}>
               <SelectTrigger className="print:hidden">
                 <SelectValue placeholder="Select a campus..." />
               </SelectTrigger>
