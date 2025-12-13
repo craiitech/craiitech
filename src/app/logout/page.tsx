@@ -86,9 +86,6 @@ export default function LogoutPage() {
           <p className="text-sm text-muted-foreground">
             Redirecting to home page in {countdown}...
           </p>
-          <Button onClick={handleFinalLogout} className="w-full">
-            Go to Home
-          </Button>
         </CardFooter>
       </Card>
     </div>
