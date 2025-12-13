@@ -17,7 +17,7 @@ import {
   getAdditionalUserInfo,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { Loader2, Mail, X } from 'lucide-react';
+import { Loader2, Mail, X, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';
 import { DataPrivacyDialog } from './data-privacy-dialog';
@@ -58,10 +58,13 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [privacyPolicyAgreed, setPrivacyPolicyAgreed] = useState(false);
   const [isPrivacyDialogOpen, setIsPrivacyDialogOpen] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
+
+  const togglePasswordVisibility = () => setIsPasswordVisible(!isPasswordVisible);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,6 +128,11 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         unitId: '',
         verified: false,
       });
+
+      setFirstName('');
+      setLastName('');
+      setEmail('');
+      setPassword('');
 
       toast({
         title: 'Account Created!',
@@ -212,16 +220,25 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       </div>
       <div className="space-y-2">
         <Label htmlFor="password-signin">Password</Label>
-        <Input
-          id="password-signin"
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={isSubmitting}
-          placeholder="Enter your password"
-          className="bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
-        />
+        <div className="relative">
+            <Input
+            id="password-signin"
+            type={isPasswordVisible ? 'text' : 'password'}
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={isSubmitting}
+            placeholder="Enter your password"
+            className="pr-10 bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
+            />
+            <button
+                type="button"
+                onClick={togglePasswordVisibility}
+                className="absolute inset-y-0 right-0 flex items-center pr-3"
+            >
+                {isPasswordVisible ? <EyeOff className="h-4 w-4 text-gray-400" /> : <Eye className="h-4 w-4 text-gray-400" />}
+            </button>
+        </div>
       </div>
       <Button
         type="submit"
@@ -281,16 +298,25 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       </div>
        <div className="space-y-2">
         <Label htmlFor="password-signup">Password</Label>
-        <Input
-          id="password-signup"
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={isSubmitting}
-          placeholder="Create a password"
-          className="bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
-        />
+        <div className="relative">
+            <Input
+            id="password-signup"
+            type={isPasswordVisible ? 'text' : 'password'}
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={isSubmitting}
+            placeholder="Create a password"
+            className="pr-10 bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
+            />
+             <button
+                type="button"
+                onClick={togglePasswordVisibility}
+                className="absolute inset-y-0 right-0 flex items-center pr-3"
+            >
+                {isPasswordVisible ? <EyeOff className="h-4 w-4 text-gray-400" /> : <Eye className="h-4 w-4 text-gray-400" />}
+            </button>
+        </div>
       </div>
       
        <div className="flex items-center space-x-2">
