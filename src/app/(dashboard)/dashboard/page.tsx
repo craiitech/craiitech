@@ -26,6 +26,7 @@ import {
   Heart,
   XCircle,
   History,
+  Settings,
 } from 'lucide-react';
 import {
   useUser,
@@ -193,6 +194,12 @@ export default function HomePage() {
     useDoc(campusSettingsDocRef);
 
   const announcement = campusSetting?.announcement;
+  
+  const unitsInCampus = useMemo(() => {
+      if (!allUnits || !userProfile?.campusId) return [];
+      return allUnits.filter(u => u.campusId === userProfile.campusId);
+  }, [allUnits, userProfile]);
+
 
   const isLoading =
     isUserLoading ||
@@ -233,10 +240,7 @@ export default function HomePage() {
         },
       };
     } else if (isCampusSupervisor) {
-      const unitsInCampus = allUnits
-        ? allUnits.filter((u) => u.campusId === userProfile.campusId).length
-        : 0;
-      const totalRequired = unitsInCampus * TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT;
+      const totalRequired = unitsInCampus.length * TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT;
       const uniqueSubmissionsCount = new Set(currentYearSubmissions.map(s => s.reportType + s.unitId)).size;
 
 
@@ -244,7 +248,7 @@ export default function HomePage() {
         stat1: {
           title: 'Required Submissions',
           value: `${uniqueSubmissionsCount} of ${totalRequired}`,
-          description: `Across ${unitsInCampus} units`,
+          description: `Across ${unitsInCampus.length} units`,
           icon: <FileText className="h-6 w-6 text-primary" />,
         },
         stat2: {
@@ -296,7 +300,7 @@ export default function HomePage() {
             },
         };
     }
-  }, [submissions, isCampusSupervisor, isAdmin, userCount, userProfile, allUnits]);
+  }, [submissions, isCampusSupervisor, isAdmin, userCount, userProfile, allUnits, unitsInCampus]);
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
     const emptyResult = {
@@ -574,6 +578,19 @@ export default function HomePage() {
         <TabsTrigger value="users">Users</TabsTrigger>
       </TabsList>
       <TabsContent value="overview" className="space-y-4">
+         {unitsInCampus.length === 0 && !isLoading && (
+            <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Campus Setup Required</AlertTitle>
+                <AlertDescription className="flex items-center justify-between">
+                    <span>Your campus does not have any units assigned. Please set up units to begin tracking submissions.</span>
+                    <Button onClick={() => router.push('/settings')}>
+                        <Settings className="mr-2 h-4 w-4" />
+                        Setup Units
+                    </Button>
+                </AlertDescription>
+            </Alert>
+         )}
          <div className="grid gap-4 md:grid-cols-3">
           {renderCard(
             stats.stat1.title,
