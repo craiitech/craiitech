@@ -26,9 +26,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, getDocs, Timestamp, where } from 'firebase/firestore';
-import type { Submission, User as AppUser } from '@/lib/types';
+import type { Submission, User as AppUser, Campus } from '@/lib/types';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -64,15 +64,17 @@ const submissionTypes = [
 ];
 
 type SortConfig = {
-    key: keyof Submission | 'submitterName';
+    key: keyof Submission | 'submitterName' | 'campusName';
     direction: 'ascending' | 'descending';
 } | null;
 
 
 const SubmissionsTable = ({ 
     submissions, 
-    isSupervisor, 
+    isSupervisor,
+    isAdmin,
     getUserName, 
+    getCampusName,
     onEyeClick, 
     onViewFeedbackClick,
     sortConfig,
@@ -80,11 +82,13 @@ const SubmissionsTable = ({
 }: { 
     submissions: Submission[], 
     isSupervisor: boolean, 
+    isAdmin: boolean,
     getUserName: (userId: string) => string, 
+    getCampusName: (campusId: string) => string,
     onEyeClick: (submissionId: string) => void, 
     onViewFeedbackClick: (comments: any) => void,
     sortConfig: SortConfig,
-    requestSort: (key: keyof Submission | 'submitterName') => void
+    requestSort: (key: keyof Submission | 'submitterName' | 'campusName') => void
  }) => {
     if (submissions.length === 0) {
         return (
@@ -94,7 +98,7 @@ const SubmissionsTable = ({
         );
     }
 
-    const getSortIndicator = (key: keyof Submission | 'submitterName') => {
+    const getSortIndicator = (key: keyof Submission | 'submitterName' | 'campusName') => {
       if (!sortConfig || sortConfig.key !== key) {
         return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
       }
@@ -105,6 +109,14 @@ const SubmissionsTable = ({
         <Table>
             <TableHeader>
               <TableRow>
+                 {isAdmin && (
+                    <TableHead>
+                        <Button variant="ghost" onClick={() => requestSort('campusName')}>
+                            Campus
+                            {getSortIndicator('campusName')}
+                        </Button>
+                    </TableHead>
+                )}
                 <TableHead>
                    <Button variant="ghost" onClick={() => requestSort('reportType')}>
                         Report Type
@@ -155,6 +167,7 @@ const SubmissionsTable = ({
             <TableBody>
               {submissions.map((submission) => (
                 <TableRow key={submission.id}>
+                  {isAdmin && <TableCell>{getCampusName(submission.campusId)}</TableCell>}
                   <TableCell className="font-medium">{submission.reportType}</TableCell>
                    {isSupervisor && <TableCell>{getUserName(submission.userId)}</TableCell>}
                   <TableCell>{submission.unitName}</TableCell>
@@ -194,6 +207,9 @@ export default function SubmissionsPage() {
   const router = useRouter();
 
   const [users, setUsers] = useState<Record<string, AppUser>>({});
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
+  const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
+
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -297,6 +313,10 @@ export default function SubmissionsPage() {
     const user = users[userId];
     return user ? `${user.firstName} ${user.lastName}` : '...';
   };
+   const getCampusName = (campusId: string) => {
+    const campus = campuses?.find(c => c.id === campusId);
+    return campus ? campus.name : '...';
+  }
   
   const handleViewFeedback = (comments: any) => {
     if(Array.isArray(comments) && comments.length > 0) {
@@ -313,7 +333,7 @@ export default function SubmissionsPage() {
       router.push(`/submissions/${submissionId}`);
   }
 
-  const requestSort = (key: keyof Submission | 'submitterName') => {
+  const requestSort = (key: keyof Submission | 'submitterName' | 'campusName') => {
     let direction: 'ascending' | 'descending' = 'ascending';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
         direction = 'descending';
@@ -334,9 +354,13 @@ export default function SubmissionsPage() {
             if (sortConfig.key === 'submitterName') {
                 aValue = getUserName(a.userId);
                 bValue = getUserName(b.userId);
-            } else {
-                aValue = a[sortConfig.key];
-                bValue = b[sortConfig.key];
+            } else if (sortConfig.key === 'campusName') {
+                aValue = getCampusName(a.campusId);
+                bValue = getCampusName(b.campusId);
+            }
+            else {
+                aValue = a[sortConfig.key as keyof Submission];
+                bValue = b[sortConfig.key as keyof Submission];
             }
 
             if (aValue < bValue) {
@@ -350,7 +374,7 @@ export default function SubmissionsPage() {
     }
 
     return sortableItems;
-  }, [submissions, activeFilter, sortConfig, users]);
+  }, [submissions, activeFilter, sortConfig, users, campuses]);
 
 
   return (
@@ -428,7 +452,7 @@ export default function SubmissionsPage() {
           </div>
         </CardHeader>
         <CardContent>
-           {isLoading ? (
+           {isLoading || (isAdmin && isLoadingCampuses) ? (
                 <div className="flex justify-center items-center h-64">
                     <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
@@ -436,7 +460,9 @@ export default function SubmissionsPage() {
                 <SubmissionsTable 
                     submissions={sortedSubmissions}
                     isSupervisor={isSupervisor}
+                    isAdmin={isAdmin}
                     getUserName={getUserName}
+                    getCampusName={getCampusName}
                     onEyeClick={handleEyeClick}
                     onViewFeedbackClick={handleViewFeedback}
                     sortConfig={sortConfig}
