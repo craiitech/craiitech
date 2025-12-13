@@ -20,7 +20,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MoreHorizontal, Loader2, ShieldQuestion } from 'lucide-react';
+import { MoreHorizontal, Loader2, ShieldQuestion, UserCheck, UserX } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -108,25 +108,26 @@ export function UserManagement() {
   const getUnitName = (unitId: string) =>
     units?.find((u) => u.id === unitId)?.name || 'N/A';
 
-  const handleVerification = async (userToVerify: User, isVerified: boolean) => {
+  const handleToggleActivation = async (userToToggle: User) => {
     if (!firestore) return;
-    const userRef = doc(firestore, 'users', userToVerify.id);
+    const newStatus = !userToToggle.verified;
+    const userRef = doc(firestore, 'users', userToToggle.id);
     try {
-      await updateDoc(userRef, { verified: isVerified });
-      const action = isVerified ? 'verify_user' : 'unverify_user';
-      const description = `User ${userToVerify.email} has been ${isVerified ? 'verified' : 'unverified'}.`;
-      logSessionActivity(description, { action, affectedUserId: userToVerify.id });
+      await updateDoc(userRef, { verified: newStatus });
+      const action = newStatus ? 'activate_user' : 'deactivate_user';
+      const description = `User ${userToToggle.email} has been ${newStatus ? 'activated' : 'deactivated'}.`;
+      logSessionActivity(description, { action, affectedUserId: userToToggle.id });
       toast({
         title: 'Success',
-        description: `User has been ${
-          isVerified ? 'verified' : 'unverified'
+        description: `User account has been ${
+          newStatus ? 'activated' : 'deactivated'
         }.`,
       });
     } catch (error) {
-      console.error('Error updating user verification:', error);
+      console.error('Error updating user status:', error);
       toast({
         title: 'Error',
-        description: 'Could not update user verification status.',
+        description: 'Could not update user status.',
         variant: 'destructive',
       });
     }
@@ -165,18 +166,18 @@ export function UserManagement() {
 
   const descriptionText = {
     all: `A list of all ${users?.length || 0} users in the system.`,
-    pending: `${filteredUsers.length} users are awaiting verification.`,
-    verified: `There are ${filteredUsers.length} verified users.`,
+    pending: `${filteredUsers.length} users are awaiting verification or are inactive.`,
+    verified: `There are ${filteredUsers.length} active users.`,
   };
 
   const getStatus = (user: User) => {
     if (user.verified) {
-        return { variant: 'default', text: 'Verified' };
+        return { variant: 'default', text: 'Active' };
     }
     if (!user.ndaAccepted) {
         return { variant: 'destructive', text: 'Awaiting NDA' };
     }
-    return { variant: 'secondary', text: 'Pending QA' };
+    return { variant: 'secondary', text: 'Inactive' };
   }
 
   return (
@@ -194,8 +195,8 @@ export function UserManagement() {
             <Tabs value={filter} onValueChange={(value) => setFilter(value as FilterStatus)} >
                 <TabsList>
                     <TabsTrigger value="all">All</TabsTrigger>
-                    <TabsTrigger value="pending">Pending</TabsTrigger>
-                    <TabsTrigger value="verified">Verified</TabsTrigger>
+                    <TabsTrigger value="pending">Inactive</TabsTrigger>
+                    <TabsTrigger value="verified">Active</TabsTrigger>
                 </TabsList>
             </Tabs>
         </div>
@@ -266,13 +267,15 @@ export function UserManagement() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem
-                          onClick={() =>
-                            handleVerification(user, !user.verified)
-                          }
+                          onClick={() => handleToggleActivation(user)}
                           disabled={!user.ndaAccepted && !user.verified}
                         >
-                          {user.verified ? 'Mark as Pending' : 'Verify User'}
-                           {!user.ndaAccepted && !user.verified && (
+                          {user.verified ? (
+                            <><UserX className="mr-2 h-4 w-4" /> Deactivate Account</>
+                          ) : (
+                            <><UserCheck className="mr-2 h-4 w-4" /> Activate Account</>
+                          )}
+                          {!user.ndaAccepted && !user.verified && (
                              <Tooltip>
                                 <TooltipTrigger asChild><ShieldQuestion className="ml-2 h-4 w-4 text-destructive"/></TooltipTrigger>
                                 <TooltipContent><p>User has not accepted the NDA.</p></TooltipContent>

@@ -41,11 +41,11 @@ const manualSections = [
       {
           title: 'Account Verification Process',
           content: `
-            <p>For security, all new accounts must be verified by a system administrator.</p>
+            <p>For security, all new accounts must be verified and activated by a system administrator.</p>
             <ol class="list-decimal space-y-2 pl-6">
                 <li>After completing your profile, you will be asked to read and accept a <strong>Non-Disclosure Agreement (NDA)</strong> regarding the sensitive nature of the documents in the portal.</li>
                 <li>Once you accept the NDA, your account is placed in a "Pending Verification" queue.</li>
-                <li>A system administrator from the Quality Assurance Office will review your details.</li>
+                <li>A system administrator from the Quality Assurance Office will review your details and activate your account.</li>
                 <li>You will receive an email at your RSU address once your account has been approved. You cannot log in until this approval is granted.</li>
             </ol>
           `
@@ -165,11 +165,13 @@ const manualSections = [
       role: 'Administrator',
       sections: [
           {
-              title: 'System Administration',
+              title: 'System Administration & User Management',
               content: `
                 <p>Administrators have full control over the system via the "Settings" page.</p>
                  <ul class="list-disc spacey-y-2 pl-6">
-                    <li><strong>User Management:</strong> View all users, filter by status, and most importantly, <strong>verify</strong> new pending accounts. You can also edit any user's profile (role, campus, unit) or delete users.</li>
+                    <li><strong>User Management:</strong> View all users and filter by status ("All", "Inactive", "Active").</li>
+                    <li><strong>Account Activation/Deactivation:</strong> You can activate new user accounts that are pending verification or deactivate existing accounts (e.g., if a user has resigned). Deactivated users cannot log in. This is done from the actions menu for each user.</li>
+                    <li><strong>Profile Editing:</strong> You can edit any user's profile information, including their role, campus, and unit assignment.</li>
                     <li><strong>Campus, Unit, and Role Management:</strong> Create and manage the foundational data for the system, such as adding new campuses or defining new user roles.</li>
                     <li><strong>Campus Settings:</strong> Post announcements for any campus in the system.</li>
                 </ul>
