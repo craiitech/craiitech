@@ -44,10 +44,8 @@ export default function AuditLogPage() {
     });
   }, [logs, searchTerm]);
 
-  // Combined loading state: still loading user data OR user is an admin and logs are loading.
-  const isLoading = isUserLoading || (isAdmin && isLoadingLogs);
-
-  if (isLoading) {
+  // If the main user object is still loading, show a loader.
+  if (isUserLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -55,6 +53,8 @@ export default function AuditLogPage() {
     );
   }
 
+  // After user loading is complete, if the user is NOT an admin, deny access.
+  // This is the crucial check that prevents non-admins (or users whose admin status isn't confirmed) from proceeding.
   if (!isAdmin) {
     return (
       <div className="space-y-4">
@@ -65,6 +65,16 @@ export default function AuditLogPage() {
       </div>
     );
   }
+
+  // If the user is confirmed as an admin, but the logs are still loading, show a loader.
+  if (isLoadingLogs) {
+      return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
 
   return (
     <div className="space-y-4">
