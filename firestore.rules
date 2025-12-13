@@ -183,8 +183,10 @@ service cloud.firestore {
     match /units/{unitId} {
       allow get, list: if isSignedIn();
       allow create: if isAdmin() || 
-                       (isCampusDirector() && request.resource.data.campusId == getUserProfile().campusId);
-      allow update, delete: if isAdmin();
+                       (isCampusDirector() && request.resource.data.campusIds.hasOnly([getUserProfile().campusId]));
+      allow update: if isAdmin() || 
+                       (isCampusDirector() && request.resource.data.campusIds.hasAny([getUserProfile().campusId]));
+      allow delete: if isAdmin();
     }
     
     /**
