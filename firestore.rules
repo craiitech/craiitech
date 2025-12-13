@@ -25,8 +25,7 @@ service cloud.firestore {
      * - Read-Only Global Data: Core application data (roles, campuses, etc.) is readable by any
      *   signed-in user but is only writable by Admins, ensuring data integrity.
      * - Top-Level Submissions: This collection is readable by a user if they are the owner OR
-     *   if they are a supervisor for the submission's campus/unit. Writes are strictly
-     *   controlled to the document owner.
+     *   if they are a supervisor for the submission's campus/unit.
      *
      * Denormalization for Authorization: The rules for accessing the `/submissions` collection
      * rely heavily on the assumption that `Submission` documents contain denormalized `campusId`
@@ -82,6 +81,13 @@ service cloud.firestore {
     function isUnitOdimo() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_unit_odimo/$(request.auth.uid));
     }
+
+    /**
+     * Checks if the current user has Vice President privileges.
+     */
+    function isVicePresident() {
+        return isSignedIn() && exists(/databases/$(database)/documents/roles_vice_president/$(request.auth.uid));
+    }
     
     /**
      * Retrieves the user's profile data. CRITICAL: This function requires that a
@@ -112,7 +118,7 @@ service cloud.firestore {
     
     /**
      * @description Top-level submissions collection.
-     * - Read: Allowed if you are the owner OR an authorized supervisor for the submission's campus/unit.
+     * - Read: Allowed if you are the owner, an authorized supervisor for the submission's campus/unit, or a VP for the unit.
      * - Create: Allowed only if you are the owner and the submission data is valid.
      * - Update: Allowed for owners or supervisors.
      * - Delete: Only allowed for owners.
@@ -122,6 +128,7 @@ service cloud.firestore {
                     || (isCampusOdimo() && getUserProfile().campusId == resource.data.campusId) 
                     || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId)
                     || (isCampusDirector() && getUserProfile().campusId == resource.data.campusId)
+                    || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid)
                     || isAdmin();
       allow list: if isSignedIn(); // Further filtering must be done in the query.
       
@@ -133,7 +140,8 @@ service cloud.firestore {
       allow update: if isOwner(resource.data.userId) 
                     || (isCampusOdimo() && getUserProfile().campusId == resource.data.campusId) 
                     || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId)
-                    || (isCampusDirector() && getUserProfile().campusId == resource.data.campusId) 
+                    || (isCampusDirector() && getUserProfile().campusId == resource.data.campusId)
+                    || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid)
                     || isAdmin();
 
       allow delete: if isOwner(resource.data.userId) || isAdmin();
@@ -191,7 +199,8 @@ service cloud.firestore {
       allow create: if isAdmin() || 
                        (isCampusDirector() && request.resource.data.campusIds.hasOnly([getUserProfile().campusId]));
       allow update: if isAdmin() || 
-                       (isCampusDirector() && request.resource.data.campusIds.hasAny([getUserProfile().campusId]));
+                       (isCampusDirector() && request.resource.data.campusIds.hasAny([getUserProfile().campusId])) ||
+                       isVicePresident();
       allow delete: if isAdmin();
     }
 
@@ -226,7 +235,6 @@ service cloud.firestore {
     }
 
     /**
-
      * @description The collection for assigning Unit ODIMO roles. Only Admins can manage this list.
      */
     match /roles_unit_odimo/{userId} {
@@ -234,5 +242,16 @@ service cloud.firestore {
       allow list: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
+
+     /**
+     * @description The collection for assigning Vice President roles. Only Admins can manage this list.
+     */
+    match /roles_vice_president/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
   }
 }
+
+    

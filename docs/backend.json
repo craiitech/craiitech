@@ -279,6 +279,10 @@
         "name": {
           "type": "string",
           "description": "Name of the unit."
+        },
+        "vicePresidentId": {
+          "type": "string",
+          "description": "The UID of the Vice President this unit reports to. Optional."
         }
       },
       "required": [
@@ -541,6 +545,22 @@
             {
               "name": "userId",
               "description": "The unique identifier of the user who is a unit ODIMO."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_vice_president/{userId}",
+        "definition": {
+          "entityName": "vicePresidentRole",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Documents in this collection denote Vice President privileges. Authorization rules check for the existence of a document with the user's UID in this collection. Existence, not content, is important.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who is a Vice President."
             }
           ]
         }
