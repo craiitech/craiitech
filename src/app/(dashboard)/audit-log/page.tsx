@@ -54,7 +54,6 @@ export default function AuditLogPage() {
   }
 
   // After user loading is complete, if the user is NOT an admin, deny access.
-  // This is the crucial check that prevents non-admins (or users whose admin status isn't confirmed) from proceeding.
   if (!isAdmin) {
     return (
       <div className="space-y-4">
