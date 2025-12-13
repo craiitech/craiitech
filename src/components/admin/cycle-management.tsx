@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -64,6 +64,9 @@ export function CycleManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCycle, setEditingCycle] = useState<Cycle | null>(null);
+  
+  const [isStartPickerOpen, setIsStartPickerOpen] = useState(false);
+  const [isEndPickerOpen, setIsEndPickerOpen] = useState(false);
 
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: cycles, isLoading } = useCollection<Cycle>(cyclesQuery);
@@ -84,8 +87,8 @@ export function CycleManagement() {
       form.reset({
         name: cycle.name as 'first' | 'final',
         year: cycle.year,
-        startDate: cycle.startDate.toDate(),
-        endDate: cycle.endDate.toDate(),
+        startDate: cycle.startDate?.toDate(),
+        endDate: cycle.endDate?.toDate(),
       });
     } else {
       form.reset({ year: currentYear, name: undefined, startDate: undefined, endDate: undefined });
@@ -106,21 +109,15 @@ export function CycleManagement() {
     };
 
     try {
-        await updateDoc(cycleRef, cycleData);
-        toast({ title: 'Success', description: 'Cycle updated.' });
-    } catch(e) {
-        // if update fails, it means it probably doesnt exist so we create it
-        try {
-            await addDoc(collection(firestore, 'cycles'), cycleData);
-            toast({ title: 'Success', description: 'New cycle created.' });
-        } catch (error) {
-             console.error('Error creating/updating cycle:', error);
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: 'cycles',
-                operation: 'write',
-                requestResourceData: cycleData
-            }));
-        }
+        await setDoc(cycleRef, cycleData, { merge: true });
+        toast({ title: 'Success', description: `Cycle '${cycleData.name} ${cycleData.year}' saved.` });
+    } catch (error) {
+        console.error('Error creating/updating cycle:', error);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: 'cycles',
+            operation: 'write',
+            requestResourceData: cycleData
+        }));
     } finally {
         setIsSubmitting(false);
         setIsDialogOpen(false);
@@ -227,7 +224,7 @@ export function CycleManagement() {
                         render={({ field }) => (
                             <FormItem className="flex flex-col">
                                 <FormLabel>Start Date</FormLabel>
-                                <Popover>
+                                <Popover open={isStartPickerOpen} onOpenChange={setIsStartPickerOpen}>
                                     <PopoverTrigger asChild>
                                         <FormControl>
                                             <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
@@ -237,7 +234,18 @@ export function CycleManagement() {
                                         </FormControl>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                        <Calendar 
+                                            mode="single" 
+                                            selected={field.value} 
+                                            onSelect={(date) => {
+                                                field.onChange(date);
+                                                setIsStartPickerOpen(false);
+                                            }}
+                                            initialFocus 
+                                            captionLayout="dropdown-nav"
+                                            fromYear={currentYear - 5}
+                                            toYear={currentYear + 5}
+                                        />
                                     </PopoverContent>
                                 </Popover>
                                 <FormMessage />
@@ -250,7 +258,7 @@ export function CycleManagement() {
                         render={({ field }) => (
                             <FormItem className="flex flex-col">
                                 <FormLabel>End Date</FormLabel>
-                                <Popover>
+                                <Popover open={isEndPickerOpen} onOpenChange={setIsEndPickerOpen}>
                                     <PopoverTrigger asChild>
                                         <FormControl>
                                             <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
@@ -260,7 +268,19 @@ export function CycleManagement() {
                                         </FormControl>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < form.getValues('startDate')} initialFocus />
+                                        <Calendar 
+                                            mode="single" 
+                                            selected={field.value} 
+                                            onSelect={(date) => {
+                                                field.onChange(date);
+                                                setIsEndPickerOpen(false);
+                                            }}
+                                            disabled={(date) => date < form.getValues('startDate')} 
+                                            initialFocus 
+                                            captionLayout="dropdown-nav"
+                                            fromYear={currentYear - 5}
+                                            toYear={currentYear + 5}
+                                        />
                                     </PopoverContent>
                                 </Popover>
                                 <FormMessage />
