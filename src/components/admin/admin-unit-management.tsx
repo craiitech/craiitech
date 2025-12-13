@@ -94,7 +94,7 @@ export function AdminUnitManagement() {
 
   const vicePresidents = useMemo(() => {
     if (!allUsers) return [];
-    return allUsers.filter(user => user.role === 'Vice President');
+    return allUsers.filter(user => user.role?.toLowerCase().includes('vice president'));
   }, [allUsers]);
 
   const campusMap = useMemo(() => {
