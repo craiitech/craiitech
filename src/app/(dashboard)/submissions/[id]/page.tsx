@@ -2,7 +2,7 @@
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
-import { doc, Timestamp, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
+import { doc, Timestamp, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
 import type { Submission, User as AppUser, Campus, Unit, Comment } from '@/lib/types';
 import {
@@ -121,12 +121,12 @@ export default function SubmissionDetailPage() {
   const getFormattedDate = (date: any) => {
     if (!date) return '';
     if (date instanceof Timestamp) {
-      return format(date.toDate(), 'MMMM d, yyyy');
+      return format(date.toDate(), 'MMMM d, yyyy, h:mm a');
     }
     // Fallback for string or other date representations
     const d = new Date(date);
     if (!isNaN(d.getTime())) {
-      return format(d, 'MMMM d, yyyy');
+      return format(d, 'MMMM d, yyyy, h:mm a');
     }
     return 'Invalid Date';
   };
@@ -169,7 +169,7 @@ export default function SubmissionDetailPage() {
               text: feedback,
               authorId: user!.uid,
               authorName: userProfile!.firstName + ' ' + userProfile!.lastName,
-              createdAt: serverTimestamp(),
+              createdAt: new Date(),
               authorRole: userRole || 'User'
           }
           await updateDoc(submissionDocRef, { 
@@ -196,7 +196,7 @@ export default function SubmissionDetailPage() {
          const updateData: any = {
             googleDriveLink: newLink,
             statusId: 'submitted',
-            submissionDate: serverTimestamp()
+            submissionDate: new Date()
         };
 
         if (newComment) {
@@ -204,7 +204,7 @@ export default function SubmissionDetailPage() {
                 text: newComment,
                 authorId: user!.uid,
                 authorName: userProfile!.firstName + ' ' + userProfile!.lastName,
-                createdAt: serverTimestamp(),
+                createdAt: new Date(),
                 authorRole: userRole || 'User'
             };
             updateData.comments = arrayUnion(comment);
@@ -398,7 +398,7 @@ export default function SubmissionDetailPage() {
                         <CardTitle>Conversation History</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {submission.comments.slice().sort((a,b) => (a.createdAt as Timestamp).toMillis() - (b.createdAt as Timestamp).toMillis()).map((comment, index) => (
+                        {submission.comments.slice().sort((a,b) => (a.createdAt as Timestamp)?.toMillis() - (b.createdAt as Timestamp)?.toMillis()).map((comment, index) => (
                            <div key={index} className="flex gap-3">
                                <Avatar className="h-8 w-8">
                                     <AvatarFallback>{comment.authorName.charAt(0)}</AvatarFallback>

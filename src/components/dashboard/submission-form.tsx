@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -139,7 +140,7 @@ export function SubmissionForm({
         text: values.comments,
         authorId: user.uid,
         authorName: userProfile.firstName + ' ' + userProfile.lastName,
-        createdAt: serverTimestamp(),
+        createdAt: new Date(),
         authorRole: userRole || 'User',
     } : null;
 
@@ -149,7 +150,7 @@ export function SubmissionForm({
         const updateData: any = {
           googleDriveLink: values.googleDriveLink,
           statusId: 'submitted', // Reset status on update
-          submissionDate: serverTimestamp(),
+          submissionDate: new Date(),
         };
 
         if (newComment) {
@@ -181,7 +182,7 @@ export function SubmissionForm({
 
     } else {
         // Add new submission
-        const newSubmissionData = {
+        const newSubmissionData: any = {
             googleDriveLink: values.googleDriveLink,
             reportType,
             year,
@@ -304,3 +305,5 @@ export function SubmissionForm({
     </Form>
   );
 }
+
+    

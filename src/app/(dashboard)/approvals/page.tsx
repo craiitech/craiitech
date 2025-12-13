@@ -41,7 +41,6 @@ import {
   updateDoc,
   doc,
   arrayUnion,
-  serverTimestamp,
 } from 'firebase/firestore';
 import { useState, useEffect, useMemo } from 'react';
 import type { Submission, User as AppUser, Role, Comment } from '@/lib/types';
@@ -256,7 +255,7 @@ export default function ApprovalsPage() {
         text: feedback,
         authorId: user.uid,
         authorName: userProfile.firstName + ' ' + userProfile.lastName,
-        createdAt: serverTimestamp(),
+        createdAt: new Date(),
         authorRole: userRole || 'User',
       };
       
@@ -459,3 +458,5 @@ export default function ApprovalsPage() {
     </TooltipProvider>
   );
 }
+
+    
