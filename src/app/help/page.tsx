@@ -138,7 +138,7 @@ export default function HelpPage() {
               {section.role}
             </h3>
             {section.questions.map((faq, index) => (
-              <AccordionItem key={index} value={`${section.role}-${index}`}>
+              <AccordionItem key={`${section.role}-${index}`} value={`${section.role}-${index}`}>
                 <AccordionTrigger>{faq.question}</AccordionTrigger>
                 <AccordionContent>
                   <div className="prose prose-sm max-w-none text-muted-foreground space-y-2">
