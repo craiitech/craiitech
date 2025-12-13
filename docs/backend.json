@@ -283,6 +283,11 @@
         "vicePresidentId": {
           "type": "string",
           "description": "The UID of the Vice President this unit reports to. Optional."
+        },
+        "campusIds": {
+            "type": "array",
+            "description": "A list of campus IDs this unit belongs to.",
+            "items": { "type": "string" }
         }
       },
       "required": [
