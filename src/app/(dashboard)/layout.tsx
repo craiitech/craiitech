@@ -1,10 +1,9 @@
 
 'use client';
 
-import { redirect, usePathname, useRouter } from 'next/navigation';
+import { redirect, usePathname } from 'next/navigation';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { UserNav } from '@/components/dashboard/user-nav';
-import { Logo } from '@/components/logo';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Sidebar,
@@ -16,14 +15,13 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
-import { Button } from '@/components/ui/button';
 import { useEffect, useMemo } from 'react';
-import type { Campus, Unit } from '@/lib/types';
-import { collection } from 'firebase/firestore';
+import type { Campus, Unit, Submission } from '@/lib/types';
+import { collection, query, where } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Building2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';
+import { Header } from '@/components/dashboard/header';
 
 const LoadingSkeleton = () => (
   <div className="flex items-start">
@@ -62,17 +60,17 @@ export default function DashboardLayout({
 }) {
   const firebaseState = useFirebase();
   const pathname = usePathname();
-  const { toast } = useToast();
-  const router = useRouter();
 
 
   if (!firebaseState.areServicesAvailable) {
     return <LoadingSkeleton />;
   }
 
-  const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, auth } = firebaseState;
+  const { user, userProfile, isUserLoading, isAdmin, userRole, firestore } = firebaseState;
   
   const isStillLoading = isUserLoading;
+  
+  const isSupervisor = userRole === 'Admin' || userRole === 'Campus Director' || userRole === 'Campus ODIMO';
 
   const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
@@ -80,10 +78,40 @@ export default function DashboardLayout({
   const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units') : null, [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
 
+  // Fetch relevant submissions for notifications
+   const notificationQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile || !userRole) return null;
+
+    const submissionsCollection = collection(firestore, 'submissions');
+
+    // Supervisors get notifications for pending approvals
+    if (userRole === 'Admin') {
+      return query(submissionsCollection, where('statusId', '==', 'submitted'));
+    }
+    if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
+      return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
+    }
+    // Employees get notifications for rejected submissions
+    return query(submissionsCollection, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
+  }, [firestore, userProfile, userRole]);
+
+  const { data: notifications, isLoading: isLoadingNotifications } = useCollection<Submission>(notificationQuery);
+
+  const notificationCount = useMemo(() => {
+      if (!notifications) return 0;
+      if (isSupervisor) {
+          // Filter out submissions made by the approver themselves
+          return notifications.filter(s => s.userId !== userProfile?.id).length;
+      }
+      return notifications.length;
+  }, [notifications, isSupervisor, userProfile]);
+
+
+
   const userLocation = useMemo(() => {
     if (!userProfile || !campuses || !units) return '';
-    const campusName = campuses.find(c => c.id === userProfile.campusId)?.name;
-    const unitName = units.find(u => u.id === userProfile.unitId)?.name;
+    const campusName = campuses?.find(c => c.id === userProfile.campusId)?.name;
+    const unitName = units?.find(u => u.id === userProfile.unitId)?.name;
     let locationString = campusName || '';
     if (unitName && userRole !== 'Campus Director' && userRole !== 'Campus ODIMO' && !userRole?.toLowerCase().includes('vice president')) {
         locationString += ` / ${unitName}`;
@@ -137,13 +165,6 @@ export default function DashboardLayout({
      return <div className="flex h-screen w-screen items-center justify-center"><Skeleton className="h-16 w-16" /></div>;
   }
   
-  const getPageTitle = (path: string) => {
-    if (path === '/dashboard') return 'Home';
-    const lastSegment = path.split('/').pop();
-    // A simple way to capitalize the first letter
-    return lastSegment ? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1) : '';
-  }
-
   return (
     <ActivityLogProvider>
       <SidebarProvider>
@@ -174,13 +195,7 @@ export default function DashboardLayout({
           </SidebarContent>
         </Sidebar>
         <SidebarInset>
-          <header className="flex h-16 items-center justify-between border-b px-4 lg:px-8 bg-card">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="md:hidden" />
-              <h1 className="font-semibold text-lg">{getPageTitle(pathname)}</h1>
-            </div>
-            <UserNav user={user} userProfile={userProfile} />
-          </header>
+          <Header notificationCount={notificationCount} />
           <main className="p-4 lg:p-8 bg-background/90">{children}</main>
         </SidebarInset>
       </SidebarProvider>

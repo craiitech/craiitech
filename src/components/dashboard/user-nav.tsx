@@ -1,7 +1,7 @@
 
 'use client';
 
-import { LogOut } from 'lucide-react';
+import { LogOut, Bell } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +21,13 @@ import Link from 'next/link';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { useUser } from '@/firebase';
 
-export function UserNav({ user, userProfile }: { user: FirebaseAuthUser | null, userProfile: AppUser | null }) {
+interface UserNavProps {
+    user: FirebaseAuthUser | null;
+    userProfile: AppUser | null;
+    notificationCount: number;
+}
+
+export function UserNav({ user, userProfile, notificationCount }: UserNavProps) {
   const router = useRouter();
   const { logSessionActivity } = useSessionActivity();
   const { userRole } = useUser();
@@ -44,46 +50,59 @@ export function UserNav({ user, userProfile }: { user: FirebaseAuthUser | null, 
   const fallback = `${firstName?.charAt(0) ?? ''}${lastName?.charAt(0) ?? ''}`;
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={avatar} alt={`@${firstName}`} />
-            <AvatarFallback>{fallback}</AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{firstName} {lastName}</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {email}
-            </p>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link href="/dashboard">
-              Profile
-              <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-             <Link href="/settings">
-                Settings
-                <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
-            </Link>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
-          <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center gap-4">
+        <Link href="/approvals">
+            <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-full">
+                <Bell className="h-5 w-5"/>
+                {notificationCount > 0 && (
+                    <span className="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                        {notificationCount}
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    </span>
+                )}
+            </Button>
+        </Link>
+        <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+            <Avatar className="h-8 w-8">
+                <AvatarImage src={avatar} alt={`@${firstName}`} />
+                <AvatarFallback>{fallback}</AvatarFallback>
+            </Avatar>
+            </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">{firstName} {lastName}</p>
+                <p className="text-xs leading-none text-muted-foreground">
+                {email}
+                </p>
+            </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+            <DropdownMenuItem asChild>
+                <Link href="/dashboard">
+                Profile
+                <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
+                </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+                <Link href="/settings">
+                    Settings
+                    <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
+                </Link>
+            </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Log out</span>
+            <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
+            </DropdownMenuItem>
+        </DropdownMenuContent>
+        </DropdownMenu>
+    </div>
   );
 }
