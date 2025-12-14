@@ -5,7 +5,7 @@ import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { collection, addDoc, serverTimestamp, doc, updateDoc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
@@ -96,7 +96,7 @@ export function CycleManagement() {
     setIsDialogOpen(true);
   }
 
-  const onSubmit = async (values: z.infer<typeof cycleSchema>) => {
+  const onSubmit = (values: z.infer<typeof cycleSchema>) => {
     if (!firestore) return;
     setIsSubmitting(true);
 
@@ -108,20 +108,12 @@ export function CycleManagement() {
         ...values
     };
 
-    try {
-        await setDoc(cycleRef, cycleData, { merge: true });
-        toast({ title: 'Success', description: `Cycle '${cycleData.name} ${cycleData.year}' saved.` });
-    } catch (error) {
-        console.error('Error creating/updating cycle:', error);
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: 'cycles',
-            operation: 'write',
-            requestResourceData: cycleData
-        }));
-    } finally {
-        setIsSubmitting(false);
-        setIsDialogOpen(false);
-    }
+    setDocumentNonBlocking(cycleRef, cycleData, { merge: true });
+
+    toast({ title: 'Success', description: `Cycle '${cycleData.name} ${cycleData.year}' saved.` });
+    
+    setIsSubmitting(false);
+    setIsDialogOpen(false);
   };
 
   return (
