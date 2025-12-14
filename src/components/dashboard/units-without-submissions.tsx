@@ -158,10 +158,12 @@ export function UnitsWithoutSubmissions({
             The following campuses have units that have not completed all {TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT} required submissions for {new Date().getFullYear()}.
             </CardDescription>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setIsReminderDialogOpen(true)}>
-            <Send className="mr-2 h-4 w-4"/>
-            Send Reminders
-        </Button>
+        {isAdmin && (
+            <Button variant="outline" size="sm" onClick={() => setIsReminderDialogOpen(true)}>
+                <Send className="mr-2 h-4 w-4"/>
+                Send Reminders
+            </Button>
+        )}
       </CardHeader>
       <CardContent>
         <Accordion type="multiple" className="w-full">

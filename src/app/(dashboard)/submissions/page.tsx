@@ -304,7 +304,7 @@ export default function SubmissionsPage() {
 
   const isSupervisor = useMemo(() => {
     if (!userRole) return false;
-    return ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit ODIMO'].includes(userRole);
+    return ['Admin', 'Campus Director', 'Campus ODIMO'].includes(userRole);
   }, [userRole]);
 
 

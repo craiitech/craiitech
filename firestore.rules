@@ -185,7 +185,7 @@ service cloud.firestore {
      */
     match /campusSettings/{campusId} {
       allow get: if (isSignedIn() && (getUserProfile().campusId == campusId || campusId == 'global')) || isAdmin();
-      allow write: if isAdmin() || (isCampusOdimo() && getUserProfile().campusId == campusId);
+      allow write: if isAdmin() || (isCampusDirector() && getUserProfile().campusId == campusId) || (isCampusOdimo() && getUserProfile().campusId == campusId);
       allow list: if isAdmin();
     }
     
