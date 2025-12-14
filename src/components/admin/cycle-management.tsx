@@ -4,8 +4,8 @@ import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc, updateDoc, setDoc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -28,12 +28,11 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Edit, CalendarIcon, Trash2 } from 'lucide-react';
+import { Loader2, PlusCircle, Edit, CalendarIcon } from 'lucide-react';
 import type { Cycle } from '@/lib/types';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -95,7 +94,7 @@ export function CycleManagement() {
     setIsDialogOpen(true);
   }
 
-  const onSubmit = (values: z.infer<typeof cycleSchema>) => {
+  const onSubmit = async (values: z.infer<typeof cycleSchema>) => {
     if (!firestore) return;
     setIsSubmitting(true);
 
@@ -107,12 +106,20 @@ export function CycleManagement() {
         ...values
     };
 
-    setDocumentNonBlocking(cycleRef, cycleData, { merge: true });
-
-    toast({ title: 'Success', description: `Cycle '${cycleData.name} ${cycleData.year}' saved.` });
-    
-    setIsSubmitting(false);
-    setIsDialogOpen(false);
+    try {
+        await setDoc(cycleRef, cycleData, { merge: true });
+        toast({ title: 'Success', description: `Cycle '${cycleData.name} ${cycleData.year}' saved.` });
+        setIsDialogOpen(false);
+    } catch (error) {
+        console.error("Error saving cycle:", error);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: cycleRef.path,
+            operation: 'write',
+            requestResourceData: cycleData,
+        }));
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   return (
