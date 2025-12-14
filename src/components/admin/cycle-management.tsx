@@ -32,29 +32,42 @@ import {
 } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Edit, CalendarIcon } from 'lucide-react';
+import { Loader2, PlusCircle, Edit } from 'lucide-react';
 import type { Cycle } from '@/lib/types';
 import { format } from 'date-fns';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { cn } from '@/lib/utils';
-import { Calendar } from '../ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
+const months = [
+  { value: 0, label: 'January' }, { value: 1, label: 'February' }, { value: 2, label: 'March' },
+  { value: 3, label: 'April' }, { value: 4, label: 'May' }, { value: 5, label: 'June' },
+  { value: 6, label: 'July' }, { value: 7, label: 'August' }, { value: 8, label: 'September' },
+  { value: 9, label: 'October' }, { value: 10, label: 'November' }, { value: 11, label: 'December' },
+];
+const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
 
 const cycleSchema = z.object({
   name: z.enum(['first', 'final']),
   year: z.number().min(new Date().getFullYear() - 5).max(new Date().getFullYear() + 5),
-  startDate: z.date(),
-  endDate: z.date(),
-}).refine(data => data.endDate > data.startDate, {
+  startYear: z.string().min(1),
+  startMonth: z.string().min(1),
+  startDay: z.string().min(1),
+  endYear: z.string().min(1),
+  endMonth: z.string().min(1),
+  endDay: z.string().min(1),
+}).refine(data => {
+    const startDate = new Date(Number(data.startYear), Number(data.startMonth), Number(data.startDay));
+    const endDate = new Date(Number(data.endYear), Number(data.endMonth), Number(data.endDay));
+    return endDate > startDate;
+}, {
   message: 'End date must be after start date.',
-  path: ['endDate'],
+  path: ['endDay'], // Assign error to a field
 });
 
-const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
 export function CycleManagement() {
   const firestore = useFirestore();
@@ -62,9 +75,6 @@ export function CycleManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCycle, setEditingCycle] = useState<Cycle | null>(null);
-  
-  const [isStartPickerOpen, setIsStartPickerOpen] = useState(false);
-  const [isEndPickerOpen, setIsEndPickerOpen] = useState(false);
 
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: cycles, isLoading } = useCollection<Cycle>(cyclesQuery);
@@ -82,14 +92,25 @@ export function CycleManagement() {
   const handleOpenDialog = (cycle: Cycle | null = null) => {
     setEditingCycle(cycle);
     if (cycle) {
+      const startDate = cycle.startDate?.toDate();
+      const endDate = cycle.endDate?.toDate();
       form.reset({
         name: cycle.name as 'first' | 'final',
         year: cycle.year,
-        startDate: cycle.startDate?.toDate(),
-        endDate: cycle.endDate?.toDate(),
+        startYear: startDate ? String(startDate.getFullYear()) : undefined,
+        startMonth: startDate ? String(startDate.getMonth()) : undefined,
+        startDay: startDate ? String(startDate.getDate()) : undefined,
+        endYear: endDate ? String(endDate.getFullYear()) : undefined,
+        endMonth: endDate ? String(endDate.getMonth()) : undefined,
+        endDay: endDate ? String(endDate.getDate()) : undefined,
       });
     } else {
-      form.reset({ year: currentYear, name: undefined, startDate: undefined, endDate: undefined });
+      form.reset({
+          name: undefined,
+          year: currentYear,
+          startYear: undefined, startMonth: undefined, startDay: undefined,
+          endYear: undefined, endMonth: undefined, endDay: undefined,
+      });
     }
     setIsDialogOpen(true);
   }
@@ -103,7 +124,10 @@ export function CycleManagement() {
     
     const cycleData = {
         id: cycleId,
-        ...values
+        name: values.name,
+        year: values.year,
+        startDate: new Date(Number(values.startYear), Number(values.startMonth), Number(values.startDay)),
+        endDate: new Date(Number(values.endYear), Number(values.endMonth), Number(values.endDay)),
     };
 
     try {
@@ -179,112 +203,77 @@ export function CycleManagement() {
             </DialogHeader>
              <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                    <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Cycle</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={!!editingCycle}>
-                                    <FormControl>
-                                        <SelectTrigger><SelectValue placeholder="Select a cycle" /></SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="first">First Cycle</SelectItem>
-                                        <SelectItem value="final">Final Cycle</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="year"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Year</FormLabel>
-                                <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)} disabled={!!editingCycle}>
-                                    <FormControl>
-                                        <SelectTrigger><SelectValue placeholder="Select a year" /></SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {years.map(year => <SelectItem key={year} value={String(year)}>{year}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="startDate"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                                <FormLabel>Start Date</FormLabel>
-                                <Popover open={isStartPickerOpen} onOpenChange={setIsStartPickerOpen}>
-                                    <PopoverTrigger asChild>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Cycle</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={!!editingCycle}>
                                         <FormControl>
-                                            <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                            </Button>
+                                            <SelectTrigger><SelectValue placeholder="Select a cycle" /></SelectTrigger>
                                         </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar 
-                                            mode="single" 
-                                            selected={field.value} 
-                                            onSelect={(date) => {
-                                                field.onChange(date);
-                                                setIsStartPickerOpen(false);
-                                            }}
-                                            initialFocus 
-                                            captionLayout="dropdown-nav"
-                                            fromYear={currentYear - 5}
-                                            toYear={currentYear + 5}
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="endDate"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                                <FormLabel>End Date</FormLabel>
-                                <Popover open={isEndPickerOpen} onOpenChange={setIsEndPickerOpen}>
-                                    <PopoverTrigger asChild>
+                                        <SelectContent>
+                                            <SelectItem value="first">First Cycle</SelectItem>
+                                            <SelectItem value="final">Final Cycle</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="year"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Year</FormLabel>
+                                    <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)} disabled={!!editingCycle}>
                                         <FormControl>
-                                            <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                            </Button>
+                                            <SelectTrigger><SelectValue placeholder="Select a year" /></SelectTrigger>
                                         </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar 
-                                            mode="single" 
-                                            selected={field.value} 
-                                            onSelect={(date) => {
-                                                field.onChange(date);
-                                                setIsEndPickerOpen(false);
-                                            }}
-                                            disabled={(date) => date < form.getValues('startDate')} 
-                                            initialFocus 
-                                            captionLayout="dropdown-nav"
-                                            fromYear={currentYear - 5}
-                                            toYear={currentYear + 5}
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                                        <SelectContent>
+                                            {years.map(year => <SelectItem key={year} value={String(year)}>{year}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                    
+                    <div>
+                        <FormLabel>Start Date</FormLabel>
+                        <div className="grid grid-cols-3 gap-2 mt-2">
+                             <FormField control={form.control} name="startMonth" render={({field}) => (
+                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Month"/></SelectTrigger></FormControl><SelectContent>{months.map(m=><SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
+                             )}/>
+                             <FormField control={form.control} name="startDay" render={({field}) => (
+                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Day"/></SelectTrigger></FormControl><SelectContent>{days.map(d=><SelectItem key={d} value={String(d)}>{d}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
+                             )}/>
+                             <FormField control={form.control} name="startYear" render={({field}) => (
+                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Year"/></SelectTrigger></FormControl><SelectContent>{years.map(y=><SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
+                             )}/>
+                        </div>
+                    </div>
+                    
+                     <div>
+                        <FormLabel>End Date</FormLabel>
+                        <div className="grid grid-cols-3 gap-2 mt-2">
+                            <FormField control={form.control} name="endMonth" render={({field}) => (
+                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Month"/></SelectTrigger></FormControl><SelectContent>{months.map(m=><SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
+                            )}/>
+                            <FormField control={form.control} name="endDay" render={({field}) => (
+                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Day"/></SelectTrigger></FormControl><SelectContent>{days.map(d=><SelectItem key={d} value={String(d)}>{d}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
+                            )}/>
+                            <FormField control={form.control} name="endYear" render={({field}) => (
+                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Year"/></SelectTrigger></FormControl><SelectContent>{years.map(y=><SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
+                            )}/>
+                        </div>
+                        <FormMessage>{form.formState.errors.endDay?.message}</FormMessage>
+                    </div>
+
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
                         <Button type="submit" disabled={isSubmitting}>
