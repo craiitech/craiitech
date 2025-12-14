@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import {
   Card,
@@ -11,13 +11,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { List, ListItem } from '@/components/ui/list';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { LogOut, Activity, Loader2 } from 'lucide-react';
-import { logUserActivity } from '@/lib/activity-logger';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 
@@ -25,85 +20,47 @@ export default function LogoutPage() {
   const router = useRouter();
   const auth = useAuth();
   const { toast } = useToast();
-  const { sessionLogs, clearSessionLogs } = useSessionActivity();
-  const [countdown, setCountdown] = useState(5);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { clearSessionLogs } = useSessionActivity();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (countdown > 1) {
-        setCountdown(countdown - 1);
-      } else {
-        handleFinalLogout();
+    const handleFinalLogout = async () => {
+      if (auth) {
+        try {
+          await signOut(auth);
+          clearSessionLogs(); // Clear the logs from the client-side context
+        } catch (error) {
+          console.error('Error signing out: ', error);
+          toast({
+            title: "Logout Error",
+            description: "There was an issue logging you out.",
+            variant: 'destructive',
+          });
+        }
       }
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [countdown]);
+      // Force a full refresh to the landing page.
+      window.location.href = '/';
+    };
 
-  const handleFinalLogout = async () => {
-    if (isLoggingOut) return;
-    setIsLoggingOut(true);
+    handleFinalLogout();
+  }, [auth, clearSessionLogs, router, toast]);
 
-    if (auth) {
-      try {
-        await signOut(auth);
-        clearSessionLogs(); // Clear the logs from the client-side context
-      } catch (error) {
-        console.error('Error signing out: ', error);
-        toast({
-          title: "Logout Error",
-          description: "There was an issue logging you out.",
-          variant: 'destructive',
-        });
-      }
-    }
-    // Force a full refresh to the landing page.
-    window.location.href = '/';
-  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4 dark:bg-gray-900">
-      <Card className="w-full max-w-lg">
-        <CardHeader className="text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <LogOut className="h-10 w-10 text-primary" />
-          </div>
-          <CardTitle className="mt-4 text-2xl font-bold">
-            You have been logged out
+      <Card className="w-full max-w-md text-center">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold">
+            Logging Out
           </CardTitle>
           <CardDescription>
-            Thank you for using the RSU EOMS Portal.
+            Please wait while we securely log you out.
           </CardDescription>
         </CardHeader>
         <CardContent>
-            <h3 className="mb-2 flex items-center text-sm font-semibold">
-                <Activity className="mr-2 h-4 w-4" />
-                Session Activity Summary
-            </h3>
-            <ScrollArea className="h-32 rounded-md border">
-                {sessionLogs.length > 0 ? (
-                    <List className="p-2">
-                        {sessionLogs.map((log, index) => (
-                            <ListItem key={index} className="flex justify-between border-b p-2">
-                                <span className="text-xs">{log.message}</span>
-                                <span className="text-xs text-muted-foreground">
-                                    {new Date(log.timestamp).toLocaleTimeString()}
-                                </span>
-                            </ListItem>
-                        ))}
-                    </List>
-                ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                        No activity recorded this session.
-                    </div>
-                )}
-            </ScrollArea>
+            <div className="flex justify-center items-center py-8">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
         </CardContent>
-        <CardFooter className="flex flex-col gap-2">
-          <p className="text-sm text-muted-foreground">
-            Redirecting to the home page in {countdown}...
-          </p>
-        </CardFooter>
       </Card>
     </div>
   );

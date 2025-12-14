@@ -27,11 +27,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, getDocs, Timestamp, where, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, Timestamp, where, doc, deleteDoc } from 'firebase/firestore';
 import type { Submission, User as AppUser, Campus, Cycle } from '@/lib/types';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { FeedbackDialog } from '@/components/dashboard/feedback-dialog';
 import {
   AlertDialog,
@@ -42,7 +42,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -87,8 +86,8 @@ const SubmissionsTable = ({
     submissions, 
     isSupervisor,
     isAdmin,
-    getUserName, 
-    getCampusName,
+    usersMap, 
+    campusMap,
     onEyeClick, 
     onViewFeedbackClick,
     onDeleteClick,
@@ -99,8 +98,8 @@ const SubmissionsTable = ({
     submissions: Submission[], 
     isSupervisor: boolean, 
     isAdmin: boolean,
-    getUserName: (userId: string) => string, 
-    getCampusName: (campusId: string) => string,
+    usersMap: Map<string, AppUser>, 
+    campusMap: Map<string, string>,
     onEyeClick: (submissionId: string) => void, 
     onViewFeedbackClick: (comments: any) => void,
     onDeleteClick: (submission: Submission) => void,
@@ -196,9 +195,9 @@ const SubmissionsTable = ({
             <TableBody>
               {submissions.map((submission) => (
                 <TableRow key={submission.id}>
-                  {isAdmin && <TableCell>{getCampusName(submission.campusId)}</TableCell>}
+                  {isAdmin && <TableCell>{campusMap.get(submission.campusId) ?? '...'}</TableCell>}
                   <TableCell className="font-medium">{submission.reportType}</TableCell>
-                   {isSupervisor && <TableCell>{getUserName(submission.userId)}</TableCell>}
+                   {isSupervisor && <TableCell>{`${usersMap.get(submission.userId)?.firstName || ''} ${usersMap.get(submission.userId)?.lastName || ''}`}</TableCell>}
                   <TableCell>{submission.unitName}</TableCell>
                   <TableCell>{submission.year}</TableCell>
                   <TableCell className="capitalize">{submission.cycleId}</TableCell>
@@ -277,141 +276,77 @@ export default function SubmissionsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { logSessionActivity } = useSessionActivity();
+  
+  const isSupervisor = userRole === 'Admin' || userRole === 'Campus Director' || userRole === 'Campus ODIMO';
 
-  const [users, setUsers] = useState<Record<string, AppUser>>({});
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    if (isAdmin) return collection(firestore, 'users');
+    if (isSupervisor && userProfile?.campusId) {
+        return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
+    }
+    // For single user view
+    if (userProfile) return query(collection(firestore, 'users'), where('id', '==', userProfile.id));
+    return null;
+  }, [firestore, isAdmin, isSupervisor, userProfile]);
+  const { data: users, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
+
+  const submissionsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    if (isAdmin) return collection(firestore, 'submissions');
+    if (isSupervisor && userProfile?.campusId) {
+      return query(collection(firestore, 'submissions'), where('campusId', '==', userProfile.campusId));
+    }
+    if (userProfile) {
+      return query(collection(firestore, 'submissions'), where('userId', '==', userProfile.id));
+    }
+    return null;
+  }, [firestore, isAdmin, isSupervisor, userProfile]);
+
+  const { data: submissionsData, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
+
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: cycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
 
 
-  const [isLoading, setIsLoading] = useState(true);
+  const isLoading = isLoadingSubmissions || isLoadingUsers || isLoadingCampuses || isLoadingCycles;
 
-  // This will store the final list of submissions to display
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  
-  // State for feedback dialog
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [feedbackToShow, setFeedbackToShow] = useState('');
   const [activeFilter, setActiveFilter] = useState<string>('All Submissions');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'submissionDate', direction: 'descending'});
 
-  // State for delete dialog
   const [deletingSubmission, setDeletingSubmission] = useState<Submission | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmationText, setConfirmationText] = useState('');
   const [challengeText, setChallengeText] = useState('');
 
-  const isSupervisor = useMemo(() => {
-    if (!userRole) return false;
-    return ['Admin', 'Campus Director', 'Campus ODIMO'].includes(userRole);
-  }, [userRole]);
+  const usersMap = useMemo(() => {
+      const map = new Map<string, AppUser>();
+      if (users) {
+          users.forEach(u => map.set(u.id, u));
+      }
+      return map;
+  }, [users]);
+  
+  const campusMap = useMemo(() => {
+      const map = new Map<string, string>();
+      if (campuses) {
+          campuses.forEach(c => map.set(c.id, c.name));
+      }
+      return map;
+  }, [campuses]);
 
+  const submissions = useMemo(() => {
+    if (!submissionsData) return [];
+    return submissionsData.map(s => ({
+        ...s,
+        submissionDate: s.submissionDate instanceof Timestamp ? s.submissionDate.toDate() : new Date(s.submissionDate)
+    }));
+  }, [submissionsData]);
 
-  useEffect(() => {
-    if (!firestore || !userRole || !userProfile) {
-        return;
-    }
-    
-    const fetchSupervisorData = async () => {
-        setIsLoading(true);
-        try {
-            // 1. Fetch relevant users first
-            let usersQuery;
-            const usersCollection = collection(firestore, 'users');
-
-            if (userRole === 'Admin') {
-                usersQuery = query(usersCollection);
-            } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-                usersQuery = query(usersCollection, where('campusId', '==', userProfile.campusId));
-            } else if (userRole === 'Unit ODIMO') {
-                usersQuery = query(usersCollection, where('unitId', '==', userProfile.unitId));
-            }
-
-            if (!usersQuery) {
-                 setIsLoading(false);
-                 return;
-            }
-
-            const usersSnapshot = await getDocs(usersQuery);
-            const fetchedUsers = Object.fromEntries(usersSnapshot.docs.map(doc => [doc.id, doc.data() as AppUser]));
-            setUsers(fetchedUsers);
-
-            // 2. Fetch submissions for those users
-            const userIds = Object.keys(fetchedUsers);
-            if (userIds.length === 0) {
-                setSubmissions([]);
-                setIsLoading(false);
-                return;
-            }
-
-            const submissionsCollection = collection(firestore, 'submissions');
-            const submissionsPromises = [];
-            // Firestore 'in' query limit is 30
-            for (let i = 0; i < userIds.length; i += 30) {
-                const chunk = userIds.slice(i, i + 30);
-                submissionsPromises.push(getDocs(query(submissionsCollection, where('userId', 'in', chunk))));
-            }
-            
-            const submissionsSnapshots = await Promise.all(submissionsPromises);
-            const allSubmissions = submissionsSnapshots.flatMap(snap => snap.docs.map(doc => {
-                const data = doc.data();
-                return {
-                    ...data,
-                    id: doc.id,
-                    submissionDate: (data.submissionDate as Timestamp).toDate(),
-                } as Submission;
-            }));
-
-            setSubmissions(allSubmissions);
-
-        } catch (error) {
-            console.error("Failed to fetch supervisor data:", error);
-            toast({ title: 'Error', description: 'Could not load data.', variant: 'destructive'});
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    
-    const fetchUserData = async () => {
-        setIsLoading(true);
-        try {
-             const submissionsCollection = collection(firestore, 'submissions');
-             const submissionsQuery = query(submissionsCollection, where('userId', '==', userProfile.id));
-             const snapshot = await getDocs(submissionsQuery);
-             const fetchedSubmissions = snapshot.docs.map(doc => {
-                const data = doc.data();
-                return {
-                    ...data,
-                    id: doc.id,
-                    submissionDate: (data.submissionDate as Timestamp).toDate(),
-                } as Submission;
-            });
-            setSubmissions(fetchedSubmissions);
-        } catch (error) {
-             console.error("Failed to fetch user submissions:", error);
-             toast({ title: 'Error', description: 'Could not load your submissions.', variant: 'destructive'});
-        } finally {
-            setIsLoading(false);
-        }
-    }
-
-    if (isSupervisor) {
-      fetchSupervisorData();
-    } else {
-      fetchUserData();
-    }
-
-  }, [firestore, userRole, userProfile, isAdmin, isSupervisor]);
-
-  const getUserName = (userId: string) => {
-    const user = users[userId];
-    return user ? `${user.firstName} ${user.lastName}` : '...';
-  };
-   const getCampusName = (campusId: string) => {
-    const campus = campuses?.find(c => c.id === campusId);
-    return campus ? campus.name : '...';
-  }
   
   const handleViewFeedback = (comments: any) => {
     if(Array.isArray(comments) && comments.length > 0) {
@@ -443,7 +378,6 @@ export default function SubmissionsPage() {
         const submissionRef = doc(firestore, 'submissions', deletingSubmission.id);
         await deleteDoc(submissionRef);
         
-        setSubmissions(prev => prev.filter(s => s.id !== deletingSubmission.id));
         logSessionActivity(`Deleted submission: ${deletingSubmission.reportType} (ID: ${deletingSubmission.id})`, {
           action: 'delete_submission',
           details: { submissionId: deletingSubmission.id },
@@ -489,21 +423,21 @@ export default function SubmissionsPage() {
 
     if (sortConfig !== null) {
         sortableItems.sort((a, b) => {
-            let aValue, bValue;
+            let aValue: any, bValue: any;
 
             if (sortConfig.key === 'submitterName') {
-                aValue = getUserName(a.userId);
-                bValue = getUserName(b.userId);
+                const userA = usersMap.get(a.userId);
+                aValue = userA ? `${userA.firstName} ${userA.lastName}` : '';
+                const userB = usersMap.get(b.userId);
+                bValue = userB ? `${userB.firstName} ${userB.lastName}` : '';
             } else if (sortConfig.key === 'campusName') {
-                aValue = getCampusName(a.campusId);
-                bValue = getCampusName(b.campusId);
-            }
-            else {
+                aValue = campusMap.get(a.campusId) ?? '';
+                bValue = campusMap.get(b.campusId) ?? '';
+            } else {
                 aValue = a[sortConfig.key as keyof Submission];
                 bValue = b[sortConfig.key as keyof Submission];
             }
             
-            // Handle date sorting
             if (aValue instanceof Date && bValue instanceof Date) {
                  if (aValue.getTime() < bValue.getTime()) {
                     return sortConfig.direction === 'ascending' ? -1 : 1;
@@ -525,7 +459,7 @@ export default function SubmissionsPage() {
     }
 
     return sortableItems;
-  }, [submissions, activeFilter, sortConfig, users, campuses]);
+  }, [submissions, activeFilter, sortConfig, usersMap, campusMap]);
 
   const handlePrint = () => {
     window.print();
@@ -544,10 +478,11 @@ export default function SubmissionsPage() {
         };
 
         if (isAdmin) {
-            baseData['Campus'] = getCampusName(s.campusId);
+            baseData['Campus'] = campusMap.get(s.campusId);
         }
         if (isSupervisor) {
-            baseData['Submitter'] = getUserName(s.userId);
+            const user = usersMap.get(s.userId);
+            baseData['Submitter'] = user ? `${user.firstName} ${user.lastName}` : '';
         }
         return baseData;
     });
@@ -647,7 +582,7 @@ export default function SubmissionsPage() {
           </div>
         </CardHeader>
         <CardContent>
-           {isLoading || isLoadingCampuses || isLoadingCycles ? (
+           {isLoading ? (
                 <div className="flex justify-center items-center h-64">
                     <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
@@ -655,9 +590,9 @@ export default function SubmissionsPage() {
                 <SubmissionsTable 
                     submissions={sortedSubmissions}
                     isSupervisor={isSupervisor}
-                    isAdmin={isAdmin}
-                    getUserName={getUserName}
-                    getCampusName={getCampusName}
+                    isAdmin={isAdmin ?? false}
+                    usersMap={usersMap}
+                    campusMap={campusMap}
                     onEyeClick={handleEyeClick}
                     onViewFeedbackClick={handleViewFeedback}
                     onDeleteClick={handleDeleteClick}

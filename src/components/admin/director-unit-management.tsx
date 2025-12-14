@@ -24,7 +24,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, Search } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Search, CheckCircle } from 'lucide-react';
 import type { Unit } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -63,24 +63,17 @@ export function DirectorUnitManagement() {
   );
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(allUnitsQuery);
 
-  const { unitsInCampus, availableUnits } = useMemo(() => {
+  const { unitsInCampus, allOtherUnits } = useMemo(() => {
     if (!allUnits || !userProfile?.campusId) {
-      return { unitsInCampus: [], availableUnits: [] };
+      return { unitsInCampus: [], allOtherUnits: [] };
     }
     const unitsInCampus = allUnits.filter((unit) => unit.campusIds?.includes(userProfile.campusId));
-    // A unit is available if it's NOT in the current campus
-    const available = allUnits.filter((unit) => !unit.campusIds?.includes(userProfile.campusId));
+    // Show all units in the 'add' list
+    const allOther = allUnits.filter(unit => unit.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    return { unitsInCampus, availableUnits: available };
-  }, [allUnits, userProfile]);
+    return { unitsInCampus, allOtherUnits: allOther };
+  }, [allUnits, userProfile, searchTerm]);
   
-  const filteredAvailableUnits = useMemo(() => {
-    if (!availableUnits) return [];
-    return availableUnits.filter(unit =>
-        unit.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [availableUnits, searchTerm]);
-
 
   const form = useForm<z.infer<typeof newUnitSchema>>({
     resolver: zodResolver(newUnitSchema),
@@ -98,6 +91,9 @@ export function DirectorUnitManagement() {
       });
       return;
     }
+    // Prevent re-adding
+    if (unit.campusIds?.includes(userProfile.campusId)) return;
+
     setIsSubmitting(true);
 
     const unitRef = doc(firestore, 'units', unit.id);
@@ -262,7 +258,7 @@ export function DirectorUnitManagement() {
                <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search for a unit..."
+                  placeholder="Search all university units..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -282,28 +278,37 @@ export function DirectorUnitManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredAvailableUnits.map((unit) => (
-                        <TableRow key={unit.id}>
-                          <TableCell>{unit.name}</TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleAddUnitToCampus(unit)}
-                              disabled={isSubmitting}
-                            >
-                              <PlusCircle className="mr-2 h-4 w-4" />
-                              Add
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {allOtherUnits.map((unit) => {
+                        const isAssigned = unit.campusIds?.includes(userProfile?.campusId ?? '');
+                        return (
+                            <TableRow key={unit.id} className={isAssigned ? 'bg-muted/50' : ''}>
+                              <TableCell>{unit.name}</TableCell>
+                              <TableCell className="text-right">
+                                {isAssigned ? (
+                                    <span className="flex items-center justify-end gap-2 text-sm text-green-600">
+                                        <CheckCircle className="h-4 w-4" /> Assigned
+                                    </span>
+                                ) : (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleAddUnitToCampus(unit)}
+                                      disabled={isSubmitting}
+                                    >
+                                      <PlusCircle className="mr-2 h-4 w-4" />
+                                      Add
+                                    </Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 )}
-                {!isLoading && filteredAvailableUnits.length === 0 && (
+                {!isLoading && allOtherUnits.length === 0 && (
                   <div className="text-center py-10 text-muted-foreground">
-                     {searchTerm ? 'No units match your search.' : 'All system units are already assigned to your campus.'}
+                     {searchTerm ? 'No units match your search.' : 'No other units available.'}
                   </div>
                 )}
               </ScrollArea>
