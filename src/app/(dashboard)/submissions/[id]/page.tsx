@@ -40,8 +40,8 @@ const statusVariant: Record<
 const LoadingSkeleton = () => (
   <div className="space-y-6">
     <Skeleton className="h-10 w-64" />
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-      <div className="lg:col-span-2 space-y-4">
+    <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+      <div className="md:col-span-2 space-y-4">
         <Card>
           <CardHeader>
             <Skeleton className="h-8 w-3/4" />

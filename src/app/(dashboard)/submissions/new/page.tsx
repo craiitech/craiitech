@@ -121,9 +121,9 @@ export default function NewSubmissionPage() {
                 <CardHeader>
                 <CardTitle>Submission Status</CardTitle>
                 <CardDescription>Select the year and cycle to view submission status.</CardDescription>
-                <div className="flex items-center gap-4 pt-2">
+                <div className="flex flex-col items-stretch gap-2 pt-2 md:flex-row md:items-center">
                     <Select value={String(selectedYear)} onValueChange={(value) => setSelectedYear(Number(value))}>
-                    <SelectTrigger className="w-[120px]">
+                    <SelectTrigger>
                         <SelectValue placeholder="Year" />
                     </SelectTrigger>
                     <SelectContent>
@@ -135,7 +135,7 @@ export default function NewSubmissionPage() {
                     </SelectContent>
                     </Select>
                     <Select value={selectedCycle} onValueChange={(value: 'first' | 'final') => setSelectedCycle(value)}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger>
                         <SelectValue placeholder="Cycle" />
                     </SelectTrigger>
                     <SelectContent>
@@ -223,7 +223,7 @@ export default function NewSubmissionPage() {
 
         {/* --- RIGHT COLUMN: PREVIEW & FORM --- */}
         <div className="lg:col-span-2">
-            <Card className="sticky top-20">
+            <Card className="lg:sticky top-20">
                 <CardHeader>
                     <CardTitle>Submit: {selectedReport}</CardTitle>
                     <CardDescription>
@@ -252,5 +252,3 @@ export default function NewSubmissionPage() {
     </div>
   );
 }
-
-    

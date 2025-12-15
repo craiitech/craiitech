@@ -33,7 +33,7 @@ export default function SettingsPage() {
             Loading settings...
         </p>
         <div className="space-y-4 pt-4">
-            <Skeleton className="h-10 w-[400px]" />
+            <Skeleton className="h-10 w-full md:w-[400px]" />
             <Skeleton className="h-64 w-full" />
         </div>
       </div>
@@ -58,7 +58,7 @@ export default function SettingsPage() {
           </p>
         </div>
         <Tabs defaultValue="users" className="space-y-4">
-          <TabsList>
+          <TabsList className="grid h-auto w-full grid-cols-2 md:inline-flex md:h-10 md:w-auto">
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="campuses">Campuses</TabsTrigger>
             <TabsTrigger value="units">Units</TabsTrigger>
