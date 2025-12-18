@@ -28,6 +28,7 @@ import {
   History,
   Settings,
   Globe,
+  MessageSquare,
 } from 'lucide-react';
 import {
   useUser,
@@ -875,6 +876,11 @@ export default function HomePage() {
     if (isCampusSupervisor) return renderSupervisorHome();
     return renderUnitCoordinatorHome();
   };
+  
+  const showAnnouncements = !isLoading && (
+    (globalAnnouncement && isGlobalAnnouncementVisible) ||
+    (announcement && isAnnouncementVisible)
+  );
 
   return (
     <div className="space-y-4">
@@ -887,24 +893,37 @@ export default function HomePage() {
             </p>
           </div>
         </div>
-         <div className='flex flex-col gap-2'>
-            {globalAnnouncement && isGlobalAnnouncementVisible && !isLoading && (
+        {showAnnouncements && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare />
+                Communications Board
+              </CardTitle>
+              <CardDescription>
+                Important announcements from campus and system administrators.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              {globalAnnouncement && isGlobalAnnouncementVisible && (
                 <Alert>
-                    <Globe className="h-4 w-4" />
-                    <AlertTitle>Global Announcement</AlertTitle>
-                    <AlertDescription>{globalAnnouncement}</AlertDescription>
-                    <AlertCloseButton onClick={() => setIsGlobalAnnouncementVisible(false)} />
+                  <Globe className="h-4 w-4" />
+                  <AlertTitle>Global Announcement</AlertTitle>
+                  <AlertDescription>{globalAnnouncement}</AlertDescription>
+                  <AlertCloseButton onClick={() => setIsGlobalAnnouncementVisible(false)} />
                 </Alert>
-            )}
-            {announcement && isAnnouncementVisible && !isLoading && (
+              )}
+              {announcement && isAnnouncementVisible && (
                 <Alert>
-                    <Megaphone className="h-4 w-4" />
-                    <AlertTitle>Campus Announcement</AlertTitle>
-                    <AlertDescription>{announcement}</AlertDescription>
-                    <AlertCloseButton onClick={() => setIsAnnouncementVisible(false)} />
+                  <Megaphone className="h-4 w-4" />
+                  <AlertTitle>Campus Announcement</AlertTitle>
+                  <AlertDescription>{announcement}</AlertDescription>
+                  <AlertCloseButton onClick={() => setIsAnnouncementVisible(false)} />
                 </Alert>
-            )}
-         </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
 
@@ -912,3 +931,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
