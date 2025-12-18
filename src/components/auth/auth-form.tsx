@@ -16,9 +16,10 @@ import {
   GoogleAuthProvider,
   getAdditionalUserInfo,
   signInWithRedirect,
+  AuthError,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { Loader2, Mail, X, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Mail, X, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';
 import { DataPrivacyDialog } from './data-privacy-dialog';
@@ -51,6 +52,15 @@ function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+const firebaseErrorMap: Record<string, string> = {
+    "auth/user-not-found": "No account found with this email address. Please sign up or try again.",
+    "auth/wrong-password": "Incorrect password. Please try again.",
+    "auth/invalid-email": "The email address is not valid. Please check the format.",
+    "auth/email-already-in-use": "This email address is already associated with an account.",
+    "auth/weak-password": "The password is too weak. Please use at least 6 characters.",
+};
+
+
 export function AuthForm({ initialTab }: AuthFormProps) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [email, setEmail] = useState('');
@@ -61,6 +71,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const [privacyPolicyAgreed, setPrivacyPolicyAgreed] = useState(false);
   const [isPrivacyDialogOpen, setIsPrivacyDialogOpen] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
@@ -78,40 +89,41 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   
   const handleTabChange = (tab: 'signin' | 'signup') => {
     setActiveTab(tab);
-    // Clear credentials when switching tabs
+    // Clear credentials and errors when switching tabs
     setEmail('');
     setPassword('');
     setFirstName('');
     setLastName('');
     setIsPasswordVisible(false);
+    setAuthError(null);
 
     if (tab === 'signup') {
         setIsPrivacyDialogOpen(true);
     }
   };
+  
+  const clearError = () => {
+    if (authError) {
+        setAuthError(null);
+    }
+  }
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      return toast({
-        title: 'Error',
-        description: 'Please enter email and password.',
-        variant: 'destructive',
-      });
+        setAuthError("Please enter both email and password.");
+        return;
     }
     setIsSubmitting(true);
+    setAuthError(null);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       // We don't log here, the provider will log on auth state change
       router.push('/dashboard');
     } catch (error) {
       console.error('Sign in error:', error);
-      toast({
-        title: 'Login Failed',
-        description:
-          error instanceof Error ? error.message : 'An unknown error occurred.',
-        variant: 'destructive',
-      });
+      const errorCode = (error as AuthError).code;
+      setAuthError(firebaseErrorMap[errorCode] || 'An unknown login error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -120,20 +132,15 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || !firstName || !lastName) {
-      return toast({
-        title: 'Error',
-        description: 'Please fill out all fields.',
-        variant: 'destructive',
-      });
+      setAuthError("Please fill out all fields.");
+      return;
     }
     if (!privacyPolicyAgreed) {
-        return toast({
-            title: 'Agreement Required',
-            description: 'You must agree to the Data Privacy Statement to create an account.',
-            variant: 'destructive',
-        });
+        setAuthError("You must agree to the Data Privacy Statement to create an account.");
+        return;
     }
     setIsSubmitting(true);
+    setAuthError(null);
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -172,12 +179,8 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       router.push('/complete-registration');
     } catch (error) {
       console.error('Sign up error:', error);
-      toast({
-        title: 'Registration Failed',
-        description:
-          error instanceof Error ? error.message : 'An unknown error occurred.',
-        variant: 'destructive',
-      });
+      const errorCode = (error as AuthError).code;
+      setAuthError(firebaseErrorMap[errorCode] || 'An unknown registration error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -240,11 +243,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       })
       .catch((error) => {
         console.error('Google sign-in error:', error);
-        toast({
-          title: 'Google Sign-In Failed',
-          description: error.message || 'An unknown error occurred.',
-          variant: 'destructive',
-        });
+        setAuthError(error.message || 'An unknown error occurred during Google Sign-In.');
       })
       .finally(() => {
         setIsSubmitting(false);
@@ -263,7 +262,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             placeholder="Enter your email"
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); clearError(); }}
             disabled={isSubmitting}
             className="pl-9 bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
           />
@@ -277,7 +276,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             type={isPasswordVisible ? 'text' : 'password'}
             required
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); clearError(); }}
             disabled={isSubmitting}
             placeholder="Enter your password"
             className="pr-10 bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
@@ -312,7 +311,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             placeholder="John"
             required
             value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
+            onChange={(e) => { setFirstName(e.target.value); clearError(); }}
             disabled={isSubmitting}
             className="bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
           />
@@ -324,7 +323,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             placeholder="Doe"
             required
             value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
+            onChange={(e) => { setLastName(e.target.value); clearError(); }}
             disabled={isSubmitting}
             className="bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
           />
@@ -341,7 +340,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             placeholder="Enter your email"
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); clearError(); }}
             disabled={isSubmitting}
             className="pl-9 bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
           />
@@ -356,7 +355,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             type={isPasswordVisible ? 'text' : 'password'}
             required
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); clearError(); }}
             disabled={isSubmitting}
             placeholder="Create a password"
             className="pr-10 bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
@@ -375,7 +374,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         <Checkbox 
           id="privacy-policy" 
           checked={privacyPolicyAgreed}
-          onCheckedChange={(checked) => setPrivacyPolicyAgreed(checked as boolean)}
+          onCheckedChange={(checked) => { setPrivacyPolicyAgreed(checked as boolean); clearError(); }}
         />
         <label
           htmlFor="privacy-policy"
@@ -446,9 +445,16 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         </div>
       </div>
 
-      <h2 className="text-2xl font-bold mb-6 text-center">
+      <h2 className="text-2xl font-bold mb-2 text-center">
         {activeTab === 'signup' ? 'Create your RSU EOMS Account' : 'RSU EOMS Submission Portal'}
       </h2>
+      
+      {authError && (
+        <div className="bg-destructive/20 border border-destructive/50 text-destructive text-xs rounded-md p-3 flex items-center gap-2 mb-4">
+            <AlertCircle className="h-4 w-4 flex-shrink-0"/>
+            <span className="leading-snug">{authError}</span>
+        </div>
+      )}
 
       {activeTab === 'signup' ? renderSignUp() : renderSignIn()}
 
@@ -495,3 +501,5 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     </>
   );
 }
+
+    
