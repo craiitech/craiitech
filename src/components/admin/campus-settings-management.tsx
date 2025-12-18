@@ -48,7 +48,7 @@ const settingsSchema = z.object({
 });
 
 export function CampusSettingsManagement() {
-  const { userProfile, isAdmin } = useUser();
+  const { userProfile, isAdmin, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -115,7 +115,7 @@ export function CampusSettingsManagement() {
     }
   };
 
-  const isLoading = isLoadingSettings || (isAdmin && isLoadingCampuses);
+  const isLoading = isUserLoading || isLoadingSettings || (isAdmin && isLoadingCampuses);
   const canSubmit = activeCampusId && (isAdmin || isCampusSupervisor);
 
   return (
@@ -165,7 +165,7 @@ export function CampusSettingsManagement() {
               </FormItem>
             )}
 
-            {isLoading && activeCampusId ? (
+            {isLoading ? (
                 <div className="space-y-2 pt-2">
                     <Skeleton className="h-5 w-32" />
                     <Skeleton className="h-24 w-full" />
@@ -182,7 +182,7 @@ export function CampusSettingsManagement() {
                         <Textarea
                           placeholder="e.g., The deadline for the first cycle is approaching. Leave blank to clear the announcement."
                           {...field}
-                          disabled={!canSubmit}
+                          disabled={isSubmitting || !canSubmit}
                         />
                       </FormControl>
                       <FormMessage />
