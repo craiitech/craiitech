@@ -73,6 +73,7 @@ import { IncompleteCampusSubmissions } from '@/components/dashboard/incomplete-c
 import { CompletedSubmissions } from '@/components/dashboard/completed-submissions';
 import { NonCompliantUnits } from '@/components/dashboard/non-compliant-units';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
+import { SubmissionSchedule } from '@/components/dashboard/submission-schedule';
 
 export const TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT = 12; // 6 for First, 6 for Final
 
@@ -473,6 +474,7 @@ export default function HomePage() {
             (stats.stat3 as any).description
           )}
         </div>
+         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
             <CardHeader>
@@ -624,6 +626,7 @@ export default function HomePage() {
             (stats.stat3 as any).description
           )}
         </div>
+        <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
         <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading}/>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
@@ -726,6 +729,7 @@ export default function HomePage() {
             (stats.stat3 as any).description
           )}
         </div>
+        <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
         <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading}/>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
@@ -932,5 +936,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    
