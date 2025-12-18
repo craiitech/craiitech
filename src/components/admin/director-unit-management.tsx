@@ -182,12 +182,12 @@ export function DirectorUnitManagement() {
     }
   }
 
-  if (userRole !== 'Campus Director') {
+  if (userRole !== 'Campus Director' && userRole !== 'Campus ODIMO') {
     return (
          <Card>
             <CardHeader>
                 <CardTitle>Permission Denied</CardTitle>
-                <CardDescription>Only Campus Directors can manage units for their campus.</CardDescription>
+                <CardDescription>Only Campus Directors and ODIMOs can manage units for their campus.</CardDescription>
             </CardHeader>
          </Card>
     );

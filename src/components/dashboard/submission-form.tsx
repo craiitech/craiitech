@@ -23,8 +23,6 @@ import { validateGoogleDriveLinkAccessibility } from '@/ai/flows/validate-google
 import { useUser, useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, arrayUnion } from 'firebase/firestore';
 import type { Unit, Submission, Comment } from '@/lib/types';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/card';
 import { Checkbox } from '../ui/checkbox';
@@ -40,6 +38,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useMemoFirebase, useCollection } from '@/firebase';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 
 const submissionSchema = z.object({
@@ -229,31 +228,29 @@ export function SubmissionForm({
             updateData.comments = arrayUnion(newComment);
         }
         
-        updateDoc(existingDocRef, updateData)
-          .then(() => {
-              const logMessage = `Updated submission: ${reportType}`;
-              logSessionActivity(logMessage, {
+        try {
+            await updateDoc(existingDocRef, updateData)
+            const logMessage = `Updated submission: ${reportType}`;
+            logSessionActivity(logMessage, {
                 action: 'update_submission',
                 details: { submissionId: existingDocRef.id, reportType },
-              });
-              toast({
-                  title: 'Submission Updated!',
-                  description: `Your '${reportType}' report has been updated.`,
-              });
-              if (onSuccess) onSuccess();
-          })
-          .catch((error) => {
-              console.error('Error updating submission:', error);
-              const permissionError = new FirestorePermissionError({
-                  path: existingDocRef.path,
-                  operation: 'update',
-                  requestResourceData: updateData,
-              });
-              errorEmitter.emit('permission-error', permissionError);
-          })
-          .finally(() => {
-              setIsSubmitting(false);
-          });
+            });
+            toast({
+                title: 'Submission Updated!',
+                description: `Your '${reportType}' report has been updated.`,
+            });
+            if (onSuccess) onSuccess();
+        } catch (error) {
+            console.error('Error updating submission:', error);
+            const permissionError = new FirestorePermissionError({
+                path: existingDocRef.path,
+                operation: 'update',
+                requestResourceData: updateData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } finally {
+            setIsSubmitting(false);
+        }
 
     } else {
         const newSubmissionData: any = {
@@ -269,32 +266,30 @@ export function SubmissionForm({
             submissionDate: serverTimestamp(),
             comments: newComment ? [newComment] : [],
         };
-
-        addDoc(submissionCollectionRef, newSubmissionData)
-          .then((docRef) => {
-              const logMessage = `Created new submission: ${reportType}`;
-              logSessionActivity(logMessage, {
-                action: 'create_submission',
-                details: { submissionId: docRef.id, reportType },
-              });
-              toast({
-                  title: 'Submission Successful!',
-                  description: `Your '${reportType}' report has been submitted.`,
-              });
-              if (onSuccess) onSuccess();
-          })
-          .catch((error) => {
-              console.error('Error creating submission:', error);
-              const permissionError = new FirestorePermissionError({
-                  path: submissionCollectionRef.path,
-                  operation: 'create',
-                  requestResourceData: newSubmissionData,
-              });
-              errorEmitter.emit('permission-error', permissionError);
-          })
-          .finally(() => {
-              setIsSubmitting(false);
-          });
+        
+        try {
+            const docRef = await addDoc(submissionCollectionRef, newSubmissionData);
+            const logMessage = `Created new submission: ${reportType}`;
+            logSessionActivity(logMessage, {
+            action: 'create_submission',
+            details: { submissionId: docRef.id, reportType },
+            });
+            toast({
+                title: 'Submission Successful!',
+                description: `Your '${reportType}' report has been submitted.`,
+            });
+            if (onSuccess) onSuccess();
+        } catch(error) {
+            console.error('Error creating submission:', error);
+            const permissionError = new FirestorePermissionError({
+                path: submissionCollectionRef.path,
+                operation: 'create',
+                requestResourceData: newSubmissionData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } finally {
+            setIsSubmitting(false);
+        }
     }
   };
 
@@ -372,7 +367,7 @@ export function SubmissionForm({
                                 </li>
                                  <li>
                                     To the right of "Anyone with the link", ensure the role is set to <strong>"Viewer"</strong>.
-                                </li>
+                                 </li>
                                 <li>
                                     Finally, click the <strong>"Copy link"</strong> button. The link is now copied to your clipboard.
                                 </li>

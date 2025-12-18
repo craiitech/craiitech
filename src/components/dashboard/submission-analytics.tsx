@@ -1,4 +1,3 @@
-
 'use client';
 import { useMemo } from 'react';
 import type { Submission, Unit, User as AppUser } from '@/lib/types';
@@ -68,7 +67,7 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
   const submissionsByUnitData = useMemo(() => {
     if (!allSubmissions || !allUnits || !userProfile?.campusId) return [];
 
-    const campusUnits = allUnits.filter(u => u.campusId === userProfile.campusId);
+    const campusUnits = allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
     const unitMap = new Map(campusUnits.map(u => [u.id, u.name]));
 
     const unitCounts = allSubmissions.reduce((acc, submission) => {
