@@ -97,7 +97,7 @@ export default function HomePage() {
   const isCampusSupervisor =
     userRole === 'Campus Director' || userRole === 'Campus ODIMO';
   
-  const canViewAnnouncements = userProfile?.campusId;
+  const canViewCampusAnnouncements = userProfile?.campusId;
 
   // Fetch submissions based on role
   const submissionsQuery = useMemoFirebase(() => {
@@ -172,18 +172,19 @@ export default function HomePage() {
   
 
   const campusSettingsDocRef = useMemoFirebase(() => {
-    if (!firestore || !userProfile?.campusId || !canViewAnnouncements)
+    if (!firestore || !userProfile?.campusId || !canViewCampusAnnouncements)
       return null;
     return doc(firestore, 'campusSettings', userProfile.campusId);
-  }, [firestore, userProfile?.campusId, canViewAnnouncements]);
+  }, [firestore, userProfile?.campusId, canViewCampusAnnouncements]);
 
   const { data: campusSetting, isLoading: isLoadingSettings } =
     useDoc(campusSettingsDocRef);
 
   const globalAnnouncementDocRef = useMemoFirebase(() => {
-    if (!firestore) return null;
+    // Global announcements should be fetched for all signed-in users
+    if (!firestore || !user) return null;
     return doc(firestore, 'campusSettings', 'global');
-  }, [firestore]);
+  }, [firestore, user]);
   
   const { data: globalSetting, isLoading: isLoadingGlobalSettings } = useDoc(globalAnnouncementDocRef);
 
@@ -204,7 +205,7 @@ export default function HomePage() {
   const isLoading =
     isUserLoading ||
     isLoadingSubmissions ||
-    (canViewAnnouncements && isLoadingSettings) ||
+    (canViewCampusAnnouncements && isLoadingSettings) ||
     isLoadingUnits ||
     isLoadingCampuses ||
     isLoadingGlobalSettings ||
