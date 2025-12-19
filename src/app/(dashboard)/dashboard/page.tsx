@@ -29,6 +29,7 @@ import {
   Settings,
   Globe,
   MessageSquare,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   useUser,
@@ -475,6 +476,21 @@ export default function HomePage() {
           )}
         </div>
          <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><ShieldCheck/> Risk & Opportunity Register</CardTitle>
+                <CardDescription>
+                    The EOMS is a risk-based approach system. Use this module to log, track, and monitor risks and opportunities for your unit.
+                </CardDescription>
+            </CardHeader>
+            <CardFooter>
+                 <Button asChild>
+                    <Link href="/risk-register">
+                        Open Risk Register
+                    </Link>
+                </Button>
+            </CardFooter>
+        </Card>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
             <CardHeader>
@@ -627,6 +643,21 @@ export default function HomePage() {
           )}
         </div>
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><ShieldCheck/> Risk & Opportunity Register</CardTitle>
+                <CardDescription>
+                    The EOMS is a risk-based approach system. Use this module to log, track, and monitor risks and opportunities for your campus.
+                </CardDescription>
+            </CardHeader>
+            <CardFooter>
+                 <Button asChild>
+                    <Link href="/risk-register">
+                        Open Risk Register
+                    </Link>
+                </Button>
+            </CardFooter>
+        </Card>
         <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading}/>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
@@ -730,6 +761,21 @@ export default function HomePage() {
           )}
         </div>
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><ShieldCheck/> Risk & Opportunity Register</CardTitle>
+                <CardDescription>
+                    The EOMS is a risk-based approach system. Use this module to log, track, and monitor risks and opportunities across all campuses.
+                </CardDescription>
+            </CardHeader>
+            <CardFooter>
+                 <Button asChild>
+                    <Link href="/risk-register">
+                        Open Risk Register
+                    </Link>
+                </Button>
+            </CardFooter>
+        </Card>
         <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading}/>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
