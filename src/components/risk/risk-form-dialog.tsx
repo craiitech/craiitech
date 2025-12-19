@@ -45,7 +45,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Separator } from '../ui/separator';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { ScrollArea } from '../ui/scroll-area';
 
 interface RiskFormDialogProps {
@@ -274,153 +274,173 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
             Fill out the details below. Use the criteria on the right as a guide for ratings.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2">
-                <ScrollArea className="h-[70vh] pr-6">
-                    <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        
-                        <FormField control={form.control} name="type" render={({ field }) => (
-                            <FormItem className="space-y-3">
-                            <FormLabel>Type of Entry</FormLabel>
-                            <FormControl>
-                                <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex items-center space-x-4">
-                                    <FormItem className="flex items-center space-x-2 space-y-0">
-                                        <FormControl><RadioGroupItem value="Risk" /></FormControl>
-                                        <Label className="font-normal">Risk</Label>
-                                    </FormItem>
-                                    <FormItem className="flex items-center space-x-2 space-y-0">
-                                        <FormControl><RadioGroupItem value="Opportunity" /></FormControl>
-                                        <Label className="font-normal">Opportunity</Label>
-                                    </FormItem>
-                                </RadioGroup>
-                            </FormControl>
-                            </FormItem>
-                        )} />
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="md:col-span-2">
+                        <ScrollArea className="h-[70vh] pr-6">
+                            <div className="space-y-6">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-lg">Step 1: Identification</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <FormField control={form.control} name="type" render={({ field }) => (
+                                            <FormItem className="space-y-3">
+                                            <FormLabel>Type of Entry</FormLabel>
+                                            <FormControl>
+                                                <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex items-center space-x-4">
+                                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                                        <FormControl><RadioGroupItem value="Risk" /></FormControl>
+                                                        <Label className="font-normal">Risk</Label>
+                                                    </FormItem>
+                                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                                        <FormControl><RadioGroupItem value="Opportunity" /></FormControl>
+                                                        <Label className="font-normal">Opportunity</Label>
+                                                    </FormItem>
+                                                </RadioGroup>
+                                            </FormControl>
+                                            </FormItem>
+                                        )} />
 
-                        <FormField control={form.control} name="objective" render={({ field }) => (
-                            <FormItem><FormLabel>Related Process/Function Objective</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        
-                        <FormField control={form.control} name="description" render={({ field }) => (
-                            <FormItem><FormLabel>Description of Risk/Opportunity</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
+                                        <FormField control={form.control} name="objective" render={({ field }) => (
+                                            <FormItem><FormLabel>Related Process/Function Objective</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                        )} />
+                                        
+                                        <FormField control={form.control} name="description" render={({ field }) => (
+                                            <FormItem><FormLabel>Description of Risk/Opportunity</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                                        )} />
 
-                        <FormField control={form.control} name="currentControls" render={({ field }) => (
-                            <FormItem><FormLabel>Current Controls/Situation</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField control={form.control} name="likelihood" render={({ field }) => (
-                                <FormItem><FormLabel>Likelihood (Pre-Treatment)</FormLabel>
-                                    <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder="Select likelihood" /></SelectTrigger></FormControl>
-                                        <SelectContent>{likelihoodOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                <FormMessage /></FormItem>
-                            )} />
-                            <FormField control={form.control} name="consequence" render={({ field }) => (
-                                <FormItem><FormLabel>Consequence (Pre-Treatment)</FormLabel>
-                                    <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder="Select consequence" /></SelectTrigger></FormControl>
-                                        <SelectContent>{consequenceOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
-                                    </Select>
-                                <FormMessage /></FormItem>
-                            )} />
-                        </div>
+                                        <FormField control={form.control} name="currentControls" render={({ field }) => (
+                                            <FormItem><FormLabel>Current Controls/Situation</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                                        )} />
+                                    </CardContent>
+                                </Card>
 
-                        <div className="grid grid-cols-2 gap-4 rounded-md border p-4 bg-muted/50">
-                            <div><span className="font-medium">Calculated Magnitude:</span> {magnitude}</div>
-                            <div><span className="font-medium">Calculated Rating:</span> {rating}</div>
-                        </div>
+                                 <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-lg">Step 2: Analysis</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField control={form.control} name="likelihood" render={({ field }) => (
+                                                <FormItem><FormLabel>Likelihood (Pre-Treatment)</FormLabel>
+                                                    <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                                        <FormControl><SelectTrigger><SelectValue placeholder="Select likelihood" /></SelectTrigger></FormControl>
+                                                        <SelectContent>{likelihoodOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
+                                                    </Select>
+                                                <FormMessage /></FormItem>
+                                            )} />
+                                            <FormField control={form.control} name="consequence" render={({ field }) => (
+                                                <FormItem><FormLabel>Consequence (Pre-Treatment)</FormLabel>
+                                                    <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                                        <FormControl><SelectTrigger><SelectValue placeholder="Select consequence" /></SelectTrigger></FormControl>
+                                                        <SelectContent>{consequenceOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
+                                                    </Select>
+                                                <FormMessage /></FormItem>
+                                            )} />
+                                        </div>
 
-                        {showActionPlan && (
-                            <div className="space-y-4 pt-4 border-t">
-                                <h3 className="text-lg font-semibold text-foreground">Action Plan</h3>
-                                <FormField control={form.control} name="treatmentAction" render={({ field }) => (
-                                    <FormItem><FormLabel>Action Plan / Treatment</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                                )} />
-                                
-                                <FormField control={form.control} name="resourcesNeeded" render={({ field }) => (
-                                    <FormItem><FormLabel>Resources Needed (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                                )} />
-                                
-                                <FormField control={form.control} name="updates" render={({ field }) => (
-                                    <FormItem><FormLabel>Updates (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                                )} />
+                                        <div className="grid grid-cols-2 gap-4 rounded-md border p-4 bg-muted/50">
+                                            <div><span className="font-medium">Calculated Magnitude:</span> {magnitude}</div>
+                                            <div><span className="font-medium">Calculated Rating:</span> {rating}</div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <FormField control={form.control} name="responsiblePersonId" render={({ field }) => (
-                                        <FormItem><FormLabel>Accountable Person</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="Select a person" /></SelectTrigger></FormControl>
-                                                <SelectContent>{unitUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)}</SelectContent>
-                                            </Select>
-                                        <FormMessage /></FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="targetDate" render={({ field }) => (
-                                        <FormItem className="flex flex-col"><FormLabel>Target Completion Date</FormLabel>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <FormControl>
-                                                        <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                            {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                        </Button>
-                                                    </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                                </PopoverContent>
-                                            </Popover>
-                                        <FormMessage /></FormItem>
-                                    )} />
-                                </div>
+                                {showActionPlan && (
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="text-lg">Step 3: Action Plan</CardTitle>
+                                            <CardDescription>An action plan is required for Medium and High ratings.</CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4">
+                                            <FormField control={form.control} name="treatmentAction" render={({ field }) => (
+                                                <FormItem><FormLabel>Action Plan / Treatment</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                            
+                                            <FormField control={form.control} name="resourcesNeeded" render={({ field }) => (
+                                                <FormItem><FormLabel>Resources Needed (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+                                            
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <FormField control={form.control} name="responsiblePersonId" render={({ field }) => (
+                                                    <FormItem><FormLabel>Accountable Person</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                            <FormControl><SelectTrigger><SelectValue placeholder="Select a person" /></SelectTrigger></FormControl>
+                                                            <SelectContent>{unitUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)}</SelectContent>
+                                                        </Select>
+                                                    <FormMessage /></FormItem>
+                                                )} />
+                                                <FormField control={form.control} name="targetDate" render={({ field }) => (
+                                                    <FormItem className="flex flex-col"><FormLabel>Target Completion Date</FormLabel>
+                                                        <Popover>
+                                                            <PopoverTrigger asChild>
+                                                                <FormControl>
+                                                                    <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                                        {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                                    </Button>
+                                                                </FormControl>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-auto p-0" align="start">
+                                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                            </PopoverContent>
+                                                        </Popover>
+                                                    <FormMessage /></FormItem>
+                                                )} />
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-lg">Step 4: Status</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                         <FormField control={form.control} name="status" render={({ field }) => (
+                                            <FormItem><FormLabel>Overall Status</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="Open">Open</SelectItem>
+                                                        <SelectItem value="In Progress">In Progress</SelectItem>
+                                                        <SelectItem value="Closed">Closed</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            <FormMessage /></FormItem>
+                                        )} />
+                                    </CardContent>
+                                </Card>
                             </div>
-                        )}
-                        
-                        <Separator />
+                        </ScrollArea>
+                    </div>
+                    <div className="md:col-span-1">
+                        <Card className="sticky top-0">
+                            <CardHeader>
+                                <CardTitle className="text-base">Rating Criteria</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <ScrollArea className="h-[65vh] pr-2">
+                                    <CriteriaTable title="Likelihood" criteria={likelihoodCriteria} />
+                                    <CriteriaTable title="Consequence" criteria={consequenceCriteria} />
+                                </ScrollArea>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
 
-                        <FormField control={form.control} name="status" render={({ field }) => (
-                            <FormItem><FormLabel>Overall Status</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="Open">Open</SelectItem>
-                                        <SelectItem value="In Progress">In Progress</SelectItem>
-                                        <SelectItem value="Closed">Closed</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            <FormMessage /></FormItem>
-                        )} />
-
-                        <DialogFooter className="pt-4 sticky bottom-0 bg-background pb-4">
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                            <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {risk ? 'Save Changes' : 'Log Entry'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                    </Form>
-                </ScrollArea>
-            </div>
-            <div className="md:col-span-1">
-                <Card className="sticky top-0">
-                    <CardHeader>
-                        <CardTitle className="text-base">Rating Criteria</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                         <ScrollArea className="h-[65vh] pr-2">
-                            <CriteriaTable title="Likelihood" criteria={likelihoodCriteria} />
-                            <CriteriaTable title="Consequence" criteria={consequenceCriteria} />
-                         </ScrollArea>
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
+                <DialogFooter className="pt-6">
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {risk ? 'Save Changes' : 'Log Entry'}
+                    </Button>
+                </DialogFooter>
+            </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
 }
-
