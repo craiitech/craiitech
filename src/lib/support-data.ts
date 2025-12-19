@@ -54,6 +54,16 @@ export const faqs = [
         answer:
           'Find the rejected submission on your Submissions page or Home dashboard and click the "View" (eye) icon. On the detail page, you can read the rejection comments in the "Conversation History" card. Use the "Resubmit Report" form on the same page to provide a new, corrected Google Drive link.',
       },
+      {
+        question: 'What is the Risk & Opportunity Register?',
+        answer:
+          'The Risk Register, accessible from the sidebar, is a module for identifying, analyzing, and managing risks and opportunities within your unit. It helps ensure the university proactively addresses potential issues and leverages opportunities, as required by ISO 21001:2018.',
+      },
+      {
+        question: 'How do I close a risk that I have logged?',
+        answer:
+          'To close a risk, open it from the register and change its status to "Closed". A new section will appear requiring "Post-Treatment Analysis". Here you must re-evaluate the risk\'s likelihood and consequence after your action plan was implemented, provide written evidence of the implementation, and specify the date it was completed. This creates a full audit trail showing the risk was effectively resolved.',
+      },
     ],
   },
   {
@@ -70,9 +80,9 @@ export const faqs = [
           'On the "Approvals" page, you can quickly approve with the green checkmark button. To reject, click the red "X" button, which opens a dialog where you must provide feedback. Alternatively, you can manage approvals from the submission\'s detail page.',
       },
       {
-        question: 'How can I monitor the submission progress of my campus?',
+        question: 'How do I monitor the Risk Register for my campus?',
         answer:
-          'Your Home page provides several dashboard cards and analytics. "Submission Status per Unit" shows the completion progress for each unit, and the "Analytics" tab provides charts for submissions by unit and status.',
+          'Your dashboard contains a "Risk Management Overview" card showing analytics for your campus. You can also go to the "Risk Register" page to see a complete, read-only list of all risk and opportunity entries from all units within your campus, allowing you to monitor their status and action plans.',
       },
        {
         question: 'Can I approve my own submissions?',
@@ -92,7 +102,7 @@ export const faqs = [
       {
         question: 'How do I manage the system\'s campuses, units, and roles?',
         answer:
-          'On the "Settings" page, you will find tabs for "Campuses," "Units," and "Roles." You can add new entries in each of these categories. When managing units, you can also assign a unit to one or more campuses.',
+          'On the "Settings" page, you will find tabs for "Campuses," "Units," "Roles," and "Cycles & Deadlines". You can manage all foundational data for the application from these tabs.',
       },
        {
         question: 'How do I delete a submission?',
@@ -107,3 +117,5 @@ export const faqs = [
     ],
   },
 ];
+
+    

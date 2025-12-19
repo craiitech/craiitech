@@ -72,9 +72,10 @@ const manualSections = [
         {
             title: 'Dashboard Overview',
             content: `
-                <p>Your dashboard provides a quick overview of your submission status.</p>
+                <p>Your dashboard provides a quick overview of your submission status and risk management activities.</p>
                 <ul class="list-disc space-y-2 pl-6">
                     <li><strong>Stats Cards:</strong> Show your submission counts for the First and Final cycles of the current year, and your total number of approved submissions.</li>
+                    <li><strong>Risk Management Overview:</strong> A summary of risk and opportunity entries for your unit, including counts of active units, open risks, and closed risks.</li>
                     <li><strong>Submissions Overview Chart:</strong> A graph showing your submission activity over the last 12 months.</li>
                     <li><strong>Recent Activity:</strong> A list of your 5 most recent submissions and their status.</li>
                     <li><strong>Submission Checklist:</strong> The primary tool for managing your reports. It shows the status of each required document for the selected year and cycle.</li>
@@ -108,11 +109,22 @@ const manualSections = [
                     <li>Click <strong>"Resubmit"</strong>. The status will change back to "Submitted" for a new review.</li>
                 </ol>
             `
+        },
+        {
+            title: 'Using the Risk & Opportunity Register',
+            content: `
+                <p>The Risk Register is a module for logging, tracking, and managing risks and opportunities for your unit.</p>
+                 <ol class="list-decimal space-y-2 pl-6">
+                    <li><strong>Logging a New Entry:</strong> Navigate to the "Risk Register" page and click "Log New Entry". Fill out the form, which is divided into steps for Identification and Analysis. An "Action Plan" section will appear only if the calculated risk rating is Medium or High.</li>
+                    <li><strong>Editing an Entry:</strong> You can edit any entry you have created by clicking the "View / Edit" action button in the table.</li>
+                    <li><strong>Closing a Risk:</strong> To close a risk, edit the entry and change its status to "Closed". A new "Post-Treatment Analysis" section will appear. You must provide evidence of the implemented action plan, the date of implementation, and re-evaluate the risk's likelihood and consequence to demonstrate the effectiveness of your treatment.</li>
+                </ol>
+            `
         }
     ]
   },
   {
-      role: 'Campus Director & Campus ODIMO (Approvers)',
+      role: 'Campus Director, VP & Campus ODIMO (Approvers)',
       sections: [
           {
               title: 'Approvals Page',
@@ -140,10 +152,16 @@ const manualSections = [
               content: `
                 <p>Your dashboard provides a high-level overview of your entire campus. You also have special permissions on the "Settings" page.</p>
                  <ul class="list-disc spacey-y-2 pl-6">
-                    <li><strong>Dashboard Analytics:</strong> The "Analytics" tab provides charts showing submissions by unit and status, helping you identify which units are performing well and which may need support.</li>
+                    <li><strong>Dashboard Analytics:</strong> The dashboard includes cards for tracking submission progress, non-compliant units, and a new "Risk Management Overview" which summarizes risk register activity for your campus.</li>
                     <li><strong>Campus Directors (Unit Management):</strong> Can manage units for their campus. This includes creating new units specific to the campus or assigning existing, unassigned university-wide units to their campus.</li>
                     <li><strong>Campus ODIMOs (Announcements):</strong> Can post a campus-wide announcement. This message will appear in an alert box on the dashboard for every user registered under that campus.</li>
                 </ul>
+              `
+          },
+          {
+              title: 'Monitoring the Risk Register',
+              content: `
+                 <p>As a supervisor, you have read-only access to the Risk & Opportunity Register for all units within your scope (e.g., your campus for a Director, or your assigned units for a VP). This allows you to monitor risks and action plans without altering the data entered by the units.</p>
               `
           }
       ]
@@ -159,8 +177,8 @@ const manualSections = [
                     <li><strong>User Management:</strong> View all users and filter by status ("All", "Inactive", "Active").</li>
                     <li><strong>Account Activation/Deactivation:</strong> You can activate new user accounts that are pending verification or deactivate existing accounts (e.g., if a user has resigned). Deactivated users cannot log in. This is done from the actions menu for each user.</li>
                     <li><strong>Profile Editing:</strong> You can edit any user's profile information, including their role, campus, and unit assignment.</li>
-                    <li><strong>Campus, Unit, and Role Management:</strong> Create and manage the foundational data for the system, such as adding new campuses or defining new user roles.</li>
-                    <li><strong>Campus Settings:</strong> Post announcements for any campus in the system.</li>
+                    <li><strong>Campus, Unit, Role, and Cycle Management:</strong> Create and manage the foundational data for the system, such as adding new campuses, defining new user roles, or setting the dates for submission cycles.</li>
+                    <li><strong>Campus Settings:</strong> Post announcements for any campus in the system, or post a global announcement to all users.</li>
                 </ul>
               `
           },
@@ -180,7 +198,7 @@ const manualSections = [
           {
               title: 'Audit Log',
               content: `
-                <p>The "Audit Log" page, accessible only to administrators, provides a complete and immutable history of all significant actions taken within the application. This includes user logins, registrations, submission creations/updates, and administrative changes, providing full traceability for security and compliance purposes.</p>
+                <p>The "Audit Log" page, accessible only to administrators, provides a complete and immutable history of all significant actions taken within the application. This includes user logins, registrations, submission creations/updates, risk register entries, and administrative changes, providing full traceability for security and compliance purposes.</p>
               `
           }
       ]
@@ -226,3 +244,5 @@ export default function UserManualPage() {
     </Card>
   );
 }
+
+    
