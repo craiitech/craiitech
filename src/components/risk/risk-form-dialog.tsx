@@ -80,6 +80,8 @@ const formSchema = z.object({
   targetMonth: z.string().optional(),
   targetDay: z.string().optional(),
   status: z.enum(['Open', 'In Progress', 'Closed']),
+  postTreatmentLikelihood: z.number().optional(),
+  postTreatmentConsequence: z.number().optional(),
   oapNo: z.string().optional(),
   resourcesNeeded: z.string().optional(),
   updates: z.string().optional(),
@@ -108,6 +110,15 @@ const formSchema = z.object({
                 code: z.ZodIssueCode.custom,
                 message: 'A complete Target Date is required for Medium and High ratings.',
                 path: ['targetDay'],
+            });
+        }
+    }
+    if (data.status === 'Closed') {
+        if (!data.postTreatmentLikelihood || !data.postTreatmentConsequence) {
+             ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Post-treatment analysis is required to close a risk.',
+                path: ['postTreatmentLikelihood'],
             });
         }
     }
@@ -244,6 +255,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         targetYear: targetDate ? String(targetDate.getFullYear()) : undefined,
         targetMonth: targetDate ? String(targetDate.getMonth()) : undefined,
         targetDay: targetDate ? String(targetDate.getDate()) : undefined,
+        postTreatmentLikelihood: risk.postTreatment?.likelihood,
+        postTreatmentConsequence: risk.postTreatment?.consequence,
         oapNo: risk.oapNo || '',
         resourcesNeeded: risk.resourcesNeeded || '',
         updates: risk.updates || '',
@@ -265,6 +278,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         targetYear: undefined,
         targetMonth: undefined,
         targetDay: undefined,
+        postTreatmentLikelihood: undefined,
+        postTreatmentConsequence: undefined,
         oapNo: '',
         resourcesNeeded: '',
         updates: '',
@@ -276,10 +291,18 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
 
   const likelihood = form.watch('likelihood');
   const consequence = form.watch('consequence');
+  const status = form.watch('status');
   const magnitude = likelihood && consequence ? likelihood * consequence : 0;
   const rating = getRating(magnitude);
   
   const showActionPlan = rating === 'Medium' || rating === 'High';
+  const showPostTreatment = status === 'Closed';
+  
+  const postTreatmentLikelihood = form.watch('postTreatmentLikelihood');
+  const postTreatmentConsequence = form.watch('postTreatmentConsequence');
+  const postTreatmentMagnitude = postTreatmentLikelihood && postTreatmentConsequence ? postTreatmentLikelihood * postTreatmentConsequence : 0;
+  const postTreatmentRating = getRating(postTreatmentMagnitude);
+
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!firestore || !userProfile) return;
@@ -287,7 +310,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
     
     const responsiblePerson = unitUsers.find(u => u.id === values.responsiblePersonId);
 
-    let targetDateValue = null;
+    let targetDateValue: Date | null = null;
     if (values.targetYear && values.targetMonth && values.targetDay) {
         targetDateValue = new Date(Number(values.targetYear), Number(values.targetMonth), Number(values.targetDay));
     }
@@ -302,6 +325,12 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         magnitude,
         rating,
       },
+      postTreatment: values.status === 'Closed' && values.postTreatmentLikelihood && values.postTreatmentConsequence ? {
+        likelihood: values.postTreatmentLikelihood,
+        consequence: values.postTreatmentConsequence,
+        magnitude: postTreatmentMagnitude,
+        rating: postTreatmentRating,
+      } : risk?.postTreatment || undefined,
       responsiblePersonId: values.responsiblePersonId || '',
       responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : '',
       targetDate: targetDateValue,
@@ -464,6 +493,9 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
                                                     <FormMessage>{form.formState.errors.targetDay?.message}</FormMessage>
                                                 </div>
                                             </div>
+                                             <FormField control={form.control} name="updates" render={({ field }) => (
+                                                <FormItem><FormLabel>Progress Updates (Optional)</FormLabel><FormControl><Textarea {...field} placeholder="Document any progress made on the action plan here."/></FormControl><FormMessage /></FormItem>
+                                            )} />
                                         </CardContent>
                                     </Card>
                                 )}
@@ -487,6 +519,41 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
                                         )} />
                                     </CardContent>
                                 </Card>
+
+                                {showPostTreatment && (
+                                     <Card>
+                                        <CardHeader>
+                                            <CardTitle className="text-lg">Step 5: Post-Treatment Analysis</CardTitle>
+                                            <CardDescription>Re-evaluate the risk after implementing the action plan.</CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <FormField control={form.control} name="postTreatmentLikelihood" render={({ field }) => (
+                                                    <FormItem><FormLabel>Likelihood (Post-Treatment)</FormLabel>
+                                                        <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                                            <FormControl><SelectTrigger><SelectValue placeholder="Select new likelihood" /></SelectTrigger></FormControl>
+                                                            <SelectContent>{likelihoodOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
+                                                        </Select>
+                                                    <FormMessage /></FormItem>
+                                                )} />
+                                                <FormField control={form.control} name="postTreatmentConsequence" render={({ field }) => (
+                                                    <FormItem><FormLabel>Consequence (Post-Treatment)</FormLabel>
+                                                        <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                                            <FormControl><SelectTrigger><SelectValue placeholder="Select new consequence" /></SelectTrigger></FormControl>
+                                                            <SelectContent>{consequenceOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
+                                                        </Select>
+                                                    <FormMessage /></FormItem>
+                                                )} />
+                                            </div>
+                                            <FormMessage>{form.formState.errors.postTreatmentLikelihood?.message}</FormMessage>
+
+                                            <div className="grid grid-cols-2 gap-4 rounded-md border p-4 bg-muted/50">
+                                                <div><span className="font-medium">New Magnitude:</span> {postTreatmentMagnitude}</div>
+                                                <div><span className="font-medium">New Rating:</span> {postTreatmentRating}</div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
                             </div>
                         </ScrollArea>
                     </div>
