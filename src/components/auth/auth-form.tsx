@@ -501,5 +501,3 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     </>
   );
 }
-
-    
