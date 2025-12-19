@@ -6,15 +6,29 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageSquare, X, Send, Bot, User, Loader2 } from 'lucide-react';
-import { supportChat } from '@/ai/flows/support-chat-flow';
 import { useUser } from '@/firebase';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { AnimatePresence, motion } from 'framer-motion';
+import { faqs } from '@/lib/support-data';
+import Link from 'next/link';
 
 type Message = {
   role: 'user' | 'model';
-  content: string;
+  content: string | React.ReactNode;
 };
+
+// Flatten the FAQs for easier searching
+const allFaqs = faqs.flatMap(section => section.questions);
+
+const findAnswer = (query: string): string | null => {
+  const lowerQuery = query.toLowerCase();
+  for (const faq of allFaqs) {
+    if (faq.question.toLowerCase().includes(lowerQuery)) {
+      return faq.answer;
+    }
+  }
+  return null;
+}
 
 export function Chatbot() {
   const { userProfile } = useUser();
@@ -54,28 +68,32 @@ export function Chatbot() {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+    
+    // Simulate thinking
+    setTimeout(() => {
+        const foundAnswer = findAnswer(input);
+        
+        let responseContent: string | React.ReactNode;
 
-    try {
-      const response = await supportChat({
-        query: input,
-        history: messages,
-      });
+        if (foundAnswer) {
+            responseContent = foundAnswer;
+        } else {
+            responseContent = (
+              <span>
+                I'm sorry, I couldn't find an immediate answer for that. You might find more information in the full{' '}
+                <Link href="/help/manual" className="underline" target="_blank">User Manual</Link>.
+              </span>
+            );
+        }
 
-      const modelMessage: Message = {
-        role: 'model',
-        content: response.response,
-      };
-      setMessages(prev => [...prev, modelMessage]);
-    } catch (error) {
-      console.error('Chatbot error:', error);
-      const errorMessage: Message = {
-        role: 'model',
-        content: "I'm sorry, but I encountered an error. Please try again.",
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
+        const modelMessage: Message = {
+            role: 'model',
+            content: responseContent,
+        };
+
+        setMessages(prev => [...prev, modelMessage]);
+        setIsLoading(false);
+    }, 1000); // 1 second delay
   };
   
   const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
