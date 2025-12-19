@@ -287,9 +287,9 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
     
     const responsiblePerson = unitUsers.find(u => u.id === values.responsiblePersonId);
 
-    let targetDate = null;
+    let targetDateValue = null;
     if (values.targetYear && values.targetMonth && values.targetDay) {
-        targetDate = new Date(Number(values.targetYear), Number(values.targetMonth), Number(values.targetDay));
+        targetDateValue = new Date(Number(values.targetYear), Number(values.targetMonth), Number(values.targetDay));
     }
 
     const riskData: Omit<Risk, 'id' | 'createdAt'> = {
@@ -304,7 +304,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
       },
       responsiblePersonId: values.responsiblePersonId || '',
       responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : '',
-      targetDate,
+      targetDate: targetDateValue,
       updatedAt: serverTimestamp(),
     };
 
