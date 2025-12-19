@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -231,7 +232,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
 
     const riskData: Omit<Risk, 'id' | 'createdAt'> = {
       ...values,
-      responsiblePersonId: values.responsiblePersonId || '',
       unitId: userProfile.unitId,
       campusId: userProfile.campusId,
       preTreatment: {
@@ -240,7 +240,9 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         magnitude,
         rating,
       },
+      responsiblePersonId: values.responsiblePersonId || '',
       responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : '',
+      targetDate: values.targetDate || null, // Ensure targetDate is not undefined
       updatedAt: serverTimestamp(),
     };
 
