@@ -163,7 +163,7 @@ export function Chatbot() {
                           }`}
                         >
                           {typeof message.content === 'string' ? (
-                            <div className="prose prose-sm prose-p:my-0" dangerouslySetInnerHTML={{ __html: message.content}} />
+                            <div className="prose prose-sm prose-p:my-0 prose-p:break-words" dangerouslySetInnerHTML={{ __html: message.content}} />
                            ) : (
                              message.content
                            )
