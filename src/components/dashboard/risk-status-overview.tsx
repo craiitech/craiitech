@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -7,14 +8,20 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ShieldCheck, AlertCircle, CheckCircle, Building, Users } from 'lucide-react';
 import { Button } from '../ui/button';
 import Link from 'next/link';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
 interface RiskStatusOverviewProps {
   risks: Risk[] | null;
   units: Unit[] | null;
   isLoading: boolean;
+  selectedYear: number;
+  onYearChange: (year: number) => void;
 }
 
-export function RiskStatusOverview({ risks, units, isLoading }: RiskStatusOverviewProps) {
+export function RiskStatusOverview({ risks, units, isLoading, selectedYear, onYearChange }: RiskStatusOverviewProps) {
   const stats = useMemo(() => {
     if (!risks || !units) {
       return {
@@ -23,14 +30,16 @@ export function RiskStatusOverview({ risks, units, isLoading }: RiskStatusOvervi
         closedRisks: 0,
       };
     }
+    
+    const yearRisks = risks.filter(r => r.year === selectedYear);
 
-    const participatingUnitIds = new Set(risks.map(r => r.unitId));
+    const participatingUnitIds = new Set(yearRisks.map(r => r.unitId));
     const participatingUnits = units.filter(u => participatingUnitIds.has(u.id));
-    const openRisks = risks.filter(r => r.status === 'Open').length;
-    const closedRisks = risks.filter(r => r.status === 'Closed').length;
+    const openRisks = yearRisks.filter(r => r.status === 'Open').length;
+    const closedRisks = yearRisks.filter(r => r.status === 'Closed').length;
 
     return { participatingUnits, openRisks, closedRisks };
-  }, [risks, units]);
+  }, [risks, units, selectedYear]);
 
   if (isLoading) {
     return (
@@ -54,13 +63,25 @@ export function RiskStatusOverview({ risks, units, isLoading }: RiskStatusOvervi
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ShieldCheck /> Risk Management Overview
-        </CardTitle>
-        <CardDescription>
-          A summary of risk and opportunity submissions across your area of responsibility.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between">
+        <div>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck /> Risk Management Overview
+          </CardTitle>
+          <CardDescription>
+            A summary of risk and opportunity submissions for the selected year.
+          </CardDescription>
+        </div>
+        <div className="w-[120px]">
+          <Select value={String(selectedYear)} onValueChange={(v) => onYearChange(Number(v))}>
+            <SelectTrigger>
+              <SelectValue placeholder="Year" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border bg-card-foreground/5 p-4">
