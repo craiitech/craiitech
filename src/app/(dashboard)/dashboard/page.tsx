@@ -46,7 +46,7 @@ import {
   getDocs,
   Timestamp,
 } from 'firebase/firestore';
-import type { Submission, User as AppUser, Unit, Campus, Cycle } from '@/lib/types';
+import type { Submission, User as AppUser, Unit, Campus, Cycle, Risk } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle, AlertCloseButton } from '@/components/ui/alert';
@@ -75,6 +75,7 @@ import { CompletedSubmissions } from '@/components/dashboard/completed-submissio
 import { NonCompliantUnits } from '@/components/dashboard/non-compliant-units';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { SubmissionSchedule } from '@/components/dashboard/submission-schedule';
+import { RiskStatusOverview } from '@/components/dashboard/risk-status-overview';
 
 export const TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT = 12; // 6 for First, 6 for Final
 
@@ -98,6 +99,7 @@ export default function HomePage() {
 
   const isCampusSupervisor =
     userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+  const isVp = userRole?.toLowerCase().includes('vice president');
   
   const canViewCampusAnnouncements = userProfile?.campusId;
 
@@ -106,7 +108,7 @@ export default function HomePage() {
     if (!firestore) return null;
     if (isAdmin) return collection(firestore, 'submissions');
     if (!userProfile) return null;
-    if (isCampusSupervisor) {
+    if (isCampusSupervisor || isVp) {
       return query(
         collection(firestore, 'submissions'),
         where('campusId', '==', userProfile.campusId)
@@ -116,7 +118,7 @@ export default function HomePage() {
       collection(firestore, 'submissions'),
       where('userId', '==', userProfile.id)
     );
-  }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
+  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isVp]);
 
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
@@ -130,6 +132,20 @@ export default function HomePage() {
       }
     });
   }, [rawSubmissions]);
+  
+   // Fetch risks based on role
+  const risksQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    if (isAdmin) return collection(firestore, 'risks');
+    if (!userProfile) return null;
+    if (isCampusSupervisor || isVp) {
+        return query(collection(firestore, 'risks'), where('campusId', '==', userProfile.campusId));
+    }
+     return query(collection(firestore, 'risks'), where('unitId', '==', userProfile.unitId));
+  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isVp]);
+
+  const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
+
 
   // Fetch users based on role
   const usersQuery = useMemoFirebase(() => {
@@ -212,6 +228,7 @@ export default function HomePage() {
     isLoadingCampuses ||
     isLoadingGlobalSettings ||
     isLoadingCycles ||
+    isLoadingRisks ||
     ((isAdmin || isCampusSupervisor) && isLoadingUsers);
 
 
@@ -476,21 +493,7 @@ export default function HomePage() {
           )}
         </div>
          <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><ShieldCheck/> Risk & Opportunity Register</CardTitle>
-                <CardDescription>
-                    The EOMS is a risk-based approach system. Use this module to log, track, and monitor risks and opportunities for your unit.
-                </CardDescription>
-            </CardHeader>
-            <CardFooter>
-                 <Button asChild>
-                    <Link href="/risk-register">
-                        Open Risk Register
-                    </Link>
-                </Button>
-            </CardFooter>
-        </Card>
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
             <CardHeader>
@@ -643,21 +646,7 @@ export default function HomePage() {
           )}
         </div>
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><ShieldCheck/> Risk & Opportunity Register</CardTitle>
-                <CardDescription>
-                    The EOMS is a risk-based approach system. Use this module to log, track, and monitor risks and opportunities for your campus.
-                </CardDescription>
-            </CardHeader>
-            <CardFooter>
-                 <Button asChild>
-                    <Link href="/risk-register">
-                        Open Risk Register
-                    </Link>
-                </Button>
-            </CardFooter>
-        </Card>
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} />
         <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading}/>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
@@ -761,21 +750,7 @@ export default function HomePage() {
           )}
         </div>
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><ShieldCheck/> Risk & Opportunity Register</CardTitle>
-                <CardDescription>
-                    The EOMS is a risk-based approach system. Use this module to log, track, and monitor risks and opportunities across all campuses.
-                </CardDescription>
-            </CardHeader>
-            <CardFooter>
-                 <Button asChild>
-                    <Link href="/risk-register">
-                        Open Risk Register
-                    </Link>
-                </Button>
-            </CardFooter>
-        </Card>
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} />
         <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading}/>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
@@ -924,7 +899,7 @@ export default function HomePage() {
          )
     }
     if (isAdmin) return renderAdminHome();
-    if (isCampusSupervisor) return renderSupervisorHome();
+    if (isCampusSupervisor || isVp) return renderSupervisorHome();
     return renderUnitCoordinatorHome();
   };
   

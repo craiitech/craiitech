@@ -1,5 +1,6 @@
 
 
+
 // This file can be used for mock data types, but for Firebase, 
 // consider using Zod schemas and inferring types from them, 
 // especially for a Firestore documents.
@@ -67,7 +68,7 @@ export type Risk = {
     treatmentAction?: string;
     responsiblePersonId?: string;
     responsiblePersonName?: string; // Denormalized
-    targetDate?: any; // serverTimestamp()
+    targetDate?: any; // Can be Timestamp
     status: 'Open' | 'In Progress' | 'Closed';
     postTreatment?: {
         likelihood: number;
