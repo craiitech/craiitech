@@ -122,7 +122,7 @@ export default function DashboardLayout({
 
   useEffect(() => {
     // Wait until the initial loading is complete
-    if (isStillLoading) {
+    if (isUserLoading) {
       return;
     }
 
@@ -161,10 +161,10 @@ export default function DashboardLayout({
         return;
       }
     }
-  }, [user, userProfile, isStillLoading, pathname, userRole, isAdmin]);
+  }, [user, userProfile, isUserLoading, pathname, userRole, isAdmin]);
 
 
-  if (isStillLoading) {
+  if (isUserLoading) {
     return <LoadingSkeleton />;
   }
 
@@ -210,3 +210,5 @@ export default function DashboardLayout({
     </ActivityLogProvider>
   );
 }
+
+    
