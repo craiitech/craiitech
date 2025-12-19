@@ -20,24 +20,31 @@ export default function RiskRegisterPage() {
     const isSupervisor = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
 
     const risksQuery = useMemoFirebase(() => {
-        if (!firestore || !userProfile) return null;
+        if (!firestore || !userProfile) return null; // Wait for dependencies
 
-        let q = query(collection(firestore, 'risks'));
+        let q = collection(firestore, 'risks');
 
-        if (isSupervisor && userProfile.campusId) {
-            // Supervisors see all risks in their campus
-            q = query(q, where('campusId', '==', userProfile.campusId));
-        } else if (userProfile.unitId) {
-            // Regular users see risks for their unit
-            q = query(q, where('unitId', '==', userProfile.unitId));
+        if (isSupervisor) {
+            // Supervisors need a campusId to query
+            if (userProfile.campusId) {
+                return query(q, where('campusId', '==', userProfile.campusId));
+            }
+            // If supervisor has no campus, they can't query for anything, return null.
+            // Admin is a supervisor but does not have a campusId, so they fall through and get all risks.
+            if (!isAdmin) return null; 
         } else {
-            // If a user has no campus or unit ID, they can't query for anything.
-            // This prevents an open-ended query that would be denied by security rules.
+             // Regular users need a unitId to query
+            if (userProfile.unitId) {
+                return query(q, where('unitId', '==', userProfile.unitId));
+            }
+            // If user has no unit, they can't query.
             return null;
         }
+
+        // If we reach here, it's an Admin, return the full collection query.
         return q;
 
-    }, [firestore, userProfile, isSupervisor]);
+    }, [firestore, userProfile, isSupervisor, isAdmin]);
 
     const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
