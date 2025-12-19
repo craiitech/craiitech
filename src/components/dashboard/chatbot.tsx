@@ -156,18 +156,13 @@ export function Chatbot() {
                           </Avatar>
                         )}
                         <div
-                          className={`max-w-xs rounded-lg p-3 text-sm break-words ${
+                          className={`max-w-xs rounded-lg p-3 text-sm prose prose-sm prose-p:break-words ${
                             message.role === 'user'
                               ? 'bg-primary text-primary-foreground'
                               : 'bg-muted'
                           }`}
                         >
-                          {typeof message.content === 'string' ? (
-                            <div dangerouslySetInnerHTML={{ __html: message.content}} />
-                           ) : (
-                             message.content
-                           )
-                          }
+                          {message.content}
                         </div>
                         {message.role === 'user' && (
                           <Avatar className="h-8 w-8">
