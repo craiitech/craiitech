@@ -22,9 +22,10 @@ type Message = {
 const allFaqs = faqs.flatMap(section => section.questions);
 
 const suggestedQuestions = [
-    "How do I submit a report?",
-    "What do the different submission statuses mean?",
-    "My submission was rejected. What do I do?",
+    "How do I log a new risk?",
+    "How do I handle a rejected submission?",
+    "How do I close a risk I have logged?",
+    "Where can I find the report templates?",
 ];
 
 const findAnswer = (query: string): string | React.ReactNode | null => {
@@ -132,7 +133,7 @@ export function Chatbot() {
             transition={{ duration: 0.2 }}
             className="fixed bottom-24 right-4 z-50"
           >
-            <Card className="w-96 h-[32rem] flex flex-col shadow-2xl">
+            <Card className="w-[440px] h-[70vh] flex flex-col shadow-2xl">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div className="flex items-center gap-3">
                     <Bot className="h-6 w-6" />
@@ -156,7 +157,7 @@ export function Chatbot() {
                           </Avatar>
                         )}
                         <div
-                          className={`max-w-xs rounded-lg p-4 text-sm break-words ${
+                          className={`max-w-xs rounded-lg p-3 text-sm break-words ${
                             message.role === 'user'
                               ? 'bg-primary text-primary-foreground'
                               : 'bg-muted'
