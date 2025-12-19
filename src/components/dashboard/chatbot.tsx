@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -20,11 +21,27 @@ type Message = {
 // Flatten the FAQs for easier searching
 const allFaqs = faqs.flatMap(section => section.questions);
 
-const findAnswer = (query: string): string | null => {
+const suggestedQuestions = [
+    "How do I submit a report?",
+    "What do the different submission statuses mean?",
+    "My submission was rejected. What do I do?",
+];
+
+const findAnswer = (query: string): string | React.ReactNode | null => {
   const lowerQuery = query.toLowerCase();
   for (const faq of allFaqs) {
-    if (faq.question.toLowerCase().includes(lowerQuery)) {
-      return faq.answer;
+    // Check if the query is an exact match or a close substring
+    if (faq.question.toLowerCase().includes(lowerQuery) || lowerQuery.includes(faq.question.toLowerCase())) {
+        if (faq.answerBlocks) {
+             return (
+                <ul className="list-disc space-y-2 pl-4">
+                    {faq.answerBlocks.map((block, i) => (
+                        <li key={i} dangerouslySetInnerHTML={{ __html: block.content }} />
+                    ))}
+                </ul>
+            )
+        }
+        return faq.answer;
     }
   }
   return null;
@@ -61,17 +78,17 @@ export function Chatbot() {
     }
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
+  const handleSend = async (query: string = input) => {
+    if (!query.trim()) return;
 
-    const userMessage: Message = { role: 'user', content: input };
+    const userMessage: Message = { role: 'user', content: query };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
     
     // Simulate thinking
     setTimeout(() => {
-        const foundAnswer = findAnswer(input);
+        const foundAnswer = findAnswer(query);
         
         let responseContent: string | React.ReactNode;
 
@@ -143,7 +160,12 @@ export function Chatbot() {
                               : 'bg-muted'
                           }`}
                         >
-                          {message.content}
+                          {typeof message.content === 'string' ? (
+                            <div className="prose prose-sm prose-p:my-0" dangerouslySetInnerHTML={{ __html: message.content}} />
+                           ) : (
+                             message.content
+                           )
+                          }
                         </div>
                         {message.role === 'user' && (
                           <Avatar className="h-8 w-8">
@@ -163,6 +185,16 @@ export function Chatbot() {
                              </div>
                         </div>
                     )}
+                    {messages.length === 1 && !isLoading && (
+                        <div className="flex flex-col items-start gap-2 pt-4">
+                            <p className="text-xs text-muted-foreground ml-11">Or try one of these questions:</p>
+                            {suggestedQuestions.map((q, i) => (
+                                <Button key={i} variant="outline" size="sm" className="ml-11 w-auto max-w-full text-left justify-start h-auto py-1.5" onClick={() => handleSend(q)}>
+                                    {q}
+                                </Button>
+                            ))}
+                        </div>
+                    )}
                   </div>
                 </ScrollArea>
               </CardContent>
@@ -175,7 +207,7 @@ export function Chatbot() {
                     onKeyPress={handleKeyPress}
                     disabled={isLoading}
                   />
-                  <Button onClick={handleSend} disabled={isLoading || !input.trim()}>
+                  <Button onClick={() => handleSend()} disabled={isLoading || !input.trim()}>
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>

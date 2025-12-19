@@ -1,3 +1,4 @@
+
 'use client';
 
 export const faqs = [
@@ -41,7 +42,12 @@ export const faqs = [
       },
       {
         question: 'What do the different submission statuses mean?',
-        answer: 'Not Submitted: You have not uploaded this report for the selected period. Submitted: The report has been sent and is awaiting review from an approver. Approved: The submission has been reviewed and approved. Rejected: The submission was not accepted. You must review the feedback, make corrections, and resubmit.',
+        answerBlocks: [
+          { type: 'list-item', content: '<strong>Not Submitted:</strong> You have not uploaded this report for the selected period.' },
+          { type: 'list-item', content: '<strong>Submitted:</strong> The report has been sent and is awaiting review from an approver.' },
+          { type: 'list-item', content: '<strong>Approved:</strong> The submission has been reviewed and approved.' },
+          { type: 'list-item', content: '<strong>Rejected:</strong> The submission was not accepted. You must review the feedback, make corrections, and resubmit.' },
+        ],
       },
       {
         question: 'My submission was rejected. What do I do?',
