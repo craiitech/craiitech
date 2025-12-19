@@ -7,29 +7,29 @@ service cloud.firestore {
     /**
      * Core Philosophy: This ruleset implements a sophisticated security model that combines
      * strict user-ownership with a hierarchical Role-Based Access Control (RBAC) system.
-     * A key change is the move to a top-level `/submissions` collection to simplify
+     * A key change is the move to a top-level /submissions collection to simplify
      * supervisory queries. The default posture remains denial of access, with permissions
      * explicitly granted based on user identity and assigned roles.
      *
-     * Data Structure: User profiles are stored in `/users/{userId}`. All submissions from all
-     * users are stored in the global `/submissions/{submissionId}` collection. This flat
+     * Data Structure: User profiles are stored in /users/{userId}. All submissions from all
+     * users are stored in the global /submissions/{submissionId} collection. This flat
      * structure is efficient for admin/supervisor queries. Security is maintained by
      * embedding ownership and context fields (userId, campusId, unitId) directly into each
      * submission document.
      *
      * Key Security Decisions:
-     * - User Listing Disabled: To protect user privacy, listing the top-level `/users`
+     * - User Listing Disabled: To protect user privacy, listing the top-level /users
      *   collection is explicitly forbidden except for Admins.
      * - Role-Based Access via Existence Checks: A user's role is determined by checking for the
-     *   existence of a document in collections like `/roles_admin/{userId}`.
+     *   existence of a document in collections like /roles_admin/{userId}.
      * - Read-Only Global Data: Core application data (roles, campuses, etc.) is readable by any
      *   signed-in user but is only writable by Admins, ensuring data integrity.
      * - Top-Level Submissions: This collection is readable by a user if they are the owner OR
      *   if they are a supervisor for the submission's campus/unit.
      *
-     * Denormalization for Authorization: The rules for accessing the `/submissions` collection
-     * rely heavily on the assumption that `Submission` documents contain denormalized `campusId`
-     * and `unitId` fields. This avoids slow and costly cross-collection `get()` calls in
+     * Denormalization for Authorization: The rules for accessing the /submissions collection
+     * rely heavily on the assumption that Submission documents contain denormalized campusId
+     * and unitId fields. This avoids slow and costly cross-collection get() calls in
      * security rules when evaluating list queries for supervisors, which is a critical
      * performance and security best practice.
      */
