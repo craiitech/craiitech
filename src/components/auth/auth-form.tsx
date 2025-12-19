@@ -60,6 +60,7 @@ const firebaseErrorMap: Record<string, string> = {
     "auth/weak-password": "The password is too weak. Please use at least 6 characters.",
     "auth/popup-closed-by-user": "The sign-in window was closed. Please try again.",
     "auth/cancelled-popup-request": "The sign-in window was closed. Please try again.",
+    "auth/invalid-credential": "Invalid credentials. Please check your email and password and try again.",
 };
 
 
@@ -112,6 +113,11 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) {
+      // This case is unlikely if firebase provider is set up correctly
+      setAuthError('Authentication service is not available.');
+      return;
+    }
     if (!email || !password) {
         setAuthError("Please enter both email and password.");
         return;
@@ -121,6 +127,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
     try {
         await signInWithEmailAndPassword(auth, email, password);
+        await logUserActivity(auth.currentUser!.uid, auth.currentUser!.displayName || 'Unknown', 'User', 'user_login', { method: 'email' });
         // On success, the onAuthStateChanged listener in the provider will handle the user state.
         // We can now safely redirect.
         router.push('/dashboard');
