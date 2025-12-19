@@ -22,6 +22,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Building2 } from 'lucide-react';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';
 import { Header } from '@/components/dashboard/header';
+import { Chatbot } from '@/components/dashboard/chatbot';
 
 const LoadingSkeleton = () => (
   <div className="flex items-start">
@@ -89,10 +90,10 @@ export default function DashboardLayout({
       return query(submissionsCollection, where('statusId', '==', 'submitted'));
     }
     if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-      return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
+      return query(submissionsCollection, where('campusId', '==', 'userProfile.campusId'), where('statusId', '==', 'submitted'));
     }
     // Employees get notifications for rejected submissions
-    return query(submissionsCollection, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
+    return query(submissionsCollection, where('userId', '==', 'userProfile.id'), where('statusId', '==', 'rejected'));
   }, [firestore, userProfile, userRole]);
 
   const { data: notifications, isLoading: isLoadingNotifications } = useCollection<Submission>(notificationQuery);
@@ -197,6 +198,7 @@ export default function DashboardLayout({
         <SidebarInset>
           <Header notificationCount={notificationCount} />
           <main className="p-4 lg:p-8 bg-background/90">{children}</main>
+          <Chatbot />
         </SidebarInset>
       </SidebarProvider>
     </ActivityLogProvider>
