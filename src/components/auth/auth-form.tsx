@@ -114,7 +114,6 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth) {
-      // This case is unlikely if firebase provider is set up correctly
       setAuthError('Authentication service is not available.');
       return;
     }
@@ -127,7 +126,6 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
     try {
         await signInWithEmailAndPassword(auth, email, password);
-        await logUserActivity(auth.currentUser!.uid, auth.currentUser!.displayName || 'Unknown', 'User', 'user_login', { method: 'email' });
         // On success, the onAuthStateChanged listener in the provider will handle the user state.
         // We can now safely redirect.
         router.push('/dashboard');
@@ -141,6 +139,10 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth || !firestore) {
+        setAuthError('Authentication service is not available.');
+        return;
+    }
     if (!email || !password || !firstName || !lastName) {
       setAuthError("Please fill out all fields.");
       return;
@@ -197,6 +199,10 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   };
 
   const processGoogleSignIn = () => {
+    if (!auth || !firestore) {
+        setAuthError('Authentication service is not available.');
+        return;
+    }
     setIsSubmitting(true);
     setAuthError(null);
     const provider = new GoogleAuthProvider();
@@ -513,3 +519,5 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     </>
   );
 }
+
+    
