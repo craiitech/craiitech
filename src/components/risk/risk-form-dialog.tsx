@@ -45,6 +45,8 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Separator } from '../ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface RiskFormDialogProps {
   isOpen: boolean;
@@ -65,8 +67,11 @@ const formSchema = z.object({
   responsiblePersonId: z.string().optional(),
   targetDate: z.date().optional(),
   status: z.enum(['Open', 'In Progress', 'Closed']),
+  oapNo: z.string().optional(),
   resourcesNeeded: z.string().optional(),
   updates: z.string().optional(),
+  preparedBy: z.string().optional(),
+  approvedBy: z.string().optional(),
 }).superRefine((data, ctx) => {
     const magnitude = (data.likelihood || 0) * (data.consequence || 0);
     const rating = getRating(magnitude);
@@ -117,6 +122,41 @@ const getRating = (magnitude: number): string => {
   return 'Low';
 };
 
+const CriteriaTable = ({ title, criteria }: { title: string, criteria: { level: string, descriptor: string }[] }) => (
+    <div className="mb-4">
+        <h4 className="font-semibold text-sm mb-2">{title}</h4>
+        <div className="border rounded-lg text-xs">
+            <div className="grid grid-cols-[1fr_2fr] font-medium bg-muted/50">
+                <div className="p-2 border-b border-r">Level</div>
+                <div className="p-2 border-b">Descriptor</div>
+            </div>
+            {criteria.map((item, index) => (
+                <div key={index} className="grid grid-cols-[1fr_2fr]">
+                    <div className="p-2 border-b border-r">{item.level}</div>
+                    <div className="p-2 border-b">{item.descriptor}</div>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
+const likelihoodCriteria = [
+    { level: "5 - Almost Certain", descriptor: "Is expected to occur in most circumstances" },
+    { level: "4 - Likely", descriptor: "Will probably occur in most circumstances" },
+    { level: "3 - Possible", descriptor: "Might occur at some time" },
+    { level: "2 - Unlikely", descriptor: "Could occur at some time" },
+    { level: "1 - Rare", descriptor: "May occur only in exceptional circumstances" },
+];
+
+const consequenceCriteria = [
+    { level: "5 - Catastrophic", descriptor: "May result to long-term interruption of business operations; May cause a total collapse of the university's quality management system" },
+    { level: "4 - Major", descriptor: "May result to short-term interruption of business operations; May affect the entire quality management system" },
+    { level: "3 - Moderate", descriptor: "May affect some parts of the quality management system" },
+    { level: "2 - Minor", descriptor: "Requires minor amendment in some of the university's processes" },
+    { level: "1 - Insignificant", descriptor: "Can be managed by routine procedures; has no effect on the quality management system" },
+];
+
+
 export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFormDialogProps) {
   const { userProfile } = useUser();
   const firestore = useFirestore();
@@ -134,8 +174,11 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
       currentControls: '',
       treatmentAction: '',
       status: 'Open',
+      oapNo: '',
       resourcesNeeded: '',
       updates: '',
+      preparedBy: '',
+      approvedBy: '',
     },
   });
 
@@ -146,8 +189,11 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         likelihood: risk.preTreatment.likelihood,
         consequence: risk.preTreatment.consequence,
         targetDate: risk.targetDate?.toDate(),
+        oapNo: risk.oapNo || '',
         resourcesNeeded: risk.resourcesNeeded || '',
         updates: risk.updates || '',
+        preparedBy: risk.preparedBy || '',
+        approvedBy: risk.approvedBy || '',
       });
     } else {
       form.reset({
@@ -162,8 +208,11 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         consequence: undefined,
         responsiblePersonId: undefined,
         targetDate: undefined,
+        oapNo: '',
         resourcesNeeded: '',
         updates: '',
+        preparedBy: '',
+        approvedBy: '',
       });
     }
   }, [risk, isOpen, form]);
@@ -218,142 +267,160 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-5xl">
         <DialogHeader>
           <DialogTitle>{risk ? 'Edit' : 'Log New'} Risk or Opportunity</DialogTitle>
           <DialogDescription>
-            Fill out the details below. All fields are required unless marked optional.
+            Fill out the details below. Use the criteria on the right as a guide for ratings.
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1 pr-4">
-            
-            <FormField control={form.control} name="type" render={({ field }) => (
-                <FormItem className="space-y-3">
-                <FormLabel>Type of Entry</FormLabel>
-                <FormControl>
-                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex items-center space-x-4">
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl><RadioGroupItem value="Risk" /></FormControl>
-                            <Label className="font-normal">Risk</Label>
-                        </FormItem>
-                         <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl><RadioGroupItem value="Opportunity" /></FormControl>
-                            <Label className="font-normal">Opportunity</Label>
-                        </FormItem>
-                    </RadioGroup>
-                </FormControl>
-                </FormItem>
-            )} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2">
+                <ScrollArea className="h-[70vh] pr-6">
+                    <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        
+                        <FormField control={form.control} name="type" render={({ field }) => (
+                            <FormItem className="space-y-3">
+                            <FormLabel>Type of Entry</FormLabel>
+                            <FormControl>
+                                <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex items-center space-x-4">
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                        <FormControl><RadioGroupItem value="Risk" /></FormControl>
+                                        <Label className="font-normal">Risk</Label>
+                                    </FormItem>
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                        <FormControl><RadioGroupItem value="Opportunity" /></FormControl>
+                                        <Label className="font-normal">Opportunity</Label>
+                                    </FormItem>
+                                </RadioGroup>
+                            </FormControl>
+                            </FormItem>
+                        )} />
 
-            <FormField control={form.control} name="objective" render={({ field }) => (
-                <FormItem><FormLabel>Related Process/Function Objective</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            
-            <FormField control={form.control} name="description" render={({ field }) => (
-                <FormItem><FormLabel>Description of Risk/Opportunity</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
+                        <FormField control={form.control} name="objective" render={({ field }) => (
+                            <FormItem><FormLabel>Related Process/Function Objective</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        
+                        <FormField control={form.control} name="description" render={({ field }) => (
+                            <FormItem><FormLabel>Description of Risk/Opportunity</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
 
-            <FormField control={form.control} name="currentControls" render={({ field }) => (
-                <FormItem><FormLabel>Current Controls/Situation</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <FormField control={form.control} name="likelihood" render={({ field }) => (
-                    <FormItem><FormLabel>Likelihood (Pre-Treatment)</FormLabel>
-                        <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select likelihood" /></SelectTrigger></FormControl>
-                            <SelectContent>{likelihoodOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
-                        </Select>
-                    <FormMessage /></FormItem>
-                )} />
-                 <FormField control={form.control} name="consequence" render={({ field }) => (
-                    <FormItem><FormLabel>Consequence (Pre-Treatment)</FormLabel>
-                        <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select consequence" /></SelectTrigger></FormControl>
-                             <SelectContent>{consequenceOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
-                        </Select>
-                    <FormMessage /></FormItem>
-                )} />
-            </div>
+                        <FormField control={form.control} name="currentControls" render={({ field }) => (
+                            <FormItem><FormLabel>Current Controls/Situation</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField control={form.control} name="likelihood" render={({ field }) => (
+                                <FormItem><FormLabel>Likelihood (Pre-Treatment)</FormLabel>
+                                    <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Select likelihood" /></SelectTrigger></FormControl>
+                                        <SelectContent>{likelihoodOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                <FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="consequence" render={({ field }) => (
+                                <FormItem><FormLabel>Consequence (Pre-Treatment)</FormLabel>
+                                    <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Select consequence" /></SelectTrigger></FormControl>
+                                        <SelectContent>{consequenceOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                <FormMessage /></FormItem>
+                            )} />
+                        </div>
 
-            <div className="grid grid-cols-2 gap-4 rounded-md border p-4 bg-muted/50">
-                <div><span className="font-medium">Calculated Magnitude:</span> {magnitude}</div>
-                <div><span className="font-medium">Calculated Rating:</span> {rating}</div>
-            </div>
+                        <div className="grid grid-cols-2 gap-4 rounded-md border p-4 bg-muted/50">
+                            <div><span className="font-medium">Calculated Magnitude:</span> {magnitude}</div>
+                            <div><span className="font-medium">Calculated Rating:</span> {rating}</div>
+                        </div>
 
-            {showActionPlan && (
-                <div className="space-y-4 pt-4 border-t">
-                    <h3 className="text-lg font-semibold text-foreground">Action Plan</h3>
-                     <FormField control={form.control} name="treatmentAction" render={({ field }) => (
-                        <FormItem><FormLabel>Action Plan / Treatment</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    
-                    <FormField control={form.control} name="resourcesNeeded" render={({ field }) => (
-                        <FormItem><FormLabel>Resources Needed (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    
-                    <FormField control={form.control} name="updates" render={({ field }) => (
-                        <FormItem><FormLabel>Updates (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
+                        {showActionPlan && (
+                            <div className="space-y-4 pt-4 border-t">
+                                <h3 className="text-lg font-semibold text-foreground">Action Plan</h3>
+                                <FormField control={form.control} name="treatmentAction" render={({ field }) => (
+                                    <FormItem><FormLabel>Action Plan / Treatment</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                
+                                <FormField control={form.control} name="resourcesNeeded" render={({ field }) => (
+                                    <FormItem><FormLabel>Resources Needed (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                
+                                <FormField control={form.control} name="updates" render={({ field }) => (
+                                    <FormItem><FormLabel>Updates (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                                )} />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="responsiblePersonId" render={({ field }) => (
-                            <FormItem><FormLabel>Accountable Person</FormLabel>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField control={form.control} name="responsiblePersonId" render={({ field }) => (
+                                        <FormItem><FormLabel>Accountable Person</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder="Select a person" /></SelectTrigger></FormControl>
+                                                <SelectContent>{unitUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)}</SelectContent>
+                                            </Select>
+                                        <FormMessage /></FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="targetDate" render={({ field }) => (
+                                        <FormItem className="flex flex-col"><FormLabel>Target Completion Date</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                            {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                </PopoverContent>
+                                            </Popover>
+                                        <FormMessage /></FormItem>
+                                    )} />
+                                </div>
+                            </div>
+                        )}
+                        
+                        <Separator />
+
+                        <FormField control={form.control} name="status" render={({ field }) => (
+                            <FormItem><FormLabel>Overall Status</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a person" /></SelectTrigger></FormControl>
-                                    <SelectContent>{unitUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)}</SelectContent>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="Open">Open</SelectItem>
+                                        <SelectItem value="In Progress">In Progress</SelectItem>
+                                        <SelectItem value="Closed">Closed</SelectItem>
+                                    </SelectContent>
                                 </Select>
                             <FormMessage /></FormItem>
                         )} />
-                         <FormField control={form.control} name="targetDate" render={({ field }) => (
-                            <FormItem className="flex flex-col"><FormLabel>Target Completion Date</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                            <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                            </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                    </PopoverContent>
-                                </Popover>
-                            <FormMessage /></FormItem>
-                        )} />
-                    </div>
-                </div>
-            )}
-            
-            <Separator />
 
-             <FormField control={form.control} name="status" render={({ field }) => (
-                <FormItem><FormLabel>Overall Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
-                        <SelectContent>
-                            <SelectItem value="Open">Open</SelectItem>
-                            <SelectItem value="In Progress">In Progress</SelectItem>
-                            <SelectItem value="Closed">Closed</SelectItem>
-                        </SelectContent>
-                    </Select>
-                <FormMessage /></FormItem>
-            )} />
-
-            <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {risk ? 'Save Changes' : 'Log Entry'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+                        <DialogFooter className="pt-4 sticky bottom-0 bg-background pb-4">
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {risk ? 'Save Changes' : 'Log Entry'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                    </Form>
+                </ScrollArea>
+            </div>
+            <div className="md:col-span-1">
+                <Card className="sticky top-0">
+                    <CardHeader>
+                        <CardTitle className="text-base">Rating Criteria</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                         <ScrollArea className="h-[65vh] pr-2">
+                            <CriteriaTable title="Likelihood" criteria={likelihoodCriteria} />
+                            <CriteriaTable title="Consequence" criteria={consequenceCriteria} />
+                         </ScrollArea>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-    
