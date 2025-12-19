@@ -24,12 +24,16 @@ export default function RiskRegisterPage() {
 
         let q = query(collection(firestore, 'risks'));
 
-        if (isSupervisor) {
+        if (isSupervisor && userProfile.campusId) {
             // Supervisors see all risks in their campus
             q = query(q, where('campusId', '==', userProfile.campusId));
-        } else {
+        } else if (userProfile.unitId) {
             // Regular users see risks for their unit
             q = query(q, where('unitId', '==', userProfile.unitId));
+        } else {
+            // If a user has no campus or unit ID, they can't query for anything.
+            // This prevents an open-ended query that would be denied by security rules.
+            return null;
         }
         return q;
 
@@ -38,17 +42,17 @@ export default function RiskRegisterPage() {
     const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
     const usersQuery = useMemoFirebase(() => {
-        if (!firestore || !userProfile) return null;
+        if (!firestore || !userProfile?.campusId) return null;
         // Fetch all users in the same campus to populate 'Responsible Person' dropdown
         return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
-    }, [firestore, userProfile]);
+    }, [firestore, userProfile?.campusId]);
 
     const { data: users, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
 
     const unitsQuery = useMemoFirebase(() => {
-        if (!firestore || !userProfile) return null;
+        if (!firestore || !userProfile?.campusId) return null;
          return query(collection(firestore, 'units'), where('campusIds', 'array-contains', userProfile.campusId));
-    }, [firestore, userProfile]);
+    }, [firestore, userProfile?.campusId]);
     const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
     const usersMap = useMemo(() => {
@@ -87,7 +91,7 @@ export default function RiskRegisterPage() {
         <CardHeader>
             <CardTitle>Register</CardTitle>
             <CardDescription>
-                Below is a list of all risks and opportunities for {isSupervisor ? `the ${userProfile?.campusName} campus` : 'your unit'}.
+                Below is a list of all risks and opportunities for {isSupervisor ? `the ${userProfile?.campusId ? campusMap.get(userProfile.campusId) || 'campus' : ''}` : 'your unit'}.
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -114,3 +118,6 @@ export default function RiskRegisterPage() {
     </>
   );
 }
+
+// Dummy map to prevent breaking the UI before data loads.
+const campusMap = new Map();

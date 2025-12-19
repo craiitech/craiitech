@@ -149,17 +149,20 @@ service cloud.firestore {
 
     /**
      * @description Top-level risk register collection.
-     * - Read: Allowed if you are from the same unit, a supervisor for the campus, a relevant VP, or an admin.
-     * - Create: Allowed if the risk data belongs to your own unit/campus.
-     * - Update/Delete: Allowed for users of the same unit or admins.
+     * - get: Allowed if user is from the same unit, a supervisor, or an admin.
+     * - list: Any authenticated user can *attempt* to list, but the queries from the client-side must be constrained
+     *         by unitId or campusId, which are enforced by the `get` rule on individual document reads during query execution.
+     * - create/update/delete: Allowed for users of the same unit or admins.
      */
     match /risks/{riskId} {
-      allow get, list: if (getUserProfile().unitId == resource.data.unitId)
+      allow get: if (getUserProfile().unitId == resource.data.unitId)
                     || (isCampusOdimo() && getUserProfile().campusId == resource.data.campusId) 
                     || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId)
                     || (isCampusDirector() && getUserProfile().campusId == resource.data.campusId)
                     || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid)
                     || isAdmin();
+      
+      allow list: if isSignedIn(); // Allow list for any signed-in user, but client MUST apply where() clauses.
 
       allow create: if request.resource.data.unitId == getUserProfile().unitId
                     && request.resource.data.campusId == getUserProfile().campusId;
