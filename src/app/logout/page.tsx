@@ -37,8 +37,8 @@ export default function LogoutPage() {
           });
         }
       }
-      // Force a full refresh to the landing page.
-      window.location.href = '/';
+      // Use router.push('/') for a client-side navigation to the home page.
+      router.push('/');
     };
 
     handleFinalLogout();
