@@ -57,16 +57,17 @@ export type Risk = {
     objective: string;
     type: 'Risk' | 'Opportunity';
     description: string;
+    currentControls: string;
     preTreatment: {
         likelihood: number;
         consequence: number;
         magnitude: number;
         rating: string;
     };
-    treatmentAction: string;
-    responsiblePersonId: string;
-    responsiblePersonName: string; // Denormalized
-    targetDate: any; // serverTimestamp()
+    treatmentAction?: string;
+    responsiblePersonId?: string;
+    responsiblePersonName?: string; // Denormalized
+    targetDate?: any; // serverTimestamp()
     status: 'Open' | 'In Progress' | 'Closed';
     postTreatment?: {
         likelihood: number;
@@ -119,4 +120,6 @@ export type Cycle = {
   startDate: any; // Can be Timestamp
   endDate: any; // Can be Timestamp
 }
+    
+
     

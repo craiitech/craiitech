@@ -44,6 +44,7 @@ import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { useSessionActivity } from '@/lib/activity-log-provider';
+import { Separator } from '../ui/separator';
 
 interface RiskFormDialogProps {
   isOpen: boolean;
@@ -57,15 +58,41 @@ const formSchema = z.object({
   objective: z.string().min(1, 'Objective is required'),
   type: z.enum(['Risk', 'Opportunity']),
   description: z.string().min(1, 'Description is required'),
+  currentControls: z.string().min(1, 'Current controls are required.'),
   likelihood: z.number().min(1).max(5),
   consequence: z.number().min(1).max(5),
-  treatmentAction: z.string().min(1, 'Treatment action is required'),
-  responsiblePersonId: z.string().min(1, 'Please select a responsible person'),
-  targetDate: z.date(),
+  treatmentAction: z.string().optional(),
+  responsiblePersonId: z.string().optional(),
+  targetDate: z.date().optional(),
   status: z.enum(['Open', 'In Progress', 'Closed']),
-  // Optional fields for Action Plan
   resourcesNeeded: z.string().optional(),
   updates: z.string().optional(),
+}).superRefine((data, ctx) => {
+    const magnitude = (data.likelihood || 0) * (data.consequence || 0);
+    const rating = getRating(magnitude);
+    if (rating === 'Medium' || rating === 'High') {
+        if (!data.treatmentAction) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Action Plan is required for Medium and High ratings.',
+                path: ['treatmentAction'],
+            });
+        }
+        if (!data.responsiblePersonId) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Accountable Person is required for Medium and High ratings.',
+                path: ['responsiblePersonId'],
+            });
+        }
+        if (!data.targetDate) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Target Date is required for Medium and High ratings.',
+                path: ['targetDate'],
+            });
+        }
+    }
 });
 
 const likelihoodOptions = [
@@ -104,6 +131,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
       objective: '',
       type: 'Risk',
       description: '',
+      currentControls: '',
       treatmentAction: '',
       status: 'Open',
       resourcesNeeded: '',
@@ -127,6 +155,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         objective: '',
         type: 'Risk',
         description: '',
+        currentControls: '',
         treatmentAction: '',
         status: 'Open',
         likelihood: undefined,
@@ -143,6 +172,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
   const consequence = form.watch('consequence');
   const magnitude = likelihood && consequence ? likelihood * consequence : 0;
   const rating = getRating(magnitude);
+  
+  const showActionPlan = rating === 'Medium' || rating === 'High';
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!firestore || !userProfile) return;
@@ -160,7 +191,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         magnitude,
         rating,
       },
-      responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : 'Unknown',
+      responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : '',
       updatedAt: serverTimestamp(),
     };
 
@@ -222,6 +253,10 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
             <FormField control={form.control} name="description" render={({ field }) => (
                 <FormItem><FormLabel>Description of Risk/Opportunity</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
             )} />
+
+            <FormField control={form.control} name="currentControls" render={({ field }) => (
+                <FormItem><FormLabel>Current Controls/Situation</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+            )} />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <FormField control={form.control} name="likelihood" render={({ field }) => (
@@ -247,48 +282,55 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
                 <div><span className="font-medium">Calculated Rating:</span> {rating}</div>
             </div>
 
-             <FormField control={form.control} name="treatmentAction" render={({ field }) => (
-                <FormItem><FormLabel>Action Plan / Treatment</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            
-            <FormField control={form.control} name="resourcesNeeded" render={({ field }) => (
-                <FormItem><FormLabel>Resources Needed (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            
-            <FormField control={form.control} name="updates" render={({ field }) => (
-                <FormItem><FormLabel>Updates (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
+            {showActionPlan && (
+                <div className="space-y-4 pt-4 border-t">
+                    <h3 className="text-lg font-semibold text-foreground">Action Plan</h3>
+                     <FormField control={form.control} name="treatmentAction" render={({ field }) => (
+                        <FormItem><FormLabel>Action Plan / Treatment</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    
+                    <FormField control={form.control} name="resourcesNeeded" render={({ field }) => (
+                        <FormItem><FormLabel>Resources Needed (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    
+                    <FormField control={form.control} name="updates" render={({ field }) => (
+                        <FormItem><FormLabel>Updates (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
 
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="responsiblePersonId" render={({ field }) => (
+                            <FormItem><FormLabel>Accountable Person</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a person" /></SelectTrigger></FormControl>
+                                    <SelectContent>{unitUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)}</SelectContent>
+                                </Select>
+                            <FormMessage /></FormItem>
+                        )} />
+                         <FormField control={form.control} name="targetDate" render={({ field }) => (
+                            <FormItem className="flex flex-col"><FormLabel>Target Completion Date</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                    </PopoverContent>
+                                </Popover>
+                            <FormMessage /></FormItem>
+                        )} />
+                    </div>
+                </div>
+            )}
+            
+            <Separator />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="responsiblePersonId" render={({ field }) => (
-                    <FormItem><FormLabel>Accountable Person</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select a person" /></SelectTrigger></FormControl>
-                            <SelectContent>{unitUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)}</SelectContent>
-                        </Select>
-                    <FormMessage /></FormItem>
-                )} />
-                 <FormField control={form.control} name="targetDate" render={({ field }) => (
-                    <FormItem className="flex flex-col"><FormLabel>Target Completion Date</FormLabel>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <FormControl>
-                                    <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                        {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                    </Button>
-                                </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                            </PopoverContent>
-                        </Popover>
-                    <FormMessage /></FormItem>
-                )} />
-            </div>
              <FormField control={form.control} name="status" render={({ field }) => (
-                <FormItem><FormLabel>Status</FormLabel>
+                <FormItem><FormLabel>Overall Status</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
                         <SelectContent>
@@ -313,3 +355,5 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
     </Dialog>
   );
 }
+
+    
