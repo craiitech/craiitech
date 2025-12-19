@@ -74,7 +74,7 @@ export default function Home() {
                         </AlertDialogHeader>
                         <div className="text-sm space-y-3">
                             <div>
-                                <p className="font-semibold">Project Leader:</p>
+                                <p className="font-semibold">PROJECT LEADER and DEVELOPER:</p>
                                 <p>Dr. Marvin Rick G. Forcado</p>
                             </div>
                             <div>
