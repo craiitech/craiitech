@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore, initiateEmailSignIn } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -119,9 +119,17 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     setIsSubmitting(true);
     setAuthError(null);
 
-    // Non-blocking sign-in
-    initiateEmailSignIn(auth, email, password);
-    router.push('/dashboard');
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        // On success, the onAuthStateChanged listener in the provider will handle the user state.
+        // We can now safely redirect.
+        router.push('/dashboard');
+    } catch (error) {
+        console.error('Sign in error:', error);
+        const errorCode = (error as AuthError).code;
+        setAuthError(firebaseErrorMap[errorCode] || 'An unknown sign-in error occurred. Please try again.');
+        setIsSubmitting(false); // Only set submitting to false on error
+    }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -498,5 +506,3 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     </>
   );
 }
-
-    
