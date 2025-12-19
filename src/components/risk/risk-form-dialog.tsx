@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -232,6 +231,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
 
     const riskData: Omit<Risk, 'id' | 'createdAt'> = {
       ...values,
+      responsiblePersonId: values.responsiblePersonId || '',
       unitId: userProfile.unitId,
       campusId: userProfile.campusId,
       preTreatment: {
