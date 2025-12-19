@@ -137,13 +137,21 @@ export default function HomePage() {
   
    // Fetch risks based on role
   const risksQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    if (isAdmin) return collection(firestore, 'risks');
-    if (!userProfile) return null;
+    if (!firestore || !userProfile) return null;
+
+    const baseRisksQuery = collection(firestore, 'risks');
+
+    if (isAdmin) {
+      // Admin sees all risks.
+      return baseRisksQuery;
+    } 
     if (isCampusSupervisor || isVp) {
-        return query(collection(firestore, 'risks'), where('campusId', '==', userProfile.campusId));
-    }
-     return query(collection(firestore, 'risks'), where('unitId', '==', userProfile.unitId));
+      // Supervisors see all risks in their campus.
+      return query(baseRisksQuery, where('campusId', '==', userProfile.campusId));
+    } 
+    // Regular users see risks for their own unit.
+    return query(baseRisksQuery, where('unitId', '==', userProfile.unitId));
+    
   }, [firestore, userProfile, isAdmin, isCampusSupervisor, isVp]);
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
