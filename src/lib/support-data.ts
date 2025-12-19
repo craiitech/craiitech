@@ -39,9 +39,9 @@ export const faqs = [
         answer:
           'The Home page provides a "Submission Checklist" tab that shows the status (Not Submitted, Submitted, Approved, Rejected) of each required document for the selected year and cycle. You can also view a complete history on the "Submissions" page.',
       },
-       {
+      {
         question: 'What do the different submission statuses mean?',
-        answer: 'The statuses are: Not Submitted (you have not uploaded the report), Submitted (sent for review), Approved (the submission was accepted), and Rejected (not accepted, requires correction).',
+        answer: 'Not Submitted: You have not uploaded this report for the selected period. Submitted: The report has been sent and is awaiting review from an approver. Approved: The submission has been reviewed and approved. Rejected: The submission was not accepted. You must review the feedback, make corrections, and resubmit.',
       },
       {
         question: 'My submission was rejected. What do I do?',
