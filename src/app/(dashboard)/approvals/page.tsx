@@ -31,7 +31,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import {
   collection,
   query,
@@ -56,9 +56,8 @@ export default function ApprovalsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
+
   const [users, setUsers] = useState<Record<string, AppUser>>({});
-  const [isLoading, setIsLoading] = useState(true);
 
   // State for the feedback dialog
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -70,86 +69,63 @@ export default function ApprovalsPage() {
   
   const canApprove = userRole === 'Admin' || userRole === 'Campus ODIMO' || userRole === 'Campus Director';
 
-
-  // Effect to fetch submissions based on user role
-  useEffect(() => {
-    // Wait for the dependencies that are *always* required
+  const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !userRole) {
-      return;
+      return null;
     }
     // Supervisors (non-admin) need to wait for their profile to get campus/unit IDs
-    if (userRole !== 'Admin' && !userProfile) {
-        return;
+    if (userRole !== 'Admin' && !userProfile?.campusId) {
+        return null;
     }
 
+    const submissionsCollection = collection(firestore, 'submissions');
+    
+    if (userRole === 'Admin') {
+      return query(
+        submissionsCollection,
+        where('statusId', '==', 'submitted')
+      );
+    } 
+    
+    if ((userRole === 'Campus Director' || userRole === 'Campus ODIMO') && userProfile?.campusId) {
+      return query(
+        submissionsCollection,
+        where('campusId', '==', userProfile.campusId),
+        where('statusId', '==', 'submitted')
+      );
+    }
 
-    const fetchSubmissions = async () => {
-      setIsLoading(true);
-      try {
-        const submissionsCollection = collection(firestore, 'submissions');
-        let baseQuery;
+    return null; // Return null if no valid query can be constructed
+  }, [firestore, userRole, userProfile]);
 
-        // Admins, Campus ODIMOs and Campus Directors see submissions needing approval.
-        if (userRole === 'Admin') {
-          baseQuery = query(
-            submissionsCollection,
-            where('statusId', '==', 'submitted')
-          );
-        } else if (
-          (userRole === 'Campus Director' || userRole === 'Campus ODIMO') &&
-          userProfile?.campusId
-        ) {
-          baseQuery = query(
-            submissionsCollection,
-            where('campusId', '==', userProfile.campusId),
-            where('statusId', '==', 'submitted')
-          );
-        }
+  const { data: rawSubmissions, isLoading } = useCollection<Submission>(submissionsQuery);
 
-        if (!baseQuery) {
-          setSubmissions([]);
-          setIsLoading(false);
-          return;
-        }
+  const submissions = useMemo(() => {
+    if (!rawSubmissions) return [];
+    
+    let fetchedSubmissions = rawSubmissions.map((s) => {
+        const data = s;
+        const submissionDateRaw = data.submissionDate;
+        const submissionDate =
+          submissionDateRaw instanceof Timestamp
+            ? submissionDateRaw.toDate()
+            : new Date((submissionDateRaw as any)?.seconds * 1000);
+        return {
+          ...data,
+          submissionDate,
+        } as Submission;
+      });
 
-        const submissionsSnapshot = await getDocs(baseQuery);
-        let fetchedSubmissions = submissionsSnapshot.docs.map((doc) => {
-          const data = doc.data();
-          const submissionDateRaw = data.submissionDate;
-          const submissionDate =
-            submissionDateRaw instanceof Timestamp
-              ? submissionDateRaw.toDate()
-              : new Date(submissionDateRaw?.seconds * 1000);
-          return {
-            id: doc.id,
-            ...data,
-            submissionDate,
-          } as Submission;
-        });
-        
-        // Filter out submissions made by the approver themselves, unless they are an admin
-        if (userRole !== 'Admin' && userProfile) {
-          fetchedSubmissions = fetchedSubmissions.filter(
+    // Filter out submissions made by the approver themselves, unless they are an admin
+    if (userRole !== 'Admin' && userProfile) {
+        fetchedSubmissions = fetchedSubmissions.filter(
             (s) => s.userId !== userProfile.id
-          );
-        }
+        );
+    }
+    
+    return fetchedSubmissions;
+  }, [rawSubmissions, userRole, userProfile]);
 
-        setSubmissions(fetchedSubmissions);
-
-      } catch (error) {
-        console.error('Error fetching submissions for approval:', error);
-        toast({
-          title: 'Error',
-          description: 'Could not fetch submissions for approval.',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSubmissions();
-  }, [firestore, userRole, userProfile, toast]);
 
   // Effect to fetch users for the loaded submissions
   useEffect(() => {
@@ -197,7 +173,6 @@ export default function ApprovalsPage() {
         title: 'Success',
         description: `Submission has been approved.`,
       });
-      setSubmissions(submissions.filter((s) => s.id !== submissionId));
     } catch (error) {
       console.error('Error approving submission:', error);
       toast({
@@ -259,9 +234,6 @@ export default function ApprovalsPage() {
         title: 'Success',
         description: `Submission has been rejected.`,
       });
-      setSubmissions(
-        submissions.filter((s) => s.id !== currentSubmission.id)
-      );
       setIsDialogOpen(false);
     } catch (error) {
       console.error('Error rejecting submission:', error);
