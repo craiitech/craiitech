@@ -7,23 +7,17 @@ import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
 import { useState, useMemo } from 'react';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc } from 'firebase/firestore';
 import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
 import { RiskTable } from '@/components/risk/risk-table';
 
 export default function RiskRegisterPage() {
-    const { userProfile, isAdmin, userRole, isUserLoading } = useUser();
-    const firestore = useFirestore();
+    const { userProfile, isAdmin, userRole, isUserLoading, firestore } = useUser();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
 
     const isSupervisor = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
     
-    const campusQuery = useMemoFirebase(
-        () => (firestore && userProfile?.campusId ? doc(firestore, 'campuses', userProfile.campusId) : null),
-        [firestore, userProfile?.campusId]
-    );
-
     const risksQuery = useMemoFirebase(() => {
         if (!firestore || !userProfile) return null; // Wait for dependencies
 
@@ -37,7 +31,7 @@ export default function RiskRegisterPage() {
             if (userProfile.campusId) {
                 return query(q, where('campusId', '==', userProfile.campusId));
             }
-            return null; // Supervisor without campusId can't query
+            return null; // Supervisor without campusId can't query yet
         }
 
         // Regular user
@@ -52,7 +46,7 @@ export default function RiskRegisterPage() {
     const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
     
     const campusDataQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
-    const { data: allCampuses } = useCollection<Campus>(campusDataQuery);
+    const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusDataQuery);
     
     const campusMap = useMemo(() => {
         if (!allCampuses) return new Map();
@@ -61,8 +55,8 @@ export default function RiskRegisterPage() {
 
 
     const usersQuery = useMemoFirebase(() => {
+        // This query now explicitly depends on userProfile.campusId being available
         if (!firestore || !userProfile?.campusId) return null;
-        // Fetch all users in the same campus to populate 'Responsible Person' dropdown
         return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
     }, [firestore, userProfile?.campusId]);
 
@@ -89,7 +83,7 @@ export default function RiskRegisterPage() {
         setIsFormOpen(true);
     };
     
-    const isLoading = isUserLoading || isLoadingRisks || isLoadingUsers || isLoadingUnits;
+    const isLoading = isUserLoading || isLoadingRisks || isLoadingUsers || isLoadingUnits || isLoadingCampuses;
 
   return (
     <>
@@ -110,7 +104,7 @@ export default function RiskRegisterPage() {
         <CardHeader>
             <CardTitle>Register</CardTitle>
             <CardDescription>
-                Below is a list of all risks and opportunities for {isSupervisor && !isAdmin ? `the ${userProfile?.campusId ? campusMap.get(userProfile.campusId) || 'campus' : ''}` : 'your unit'}.
+                Below is a list of all risks and opportunities for {isSupervisor && !isAdmin && userProfile?.campusId ? `the ${campusMap.get(userProfile.campusId) || 'campus'}` : 'your unit'}.
             </CardDescription>
         </CardHeader>
         <CardContent>
