@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore, initiateEmailSignIn } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -58,6 +58,8 @@ const firebaseErrorMap: Record<string, string> = {
     "auth/invalid-email": "The email address is not valid. Please check the format.",
     "auth/email-already-in-use": "This email address is already associated with an account.",
     "auth/weak-password": "The password is too weak. Please use at least 6 characters.",
+    "auth/popup-closed-by-user": "The sign-in window was closed. Please try again.",
+    "auth/cancelled-popup-request": "The sign-in window was closed. Please try again.",
 };
 
 
@@ -116,17 +118,10 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     }
     setIsSubmitting(true);
     setAuthError(null);
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      // We don't log here, the provider will log on auth state change
-      router.push('/dashboard');
-    } catch (error) {
-      console.error('Sign in error:', error);
-      const errorCode = (error as AuthError).code;
-      setAuthError(firebaseErrorMap[errorCode] || 'An unknown login error occurred. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+
+    // Non-blocking sign-in
+    initiateEmailSignIn(auth, email, password);
+    router.push('/dashboard');
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -188,6 +183,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
   const processGoogleSignIn = () => {
     setIsSubmitting(true);
+    setAuthError(null);
     const provider = new GoogleAuthProvider();
     signInWithPopup(auth, provider)
       .then(async (result) => {
@@ -243,7 +239,8 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       })
       .catch((error) => {
         console.error('Google sign-in error:', error);
-        setAuthError(error.message || 'An unknown error occurred during Google Sign-In.');
+        const errorCode = (error as AuthError).code;
+        setAuthError(firebaseErrorMap[errorCode] || 'An unknown error occurred during Google Sign-In.');
       })
       .finally(() => {
         setIsSubmitting(false);
@@ -501,3 +498,5 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     </>
   );
 }
+
+    

@@ -11,6 +11,7 @@ import { useCollection, type WithId } from './firestore/use-collection';
 import type { User as AppUser, Role } from '@/lib/types';
 import { useMemoFirebase } from './';
 import { useSessionActivity, ActivityLogProvider } from '@/lib/activity-log-provider';
+import { useToast } from '@/hooks/use-toast';
 
 
 interface FirebaseProviderProps {
@@ -87,6 +88,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     isAuthLoading: true, // Start loading until first auth event
     userError: null,
   });
+  const { toast } = useToast();
 
   // Use a ref to track if the initial login has been logged for the session
   const loginLoggedRef = useRef(false);
@@ -112,10 +114,15 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       (error) => { // Auth listener error
         console.error("FirebaseProvider: onAuthStateChanged error:", error);
         setUserAuthState({ user: null, isAuthLoading: false, userError: error });
+        toast({
+          title: 'Login Failed',
+          description: error.message || 'An unknown authentication error occurred.',
+          variant: 'destructive',
+        });
       }
     );
     return () => unsubscribe(); // Cleanup
-  }, [auth]);
+  }, [auth, toast]);
 
 
   const userDocRef = useMemoFirebase(() => {
@@ -263,3 +270,5 @@ export const useUser = (): UserHookResult => {
   const { user, userProfile, isUserLoading, userError, isAdmin, userRole } = context; 
   return { user, userProfile, isUserLoading, userError, isAdmin, userRole };
 };
+
+    
