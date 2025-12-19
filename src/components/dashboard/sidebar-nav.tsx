@@ -7,7 +7,7 @@ import {
   useUser,
   useAuth,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../ui/sidebar';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -47,6 +47,12 @@ export function SidebarNav({
       label: 'Submissions',
       active: pathname.startsWith('/submissions'),
       icon: <FileText />,
+    },
+    {
+      href: '/risk-register',
+      label: 'Risk Register',
+      active: pathname.startsWith('/risk-register'),
+      icon: <ShieldCheck />,
     },
     {
       href: '/approvals',
