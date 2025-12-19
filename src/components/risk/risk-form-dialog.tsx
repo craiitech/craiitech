@@ -37,7 +37,7 @@ import { useState, useEffect } from 'react';
 import type { Risk, User as AppUser } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, HelpCircle, ListChecks } from 'lucide-react';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -157,12 +157,51 @@ const consequenceCriteria = [
 ];
 
 
+const GuideContent = () => (
+    <div className="space-y-4 text-xs">
+        <div>
+            <h4 className="font-semibold text-sm">6.1.1. Risk/Opportunity Description</h4>
+            <p className="text-muted-foreground">Define the risk/opportunity area, and briefly describe the risk/opportunity event and its consequences. What can go wrong (risk) or what can happen (opportunity)? What are the impacts/consequences if it does go wrong (risk) or it actually happens (opportunity)?</p>
+        </div>
+        <div>
+            <h4 className="font-semibold text-sm">6.1.3. Current Controls/Situation</h4>
+            <p className="text-muted-foreground">Describe any existing policy, procedure, practice, or mechanism that acts to minimize the risk or maximize the opportunity. What is in place now that reduces the likelihood of this risk occurring or its impact if it does occur? What is being done to maximize the benefits of the opportunity if it does occur?</p>
+        </div>
+         <div>
+            <h4 className="font-semibold text-sm">6.1.4. Likelihood & 6.1.5. Consequence</h4>
+            <p className="text-muted-foreground">Rate the level of likelihood and consequence from 1 to 5 based on the appropriate criteria. How likely is this to occur and how significant would the impact be?</p>
+        </div>
+         <div>
+            <h4 className="font-semibold text-sm">6.1.6. Risk/Opportunity Magnitude</h4>
+            <p className="text-muted-foreground">Multiply the rating for Likelihood and Consequence. The product is used to determine whether the risk level is high, medium, or low.</p>
+        </div>
+         <div>
+            <h4 className="font-semibold text-sm">6.1.7. Treatment Plan</h4>
+            <p className="text-muted-foreground">Describe the actions for those risks/opportunities requiring further treatment (i.e., for Medium and High ratings).</p>
+        </div>
+         <div>
+            <h4 className="font-semibold text-sm">6.1.8. Responsible</h4>
+            <p className="text-muted-foreground">Identify the office, department, or unit responsible for implementing the treatment plan.</p>
+        </div>
+        <div>
+            <h4 className="font-semibold text-sm">6.1.9. Target Date</h4>
+            <p className="text-muted-foreground">Define the target date of implementation of the treatment plan.</p>
+        </div>
+        <div>
+            <h4 className="font-semibold text-sm">6.1.10. Risk/Opportunity Rating After Treatment</h4>
+            <p className="text-muted-foreground">Evaluate the risk/opportunity after completion of the treatment plan by reassessing using the criteria for the likelihood of occurrence and consequence. (This is done on the detail page after the action plan is implemented).</p>
+        </div>
+    </div>
+);
+
+
 export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFormDialogProps) {
   const { userProfile } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { logSessionActivity } = useSessionActivity();
+  const [sidePanelView, setSidePanelView] = useState<'criteria' | 'guide'>('criteria');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -242,7 +281,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
       },
       responsiblePersonId: values.responsiblePersonId || '',
       responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : '',
-      targetDate: values.targetDate || null, // Ensure targetDate is not undefined
+      targetDate: values.targetDate || null,
       updatedAt: serverTimestamp(),
     };
 
@@ -272,9 +311,21 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
       <DialogContent className="max-w-5xl">
         <DialogHeader>
           <DialogTitle>{risk ? 'Edit' : 'Log New'} Risk or Opportunity</DialogTitle>
-          <DialogDescription>
-            Fill out the details below. Use the criteria on the right as a guide for ratings.
-          </DialogDescription>
+          <div className="flex justify-between items-center">
+            <DialogDescription>
+              Fill out the details below. Use the guide on the right for help.
+            </DialogDescription>
+            <div className="flex items-center gap-4 text-sm">
+                <Button variant="link" size="sm" onClick={() => setSidePanelView('criteria')} className={cn("p-0 h-auto", {"font-bold text-primary": sidePanelView === 'criteria'})}>
+                    <ListChecks className="mr-1 h-4 w-4" />
+                    Rating Criteria
+                </Button>
+                <Button variant="link" size="sm" onClick={() => setSidePanelView('guide')} className={cn("p-0 h-auto", {"font-bold text-primary": sidePanelView === 'guide'})}>
+                     <HelpCircle className="mr-1 h-4 w-4" />
+                    Field Guide
+                </Button>
+            </div>
+          </div>
         </DialogHeader>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -420,13 +471,21 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
                     </div>
                     <div className="md:col-span-1">
                         <Card className="sticky top-0">
-                            <CardHeader>
-                                <CardTitle className="text-base">Rating Criteria</CardTitle>
+                             <CardHeader>
+                                <CardTitle className="text-base">
+                                     {sidePanelView === 'criteria' ? 'Rating Criteria' : 'Field Guide'}
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <ScrollArea className="h-[65vh] pr-2">
-                                    <CriteriaTable title="Likelihood" criteria={likelihoodCriteria} />
-                                    <CriteriaTable title="Consequence" criteria={consequenceCriteria} />
+                                     {sidePanelView === 'criteria' ? (
+                                        <>
+                                            <CriteriaTable title="Likelihood" criteria={likelihoodCriteria} />
+                                            <CriteriaTable title="Consequence" criteria={consequenceCriteria} />
+                                        </>
+                                     ) : (
+                                        <GuideContent />
+                                     )}
                                 </ScrollArea>
                             </CardContent>
                         </Card>
