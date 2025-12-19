@@ -74,6 +74,11 @@ export type Risk = {
         magnitude: number;
         rating: string;
     };
+    oapNo?: string;
+    resourcesNeeded?: string;
+    updates?: string;
+    preparedBy?: string; // Unit Head
+    approvedBy?: string; // VPAA/VPAF/VPREDI
     createdAt: any; // serverTimestamp()
     updatedAt: any; // serverTimestamp()
 }

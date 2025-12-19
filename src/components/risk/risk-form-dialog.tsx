@@ -63,6 +63,9 @@ const formSchema = z.object({
   responsiblePersonId: z.string().min(1, 'Please select a responsible person'),
   targetDate: z.date(),
   status: z.enum(['Open', 'In Progress', 'Closed']),
+  // Optional fields for Action Plan
+  resourcesNeeded: z.string().optional(),
+  updates: z.string().optional(),
 });
 
 const likelihoodOptions = [
@@ -103,6 +106,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
       description: '',
       treatmentAction: '',
       status: 'Open',
+      resourcesNeeded: '',
+      updates: '',
     },
   });
 
@@ -113,6 +118,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         likelihood: risk.preTreatment.likelihood,
         consequence: risk.preTreatment.consequence,
         targetDate: risk.targetDate?.toDate(),
+        resourcesNeeded: risk.resourcesNeeded || '',
+        updates: risk.updates || '',
       });
     } else {
       form.reset({
@@ -126,6 +133,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         consequence: undefined,
         responsiblePersonId: undefined,
         targetDate: undefined,
+        resourcesNeeded: '',
+        updates: '',
       });
     }
   }, [risk, isOpen, form]);
@@ -141,7 +150,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
     
     const responsiblePerson = unitUsers.find(u => u.id === values.responsiblePersonId);
 
-    const riskData = {
+    const riskData: Omit<Risk, 'id' | 'createdAt'> = {
       ...values,
       unitId: userProfile.unitId,
       campusId: userProfile.campusId,
@@ -182,7 +191,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         <DialogHeader>
           <DialogTitle>{risk ? 'Edit' : 'Log New'} Risk or Opportunity</DialogTitle>
           <DialogDescription>
-            Fill out the details below. All fields are required.
+            Fill out the details below. All fields are required unless marked optional.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -241,6 +250,15 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
              <FormField control={form.control} name="treatmentAction" render={({ field }) => (
                 <FormItem><FormLabel>Action Plan / Treatment</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
             )} />
+            
+            <FormField control={form.control} name="resourcesNeeded" render={({ field }) => (
+                <FormItem><FormLabel>Resources Needed (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+            )} />
+            
+            <FormField control={form.control} name="updates" render={({ field }) => (
+                <FormItem><FormLabel>Updates (Optional)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+            )} />
+
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="responsiblePersonId" render={({ field }) => (

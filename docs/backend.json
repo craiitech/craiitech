@@ -339,6 +339,11 @@
             "rating": { "type": "string" }
           }
         },
+        "oapNo": { "type": "string", "description": "The OAP (Objective Action Plan) number associated with this action plan." },
+        "resourcesNeeded": { "type": "string", "description": "The resources required to execute the action plan." },
+        "updates": { "type": "string", "description": "Progress updates or notes on the action plan's implementation." },
+        "preparedBy": { "type": "string", "description": "Name of the Unit Head who prepared the action plan." },
+        "approvedBy": { "type": "string", "description": "Name of the Vice President who approved the action plan." },
         "createdAt": { "type": "string", "description": "Timestamp of when the risk was created.", "format": "date-time" },
         "updatedAt": { "type": "string", "description": "Timestamp of the last update.", "format": "date-time" }
       },
