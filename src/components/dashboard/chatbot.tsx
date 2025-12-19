@@ -56,6 +56,8 @@ export function Chatbot() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const userFallback = userProfile?.firstName?.charAt(0) ?? 'U';
+  
+  const lastMessageIsFromBot = messages.length > 0 && messages[messages.length - 1].role === 'model';
 
   useEffect(() => {
     if (isOpen) {
@@ -185,7 +187,7 @@ export function Chatbot() {
                              </div>
                         </div>
                     )}
-                    {messages.length === 1 && !isLoading && (
+                    {lastMessageIsFromBot && !isLoading && (
                         <div className="flex flex-col items-start gap-2 pt-4">
                             <p className="text-xs text-muted-foreground ml-11">Or try one of these questions:</p>
                             {suggestedQuestions.map((q, i) => (
