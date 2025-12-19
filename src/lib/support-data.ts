@@ -82,7 +82,7 @@ export const faqs = [
       {
         question: 'How do I monitor the Risk Register for my campus?',
         answer:
-          'Your dashboard contains a "Risk Management Overview" card showing analytics for your campus. You can also go to the "Risk Register" page to see a complete, read-only list of all risk and opportunity entries from all units within your campus, allowing you to monitor their status and action plans.',
+          'Your dashboard contains a "Risk Management Overview" card showing analytics for your campus, filterable by year. You can also go to the "Risk Register" page to see a complete, read-only list of all risk and opportunity entries from all units within your campus, allowing you to monitor their status and action plans.',
       },
        {
         question: 'Can I approve my own submissions?',
@@ -117,5 +117,3 @@ export const faqs = [
     ],
   },
 ];
-
-    

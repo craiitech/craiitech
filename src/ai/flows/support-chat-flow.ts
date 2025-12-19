@@ -39,14 +39,14 @@ const helpContent = `
   // How to Submit: Go to "New Submission", select Year/Cycle, click a report, paste a valid Google Drive link, complete the final checklist, and submit.
   // Handling Rejection: Find the rejected report, view feedback on the detail page, get a new link for the corrected document, and use the "Resubmit Report" form.
   // Risk & Opportunity Register: A module for logging, tracking, and managing unit-specific risks and opportunities.
-  // Logging a Risk: Go to the "Risk Register" page, click "Log New Entry", and fill out the form. An action plan is only required for Medium and High rated risks.
-  // Closing a Risk: To close a risk, edit the entry, change its status to "Closed", and complete the "Post-Treatment Analysis" section, which includes re-evaluating the risk and providing evidence of implementation.
+  // Logging a Risk: Go to the "Risk Register" page, click "Log New Entry". This opens a detailed form. You must fill out the Identification (Type, Objective, Description, Current Controls) and Analysis (Likelihood, Consequence) sections. An "Action Plan" section, which includes fields like "OAP No.", "Treatment Plan", "Accountable Person", and "Target Date", is only required for Medium and High rated entries.
+  // Closing a Risk: To close a risk, edit the entry, change its status to "Closed", and complete the "Post-Treatment Analysis" section. This requires you to re-evaluate the risk's likelihood and consequence, provide written evidence of implementation, and specify the date it was completed.
 
   // Campus Director, VP & Campus ODIMO (Approvers)
   // Approvals Page: Lists all "Submitted" status reports from their campus. Users cannot approve their own submissions.
   // Approving/Rejecting: Approve with the green checkmark. Reject with the red 'X' and provide mandatory feedback.
-  // Campus Dashboard & Settings: The dashboard shows campus-wide analytics, including a risk overview. Campus Directors can manage units. Campus ODIMOs can post announcements.
-  // Monitoring Risks: Supervisors have read-only access to the Risk Register for all units in their scope to monitor status and progress.
+  // Campus Dashboard & Settings: The dashboard shows campus-wide analytics, including a risk overview with a year filter. Campus Directors can manage units. Campus ODIMOs can post announcements.
+  // Monitoring Risks: Supervisors have read-only access to the Risk Register for all units in their scope to monitor status and progress. The dashboard provides a yearly overview of risk stats.
 
   // Administrator
   // System Administration: Manage Users, Campuses, Units, Roles, Cycles, and Announcements from the "Settings" page.
@@ -92,5 +92,3 @@ const supportChatFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

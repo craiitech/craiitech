@@ -60,7 +60,7 @@ const manualSections = [
              <ol class="list-decimal space-y-2 pl-6">
                 <li>Click on your user avatar in the top-right corner of the dashboard to open the user menu.</li>
                 <li>Select <strong>"Log out"</strong>.</li>
-                <li>You will be redirected to a page summarizing your activity during the session before being returned to the main login screen.</li>
+                <li>You will be redirected to a page confirming you are being logged out before being returned to the main login screen.</li>
             </ol>
           `
       }
@@ -75,7 +75,7 @@ const manualSections = [
                 <p>Your dashboard provides a quick overview of your submission status and risk management activities.</p>
                 <ul class="list-disc space-y-2 pl-6">
                     <li><strong>Stats Cards:</strong> Show your submission counts for the First and Final cycles of the current year, and your total number of approved submissions.</li>
-                    <li><strong>Risk Management Overview:</strong> A summary of risk and opportunity entries for your unit, including counts of active units, open risks, and closed risks.</li>
+                    <li><strong>Risk Management Overview:</strong> A summary of risk and opportunity entries for your unit, including counts of active units, open risks, and closed risks for a selected year.</li>
                     <li><strong>Submissions Overview Chart:</strong> A graph showing your submission activity over the last 12 months.</li>
                     <li><strong>Recent Activity:</strong> A list of your 5 most recent submissions and their status.</li>
                     <li><strong>Submission Checklist:</strong> The primary tool for managing your reports. It shows the status of each required document for the selected year and cycle.</li>
@@ -115,9 +115,9 @@ const manualSections = [
             content: `
                 <p>The Risk Register is a module for logging, tracking, and managing risks and opportunities for your unit.</p>
                  <ol class="list-decimal space-y-2 pl-6">
-                    <li><strong>Logging a New Entry:</strong> Navigate to the "Risk Register" page and click "Log New Entry". Fill out the form, which is divided into steps for Identification and Analysis. An "Action Plan" section will appear only if the calculated risk rating is Medium or High.</li>
-                    <li><strong>Editing an Entry:</strong> You can edit any entry you have created by clicking the "View / Edit" action button in the table.</li>
-                    <li><strong>Closing a Risk:</strong> To close a risk, edit the entry and change its status to "Closed". A new "Post-Treatment Analysis" section will appear. You must provide evidence of the implemented action plan, the date of implementation, and re-evaluate the risk's likelihood and consequence to demonstrate the effectiveness of your treatment.</li>
+                    <li><strong>Logging a New Entry:</strong> Navigate to the "Risk Register" page and click "Log New Entry". Fill out the form, which is divided into steps for Identification and Analysis. You can refer to the criteria and field guide on the right side of the form. An "Action Plan" section (including OAP No., Treatment Plan, Accountable Person, and Target Date) will appear only if the calculated risk rating is Medium or High.</li>
+                    <li><strong>Editing an Entry:</strong> You can edit any entry you have created by clicking the "View / Edit" action button in the table. This is also where you can add progress updates to an ongoing action plan.</li>
+                    <li><strong>Closing a Risk:</strong> To close a risk, edit the entry and change its status to "Closed". A new "Post-Treatment Analysis" section will appear. You must provide written evidence of the implemented action plan, the date of implementation, and re-evaluate the risk's likelihood and consequence to demonstrate the effectiveness of your treatment.</li>
                 </ol>
             `
         }
@@ -152,7 +152,7 @@ const manualSections = [
               content: `
                 <p>Your dashboard provides a high-level overview of your entire campus. You also have special permissions on the "Settings" page.</p>
                  <ul class="list-disc spacey-y-2 pl-6">
-                    <li><strong>Dashboard Analytics:</strong> The dashboard includes cards for tracking submission progress, non-compliant units, and a new "Risk Management Overview" which summarizes risk register activity for your campus.</li>
+                    <li><strong>Dashboard Analytics:</strong> The dashboard includes cards for tracking submission progress, non-compliant units, and a "Risk Management Overview" which summarizes risk register activity for your campus, filterable by year.</li>
                     <li><strong>Campus Directors (Unit Management):</strong> Can manage units for their campus. This includes creating new units specific to the campus or assigning existing, unassigned university-wide units to their campus.</li>
                     <li><strong>Campus ODIMOs (Announcements):</strong> Can post a campus-wide announcement. This message will appear in an alert box on the dashboard for every user registered under that campus.</li>
                 </ul>
@@ -161,7 +161,7 @@ const manualSections = [
           {
               title: 'Monitoring the Risk Register',
               content: `
-                 <p>As a supervisor, you have read-only access to the Risk & Opportunity Register for all units within your scope (e.g., your campus for a Director, or your assigned units for a VP). This allows you to monitor risks and action plans without altering the data entered by the units.</p>
+                 <p>As a supervisor, you have read-only access to the Risk & Opportunity Register for all units within your scope (e.g., your campus for a Director, or your assigned units for a VP). This allows you to monitor risks and action plans without altering the data entered by the units. You can also view yearly statistics on your dashboard.</p>
               `
           }
       ]
@@ -244,5 +244,3 @@ export default function UserManualPage() {
     </Card>
   );
 }
-
-    
