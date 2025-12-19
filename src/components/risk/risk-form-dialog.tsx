@@ -55,6 +55,17 @@ interface RiskFormDialogProps {
   unitUsers: AppUser[];
 }
 
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
+const months = [
+  { value: '0', label: 'January' }, { value: '1', label: 'February' }, { value: '2', label: 'March' },
+  { value: '3', label: 'April' }, { value: '4', label: 'May' }, { value: '5', label: 'June' },
+  { value: '6', label: 'July' }, { value: '7', label: 'August' }, { value: '8', label: 'September' },
+  { value: '9', label: 'October' }, { value: '10', label: 'November' }, { value: '11', label: 'December' },
+];
+const days = Array.from({ length: 31 }, (_, i) => String(i + 1));
+
+
 const formSchema = z.object({
   year: z.number().int().min(new Date().getFullYear() - 5).max(new Date().getFullYear() + 5),
   objective: z.string().min(1, 'Objective is required'),
@@ -65,7 +76,9 @@ const formSchema = z.object({
   consequence: z.number().min(1).max(5),
   treatmentAction: z.string().optional(),
   responsiblePersonId: z.string().optional(),
-  targetDate: z.date().optional(),
+  targetYear: z.string().optional(),
+  targetMonth: z.string().optional(),
+  targetDay: z.string().optional(),
   status: z.enum(['Open', 'In Progress', 'Closed']),
   oapNo: z.string().optional(),
   resourcesNeeded: z.string().optional(),
@@ -90,11 +103,11 @@ const formSchema = z.object({
                 path: ['responsiblePersonId'],
             });
         }
-        if (!data.targetDate) {
+        if (!data.targetYear || !data.targetMonth || !data.targetDay) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                message: 'Target Date is required for Medium and High ratings.',
-                path: ['targetDate'],
+                message: 'A complete Target Date is required for Medium and High ratings.',
+                path: ['targetDay'],
             });
         }
     }
@@ -223,11 +236,14 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
 
   useEffect(() => {
     if (risk) {
+      const targetDate = risk.targetDate?.toDate();
       form.reset({
         ...risk,
         likelihood: risk.preTreatment.likelihood,
         consequence: risk.preTreatment.consequence,
-        targetDate: risk.targetDate?.toDate(),
+        targetYear: targetDate ? String(targetDate.getFullYear()) : undefined,
+        targetMonth: targetDate ? String(targetDate.getMonth()) : undefined,
+        targetDay: targetDate ? String(targetDate.getDate()) : undefined,
         oapNo: risk.oapNo || '',
         resourcesNeeded: risk.resourcesNeeded || '',
         updates: risk.updates || '',
@@ -246,7 +262,9 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         likelihood: undefined,
         consequence: undefined,
         responsiblePersonId: undefined,
-        targetDate: undefined,
+        targetYear: undefined,
+        targetMonth: undefined,
+        targetDay: undefined,
         oapNo: '',
         resourcesNeeded: '',
         updates: '',
@@ -269,6 +287,11 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
     
     const responsiblePerson = unitUsers.find(u => u.id === values.responsiblePersonId);
 
+    let targetDate = null;
+    if (values.targetYear && values.targetMonth && values.targetDay) {
+        targetDate = new Date(Number(values.targetYear), Number(values.targetMonth), Number(values.targetDay));
+    }
+
     const riskData: Omit<Risk, 'id' | 'createdAt'> = {
       ...values,
       unitId: userProfile.unitId,
@@ -281,7 +304,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
       },
       responsiblePersonId: values.responsiblePersonId || '',
       responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : '',
-      targetDate: values.targetDate || null,
+      targetDate,
       updatedAt: serverTimestamp(),
     };
 
@@ -425,23 +448,21 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
                                                         </Select>
                                                     <FormMessage /></FormItem>
                                                 )} />
-                                                <FormField control={form.control} name="targetDate" render={({ field }) => (
-                                                    <FormItem className="flex flex-col"><FormLabel>Target Completion Date</FormLabel>
-                                                        <Popover>
-                                                            <PopoverTrigger asChild>
-                                                                <FormControl>
-                                                                    <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                                        {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                                    </Button>
-                                                                </FormControl>
-                                                            </PopoverTrigger>
-                                                            <PopoverContent className="w-auto p-0" align="start">
-                                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                                            </PopoverContent>
-                                                        </Popover>
-                                                    <FormMessage /></FormItem>
-                                                )} />
+                                                <div className="space-y-2">
+                                                    <FormLabel>Target Completion Date</FormLabel>
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        <FormField control={form.control} name="targetMonth" render={({ field }) => (
+                                                            <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Month" /></SelectTrigger></FormControl><SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                                        )} />
+                                                        <FormField control={form.control} name="targetDay" render={({ field }) => (
+                                                            <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Day" /></SelectTrigger></FormControl><SelectContent>{days.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                                        )} />
+                                                        <FormField control={form.control} name="targetYear" render={({ field }) => (
+                                                            <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger></FormControl><SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                                        )} />
+                                                    </div>
+                                                    <FormMessage>{form.formState.errors.targetDay?.message}</FormMessage>
+                                                </div>
                                             </div>
                                         </CardContent>
                                     </Card>
