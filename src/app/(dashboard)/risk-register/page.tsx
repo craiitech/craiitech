@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { PlusCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import type { Risk, User as AppUser, Unit } from '@/lib/types';
+import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
 import { useState, useMemo } from 'react';
 import { collection, query, where } from 'firebase/firestore';
 import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
@@ -18,35 +18,47 @@ export default function RiskRegisterPage() {
     const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
 
     const isSupervisor = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
+    
+    const campusQuery = useMemoFirebase(
+        () => (firestore && userProfile?.campusId ? doc(firestore, 'campuses', userProfile.campusId) : null),
+        [firestore, userProfile?.campusId]
+    );
 
     const risksQuery = useMemoFirebase(() => {
         if (!firestore || !userProfile) return null; // Wait for dependencies
 
-        let q = collection(firestore, 'risks');
+        const q = collection(firestore, 'risks');
+        
+        if (isAdmin) {
+             return q; // Admin gets all risks
+        }
 
         if (isSupervisor) {
-            // Supervisors need a campusId to query
             if (userProfile.campusId) {
                 return query(q, where('campusId', '==', userProfile.campusId));
             }
-            // If supervisor has no campus, they can't query for anything, return null.
-            // Admin is a supervisor but does not have a campusId, so they fall through and get all risks.
-            if (!isAdmin) return null; 
-        } else {
-             // Regular users need a unitId to query
-            if (userProfile.unitId) {
-                return query(q, where('unitId', '==', userProfile.unitId));
-            }
-            // If user has no unit, they can't query.
-            return null;
+            return null; // Supervisor without campusId can't query
         }
 
-        // If we reach here, it's an Admin, return the full collection query.
-        return q;
+        // Regular user
+        if (userProfile.unitId) {
+            return query(q, where('unitId', '==', userProfile.unitId));
+        }
+        
+        return null; // User without unitId can't query
 
     }, [firestore, userProfile, isSupervisor, isAdmin]);
 
     const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
+    
+    const campusDataQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
+    const { data: allCampuses } = useCollection<Campus>(campusDataQuery);
+    
+    const campusMap = useMemo(() => {
+        if (!allCampuses) return new Map();
+        return new Map(allCampuses.map(c => [c.id, c.name]));
+    }, [allCampuses]);
+
 
     const usersQuery = useMemoFirebase(() => {
         if (!firestore || !userProfile?.campusId) return null;
@@ -98,7 +110,7 @@ export default function RiskRegisterPage() {
         <CardHeader>
             <CardTitle>Register</CardTitle>
             <CardDescription>
-                Below is a list of all risks and opportunities for {isSupervisor ? `the ${userProfile?.campusId ? campusMap.get(userProfile.campusId) || 'campus' : ''}` : 'your unit'}.
+                Below is a list of all risks and opportunities for {isSupervisor && !isAdmin ? `the ${userProfile?.campusId ? campusMap.get(userProfile.campusId) || 'campus' : ''}` : 'your unit'}.
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -125,6 +137,3 @@ export default function RiskRegisterPage() {
     </>
   );
 }
-
-// Dummy map to prevent breaking the UI before data loads.
-const campusMap = new Map();
