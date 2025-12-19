@@ -19,27 +19,26 @@ export default function RiskRegisterPage() {
     const isSupervisor = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
     
     const risksQuery = useMemoFirebase(() => {
-        if (!firestore || !userProfile) return null; // Wait for dependencies
+        if (!firestore || !userProfile) return null;
 
         const q = collection(firestore, 'risks');
         
         if (isAdmin) {
-             return q; // Admin gets all risks
+             return q;
         }
 
         if (isSupervisor) {
             if (userProfile.campusId) {
                 return query(q, where('campusId', '==', userProfile.campusId));
             }
-            return null; // Supervisor without campusId can't query yet
+            return null; 
         }
 
-        // Regular user
         if (userProfile.unitId) {
             return query(q, where('unitId', '==', userProfile.unitId));
         }
         
-        return null; // User without unitId can't query
+        return null; 
 
     }, [firestore, userProfile, isSupervisor, isAdmin]);
 
@@ -55,23 +54,42 @@ export default function RiskRegisterPage() {
 
 
     const usersQuery = useMemoFirebase(() => {
-        // This query now explicitly depends on userProfile.campusId being available
-        if (!firestore || !userProfile?.campusId) return null;
-        return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
-    }, [firestore, userProfile?.campusId]);
+        if (!firestore) return null;
+        if (isAdmin) {
+            return collection(firestore, 'users');
+        }
+        if (userProfile?.campusId) {
+            return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
+        }
+        return null;
+    }, [firestore, isAdmin, userProfile?.campusId]);
 
     const { data: users, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
 
     const unitsQuery = useMemoFirebase(() => {
-        if (!firestore || !userProfile?.campusId) return null;
-         return query(collection(firestore, 'units'), where('campusIds', 'array-contains', userProfile.campusId));
-    }, [firestore, userProfile?.campusId]);
+        if (!firestore) return null;
+        if (isAdmin) {
+            return collection(firestore, 'units');
+        }
+        if (userProfile?.campusId) {
+             return query(collection(firestore, 'units'), where('campusIds', 'array-contains', userProfile.campusId));
+        }
+        return null;
+    }, [firestore, isAdmin, userProfile?.campusId]);
     const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
     const usersMap = useMemo(() => {
         if (!users) return new Map();
         return new Map(users.map(u => [u.id, u]));
     }, [users]);
+    
+    const unitUsers = useMemo(() => {
+        if (!users || !userProfile) return [];
+        // For Admins, unitUsers could be all users, or filtered differently if needed.
+        // For now, let's keep it scoped to the editing user's unit, or all for admin.
+        if (isAdmin) return users;
+        return users.filter(u => u.unitId === userProfile.unitId);
+    }, [users, userProfile, isAdmin]);
 
     const handleNewRisk = () => {
         setEditingRisk(null);
@@ -95,16 +113,18 @@ export default function RiskRegisterPage() {
               A centralized module for logging, tracking, and monitoring risks and opportunities for your unit.
             </p>
           </div>
-          <Button onClick={handleNewRisk}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Log New Entry
-          </Button>
+          {!isSupervisor && (
+            <Button onClick={handleNewRisk}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Log New Entry
+            </Button>
+          )}
       </div>
       <Card>
         <CardHeader>
             <CardTitle>Register</CardTitle>
             <CardDescription>
-                Below is a list of all risks and opportunities for {isSupervisor && !isAdmin && userProfile?.campusId ? `the ${campusMap.get(userProfile.campusId) || 'campus'}` : 'your unit'}.
+                Below is a list of all risks and opportunities for {isSupervisor && !isAdmin && userProfile?.campusId ? `the ${campusMap.get(userProfile.campusId) || 'campus'}` : (isAdmin ? 'all units' : 'your unit')}.
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -126,8 +146,10 @@ export default function RiskRegisterPage() {
         isOpen={isFormOpen}
         onOpenChange={setIsFormOpen}
         risk={editingRisk}
-        unitUsers={users?.filter(u => u.unitId === userProfile?.unitId) ?? []}
+        unitUsers={unitUsers}
     />
     </>
   );
 }
+
+    
