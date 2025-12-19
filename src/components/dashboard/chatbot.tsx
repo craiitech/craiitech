@@ -156,7 +156,7 @@ export function Chatbot() {
                           </Avatar>
                         )}
                         <div
-                          className={`max-w-xs rounded-lg p-3 text-sm break-words ${
+                          className={`max-w-xs rounded-lg p-4 text-sm break-words ${
                             message.role === 'user'
                               ? 'bg-primary text-primary-foreground'
                               : 'bg-muted'
