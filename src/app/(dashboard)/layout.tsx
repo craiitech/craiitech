@@ -121,17 +121,23 @@ export default function DashboardLayout({
   }, [userProfile, campuses, units, userRole]);
 
   useEffect(() => {
-    if (isStillLoading) return;
+    // Wait until the initial loading is complete
+    if (isStillLoading) {
+      return;
+    }
 
+    // If loading is finished and there is no user, redirect to login
     if (!user) {
       redirect('/login');
       return;
     }
-
+    
+    // The user is logged in, now check for profile completeness.
+    // Don't run these checks on special pages.
     if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
       return;
     }
-
+    
     if (userProfile && !isAdmin) {
       const isVP = userRole?.toLowerCase().includes('vice president');
       const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
