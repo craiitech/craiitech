@@ -300,6 +300,53 @@
         "name"
       ]
     },
+    "Risk": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Risk",
+      "type": "object",
+      "description": "Represents a single risk or opportunity item in the register.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the Risk entity." },
+        "unitId": { "type": "string", "description": "The unit this risk belongs to." },
+        "campusId": { "type": "string", "description": "The campus this risk belongs to." },
+        "year": { "type": "number", "description": "The year this risk was identified." },
+        "objective": { "type": "string", "description": "The related process or function objective." },
+        "type": { "type": "string", "enum": ["Risk", "Opportunity"], "description": "Specifies whether the entry is a risk or an opportunity." },
+        "description": { "type": "string", "description": "A detailed description of the risk or opportunity." },
+        "preTreatment": {
+          "type": "object",
+          "description": "Risk/Opportunity analysis before treatment.",
+          "properties": {
+            "likelihood": { "type": "number", "description": "Likelihood rating (1-5)." },
+            "consequence": { "type": "number", "description": "Consequence rating (1-5)." },
+            "magnitude": { "type": "number", "description": "Calculated magnitude (L x C)." },
+            "rating": { "type": "string", "description": "Risk rating (e.g., High, Medium, Low)." }
+          },
+          "required": ["likelihood", "consequence", "magnitude", "rating"]
+        },
+        "treatmentAction": { "type": "string", "description": "The plan or action to treat the risk or harness the opportunity." },
+        "responsiblePersonId": { "type": "string", "description": "The UID of the user responsible for the treatment." },
+        "responsiblePersonName": { "type": "string", "description": "Denormalized name of the responsible person." },
+        "targetDate": { "type": "string", "description": "The target date for completing the action.", "format": "date-time" },
+        "status": { "type": "string", "enum": ["Open", "In Progress", "Closed"], "description": "Current status of the treatment action." },
+        "postTreatment": {
+          "type": "object",
+          "description": "Risk/Opportunity analysis after treatment.",
+          "properties": {
+            "likelihood": { "type": "number" },
+            "consequence": { "type": "number" },
+            "magnitude": { "type": "number" },
+            "rating": { "type": "string" }
+          }
+        },
+        "createdAt": { "type": "string", "description": "Timestamp of when the risk was created.", "format": "date-time" },
+        "updatedAt": { "type": "string", "description": "Timestamp of the last update.", "format": "date-time" }
+      },
+      "required": [
+        "id", "unitId", "campusId", "year", "objective", "type", "description", 
+        "preTreatment", "treatmentAction", "responsiblePersonId", "targetDate", "status", "createdAt"
+      ]
+    },
     "CampusSetting": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CampusSetting",
@@ -397,6 +444,20 @@
                 {
                     "name": "submissionId",
                     "description": "The unique identifier of the submission."
+                }
+            ]
+        }
+      },
+       {
+        "path": "/risks/{riskId}",
+        "definition": {
+            "entityName": "Risk",
+            "schema": { "$ref": "#/backend/entities/Risk" },
+            "description": "Stores all risk and opportunity register items in a single top-level collection. Includes denormalized unitId and campusId for efficient, secure queries.",
+            "params": [
+                {
+                    "name": "riskId",
+                    "description": "The unique identifier of the risk/opportunity item."
                 }
             ]
         }
@@ -560,6 +621,6 @@
         }
       }
     ],
-    "reasoning": "This Firestore structure prioritizes security, scalability, and query performance. The key change is moving submissions to a top-level collection, which simplifies queries for administrative and supervisory roles. This avoids the need for collection group queries for most common scenarios, making the rules and application logic more straightforward.\n\n**Top-Level Submissions:** The `/submissions/{submissionId}` collection allows admins and supervisors to easily query across all submissions (e.g., `where('statusId', '==', 'submitted')`) without needing a `collectionGroup` index. Security is maintained by embedding ownership and context fields (`userId`, `campusId`, `unitId`) directly into each submission document. Security rules can then use these fields to enforce access control.\n\n**Authorization Independence:** Access control is still enforced at the document level. Security rules check the `userId` in the submission document against the authenticated user's UID for ownership-based permissions. For supervisors, rules check the submission's `campusId` or `unitId` against the supervisor's own profile data (fetched via a `get()` call in the rule), ensuring they can only access submissions within their scope.\n\n**DBAC (Database-Based Access Control):** User roles and campus/unit assignments stored in the `/users` collection remain the source of truth for authorization. Helper functions in the security rules (`isAdmin()`, `isCampusOdimo()`, etc.) continue to provide a clear and secure way to check a user's role.\n\n**Denormalization:** The `submissions` collection relies on denormalization of `userId`, `campusId`, `unitId`, and `unitName`. This is critical for writing efficient security rules that do not require joins or multiple `get()` calls to check permissions, which is a key performance and security best practice for Firestore.\n\n**Invariants:** The structure ensures the integrity of ownership and denormalized data. Security rules on `create` and `update` for the `/submissions` collection will enforce that the `userId` matches the authenticated user and that the denormalized fields like `campusId` and `unitId` match the user's profile, preventing tampering."
+    "reasoning": "This Firestore structure prioritizes security, scalability, and query performance. The key change is moving submissions to a top-level collection, which simplifies queries for administrative and supervisory roles. This avoids the need for collection group queries for most common scenarios, making the rules and application logic more straightforward.\n\n**Top-Level Collections:** Both `/submissions/{submissionId}` and `/risks/{riskId}` are top-level collections. This allows admins and supervisors to easily query across all items (e.g., `where('statusId', '==', 'submitted')` or `where('rating', '==', 'High')`) without needing a `collectionGroup` index. Security is maintained by embedding ownership and context fields (`userId`, `campusId`, `unitId`) directly into each document. Security rules can then use these fields to enforce access control.\n\n**Authorization Independence:** Access control is still enforced at the document level. Security rules check the `unitId` or `campusId` in the document against the authenticated user's profile data (fetched via a `get()` call in the rule), ensuring they can only access items within their scope.\n\n**DBAC (Database-Based Access Control):** User roles and campus/unit assignments stored in the `/users` collection remain the source of truth for authorization. Helper functions in the security rules (`isAdmin()`, `isCampusOdimo()`, etc.) continue to provide a clear and secure way to check a user's role.\n\n**Denormalization:** The collections rely on denormalization of context fields. This is critical for writing efficient security rules that do not require joins or multiple `get()` calls to check permissions, which is a key performance and security best practice for Firestore.\n\n**Invariants:** The structure ensures the integrity of ownership and denormalized data. Security rules on `create` and `update` for the collections will enforce that the `userId` matches the authenticated user and that the denormalized fields like `campusId` and `unitId` match the user's profile, preventing tampering."
   }
 }
