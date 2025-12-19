@@ -74,8 +74,8 @@ export type Risk = {
         consequence: number;
         magnitude: number;
         rating: string;
-        evidence?: string;
-        dateImplemented?: any;
+        evidence: string;
+        dateImplemented: any;
     };
     oapNo?: string;
     resourcesNeeded?: string;

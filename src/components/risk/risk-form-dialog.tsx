@@ -274,7 +274,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         targetDay: targetDate ? String(targetDate.getDate()) : undefined,
         postTreatmentLikelihood: risk.postTreatment?.likelihood,
         postTreatmentConsequence: risk.postTreatment?.consequence,
-        postTreatmentEvidence: risk.postTreatment?.evidence,
+        postTreatmentEvidence: risk.postTreatment?.evidence || '',
         postTreatmentDateImplemented: dateImplemented,
         oapNo: risk.oapNo || '',
         resourcesNeeded: risk.resourcesNeeded || '',
@@ -299,7 +299,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         targetDay: undefined,
         postTreatmentLikelihood: undefined,
         postTreatmentConsequence: undefined,
-        postTreatmentEvidence: undefined,
+        postTreatmentEvidence: '',
         postTreatmentDateImplemented: undefined,
         oapNo: '',
         resourcesNeeded: '',
@@ -358,6 +358,11 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
       responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : '',
       targetDate: targetDateValue,
       updatedAt: serverTimestamp(),
+      oapNo: values.oapNo || '',
+      resourcesNeeded: values.resourcesNeeded || '',
+      updates: values.updates || '',
+      preparedBy: values.preparedBy || '',
+      approvedBy: values.approvedBy || '',
     };
 
     try {
@@ -479,10 +484,14 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
                                 {showActionPlan && (
                                     <Card>
                                         <CardHeader>
-                                            <CardTitle className="text-lg">Step 3: Action Plan</CardTitle>
+                                            <CardTitle className="text-lg">Step 3: Risk Treatment / Action Plan</CardTitle>
                                             <CardDescription>An action plan is required for Medium and High ratings.</CardDescription>
                                         </CardHeader>
                                         <CardContent className="space-y-4">
+                                            <FormField control={form.control} name="oapNo" render={({ field }) => (
+                                                <FormItem><FormLabel>OAP No. (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                            )} />
+
                                             <FormField control={form.control} name="treatmentAction" render={({ field }) => (
                                                 <FormItem><FormLabel>Action Plan / Treatment</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
                                             )} />
@@ -501,7 +510,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
                                                     <FormMessage /></FormItem>
                                                 )} />
                                                 <div className="space-y-2">
-                                                    <FormLabel>Target Completion Date</FormLabel>
+                                                    <FormLabel>Proposed Date of Implementation</FormLabel>
                                                     <div className="grid grid-cols-3 gap-2">
                                                         <FormField control={form.control} name="targetMonth" render={({ field }) => (
                                                             <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Month" /></SelectTrigger></FormControl><SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
