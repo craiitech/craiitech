@@ -82,6 +82,8 @@ const formSchema = z.object({
   status: z.enum(['Open', 'In Progress', 'Closed']),
   postTreatmentLikelihood: z.number().optional(),
   postTreatmentConsequence: z.number().optional(),
+  postTreatmentEvidence: z.string().optional(),
+  postTreatmentDateImplemented: z.date().optional(),
   oapNo: z.string().optional(),
   resourcesNeeded: z.string().optional(),
   updates: z.string().optional(),
@@ -119,6 +121,20 @@ const formSchema = z.object({
                 code: z.ZodIssueCode.custom,
                 message: 'Post-treatment analysis is required to close a risk.',
                 path: ['postTreatmentLikelihood'],
+            });
+        }
+         if (!data.postTreatmentEvidence) {
+             ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Evidence of implementation is required to close a risk.',
+                path: ['postTreatmentEvidence'],
+            });
+        }
+         if (!data.postTreatmentDateImplemented) {
+             ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Date of implementation is required to close a risk.',
+                path: ['postTreatmentDateImplemented'],
             });
         }
     }
@@ -248,6 +264,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
   useEffect(() => {
     if (risk) {
       const targetDate = risk.targetDate?.toDate();
+      const dateImplemented = risk.postTreatment?.dateImplemented?.toDate();
       form.reset({
         ...risk,
         likelihood: risk.preTreatment.likelihood,
@@ -257,6 +274,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         targetDay: targetDate ? String(targetDate.getDate()) : undefined,
         postTreatmentLikelihood: risk.postTreatment?.likelihood,
         postTreatmentConsequence: risk.postTreatment?.consequence,
+        postTreatmentEvidence: risk.postTreatment?.evidence,
+        postTreatmentDateImplemented: dateImplemented,
         oapNo: risk.oapNo || '',
         resourcesNeeded: risk.resourcesNeeded || '',
         updates: risk.updates || '',
@@ -280,6 +299,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         targetDay: undefined,
         postTreatmentLikelihood: undefined,
         postTreatmentConsequence: undefined,
+        postTreatmentEvidence: undefined,
+        postTreatmentDateImplemented: undefined,
         oapNo: '',
         resourcesNeeded: '',
         updates: '',
@@ -330,6 +351,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         consequence: values.postTreatmentConsequence,
         magnitude: postTreatmentMagnitude,
         rating: postTreatmentRating,
+        evidence: values.postTreatmentEvidence || '',
+        dateImplemented: values.postTreatmentDateImplemented || null,
       } : risk?.postTreatment || undefined,
       responsiblePersonId: values.responsiblePersonId || '',
       responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : '',
@@ -527,6 +550,37 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
                                             <CardDescription>Re-evaluate the risk after implementing the action plan.</CardDescription>
                                         </CardHeader>
                                         <CardContent className="space-y-4">
+                                            <FormField control={form.control} name="postTreatmentEvidence" render={({ field }) => (
+                                                <FormItem><FormLabel>Evidence of Implementation</FormLabel>
+                                                    <FormControl><Textarea {...field} placeholder="Describe the evidence that supports the closure of this risk (e.g., 'Updated SOP document, training records, system logs')." /></FormControl>
+                                                    <FormDescription className="text-xs">Reminder: Please document and file this evidence in the Document Control Center.</FormDescription>
+                                                <FormMessage /></FormItem>
+                                            )} />
+                                            <FormField
+                                                control={form.control}
+                                                name="postTreatmentDateImplemented"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex flex-col">
+                                                    <FormLabel>Date Implemented</FormLabel>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                        <FormControl>
+                                                            <Button
+                                                            variant={"outline"}
+                                                            className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                            {field.value ? (format(field.value, "PPP")) : (<span>Pick a date</span>)}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                            </Button>
+                                                        </FormControl>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-auto p-0" align="start">
+                                                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus />
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                    <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <FormField control={form.control} name="postTreatmentLikelihood" render={({ field }) => (
                                                     <FormItem><FormLabel>Likelihood (Post-Treatment)</FormLabel>

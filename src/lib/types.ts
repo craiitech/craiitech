@@ -74,6 +74,8 @@ export type Risk = {
         consequence: number;
         magnitude: number;
         rating: string;
+        evidence?: string;
+        dateImplemented?: any;
     };
     oapNo?: string;
     resourcesNeeded?: string;
@@ -120,6 +122,4 @@ export type Cycle = {
   startDate: any; // Can be Timestamp
   endDate: any; // Can be Timestamp
 }
-    
-
     

@@ -337,7 +337,9 @@
             "likelihood": { "type": "number" },
             "consequence": { "type": "number" },
             "magnitude": { "type": "number" },
-            "rating": { "type": "string" }
+            "rating": { "type": "string" },
+            "evidence": { "type": "string", "description": "A description of the evidence to support the risk closure." },
+            "dateImplemented": { "type": "string", "description": "The date the treatment was implemented.", "format": "date-time" }
           }
         },
         "oapNo": { "type": "string", "description": "The OAP (Objective Action Plan) number associated with this action plan." },
@@ -630,5 +632,3 @@
     "reasoning": "This Firestore structure prioritizes security, scalability, and query performance. The key change is moving submissions to a top-level collection, which simplifies queries for administrative and supervisory roles. This avoids the need for collection group queries for most common scenarios, making the rules and application logic more straightforward.\n\n**Top-Level Collections:** Both `/submissions/{submissionId}` and `/risks/{riskId}` are top-level collections. This allows admins and supervisors to easily query across all items (e.g., `where('statusId', '==', 'submitted')` or `where('rating', '==', 'High')`) without needing a `collectionGroup` index. Security is maintained by embedding ownership and context fields (`userId`, `campusId`, `unitId`) directly into each document. Security rules can then use these fields to enforce access control.\n\n**Authorization Independence:** Access control is still enforced at the document level. Security rules check the `unitId` or `campusId` in the document against the authenticated user's profile data (fetched via a `get()` call in the rule), ensuring they can only access items within their scope.\n\n**DBAC (Database-Based Access Control):** User roles and campus/unit assignments stored in the `/users` collection remain the source of truth for authorization. Helper functions in the security rules (`isAdmin()`, `isCampusOdimo()`, etc.) continue to provide a clear and secure way to check a user's role.\n\n**Denormalization:** The collections rely on denormalization of context fields. This is critical for writing efficient security rules that do not require joins or multiple `get()` calls to check permissions, which is a key performance and security best practice for Firestore.\n\n**Invariants:** The structure ensures the integrity of ownership and denormalized data. Security rules on `create` and `update` for the collections will enforce that the `userId` matches the authenticated user and that the denormalized fields like `campusId` and `unitId` match the user's profile, preventing tampering."
   }
 }
-
-    
