@@ -4,6 +4,8 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { Role } from './types';
 import { users } from './data';
+import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
+import { getFirestore, serverTimestamp } from 'firebase-admin/firestore';
 
 const AUTH_COOKIE_NAME = 'rsu-eoms-auth';
 
@@ -19,4 +21,58 @@ export async function logout() {
   // Client-side will handle Firebase signout. This is for any server-side session cleanup.
   cookies().delete(AUTH_COOKIE_NAME);
   redirect('/login');
+}
+
+
+// --- Error Reporting Action ---
+
+if (!getApps().length) {
+    try {
+        const serviceAccount = JSON.parse(
+            process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string
+        );
+        initializeApp({
+            credential: cert(serviceAccount),
+        });
+    } catch (e) {
+        console.error("Firebase Admin SDK initialization failed in actions.ts. Ensure FIREBASE_SERVICE_ACCOUNT_KEY is set.", e);
+        try {
+            initializeApp();
+        } catch (autoInitError) {
+             console.error("Firebase Admin SDK auto-initialization also failed.", autoInitError);
+        }
+    }
+}
+
+const firestore = getFirestore();
+
+interface ErrorReportPayload {
+    errorMessage?: string;
+    errorStack?: string;
+    errorDigest?: string;
+    url: string;
+    userId?: string;
+    userName?: string;
+    userRole?: string;
+    userEmail?: string;
+}
+
+export async function logError(payload: ErrorReportPayload) {
+    if (!firestore) {
+        console.error("Firestore not initialized. Cannot log error.");
+        throw new Error("Server configuration error.");
+    }
+    
+    try {
+        const reportCollection = firestore.collection('errorReports');
+        await reportCollection.add({
+            ...payload,
+            status: 'new',
+            timestamp: serverTimestamp(),
+        });
+    } catch (error) {
+        console.error('Failed to log error to Firestore:', error);
+        // We throw an error here so the client knows the report failed.
+        throw new Error("Could not submit error report.");
+    }
 }

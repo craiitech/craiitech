@@ -131,11 +131,13 @@ service cloud.firestore {
                     || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid)
                     || isAdmin();
       
-      // The `list` rule is intentionally broader. It allows a query to be initiated.
-      // The `get` rule above is what actually secures the data, as it's checked for every document
-      // read by the `list` query. The client query MUST include `where("campusId", "==", ...)` or `where("userId", "==", ...)`
-      // for non-admins.
-      allow list: if isSignedIn();
+      // `list` is now secured. Client queries MUST include a `where` clause that the `get` rule can enforce.
+      allow list: if isAdmin()
+                  || (request.query.limit <= 30) // Add a reasonable limit
+                  // A supervisor can query by their campus
+                  && (isCampusOdimo() && request.query.where.campusId == getUserProfile().campusId)
+                  // A user can query for their own submissions
+                  || (isOwner(request.query.where.userId));
 
       allow create: if isOwner(request.resource.data.userId)
                     && 'campusId' in getUserProfile() && 'unitId' in getUserProfile()
@@ -155,8 +157,7 @@ service cloud.firestore {
     /**
      * @description Top-level risk register collection.
      * - get: Allowed if user is from the same unit, a supervisor, or an admin.
-     * - list: Any authenticated user can *attempt* to list, but the queries from the client-side must be constrained
-     *         by unitId or campusId, which are enforced by the `get` rule on individual document reads during query execution.
+     * - list: Secured. Client must provide a `where` clause on campusId or unitId.
      * - create/update/delete: Allowed for users of the same unit or admins.
      */
     match /risks/{riskId} {
@@ -167,11 +168,10 @@ service cloud.firestore {
                     || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid)
                     || isAdmin();
       
-      // The `list` rule is intentionally broader. It allows a query to be initiated.
-      // The `get` rule above is what actually secures the data, as it's checked for every document
-      // read by the `list` query. The client query MUST include `where("campusId", "==", ...)` or `where("unitId", "==", ...)`
-      // for non-admins.
-      allow list: if isSignedIn();
+      allow list: if isAdmin()
+                  || (request.query.limit <= 30)
+                  && ( (isCampusOdimo() && request.query.where.campusId == getUserProfile().campusId)
+                    || request.query.where.unitId == getUserProfile().unitId );
 
       allow create: if request.resource.data.unitId == getUserProfile().unitId
                     && request.resource.data.campusId == getUserProfile().campusId;
@@ -248,6 +248,17 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     
+    /**
+     * @description Error reports submitted by users.
+     * - Create: Any signed-in user can create an error report.
+     * - Read/List: Only Admins can read the reports.
+     * - Update/Delete: Only Admins can update (e.g., change status) or delete reports.
+     */
+    match /errorReports/{errorId} {
+        allow create: if isSignedIn();
+        allow read, list, update, delete: if isAdmin();
+    }
+
     /**
      * @description The collection for assigning Admin roles. Only other Admins can manage this list.
      */

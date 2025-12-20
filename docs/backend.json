@@ -416,6 +416,26 @@
         }
       },
       "required": ["id", "userId", "userName", "userRole", "action", "timestamp"]
+    },
+    "ErrorReport": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ErrorReport",
+      "type": "object",
+      "description": "Represents a single error report submitted by a user.",
+      "properties": {
+        "id": { "type": "string" },
+        "errorMessage": { "type": "string" },
+        "errorStack": { "type": "string" },
+        "errorDigest": { "type": "string" },
+        "url": { "type": "string" },
+        "status": { "type": "string", "enum": ["new", "acknowledged", "resolved"], "default": "new" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userRole": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["errorMessage", "errorDigest", "url", "timestamp"]
     }
   },
   "auth": {
@@ -578,6 +598,20 @@
               "description": "The unique identifier of the log entry."
             }
           ]
+        }
+      },
+      {
+        "path": "/errorReports/{errorId}",
+        "definition": {
+            "entityName": "ErrorReport",
+            "schema": { "$ref": "#/backend/entities/ErrorReport" },
+            "description": "Stores error reports submitted by users.",
+            "params": [
+                {
+                    "name": "errorId",
+                    "description": "The unique identifier of the error report."
+                }
+            ]
         }
       },
       {

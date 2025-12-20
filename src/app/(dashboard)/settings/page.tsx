@@ -18,6 +18,7 @@ import { DirectorUnitManagement } from '@/components/admin/director-unit-managem
 import { AnnouncementManagement } from '@/components/admin/announcement-management';
 import { Separator } from '@/components/ui/separator';
 import { CycleManagement } from '@/components/admin/cycle-management';
+import { ErrorReportManagement } from '@/components/admin/error-report-management';
 
 
 export default function SettingsPage() {
@@ -65,6 +66,7 @@ export default function SettingsPage() {
             <TabsTrigger value="roles">Roles</TabsTrigger>
             <TabsTrigger value="cycles">Cycles &amp; Deadlines</TabsTrigger>
             <TabsTrigger value="campus-settings">Campus Settings</TabsTrigger>
+            <TabsTrigger value="error-reports">Error Reports</TabsTrigger>
           </TabsList>
           <TabsContent value="users" className="space-y-4">
             <UserManagement />
@@ -85,6 +87,9 @@ export default function SettingsPage() {
             <CampusSettingsManagement />
             <Separator />
             <AnnouncementManagement />
+          </TabsContent>
+           <TabsContent value="error-reports" className="space-y-4">
+            <ErrorReportManagement />
           </TabsContent>
         </Tabs>
       </div>
