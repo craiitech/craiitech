@@ -92,7 +92,7 @@ export default function GlobalError({
                      <Button variant="ghost" className="w-full" asChild>
                         <a href="/dashboard">
                             <Home className="mr-2 h-4 w-4" />
-                            Go Back to Home
+                            Go Back to Dashboard
                         </a>
                     </Button>
                 </CardFooter>
