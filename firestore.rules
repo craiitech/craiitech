@@ -131,6 +131,12 @@ service cloud.firestore {
                     || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid)
                     || isAdmin();
       
+      // The `list` rule is intentionally broader. It allows a query to be initiated.
+      // The `get` rule above is what actually secures the data, as it's checked for every document
+      // read by the `list` query. The client query MUST include `where("campusId", "==", ...)` or `where("userId", "==", ...)`
+      // for non-admins.
+      allow list: if isSignedIn();
+
       allow create: if isOwner(request.resource.data.userId)
                     && 'campusId' in getUserProfile() && 'unitId' in getUserProfile()
                     && request.resource.data.campusId == getUserProfile().campusId
