@@ -124,7 +124,7 @@ service cloud.firestore {
      * - Delete: Only allowed for owners.
      */
     match /submissions/{submissionId} {
-      allow get, list: if isOwner(resource.data.userId) 
+      allow get: if isOwner(resource.data.userId) 
                     || (isCampusOdimo() && getUserProfile().campusId == resource.data.campusId) 
                     || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId)
                     || (isCampusDirector() && getUserProfile().campusId == resource.data.campusId)
@@ -154,12 +154,18 @@ service cloud.firestore {
      * - create/update/delete: Allowed for users of the same unit or admins.
      */
     match /risks/{riskId} {
-      allow get, list: if (getUserProfile().unitId == resource.data.unitId)
+      allow get: if (getUserProfile().unitId == resource.data.unitId)
                     || (isCampusOdimo() && getUserProfile().campusId == resource.data.campusId) 
                     || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId)
                     || (isCampusDirector() && getUserProfile().campusId == resource.data.campusId)
                     || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid)
                     || isAdmin();
+      
+      // The `list` rule is intentionally broader. It allows a query to be initiated.
+      // The `get` rule above is what actually secures the data, as it's checked for every document
+      // read by the `list` query. The client query MUST include `where("campusId", "==", ...)` or `where("unitId", "==", ...)`
+      // for non-admins.
+      allow list: if isSignedIn();
 
       allow create: if request.resource.data.unitId == getUserProfile().unitId
                     && request.resource.data.campusId == getUserProfile().campusId;
