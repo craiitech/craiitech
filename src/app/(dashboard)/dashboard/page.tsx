@@ -140,18 +140,23 @@ export default function HomePage() {
     if (!firestore || !userProfile) return null;
 
     const baseRisksQuery = collection(firestore, 'risks');
-
-    if (isAdmin) {
-      // Admin sees all risks.
-      return baseRisksQuery;
-    } 
-    if (isCampusSupervisor || isVp) {
-      // Supervisors see all risks in their campus.
-      return query(baseRisksQuery, where('campusId', '==', userProfile.campusId));
-    } 
-    // Regular users see risks for their own unit.
-    return query(baseRisksQuery, where('unitId', '==', userProfile.unitId));
     
+    if (isAdmin) {
+        return baseRisksQuery;
+    }
+    if (isCampusSupervisor || isVp) {
+        // Supervisors must have a campusId to query by it.
+        if (userProfile.campusId) {
+            return query(baseRisksQuery, where('campusId', '==', userProfile.campusId));
+        }
+        return null; // Don't query if campusId isn't loaded yet.
+    }
+    // Regular users must have a unitId to query by it.
+    if (userProfile.unitId) {
+        return query(baseRisksQuery, where('unitId', '==', userProfile.unitId));
+    }
+    
+    return null; // Return null if no valid condition is met.
   }, [firestore, userProfile, isAdmin, isCampusSupervisor, isVp]);
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
