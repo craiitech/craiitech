@@ -24,28 +24,28 @@ interface RiskStatusOverviewProps {
 
 export function RiskStatusOverview({ risks, units, isLoading, selectedYear, onYearChange, isSupervisor }: RiskStatusOverviewProps) {
   const stats = useMemo(() => {
-    if (!risks) {
-      return {
+    const defaultStats = {
         openRisks: 0,
         closedRisks: 0,
         highRatedRisks: 0,
         participatingUnits: [],
-      };
-    }
+    };
+    if (!risks) return defaultStats;
     
     const yearRisks = risks.filter(r => r.year === selectedYear);
 
-    // Supervisor/Admin view
-    const participatingUnitIds = new Set(yearRisks.map(r => r.unitId));
-    const participatingUnits = units ? units.filter(u => participatingUnitIds.has(u.id)) : [];
-    
-    // Unit Coordinator view
     const openRisks = yearRisks.filter(r => r.status === 'Open' || r.status === 'In Progress').length;
     const closedRisks = yearRisks.filter(r => r.status === 'Closed').length;
     const highRatedRisks = yearRisks.filter(r => r.preTreatment.rating === 'High' && r.status !== 'Closed').length;
 
-    return { openRisks, closedRisks, highRatedRisks, participatingUnits };
-  }, [risks, units, selectedYear]);
+    if (isSupervisor) {
+        const participatingUnitIds = new Set(yearRisks.map(r => r.unitId));
+        const participatingUnits = units ? units.filter(u => participatingUnitIds.has(u.id)) : [];
+        return { openRisks, closedRisks, highRatedRisks, participatingUnits };
+    }
+    
+    return { openRisks, closedRisks, highRatedRisks, participatingUnits: [] };
+  }, [risks, units, selectedYear, isSupervisor]);
 
   if (isLoading) {
     return (
@@ -54,10 +54,11 @@ export function RiskStatusOverview({ risks, units, isLoading, selectedYear, onYe
           <Skeleton className="h-6 w-1/2" />
           <Skeleton className="h-4 w-3/4" />
         </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-4">
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-16 w-full" />
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
         </CardContent>
          <CardFooter>
             <Skeleton className="h-10 w-32" />
@@ -102,7 +103,7 @@ export function RiskStatusOverview({ risks, units, isLoading, selectedYear, onYe
           </Select>
         </div>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {isSupervisor ? (
             <>
                 <StatCard 
@@ -114,8 +115,14 @@ export function RiskStatusOverview({ risks, units, isLoading, selectedYear, onYe
                 <StatCard 
                     title="Open Risks" 
                     value={stats.openRisks} 
-                    icon={<AlertCircle className="h-5 w-5 text-destructive"/>}
+                    icon={<AlertCircle className="h-5 w-5 text-muted-foreground"/>}
                     description="Entries requiring action."
+                />
+                 <StatCard 
+                    title="High-Rated Risks" 
+                    value={stats.highRatedRisks} 
+                    icon={<AlertCircle className="h-5 w-5 text-destructive"/>}
+                    description="High-rated open entries needing priority action."
                 />
                 <StatCard 
                     title="Closed Risks" 
