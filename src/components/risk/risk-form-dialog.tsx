@@ -245,18 +245,20 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
   
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
+
     if (isAdmin) {
-        return collection(firestore, 'users');
+      return collection(firestore, 'users');
     }
     if (isSupervisor) {
-        if (!userProfile.campusId) return null;
-        return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
+      if (!userProfile.campusId) return null; // Wait for profile
+      return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
     }
+    // Default for regular user
     if (userProfile.unitId) {
-        return query(collection(firestore, 'users'), where('unitId', '==', userProfile.unitId));
+      return query(collection(firestore, 'users'), where('unitId', '==', userProfile.unitId));
     }
     return null;
-  }, [firestore, isAdmin, isSupervisor, userProfile]);
+  }, [firestore, userProfile, isAdmin, isSupervisor]);
 
   const { data: users, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
 
@@ -674,3 +676,5 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
     </Dialog>
   );
 }
+
+    
