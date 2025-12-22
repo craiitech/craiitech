@@ -70,8 +70,6 @@ export default function DashboardLayout({
   const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, isSupervisor } = useUser();
   
 <<<<<<< HEAD
-=======
-<<<<<<< HEAD
   const isStillLoading = isUserLoading;
   
   const isSupervisor = userRole === 'Admin' || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole === 'Unit ODIMO';
@@ -93,24 +91,16 @@ export default function DashboardLayout({
     const submissionsCollection = collection(firestore, 'submissions');
     
     // Supervisors get notifications for pending approvals
-<<<<<<< HEAD
-    if (isSupervisor) {
-=======
     if (userRole === 'Admin') {
       return query(submissionsCollection, where('statusId', '==', 'submitted'));
     }
     if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
->>>>>>> f5d7ad9 (Try fixing this error: `Build Error: Parsing ecmascript source code fail)
       if (!userProfile.campusId) return null; // Wait for campusId
       return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
     }
     // Employees get notifications for rejected submissions
     return query(submissionsCollection, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
-<<<<<<< HEAD
-  }, [firestore, userProfile, userRole, isSupervisor]);
-=======
   }, [firestore, userProfile, userRole]);
->>>>>>> f5d7ad9 (Try fixing this error: `Build Error: Parsing ecmascript source code fail)
 
   const { data: notifications, isLoading: isLoadingNotifications } = useCollection<Submission>(notificationQuery);
 
