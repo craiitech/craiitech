@@ -435,6 +435,13 @@ export default function HomePage() {
     return new Map(allCampuses.map(c => [c.id, c.name]));
   }, [allCampuses]);
 
+  const noRisksLogged = useMemo(() => {
+    const isUnitUser = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
+    if (!isUnitUser || !risks) return false;
+    const currentYearRisks = risks.filter(r => r.year === new Date().getFullYear());
+    return currentYearRisks.length === 0;
+  }, [risks, userRole]);
+
   const renderCard = (
     title: string,
     value: string | number,
@@ -530,6 +537,17 @@ export default function HomePage() {
       </TabsList>
       
       <TabsContent value="overview" className="space-y-4">
+        {noRisksLogged && !isLoading && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Action Required: Risk Register</AlertTitle>
+            <AlertDescription>
+              Your unit has not logged any risks or opportunities for the current year. It is critical to populate the{' '}
+              <Link href="/risk-register" className="font-semibold underline">Risk Register</Link>
+              {' '}to ensure compliance.
+            </AlertDescription>
+          </Alert>
+        )}
         <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
         <div className="grid gap-4 md:grid-cols-3">
           {renderCard(
@@ -673,6 +691,17 @@ export default function HomePage() {
       </TabsList>
 
       <TabsContent value="overview" className="space-y-4">
+        {noRisksLogged && !isLoading && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Action Required: Risk Register</AlertTitle>
+            <AlertDescription>
+              Your unit has not logged any risks or opportunities for the current year. It is critical to populate the{' '}
+              <Link href="/risk-register" className="font-semibold underline">Risk Register</Link>
+              {' '}to ensure compliance.
+            </AlertDescription>
+          </Alert>
+        )}
         <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
         <div className="grid gap-4 md:grid-cols-3">
           {renderCard(
@@ -1095,17 +1124,6 @@ export default function HomePage() {
              <div className="lg:col-span-3 space-y-4">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Recent Activity</CardTitle>
-                        <CardDescription>
-                            The latest submissions from all users.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
                         <CardTitle>Submissions Overview</CardTitle>
                         <CardDescription>
                             Monthly submissions from all users.
@@ -1113,6 +1131,17 @@ export default function HomePage() {
                     </CardHeader>
                     <CardContent className="pl-2">
                         <Overview submissions={submissions} isLoading={isLoading} />
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Recent Activity</CardTitle>
+                        <CardDescription>
+                            The latest submissions from all users.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
                     </CardContent>
                 </Card>
                  <IncompleteCampusSubmissions
