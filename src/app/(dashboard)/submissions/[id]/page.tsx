@@ -229,8 +229,7 @@ export default function SubmissionDetailPage() {
         await updateDoc(submissionDocRef, updateData);
 
         toast({ title: 'Success', description: 'Submission has been resubmitted.' });
-        setNewLink('');
-        setNewComment('');
+        router.push('/submissions');
 
     } catch (error) {
         console.error('Error resubmitting:', error);
