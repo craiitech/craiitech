@@ -98,7 +98,7 @@ export default function Home() {
                     </AlertDialogContent>
                 </AlertDialog>
             </div>
-             <p className="text-xs text-white/60">&copy; 2024 Romblon State University. All rights reserved.</p>
+             <p className="text-xs text-white/60">&copy; 2025 Romblon State University. All rights reserved.</p>
         </div>
     </div>
   );
