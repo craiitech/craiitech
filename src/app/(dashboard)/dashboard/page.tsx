@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -161,7 +160,9 @@ export default function HomePage() {
   // Fetch users based on role
   const usersQuery = useMemoFirebase(() => {
       if (!firestore) return null;
-      if (isAdmin) return collection(firestore, 'users');
+      if (isAdmin) {
+          return collection(firestore, 'users');
+      }
       if (isSupervisor && userProfile?.campusId) {
           return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
       }
@@ -730,64 +731,58 @@ export default function HomePage() {
   );
 
   const renderAdminHome = () => (
-    <Tabs defaultValue="overview" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="approvals">Approvals Queue</TabsTrigger>
-        <TabsTrigger value="analytics">Analytics</TabsTrigger>
-      </TabsList>
-      <TabsContent value="overview" className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-3">
-          {renderCard(
-            stats.stat1.title,
-            stats.stat1.value,
-            stats.stat1.icon,
-            isLoading,
-            (stats.stat1 as any).description
-          )}
-          {renderCard(
-            stats.stat2.title,
-            stats.stat2.value,
-            stats.stat2.icon,
-            isLoading,
-            (stats.stat2 as any).description
-          )}
-          {renderCard(
-            stats.stat3.title,
-            stats.stat3.value,
-            stats.stat3.icon,
-            isLoading,
-            (stats.stat3 as any).description
-          )}
-        </div>
-        <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} />
-        <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading}/>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <Card className="col-span-4">
-            <CardHeader>
-              <CardTitle>Submissions Overview</CardTitle>
-              <CardDescription>
-                Monthly submissions from all users.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pl-2">
-              <Overview submissions={submissions} isLoading={isLoading} />
-            </CardContent>
-          </Card>
-          <Card className="col-span-4 lg:col-span-3">
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>
-                The latest submissions from all users.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
-            </CardContent>
-          </Card>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-3">
+        {renderCard(
+          stats.stat1.title,
+          stats.stat1.value,
+          stats.stat1.icon,
+          isLoading,
+          (stats.stat1 as any).description
+        )}
+        {renderCard(
+          stats.stat2.title,
+          stats.stat2.value,
+          stats.stat2.icon,
+          isLoading,
+          (stats.stat2 as any).description
+        )}
+        {renderCard(
+          stats.stat3.title,
+          stats.stat3.value,
+          stats.stat3.icon,
+          isLoading,
+          (stats.stat3 as any).description
+        )}
+      </div>
+      <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
+      <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} />
+      <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading}/>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Submissions Overview</CardTitle>
+            <CardDescription>
+              Monthly submissions from all users.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pl-2">
+            <Overview submissions={submissions} isLoading={isLoading} />
+          </CardContent>
+        </Card>
+        <Card className="col-span-4 lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>
+              The latest submissions from all users.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
             <CompletedSubmissions 
                 allUnits={allUnits}
                 allCampuses={allCampuses}
@@ -806,91 +801,20 @@ export default function HomePage() {
                 isCampusSupervisor={isSupervisor}
             />
         </div>
-         <IncompleteCampusSubmissions
-            allSubmissions={submissions}
-            allCampuses={allCampuses}
-            allUnits={allUnits}
-            isLoading={isLoading}
-         />
-      </TabsContent>
-      <TabsContent value="approvals" className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Approval Queue</CardTitle>
-            <CardDescription>
-              Submissions awaiting your approval. Click to view and take
-              action.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Report Type</TableHead>
-                  <TableHead>Submitter</TableHead>
-                  <TableHead>Unit</TableHead>
-                  <TableHead>Campus</TableHead>
-                  <TableHead>Submitted At</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center h-24">
-                      Loading...
-                    </TableCell>
-                  </TableRow>
-                ) : approvalQueue.length > 0 ? (
-                  approvalQueue.map((submission) => (
-                    <TableRow key={submission.id}>
-                      <TableCell className="font-medium">
-                        {submission.reportType}
-                      </TableCell>
-                      <TableCell>
-                        {allUsersMap.get(submission.userId)?.firstName}{' '}
-                        {allUsersMap.get(submission.userId)?.lastName}
-                      </TableCell>
-                      <TableCell>{submission.unitName}</TableCell>
-                      <TableCell>{campusMap.get(submission.campusId)}</TableCell>
-                      <TableCell>
-                        {submission.submissionDate instanceof Date ? format(submission.submissionDate, 'PP') : 'Invalid Date'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            router.push(`/submissions/${submission.id}`)
-                          }
-                        >
-                          <Eye className="mr-2 h-4 w-4" /> View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center h-24">
-                      The approval queue is empty.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </TabsContent>
-      <TabsContent value="analytics" className="space-y-4">
-        <SubmissionAnalytics
-          allSubmissions={submissions}
-          allUnits={allUnits}
-          isLoading={isLoading}
-          isAdmin={isAdmin}
-          userProfile={userProfile}
-        />
-      </TabsContent>
-    </Tabs>
+      <IncompleteCampusSubmissions
+        allSubmissions={submissions}
+        allCampuses={allCampuses}
+        allUnits={allUnits}
+        isLoading={isLoading}
+      />
+      <SubmissionAnalytics
+        allSubmissions={submissions}
+        allUnits={allUnits}
+        isLoading={isLoading}
+        isAdmin={isAdmin}
+        userProfile={userProfile}
+      />
+    </div>
   );
 
   const renderHomeContent = () => {
