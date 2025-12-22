@@ -91,12 +91,27 @@ export default function DashboardLayout({
     const submissionsCollection = collection(firestore, 'submissions');
     
     // Supervisors get notifications for pending approvals
+<<<<<<< HEAD
     if (userRole === 'Admin') {
       return query(submissionsCollection, where('statusId', '==', 'submitted'));
     }
     if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
       if (!userProfile.campusId) return null; // Wait for campusId
       return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
+=======
+    if (isSupervisor) {
+      if (userRole === 'Admin') {
+          return query(submissionsCollection, where('statusId', '==', 'submitted'));
+      }
+      if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
+           if (!userProfile.campusId) return null;
+            return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
+      }
+       if (userRole === 'Unit ODIMO') {
+            if (!userProfile.unitId) return null;
+            return query(submissionsCollection, where('unitId', '==', userProfile.unitId), where('statusId', '==', 'submitted'));
+       }
+>>>>>>> 55774ec (I am logged in as Unit Coordinator, the notification is bringing me to ")
     }
     // Employees get notifications for rejected submissions
     return query(submissionsCollection, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));

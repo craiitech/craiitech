@@ -41,6 +41,15 @@ export function UserNav({ user, userProfile, notificationCount }: UserNavProps) 
     }
     router.push('/logout');
   };
+  
+  const handleNotificationClick = () => {
+    const isSupervisor = userRole === 'Admin' || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole === 'Unit ODIMO' || userRole?.toLowerCase().includes('vice president');
+    if (isSupervisor) {
+      router.push('/approvals');
+    } else {
+      router.push('/submissions');
+    }
+  }
 
   if (!user || !userProfile) {
     return null;
@@ -51,17 +60,15 @@ export function UserNav({ user, userProfile, notificationCount }: UserNavProps) 
 
   return (
     <div className="flex items-center gap-4">
-        <Link href="/approvals">
-            <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-full">
-                <Bell className="h-5 w-5"/>
-                {notificationCount > 0 && (
-                    <span className="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                        {notificationCount}
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    </span>
-                )}
-            </Button>
-        </Link>
+        <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-full" onClick={handleNotificationClick}>
+            <Bell className="h-5 w-5"/>
+            {notificationCount > 0 && (
+                <span className="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                    {notificationCount}
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                </span>
+            )}
+        </Button>
         <DropdownMenu>
         <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
