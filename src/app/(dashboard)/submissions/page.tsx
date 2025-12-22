@@ -279,14 +279,13 @@ export default function SubmissionsPage() {
   const { logSessionActivity } = useSessionActivity();
   
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !userProfile) return null;
     if (isAdmin) return collection(firestore, 'users');
-    if (isSupervisor && userProfile?.campusId) {
+    if (isSupervisor && userProfile.campusId) {
         return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
     }
     // For single user view
-    if (userProfile) return query(collection(firestore, 'users'), where('id', '==', userProfile.id));
-    return null;
+    return query(collection(firestore, 'users'), where('id', '==', userProfile.id));
   }, [firestore, isAdmin, isSupervisor, userProfile]);
   const { data: users, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
 
