@@ -1084,7 +1084,7 @@ export default function HomePage() {
                             allSubmissions={submissions}
                             isLoading={isLoading}
                             userProfile={userProfile}
-                            isCampusSupervisor={isSupervisor}
+                            isCampusSupervisor={isCampusSupervisor}
                         />
                         <UnitsWithoutSubmissions
                             allUnits={allUnits}
@@ -1093,7 +1093,7 @@ export default function HomePage() {
                             isLoading={isLoading}
                             userProfile={userProfile}
                             isAdmin={isAdmin}
-                            isCampusSupervisor={isSupervisor}
+                            isCampusSupervisor={isCampusSupervisor}
                             onUnitClick={setSelectedUnitId}
                         />
                     </div>
