@@ -352,6 +352,7 @@ export default function SubmissionsPage() {
   const [feedbackToShow, setFeedbackToShow] = useState('');
   const [activeFilter, setActiveFilter] = useState<string>('All Submissions');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'submissionDate', direction: 'descending'});
+  const [activeTab, setActiveTab] = useState('all-submissions');
 
   const [deletingSubmission, setDeletingSubmission] = useState<Submission | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -595,7 +596,7 @@ export default function SubmissionsPage() {
           <p className="text-muted-foreground">Generated on: {new Date().toLocaleDateString()}</p>
       </div>
 
-       <Tabs defaultValue="all-submissions" className="space-y-4">
+       <Tabs defaultValue="all-submissions" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="print:hidden">
             <TabsTrigger value="all-submissions">
               <Rows className="mr-2 h-4 w-4" />
@@ -614,7 +615,7 @@ export default function SubmissionsPage() {
               </TabsTrigger>
             )}
         </TabsList>
-        <TabsContent value="all-submissions" className="printable-area">
+        <TabsContent value="all-submissions" className="printable-area" data-state={activeTab === 'all-submissions' ? 'active' : 'inactive'}>
             <Card>
                 <CardHeader className="print:hidden">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -664,7 +665,7 @@ export default function SubmissionsPage() {
             </Card>
         </TabsContent>
         {isSupervisor && !isAdmin && (
-            <TabsContent value="by-unit" className="printable-area">
+            <TabsContent value="by-unit" className="printable-area" data-state={activeTab === 'by-unit' ? 'active' : 'inactive'}>
                 <UnitSubmissionsView
                     allSubmissions={submissions}
                     allUnits={units}
@@ -674,7 +675,7 @@ export default function SubmissionsPage() {
             </TabsContent>
         )}
         {isAdmin && (
-            <TabsContent value="by-campus" className="printable-area">
+            <TabsContent value="by-campus" className="printable-area" data-state={activeTab === 'by-campus' ? 'active' : 'inactive'}>
                 <CampusSubmissionsView
                     allSubmissions={submissions}
                     allCampuses={campuses}

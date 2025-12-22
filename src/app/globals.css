@@ -102,14 +102,27 @@
             background-color: white !important;
         }
 
+        /* Hide everything by default */
         body * {
             visibility: hidden;
         }
 
+        /* Show the printable area and its children */
         .printable-area, .printable-area * {
             visibility: visible;
         }
+        
+        /* For pages with tabs, only show the active tab content */
+        .printable-area[data-state="inactive"] {
+            display: none;
+        }
+        
+        .printable-area[data-state="active"] {
+            display: block !important;
+            visibility: visible !important;
+        }
 
+        /* Position the active printable area to take up the whole page */
         .printable-area {
             position: absolute;
             left: 0;
