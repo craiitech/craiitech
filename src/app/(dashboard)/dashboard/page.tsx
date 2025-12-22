@@ -84,6 +84,10 @@ import { RiskStatusOverview } from '@/components/dashboard/risk-status-overview'
 import { OverdueWarning } from '@/components/dashboard/overdue-warning';
 import { UnitSubmissionDetailCard } from '@/components/dashboard/unit-submission-detail-card';
 import { Leaderboard } from '@/components/dashboard/leaderboard';
+import { ComplianceOverTime } from '@/components/dashboard/strategic/compliance-over-time';
+import { RiskMatrix } from '@/components/dashboard/strategic/risk-matrix';
+import { RiskFunnel } from '@/components/dashboard/strategic/risk-funnel';
+
 
 export const TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT = 12; // 6 for First, 6 for Final
 
@@ -903,7 +907,7 @@ export default function HomePage() {
             <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
             <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
             <TabsTrigger value="users"><User className="mr-2 h-4 w-4" />Users</TabsTrigger>
-            <TabsTrigger value="strategic" onClick={() => router.push('/strategic')}><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
+            <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
         </TabsList>
       <TabsContent value="overview" className="space-y-4">
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
@@ -1034,6 +1038,11 @@ export default function HomePage() {
           />
         )}
       </TabsContent>
+       <TabsContent value="strategic" className="space-y-6">
+        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
+        <RiskMatrix allRisks={risks} />
+        <RiskFunnel allRisks={risks} />
+      </TabsContent>
     </Tabs>
   );
 
@@ -1042,7 +1051,7 @@ export default function HomePage() {
       <TabsList>
         <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
         <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
-        <TabsTrigger value="strategic" onClick={() => router.push('/strategic')}><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
+        <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
       </TabsList>
       <TabsContent value="overview" className="space-y-4">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
@@ -1111,14 +1120,6 @@ export default function HomePage() {
                 allUnits={allUnits}
                 isLoading={isLoading}
             />
-            <Leaderboard 
-                allSubmissions={submissions}
-                allUnits={allUnits}
-                allCampuses={allCampuses}
-                isLoading={isLoading}
-                userProfile={userProfile}
-                isCampusSupervisor={isCampusSupervisor}
-            />
             <Card>
                 <CardHeader>
                     <CardTitle>Recent Activity</CardTitle>
@@ -1130,6 +1131,14 @@ export default function HomePage() {
                     <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
                 </CardContent>
             </Card>
+             <Leaderboard 
+                allSubmissions={submissions}
+                allUnits={allUnits}
+                allCampuses={allCampuses}
+                isLoading={isLoading}
+                userProfile={userProfile}
+                isCampusSupervisor={isCampusSupervisor}
+            />
             {selectedUnitId && (
                 <UnitSubmissionDetailCard
                     unitId={selectedUnitId}
@@ -1152,6 +1161,11 @@ export default function HomePage() {
             isAdmin={isAdmin}
             userProfile={userProfile}
         />
+      </TabsContent>
+      <TabsContent value="strategic" className="space-y-6">
+        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
+        <RiskMatrix allRisks={risks} />
+        <RiskFunnel allRisks={risks} />
       </TabsContent>
     </Tabs>
   );
@@ -1232,12 +1246,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    
-
-    
-
-
-
-
-    

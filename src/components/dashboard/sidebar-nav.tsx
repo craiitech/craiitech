@@ -7,7 +7,7 @@ import {
   useUser,
   useAuth,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, User as UserIcon, BrainCircuit } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, User as UserIcon } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../ui/sidebar';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -53,13 +53,6 @@ export function SidebarNav({
       label: 'Risk Register',
       active: pathname.startsWith('/risk-register'),
       icon: <ShieldCheck />,
-    },
-    {
-      href: '/strategic',
-      label: 'Strategic',
-      active: pathname.startsWith('/strategic'),
-      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Vice President'],
-      icon: <BrainCircuit />,
     },
     {
       href: '/approvals',
