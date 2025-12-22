@@ -137,7 +137,8 @@ export default function ApprovalsPage() {
 
   // Effect to fetch users for the loaded submissions
   useEffect(() => {
-    if (!firestore || submissions.length === 0) return;
+    // CRITICAL FIX: Ensure submissions is not null and has items before fetching users.
+    if (!firestore || !submissions || submissions.length === 0) return;
 
     const fetchUsers = async () => {
       const userIds = [...new Set(submissions.map((s) => s.userId))];
@@ -152,6 +153,7 @@ export default function ApprovalsPage() {
 
         await Promise.all(
           chunks.map(async (chunk) => {
+            if (chunk.length === 0) return; // Skip empty chunks
             const usersQuery = query(
               collection(firestore, 'users'),
               where('id', 'in', chunk)
