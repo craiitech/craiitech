@@ -31,6 +31,8 @@ import {
   MessageSquare,
   ShieldCheck,
   AlertTriangle,
+  BarChart,
+  User,
 } from 'lucide-react';
 import {
   useUser,
@@ -895,11 +897,11 @@ export default function HomePage() {
 
   const renderSupervisorHome = () => (
      <Tabs defaultValue="overview" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="analytics">Analytics</TabsTrigger>
-        <TabsTrigger value="users">Users</TabsTrigger>
-      </TabsList>
+        <TabsList>
+            <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
+            <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
+            <TabsTrigger value="users"><User className="mr-2 h-4 w-4" />Users</TabsTrigger>
+        </TabsList>
       <TabsContent value="overview" className="space-y-4">
          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
             <div className="col-span-4 space-y-4">
@@ -939,21 +941,7 @@ export default function HomePage() {
                         (stats.stat3 as any).description
                     )}
                 </div>
-                <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-                <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} />
-                <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading}/>
-                 <Card className="col-span-4">
-                    <CardHeader>
-                        <CardTitle>Submissions Overview</CardTitle>
-                        <CardDescription>
-                        Monthly submissions from your campus.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                        <Overview submissions={submissions} isLoading={isLoading} />
-                    </CardContent>
-                </Card>
-                 <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2">
                     <CompletedSubmissions 
                         allUnits={allUnits}
                         allCampuses={allCampuses}
@@ -973,12 +961,17 @@ export default function HomePage() {
                         onUnitClick={setSelectedUnitId}
                     />
                 </div>
-                <CampusUnitOverview 
-                    allUnits={allUnits}
-                    allSubmissions={submissions}
-                    isLoading={isLoading}
-                    userProfile={userProfile}
-                />
+                <Card className="col-span-4">
+                    <CardHeader>
+                        <CardTitle>Submissions Overview</CardTitle>
+                        <CardDescription>
+                        Monthly submissions from your campus.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pl-2">
+                        <Overview submissions={submissions} isLoading={isLoading} />
+                    </CardContent>
+                </Card>
             </div>
             <div className="col-span-3 space-y-4">
                 <Leaderboard
@@ -1012,6 +1005,14 @@ export default function HomePage() {
         </div>
       </TabsContent>
        <TabsContent value="analytics" className="space-y-4">
+        <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} />
+        <CampusUnitOverview 
+            allUnits={allUnits}
+            allSubmissions={submissions}
+            isLoading={isLoading}
+            userProfile={userProfile}
+        />
         <SubmissionAnalytics
           allSubmissions={submissions}
           allUnits={allUnits}
@@ -1034,65 +1035,104 @@ export default function HomePage() {
   );
 
   const renderAdminHome = () => (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <div className="col-span-4 space-y-4">
-            <div className="grid gap-4 md:grid-cols-3">
-                {renderCard(
-                stats.stat1.title,
-                stats.stat1.value,
-                stats.stat1.icon,
-                isLoading,
-                (stats.stat1 as any).description
-                )}
-                {renderCard(
-                stats.stat2.title,
-                stats.stat2.value,
-                stats.stat2.icon,
-                isLoading,
-                (stats.stat2 as any).description
-                )}
-                {renderCard(
-                stats.stat3.title,
-                stats.stat3.value,
-                stats.stat3.icon,
-                isLoading,
-                (stats.stat3 as any).description
-                )}
+    <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+            <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
+            <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
+        </TabsList>
+        <TabsContent value="overview" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                <div className="col-span-4 space-y-4">
+                    <div className="grid gap-4 md:grid-cols-3">
+                        {renderCard(
+                        stats.stat1.title,
+                        stats.stat1.value,
+                        stats.stat1.icon,
+                        isLoading,
+                        (stats.stat1 as any).description
+                        )}
+                        {renderCard(
+                        stats.stat2.title,
+                        stats.stat2.value,
+                        stats.stat2.icon,
+                        isLoading,
+                        (stats.stat2 as any).description
+                        )}
+                        {renderCard(
+                        stats.stat3.title,
+                        stats.stat3.value,
+                        stats.stat3.icon,
+                        isLoading,
+                        (stats.stat3 as any).description
+                        )}
+                    </div>
+                     <div className="grid gap-4 md:grid-cols-2">
+                        <CompletedSubmissions 
+                            allUnits={allUnits}
+                            allCampuses={allCampuses}
+                            allSubmissions={submissions}
+                            isLoading={isLoading}
+                            userProfile={userProfile}
+                            isCampusSupervisor={isSupervisor}
+                        />
+                        <UnitsWithoutSubmissions
+                            allUnits={allUnits}
+                            allCampuses={allCampuses}
+                            allSubmissions={submissions}
+                            isLoading={isLoading}
+                            userProfile={userProfile}
+                            isAdmin={isAdmin}
+                            isCampusSupervisor={isSupervisor}
+                            onUnitClick={setSelectedUnitId}
+                        />
+                    </div>
+                    <Card>
+                        <CardHeader>
+                        <CardTitle>Submissions Overview</CardTitle>
+                        <CardDescription>
+                            Monthly submissions from all users.
+                        </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pl-2">
+                        <Overview submissions={submissions} isLoading={isLoading} />
+                        </CardContent>
+                    </Card>
+                </div>
+                <div className="col-span-3 space-y-4">
+                    <Leaderboard 
+                        allSubmissions={submissions}
+                        allUnits={allUnits}
+                        allCampuses={allCampuses}
+                        isLoading={isLoading}
+                        userProfile={userProfile}
+                        isCampusSupervisor={isSupervisor}
+                    />
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Recent Activity</CardTitle>
+                            <CardDescription>
+                                The latest submissions from all users.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
+                        </CardContent>
+                    </Card>
+                    {selectedUnitId && (
+                        <UnitSubmissionDetailCard
+                            unitId={selectedUnitId}
+                            allUnits={allUnits}
+                            allSubmissions={submissions}
+                            onClose={() => setSelectedUnitId(null)}
+                        />
+                    )}
+                </div>
             </div>
-            <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
+        </TabsContent>
+        <TabsContent value="analytics" className="space-y-4">
+             <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
             <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} />
             <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading}/>
-            <Card>
-                <CardHeader>
-                <CardTitle>Submissions Overview</CardTitle>
-                <CardDescription>
-                    Monthly submissions from all users.
-                </CardDescription>
-                </CardHeader>
-                <CardContent className="pl-2">
-                <Overview submissions={submissions} isLoading={isLoading} />
-                </CardContent>
-            </Card>
-             <div className="grid gap-4 md:grid-cols-2">
-                <CompletedSubmissions 
-                    allUnits={allUnits}
-                    allCampuses={allCampuses}
-                    allSubmissions={submissions}
-                    isLoading={isLoading}
-                    userProfile={userProfile}
-                    isCampusSupervisor={isSupervisor}
-                />
-                <UnitsWithoutSubmissions
-                    allUnits={allUnits}
-                    allCampuses={allCampuses}
-                    allSubmissions={submissions}
-                    isLoading={isLoading}
-                    userProfile={userProfile}
-                    isAdmin={isAdmin}
-                    isCampusSupervisor={isSupervisor}
-                    onUnitClick={setSelectedUnitId}
-                />
-            </div>
             <IncompleteCampusSubmissions
                 allSubmissions={submissions}
                 allCampuses={allCampuses}
@@ -1106,37 +1146,8 @@ export default function HomePage() {
                 isAdmin={isAdmin}
                 userProfile={userProfile}
             />
-        </div>
-        <div className="col-span-3 space-y-4">
-             <Leaderboard 
-                allSubmissions={submissions}
-                allUnits={allUnits}
-                allCampuses={allCampuses}
-                isLoading={isLoading}
-                userProfile={userProfile}
-                isCampusSupervisor={isSupervisor}
-             />
-             <Card>
-                <CardHeader>
-                    <CardTitle>Recent Activity</CardTitle>
-                    <CardDescription>
-                        The latest submissions from all users.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
-                </CardContent>
-            </Card>
-            {selectedUnitId && (
-                <UnitSubmissionDetailCard
-                    unitId={selectedUnitId}
-                    allUnits={allUnits}
-                    allSubmissions={submissions}
-                    onClose={() => setSelectedUnitId(null)}
-                />
-            )}
-        </div>
-    </div>
+        </TabsContent>
+    </Tabs>
   );
 
   const renderHomeContent = () => {
@@ -1215,3 +1226,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
