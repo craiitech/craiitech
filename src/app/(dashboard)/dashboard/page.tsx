@@ -1042,31 +1042,16 @@ export default function HomePage() {
             <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
+            <div className="grid grid-cols-1 gap-4">
+                <IncompleteCampusSubmissions
+                    allSubmissions={submissions}
+                    allCampuses={allCampuses}
+                    allUnits={allUnits}
+                    isLoading={isLoading}
+                />
+            </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 <div className="col-span-4 space-y-4">
-                    <div className="grid gap-4 md:grid-cols-3">
-                        {renderCard(
-                        stats.stat1.title,
-                        stats.stat1.value,
-                        stats.stat1.icon,
-                        isLoading,
-                        (stats.stat1 as any).description
-                        )}
-                        {renderCard(
-                        stats.stat2.title,
-                        stats.stat2.value,
-                        stats.stat2.icon,
-                        isLoading,
-                        (stats.stat2 as any).description
-                        )}
-                        {renderCard(
-                        stats.stat3.title,
-                        stats.stat3.value,
-                        stats.stat3.icon,
-                        isLoading,
-                        (stats.stat3 as any).description
-                        )}
-                    </div>
                      <div className="grid gap-4 md:grid-cols-2">
                         <CompletedSubmissions 
                             allUnits={allUnits}
@@ -1134,12 +1119,6 @@ export default function HomePage() {
              <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
             <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} />
             <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading}/>
-            <IncompleteCampusSubmissions
-                allSubmissions={submissions}
-                allCampuses={allCampuses}
-                allUnits={allUnits}
-                isLoading={isLoading}
-            />
             <SubmissionAnalytics
                 allSubmissions={submissions}
                 allUnits={allUnits}
