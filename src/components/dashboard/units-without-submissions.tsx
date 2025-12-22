@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building, AlertCircle, Send, Loader2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '../ui/badge';
 import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Button } from '../ui/button';
@@ -17,6 +17,7 @@ import { doc, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { cn } from '@/lib/utils';
 
 interface UnitsWithoutSubmissionsProps {
   allUnits: Unit[] | null;
@@ -26,6 +27,7 @@ interface UnitsWithoutSubmissionsProps {
   userProfile: AppUser | null;
   isAdmin: boolean;
   isCampusSupervisor: boolean;
+  onUnitClick: (unitId: string) => void;
 }
 
 export function UnitsWithoutSubmissions({
@@ -36,6 +38,7 @@ export function UnitsWithoutSubmissions({
   userProfile,
   isAdmin,
   isCampusSupervisor,
+  onUnitClick,
 }: UnitsWithoutSubmissionsProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -175,14 +178,20 @@ export function UnitsWithoutSubmissions({
                     <AccordionContent>
                          <List>
                           {campus.incompleteUnits.map(unit => (
-                            <ListItem key={unit.id} className="flex justify-between items-center">
-                              <div className="flex items-center gap-3">
-                                <Building className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">{unit.name}</span>
-                              </div>
-                              <Badge variant={unit.count === 0 ? 'destructive' : 'secondary'}>
-                                {unit.count} of {TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT}
-                              </Badge>
+                            <ListItem key={unit.id}>
+                              <Button
+                                variant="ghost"
+                                className="flex h-auto w-full cursor-pointer items-center justify-between p-0 hover:bg-transparent"
+                                onClick={() => onUnitClick(unit.id)}
+                              >
+                                  <div className="flex items-center gap-3">
+                                    <Building className="h-4 w-4 text-muted-foreground" />
+                                    <span className="font-medium">{unit.name}</span>
+                                  </div>
+                                  <Badge variant={unit.count === 0 ? 'destructive' : 'secondary'}>
+                                    {unit.count} of {TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT}
+                                  </Badge>
+                              </Button>
                             </ListItem>
                           ))}
                         </List>
