@@ -904,7 +904,7 @@ export default function HomePage() {
             <TabsTrigger value="users"><User className="mr-2 h-4 w-4" />Users</TabsTrigger>
         </TabsList>
       <TabsContent value="overview" className="space-y-4">
-         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
             <div className="col-span-4 space-y-4">
                 {unitsInCampus.length === 0 && !isLoading && (
                     <Alert>
@@ -1037,118 +1037,119 @@ export default function HomePage() {
 
   const renderAdminHome = () => (
     <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-            <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
-            <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
-        </TabsList>
-        <TabsContent value="overview" className="space-y-4">
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
-                <div className="col-span-4 space-y-4">
-                    <div className="grid gap-4 md:grid-cols-3">
-                        {renderCard(
-                            stats.stat1.title,
-                            stats.stat1.value,
-                            stats.stat1.icon,
-                            isLoading,
-                            (stats.stat1 as any).description
-                        )}
-                        {renderCard(
-                            stats.stat2.title,
-                            stats.stat2.value,
-                            stats.stat2.icon,
-                            isLoading,
-                            (stats.stat2 as any).description
-                        )}
-                        {renderCard(
-                            stats.stat3.title,
-                            stats.stat3.value,
-                            stats.stat3.icon,
-                            isLoading,
-                            (stats.stat3 as any).description
-                        )}
-                    </div>
-                     <IncompleteCampusSubmissions
-                        allSubmissions={submissions}
-                        allCampuses={allCampuses}
-                        allUnits={allUnits}
-                        isLoading={isLoading}
-                    />
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <CompletedSubmissions 
-                            allUnits={allUnits}
-                            allCampuses={allCampuses}
-                            allSubmissions={submissions}
-                            isLoading={isLoading}
-                            userProfile={userProfile}
-                            isCampusSupervisor={isCampusSupervisor}
-                        />
-                        <UnitsWithoutSubmissions
-                            allUnits={allUnits}
-                            allCampuses={allCampuses}
-                            allSubmissions={submissions}
-                            isLoading={isLoading}
-                            userProfile={userProfile}
-                            isAdmin={isAdmin}
-                            isCampusSupervisor={isCampusSupervisor}
-                            onUnitClick={setSelectedUnitId}
-                        />
-                    </div>
-                    <Card>
-                        <CardHeader>
-                        <CardTitle>Submissions Overview</CardTitle>
-                        <CardDescription>
-                            Monthly submissions from all users.
-                        </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pl-2">
-                        <Overview submissions={submissions} isLoading={isLoading} />
-                        </CardContent>
-                    </Card>
-                </div>
-                <div className="col-span-3 space-y-4">
-                    <Leaderboard 
-                        allSubmissions={submissions}
-                        allUnits={allUnits}
-                        allCampuses={allCampuses}
-                        isLoading={isLoading}
-                        userProfile={userProfile}
-                        isCampusSupervisor={isCampusSupervisor}
-                    />
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Recent Activity</CardTitle>
-                            <CardDescription>
-                                The latest submissions from all users.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
-                        </CardContent>
-                    </Card>
-                    
-                    {selectedUnitId && (
-                        <UnitSubmissionDetailCard
-                            unitId={selectedUnitId}
-                            allUnits={allUnits}
-                            allSubmissions={submissions}
-                            onClose={() => setSelectedUnitId(null)}
-                        />
-                    )}
-                </div>
+      <TabsList>
+        <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
+        <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
+      </TabsList>
+      <TabsContent value="overview" className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
+          {/* Left Column */}
+          <div className="col-span-1 space-y-4 lg:col-span-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              {renderCard(
+                stats.stat1.title,
+                stats.stat1.value,
+                stats.stat1.icon,
+                isLoading,
+                (stats.stat1 as any).description
+              )}
+              {renderCard(
+                stats.stat2.title,
+                stats.stat2.value,
+                stats.stat2.icon,
+                isLoading,
+                (stats.stat2 as any).description
+              )}
+              {renderCard(
+                stats.stat3.title,
+                stats.stat3.value,
+                stats.stat3.icon,
+                isLoading,
+                (stats.stat3 as any).description
+              )}
             </div>
-        </TabsContent>
-        <TabsContent value="analytics" className="space-y-4">
-             <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-            <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} />
-            <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading}/>
-            <SubmissionAnalytics
+            <div className="grid gap-4 md:grid-cols-2">
+              <CompletedSubmissions 
+                  allUnits={allUnits}
+                  allCampuses={allCampuses}
+                  allSubmissions={submissions}
+                  isLoading={isLoading}
+                  userProfile={userProfile}
+                  isCampusSupervisor={isCampusSupervisor}
+              />
+              <UnitsWithoutSubmissions
+                  allUnits={allUnits}
+                  allCampuses={allCampuses}
+                  allSubmissions={submissions}
+                  isLoading={isLoading}
+                  userProfile={userProfile}
+                  isAdmin={isAdmin}
+                  isCampusSupervisor={isCampusSupervisor}
+                  onUnitClick={setSelectedUnitId}
+              />
+            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Submissions Overview</CardTitle>
+                <CardDescription>
+                    Monthly submissions from all users.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pl-2">
+                <Overview submissions={submissions} isLoading={isLoading} />
+              </CardContent>
+            </Card>
+          </div>
+          {/* Right Column */}
+          <div className="col-span-1 space-y-4 lg:col-span-3">
+            <Leaderboard 
                 allSubmissions={submissions}
                 allUnits={allUnits}
+                allCampuses={allCampuses}
                 isLoading={isLoading}
-                isAdmin={isAdmin}
                 userProfile={userProfile}
+                isCampusSupervisor={isCampusSupervisor}
             />
-        </TabsContent>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Recent Activity</CardTitle>
+                    <CardDescription>
+                        The latest submissions from all users.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
+                </CardContent>
+            </Card>
+             <IncompleteCampusSubmissions
+                allSubmissions={submissions}
+                allCampuses={allCampuses}
+                allUnits={allUnits}
+                isLoading={isLoading}
+            />
+            {selectedUnitId && (
+                <UnitSubmissionDetailCard
+                    unitId={selectedUnitId}
+                    allUnits={allUnits}
+                    allSubmissions={submissions}
+                    onClose={() => setSelectedUnitId(null)}
+                />
+            )}
+          </div>
+        </div>
+      </TabsContent>
+      <TabsContent value="analytics" className="space-y-4">
+        <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} />
+        <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading}/>
+        <SubmissionAnalytics
+            allSubmissions={submissions}
+            allUnits={allUnits}
+            isLoading={isLoading}
+            isAdmin={isAdmin}
+            userProfile={userProfile}
+        />
+      </TabsContent>
     </Tabs>
   );
 
