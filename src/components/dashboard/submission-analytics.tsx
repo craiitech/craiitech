@@ -1,3 +1,4 @@
+
 'use client';
 import { useMemo } from 'react';
 import type { Submission, Unit, User as AppUser } from '@/lib/types';
@@ -103,7 +104,7 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
 
   if (isDataLoading) {
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4">
             {[...Array(3)].map((_, i) => (
                  <Card key={i}>
                     <CardHeader>
@@ -120,7 +121,7 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4">
       <Card>
         <CardHeader>
           <CardTitle>Submissions by Status</CardTitle>
