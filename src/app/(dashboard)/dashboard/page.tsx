@@ -90,7 +90,7 @@ const statusVariant: Record<
 };
 
 export default function HomePage() {
-  const { user, userProfile, isAdmin, isUserLoading, userRole } = useUser();
+  const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor, isVp } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
 
@@ -99,10 +99,6 @@ export default function HomePage() {
   const [selectedRiskYear, setSelectedRiskYear] = useState(new Date().getFullYear());
 
 
-  const isCampusSupervisor =
-    userRole === 'Campus Director' || userRole === 'Campus ODIMO';
-  const isVp = userRole?.toLowerCase().includes('vice president');
-  
   const canViewCampusAnnouncements = userProfile?.campusId;
 
   // Fetch submissions based on role
@@ -110,7 +106,7 @@ export default function HomePage() {
     if (!firestore) return null;
     if (isAdmin) return collection(firestore, 'submissions');
     if (!userProfile) return null;
-    if (isCampusSupervisor || isVp) {
+    if (isSupervisor) {
       return query(
         collection(firestore, 'submissions'),
         where('campusId', '==', userProfile.campusId)
@@ -120,7 +116,7 @@ export default function HomePage() {
       collection(firestore, 'submissions'),
       where('userId', '==', userProfile.id)
     );
-  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isVp]);
+  }, [firestore, userProfile, isAdmin, isSupervisor]);
 
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
@@ -144,7 +140,7 @@ export default function HomePage() {
     if (isAdmin) {
         return baseRisksQuery;
     }
-    if (isCampusSupervisor || isVp) {
+    if (isSupervisor) {
         // Supervisors must have a campusId to query by it.
         if (userProfile.campusId) {
             return query(baseRisksQuery, where('campusId', '==', userProfile.campusId));
@@ -157,7 +153,7 @@ export default function HomePage() {
     }
     
     return null; // Return null if no valid condition is met.
-  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isVp]);
+  }, [firestore, userProfile, isAdmin, isSupervisor]);
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
@@ -166,11 +162,11 @@ export default function HomePage() {
   const usersQuery = useMemoFirebase(() => {
       if (!firestore) return null;
       if (isAdmin) return collection(firestore, 'users');
-      if (isCampusSupervisor && userProfile?.campusId) {
+      if (isSupervisor && userProfile?.campusId) {
           return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
       }
       return null; // Regular users don't need to fetch other users.
-  }, [firestore, isAdmin, isCampusSupervisor, userProfile]);
+  }, [firestore, isAdmin, isSupervisor, userProfile]);
 
   const { data: allUsersData, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
 
@@ -180,11 +176,11 @@ export default function HomePage() {
         allUsersData.forEach(u => userMap.set(u.id, u));
     }
     // For regular users, add their own profile to the map
-    if (userProfile && !isCampusSupervisor && !isAdmin) {
+    if (userProfile && !isSupervisor && !isAdmin) {
         userMap.set(userProfile.id, userProfile);
     }
     return userMap;
-  }, [allUsersData, userProfile, isCampusSupervisor, isAdmin]);
+  }, [allUsersData, userProfile, isSupervisor, isAdmin]);
 
 
   const allUnitsQuery = useMemoFirebase(() => {
@@ -244,7 +240,7 @@ export default function HomePage() {
     isLoadingGlobalSettings ||
     isLoadingCycles ||
     isLoadingRisks ||
-    ((isAdmin || isCampusSupervisor) && isLoadingUsers);
+    ((isAdmin || isSupervisor) && isLoadingUsers);
 
 
   const stats = useMemo(() => {
@@ -279,7 +275,7 @@ export default function HomePage() {
           icon: <Users className="h-6 w-6 text-primary" />,
         },
       };
-    } else if (isCampusSupervisor) {
+    } else if (isSupervisor) {
       const totalRequired = unitsInCampus.length * TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT;
       const uniqueSubmissionsCount = new Set(currentYearSubmissions.map(s => s.reportType + s.unitId + s.cycleId)).size;
 
@@ -339,7 +335,7 @@ export default function HomePage() {
             },
         };
     }
-  }, [submissions, isCampusSupervisor, isAdmin, allUsersMap, userProfile, unitsInCampus]);
+  }, [submissions, isSupervisor, isAdmin, allUsersMap, userProfile, unitsInCampus]);
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
     const emptyResult = {
@@ -694,7 +690,7 @@ export default function HomePage() {
                 allSubmissions={submissions}
                 isLoading={isLoading}
                 userProfile={userProfile}
-                isCampusSupervisor={isCampusSupervisor}
+                isCampusSupervisor={isSupervisor}
             />
             <UnitsWithoutSubmissions
                 allUnits={allUnits}
@@ -703,7 +699,7 @@ export default function HomePage() {
                 isLoading={isLoading}
                 userProfile={userProfile}
                 isAdmin={isAdmin}
-                isCampusSupervisor={isCampusSupervisor}
+                isCampusSupervisor={isSupervisor}
             />
         </div>
          <CampusUnitOverview 
@@ -798,7 +794,7 @@ export default function HomePage() {
                 allSubmissions={submissions}
                 isLoading={isLoading}
                 userProfile={userProfile}
-                isCampusSupervisor={isCampusSupervisor}
+                isCampusSupervisor={isSupervisor}
             />
             <UnitsWithoutSubmissions
                 allUnits={allUnits}
@@ -807,7 +803,7 @@ export default function HomePage() {
                 isLoading={isLoading}
                 userProfile={userProfile}
                 isAdmin={isAdmin}
-                isCampusSupervisor={isCampusSupervisor}
+                isCampusSupervisor={isSupervisor}
             />
         </div>
          <IncompleteCampusSubmissions
@@ -913,15 +909,14 @@ export default function HomePage() {
             </div>
          )
     }
-    // **FIX**: This logic is now mutually exclusive.
-    // An admin will only ever see the admin dashboard.
+    
     if (isAdmin) {
       return renderAdminHome();
-    }
-    if (isCampusSupervisor || isVp) {
+    } else if (isSupervisor) {
       return renderSupervisorHome();
+    } else {
+      return renderUnitCoordinatorHome();
     }
-    return renderUnitCoordinatorHome();
   };
   
   const showAnnouncements = !isLoading && (

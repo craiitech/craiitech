@@ -27,12 +27,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 
 export default function ReportsPage() {
-  const { userProfile, isAdmin, isUserLoading, userRole } = useUser();
+  const { userProfile, isAdmin, isUserLoading, isSupervisor } = useUser();
   const firestore = useFirestore();
 
   const [selectedCampusId, setSelectedCampusId] = useState<string | null>(null);
 
-  const canViewReports = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+  const canViewReports = isAdmin || isSupervisor;
 
   useEffect(() => {
     if (!isAdmin && userProfile?.campusId) {

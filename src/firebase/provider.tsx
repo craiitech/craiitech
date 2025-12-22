@@ -43,6 +43,8 @@ export interface FirebaseContextState {
   isAdmin: boolean;
   isAdminLoading: boolean;
   userRole: string | null;
+  isSupervisor: boolean;
+  isVp: boolean;
 }
 
 // Return type for useFirebase()
@@ -59,6 +61,8 @@ export interface FirebaseServicesAndUser {
   isAdmin: boolean;
   isAdminLoading: boolean;
   userRole: string | null;
+  isSupervisor: boolean;
+  isVp: boolean;
 }
 
 // Return type for useUser() - specific to user auth state
@@ -69,6 +73,8 @@ export interface UserHookResult {
   userError: Error | null;
   isAdmin: boolean;
   userRole: string | null;
+  isSupervisor: boolean;
+  isVp: boolean;
 }
 
 // React Context
@@ -152,6 +158,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const isUserLoading = userAuthState.isAuthLoading || (!!userAuthState.user && (isProfileLoading || isAdminLoading || isLoadingRoles));
 
     const userRole = isAdmin ? 'Admin' : (userProfile && roles ? (roles.find(r => r.id === userProfile.roleId)?.name || null) : null);
+    
+    const isVp = !!userRole?.toLowerCase().includes('vice president');
+    const isSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || isVp;
+
 
     return {
       areServicesAvailable: servicesAvailable,
@@ -166,6 +176,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       isAdmin,
       isAdminLoading,
       userRole,
+      isSupervisor,
+      isVp,
     };
   }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading, adminDoc, isAdminLoading, roles, isLoadingRoles]);
   
@@ -228,6 +240,8 @@ export const useFirebase = (): FirebaseServicesAndUser | { areServicesAvailable:
     isAdmin: context.isAdmin,
     isAdminLoading: context.isAdminLoading,
     userRole: context.userRole,
+    isSupervisor: context.isSupervisor,
+    isVp: context.isVp,
   };
 };
 
@@ -266,10 +280,10 @@ export const useFirebaseApp = (): FirebaseApp => {
 export const useUser = (): UserHookResult => { 
   const context = useFirebase();
    if (!context.areServicesAvailable) {
-      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, userRole: null };
+      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, userRole: null, isSupervisor: false, isVp: false };
   }
-  const { user, userProfile, isUserLoading, userError, isAdmin, userRole } = context; 
-  return { user, userProfile, isUserLoading, userError, isAdmin, userRole };
+  const { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp } = context; 
+  return { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp };
 };
 
     

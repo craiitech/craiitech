@@ -12,11 +12,9 @@ import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
 import { RiskTable } from '@/components/risk/risk-table';
 
 export default function RiskRegisterPage() {
-    const { userProfile, isAdmin, userRole, isUserLoading, firestore } = useUser();
+    const { userProfile, isAdmin, userRole, isUserLoading, firestore, isSupervisor } = useUser();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
-
-    const isSupervisor = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
     
     const risksQuery = useMemoFirebase(() => {
         if (!firestore || !userProfile) return null;

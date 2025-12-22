@@ -117,9 +117,23 @@ export type ActivityLog = {
     
 export type Cycle = {
   id: string;
-  name: string;
+  name: 'first' | 'final';
   year: number;
   startDate: any; // Can be Timestamp
   endDate: any; // Can be Timestamp
+}
+
+export type ErrorReport = {
+  id: string;
+  errorMessage: string;
+  errorStack: string;
+  errorDigest?: string;
+  url: string;
+  status: 'new' | 'acknowledged' | 'resolved';
+  userId?: string;
+  userName?: string;
+  userRole?: string;
+  userEmail?: string;
+  timestamp: any; // serverTimestamp()
 }
     

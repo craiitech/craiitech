@@ -22,10 +22,8 @@ import { ErrorReportManagement } from '@/components/admin/error-report-managemen
 
 
 export default function SettingsPage() {
-  const { userProfile, isAdmin, isUserLoading, userRole } = useUser();
+  const { userProfile, isAdmin, isUserLoading, userRole, isSupervisor } = useUser();
   
-  const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
-
   if (isUserLoading) {
      return (
        <div className="space-y-4">
@@ -41,14 +39,6 @@ export default function SettingsPage() {
     );
   }
   
-  const renderUnitManagementForSupervisor = () => {
-    // Both Campus Director and Campus ODIMO should have the same unit management capabilities
-    if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-      return <DirectorUnitManagement />;
-    }
-    return null;
-  }
-
   if (isAdmin) {
     return (
       <div className="space-y-4">
@@ -96,7 +86,7 @@ export default function SettingsPage() {
     );
   }
   
-  if (isCampusSupervisor) {
+  if (isSupervisor) {
       return (
          <div className="space-y-6">
             <div>

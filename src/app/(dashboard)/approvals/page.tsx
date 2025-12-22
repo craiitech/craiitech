@@ -52,7 +52,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useRouter } from 'next/navigation';
 
 export default function ApprovalsPage() {
-  const { user, userProfile, isAdmin, userRole } = useUser();
+  const { user, userProfile, isSupervisor, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
@@ -67,14 +67,14 @@ export default function ApprovalsPage() {
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [dialogMode, setDialogMode] = useState<'reject' | 'view'>('view');
   
-  const canApprove = userRole === 'Admin' || userRole === 'Campus ODIMO' || userRole === 'Campus Director';
+  const canApprove = isSupervisor || userRole === 'Admin';
 
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !userRole) {
       return null;
     }
     // Supervisors (non-admin) need to wait for their profile to get campus/unit IDs
-    if (userRole !== 'Admin' && !userProfile?.campusId) {
+    if (isSupervisor && userRole !== 'Admin' && !userProfile?.campusId) {
         return null;
     }
 
@@ -87,16 +87,24 @@ export default function ApprovalsPage() {
       );
     } 
     
-    if ((userRole === 'Campus Director' || userRole === 'Campus ODIMO') && userProfile?.campusId) {
+    if (isSupervisor && userProfile?.campusId) {
       return query(
         submissionsCollection,
         where('campusId', '==', userProfile.campusId),
         where('statusId', '==', 'submitted')
       );
     }
+    
+     if (userRole === 'Unit ODIMO' && userProfile?.unitId) {
+      return query(
+        submissionsCollection,
+        where('unitId', '==', userProfile.unitId),
+        where('statusId', '==', 'submitted')
+      );
+    }
 
     return null; // Return null if no valid query can be constructed
-  }, [firestore, userRole, userProfile]);
+  }, [firestore, userRole, userProfile, isSupervisor]);
 
   const { data: rawSubmissions, isLoading } = useCollection<Submission>(submissionsQuery);
 

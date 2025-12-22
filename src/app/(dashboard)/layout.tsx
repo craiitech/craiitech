@@ -67,10 +67,8 @@ export default function DashboardLayout({
     return <LoadingSkeleton />;
   }
 
-  const { user, userProfile, isUserLoading, isAdmin, userRole, firestore } = firebaseState;
+  const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, isSupervisor } = firebaseState;
   
-  const isSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
-
   const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
 
@@ -87,13 +85,13 @@ export default function DashboardLayout({
     if (userRole === 'Admin') {
       return query(submissionsCollection, where('statusId', '==', 'submitted'));
     }
-    if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
+    if (isSupervisor && userRole !== 'Admin') {
       if (!userProfile.campusId) return null; // Wait for campusId
       return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
     }
     // Employees get notifications for rejected submissions
     return query(submissionsCollection, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
-  }, [firestore, userProfile, userRole]);
+  }, [firestore, userProfile, userRole, isSupervisor]);
 
   const { data: notifications, isLoading: isLoadingNotifications } = useCollection<Submission>(notificationQuery);
 
@@ -113,11 +111,11 @@ export default function DashboardLayout({
     const campusName = campuses?.find(c => c.id === userProfile.campusId)?.name;
     const unitName = units?.find(u => u.id === userProfile.unitId)?.name;
     let locationString = campusName || '';
-    if (unitName && userRole !== 'Campus Director' && userRole !== 'Campus ODIMO' && !userRole?.toLowerCase().includes('vice president')) {
+    if (unitName && !isSupervisor) {
         locationString += ` / ${unitName}`;
     }
     return locationString;
-  }, [userProfile, campuses, units, userRole]);
+  }, [userProfile, campuses, units, isSupervisor]);
 
   useEffect(() => {
     // Wait until the initial loading is complete
@@ -131,7 +129,7 @@ export default function DashboardLayout({
       return;
     }
     
-    // **FIX**: If the user is an admin, do not perform any other checks.
+    // If the user is an admin, do not perform any other checks.
     // An admin account is always considered complete.
     if (isAdmin) {
       return;
@@ -144,17 +142,11 @@ export default function DashboardLayout({
     }
     
     if (userProfile) {
-      const isVP = userRole?.toLowerCase().includes('vice president');
-      const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+      let isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
 
-      let isProfileIncomplete = false;
-      if (isVP) {
-        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
-      } else if (isCampusLevelUser) {
-        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
-      } else {
-        // Regular users need a campus, role, AND unit.
-        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
+      // Only require unitId if the user is not a supervisor role
+      if (!isSupervisor) {
+        isProfileIncomplete = isProfileIncomplete || !userProfile.unitId;
       }
 
       if (isProfileIncomplete) {
@@ -167,7 +159,7 @@ export default function DashboardLayout({
         return;
       }
     }
-  }, [user, userProfile, isUserLoading, pathname, isAdmin, userRole]);
+  }, [user, userProfile, isUserLoading, pathname, isAdmin, isSupervisor]);
 
 
   if (isUserLoading) {
