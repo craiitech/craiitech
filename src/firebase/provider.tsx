@@ -160,7 +160,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const userRole = isAdmin ? 'Admin' : (userProfile && roles ? (roles.find(r => r.id === userProfile.roleId)?.name || null) : null);
     
     const isVp = !!userRole?.toLowerCase().includes('vice president');
-    const isSupervisor = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || isVp;
+    const supervisorRoles = ['Admin', 'Campus Director', 'Campus ODIMO'];
+    const isSupervisor = supervisorRoles.includes(userRole || '') || isVp;
 
 
     return {

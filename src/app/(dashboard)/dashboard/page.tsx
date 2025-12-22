@@ -895,21 +895,22 @@ export default function HomePage() {
 
   const renderHomeContent = () => {
     if (isLoading) {
-         return (
-             <div className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-3">
-                    <Skeleton className="h-28"/>
-                    <Skeleton className="h-28"/>
-                    <Skeleton className="h-28"/>
-                </div>
-                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                    <Skeleton className="col-span-4 h-80" />
-                    <Skeleton className="col-span-3 h-80" />
-                </div>
-            </div>
-         )
+      return (
+        <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+            <Skeleton className="col-span-4 h-80" />
+            <Skeleton className="col-span-3 h-80" />
+          </div>
+        </div>
+      );
     }
-    
+  
+    // Mutually exclusive role rendering
     if (isAdmin) {
       return renderAdminHome();
     } else if (isSupervisor) {

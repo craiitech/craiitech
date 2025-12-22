@@ -67,7 +67,7 @@ export default function DashboardLayout({
     return <LoadingSkeleton />;
   }
 
-  const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, isSupervisor } = firebaseState;
+  const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, isSupervisor } = useUser();
   
   const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
