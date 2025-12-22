@@ -1104,12 +1104,6 @@ export default function HomePage() {
                         <Overview submissions={submissions} isLoading={isLoading} />
                     </CardContent>
                 </Card>
-                 <IncompleteCampusSubmissions
-                    allSubmissions={submissions}
-                    allCampuses={allCampuses}
-                    allUnits={allUnits}
-                    isLoading={isLoading}
-                />
                  <Card>
                     <CardHeader>
                         <CardTitle>Recent Activity</CardTitle>
@@ -1121,6 +1115,12 @@ export default function HomePage() {
                         <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
                     </CardContent>
                 </Card>
+                 <IncompleteCampusSubmissions
+                    allSubmissions={submissions}
+                    allCampuses={allCampuses}
+                    allUnits={allUnits}
+                    isLoading={isLoading}
+                />
             </div>
         </div>
       </TabsContent>
