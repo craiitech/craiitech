@@ -106,11 +106,21 @@
             visibility: hidden;
         }
 
+<<<<<<< HEAD
         .printable-area, .printable-area * {
             visibility: visible;
         }
 
         .printable-area {
+=======
+        /* Show the active printable area and all its children */
+        .printable-area[data-state="active"], .printable-area[data-state="active"] * {
+            visibility: visible;
+        }
+
+        /* Make the printable area take up the full page */
+        .printable-area[data-state="active"] {
+>>>>>>> fc50e76 (I am logged as Campus ODIMO and the Print Report button in the Submissio)
             position: absolute;
             left: 0;
             top: 0;
