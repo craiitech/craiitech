@@ -98,7 +98,10 @@ export default function Home() {
                     </AlertDialogContent>
                 </AlertDialog>
             </div>
-             <p className="text-xs text-white/60">&copy; 2025 Romblon State University. All rights reserved.</p>
+             <p className="text-xs text-white/60">
+                &copy; 2025 Romblon State University - Quality Assurance Office. All rights reserved. 
+                <Link href="/terms" className="underline hover:text-white ml-1">Read our Terms and Conditions.</Link>
+             </p>
         </div>
     </div>
   );
