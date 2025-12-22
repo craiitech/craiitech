@@ -1,7 +1,7 @@
 
 'use client';
 
-import { LogOut, Bell } from 'lucide-react';
+import { LogOut, Bell, User as UserIcon, Settings } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,7 +30,7 @@ interface UserNavProps {
 export function UserNav({ user, userProfile, notificationCount }: UserNavProps) {
   const router = useRouter();
   const { logSessionActivity } = useSessionActivity();
-  const { userRole } = useUser();
+  const { userRole, isSupervisor } = useUser();
   
   const handleLogout = () => {
     if (user && userProfile && userRole) {
@@ -43,13 +43,14 @@ export function UserNav({ user, userProfile, notificationCount }: UserNavProps) 
   };
   
   const handleNotificationClick = () => {
-    const isSupervisor = userRole === 'Admin' || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole === 'Unit ODIMO' || userRole?.toLowerCase().includes('vice president');
     if (isSupervisor) {
       router.push('/approvals');
     } else {
       router.push('/submissions');
     }
   }
+  
+  const canViewSettings = userRole === 'Admin' || userRole === 'Campus Director' || userRole === 'Campus ODIMO';
 
   if (!user || !userProfile) {
     return null;
@@ -90,17 +91,21 @@ export function UserNav({ user, userProfile, notificationCount }: UserNavProps) 
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
             <DropdownMenuItem asChild>
-                <Link href="/dashboard">
-                Profile
-                <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
+                <Link href="/profile">
+                  <UserIcon className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                  <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
                 </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-                <Link href="/settings">
-                    Settings
-                    <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
-                </Link>
-            </DropdownMenuItem>
+            {canViewSettings && (
+              <DropdownMenuItem asChild>
+                  <Link href="/settings">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                      <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
+                  </Link>
+              </DropdownMenuItem>
+            )}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

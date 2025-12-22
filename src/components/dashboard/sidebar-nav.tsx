@@ -7,7 +7,7 @@ import {
   useUser,
   useAuth,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, User as UserIcon } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../ui/sidebar';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -21,7 +21,7 @@ export function SidebarNav({
   const router = useRouter();
   const auth = useAuth();
   const { toast } = useToast();
-  const { user, userProfile, isAdmin, userRole } = useUser();
+  const { user, userProfile, isAdmin, userRole, isSupervisor } = useUser();
   const { logSessionActivity } = useSessionActivity();
 
   const handleLogout = () => {
@@ -43,6 +43,12 @@ export function SidebarNav({
       icon: <LayoutDashboard />,
     },
     {
+      href: '/profile',
+      label: 'Profile',
+      active: pathname === '/profile',
+      icon: <UserIcon />,
+    },
+    {
       href: '/submissions',
       label: 'Submissions',
       active: pathname.startsWith('/submissions'),
@@ -58,7 +64,7 @@ export function SidebarNav({
       href: '/approvals',
       label: 'Approvals',
       active: pathname.startsWith('/approvals'),
-      roles: ['Campus Director', 'Campus ODIMO', 'Unit ODIMO', 'Admin'],
+      roles: ['Campus Director', 'Campus ODIMO', 'Unit ODIMO', 'Admin', 'Vice President'],
       icon: <CheckSquare />,
     },
      {
@@ -90,6 +96,10 @@ export function SidebarNav({
     }
     if (!userRole) {
       return false; // If role is not loaded yet, don't show role-specific routes
+    }
+    // Handle VP role matching
+    if (route.roles.includes('Vice President') && userRole.toLowerCase().includes('vice president')) {
+      return true;
     }
     // Check if the user's role is included in the route's allowed roles
     return route.roles.includes(userRole);

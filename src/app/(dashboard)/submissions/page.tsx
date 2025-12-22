@@ -1,7 +1,7 @@
 
 'use client';
 
-import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2, Printer, FileDown, Download, AlertCircle } from 'lucide-react';
+import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2, Printer, FileDown, Download, AlertCircle, Library, Rows } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -27,8 +27,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, Timestamp, where, doc, deleteDoc } from 'firebase/firestore';
-import type { Submission, User as AppUser, Campus, Cycle } from '@/lib/types';
+import { collection, query, Timestamp, where, doc, deleteDoc, getDocs } from 'firebase/firestore';
+import type { Submission, User as AppUser, Campus, Cycle, Unit } from '@/lib/types';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -50,6 +50,9 @@ import { useSessionActivity } from '@/lib/activity-log-provider';
 import * as XLSX from 'xlsx';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Link from 'next/link';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { UnitSubmissionsView } from '@/components/submissions/unit-submissions-view';
+import { CampusSubmissionsView } from '@/components/submissions/campus-submissions-view';
 
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -309,11 +312,41 @@ export default function SubmissionsPage() {
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
+
+  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
+  const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: cycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
 
 
-  const isLoading = isLoadingSubmissions || isLoadingUsers || isLoadingCampuses || isLoadingCycles;
+  // Effect to fetch user data based on loaded submissions
+  useEffect(() => {
+    if (!submissionsData || !firestore || !isSupervisor) return;
+
+    const fetchUsers = async () => {
+      const userIds = [...new Set(submissionsData.map(s => s.userId))];
+      if (userIds.length === 0) return;
+
+      const newUsersMap = new Map<string, AppUser>();
+      // Firestore 'in' query is limited to 30 elements. We might need to batch this.
+      const batchSize = 30;
+      for (let i = 0; i < userIds.length; i += batchSize) {
+        const batchIds = userIds.slice(i, i + batchSize);
+        if (batchIds.length > 0) {
+          const q = query(collection(firestore, 'users'), where('id', 'in', batchIds));
+          const userSnap = await getDocs(q);
+          userSnap.forEach(doc => {
+            newUsersMap.set(doc.id, { ...doc.data() as AppUser, id: doc.id });
+          });
+        }
+      }
+    };
+
+    fetchUsers();
+  }, [submissionsData, firestore, isSupervisor]);
+
+  const isLoading = isLoadingSubmissions || isLoadingCampuses || isLoadingCycles || isLoadingUnits || isLoadingUsers;
 
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [feedbackToShow, setFeedbackToShow] = useState('');
@@ -558,53 +591,97 @@ export default function SubmissionsPage() {
           <h1 className="text-2xl font-bold">Submissions Report</h1>
           <p className="text-muted-foreground">Generated on: {new Date().toLocaleDateString()}</p>
       </div>
-      <Card>
-        <CardHeader className="print:hidden">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div className='mb-4 md:mb-0'>
-                <CardTitle>{isSupervisor ? 'All Submissions' : 'My Submissions'}</CardTitle>
-                <CardDescription>
-                    {isSupervisor ? 'A history of all reports submitted by users in your campus/unit.' : 'A history of all reports you have submitted.'}
-                </CardDescription>
-            </div>
-            <div className="w-full md:w-auto">
-              <Select value={activeFilter} onValueChange={setActiveFilter}>
-                <SelectTrigger className="w-full md:w-[280px]">
-                  <SelectValue placeholder="Filter by report type..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {submissionTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-           {isLoading ? (
-                <div className="flex justify-center items-center h-64">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-            ) : (
-                <SubmissionsTable 
-                    submissions={sortedSubmissions}
-                    isSupervisor={isSupervisor}
-                    isAdmin={isAdmin ?? false}
-                    usersMap={usersMap}
-                    campusMap={campusMap}
-                    onEyeClick={handleEyeClick}
-                    onViewFeedbackClick={handleViewFeedback}
-                    onDeleteClick={handleDeleteClick}
-                    sortConfig={sortConfig}
-                    requestSort={requestSort}
-                    cycles={cycleMap}
-                />
+
+       <Tabs defaultValue="all-submissions" className="space-y-4">
+        <TabsList className="print:hidden">
+            <TabsTrigger value="all-submissions">
+              <Rows className="mr-2 h-4 w-4" />
+              All Submissions
+            </TabsTrigger>
+            {isSupervisor && !isAdmin && (
+              <TabsTrigger value="by-unit">
+                <Library className="mr-2 h-4 w-4" />
+                Unit Submissions
+              </TabsTrigger>
             )}
-        </CardContent>
-      </Card>
+             {isAdmin && (
+              <TabsTrigger value="by-campus">
+                <Library className="mr-2 h-4 w-4" />
+                Campus Submissions
+              </TabsTrigger>
+            )}
+        </TabsList>
+        <TabsContent value="all-submissions" className="printable-area" data-state="active">
+            <Card>
+                <CardHeader className="print:hidden">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                    <div className='mb-4 md:mb-0'>
+                        <CardTitle>{isSupervisor ? 'All Submissions' : 'My Submissions'}</CardTitle>
+                        <CardDescription>
+                            {isSupervisor ? 'A history of all reports submitted by users in your campus/unit.' : 'A history of all reports you have submitted.'}
+                        </CardDescription>
+                    </div>
+                    <div className="w-full md:w-auto">
+                    <Select value={activeFilter} onValueChange={setActiveFilter}>
+                        <SelectTrigger className="w-full md:w-[280px]">
+                        <SelectValue placeholder="Filter by report type..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                        {submissionTypes.map((type) => (
+                            <SelectItem key={type} value={type}>
+                            {type}
+                            </SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                    </div>
+                </div>
+                </CardHeader>
+                <CardContent>
+                {isLoading ? (
+                        <div className="flex justify-center items-center h-64">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                    ) : (
+                        <SubmissionsTable 
+                            submissions={sortedSubmissions}
+                            isSupervisor={isSupervisor}
+                            isAdmin={isAdmin ?? false}
+                            usersMap={usersMap}
+                            campusMap={campusMap}
+                            onEyeClick={handleEyeClick}
+                            onViewFeedbackClick={handleViewFeedback}
+                            onDeleteClick={handleDeleteClick}
+                            sortConfig={sortConfig}
+                            requestSort={requestSort}
+                            cycles={cycleMap}
+                        />
+                    )}
+                </CardContent>
+            </Card>
+        </TabsContent>
+        {isSupervisor && !isAdmin && (
+            <TabsContent value="by-unit" className="printable-area">
+                <UnitSubmissionsView
+                    allSubmissions={submissions}
+                    allUnits={units}
+                    userProfile={userProfile}
+                    isLoading={isLoading}
+                />
+            </TabsContent>
+        )}
+        {isAdmin && (
+            <TabsContent value="by-campus" className="printable-area">
+                <CampusSubmissionsView
+                    allSubmissions={submissions}
+                    allUnits={units}
+                    allCampuses={campuses}
+                    isLoading={isLoading}
+                />
+            </TabsContent>
+        )}
+      </Tabs>
+
       </TooltipProvider>
       <FeedbackDialog 
         isOpen={isFeedbackDialogOpen}

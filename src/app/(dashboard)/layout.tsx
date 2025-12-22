@@ -1,17 +1,13 @@
-
 'use client';
 
 import { redirect, usePathname } from 'next/navigation';
 import { useFirebase, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { UserNav } from '@/components/dashboard/user-nav';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
   SidebarInset,
-  SidebarTrigger,
-  SidebarFooter,
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
@@ -53,169 +49,83 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const firebaseState = useFirebase();
   const pathname = usePathname();
-
-
-  if (!firebaseState.areServicesAvailable) {
-    return <LoadingSkeleton />;
-  }
-
   const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, isSupervisor } = useUser();
-  
-<<<<<<< HEAD
-  const isStillLoading = isUserLoading;
-  
-  const isSupervisor = userRole === 'Admin' || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole === 'Unit ODIMO';
-=======
-  const isSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
->>>>>>> a9d999e (now that we are back to original, can yo please doublecheck the codebase)
 
->>>>>>> f5d7ad9 (Try fixing this error: `Build Error: Parsing ecmascript source code fail)
-  const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
+  if (!firebaseState.areServicesAvailable || isUserLoading) return <LoadingSkeleton />;
+
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
 
-  const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units') : null, [firestore]);
+  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
 
-  // Fetch relevant submissions for notifications
-   const notificationQuery = useMemoFirebase(() => {
+  const notificationQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || !userRole) return null;
-
     const submissionsCollection = collection(firestore, 'submissions');
-    
-    // Supervisors get notifications for pending approvals
-<<<<<<< HEAD
-    if (userRole === 'Admin') {
-      return query(submissionsCollection, where('statusId', '==', 'submitted'));
-    }
-    if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-      if (!userProfile.campusId) return null; // Wait for campusId
-      return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
-=======
+
     if (isSupervisor) {
-      if (userRole === 'Admin') {
-          return query(submissionsCollection, where('statusId', '==', 'submitted'));
-      }
+      if (userRole === 'Admin') return query(submissionsCollection, where('statusId', '==', 'submitted'));
       if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-           if (!userProfile.campusId) return null;
-            return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
+        if (!userProfile.campusId) return null;
+        return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
       }
-       if (userRole === 'Unit ODIMO') {
-            if (!userProfile.unitId) return null;
-            return query(submissionsCollection, where('unitId', '==', userProfile.unitId), where('statusId', '==', 'submitted'));
-       }
->>>>>>> 55774ec (I am logged in as Unit Coordinator, the notification is bringing me to ")
+      if (userRole === 'Unit ODIMO') {
+        if (!userProfile.unitId) return null;
+        return query(submissionsCollection, where('unitId', '==', userProfile.unitId), where('statusId', '==', 'submitted'));
+      }
     }
+
     // Employees get notifications for rejected submissions
     return query(submissionsCollection, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
-  }, [firestore, userProfile, userRole]);
+  }, [firestore, userProfile, userRole, isSupervisor]);
 
-  const { data: notifications, isLoading: isLoadingNotifications } = useCollection<Submission>(notificationQuery);
+  const { data: notifications } = useCollection<Submission>(notificationQuery);
 
   const notificationCount = useMemo(() => {
-      if (!notifications) return 0;
-      if (isSupervisor) {
-          // Filter out submissions made by the approver themselves
-          return notifications.filter(s => s.userId !== userProfile?.id).length;
-      }
-      return notifications.length;
+    if (!notifications) return 0;
+    if (isSupervisor) return notifications.filter(s => s.userId !== userProfile?.id).length;
+    return notifications.length;
   }, [notifications, isSupervisor, userProfile]);
-
-
 
   const userLocation = useMemo(() => {
     if (!userProfile || !campuses || !units) return '';
-    const campusName = campuses?.find(c => c.id === userProfile.campusId)?.name;
-    const unitName = units?.find(u => u.id === userProfile.unitId)?.name;
-    let locationString = campusName || '';
-    if (unitName && !isSupervisor) {
-        locationString += ` / ${unitName}`;
-    }
-    return locationString;
+    const campusName = campuses.find(c => c.id === userProfile.campusId)?.name;
+    const unitName = units.find(u => u.id === userProfile.unitId)?.name;
+    let location = campusName || '';
+    if (unitName && !isSupervisor) location += ` / ${unitName}`;
+    return location;
   }, [userProfile, campuses, units, isSupervisor]);
 
   useEffect(() => {
-    // Wait until the initial loading is complete
-    if (isUserLoading) {
-      return;
-    }
+    if (isUserLoading) return;
+    if (!user) return redirect('/login');
+    if (isAdmin) return;
+    if (pathname === '/complete-registration' || pathname === '/awaiting-verification') return;
 
-    // If loading is finished and there is no user, redirect to login
-    if (!user) {
-      redirect('/login');
-      return;
-    }
-    
-<<<<<<< HEAD
-    // If the user is an admin, do not perform any other checks.
-=======
-    // **FIX**: If the user is an admin, do not perform any other checks.
->>>>>>> f5d7ad9 (Try fixing this error: `Build Error: Parsing ecmascript source code fail)
-    // An admin account is always considered complete.
-    if (isAdmin) {
-      return;
-    }
-
-    // The user is logged in, now check for profile completeness.
-    // Don't run these checks on special pages.
-    if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
-      return;
-    }
-    
     if (userProfile) {
-<<<<<<< HEAD
-      let isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
-
-      // Only require unitId if the user is not a supervisor role
-      if (!isSupervisor) {
-        isProfileIncomplete = isProfileIncomplete || !userProfile.unitId;
-=======
       const isVP = userRole?.toLowerCase().includes('vice president');
       const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+      let incomplete = false;
 
-      let isProfileIncomplete = false;
-      if (isVP) {
-        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
-      } else if (isCampusLevelUser) {
-        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
-      } else {
-        // Regular users need a campus, role, AND unit.
-        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
->>>>>>> f5d7ad9 (Try fixing this error: `Build Error: Parsing ecmascript source code fail)
-      }
+      if (isVP || isCampusLevelUser) incomplete = !userProfile.campusId || !userProfile.roleId;
+      else incomplete = !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
 
-      if (isProfileIncomplete) {
-        redirect('/complete-registration');
-        return;
-      }
-      
-      if (!userProfile.verified) {
-        redirect('/awaiting-verification');
-        return;
-      }
+      if (incomplete) return redirect('/complete-registration');
+      if (!userProfile.verified) return redirect('/awaiting-verification');
     }
-<<<<<<< HEAD
-  }, [user, userProfile, isUserLoading, pathname, isAdmin, isSupervisor]);
-=======
   }, [user, userProfile, isUserLoading, pathname, isAdmin, userRole]);
->>>>>>> f5d7ad9 (Try fixing this error: `Build Error: Parsing ecmascript source code fail)
 
-
-  if (isUserLoading) {
-    return <LoadingSkeleton />;
+  if (!user || (!userProfile && !isAdmin && pathname !== '/complete-registration' && pathname !== '/awaiting-verification')) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <Skeleton className="h-16 w-16" />
+      </div>
+    );
   }
 
-  if (!user || (user && !userProfile && !isAdmin && pathname !== '/complete-registration' && pathname !== '/awaiting-verification')) {
-     return <div className="flex h-screen w-screen items-center justify-center"><Skeleton className="h-16 w-16" /></div>;
-  }
-  
   return (
     <ActivityLogProvider>
       <SidebarProvider>
@@ -230,16 +140,16 @@ export default function DashboardLayout({
                 </AvatarFallback>
               </Avatar>
             )}
-              <div className="mt-2 text-center">
-                  <p className="font-semibold text-lg">{userProfile?.firstName} {userProfile?.lastName}</p>
-                  <p className="text-sm text-sidebar-primary font-medium">{userRole}</p>
-                  {userLocation && (
-                      <div className="flex items-center justify-center gap-1 text-sm text-sidebar-foreground/80 mt-1">
-                          <Building2 className="h-4 w-4"/>
-                          <span>{userLocation}</span>
-                      </div>
-                  )}
-              </div>
+            <div className="mt-2 text-center">
+              <p className="font-semibold text-lg">{userProfile?.firstName} {userProfile?.lastName}</p>
+              <p className="text-sm text-sidebar-primary font-medium">{userRole}</p>
+              {userLocation && (
+                <div className="flex items-center justify-center gap-1 text-sm text-sidebar-foreground/80 mt-1">
+                  <Building2 className="h-4 w-4" />
+                  <span>{userLocation}</span>
+                </div>
+              )}
+            </div>
           </SidebarHeader>
           <SidebarContent className="p-4">
             <SidebarNav />

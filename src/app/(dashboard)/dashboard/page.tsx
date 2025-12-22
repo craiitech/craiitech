@@ -76,6 +76,7 @@ import { NonCompliantUnits } from '@/components/dashboard/non-compliant-units';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { SubmissionSchedule } from '@/components/dashboard/submission-schedule';
 import { RiskStatusOverview } from '@/components/dashboard/risk-status-overview';
+import { OverdueWarning } from '@/components/dashboard/overdue-warning';
 
 export const TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT = 12; // 6 for First, 6 for Final
 
@@ -483,6 +484,8 @@ export default function HomePage() {
         <TabsTrigger value="actions">Submission Checklist</TabsTrigger>
         <TabsTrigger value="history">History</TabsTrigger>
       </TabsList>
+      
+      <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
 
       <TabsContent value="overview" className="space-y-4">
         <div className="grid gap-4 md:grid-cols-3">
@@ -840,8 +843,7 @@ export default function HomePage() {
       );
     }
     if (isAdmin) return renderAdminHome();
-    if (isUnitSupervisor) return renderUnitOdimoHome();
-    if (isCampusSupervisor || isVp) return renderSupervisorHome();
+    if (isSupervisor) return renderSupervisorHome();
     return renderUnitCoordinatorHome();
   };
   

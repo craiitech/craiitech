@@ -25,6 +25,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 const statusVariant: Record<
@@ -147,15 +149,22 @@ export default function SubmissionDetailPage() {
   const handleApprove = async () => {
     if (!submissionDocRef) return;
     setIsSubmitting(true);
-    try {
-        await updateDoc(submissionDocRef, { statusId: 'approved' });
-        toast({ title: 'Success', description: 'Submission has been approved.' });
-    } catch (error) {
-        console.error('Error approving submission', error);
-        toast({ title: 'Error', description: 'Could not approve submission.', variant: 'destructive'});
-    } finally {
-        setIsSubmitting(false);
-    }
+    const updateData = { statusId: 'approved' };
+    updateDoc(submissionDocRef, updateData)
+        .then(() => {
+            toast({ title: 'Success', description: 'Submission has been approved.' });
+        })
+        .catch(error => {
+            console.error('Error approving submission', error);
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: submissionDocRef.path,
+                operation: 'update',
+                requestResourceData: updateData
+            }));
+        })
+        .finally(() => {
+            setIsSubmitting(false);
+        });
   }
 
   const handleReject = async () => {
@@ -164,26 +173,33 @@ export default function SubmissionDetailPage() {
         return;
       };
       setIsSubmitting(true);
-      try {
-          const newComment: Comment = {
-              text: feedback,
-              authorId: user!.uid,
-              authorName: userProfile!.firstName + ' ' + userProfile!.lastName,
-              createdAt: new Date(),
-              authorRole: userRole || 'User'
-          }
-          await updateDoc(submissionDocRef, { 
-              statusId: 'rejected', 
-              comments: arrayUnion(newComment)
-          });
+      const newComment: Comment = {
+          text: feedback,
+          authorId: user!.uid,
+          authorName: userProfile!.firstName + ' ' + userProfile!.lastName,
+          createdAt: new Date(),
+          authorRole: userRole || 'User'
+      }
+      const updateData = {
+          statusId: 'rejected', 
+          comments: arrayUnion(newComment)
+      };
+      updateDoc(submissionDocRef, updateData)
+        .then(() => {
           toast({ title: 'Success', description: 'Submission has been rejected.' });
           setFeedback('');
-      } catch (error) {
-          console.error('Error rejecting submission', error);
-          toast({ title: 'Error', description: 'Could not reject submission.', variant: 'destructive'});
-      } finally {
-          setIsSubmitting(false);
-      }
+        })
+        .catch(error => {
+           console.error('Error rejecting submission', error);
+           errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: submissionDocRef.path,
+                operation: 'update',
+                requestResourceData: updateData
+            }));
+        })
+        .finally(() => {
+            setIsSubmitting(false);
+        });
   }
   
   const handleResubmit = async () => {
@@ -248,8 +264,8 @@ export default function SubmissionDetailPage() {
   return (
     <div className="space-y-4">
        <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" asChild>
-            <Link href="/submissions"><ArrowLeft className="h-4 w-4" /></Link>
+          <Button variant="outline" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Submission Details</h2>
