@@ -43,12 +43,6 @@ export function SidebarNav({
       icon: <LayoutDashboard />,
     },
     {
-      href: '/profile',
-      label: 'Profile',
-      active: pathname === '/profile',
-      icon: <UserIcon />,
-    },
-    {
       href: '/submissions',
       label: 'Submissions',
       active: pathname.startsWith('/submissions'),
