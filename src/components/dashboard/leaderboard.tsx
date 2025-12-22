@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { Unit, Submission, Campus } from '@/lib/types';
+import type { Unit, Submission, Campus, User as AppUser } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trophy, Star, Building } from 'lucide-react';
@@ -13,6 +13,8 @@ interface LeaderboardProps {
   allUnits: Unit[] | null;
   allCampuses: Campus[] | null;
   isLoading: boolean;
+  userProfile: AppUser | null;
+  isCampusSupervisor: boolean;
 }
 
 const StarRating = ({ percentage }: { percentage: number }) => {
@@ -34,6 +36,8 @@ export function Leaderboard({
   allUnits,
   allCampuses,
   isLoading,
+  userProfile,
+  isCampusSupervisor,
 }: LeaderboardProps) {
 
   const leaderboardData = useMemo(() => {
@@ -43,8 +47,14 @@ export function Leaderboard({
 
     const currentYear = new Date().getFullYear();
     const campusMap = new Map(allCampuses.map(c => [c.id, c.name]));
+    
+    let relevantUnits = allUnits;
+    if (isCampusSupervisor && userProfile?.campusId) {
+        relevantUnits = allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
+    }
 
-    const unitProgress = allUnits.map(unit => {
+
+    const unitProgress = relevantUnits.map(unit => {
       const unitSubmissions = allSubmissions.filter(
         s => s.unitId === unit.id && s.year === currentYear
       );
@@ -54,7 +64,6 @@ export function Leaderboard({
       const submissionCount = uniqueSubmissions.size;
       const percentage = Math.round((submissionCount / TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT) * 100);
       
-      // Find the primary campus for the unit to display
       const campusName = unit.campusIds && unit.campusIds.length > 0 ? campusMap.get(unit.campusIds[0]) : 'N/A';
 
       return {
@@ -69,7 +78,7 @@ export function Leaderboard({
       .filter(unit => unit.percentage >= 50)
       .sort((a, b) => b.percentage - a.percentage);
 
-  }, [allSubmissions, allUnits, allCampuses]);
+  }, [allSubmissions, allUnits, allCampuses, userProfile, isCampusSupervisor]);
 
   if (isLoading) {
     return (

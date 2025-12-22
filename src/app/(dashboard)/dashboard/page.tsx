@@ -981,6 +981,14 @@ export default function HomePage() {
                 />
             </div>
             <div className="col-span-3 space-y-4">
+                <Leaderboard
+                    allSubmissions={submissions}
+                    allUnits={allUnits}
+                    allCampuses={allCampuses}
+                    isLoading={isLoading}
+                    userProfile={userProfile}
+                    isCampusSupervisor={isCampusSupervisor}
+                />
                  <Card>
                     <CardHeader>
                         <CardTitle>Recent Activity</CardTitle>
@@ -1105,6 +1113,8 @@ export default function HomePage() {
                 allUnits={allUnits}
                 allCampuses={allCampuses}
                 isLoading={isLoading}
+                userProfile={userProfile}
+                isCampusSupervisor={isSupervisor}
              />
              <Card>
                 <CardHeader>
