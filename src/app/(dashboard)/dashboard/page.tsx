@@ -1066,15 +1066,6 @@ export default function HomePage() {
                         (stats.stat3 as any).description
                     )}
                 </div>
-                 <div className="grid grid-cols-1 gap-4">
-                     <IncompleteCampusSubmissions
-                        allSubmissions={submissions}
-                        allCampuses={allCampuses}
-                        allUnits={allUnits}
-                        isLoading={isLoading}
-                    />
-                </div>
-
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                     <div className="col-span-4 space-y-4">
                         <div className="grid gap-4 md:grid-cols-2">
@@ -1129,6 +1120,12 @@ export default function HomePage() {
                                 <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
                             </CardContent>
                         </Card>
+                        <IncompleteCampusSubmissions
+                            allSubmissions={submissions}
+                            allCampuses={allCampuses}
+                            allUnits={allUnits}
+                            isLoading={isLoading}
+                        />
                         {selectedUnitId && (
                             <UnitSubmissionDetailCard
                                 unitId={selectedUnitId}
@@ -1236,4 +1233,5 @@ export default function HomePage() {
     
 
     
+
 
