@@ -134,7 +134,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="space-y-4 print:space-y-8">
+    <div className="space-y-4">
       <div className="flex items-center justify-between print:hidden">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Reports</h2>
@@ -146,96 +146,56 @@ export default function ReportsPage() {
         </Button>
       </div>
       
-      <div className="hidden print:block text-center mb-8">
-          <h1 className="text-3xl font-bold">RSU EOMS - System Report</h1>
-          <p className="text-muted-foreground">Generated on: {new Date().toLocaleDateString()}</p>
-      </div>
+      <div className="printable-area">
+        <div className="hidden print:block text-center mb-8">
+            <h1 className="text-3xl font-bold">RSU EOMS - System Report</h1>
+            <p className="text-muted-foreground">Generated on: {new Date().toLocaleDateString()}</p>
+        </div>
 
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:grid-cols-1">
-        {/* Campus and Units Report */}
-        <Card className="lg:col-span-1 print:break-inside-avoid">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <School className="h-5 w-5" />
-              Campuses and Units
-            </CardTitle>
-            <CardDescription>Select a campus to view its assigned units.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Select onValueChange={setSelectedCampusId} value={selectedCampusId || ''} disabled={!isAdmin}>
-              <SelectTrigger className="print:hidden">
-                <SelectValue placeholder="Select a campus..." />
-              </SelectTrigger>
-              <SelectContent>
-                {allCampuses?.map(campus => (
-                  <SelectItem key={campus.id} value={campus.id}>
-                    {campus.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <ScrollArea className="h-72 rounded-md border print:h-auto print:border-none">
-              <div className="hidden print:block mb-2">
-                  <p className="font-semibold">Viewing Units for: {selectedCampusId ? campusMap.get(selectedCampusId) : 'All Campuses'}</p>
-              </div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Units in {campusMap.get(selectedCampusId!) || 'Selected Campus'}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedCampusId && unitsInSelectedCampus.length > 0 ? (
-                    unitsInSelectedCampus.map(unit => (
-                      <TableRow key={unit.id}>
-                        <TableCell>{unit.name}</TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell className="text-center text-muted-foreground">
-                        {selectedCampusId ? 'No units found for this campus.' : 'Please select a campus.'}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-
-        {/* Submitted Units and All Users Reports */}
-        <div className="lg:col-span-2 space-y-6 print:col-span-1">
-          <Card className="print:break-inside-avoid">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:grid-cols-1 print:space-y-8">
+          {/* Campus and Units Report */}
+          <Card className="lg:col-span-1 print:break-inside-avoid">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <FileCheck2 className="h-5 w-5" />
-                Units With Submissions
+                <School className="h-5 w-5" />
+                Campuses and Units
               </CardTitle>
-              <CardDescription>A list of all units that have made at least one submission.</CardDescription>
+              <CardDescription>Select a campus to view its assigned units.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-48 rounded-md border print:h-auto print:border-none">
+            <CardContent className="space-y-4">
+              <Select onValueChange={setSelectedCampusId} value={selectedCampusId || ''} disabled={!isAdmin}>
+                <SelectTrigger className="print:hidden">
+                  <SelectValue placeholder="Select a campus..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {allCampuses?.map(campus => (
+                    <SelectItem key={campus.id} value={campus.id}>
+                      {campus.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <ScrollArea className="h-72 rounded-md border print:h-auto print:border-none">
+                <div className="hidden print:block mb-2">
+                    <p className="font-semibold">Viewing Units for: {selectedCampusId ? campusMap.get(selectedCampusId) : 'All Campuses'}</p>
+                </div>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Unit Name</TableHead>
-                      <TableHead>Campuses</TableHead>
+                      <TableHead>Units in {campusMap.get(selectedCampusId!) || 'Selected Campus'}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {submittedUnits.length > 0 ? (
-                      submittedUnits.map(unit => (
+                    {selectedCampusId && unitsInSelectedCampus.length > 0 ? (
+                      unitsInSelectedCampus.map(unit => (
                         <TableRow key={unit.id}>
                           <TableCell>{unit.name}</TableCell>
-                          <TableCell>{unit.campusIds?.map(id => campusMap.get(id)).join(', ') || 'N/A'}</TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={2} className="text-center text-muted-foreground">
-                          No units have submitted reports yet.
+                        <TableCell className="text-center text-muted-foreground">
+                          {selectedCampusId ? 'No units found for this campus.' : 'Please select a campus.'}
                         </TableCell>
                       </TableRow>
                     )}
@@ -245,51 +205,92 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          <Card className="print:break-inside-avoid">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                All Registered Users
-              </CardTitle>
-              <CardDescription>A complete list of all users in the system.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-96 rounded-md border print:h-auto print:border-none">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Campus / Unit</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allUsers?.map(user => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={user.avatar} />
-                              <AvatarFallback>
-                                {user.firstName?.charAt(0)}
-                                {user.lastName?.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span>{user.firstName} {user.lastName}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                            <div className="text-sm">{campusMap.get(user.campusId) || 'N/A'}</div>
-                            <div className="text-xs text-muted-foreground">{allUnits?.find(u => u.id === user.unitId)?.name || ''}</div>
-                        </TableCell>
+          {/* Submitted Units and All Users Reports */}
+          <div className="lg:col-span-2 space-y-6 print:col-span-1">
+            <Card className="print:break-inside-avoid">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileCheck2 className="h-5 w-5" />
+                  Units With Submissions
+                </CardTitle>
+                <CardDescription>A list of all units that have made at least one submission.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-48 rounded-md border print:h-auto print:border-none">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Unit Name</TableHead>
+                        <TableHead>Campuses</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
-            </CardContent>
-          </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {submittedUnits.length > 0 ? (
+                        submittedUnits.map(unit => (
+                          <TableRow key={unit.id}>
+                            <TableCell>{unit.name}</TableCell>
+                            <TableCell>{unit.campusIds?.map(id => campusMap.get(id)).join(', ') || 'N/A'}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={2} className="text-center text-muted-foreground">
+                            No units have submitted reports yet.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+
+            <Card className="print:break-inside-avoid">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  All Registered Users
+                </CardTitle>
+                <CardDescription>A complete list of all users in the system.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-96 rounded-md border print:h-auto print:border-none">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Campus / Unit</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {allUsers?.map(user => (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={user.avatar} />
+                                <AvatarFallback>
+                                  {user.firstName?.charAt(0)}
+                                  {user.lastName?.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{user.firstName} {user.lastName}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>
+                              <div className="text-sm">{campusMap.get(user.campusId) || 'N/A'}</div>
+                              <div className="text-xs text-muted-foreground">{allUnits?.find(u => u.id === user.unitId)?.name || ''}</div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

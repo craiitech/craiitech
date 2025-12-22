@@ -106,11 +106,11 @@
             visibility: hidden;
         }
 
-        .printable-area[data-state="active"], .printable-area[data-state="active"] * {
+        .printable-area, .printable-area * {
             visibility: visible;
         }
 
-        .printable-area[data-state="active"] {
+        .printable-area {
             position: absolute;
             left: 0;
             top: 0;
@@ -121,10 +121,6 @@
 
         .print\:hidden {
             display: none !important;
-        }
-
-        .printable-area[data-state="inactive"] {
-            display: none;
         }
         
         .print\:block {

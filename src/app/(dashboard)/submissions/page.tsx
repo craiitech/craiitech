@@ -532,62 +532,65 @@ export default function SubmissionsPage() {
   return (
     <>
     <TooltipProvider>
-      <div className="flex items-start justify-between space-y-2 print:hidden">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Submissions</h2>
-          <p className="text-muted-foreground">
-            {isSupervisor ? 'A list of all submissions in your scope.' : "Here's a list of your report submissions."}
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-            <Button variant="outline" onClick={handlePrint}>
-                <Printer className="mr-2 h-4 w-4" />
-                Print Report
-            </Button>
-            <Button variant="outline" onClick={handleExportToExcel}>
-                <FileDown className="mr-2 h-4 w-4" />
-                Export to Excel
-            </Button>
-          {!isSupervisor && (
-             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  New Submission
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Submission Instructions</AlertDialogTitle>
-                  <AlertDialogDescription asChild>
-                    <ul className="list-disc space-y-2 pl-5 text-sm">
-                        <li>
-                            Prepare all required EOMS documents as a single PDF file (using Complete Staff Work format) in your RSU Google Drive.
-                        </li>
-                        <li>
-                            Ensure the document is saved on your unit's Google Drive using your RSU email and that sharing is set to "anyone with the link can view."
-                        </li>
-                        <li>
-                            The submission must be verified and approved by the QA Office.
-                        </li>
-                        <li>
-                            You may receive comments if the submission is invalid or incorrect.
-                        </li>
-                    </ul>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => router.push('/submissions/new')}>
-                    Continue
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+      <div className="space-y-2">
+        <div className="flex items-start justify-between print:hidden">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Submissions</h2>
+            <p className="text-muted-foreground">
+              {isSupervisor ? 'A list of all submissions in your scope.' : "Here's a list of your report submissions."}
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
+              <Button variant="outline" onClick={handlePrint}>
+                  <Printer className="mr-2 h-4 w-4" />
+                  Print Report
+              </Button>
+              <Button variant="outline" onClick={handleExportToExcel}>
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Export to Excel
+              </Button>
+            {!isSupervisor && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    New Submission
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Submission Instructions</AlertDialogTitle>
+                    <AlertDialogDescription asChild>
+                      <ul className="list-disc space-y-2 pl-5 text-sm">
+                          <li>
+                              Prepare all required EOMS documents as a single PDF file (using Complete Staff Work format) in your RSU Google Drive.
+                          </li>
+                          <li>
+                              Ensure the document is saved on your unit's Google Drive using your RSU email and that sharing is set to "anyone with the link can view."
+                          </li>
+                          <li>
+                              The submission must be verified and approved by the QA Office.
+                          </li>
+                          <li>
+                              You may receive comments if the submission is invalid or incorrect.
+                          </li>
+                      </ul>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => router.push('/submissions/new')}>
+                      Continue
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
         </div>
       </div>
-      <div className="hidden print:block text-center mb-4">
+      
+       <div className="hidden print:block text-center mb-4">
           <h1 className="text-2xl font-bold">Submissions Report</h1>
           <p className="text-muted-foreground">Generated on: {new Date().toLocaleDateString()}</p>
       </div>
@@ -611,7 +614,7 @@ export default function SubmissionsPage() {
               </TabsTrigger>
             )}
         </TabsList>
-        <TabsContent value="all-submissions" className="printable-area" data-state="active">
+        <TabsContent value="all-submissions" className="printable-area">
             <Card>
                 <CardHeader className="print:hidden">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between">
