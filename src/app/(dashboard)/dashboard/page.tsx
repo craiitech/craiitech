@@ -555,7 +555,7 @@ export default function HomePage() {
           )}
         </div>
          <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin} />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
             <CardHeader>
@@ -698,7 +698,7 @@ export default function HomePage() {
           )}
         </div>
          <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin}/>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
             <CardHeader>
@@ -988,7 +988,7 @@ export default function HomePage() {
       </TabsContent>
        <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin}/>
         <CampusUnitOverview 
             allUnits={allUnits}
             allSubmissions={submissions}
@@ -1095,17 +1095,6 @@ export default function HomePage() {
              <div className="lg:col-span-3 space-y-4">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Submissions Overview</CardTitle>
-                        <CardDescription>
-                            Monthly submissions from all users.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                        <Overview submissions={submissions} isLoading={isLoading} />
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
                         <CardTitle>Recent Activity</CardTitle>
                         <CardDescription>
                             The latest submissions from all users.
@@ -1113,6 +1102,17 @@ export default function HomePage() {
                     </CardHeader>
                     <CardContent>
                         <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Submissions Overview</CardTitle>
+                        <CardDescription>
+                            Monthly submissions from all users.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pl-2">
+                        <Overview submissions={submissions} isLoading={isLoading} />
                     </CardContent>
                 </Card>
                  <IncompleteCampusSubmissions
@@ -1126,7 +1126,7 @@ export default function HomePage() {
       </TabsContent>
       <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin} />
         <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading}/>
         <SubmissionAnalytics
             allSubmissions={submissions}

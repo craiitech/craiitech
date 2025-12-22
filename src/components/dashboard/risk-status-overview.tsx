@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import type { Risk, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ShieldCheck, AlertCircle, CheckCircle, Building, Users } from 'lucide-react';
+import { ShieldCheck, AlertCircle, CheckCircle, Users } from 'lucide-react';
 import { Button } from '../ui/button';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -19,26 +19,32 @@ interface RiskStatusOverviewProps {
   isLoading: boolean;
   selectedYear: number;
   onYearChange: (year: number) => void;
+  isSupervisor: boolean;
 }
 
-export function RiskStatusOverview({ risks, units, isLoading, selectedYear, onYearChange }: RiskStatusOverviewProps) {
+export function RiskStatusOverview({ risks, units, isLoading, selectedYear, onYearChange, isSupervisor }: RiskStatusOverviewProps) {
   const stats = useMemo(() => {
-    if (!risks || !units) {
+    if (!risks) {
       return {
-        participatingUnits: [],
         openRisks: 0,
         closedRisks: 0,
+        highRatedRisks: 0,
+        participatingUnits: [],
       };
     }
     
     const yearRisks = risks.filter(r => r.year === selectedYear);
 
+    // Supervisor/Admin view
     const participatingUnitIds = new Set(yearRisks.map(r => r.unitId));
-    const participatingUnits = units.filter(u => participatingUnitIds.has(u.id));
-    const openRisks = yearRisks.filter(r => r.status === 'Open').length;
+    const participatingUnits = units ? units.filter(u => participatingUnitIds.has(u.id)) : [];
+    
+    // Unit Coordinator view
+    const openRisks = yearRisks.filter(r => r.status === 'Open' || r.status === 'In Progress').length;
     const closedRisks = yearRisks.filter(r => r.status === 'Closed').length;
+    const highRatedRisks = yearRisks.filter(r => r.preTreatment.rating === 'High' && r.status !== 'Closed').length;
 
-    return { participatingUnits, openRisks, closedRisks };
+    return { openRisks, closedRisks, highRatedRisks, participatingUnits };
   }, [risks, units, selectedYear]);
 
   if (isLoading) {
@@ -59,6 +65,17 @@ export function RiskStatusOverview({ risks, units, isLoading, selectedYear, onYe
       </Card>
     );
   }
+  
+  const StatCard = ({ title, value, icon, description }: { title: string, value: number, icon: React.ReactNode, description: string }) => (
+    <div className="rounded-lg border bg-card-foreground/5 p-4">
+        <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            {icon}
+        </div>
+        <p className="mt-2 text-2xl font-bold">{value}</p>
+         <p className="text-xs text-muted-foreground">{description}</p>
+    </div>
+  );
 
 
   return (
@@ -69,7 +86,9 @@ export function RiskStatusOverview({ risks, units, isLoading, selectedYear, onYe
             <ShieldCheck /> Risk Management Overview
           </CardTitle>
           <CardDescription>
-            A summary of risk and opportunity submissions for the selected year.
+            {isSupervisor 
+              ? 'A summary of risk submissions for the selected year.'
+              : 'A summary of your unit\'s risk entries for the selected year.'}
           </CardDescription>
         </div>
         <div className="w-[120px]">
@@ -84,30 +103,49 @@ export function RiskStatusOverview({ risks, units, isLoading, selectedYear, onYe
         </div>
       </CardHeader>
       <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border bg-card-foreground/5 p-4">
-            <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-muted-foreground">Active Units</p>
-                <Users className="h-5 w-5 text-muted-foreground"/>
-            </div>
-            <p className="mt-2 text-2xl font-bold">{stats.participatingUnits.length}</p>
-             <p className="text-xs text-muted-foreground">Units that have submitted at least one entry.</p>
-        </div>
-        <div className="rounded-lg border bg-card-foreground/5 p-4">
-            <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-muted-foreground">Open Risks</p>
-                <AlertCircle className="h-5 w-5 text-destructive"/>
-            </div>
-            <p className="mt-2 text-2xl font-bold">{stats.openRisks}</p>
-             <p className="text-xs text-muted-foreground">Entries that require ongoing attention.</p>
-        </div>
-        <div className="rounded-lg border bg-card-foreground/5 p-4">
-            <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-muted-foreground">Closed Risks</p>
-                <CheckCircle className="h-5 w-5 text-green-500"/>
-            </div>
-            <p className="mt-2 text-2xl font-bold">{stats.closedRisks}</p>
-            <p className="text-xs text-muted-foreground">Entries that have been resolved.</p>
-        </div>
+        {isSupervisor ? (
+            <>
+                <StatCard 
+                    title="Active Units" 
+                    value={stats.participatingUnits.length} 
+                    icon={<Users className="h-5 w-5 text-muted-foreground"/>}
+                    description="Units with at least one entry."
+                />
+                <StatCard 
+                    title="Open Risks" 
+                    value={stats.openRisks} 
+                    icon={<AlertCircle className="h-5 w-5 text-destructive"/>}
+                    description="Entries requiring action."
+                />
+                <StatCard 
+                    title="Closed Risks" 
+                    value={stats.closedRisks} 
+                    icon={<CheckCircle className="h-5 w-5 text-green-500"/>}
+                    description="Resolved and mitigated entries."
+                />
+            </>
+        ) : (
+             <>
+                <StatCard 
+                    title="Open Risks" 
+                    value={stats.openRisks} 
+                    icon={<AlertCircle className="h-5 w-5 text-muted-foreground"/>}
+                    description="Entries that require ongoing attention."
+                />
+                <StatCard 
+                    title="High-Rated Risks" 
+                    value={stats.highRatedRisks} 
+                    icon={<AlertCircle className="h-5 w-5 text-destructive"/>}
+                    description="High-rated open entries needing priority action."
+                />
+                <StatCard 
+                    title="Closed Risks" 
+                    value={stats.closedRisks} 
+                    icon={<CheckCircle className="h-5 w-5 text-green-500"/>}
+                    description="Entries that have been resolved."
+                />
+            </>
+        )}
       </CardContent>
       <CardFooter>
         <Button asChild>
