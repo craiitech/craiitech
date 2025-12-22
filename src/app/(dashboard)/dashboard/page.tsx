@@ -30,6 +30,7 @@ import {
   Globe,
   MessageSquare,
   ShieldCheck,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   useUser,
@@ -65,7 +66,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { format } from 'date-fns';
+import { format, isAfter } from 'date-fns';
 import { SubmissionAnalytics } from '@/components/dashboard/submission-analytics';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
@@ -235,6 +236,35 @@ export default function HomePage() {
       if (!allUnits || !userProfile?.campusId) return [];
       return allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
   }, [allUnits, userProfile]);
+
+    const overdueCycles = useMemo(() => {
+    if (!allCycles || !submissions || isCampusSupervisor || isAdmin) {
+      return [];
+    }
+
+    const now = new Date();
+    const passedDeadlines = allCycles.filter(cycle => {
+        const endDate = cycle.endDate instanceof Timestamp ? cycle.endDate.toDate() : new Date(cycle.endDate);
+        return isAfter(now, endDate);
+    });
+    
+    if (passedDeadlines.length === 0) return [];
+    
+    return passedDeadlines.map(cycle => {
+        const submittedForCycle = new Set(
+            submissions
+                .filter(s => s.cycleId === cycle.id && s.year === cycle.year)
+                .map(s => s.reportType)
+        );
+        const missingReports = submissionTypes.filter(type => !submittedForCycle.has(type));
+        
+        return {
+            ...cycle,
+            missingReports,
+        };
+    }).filter(cycle => cycle.missingReports.length > 0);
+
+  }, [allCycles, submissions, isCampusSupervisor, isAdmin]);
 
 
   const isLoading =
@@ -477,6 +507,30 @@ export default function HomePage() {
     );
   }
 
+  const renderOverdueWarning = () => {
+    if (!overdueCycles || overdueCycles.length === 0) return null;
+
+    return (
+      <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Action Required: Overdue Submissions</AlertTitle>
+        <AlertDescription>
+          You have missed the deadline for the following cycles. Please submit the required documents as soon as possible.
+          <ul className="list-disc pl-5 mt-2">
+            {overdueCycles.map(cycle => (
+              <li key={cycle.id}>
+                <strong>{cycle.name.charAt(0).toUpperCase() + cycle.name.slice(1)} Cycle {cycle.year}:</strong>
+                <ul className="list-circle pl-5 text-xs">
+                  {cycle.missingReports.map(report => <li key={report}>{report}</li>)}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   const renderUnitCoordinatorHome = () => (
     <Tabs defaultValue="overview" className="space-y-4">
       <TabsList>
@@ -488,6 +542,7 @@ export default function HomePage() {
       <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
 
       <TabsContent value="overview" className="space-y-4">
+        {renderOverdueWarning()}
         <div className="grid gap-4 md:grid-cols-3">
           {renderCard(
             stats.stat1.title,
@@ -591,7 +646,224 @@ export default function HomePage() {
                       <TableCell colSpan={4}><Skeleton className="h-5 w-full"/></TableCell>
                     </TableRow>
                   ))
+<<<<<<< HEAD
                 ) : sortedSubmissions && sortedSubmissions.length > 0 ? (
+=======
+                ) : sortedSubmissions.length > 0 ? (
+                  sortedSubmissions.map(s => (
+                    <TableRow key={s.id}>
+                      <TableCell>
+                        <div className="font-medium">{s.reportType}</div>
+                        <div className="text-xs text-muted-foreground capitalize">{s.cycleId} Cycle {s.year}</div>
+                      </TableCell>
+                      <TableCell>{s.submissionDate instanceof Date ? format(s.submissionDate, 'PPp') : 'Invalid Date'}</TableCell>
+                      <TableCell><Badge variant={statusVariant[s.statusId]}>{s.statusId}</Badge></TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${s.id}`)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">No submissions yet.</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
+  );
+
+  const renderUnitOdimoHome = () => (
+    <Tabs defaultValue="overview" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsTrigger value="approvals">Approvals</TabsTrigger>
+        <TabsTrigger value="actions">Submission Checklist</TabsTrigger>
+        <TabsTrigger value="history">History</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="overview" className="space-y-4">
+        {renderOverdueWarning()}
+        <div className="grid gap-4 md:grid-cols-3">
+          {renderCard(
+            stats.stat1.title,
+            stats.stat1.value,
+            stats.stat1.icon,
+            isLoading,
+            (stats.stat1 as any).description
+          )}
+          {renderCard(
+            stats.stat2.title,
+            stats.stat2.value,
+            stats.stat2.icon,
+            isLoading,
+            (stats.stat2 as any).description
+          )}
+          {renderCard(
+            stats.stat3.title,
+            stats.stat3.value,
+            stats.stat3.icon,
+            isLoading,
+            (stats.stat3 as any).description
+          )}
+        </div>
+         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <Card className="col-span-4">
+            <CardHeader>
+              <CardTitle>Submissions Overview</CardTitle>
+              <CardDescription>
+                Your unit's monthly submission trend for the last 12 months.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pl-2">
+              <Overview submissions={submissions} isLoading={isLoading} />
+            </CardContent>
+          </Card>
+          <Card className="col-span-4 lg:col-span-3">
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>Your unit's last 5 submissions.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
+            </CardContent>
+          </Card>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="approvals" className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending Approvals</CardTitle>
+            <CardDescription>
+              Submissions from your unit that require your approval.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Report</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  [...Array(3)].map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell colSpan={5}><Skeleton className="h-5 w-full"/></TableCell>
+                    </TableRow>
+                  ))
+                ) : submissions?.filter(s => s.statusId === 'submitted').length > 0 ? (
+                  submissions
+                    .filter(s => s.statusId === 'submitted')
+                    .map((submission) => (
+                      <TableRow key={submission.id}>
+                        <TableCell>
+                          {allUsersMap.get(submission.userId)?.firstName} {allUsersMap.get(submission.userId)?.lastName}
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">{submission.reportType}</div>
+                          <div className="text-xs text-muted-foreground capitalize">{submission.cycleId} Cycle {submission.year}</div>
+                        </TableCell>
+                        <TableCell>
+                          {submission.submissionDate instanceof Date ? format(submission.submissionDate, 'PP') : 'Invalid Date'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={statusVariant[submission.statusId]}>{submission.statusId}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              router.push(`/submissions/${submission.id}`)
+                            }
+                          >
+                            <Eye className="mr-2 h-4 w-4" /> Review
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center h-24">
+                      No submissions pending approval.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="actions" className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Submission Status</CardTitle>
+            <CardDescription>
+              Checklist for all required submissions for{' '}
+              {new Date().getFullYear()}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+              <Tabs defaultValue="first-cycle" className="space-y-4">
+                 <TabsList>
+                    <TabsTrigger value="first-cycle">First Cycle</TabsTrigger>
+                    <TabsTrigger value="final-cycle">Final Cycle</TabsTrigger>
+                </TabsList>
+                <TabsContent value="first-cycle">
+                    {renderSubmissionChecklist('first', firstCycleStatusMap)}
+                </TabsContent>
+                <TabsContent value="final-cycle">
+                    {renderSubmissionChecklist('final', finalCycleStatusMap)}
+                </TabsContent>
+              </Tabs>
+             <Button asChild className="w-full mt-6">
+                <Link href="/submissions/new">
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Manage Submissions
+                </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </TabsContent>
+      <TabsContent value="history">
+        <Card>
+          <CardHeader>
+            <CardTitle>Submission History</CardTitle>
+            <CardDescription>A log of all your unit's past submissions and their status.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Report</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  [...Array(5)].map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell colSpan={4}><Skeleton className="h-5 w-full"/></TableCell>
+                    </TableRow>
+                  ))
+                ) : sortedSubmissions.length > 0 ? (
+>>>>>>> 479faba (This warnings are intended to Unit Coordinators and Unit ODIMO, however)
                   sortedSubmissions.map(s => (
                     <TableRow key={s.id}>
                       <TableCell>
@@ -901,3 +1173,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
