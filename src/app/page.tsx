@@ -40,8 +40,10 @@ export default function Home() {
                     RSU EOMS Submission Tracker
                 </h1>
             </div>
-            <p className="max-w-[600px] text-white/80 md:text-xl">
+            <p className="max-w-[700px] text-white/80 md:text-xl">
                 Educational Organizations Management System or ISO 21001:2018 Submission Portal
+                <br />
+                <span className="text-base">Managed by the Quality Assurance Office</span>
             </p>
             <div className="flex flex-wrap justify-center gap-4">
                 <Button asChild size="lg" variant="secondary">
