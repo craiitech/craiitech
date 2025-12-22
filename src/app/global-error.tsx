@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { AlertCircle, Home, FileWarning } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { logError } from '@/lib/actions';
-import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 export default function GlobalError({
@@ -15,7 +15,6 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const { user, userProfile, userRole } = useUser();
   const [isReporting, setIsReporting] = useState(false);
   const [reportSent, setReportSent] = useState(false);
   const { toast } = useToast();
@@ -33,10 +32,6 @@ export default function GlobalError({
             errorStack: error.stack,
             errorDigest: error.digest,
             url: window.location.href,
-            userId: user?.uid,
-            userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : 'Anonymous',
-            userRole: userRole || 'Unknown',
-            userEmail: user?.email,
         });
         setReportSent(true);
         toast({
