@@ -54,13 +54,14 @@ const manualSections = [
           `
       },
       {
-          title: 'Logging Out',
+          title: 'Managing Your Profile',
           content: `
-            <p>To securely log out of the system:</p>
+            <p>You can update your personal information after logging in.</p>
              <ol class="list-decimal space-y-2 pl-6">
                 <li>Click on your user avatar in the top-right corner of the dashboard to open the user menu.</li>
-                <li>Select <strong>"Log out"</strong>.</li>
-                <li>You will be redirected to a page confirming you are being logged out before being returned to the main login screen.</li>
+                <li>Select <strong>"Profile"</strong>.</li>
+                <li>On the profile page, you can edit your first and last name. Your role, campus, and unit are fixed and can only be changed by an administrator.</li>
+                <li>After saving your changes, you will be automatically redirected back to the Home (Dashboard) page.</li>
             </ol>
           `
       }
@@ -106,7 +107,7 @@ const manualSections = [
                     <li>On the detail page, review the feedback from the approver in the <strong>"Conversation History"</strong> card.</li>
                     <li>Prepare your corrected document and get a new Google Drive link.</li>
                     <li>Use the <strong>"Resubmit Report"</strong> form on the detail page to enter the new link and add an optional comment explaining your changes.</li>
-                    <li>Click <strong>"Resubmit"</strong>. The status will change back to "Submitted" for a new review.</li>
+                    <li>Click <strong>"Resubmit"</strong>. The status will change back to "Submitted", and you will be redirected back to the main Submissions page.</li>
                 </ol>
             `
         },
@@ -129,9 +130,9 @@ const manualSections = [
           {
               title: 'Approvals Page',
               content: `
-                <p>The "Approvals" page is your primary workspace for reviewing submissions from your campus.</p>
+                <p>The "Approvals" page, accessible from the sidebar, is your primary workspace for reviewing submissions. Note: This sidebar link is generally for campus-level supervisors and above. Unit ODIMOs typically review submissions via their dashboard or the main Submissions page.</p>
                  <ul class="list-disc spacey-y-2 pl-6">
-                    <li>This page lists all submissions with a "Submitted" status from users within your assigned campus.</li>
+                    <li>This page lists all submissions with a "Submitted" status from users within your assigned scope (e.g., your campus).</li>
                     <li>You will not see your own submissions in this queue, as self-approval is not permitted.</li>
                 </ul>
               `
@@ -141,9 +142,8 @@ const manualSections = [
               content: `
                  <p>You can act on submissions from the "Approvals" page or the submission detail page.</p>
                  <ol class="list-decimal space-y-2 pl-6">
-                    <li><strong>To Approve:</strong> Click the green <strong>Checkmark icon</strong>. The submission status will immediately change to "Approved".</li>
+                    <li><strong>To Approve:</strong> Click the green <strong>Checkmark icon</strong> on the Approvals page, or click the "Approve" button on the detail page. After approving from the detail page, you will be redirected back to the approvals list.</li>
                     <li><strong>To Reject:</strong> Click the red <strong>X icon</strong>. A dialog box will appear, where you are required to enter clear and constructive feedback explaining the reason for the rejection. This feedback is crucial for the submitter to make corrections.</li>
-                    <li>Alternatively, click the <strong>View (eye) icon</strong> to go to the detail page. Here you can preview the document and use the "Take Action" card to approve or reject with feedback.</li>
                 </ol>
               `
           },
@@ -152,7 +152,7 @@ const manualSections = [
               content: `
                 <p>Your dashboard provides a high-level overview of your entire campus. You also have special permissions on the "Settings" page.</p>
                  <ul class="list-disc spacey-y-2 pl-6">
-                    <li><strong>Dashboard Analytics:</strong> The dashboard includes cards for tracking submission progress, non-compliant units, and a "Risk Management Overview" which summarizes risk register activity for your campus, filterable by year.</li>
+                    <li><strong>Interactive Dashboard:</strong> The dashboard includes cards for tracking "Incomplete Submissions". You can click on any unit in this list to immediately see a detailed breakdown of their submission status for the year in a new card on the right.</li>
                     <li><strong>Campus Directors (Unit Management):</strong> Can manage units for their campus. This includes creating new units specific to the campus or assigning existing, unassigned university-wide units to their campus.</li>
                     <li><strong>Campus ODIMOs (Announcements):</strong> Can post a campus-wide announcement. This message will appear in an alert box on the dashboard for every user registered under that campus.</li>
                 </ul>
@@ -180,6 +180,16 @@ const manualSections = [
                     <li><strong>Campus, Unit, Role, and Cycle Management:</strong> Create and manage the foundational data for the system, such as adding new campuses, defining new user roles, or setting the dates for submission cycles.</li>
                     <li><strong>Campus Settings:</strong> Post announcements for any campus in the system, or post a global announcement to all users.</li>
                 </ul>
+              `
+          },
+          {
+              title: 'Administrator Dashboard Features',
+              content: `
+                <p>Your dashboard has unique widgets for a system-wide overview.</p>
+                 <ul class="list-disc spacey-y-2 pl-6">
+                    <li><strong>Leaderboard:</strong> This card shows a ranked list of "Top Performing Units" that have completed 50% or more of their required submissions for the year, complete with a five-star rating based on their completion percentage.</li>
+                    <li><strong>Interactive Incomplete Submissions Card:</strong> Like supervisors, you can click on any unit in the "Incomplete Submissions" or "Units Without Submissions" cards to instantly view that unit's detailed submission status for the year on the right side of the dashboard.</li>
+                 </ul>
               `
           },
           {

@@ -52,7 +52,7 @@ export const faqs = [
       {
         question: 'My submission was rejected. What do I do?',
         answer:
-          'Find the rejected submission on your Submissions page or Home dashboard and click the "View" (eye) icon. On the detail page, you can read the rejection comments in the "Conversation History" card. Use the "Resubmit Report" form on the same page to provide a new, corrected Google Drive link.',
+          'Find the rejected submission on your Submissions page or Home dashboard and click the "View" (eye) icon. On the detail page, you can read the rejection comments in the "Conversation History" card. Use the "Resubmit Report" form on the same page to provide a new, corrected Google Drive link. After resubmitting, you will be redirected back to the Submissions page.',
       },
       {
         question: 'What is the Risk & Opportunity Register?',
@@ -72,12 +72,12 @@ export const faqs = [
       {
         question: 'How do I review submissions from my campus?',
         answer:
-          'Navigate to the "Approvals" page. You will see a queue of submissions from your campus that are awaiting your review. You can click on the "View" button to inspect the submission details and document preview.',
+          'Navigate to the "Approvals" page from the sidebar. You will see a queue of submissions from your campus that are awaiting your review. You can click on the "View" button to inspect the submission details and document preview.',
       },
       {
         question: 'How do I approve or reject a submission?',
         answer:
-          'On the "Approvals" page, you can quickly approve with the green checkmark button. To reject, click the red "X" button, which opens a dialog where you must provide feedback. Alternatively, you can manage approvals from the submission\'s detail page.',
+          'On the "Approvals" page, you can quickly approve with the green checkmark button. To reject, click the red "X" button, which opens a dialog where you must provide feedback. When approving from the submission detail page, you will be automatically redirected back to the Approvals list.',
       },
       {
         question: 'How do I monitor the Risk Register for my campus?',
@@ -88,6 +88,11 @@ export const faqs = [
         question: 'Can I approve my own submissions?',
         answer:
           'No, the system automatically filters your own submissions out of your approval queue to ensure a proper review process.',
+      },
+       {
+        question: 'My dashboard has an "Incomplete Submissions" card. What is it?',
+        answer:
+          'This card shows you units in your campus that have not yet submitted all required documents for the year. You can click on any unit in this list to see a detailed card on the right showing exactly which documents are submitted or missing for both the first and final cycles.',
       },
     ],
   },
@@ -100,9 +105,9 @@ export const faqs = [
           'Go to the "Settings" page and click on the "Users" tab. Here you can view all users, filter by status (Pending, Verified), verify new user registrations by clicking "Verify User", edit user details (role, campus, unit), and delete users.',
       },
       {
-        question: 'How do I manage the system\'s campuses, units, and roles?',
+        question: 'What is the "Leaderboard" on my dashboard?',
         answer:
-          'On the "Settings" page, you will find tabs for "Campuses," "Units," "Roles," and "Cycles & Deadlines". You can manage all foundational data for the application from these tabs.',
+          'The Leaderboard shows a ranked list of "Top Performing Units" across all campuses. It highlights units that have completed 50% or more of their total required submissions for the year and assigns them a star rating based on their completion percentage.',
       },
        {
         question: 'How do I delete a submission?',
