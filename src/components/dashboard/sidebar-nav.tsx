@@ -58,7 +58,7 @@ export function SidebarNav({
       href: '/approvals',
       label: 'Approvals',
       active: pathname.startsWith('/approvals'),
-      roles: ['Campus Director', 'Campus ODIMO', 'Unit ODIMO', 'Admin', 'Vice President'],
+      roles: ['Campus Director', 'Campus ODIMO', 'Admin', 'Vice President'],
       icon: <CheckSquare />,
     },
      {
