@@ -82,7 +82,7 @@ const LoadingSkeleton = () => (
 export default function SubmissionDetailPage() {
   const { id } = useParams();
   const firestore = useFirestore();
-  const { user, userProfile, isAdmin, isUserLoading, userRole } = useUser();
+  const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor } = useUser();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -132,17 +132,12 @@ export default function SubmissionDetailPage() {
     }
     return 'Invalid Date';
   };
-
-  const canApprove = useMemo(() => {
-      if (!userRole) return false;
-      return ['Admin', 'Campus ODIMO', 'Campus Director', 'Vice President'].includes(userRole);
-  }, [userRole]);
   
   const isApprover = 
     submission &&
     userProfile && 
     submission.userId !== userProfile.id &&
-    canApprove;
+    isSupervisor;
   
   const isSubmitter = user && submission && user.uid === submission.userId;
 
@@ -153,7 +148,7 @@ export default function SubmissionDetailPage() {
     updateDoc(submissionDocRef, updateData)
         .then(() => {
             toast({ title: 'Success', description: 'Submission has been approved.' });
-            if (isAdmin) {
+            if (isSupervisor) {
                 router.push('/approvals');
             }
         })
@@ -438,3 +433,5 @@ export default function SubmissionDetailPage() {
     </div>
   );
 }
+
+    
