@@ -913,8 +913,14 @@ export default function HomePage() {
             </div>
          )
     }
-    if (isAdmin) return renderAdminHome();
-    if (isCampusSupervisor || isVp) return renderSupervisorHome();
+    // **FIX**: This logic is now mutually exclusive.
+    // An admin will only ever see the admin dashboard.
+    if (isAdmin) {
+      return renderAdminHome();
+    }
+    if (isCampusSupervisor || isVp) {
+      return renderSupervisorHome();
+    }
     return renderUnitCoordinatorHome();
   };
   

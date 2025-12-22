@@ -2,7 +2,7 @@
 'use client';
 
 import { redirect, usePathname } from 'next/navigation';
-import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirebase, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { UserNav } from '@/components/dashboard/user-nav';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -69,9 +69,7 @@ export default function DashboardLayout({
 
   const { user, userProfile, isUserLoading, isAdmin, userRole, firestore } = firebaseState;
   
-  const isStillLoading = isUserLoading;
-  
-  const isSupervisor = userRole === 'Admin' || userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+  const isSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
 
   const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
@@ -84,16 +82,17 @@ export default function DashboardLayout({
     if (!firestore || !userProfile || !userRole) return null;
 
     const submissionsCollection = collection(firestore, 'submissions');
-
+    
     // Supervisors get notifications for pending approvals
     if (userRole === 'Admin') {
       return query(submissionsCollection, where('statusId', '==', 'submitted'));
     }
     if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-      return query(submissionsCollection, where('campusId', '==', 'userProfile.campusId'), where('statusId', '==', 'submitted'));
+      if (!userProfile.campusId) return null; // Wait for campusId
+      return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
     }
     // Employees get notifications for rejected submissions
-    return query(submissionsCollection, where('userId', '==', 'userProfile.id'), where('statusId', '==', 'rejected'));
+    return query(submissionsCollection, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
   }, [firestore, userProfile, userRole]);
 
   const { data: notifications, isLoading: isLoadingNotifications } = useCollection<Submission>(notificationQuery);
@@ -132,13 +131,19 @@ export default function DashboardLayout({
       return;
     }
     
+    // **FIX**: If the user is an admin, do not perform any other checks.
+    // An admin account is always considered complete.
+    if (isAdmin) {
+      return;
+    }
+
     // The user is logged in, now check for profile completeness.
     // Don't run these checks on special pages.
     if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
       return;
     }
     
-    if (userProfile && !isAdmin) {
+    if (userProfile) {
       const isVP = userRole?.toLowerCase().includes('vice president');
       const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
 
@@ -148,6 +153,7 @@ export default function DashboardLayout({
       } else if (isCampusLevelUser) {
         isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
       } else {
+        // Regular users need a campus, role, AND unit.
         isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
       }
 
@@ -161,7 +167,7 @@ export default function DashboardLayout({
         return;
       }
     }
-  }, [user, userProfile, isUserLoading, pathname, userRole, isAdmin]);
+  }, [user, userProfile, isUserLoading, pathname, isAdmin, userRole]);
 
 
   if (isUserLoading) {
@@ -210,5 +216,3 @@ export default function DashboardLayout({
     </ActivityLogProvider>
   );
 }
-
-    
