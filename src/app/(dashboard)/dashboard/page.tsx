@@ -839,15 +839,10 @@ export default function HomePage() {
         </div>
       );
     }
-  
-    // Mutually exclusive role rendering
-    if (isAdmin) {
-      return renderAdminHome();
-    } else if (isSupervisor) {
-      return renderSupervisorHome();
-    } else {
-      return renderUnitCoordinatorHome();
-    }
+    if (isAdmin) return renderAdminHome();
+    if (isUnitSupervisor) return renderUnitOdimoHome();
+    if (isCampusSupervisor || isVp) return renderSupervisorHome();
+    return renderUnitCoordinatorHome();
   };
   
   const showAnnouncements = !isLoading && (

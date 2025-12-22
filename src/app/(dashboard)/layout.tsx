@@ -69,6 +69,17 @@ export default function DashboardLayout({
 
   const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, isSupervisor } = useUser();
   
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+  const isStillLoading = isUserLoading;
+  
+  const isSupervisor = userRole === 'Admin' || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole === 'Unit ODIMO';
+=======
+  const isSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
+>>>>>>> a9d999e (now that we are back to original, can yo please doublecheck the codebase)
+
+>>>>>>> f5d7ad9 (Try fixing this error: `Build Error: Parsing ecmascript source code fail)
   const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
 
@@ -82,13 +93,24 @@ export default function DashboardLayout({
     const submissionsCollection = collection(firestore, 'submissions');
     
     // Supervisors get notifications for pending approvals
+<<<<<<< HEAD
     if (isSupervisor) {
+=======
+    if (userRole === 'Admin') {
+      return query(submissionsCollection, where('statusId', '==', 'submitted'));
+    }
+    if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
+>>>>>>> f5d7ad9 (Try fixing this error: `Build Error: Parsing ecmascript source code fail)
       if (!userProfile.campusId) return null; // Wait for campusId
       return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
     }
     // Employees get notifications for rejected submissions
     return query(submissionsCollection, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
+<<<<<<< HEAD
   }, [firestore, userProfile, userRole, isSupervisor]);
+=======
+  }, [firestore, userProfile, userRole]);
+>>>>>>> f5d7ad9 (Try fixing this error: `Build Error: Parsing ecmascript source code fail)
 
   const { data: notifications, isLoading: isLoadingNotifications } = useCollection<Submission>(notificationQuery);
 
@@ -126,7 +148,11 @@ export default function DashboardLayout({
       return;
     }
     
+<<<<<<< HEAD
     // If the user is an admin, do not perform any other checks.
+=======
+    // **FIX**: If the user is an admin, do not perform any other checks.
+>>>>>>> f5d7ad9 (Try fixing this error: `Build Error: Parsing ecmascript source code fail)
     // An admin account is always considered complete.
     if (isAdmin) {
       return;
@@ -139,11 +165,25 @@ export default function DashboardLayout({
     }
     
     if (userProfile) {
+<<<<<<< HEAD
       let isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
 
       // Only require unitId if the user is not a supervisor role
       if (!isSupervisor) {
         isProfileIncomplete = isProfileIncomplete || !userProfile.unitId;
+=======
+      const isVP = userRole?.toLowerCase().includes('vice president');
+      const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+
+      let isProfileIncomplete = false;
+      if (isVP) {
+        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
+      } else if (isCampusLevelUser) {
+        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
+      } else {
+        // Regular users need a campus, role, AND unit.
+        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
+>>>>>>> f5d7ad9 (Try fixing this error: `Build Error: Parsing ecmascript source code fail)
       }
 
       if (isProfileIncomplete) {
@@ -156,7 +196,11 @@ export default function DashboardLayout({
         return;
       }
     }
+<<<<<<< HEAD
   }, [user, userProfile, isUserLoading, pathname, isAdmin, isSupervisor]);
+=======
+  }, [user, userProfile, isUserLoading, pathname, isAdmin, userRole]);
+>>>>>>> f5d7ad9 (Try fixing this error: `Build Error: Parsing ecmascript source code fail)
 
 
   if (isUserLoading) {
