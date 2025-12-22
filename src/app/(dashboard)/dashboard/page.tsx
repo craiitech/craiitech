@@ -521,30 +521,6 @@ export default function HomePage() {
     );
   }
 
-  const renderOverdueWarning = () => {
-    if (!overdueCycles || overdueCycles.length === 0) return null;
-
-    return (
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Action Required: Overdue Submissions</AlertTitle>
-        <AlertDescription>
-          You have missed the deadline for the following cycles. Please submit the required documents as soon as possible.
-          <ul className="list-disc pl-5 mt-2">
-            {overdueCycles.map(cycle => (
-              <li key={cycle.id}>
-                <strong>{cycle.name.charAt(0).toUpperCase() + cycle.name.slice(1)} Cycle {cycle.year}:</strong>
-                <ul className="list-circle pl-5 text-xs">
-                  {cycle.missingReports.map(report => <li key={report}>{report}</li>)}
-                </ul>
-              </li>
-            ))}
-          </ul>
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
   const renderUnitCoordinatorHome = () => (
     <Tabs defaultValue="overview" className="space-y-4">
       <TabsList>
@@ -553,10 +529,8 @@ export default function HomePage() {
         <TabsTrigger value="history">History</TabsTrigger>
       </TabsList>
       
-      <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
-
       <TabsContent value="overview" className="space-y-4">
-        {renderOverdueWarning()}
+        <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
         <div className="grid gap-4 md:grid-cols-3">
           {renderCard(
             stats.stat1.title,
@@ -912,7 +886,7 @@ export default function HomePage() {
         </TabsList>
       <TabsContent value="overview" className="space-y-4">
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
-            <div className="col-span-4 space-y-4">
+            <div className="lg:col-span-4 space-y-4">
                 {unitsInCampus.length === 0 && !isLoading && (
                     <Alert>
                         <AlertCircle className="h-4 w-4" />
@@ -981,7 +955,7 @@ export default function HomePage() {
                     </CardContent>
                 </Card>
             </div>
-            <div className="col-span-3 space-y-4">
+            <div className="lg:col-span-3 space-y-4">
                 <Leaderboard
                     allSubmissions={submissions}
                     allUnits={allUnits}
@@ -1079,8 +1053,8 @@ export default function HomePage() {
             (stats.stat3 as any).description
           )}
         </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
-            <div className="col-span-1 space-y-4 lg:col-span-4">
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+             <div className="lg:col-span-4 space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
                     <CompletedSubmissions 
                         allUnits={allUnits}
@@ -1118,8 +1092,8 @@ export default function HomePage() {
                     />
                 )}
             </div>
-            <div className="col-span-1 space-y-4 lg:col-span-3">
-                 <Card>
+             <div className="lg:col-span-3 space-y-4">
+                <Card>
                     <CardHeader>
                         <CardTitle>Submissions Overview</CardTitle>
                         <CardDescription>
@@ -1130,13 +1104,13 @@ export default function HomePage() {
                         <Overview submissions={submissions} isLoading={isLoading} />
                     </CardContent>
                 </Card>
-                <IncompleteCampusSubmissions
+                 <IncompleteCampusSubmissions
                     allSubmissions={submissions}
                     allCampuses={allCampuses}
                     allUnits={allUnits}
                     isLoading={isLoading}
                 />
-                <Card>
+                 <Card>
                     <CardHeader>
                         <CardTitle>Recent Activity</CardTitle>
                         <CardDescription>
