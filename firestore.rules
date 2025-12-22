@@ -88,6 +88,10 @@ service cloud.firestore {
     function isVicePresident() {
         return isSignedIn() && getUserProfile().role.matches("Vice President");
     }
+
+    function isSupervisor() {
+      return isAdmin() || isCampusDirector() || isCampusOdimo() || isVp() || isUnitOdimo();
+    }
     
     /**
      * Retrieves the user's profile data. CRITICAL: This function requires that a
@@ -111,7 +115,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isSignedIn();
       allow update: if isOwner(userId) || isAdmin();
-      allow list: if isSignedIn(); // Allow any signed-in user to list/query users. Filtering is done client-side.
+      allow list: if isAdmin() || (isSupervisor() && request.query.where.campusId == getUserProfile().campusId);
       allow create: if isOwner(userId); // A user can create their own document.
       allow delete: if isOwner(userId) || isAdmin();
     }
