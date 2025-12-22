@@ -263,7 +263,7 @@ export function SubmissionForm({
             unitId: userProfile.unitId,
             unitName: unitName,
             statusId: 'submitted',
-            submissionDate: serverTimestamp(),
+            submissionDate: new Date(),
             comments: newComment ? [newComment] : [],
         };
         
@@ -449,5 +449,3 @@ export function SubmissionForm({
     </Form>
   );
 }
-
-    
