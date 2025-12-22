@@ -82,12 +82,12 @@ export default function ReportsPage() {
         if (isAdmin) {
             return collection(firestore, 'users');
         }
-        if (userProfile?.campusId) {
+        if (isSupervisor && userProfile?.campusId) {
             return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
         }
         return null;
     },
-    [firestore, canViewReports, isAdmin, userProfile]
+    [firestore, canViewReports, isAdmin, isSupervisor, userProfile]
   );
   const { data: allUsers, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
 
