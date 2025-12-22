@@ -33,6 +33,7 @@ import {
   AlertTriangle,
   BarChart,
   User,
+  LayoutDashboard,
 } from 'lucide-react';
 import {
   useUser,
@@ -1105,7 +1106,7 @@ export default function HomePage() {
                         allCampuses={allCampuses}
                         isLoading={isLoading}
                         userProfile={userProfile}
-                        isCampusSupervisor={isSupervisor}
+                        isCampusSupervisor={isCampusSupervisor}
                     />
                     <Card>
                         <CardHeader>
@@ -1226,5 +1227,7 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
 
     
