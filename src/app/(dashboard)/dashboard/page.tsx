@@ -34,6 +34,7 @@ import {
   BarChart,
   User,
   LayoutDashboard,
+  BrainCircuit,
 } from 'lucide-react';
 import {
   useUser,
@@ -902,6 +903,7 @@ export default function HomePage() {
             <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
             <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
             <TabsTrigger value="users"><User className="mr-2 h-4 w-4" />Users</TabsTrigger>
+            <TabsTrigger value="strategic" onClick={() => router.push('/strategic')}><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
         </TabsList>
       <TabsContent value="overview" className="space-y-4">
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
@@ -1040,6 +1042,7 @@ export default function HomePage() {
       <TabsList>
         <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
         <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
+        <TabsTrigger value="strategic" onClick={() => router.push('/strategic')}><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
       </TabsList>
       <TabsContent value="overview" className="space-y-4">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
@@ -1102,6 +1105,12 @@ export default function HomePage() {
           </div>
           {/* Right Column */}
           <div className="col-span-1 space-y-4 lg:col-span-3">
+             <IncompleteCampusSubmissions
+                allSubmissions={submissions}
+                allCampuses={allCampuses}
+                allUnits={allUnits}
+                isLoading={isLoading}
+            />
             <Leaderboard 
                 allSubmissions={submissions}
                 allUnits={allUnits}
@@ -1121,12 +1130,6 @@ export default function HomePage() {
                     <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
                 </CardContent>
             </Card>
-             <IncompleteCampusSubmissions
-                allSubmissions={submissions}
-                allCampuses={allCampuses}
-                allUnits={allUnits}
-                isLoading={isLoading}
-            />
             {selectedUnitId && (
                 <UnitSubmissionDetailCard
                     unitId={selectedUnitId}
