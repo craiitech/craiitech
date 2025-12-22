@@ -82,10 +82,7 @@ export default function DashboardLayout({
     const submissionsCollection = collection(firestore, 'submissions');
     
     // Supervisors get notifications for pending approvals
-    if (userRole === 'Admin') {
-      return query(submissionsCollection, where('statusId', '==', 'submitted'));
-    }
-    if (isSupervisor && userRole !== 'Admin') {
+    if (isSupervisor) {
       if (!userProfile.campusId) return null; // Wait for campusId
       return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
     }

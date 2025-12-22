@@ -160,7 +160,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const userRole = isAdmin ? 'Admin' : (userProfile && roles ? (roles.find(r => r.id === userProfile.roleId)?.name || null) : null);
     
     const isVp = !!userRole?.toLowerCase().includes('vice president');
-    const isSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || isVp;
+    const isSupervisor = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || isVp;
 
 
     return {
@@ -285,5 +285,3 @@ export const useUser = (): UserHookResult => {
   const { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp } = context; 
   return { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp };
 };
-
-    

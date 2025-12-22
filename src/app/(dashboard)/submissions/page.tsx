@@ -272,14 +272,12 @@ const SubmissionsTable = ({
 
 
 export default function SubmissionsPage() {
-  const { userProfile, isAdmin, userRole } = useUser();
+  const { userProfile, isAdmin, isSupervisor } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
   const { logSessionActivity } = useSessionActivity();
   
-  const isSupervisor = userRole === 'Admin' || userRole === 'Campus Director' || userRole === 'Campus ODIMO';
-
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     if (isAdmin) return collection(firestore, 'users');

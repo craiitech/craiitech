@@ -67,7 +67,7 @@ export default function ApprovalsPage() {
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [dialogMode, setDialogMode] = useState<'reject' | 'view'>('view');
   
-  const canApprove = isSupervisor || userRole === 'Admin';
+  const canApprove = isSupervisor;
 
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !userRole) {
