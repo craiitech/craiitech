@@ -41,6 +41,7 @@ export default function ProfilePage() {
   const { user, userProfile, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { logSessionActivity } = useSessionActivity();
 
@@ -102,6 +103,9 @@ export default function ProfilePage() {
         title: 'Profile Updated',
         description: 'Your name has been successfully updated.',
       });
+
+      router.push('/dashboard');
+
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
