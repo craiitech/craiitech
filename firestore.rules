@@ -90,7 +90,7 @@ service cloud.firestore {
     }
 
     function isSupervisor() {
-      return isAdmin() || isCampusDirector() || isCampusOdimo() || isVp() || isUnitOdimo();
+      return isAdmin() || isCampusDirector() || isCampusOdimo() || isVicePresident() || isUnitOdimo();
     }
     
     /**
