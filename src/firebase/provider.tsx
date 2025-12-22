@@ -75,6 +75,7 @@ export interface UserHookResult {
   userRole: string | null;
   isSupervisor: boolean;
   isVp: boolean;
+  firestore: Firestore | null; // Added for convenience in some hooks
 }
 
 // React Context
@@ -105,9 +106,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       setUserAuthState({ user: null, isAuthLoading: false, userError: new Error("Auth service not provided.") });
       return;
     }
-
-    // This part is not strictly necessary if auth instance is stable, but good practice.
-    // setUserAuthState({ user: null, isAuthLoading: true, userError: null });
 
     const unsubscribe = onAuthStateChanged(
       auth,
@@ -153,15 +151,17 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
     const isAdmin = !!adminDoc;
-    
-    // Correctly determine loading state. It's loading if auth is loading, or if a user exists but their profile/role/admin status isn't confirmed yet.
-    const isUserLoading = userAuthState.isAuthLoading || (!!userAuthState.user && (isProfileLoading || isAdminLoading || isLoadingRoles));
 
-    const userRole = isAdmin ? 'Admin' : (userProfile && roles ? (roles.find(r => r.id === userProfile.roleId)?.name || null) : null);
+    // Correctly determine loading state. It's loading if auth is loading, or if a user exists but their profile/role/admin status isn't confirmed yet.
+    const isUserDataReady = !!userAuthState.user && !isProfileLoading && !isAdminLoading && !isLoadingRoles;
+    const isUserLoading = userAuthState.isAuthLoading || (!!userAuthState.user && !isUserDataReady);
+
+
+    const userRole = isUserDataReady && !isAdmin ? (roles.find(r => r.id === userProfile.roleId)?.name || null) : (isAdmin ? 'Admin' : null);
     
     const isVp = !!userRole?.toLowerCase().includes('vice president');
     const supervisorRoles = ['Admin', 'Campus Director', 'Campus ODIMO'];
-    const isSupervisor = supervisorRoles.includes(userRole || '') || isVp;
+    const isSupervisor = isUserDataReady ? (supervisorRoles.includes(userRole || '') || isVp) : false;
 
 
     return {
@@ -281,8 +281,8 @@ export const useFirebaseApp = (): FirebaseApp => {
 export const useUser = (): UserHookResult => { 
   const context = useFirebase();
    if (!context.areServicesAvailable) {
-      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, userRole: null, isSupervisor: false, isVp: false };
+      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, userRole: null, isSupervisor: false, isVp: false, firestore: null };
   }
-  const { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp } = context; 
-  return { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp };
+  const { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp, firestore } = context; 
+  return { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp, firestore };
 };
