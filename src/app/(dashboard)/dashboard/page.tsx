@@ -1102,7 +1102,10 @@ export default function HomePage() {
                             onUnitClick={setSelectedUnitId}
                         />
                     </div>
-                     <Card>
+                </div>
+                {/* Right Column */}
+                <div className="col-span-1 space-y-4 lg:col-span-3">
+                    <Card>
                         <CardHeader>
                             <CardTitle>Submissions Overview</CardTitle>
                             <CardDescription>
@@ -1113,9 +1116,12 @@ export default function HomePage() {
                             <Overview submissions={submissions} isLoading={isLoading} />
                         </CardContent>
                     </Card>
-                </div>
-                {/* Right Column */}
-                <div className="col-span-1 space-y-4 lg:col-span-3">
+                     <IncompleteCampusSubmissions
+                        allSubmissions={submissions}
+                        allCampuses={allCampuses}
+                        allUnits={allUnits}
+                        isLoading={isLoading}
+                    />
                      <Leaderboard 
                         allSubmissions={submissions}
                         allUnits={allUnits}
@@ -1123,12 +1129,6 @@ export default function HomePage() {
                         isLoading={isLoading}
                         userProfile={userProfile}
                         isCampusSupervisor={isCampusSupervisor}
-                    />
-                    <IncompleteCampusSubmissions
-                        allSubmissions={submissions}
-                        allCampuses={allCampuses}
-                        allUnits={allUnits}
-                        isLoading={isLoading}
                     />
                     <Card>
                         <CardHeader>
