@@ -39,7 +39,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import type { User, Role, Campus, Unit } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -58,6 +58,7 @@ type FilterStatus = 'all' | 'pending' | 'verified';
 export function UserManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { isAdmin } = useUser();
   const [filter, setFilter] = useState<FilterStatus>('pending');
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
@@ -66,8 +67,8 @@ export function UserManagement() {
 
 
   const usersQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'users') : null),
-    [firestore]
+    () => (firestore && isAdmin ? collection(firestore, 'users') : null),
+    [firestore, isAdmin]
   );
   const { data: users, isLoading: isLoadingUsers } =
     useCollection<User>(usersQuery);
