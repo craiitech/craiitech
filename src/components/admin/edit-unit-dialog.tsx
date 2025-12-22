@@ -34,10 +34,10 @@ import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, updateDoc, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Unit, Campus, User } from '@/lib/types';
 import { Loader2, Check, ChevronsUpDown } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -52,7 +52,6 @@ interface EditUnitDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   allCampuses: Campus[];
-  vicePresidents: User[];
 }
 
 const editUnitSchema = z.object({
@@ -66,12 +65,20 @@ export function EditUnitDialog({
   isOpen,
   onOpenChange,
   allCampuses,
-  vicePresidents,
 }: EditUnitDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { isAdmin } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false)
+
+  const usersQuery = useMemoFirebase(() => (firestore && isAdmin ? collection(firestore, 'users') : null), [firestore, isAdmin]);
+  const { data: allUsers, isLoading: isLoadingUsers } = useCollection<User>(usersQuery);
+
+  const vicePresidents = useMemo(() => {
+    if (!allUsers) return [];
+    return allUsers.filter(user => user.role?.toLowerCase().includes('vice president'));
+  }, [allUsers]);
 
   const form = useForm<z.infer<typeof editUnitSchema>>({
     resolver: zodResolver(editUnitSchema),
@@ -262,3 +269,5 @@ export function EditUnitDialog({
     </Dialog>
   );
 }
+
+    
