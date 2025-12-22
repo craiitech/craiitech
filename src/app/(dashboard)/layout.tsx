@@ -14,7 +14,7 @@ import {
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
 import { useEffect, useMemo } from 'react';
 import type { Campus, Unit, Submission } from '@/lib/types';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, Query } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Building2 } from 'lucide-react';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';
@@ -55,15 +55,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, isSupervisor } = useUser();
 
-  if (!firebaseState.areServicesAvailable || isUserLoading) return <LoadingSkeleton />;
-
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
 
-  const notificationQuery = useMemoFirebase(() => {
+  // This logic is now outside the hook, ensuring hook calls are stable.
+  const getNotificationQuery = (): Query | null => {
     if (!firestore || !userProfile || !userRole) return null;
     const submissionsCollection = collection(firestore, 'submissions');
 
@@ -81,13 +80,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     // Employees get notifications for rejected submissions
     return query(submissionsCollection, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
-  }, [firestore, userProfile, userRole, isSupervisor]);
+  }
+
+  // The hook now receives a stable value or null.
+  const notificationQuery = useMemoFirebase(() => getNotificationQuery(), [firestore, userProfile, userRole, isSupervisor]);
 
   const { data: notifications } = useCollection<Submission>(notificationQuery);
 
   const notificationCount = useMemo(() => {
-    if (!notifications) return 0;
-    if (isSupervisor) return notifications.filter(s => s.userId !== userProfile?.id).length;
+    if (!notifications || !userProfile) return 0;
+    if (isSupervisor) return notifications.filter(s => s.userId !== userProfile.id).length;
     return notifications.length;
   }, [notifications, isSupervisor, userProfile]);
 
@@ -118,6 +120,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (!userProfile.verified) return redirect('/awaiting-verification');
     }
   }, [user, userProfile, isUserLoading, pathname, isAdmin, userRole]);
+
+  if (!firebaseState.areServicesAvailable || isUserLoading) return <LoadingSkeleton />;
 
   if (!user || (!userProfile && !isAdmin && pathname !== '/complete-registration' && pathname !== '/awaiting-verification')) {
     return (
