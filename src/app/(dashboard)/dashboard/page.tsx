@@ -724,12 +724,14 @@ export default function HomePage() {
         />
       </TabsContent>
        <TabsContent value="users" className="space-y-4">
-        <UnitUserOverview
-          allUsers={Array.from(allUsersMap.values())}
-          allUnits={allUnits}
-          isLoading={isLoading}
-          userProfile={userProfile}
-        />
+        {isSupervisor && (
+          <UnitUserOverview
+            allUsers={Array.from(allUsersMap.values())}
+            allUnits={allUnits}
+            isLoading={isLoading}
+            userProfile={userProfile}
+          />
+        )}
       </TabsContent>
     </Tabs>
   );
