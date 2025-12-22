@@ -135,7 +135,7 @@ export default function SubmissionDetailPage() {
 
   const canApprove = useMemo(() => {
       if (!userRole) return false;
-      return ['Admin', 'Campus ODIMO', 'Campus Director'].includes(userRole);
+      return ['Admin', 'Campus ODIMO', 'Campus Director', 'Vice President'].includes(userRole);
   }, [userRole]);
   
   const isApprover = 
@@ -153,6 +153,9 @@ export default function SubmissionDetailPage() {
     updateDoc(submissionDocRef, updateData)
         .then(() => {
             toast({ title: 'Success', description: 'Submission has been approved.' });
+            if (isAdmin) {
+                router.push('/approvals');
+            }
         })
         .catch(error => {
             console.error('Error approving submission', error);
