@@ -79,6 +79,7 @@ import { SubmissionSchedule } from '@/components/dashboard/submission-schedule';
 import { RiskStatusOverview } from '@/components/dashboard/risk-status-overview';
 import { OverdueWarning } from '@/components/dashboard/overdue-warning';
 import { UnitSubmissionDetailCard } from '@/components/dashboard/unit-submission-detail-card';
+import { Leaderboard } from '@/components/dashboard/leaderboard';
 
 export const TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT = 12; // 6 for First, 6 for Final
 
@@ -1099,6 +1100,12 @@ export default function HomePage() {
             />
         </div>
         <div className="col-span-3 space-y-4">
+             <Leaderboard 
+                allSubmissions={submissions}
+                allUnits={allUnits}
+                allCampuses={allCampuses}
+                isLoading={isLoading}
+             />
              <Card>
                 <CardHeader>
                     <CardTitle>Recent Activity</CardTitle>
