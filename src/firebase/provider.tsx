@@ -152,12 +152,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const servicesAvailable = !!(firebaseApp && firestore && auth);
     const isAdmin = !!adminDoc;
 
-    // Correctly determine loading state. It's loading if auth is loading, or if a user exists but their profile/role/admin status isn't confirmed yet.
     const isUserDataReady = !!userAuthState.user && !isProfileLoading && !isAdminLoading && !isLoadingRoles;
     const isUserLoading = userAuthState.isAuthLoading || (!!userAuthState.user && !isUserDataReady);
 
-
-    const userRole = isUserDataReady && !isAdmin ? (roles.find(r => r.id === userProfile.roleId)?.name || null) : (isAdmin ? 'Admin' : null);
+    // SAFEGUARD: Check for null on roles and userProfile before access
+    const userRole = isUserDataReady && !isAdmin && roles && userProfile ? (roles.find(r => r.id === userProfile.roleId)?.name || null) : (isAdmin ? 'Admin' : null);
     
     const isVp = !!userRole?.toLowerCase().includes('vice president');
     const supervisorRoles = ['Admin', 'Campus Director', 'Campus ODIMO'];
