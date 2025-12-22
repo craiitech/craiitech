@@ -252,7 +252,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
         if (!userProfile.campusId) return null;
         return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
     }
-    // Unit coordinators only need to see users in their own unit for the form
     if (userProfile.unitId) {
         return query(collection(firestore, 'users'), where('unitId', '==', userProfile.unitId));
     }
