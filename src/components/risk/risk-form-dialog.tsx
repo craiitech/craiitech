@@ -30,10 +30,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useUser, useFirestore } from '@/firebase';
-import { doc, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, setDoc, serverTimestamp, addDoc, collection, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -236,12 +236,31 @@ const GuideContent = () => (
 
 
 export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFormDialogProps) {
-  const { userProfile } = useUser();
+  const { userProfile, isAdmin, isSupervisor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { logSessionActivity } = useSessionActivity();
   const [sidePanelView, setSidePanelView] = useState<'criteria' | 'guide'>('criteria');
+  
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile) return null;
+    if (isAdmin) {
+        return collection(firestore, 'users');
+    }
+    if (isSupervisor) {
+        if (!userProfile.campusId) return null;
+        return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
+    }
+    // Unit coordinators only need to see users in their own unit for the form
+    if (userProfile.unitId) {
+        return query(collection(firestore, 'users'), where('unitId', '==', userProfile.unitId));
+    }
+    return null;
+  }, [firestore, isAdmin, isSupervisor, userProfile]);
+
+  const { data: users, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
