@@ -284,7 +284,7 @@ export default function SubmissionsPage() {
         return collection(firestore, 'users');
     }
     if (isSupervisor) {
-        if (!userProfile.campusId) return null; // Wait for campusId
+        if (!userProfile.campusId) return null;
         return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
     }
     // For single user view, we only need their own user object
