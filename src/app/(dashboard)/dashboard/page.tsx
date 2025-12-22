@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -159,14 +160,17 @@ export default function HomePage() {
 
   // Fetch users based on role
   const usersQuery = useMemoFirebase(() => {
-      if (!firestore) return null;
-      if (isAdmin) {
-          return collection(firestore, 'users');
-      }
-      if (isSupervisor && userProfile?.campusId) {
-          return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
-      }
-      return null; // Regular users don't need to fetch other users.
+    if (!firestore || !userProfile) return null;
+    if (isAdmin) {
+        return collection(firestore, 'users');
+    }
+    if (isSupervisor) {
+        if (!userProfile.campusId) return null; // Wait for campusId
+        return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
+    }
+    // Regular users only need their own profile, which is already available in userProfile.
+    // However, to keep allUsersMap populated consistently, we can query for the single user.
+    return query(collection(firestore, 'users'), where('id', '==', userProfile.id));
   }, [firestore, isAdmin, isSupervisor, userProfile]);
 
   const { data: allUsersData, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
@@ -176,12 +180,12 @@ export default function HomePage() {
     if (allUsersData) {
         allUsersData.forEach(u => userMap.set(u.id, u));
     }
-    // For regular users, add their own profile to the map
-    if (userProfile && !isSupervisor && !isAdmin) {
+    // For regular users, their data might not come from the collection query if it's null
+    if (userProfile && !allUsersData?.find(u => u.id === userProfile.id)) {
         userMap.set(userProfile.id, userProfile);
     }
     return userMap;
-  }, [allUsersData, userProfile, isSupervisor, isAdmin]);
+  }, [allUsersData, userProfile]);
 
 
   const allUnitsQuery = useMemoFirebase(() => {
@@ -241,7 +245,7 @@ export default function HomePage() {
     isLoadingGlobalSettings ||
     isLoadingCycles ||
     isLoadingRisks ||
-    ((isAdmin || isSupervisor) && isLoadingUsers);
+    isLoadingUsers;
 
 
   const stats = useMemo(() => {
@@ -584,7 +588,7 @@ export default function HomePage() {
                       <TableCell colSpan={4}><Skeleton className="h-5 w-full"/></TableCell>
                     </TableRow>
                   ))
-                ) : sortedSubmissions.length > 0 ? (
+                ) : sortedSubmissions && sortedSubmissions.length > 0 ? (
                   sortedSubmissions.map(s => (
                     <TableRow key={s.id}>
                       <TableCell>

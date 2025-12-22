@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -77,11 +78,12 @@ export default function ReportsPage() {
 
   const usersQuery = useMemoFirebase(
     () => {
-        if (!firestore || !canViewReports) return null;
+        if (!firestore || !canViewReports || !userProfile) return null;
         if (isAdmin) {
             return collection(firestore, 'users');
         }
-        if (isSupervisor && userProfile?.campusId) {
+        if (isSupervisor) {
+            if (!userProfile.campusId) return null;
             return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
         }
         return null;

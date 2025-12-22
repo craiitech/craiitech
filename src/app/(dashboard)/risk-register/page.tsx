@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,15 +52,16 @@ export default function RiskRegisterPage() {
 
 
     const usersQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !userProfile) return null;
         if (isAdmin) {
             return collection(firestore, 'users');
         }
-        if (isSupervisor && userProfile?.campusId) {
+        if (isSupervisor) {
+            if (!userProfile.campusId) return null;
             return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
         }
         // Unit coordinators only need to see users in their own unit for the form
-        if (userProfile?.unitId) {
+        if (userProfile.unitId) {
             return query(collection(firestore, 'users'), where('unitId', '==', userProfile.unitId));
         }
         return null;

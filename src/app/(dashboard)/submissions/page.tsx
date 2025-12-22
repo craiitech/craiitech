@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2, Printer, FileDown, Download, AlertCircle } from 'lucide-react';
@@ -282,10 +283,11 @@ export default function SubmissionsPage() {
     if (isAdmin) {
         return collection(firestore, 'users');
     }
-    if (isSupervisor && userProfile.campusId) {
+    if (isSupervisor) {
+        if (!userProfile.campusId) return null; // Wait for campusId
         return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
     }
-    // For single user view
+    // For single user view, we only need their own user object
     return query(collection(firestore, 'users'), where('id', '==', userProfile.id));
   }, [firestore, isAdmin, isSupervisor, userProfile]);
   
