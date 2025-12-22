@@ -58,8 +58,6 @@ export function UserNav({ user, userProfile, notificationCount }: UserNavProps) 
 
   const { firstName, lastName, email, avatar } = userProfile;
   const fallback = `${firstName?.charAt(0) ?? ''}${lastName?.charAt(0) ?? ''}`;
-  
-  const canViewSettings = userRole === 'Admin' || userRole === 'Campus Director' || userRole === 'Campus ODIMO';
 
   return (
     <div className="flex items-center gap-4">
@@ -95,9 +93,7 @@ export function UserNav({ user, userProfile, notificationCount }: UserNavProps) 
             <DropdownMenuItem asChild>
                 <Link href="/profile">
                   <UserIcon className="mr-2 h-4 w-4" />
-<<<<<<< HEAD
                   <span>Profile</span>
-                  <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
                 </Link>
             </DropdownMenuItem>
             {canViewSettings && (
@@ -105,28 +101,14 @@ export function UserNav({ user, userProfile, notificationCount }: UserNavProps) 
                   <Link href="/settings">
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Settings</span>
-                      <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
                   </Link>
               </DropdownMenuItem>
-=======
-                  Profile
-                </Link>
-            </DropdownMenuItem>
-            {canViewSettings && (
-                <DropdownMenuItem asChild>
-                    <Link href="/settings">
-                        <Settings className="mr-2 h-4 w-4" />
-                        Settings
-                    </Link>
-                </DropdownMenuItem>
->>>>>>> eb48edf (in the User Button (located on the upper right side of the screen (circl)
             )}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
             <span>Log out</span>
-            <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
             </DropdownMenuItem>
         </DropdownMenuContent>
         </DropdownMenu>

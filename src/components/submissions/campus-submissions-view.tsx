@@ -3,16 +3,10 @@
 
 import { useState, useMemo } from 'react';
 import type { Submission, Unit, Campus } from '@/lib/types';
-<<<<<<< HEAD
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
-import { Loader2, Building, Eye, School, ChevronRight } from 'lucide-react';
-=======
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Loader2, Building, Eye, School } from 'lucide-react';
->>>>>>> b87a526 (I logged in as Admin, and there is a logic error I noticed under the Sub)
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -25,16 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-<<<<<<< HEAD
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-=======
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
->>>>>>> b87a526 (I logged in as Admin, and there is a logic error I noticed under the Sub)
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -46,43 +31,13 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 
 interface CampusSubmissionsViewProps {
   allSubmissions: Submission[] | null;
-<<<<<<< HEAD
-  allUnits: Unit[] | null;
-  allCampuses: Campus[] | null;
-=======
   allCampuses: Campus[] | null;
   allUnits: Unit[] | null;
->>>>>>> b87a526 (I logged in as Admin, and there is a logic error I noticed under the Sub)
   isLoading: boolean;
 }
 
 export function CampusSubmissionsView({
   allSubmissions,
-<<<<<<< HEAD
-  allUnits,
-  allCampuses,
-  isLoading,
-}: CampusSubmissionsViewProps) {
-  const router = useRouter();
-  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
-
-  const campusesWithSubmissions = useMemo(() => {
-    if (!allCampuses || !allUnits || !allSubmissions) {
-      return [];
-    }
-    const submittedUnitIds = new Set(allSubmissions.map(s => s.unitId));
-    
-    return allCampuses.map(campus => {
-        const unitsInCampus = allUnits.filter(u => u.campusIds?.includes(campus.id));
-        const unitsWithSubmissions = unitsInCampus.filter(u => submittedUnitIds.has(u.id));
-        return {
-            ...campus,
-            units: unitsWithSubmissions.sort((a, b) => a.name.localeCompare(b.name))
-        }
-    }).filter(campus => campus.units.length > 0);
-
-  }, [allCampuses, allUnits, allSubmissions]);
-=======
   allCampuses,
   allUnits,
   isLoading,
@@ -107,7 +62,6 @@ export function CampusSubmissionsView({
     ).sort((a, b) => a.name.localeCompare(b.name));
   }, [selectedCampusId, allUnits, allSubmissions]);
 
->>>>>>> b87a526 (I logged in as Admin, and there is a logic error I noticed under the Sub)
 
   const selectedUnitSubmissions = useMemo(() => {
     if (!selectedUnitId || !allSubmissions) {
@@ -120,14 +74,11 @@ export function CampusSubmissionsView({
     }
   }, [selectedUnitId, allSubmissions]);
   
-<<<<<<< HEAD
-=======
   const handleCampusSelect = (campusId: string) => {
     setSelectedCampusId(prev => (prev === campusId ? null : campusId));
     setSelectedUnitId(null); // Reset unit when campus changes
   }
   
->>>>>>> b87a526 (I logged in as Admin, and there is a logic error I noticed under the Sub)
   const handleUnitSelect = (unitId: string) => {
     setSelectedUnitId(unitId);
   }
@@ -141,73 +92,6 @@ export function CampusSubmissionsView({
   }
 
   return (
-<<<<<<< HEAD
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {/* Left Column: Campus/Units List */}
-      <div className="md:col-span-1">
-        <ScrollArea className="h-[60vh] rounded-md border">
-             {campusesWithSubmissions.length > 0 ? (
-                <Accordion type="multiple" className="w-full">
-                  {campusesWithSubmissions.map(campus => (
-                    <AccordionItem value={campus.id} key={campus.id}>
-                      <AccordionTrigger className="px-3 py-3 font-medium hover:no-underline">
-                         <div className="flex items-center gap-3">
-                            <School className="h-4 w-4 text-muted-foreground" />
-                            <span>{campus.name}</span>
-                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="pb-1">
-                        <div className="flex flex-col items-start px-2">
-                            {campus.units.map(unit => (
-                                <Button
-                                    key={unit.id}
-                                    variant="ghost"
-                                    onClick={() => handleUnitSelect(unit.id)}
-                                    className={cn(
-                                        "w-full justify-start text-left h-auto py-2 pl-6",
-                                        selectedUnitId === unit.id && "bg-muted"
-                                    )}
-                                >
-                                    <Building className="mr-3 h-4 w-4 flex-shrink-0" />
-                                    <span>{unit.name}</span>
-                                </Button>
-                            ))}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-             ) : (
-                <div className="flex h-full items-center justify-center text-sm text-muted-foreground p-4">
-                    No campuses have any unit submissions yet.
-                </div>
-             )}
-        </ScrollArea>
-      </div>
-
-      {/* Right Column: Submissions from Selected Unit */}
-      <div className="md:col-span-2">
-        <ScrollArea className="h-[60vh]">
-            {selectedUnitId ? (
-                <div className="space-y-6">
-                    <div>
-                        <h3 className="text-lg font-semibold mb-2">First Cycle Submissions</h3>
-                         <SubmissionTableForCycle submissions={selectedUnitSubmissions.firstCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} />
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-semibold mb-2">Final Cycle Submissions</h3>
-                         <SubmissionTableForCycle submissions={selectedUnitSubmissions.finalCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} />
-                    </div>
-                </div>
-            ) : (
-                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                    Select a unit from a campus to see their submissions.
-                </div>
-            )}
-        </ScrollArea>
-      </div>
-    </div>
-=======
     <Card>
       <CardHeader>
         <CardTitle>Submissions by Campus</CardTitle>
@@ -292,7 +176,6 @@ export function CampusSubmissionsView({
         </div>
       </CardContent>
     </Card>
->>>>>>> b87a526 (I logged in as Admin, and there is a logic error I noticed under the Sub)
   );
 }
 

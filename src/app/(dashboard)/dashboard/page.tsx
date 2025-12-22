@@ -237,6 +237,8 @@ export default function HomePage() {
       return allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
   }, [allUnits, userProfile]);
 
+    const isCampusSupervisor = isSupervisor && !isAdmin;
+
     const overdueCycles = useMemo(() => {
     if (!allCycles || !submissions || isCampusSupervisor || isAdmin) {
       return [];
@@ -646,10 +648,7 @@ export default function HomePage() {
                       <TableCell colSpan={4}><Skeleton className="h-5 w-full"/></TableCell>
                     </TableRow>
                   ))
-<<<<<<< HEAD
                 ) : sortedSubmissions && sortedSubmissions.length > 0 ? (
-=======
-                ) : sortedSubmissions.length > 0 ? (
                   sortedSubmissions.map(s => (
                     <TableRow key={s.id}>
                       <TableCell>
@@ -688,7 +687,7 @@ export default function HomePage() {
       </TabsList>
 
       <TabsContent value="overview" className="space-y-4">
-        {renderOverdueWarning()}
+        <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
         <div className="grid gap-4 md:grid-cols-3">
           {renderCard(
             stats.stat1.title,
@@ -863,7 +862,6 @@ export default function HomePage() {
                     </TableRow>
                   ))
                 ) : sortedSubmissions.length > 0 ? (
->>>>>>> 479faba (This warnings are intended to Unit Coordinators and Unit ODIMO, however)
                   sortedSubmissions.map(s => (
                     <TableRow key={s.id}>
                       <TableCell>
@@ -1116,6 +1114,7 @@ export default function HomePage() {
     }
     if (isAdmin) return renderAdminHome();
     if (isSupervisor) return renderSupervisorHome();
+    if (userRole === 'Unit ODIMO') return renderUnitOdimoHome();
     return renderUnitCoordinatorHome();
   };
   
@@ -1173,5 +1172,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    

@@ -31,7 +31,7 @@ import { collection, query, Timestamp, where, doc, deleteDoc, getDocs } from 'fi
 import type { Submission, User as AppUser, Campus, Cycle, Unit } from '@/lib/types';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { FeedbackDialog } from '@/components/dashboard/feedback-dialog';
 import {
   AlertDialog,
@@ -606,11 +606,7 @@ export default function SubmissionsPage() {
             )}
              {isAdmin && (
               <TabsTrigger value="by-campus">
-<<<<<<< HEAD
-                <Library className="mr-2 h-4 w-4" />
-=======
                 <Building2 className="mr-2 h-4 w-4" />
->>>>>>> b87a526 (I logged in as Admin, and there is a logic error I noticed under the Sub)
                 Campus Submissions
               </TabsTrigger>
             )}
@@ -649,7 +645,7 @@ export default function SubmissionsPage() {
                     ) : (
                         <SubmissionsTable 
                             submissions={sortedSubmissions}
-                            isSupervisor={isSupervisor}
+                            isSupervisor={isSupervisor ?? false}
                             isAdmin={isAdmin ?? false}
                             usersMap={usersMap}
                             campusMap={campusMap}
@@ -678,13 +674,8 @@ export default function SubmissionsPage() {
             <TabsContent value="by-campus" className="printable-area">
                 <CampusSubmissionsView
                     allSubmissions={submissions}
-<<<<<<< HEAD
-                    allUnits={units}
-                    allCampuses={campuses}
-=======
                     allCampuses={campuses}
                     allUnits={units}
->>>>>>> b87a526 (I logged in as Admin, and there is a logic error I noticed under the Sub)
                     isLoading={isLoading}
                 />
             </TabsContent>
@@ -729,4 +720,3 @@ export default function SubmissionsPage() {
     </>
   );
 }
-
