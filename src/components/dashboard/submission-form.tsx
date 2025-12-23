@@ -63,6 +63,14 @@ interface SubmissionFormProps {
   onSuccess?: () => void;
 }
 
+const baseChecklistItems = [
+    { id: 'year', label: 'Is the Year in the document correct?' },
+    { id: 'cycle', label: 'Is the Submission Cycle in the document correct?' },
+    { id: 'date', label: 'Is the Date in the "Updated as of" section correct?' },
+    { id: 'contents', label: 'Are the Contents in the document correct and complete?' },
+    { id: 'signed', label: 'Is the document properly signed?' },
+];
+
 export function SubmissionForm({
   reportType,
   year,
@@ -80,24 +88,19 @@ export function SubmissionForm({
 
   const isRorForm = reportType === 'Risk and Opportunity Registry Form';
 
-  const baseChecklistItems = [
-    { id: 'correctDoc', label: `Is this the correct "${reportType}" for the ${cycleId} cycle for year ${year}?` },
-    { id: 'year', label: 'Is the Year in the document correct?' },
-    { id: 'cycle', label: 'Is the Submission Cycle in the document correct?' },
-    { id: 'date', label: 'Is the Date in the "Updated as of" section correct?' },
-    { id: 'contents', label: 'Are the Contents in the document correct and complete?' },
-    { id: 'signed', label: 'Is the document properly signed?' },
-  ];
-  
   const checklistItems = useMemo(() => {
+    const dynamicBaseItems = [
+      { id: 'correctDoc', label: `Is this the correct "${reportType}" for the ${cycleId} cycle for year ${year}?` },
+      ...baseChecklistItems
+    ];
     if (isRorForm && riskRating === 'medium-high') {
       return [
-        ...baseChecklistItems,
+        ...dynamicBaseItems,
         { id: 'actionPlan', label: 'I acknowledge that a "Risk and Opportunity Action Plan" document must also be submitted for Medium/High rated risks.' }
       ];
     }
-    return baseChecklistItems;
-  }, [isRorForm, riskRating, baseChecklistItems]);
+    return dynamicBaseItems;
+  }, [isRorForm, riskRating, reportType, year, cycleId]);
 
 
   const [checkedState, setCheckedState] = useState<Record<string, boolean>>(
