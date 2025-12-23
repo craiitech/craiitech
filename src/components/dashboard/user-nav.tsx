@@ -50,7 +50,7 @@ export function UserNav({ user, userProfile, notificationCount }: UserNavProps) 
     }
   }
   
-  const canViewSettings = userRole === 'Admin' || userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+  const canViewSettings = userRole === 'Admin' || userRole === 'Campus Director';
 
   if (!user || !userProfile) {
     return null;

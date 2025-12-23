@@ -86,8 +86,8 @@ export default function SettingsPage() {
     );
   }
   
-  // For Campus-level users who are not Admins
-  if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
+  // For Campus Directors only
+  if (userRole === 'Campus Director') {
       return (
          <div className="space-y-6">
             <div>
@@ -96,14 +96,10 @@ export default function SettingsPage() {
                 Manage settings and resources specific to your campus.
               </p>
             </div>
-            {/* Unit Management is only for Campus Directors */}
-            {userRole === 'Campus Director' && (
-                <div>
-                    <h3 className="text-xl font-semibold tracking-tight mb-2">Unit Management</h3>
-                    <DirectorUnitManagement />
-                </div>
-            )}
-             {/* Announcement Management is for both */}
+            <div>
+                <h3 className="text-xl font-semibold tracking-tight mb-2">Unit Management</h3>
+                <DirectorUnitManagement />
+            </div>
              <div>
                 <h3 className="text-xl font-semibold tracking-tight mb-2">Campus Announcement</h3>
                 <CampusSettingsManagement />
@@ -115,7 +111,7 @@ export default function SettingsPage() {
   return (
      <div className="space-y-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
           <p className="text-muted-foreground">
             You do not have permission to modify system settings.
           </p>

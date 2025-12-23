@@ -72,7 +72,7 @@ export function SidebarNav({
         href: '/settings',
         label: 'Settings',
         active: pathname.startsWith('/settings'),
-        roles: ['Admin', 'Campus Director', 'Campus ODIMO'],
+        roles: ['Admin', 'Campus Director'],
         icon: <Settings />,
     },
     {
