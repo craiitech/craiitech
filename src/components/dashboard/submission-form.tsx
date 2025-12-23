@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -38,8 +37,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useMemoFirebase, useCollection } from '@/firebase';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { useRouter } from 'next/navigation';
 
 
 const submissionSchema = z.object({
@@ -83,8 +82,10 @@ export function SubmissionForm({
   const { user, userProfile, userRole } = useUser();
   const firestore = useFirestore();
   const { logSessionActivity } = useSessionActivity();
+  const router = useRouter();
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [riskRating, setRiskRating] = useState<RiskRating>(null);
+  const [isRiskDialogOpen, setIsRiskDialogOpen] = useState(false);
 
   const isRorForm = reportType === 'Risk and Opportunity Registry Form';
 
@@ -247,6 +248,8 @@ export function SubmissionForm({
         authorRole: userRole || 'User',
     } : null;
 
+    let submissionSuccess = false;
+
     if (!querySnapshot.empty) {
         const existingDocRef = doc(firestore, 'submissions', querySnapshot.docs[0].id);
         const updateData: any = {
@@ -270,6 +273,7 @@ export function SubmissionForm({
                 title: 'Submission Updated!',
                 description: `Your '${reportType}' report has been updated.`,
             });
+            submissionSuccess = true;
             if (onSuccess) onSuccess();
         } catch (error) {
             console.error('Error updating submission:', error);
@@ -309,6 +313,7 @@ export function SubmissionForm({
                 title: 'Submission Successful!',
                 description: `Your '${reportType}' report has been submitted.`,
             });
+            submissionSuccess = true;
             if (onSuccess) onSuccess();
         } catch(error) {
             console.error('Error creating submission:', error);
@@ -321,6 +326,10 @@ export function SubmissionForm({
         } finally {
             setIsSubmitting(false);
         }
+    }
+
+    if (submissionSuccess && isRorForm && riskRating === 'medium-high') {
+        setIsRiskDialogOpen(true);
     }
   };
 
@@ -338,6 +347,7 @@ export function SubmissionForm({
   };
 
   return (
+    <>
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="aspect-video w-full rounded-lg border bg-muted mb-6">
@@ -505,5 +515,21 @@ export function SubmissionForm({
         </Button>
       </form>
     </Form>
+    <AlertDialog open={isRiskDialogOpen} onOpenChange={setIsRiskDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Next Step: Log Your Risk</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Because you have submitted a Medium or High-rated risk, you must now formally log it in the Risk Register to create an action plan.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogAction onClick={() => router.push('/risk-register?openForm=true')}>
+                    Continue to Risk Register
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

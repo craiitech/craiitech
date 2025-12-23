@@ -6,15 +6,24 @@ import { PlusCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
 import { RiskTable } from '@/components/risk/risk-table';
+import { useSearchParams } from 'next/navigation';
 
 export default function RiskRegisterPage() {
     const { userProfile, isAdmin, userRole, isUserLoading, firestore, isSupervisor } = useUser();
+    const searchParams = useSearchParams();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
+
+    useEffect(() => {
+        // Check for the query parameter to auto-open the form
+        if (searchParams.get('openForm') === 'true') {
+            handleNewRisk();
+        }
+    }, [searchParams]);
     
     const risksQuery = useMemoFirebase(() => {
         if (!firestore || !userProfile) return null;
