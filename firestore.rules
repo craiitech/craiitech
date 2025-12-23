@@ -146,7 +146,14 @@ service cloud.firestore {
       allow create: if isOwner(request.resource.data.userId)
                     && 'campusId' in getUserProfile() && 'unitId' in getUserProfile()
                     && request.resource.data.campusId == getUserProfile().campusId
-                    && request.resource.data.unitId == getUserProfile().unitId;
+                    && request.resource.data.unitId == getUserProfile().unitId
+                    // Allow creation of 'submitted' status or the special 'approved' status for carry-over.
+                    && (request.resource.data.statusId == 'submitted' 
+                        || (request.resource.data.statusId == 'approved' 
+                            && request.resource.data.comments[0].text == 'No updates from First Cycle submission. Automatically carried over and approved.'
+                           )
+                       );
+
 
       allow update: if isOwner(resource.data.userId) 
                     || (isCampusOdimo() && getUserProfile().campusId == resource.data.campusId) 
@@ -221,7 +228,7 @@ service cloud.firestore {
      */
     match /campusSettings/{campusId} {
       allow get: if (isSignedIn() && (getUserProfile().campusId == campusId || campusId == 'global')) || isAdmin();
-      allow write: if isAdmin() || (isCampusDirector() && getUserProfile().campusId == campusId) || (isCampusOdimo() && getUserProfile().campusId == campusId);
+      allow write: if isAdmin() || (isCampusDirector() && getUserProfile().campusId == campusId);
       allow list: if isAdmin();
     }
     
