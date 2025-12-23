@@ -4,7 +4,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, doc, arrayUnion } from 'firebase/firestore';
 import type { Submission, Comment, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -151,7 +151,7 @@ export default function NewSubmissionPage() {
         authorId: user.uid,
         authorName: `${userProfile.firstName} ${userProfile.lastName}`,
         authorRole: userRole || 'User',
-        createdAt: serverTimestamp(),
+        createdAt: new Date(),
     };
     
     const unitName = units.find((u) => u.id === userProfile.unitId)?.name || 'Unknown Unit';
@@ -167,7 +167,7 @@ export default function NewSubmissionPage() {
       year: originalSubmission.year,
       cycleId: 'final' as 'first' | 'final',
       statusId: 'submitted',
-      submissionDate: serverTimestamp(),
+      submissionDate: new Date(),
       comments: [carryOverComment],
     };
 
@@ -398,7 +398,3 @@ export default function NewSubmissionPage() {
     </div>
   );
 }
-
-    
-
-    
