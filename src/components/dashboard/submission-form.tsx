@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useMemoFirebase, useCollection } from '@/firebase';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 
 const submissionSchema = z.object({
@@ -53,6 +54,7 @@ const submissionSchema = z.object({
 });
 
 type ValidationStatus = 'idle' | 'validating' | 'valid' | 'invalid';
+type RiskRating = 'low' | 'medium-high' | null;
 
 interface SubmissionFormProps {
   reportType: string;
@@ -74,8 +76,11 @@ export function SubmissionForm({
   const firestore = useFirestore();
   const { logSessionActivity } = useSessionActivity();
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [riskRating, setRiskRating] = useState<RiskRating>(null);
 
-  const checklistItems = [
+  const isRorForm = reportType === 'Risk and Opportunity Registry Form';
+
+  const baseChecklistItems = [
     { id: 'correctDoc', label: `Is this the correct "${reportType}" for the ${cycleId} cycle for year ${year}?` },
     { id: 'year', label: 'Is the Year in the document correct?' },
     { id: 'cycle', label: 'Is the Submission Cycle in the document correct?' },
@@ -84,11 +89,33 @@ export function SubmissionForm({
     { id: 'signed', label: 'Is the document properly signed?' },
   ];
   
+  const checklistItems = useMemo(() => {
+    if (isRorForm && riskRating === 'medium-high') {
+      return [
+        ...baseChecklistItems,
+        { id: 'actionPlan', label: 'I acknowledge that a "Risk and Opportunity Action Plan" document must also be submitted for Medium/High rated risks.' }
+      ];
+    }
+    return baseChecklistItems;
+  }, [isRorForm, riskRating, baseChecklistItems]);
+
+
   const [checkedState, setCheckedState] = useState<Record<string, boolean>>(
     checklistItems.reduce((acc, item) => ({ ...acc, [item.id]: false }), {})
   );
 
-  const isChecklistComplete = Object.values(checkedState).every(Boolean);
+  useEffect(() => {
+    setCheckedState(checklistItems.reduce((acc, item) => ({...acc, [item.id]: false}), {}));
+  }, [checklistItems]);
+
+
+  const isChecklistComplete = useMemo(() => {
+    // If it's the ROR form, a risk rating must be selected first
+    if (isRorForm && !riskRating) {
+      return false;
+    }
+    return Object.values(checkedState).every(Boolean);
+  }, [checkedState, isRorForm, riskRating]);
 
   const handleCheckboxChange = (id: string) => {
     setCheckedState(prevState => ({
@@ -127,6 +154,7 @@ export function SubmissionForm({
     const fetchExistingSubmission = async () => {
         if (!firestore || !user) return;
         setValidationStatus('idle'); // Reset on change
+        setRiskRating(null);
         form.reset({ googleDriveLink: '', comments: '' }); // Clear form
         setCheckedState(checklistItems.reduce((acc, item) => ({ ...acc, [item.id]: false }), {})); // Reset checklist
         
@@ -402,6 +430,33 @@ export function SubmissionForm({
             </FormItem>
           )}
         />
+
+        {isRorForm && (
+          <Card>
+            <CardHeader>
+                <CardTitle className="text-base">Risk Rating</CardTitle>
+                <CardDescription className="text-xs">
+                    Please specify the overall risk rating from your registry form.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <RadioGroup
+                    onValueChange={(value: RiskRating) => setRiskRating(value)}
+                    value={riskRating ?? ""}
+                    className="flex items-center space-x-4"
+                >
+                    <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl><RadioGroupItem value="low" /></FormControl>
+                        <Label className="font-normal">Low</Label>
+                    </FormItem>
+                    <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl><RadioGroupItem value="medium-high" /></FormControl>
+                        <Label className="font-normal">Medium / High</Label>
+                    </FormItem>
+                </RadioGroup>
+            </CardContent>
+          </Card>
+        )}
         
         <Card>
             <CardHeader>
@@ -415,7 +470,7 @@ export function SubmissionForm({
                 <div key={item.id} className="flex items-start space-x-3">
                     <Checkbox
                         id={`${reportType}-${item.id}`}
-                        checked={checkedState[item.id]}
+                        checked={checkedState[item.id] || false}
                         onCheckedChange={() => handleCheckboxChange(item.id)}
                     />
                     <Label htmlFor={`${reportType}-${item.id}`} className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
