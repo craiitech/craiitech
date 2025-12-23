@@ -147,13 +147,8 @@ service cloud.firestore {
                     && 'campusId' in getUserProfile() && 'unitId' in getUserProfile()
                     && request.resource.data.campusId == getUserProfile().campusId
                     && request.resource.data.unitId == getUserProfile().unitId
-                    // Allow creation of 'submitted' status or the special 'approved' status for carry-over.
-                    && (request.resource.data.statusId == 'submitted' 
-                        || (request.resource.data.statusId == 'approved' 
-                            && request.resource.data.comments[0].text == 'No updates from First Cycle submission. Automatically carried over and approved.'
-                           )
-                       );
-
+                    // User can only create submissions with 'submitted' status
+                    && request.resource.data.statusId == 'submitted';
 
       allow update: if isOwner(resource.data.userId) 
                     || (isCampusOdimo() && getUserProfile().campusId == resource.data.campusId) 

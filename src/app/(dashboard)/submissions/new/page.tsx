@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -140,7 +140,7 @@ export default function NewSubmissionPage() {
     setIsCarryingOver(true);
 
     const carryOverComment: Comment = {
-        text: 'No updates from First Cycle submission. Automatically carried over and approved.',
+        text: 'No updates from First Cycle submission. Carried over for final approval.',
         authorId: 'system',
         authorName: 'System',
         authorRole: 'System',
@@ -151,7 +151,7 @@ export default function NewSubmissionPage() {
       ...originalSubmission,
       id: undefined, // Let firestore generate a new ID
       cycleId: 'final',
-      statusId: 'approved', // Auto-approved
+      statusId: 'submitted', // Submit for approval, don't auto-approve
       submissionDate: serverTimestamp(),
       comments: [carryOverComment],
     };
@@ -159,7 +159,7 @@ export default function NewSubmissionPage() {
     try {
       const submissionsCollectionRef = collection(firestore, 'submissions');
       await addDoc(submissionsCollectionRef, newSubmissionData);
-      toast({ title: "Success", description: "Final submission has been marked as complete." });
+      toast({ title: "Success", description: "Submission has been carried over and sent for final approval." });
     } catch (error) {
       console.error("Error carrying over submission:", error);
       errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -333,22 +333,25 @@ export default function NewSubmissionPage() {
                 </CardHeader>
                 <CardContent>
                     {showUpdateDialog === selectedReport && !showFormForUpdate ? (
-                        <Alert>
-                            <AlertCircle className="h-4 w-4" />
-                            <CardTitle>Update Confirmation</CardTitle>
-                            <AlertDescription>
-                                A submission for this report was made in the First Cycle. Are there any updates for the Final Cycle? If not, the original submission can be carried over.
-                            </AlertDescription>
-                            <div className="mt-4 flex gap-2 justify-end">
-                                <Button variant="outline" onClick={handleCarryOverSubmission} disabled={isCarryingOver}>
-                                    {isCarryingOver && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                    No, No Updates
-                                </Button>
-                                <Button onClick={() => setShowFormForUpdate(true)}>
-                                    Yes, I Have Updates
-                                </Button>
-                            </div>
-                        </Alert>
+                        <AlertDialog open={true} onOpenChange={(open) => !open && setShowUpdateDialog(null)}>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Update Confirmation</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        A submission for this report was made in the First Cycle. Are there any updates for the Final Cycle?
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel onClick={handleCarryOverSubmission} disabled={isCarryingOver}>
+                                        {isCarryingOver && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                        No, No Updates
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => setShowFormForUpdate(true)}>
+                                        Yes, I Have Updates
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     ) : (
                         <SubmissionForm
                             reportType={selectedReport}
