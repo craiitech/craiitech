@@ -30,6 +30,7 @@ import { Alert } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { useRouter } from 'next/navigation';
 
 
 export const submissionTypes = [
@@ -56,6 +57,7 @@ export default function NewSubmissionPage() {
   const { user, userProfile, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
 
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedCycle, setSelectedCycle] = useState<'first' | 'final'>('first');
@@ -173,6 +175,7 @@ export default function NewSubmissionPage() {
 
   const handleFormSuccess = () => {
     setShowFormForUpdate(false); // Hide form after successful submission
+    router.push('/submissions'); // Redirect to the main submissions list
   };
   
   const handleViewFeedback = (comments: any) => {
