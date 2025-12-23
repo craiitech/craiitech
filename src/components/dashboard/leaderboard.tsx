@@ -48,34 +48,44 @@ export function Leaderboard({
     const currentYear = new Date().getFullYear();
     const campusMap = new Map(allCampuses.map(c => [c.id, c.name]));
     
-    let relevantUnits = allUnits;
+    let relevantCampuses = allCampuses;
+    // If it's a campus supervisor, only show their campus
     if (isCampusSupervisor && userProfile?.campusId) {
-        relevantUnits = allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
+        relevantCampuses = allCampuses.filter(c => c.id === userProfile.campusId);
     }
+    
+    const campusUnitProgress: { id: string, name: string, campusName: string, percentage: number }[] = [];
 
+    relevantCampuses.forEach(campus => {
+        const unitsInCampus = allUnits.filter(u => u.campusIds?.includes(campus.id));
 
-    const unitProgress = relevantUnits.map(unit => {
-      const unitSubmissions = allSubmissions.filter(
-        s => s.unitId === unit.id && s.year === currentYear
-      );
-      const uniqueSubmissions = new Set(
-        unitSubmissions.map(s => `${s.reportType}-${s.cycleId}`)
-      );
-      const submissionCount = uniqueSubmissions.size;
-      const percentage = Math.round((submissionCount / TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT) * 100);
-      
-      const campusName = unit.campusIds && unit.campusIds.length > 0 ? campusMap.get(unit.campusIds[0]) : 'N/A';
+        unitsInCampus.forEach(unit => {
+            // Filter submissions by year, unit, AND campus
+            const campusUnitSubmissions = allSubmissions.filter(s => 
+                s.year === currentYear &&
+                s.unitId === unit.id &&
+                s.campusId === campus.id
+            );
+            
+            // A unique submission is a combination of report type and cycle for that specific unit/campus
+            const uniqueSubmissions = new Set(
+                campusUnitSubmissions.map(s => `${s.reportType}-${s.cycleId}`)
+            );
+            const submissionCount = uniqueSubmissions.size;
+            const percentage = Math.round((submissionCount / TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT) * 100);
 
-      return {
-        id: unit.id,
-        name: unit.name,
-        percentage,
-        campusName,
-      };
+            campusUnitProgress.push({
+                id: `${unit.id}-${campus.id}`, // Create a unique key for the unit-campus pair
+                name: unit.name,
+                campusName: campus.name,
+                percentage,
+            });
+        });
     });
 
-    return unitProgress
-      .filter(unit => unit.percentage >= 50)
+
+    return campusUnitProgress
+      .filter(item => item.percentage >= 50)
       .sort((a, b) => b.percentage - a.percentage);
 
   }, [allSubmissions, allUnits, allCampuses, userProfile, isCampusSupervisor]);
