@@ -22,7 +22,7 @@ import { ErrorReportManagement } from '@/components/admin/error-report-managemen
 
 
 export default function SettingsPage() {
-  const { userProfile, isAdmin, isUserLoading, userRole, isSupervisor } = useUser();
+  const { userProfile, isAdmin, isUserLoading, userRole } = useUser();
   
   if (isUserLoading) {
      return (
@@ -86,7 +86,8 @@ export default function SettingsPage() {
     );
   }
   
-  if (isSupervisor) {
+  // For Campus-level users who are not Admins
+  if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
       return (
          <div className="space-y-6">
             <div>
@@ -95,10 +96,14 @@ export default function SettingsPage() {
                 Manage settings and resources specific to your campus.
               </p>
             </div>
-            <div>
-                 <h3 className="text-xl font-semibold tracking-tight mb-2">Unit Management</h3>
-                <DirectorUnitManagement />
-            </div>
+            {/* Unit Management is only for Campus Directors */}
+            {userRole === 'Campus Director' && (
+                <div>
+                    <h3 className="text-xl font-semibold tracking-tight mb-2">Unit Management</h3>
+                    <DirectorUnitManagement />
+                </div>
+            )}
+             {/* Announcement Management is for both */}
              <div>
                 <h3 className="text-xl font-semibold tracking-tight mb-2">Campus Announcement</h3>
                 <CampusSettingsManagement />
