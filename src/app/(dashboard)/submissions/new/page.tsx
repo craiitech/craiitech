@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
-import type { Submission, Comment } from '@/lib/types';
+import type { Submission, Comment, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
@@ -84,6 +85,9 @@ export default function NewSubmissionPage() {
   }, [firestore, user, selectedYear]);
 
   const { data: submissions, isLoading } = useCollection<Submission>(submissionsQuery);
+  
+  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
+  const { data: units } = useCollection<Unit>(unitsQuery);
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
     if (!submissions) {
@@ -129,7 +133,10 @@ export default function NewSubmissionPage() {
   }
   
   const handleCarryOverSubmission = async () => {
-    if (!firestore || !userProfile || !user || !selectedReport) return;
+    if (!firestore || !userProfile || !user || !selectedReport || !units) {
+        toast({ title: "Error", description: "User data is not fully loaded.", variant: "destructive" });
+        return;
+    };
     
     const originalSubmission = firstCycleStatusMap.get(selectedReport);
     if (!originalSubmission) {
@@ -146,12 +153,20 @@ export default function NewSubmissionPage() {
         authorRole: userRole || 'User',
         createdAt: serverTimestamp(),
     };
+    
+    const unitName = units.find((u) => u.id === userProfile.unitId)?.name || 'Unknown Unit';
 
+    // Construct the new submission data correctly, using the current user's profile info
     const newSubmissionData = {
-      ...originalSubmission,
-      id: undefined, // Let firestore generate a new ID
-      cycleId: 'final',
-      statusId: 'submitted', // Submit for approval, don't auto-approve
+      userId: user.uid,
+      campusId: userProfile.campusId,
+      unitId: userProfile.unitId,
+      unitName: unitName,
+      reportType: originalSubmission.reportType,
+      googleDriveLink: originalSubmission.googleDriveLink,
+      year: originalSubmission.year,
+      cycleId: 'final' as 'first' | 'final',
+      statusId: 'submitted',
       submissionDate: serverTimestamp(),
       comments: [carryOverComment],
     };
@@ -383,5 +398,7 @@ export default function NewSubmissionPage() {
     </div>
   );
 }
+
+    
 
     
