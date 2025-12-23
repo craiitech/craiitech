@@ -86,18 +86,18 @@ export default function NewSubmissionPage() {
     if (!submissions) {
       return { firstCycleStatusMap: new Map(), finalCycleStatusMap: new Map() };
     }
-    const firstCycleMap = new Map(
+    const firstMap = new Map(
       submissions
         .filter(s => s.cycleId === 'first')
         .map((s) => [s.reportType, s])
     );
-     const finalCycleMap = new Map(
+     const finalMap = new Map(
       submissions
         .filter(s => s.cycleId === 'final')
         .map((s) => [s.reportType, s])
     );
 
-    return { firstCycleStatusMap, finalCycleStatusMap };
+    return { firstCycleStatusMap: firstMap, finalCycleStatusMap: finalMap };
   }, [submissions]);
 
   const submissionStatusMap = selectedCycle === 'first' ? firstCycleStatusMap : finalCycleStatusMap;
