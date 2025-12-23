@@ -100,6 +100,7 @@ const statusVariant: Record<
   pending: 'secondary',
   rejected: 'destructive',
   submitted: 'outline',
+  'awaiting approval': 'outline',
 };
 
 export default function HomePage() {
@@ -441,6 +442,10 @@ export default function HomePage() {
     const currentYearRisks = risks.filter(r => r.year === new Date().getFullYear());
     return currentYearRisks.length === 0;
   }, [risks, userRole]);
+  
+  const getStatusText = (status: string) => {
+    return status === 'submitted' ? 'Awaiting Approval' : status;
+  }
 
   const renderCard = (
     title: string,
@@ -515,7 +520,7 @@ export default function HomePage() {
                             variant={statusVariant[submission.statusId]}
                             className="capitalize"
                         >
-                            {submission.statusId}
+                            {getStatusText(submission.statusId)}
                         </Badge>
                       ) : (
                         <Badge variant="outline">Not Submitted</Badge>
@@ -660,7 +665,7 @@ export default function HomePage() {
                         <div className="text-xs text-muted-foreground capitalize">{s.cycleId} Cycle {s.year}</div>
                       </TableCell>
                       <TableCell>{s.submissionDate instanceof Date ? format(s.submissionDate, 'PPp') : 'Invalid Date'}</TableCell>
-                      <TableCell><Badge variant={statusVariant[s.statusId]}>{s.statusId}</Badge></TableCell>
+                      <TableCell><Badge variant={statusVariant[s.statusId]}>{getStatusText(s.statusId)}</Badge></TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${s.id}`)}>
                           <Eye className="h-4 w-4" />
@@ -794,7 +799,7 @@ export default function HomePage() {
                           {submission.submissionDate instanceof Date ? format(submission.submissionDate, 'PP') : 'Invalid Date'}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={statusVariant[submission.statusId]}>{submission.statusId}</Badge>
+                          <Badge variant={statusVariant[submission.statusId]}>{getStatusText(submission.statusId)}</Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
@@ -884,7 +889,7 @@ export default function HomePage() {
                         <div className="text-xs text-muted-foreground capitalize">{s.cycleId} Cycle {s.year}</div>
                       </TableCell>
                       <TableCell>{s.submissionDate instanceof Date ? format(s.submissionDate, 'PPp') : 'Invalid Date'}</TableCell>
-                      <TableCell><Badge variant={statusVariant[s.statusId]}>{s.statusId}</Badge></TableCell>
+                      <TableCell><Badge variant={statusVariant[s.statusId]}>{getStatusText(s.statusId)}</Badge></TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${s.id}`)}>
                           <Eye className="h-4 w-4" />
@@ -1250,3 +1255,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
