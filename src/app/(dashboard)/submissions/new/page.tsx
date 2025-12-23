@@ -49,7 +49,8 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
     approved: 'default',
     pending: 'secondary',
     rejected: 'destructive',
-    submitted: 'outline'
+    submitted: 'outline',
+    'awaiting approval': 'outline'
 }
 
 
@@ -199,6 +200,10 @@ export default function NewSubmissionPage() {
         return <XCircle className="h-5 w-5 text-muted-foreground" />;
     }
   };
+  
+  const getStatusText = (status: string) => {
+    return status === 'submitted' ? 'Awaiting Approval' : status;
+  }
 
 
   return (
@@ -267,7 +272,7 @@ export default function NewSubmissionPage() {
                             <div className="flex items-center gap-2">
                                 {submission && (
                                     <Badge variant={statusVariant[submission.statusId]} className="capitalize">
-                                        {submission.statusId}
+                                        {getStatusText(submission.statusId)}
                                     </Badge>
                                 )}
                                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -365,4 +370,3 @@ export default function NewSubmissionPage() {
     </div>
   );
 }
-

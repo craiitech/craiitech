@@ -37,6 +37,7 @@ const statusVariant: Record<
   pending: 'secondary',
   rejected: 'destructive',
   submitted: 'outline',
+  'awaiting approval': 'outline',
 };
 
 const LoadingSkeleton = () => (
@@ -236,6 +237,10 @@ export default function SubmissionDetailPage() {
         setIsSubmitting(false);
     }
   };
+  
+  const getStatusText = (status: string) => {
+    return status === 'submitted' ? 'Awaiting Approval' : status;
+  }
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -379,7 +384,7 @@ export default function SubmissionDetailPage() {
                     <div className="flex justify-between">
                         <span className="text-muted-foreground">Status:</span>
                         <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
-                            {submission.statusId}
+                            {getStatusText(submission.statusId)}
                         </Badge>
                     </div>
                      <div className="flex justify-between">
@@ -433,5 +438,3 @@ export default function SubmissionDetailPage() {
     </div>
   );
 }
-
-    

@@ -59,7 +59,8 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
     approved: 'default',
     pending: 'secondary',
     rejected: 'destructive',
-    submitted: 'outline'
+    submitted: 'outline',
+    'awaiting approval': 'outline',
 };
 
 const submissionTypes = [
@@ -134,6 +135,10 @@ const SubmissionsTable = ({
       const deadline = cycle.endDate instanceof Timestamp ? cycle.endDate.toDate() : new Date(cycle.endDate);
       const submissionDate = submission.submissionDate instanceof Timestamp ? submission.submissionDate.toDate() : new Date(submission.submissionDate);
       return submissionDate > deadline;
+    }
+
+    const getStatusText = (status: string) => {
+      return status === 'submitted' ? 'Awaiting Approval' : status;
     }
 
 
@@ -211,7 +216,7 @@ const SubmissionsTable = ({
                   <TableCell>
                     <div className="flex items-center gap-2">
                         <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
-                          {submission.statusId}
+                          {getStatusText(submission.statusId)}
                         </Badge>
                         {isLate(submission) && (
                             <Tooltip>
