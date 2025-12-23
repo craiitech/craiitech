@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import type { Submission, Comment } from '@/lib/types';
@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { Alert } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -336,9 +336,9 @@ export default function NewSubmissionPage() {
                         <Alert>
                             <AlertCircle className="h-4 w-4" />
                             <CardTitle>Update Confirmation</CardTitle>
-                            <AlertDialogDescription>
+                            <AlertDescription>
                                 A submission for this report was made in the First Cycle. Are there any updates for the Final Cycle? If not, the original submission can be carried over.
-                            </AlertDialogDescription>
+                            </AlertDescription>
                             <div className="mt-4 flex gap-2 justify-end">
                                 <Button variant="outline" onClick={handleCarryOverSubmission} disabled={isCarryingOver}>
                                     {isCarryingOver && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
