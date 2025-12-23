@@ -141,9 +141,9 @@ export default function NewSubmissionPage() {
 
     const carryOverComment: Comment = {
         text: 'No updates from First Cycle submission. Carried over for final approval.',
-        authorId: 'system',
-        authorName: 'System',
-        authorRole: 'System',
+        authorId: user.uid,
+        authorName: `${userProfile.firstName} ${userProfile.lastName}`,
+        authorRole: userRole || 'User',
         createdAt: serverTimestamp(),
     };
 
@@ -212,6 +212,16 @@ export default function NewSubmissionPage() {
         <h2 className="text-2xl font-bold tracking-tight">New Submission</h2>
         <p className="text-muted-foreground">Select a report to submit for the chosen year and cycle.</p>
       </div>
+      
+       {selectedCycle === 'final' && specialUpdateReports.includes(selectedReport) && !finalCycleStatusMap.has(selectedReport) && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Final Cycle Submission</AlertTitle>
+          <AlertDescription>
+            For {selectedReport}, if there are no changes from your First Cycle submission, you can choose to carry it over instead of re-uploading.
+          </AlertDescription>
+        </Alert>
+      )}
 
        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* --- LEFT COLUMN: CHECKLIST & INSTRUCTIONS --- */}
@@ -373,3 +383,5 @@ export default function NewSubmissionPage() {
     </div>
   );
 }
+
+    
