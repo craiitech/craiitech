@@ -3,12 +3,12 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
-import type { Submission } from '@/lib/types';
+import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import type { Submission, Comment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
-import { CheckCircle, Circle, HelpCircle, Download, FileCheck, Scan, Link as LinkIcon, AlertCircle, XCircle, ChevronRight } from 'lucide-react';
+import { CheckCircle, Circle, HelpCircle, Download, FileCheck, Scan, Link as LinkIcon, AlertCircle, XCircle, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,7 @@ import { FeedbackDialog } from '@/components/dashboard/feedback-dialog';
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -25,6 +26,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { Alert } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 export const submissionTypes = [
@@ -48,8 +53,9 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 
 
 export default function NewSubmissionPage() {
-  const { user } = useUser();
+  const { user, userProfile, userRole } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedCycle, setSelectedCycle] = useState<'first' | 'final'>('first');
@@ -57,6 +63,11 @@ export default function NewSubmissionPage() {
   
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [feedbackToShow, setFeedbackToShow] = useState('');
+  
+  // State for the new carry-over logic
+  const [showUpdateDialog, setShowUpdateDialog] = useState<string | null>(null);
+  const [isCarryingOver, setIsCarryingOver] = useState(false);
+  const [showFormForUpdate, setShowFormForUpdate] = useState(false);
 
 
   const submissionsQuery = useMemoFirebase(() => {
@@ -64,24 +75,104 @@ export default function NewSubmissionPage() {
     return query(
       collection(firestore, 'submissions'),
       where('userId', '==', user.uid),
-      where('year', '==', selectedYear),
-      where('cycleId', '==', selectedCycle)
+      where('year', '==', selectedYear)
+      // We query for the whole year now
     );
-  }, [firestore, user, selectedYear, selectedCycle]);
+  }, [firestore, user, selectedYear]);
 
   const { data: submissions, isLoading } = useCollection<Submission>(submissionsQuery);
 
-  const submissionStatusMap = useMemo(() => {
+  const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
     if (!submissions) {
-      return new Map<string, Submission>();
+      return { firstCycleStatusMap: new Map(), finalCycleStatusMap: new Map() };
     }
-    return new Map(submissions.map((s) => [s.reportType, s]));
+    const firstCycleMap = new Map(
+      submissions
+        .filter(s => s.cycleId === 'first')
+        .map((s) => [s.reportType, s])
+    );
+     const finalCycleMap = new Map(
+      submissions
+        .filter(s => s.cycleId === 'final')
+        .map((s) => [s.reportType, s])
+    );
+
+    return { firstCycleStatusMap, finalCycleStatusMap };
   }, [submissions]);
 
+  const submissionStatusMap = selectedCycle === 'first' ? firstCycleStatusMap : finalCycleStatusMap;
+  
+  const specialUpdateReports = ['SWOT Analysis', 'Updated Needs and Expectation of Interested Parties'];
+
+  const handleSelectReport = (reportType: string) => {
+    setSelectedReport(reportType);
+    setShowFormForUpdate(false); // Reset form visibility when changing report
+    
+    // Check if we need to show the update dialog
+    if (
+      selectedCycle === 'final' &&
+      specialUpdateReports.includes(reportType) &&
+      firstCycleStatusMap.has(reportType)
+    ) {
+      // If a final submission already exists, don't show the dialog
+      if (finalCycleStatusMap.has(reportType)) {
+        setShowUpdateDialog(null);
+      } else {
+        setShowUpdateDialog(reportType);
+      }
+    } else {
+      setShowUpdateDialog(null);
+    }
+  }
+  
+  const handleCarryOverSubmission = async () => {
+    if (!firestore || !userProfile || !user || !selectedReport) return;
+    
+    const originalSubmission = firstCycleStatusMap.get(selectedReport);
+    if (!originalSubmission) {
+      toast({ title: "Error", description: "Original submission not found.", variant: "destructive" });
+      return;
+    }
+    
+    setIsCarryingOver(true);
+
+    const carryOverComment: Comment = {
+        text: 'No updates from First Cycle submission. Automatically carried over and approved.',
+        authorId: 'system',
+        authorName: 'System',
+        authorRole: 'System',
+        createdAt: serverTimestamp(),
+    };
+
+    const newSubmissionData = {
+      ...originalSubmission,
+      id: undefined, // Let firestore generate a new ID
+      cycleId: 'final',
+      statusId: 'approved', // Auto-approved
+      submissionDate: serverTimestamp(),
+      comments: [carryOverComment],
+    };
+
+    try {
+      const submissionsCollectionRef = collection(firestore, 'submissions');
+      await addDoc(submissionsCollectionRef, newSubmissionData);
+      toast({ title: "Success", description: "Final submission has been marked as complete." });
+    } catch (error) {
+      console.error("Error carrying over submission:", error);
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: 'submissions',
+          operation: 'create',
+          requestResourceData: newSubmissionData
+      }));
+    } finally {
+      setIsCarryingOver(false);
+      setShowUpdateDialog(null);
+    }
+  }
+
+
   const handleFormSuccess = () => {
-    // This function is called when a form is successfully submitted.
-    // It can be used to refetch data or update UI if needed.
-    // For now, the real-time listener of useCollection handles the update automatically.
+    setShowFormForUpdate(false); // Hide form after successful submission
   };
   
   const handleViewFeedback = (comments: any) => {
@@ -160,7 +251,7 @@ export default function NewSubmissionPage() {
                         <div
                             key={reportType}
                             role="button"
-                            onClick={() => setSelectedReport(reportType)}
+                            onClick={() => handleSelectReport(reportType)}
                             className={cn(
                                 "flex w-full items-center justify-between p-3 text-left rounded-lg cursor-pointer border transition-colors",
                                 isSelected ? "bg-muted ring-2 ring-primary" : "hover:bg-muted/50"
@@ -233,13 +324,32 @@ export default function NewSubmissionPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <SubmissionForm
-                        reportType={selectedReport}
-                        year={selectedYear}
-                        cycleId={selectedCycle}
-                        onSuccess={handleFormSuccess}
-                        key={`${selectedReport}-${selectedYear}-${selectedCycle}`}
-                    />
+                    {showUpdateDialog === selectedReport && !showFormForUpdate ? (
+                        <Alert>
+                            <AlertCircle className="h-4 w-4" />
+                            <CardTitle>Update Confirmation</CardTitle>
+                            <AlertDialogDescription>
+                                A submission for this report was made in the First Cycle. Are there any updates for the Final Cycle? If not, the original submission can be carried over.
+                            </AlertDialogDescription>
+                            <div className="mt-4 flex gap-2 justify-end">
+                                <Button variant="outline" onClick={handleCarryOverSubmission} disabled={isCarryingOver}>
+                                    {isCarryingOver && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                    No, No Updates
+                                </Button>
+                                <Button onClick={() => setShowFormForUpdate(true)}>
+                                    Yes, I Have Updates
+                                </Button>
+                            </div>
+                        </Alert>
+                    ) : (
+                        <SubmissionForm
+                            reportType={selectedReport}
+                            year={selectedYear}
+                            cycleId={selectedCycle}
+                            onSuccess={handleFormSuccess}
+                            key={`${selectedReport}-${selectedYear}-${selectedCycle}`}
+                        />
+                    )}
                 </CardContent>
             </Card>
         </div>
@@ -252,3 +362,4 @@ export default function NewSubmissionPage() {
     </div>
   );
 }
+
