@@ -17,6 +17,12 @@
       "description": "People collaborating in an office",
       "imageUrl": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070&auto=format&fit=crop",
       "imageHint": "team collaboration"
+    },
+    {
+      "id": "iso-certification",
+      "description": "An ISO certification seal",
+      "imageUrl": "https://placehold.co/120x120/ffffff/3F51B5?text=ISO+Seal",
+      "imageHint": "certification seal"
     }
   ]
 }

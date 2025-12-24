@@ -19,6 +19,7 @@ import {
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero-landing');
+  const isoImage = PlaceHolderImages.find(p => p.id === 'iso-certification');
   return (
     <div className="relative flex flex-col min-h-screen w-full items-center justify-center text-center text-white overflow-hidden">
         {heroImage && (
@@ -45,6 +46,19 @@ export default function Home() {
                 <br />
                 <span className="text-base">Managed by the Quality Assurance Office</span>
             </p>
+            {isoImage && (
+                <div className="mt-4 flex flex-col items-center gap-2">
+                    <Image
+                        src={isoImage.imageUrl}
+                        alt={isoImage.description}
+                        width={120}
+                        height={120}
+                        className="rounded-lg"
+                        data-ai-hint={isoImage.imageHint}
+                    />
+                    <p className="text-xs text-white/70">Certified ISO 21001:2018</p>
+                </div>
+            )}
             <div className="flex flex-wrap justify-center gap-4">
                 <Button asChild size="lg" variant="secondary">
                     <Link href="/login">
