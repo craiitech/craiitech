@@ -21,7 +21,7 @@
     {
       "id": "iso-certification",
       "description": "An ISO certification seal",
-      "imageUrl": "https://placehold.co/120x120/ffffff/3F51B5?text=ISO+Seal",
+      "imageUrl": "https://images.unsplash.com/photo-1587567867628-9df136e92128?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Y2VydGlmaWNhdGlvbiUyMHNlYWx8ZW58MHx8fHwxNzY2NTc1MzI5fDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "certification seal"
     }
   ]
