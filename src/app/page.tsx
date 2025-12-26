@@ -49,7 +49,7 @@ export default function Home() {
             {isoImage && (
                 <div className="mt-4 flex flex-col items-center gap-2">
                     <Image
-                        src="/asset/ISOlogo.jpg"
+                        src="/ISOlogo.jpg"
                         alt={isoImage.description}
                         width={120}
                         height={120}
