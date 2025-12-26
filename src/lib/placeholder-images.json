@@ -21,7 +21,7 @@
     {
       "id": "iso-certification",
       "description": "An ISO certification seal",
-      "imageUrl": "/asset/ISOlogo.jpg",
+      "imageUrl": "/ISOlogo.jpg",
       "imageHint": "certification seal"
     }
   ]
