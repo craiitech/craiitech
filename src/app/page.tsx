@@ -51,8 +51,9 @@ export default function Home() {
                     <Image
                         src="/ISOlogo.jpg"
                         alt={isoImage.description}
-                        width={120}
-                        height={120}
+                        width={200}
+                        height={200}
+                        quality={100}
                         className="rounded-lg"
                         data-ai-hint={isoImage.imageHint}
                     />
