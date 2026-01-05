@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -75,15 +74,19 @@ export function DirectorUnitManagement() {
     if (!allUnits || !userProfile?.campusId) {
       return { unitsInCampus: [], availableUnits: [] };
     }
-    const unitsInCampus = allUnits.filter((unit) => unit.campusIds?.includes(userProfile.campusId));
     
-    // Corrected Logic: Show units that are not already in the director's campus.
-    const available = allUnits.filter(unit => 
-        !unit.campusIds?.includes(userProfile.campusId) &&
+    const directorCampusId = userProfile.campusId;
+
+    const unitsInCampus = allUnits.filter((unit) => 
+        unit.campusIds?.includes(directorCampusId)
+    );
+    
+    const availableUnits = allUnits.filter(unit => 
+        !unit.campusIds?.includes(directorCampusId) &&
         unit.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    return { unitsInCampus, availableUnits: available };
+    return { unitsInCampus, availableUnits };
   }, [allUnits, userProfile, searchTerm]);
   
 
@@ -120,7 +123,7 @@ export function DirectorUnitManagement() {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: unitRef.path,
         operation: 'update',
-        requestResourceData: updateData,
+        requestResourceData: { campusIds: `arrayUnion(${userProfile.campusId})` },
       }));
     } finally {
       setIsSubmitting(false);
@@ -147,7 +150,7 @@ export function DirectorUnitManagement() {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: unitRef.path,
         operation: 'update',
-        requestResourceData: updateData,
+        requestResourceData: { campusIds: `arrayRemove(${userProfile.campusId})` },
       }));
     } finally {
       setIsSubmitting(false);
@@ -170,7 +173,6 @@ export function DirectorUnitManagement() {
     const newUnitData = {
         name: values.name,
         campusIds: [userProfile.campusId], // Assign to current campus on creation
-        createdAt: serverTimestamp(),
     };
 
     try {

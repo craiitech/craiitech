@@ -169,7 +169,7 @@ service cloud.firestore {
 
       allow create: if isAdmin() ||
                      (isCampusDirector() &&
-                       request.resource.data.campusIds.hasAny([getCampusIdFromToken()]));
+                       request.resource.data.campusIds.hasOnly([getCampusIdFromToken()]));
 
       allow update: if isAdmin() ||
                      isVicePresident() ||
