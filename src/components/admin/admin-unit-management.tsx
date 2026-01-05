@@ -34,7 +34,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MoreHorizontal } from 'lucide-react';
+import { Loader2, MoreHorizontal, ArrowUpDown, Search } from 'lucide-react';
 import type { Unit, Campus, User } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -65,6 +65,7 @@ const formSchema = z.object({
 });
 
 type UnitFormValues = z.infer<typeof formSchema>;
+type SortConfig = { key: 'name' | 'campusNames'; direction: 'ascending' | 'descending' } | null;
 
 export function AdminUnitManagement() {
   const firestore = useFirestore();
@@ -73,6 +74,8 @@ export function AdminUnitManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
   const [deletingUnit, setDeletingUnit] = useState<Unit | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'name', direction: 'ascending' });
 
 
   const allUnitsQuery = useMemoFirebase(
@@ -99,8 +102,8 @@ export function AdminUnitManagement() {
   }, [allUsers]);
 
   const campusMap = useMemo(() => {
-    if (!allCampuses) return {};
-    return Object.fromEntries(allCampuses.map(c => [c.id, c.name]));
+    if (!allCampuses) return new Map<string, string>();
+    return new Map(allCampuses.map(c => [c.id, c.name]));
   }, [allCampuses]);
 
   const isLoading = isLoadingUnits || isLoadingCampuses || isLoadingUsers;
@@ -109,6 +112,62 @@ export function AdminUnitManagement() {
     resolver: zodResolver(formSchema),
     defaultValues: { name: '', campusId: '' },
   });
+  
+  const getCampusNamesString = (campusIds: string[] | undefined) => {
+    if (!campusIds || campusIds.length === 0) return 'Unassigned';
+    return campusIds.map(id => campusMap.get(id) || 'Unknown').join(', ');
+  };
+  
+  const filteredAndSortedUnits = useMemo(() => {
+    if (!allUnits) return [];
+
+    let filtered = [...allUnits];
+
+    // Search filter
+    if (searchTerm) {
+        const lowercasedFilter = searchTerm.toLowerCase();
+        filtered = filtered.filter(unit => 
+            unit.name.toLowerCase().includes(lowercasedFilter) ||
+            getCampusNamesString(unit.campusIds).toLowerCase().includes(lowercasedFilter)
+        );
+    }
+    
+    // Sorting
+    if (sortConfig !== null) {
+      filtered.sort((a, b) => {
+        let aValue: any, bValue: any;
+        if (sortConfig.key === 'campusNames') {
+          aValue = getCampusNamesString(a.campusIds);
+          bValue = getCampusNamesString(b.campusIds);
+        } else {
+          aValue = a[sortConfig.key];
+          bValue = b[sortConfig.key];
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return filtered;
+
+  }, [allUnits, searchTerm, sortConfig, campusMap]);
+  
+  const requestSort = (key: 'name' | 'campusNames') => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+        direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIndicator = (key: 'name' | 'campusNames') => {
+    if (!sortConfig || sortConfig.key !== key) {
+      return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
+    }
+    return sortConfig.direction === 'ascending' ? ' ▲' : ' ▼';
+  };
 
 
   const onSubmit = async (values: UnitFormValues) => {
@@ -229,6 +288,15 @@ export function AdminUnitManagement() {
         <CardHeader>
           <CardTitle>All System Units</CardTitle>
           <CardDescription>A list of all units and their campus assignments.</CardDescription>
+            <div className="relative pt-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                placeholder="Search units by name or campus..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 w-full"
+                />
+            </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -239,19 +307,25 @@ export function AdminUnitManagement() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Assigned Campuses</TableHead>
+                  <TableHead>
+                    <Button variant="ghost" onClick={() => requestSort('name')}>
+                        Name {getSortIndicator('name')}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button variant="ghost" onClick={() => requestSort('campusNames')}>
+                        Assigned Campuses {getSortIndicator('campusNames')}
+                    </Button>
+                  </TableHead>
                   <TableHead><span className="sr-only">Actions</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {allUnits?.map((unit) => (
+                {filteredAndSortedUnits.map((unit) => (
                   <TableRow key={unit.id}>
                     <TableCell>{unit.name}</TableCell>
                     <TableCell>
-                      {unit.campusIds && unit.campusIds.length > 0 ? (
-                        unit.campusIds.map(id => <span key={id}>{campusMap[id] || 'Unknown'}</span>).reduce((prev, curr) => <>{prev}, {curr}</>)
-                      ) : <span className="text-muted-foreground">Unassigned</span>}
+                      {getCampusNamesString(unit.campusIds)}
                     </TableCell>
                     <TableCell className="text-right">
                         <DropdownMenu>
@@ -276,7 +350,7 @@ export function AdminUnitManagement() {
               </TableBody>
             </Table>
           )}
-          {!isLoading && allUnits?.length === 0 && (
+          {!isLoading && filteredAndSortedUnits?.length === 0 && (
             <div className="text-center py-10 text-muted-foreground">
               No units found.
             </div>
