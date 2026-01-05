@@ -41,7 +41,7 @@ service cloud.firestore {
         return isSignedIn() && request.auth.token.role == roleName;
     }
     
-    function getTokenCampusId() {
+    function getCampusIdFromToken() {
         return request.auth.token.campusId;
     }
     
@@ -50,11 +50,11 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    function getRole() {
+    function hybridGetRole() {
       return request.auth.token.role != null ? request.auth.token.role : getUserProfile().role;
     }
-
-    function getCampusId() {
+    
+    function hybridGetCampusId() {
         return request.auth.token.campusId != null ? request.auth.token.campusId : getUserProfile().campusId;
     }
     
@@ -64,23 +64,23 @@ service cloud.firestore {
     
     // --- Role Checkers ---
     function isAdmin() {
-      return hasTokenRole('Admin');
+      return hybridGetRole() == 'Admin';
     }
     
     function isCampusDirector() {
-      return hasTokenRole("Campus Director");
+      return hybridGetRole() == "Campus Director";
     }
 
     function isCampusOdimo() {
-      return hasTokenRole("Campus ODIMO");
+      return hybridGetRole() == "Campus ODIMO";
     }
 
     function isUnitOdimo() {
-      return hasTokenRole("Unit ODIMO");
+      return hybridGetRole() == "Unit ODIMO";
     }
     
     function isVicePresident() {
-      return getRole().matches("Vice President.*");
+      return hybridGetRole().matches("Vice President.*");
     }
 
 
@@ -98,21 +98,21 @@ service cloud.firestore {
     match /submissions/{submissionId} {
       allow get: if isAdmin()
                     || isOwner(resource.data.userId) 
-                    || (isCampusOdimo() && getCampusId() == resource.data.campusId) 
+                    || (isCampusOdimo() && hybridGetCampusId() == resource.data.campusId) 
                     || (isUnitOdimo() && getUnitId() == resource.data.unitId)
-                    || (isCampusDirector() && getCampusId() == resource.data.campusId)
+                    || (isCampusDirector() && hybridGetCampusId() == resource.data.campusId)
                     || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid);
       
       allow list: if isSignedIn();
 
       allow create: if isOwner(request.resource.data.userId)
-                    && request.resource.data.campusId == getTokenCampusId();
+                    && request.resource.data.campusId == getCampusIdFromToken();
 
       allow update: if isAdmin()
                     || isOwner(resource.data.userId) 
-                    || (hasTokenRole('Campus ODIMO') && getTokenCampusId() == resource.data.campusId) 
-                    || (hasTokenRole('Unit ODIMO') && getUserProfile().unitId == resource.data.unitId) // getUserProfile is ok here because unitId is not a claim
-                    || (hasTokenRole('Campus Director') && getTokenCampusId() == resource.data.campusId)
+                    || (hasTokenRole('Campus ODIMO') && getCampusIdFromToken() == resource.data.campusId) 
+                    || (hasTokenRole('Unit ODIMO') && getUnitId() == resource.data.unitId)
+                    || (hasTokenRole('Campus Director') && getCampusIdFromToken() == resource.data.campusId)
                     || (hasTokenRole('Vice President') && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid);
 
       allow delete: if isOwner(resource.data.userId) || isAdmin();
@@ -121,17 +121,17 @@ service cloud.firestore {
     match /risks/{riskId} {
       allow get: if isAdmin()
                     || (getUnitId() == resource.data.unitId)
-                    || (isCampusOdimo() && getCampusId() == resource.data.campusId) 
+                    || (isCampusOdimo() && hybridGetCampusId() == resource.data.campusId) 
                     || (isUnitOdimo() && getUnitId() == resource.data.unitId)
-                    || (isCampusDirector() && getCampusId() == resource.data.campusId)
+                    || (isCampusDirector() && hybridGetCampusId() == resource.data.campusId)
                     || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid);
       
       allow list: if isSignedIn();
 
-      allow create: if getUserProfile().unitId == request.resource.data.unitId
-                    && getTokenCampusId() == request.resource.data.campusId;
+      allow create: if getUnitId() == request.resource.data.unitId
+                    && getCampusIdFromToken() == request.resource.data.campusId;
       
-      allow update, delete: if (getUserProfile().unitId == resource.data.unitId) || isAdmin();
+      allow update, delete: if (getUnitId() == resource.data.unitId) || isAdmin();
     }
 
     match /roles/{roleId} {
@@ -155,8 +155,8 @@ service cloud.firestore {
     }
     
     match /campusSettings/{campusId} {
-      allow get: if (isSignedIn() && (getCampusId() == campusId || campusId == 'global')) || isAdmin();
-      allow write: if isAdmin() || (hasTokenRole('Campus Director') && getTokenCampusId() == campusId) || (hasTokenRole('Campus ODIMO') && getTokenCampusId() == campusId);
+      allow get: if (isSignedIn() && (hybridGetCampusId() == campusId || campusId == 'global')) || isAdmin();
+      allow write: if isAdmin() || (hasTokenRole('Campus Director') && getCampusIdFromToken() == campusId) || (hasTokenRole('Campus ODIMO') && getCampusIdFromToken() == campusId);
       allow list: if isAdmin();
     }
     
@@ -165,7 +165,7 @@ service cloud.firestore {
 
       allow create: if isAdmin()
         || (isCampusDirector()
-            && request.resource.data.campusIds.hasOnly([getTokenCampusId()]));
+            && request.resource.data.campusIds.hasOnly([getCampusIdFromToken()]));
       
       allow update: if isAdmin()
         || hasTokenRole('Vice President')
@@ -174,13 +174,13 @@ service cloud.firestore {
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['campusIds'])
                 && request.resource.data.campusIds.size() == resource.data.campusIds.size() + 1
                 && request.resource.data.campusIds.hasAll(resource.data.campusIds)
-                && !resource.data.campusIds.hasAny([getTokenCampusId()])
+                && !resource.data.campusIds.hasAny([getCampusIdFromToken()])
             ) ||
             // Rule for REMOVING their campus from the list
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['campusIds'])
                 && request.resource.data.campusIds.size() == resource.data.campusIds.size() - 1
                 && resource.data.campusIds.hasAll(request.resource.data.campusIds)
-                && resource.data.campusIds.hasAny([getTokenCampusId()])
+                && resource.data.campusIds.hasAny([getCampusIdFromToken()])
             )
            );
 
@@ -189,7 +189,7 @@ service cloud.firestore {
           isCampusDirector()
           // Can only delete if it's the ONLY campus assigned to the unit
           && resource.data.campusIds.size() == 1
-          && resource.data.campusIds[0] == getTokenCampusId()
+          && resource.data.campusIds[0] == getCampusIdFromToken()
         );
     }
 
@@ -206,7 +206,7 @@ service cloud.firestore {
     }
 
     match /roles_admin/{userId} {
-      allow read, list: if hasTokenRole('Admin');
+      allow read, list: if isAdmin();
       allow write: if hasTokenRole('Admin');
     }
   }
