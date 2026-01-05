@@ -164,7 +164,6 @@ service cloud.firestore {
       allow list: if isAdmin();
     }
     
-    // ✅ CORRECTED: /units rules now use custom claims (no `get()` in update/create)
     match /units/{unitId} {
       allow get, list: if isSignedIn();
 
@@ -175,7 +174,8 @@ service cloud.firestore {
       allow update: if isAdmin() ||
                      isVicePresident() ||
                      (isCampusDirector() &&
-                       (resource.data.campusIds.hasAny([getCampusIdFromToken()]) || request.resource.data.campusIds.hasAny([getCampusIdFromToken()])));
+                       // Director can update if their campus is already in the list (for removal) OR if the unit is unassigned (for adding)
+                       (resource.data.campusIds.hasAny([getCampusIdFromToken()]) || resource.data.campusIds.size() == 0));
 
       allow delete: if isAdmin() ||
                      (isCampusDirector() &&
