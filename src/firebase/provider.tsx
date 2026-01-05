@@ -26,6 +26,8 @@ interface UserAuthState {
   user: User | null;
   isAuthLoading: boolean;
   userError: Error | null;
+  claims: Record<string, any> | null;
+  areClaimsLoading: boolean;
 }
 
 // Combined state for the Firebase context
@@ -94,6 +96,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     user: null,
     isAuthLoading: true, // Start loading until first auth event
     userError: null,
+    claims: null,
+    areClaimsLoading: true,
   });
   const { toast } = useToast();
 
@@ -102,34 +106,40 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
-    if (!auth) { // If no Auth service instance, cannot determine user state
-      setUserAuthState({ user: null, isAuthLoading: false, userError: new Error("Auth service not provided.") });
+    if (!auth) {
+      setUserAuthState({ user: null, isAuthLoading: false, userError: new Error("Auth service not provided."), claims: null, areClaimsLoading: false });
       return;
     }
 
     const unsubscribe = onAuthStateChanged(
       auth,
-      async (firebaseUser) => { // Auth state determined
+      async (firebaseUser) => {
         if (firebaseUser) {
-          await firebaseUser.getIdToken(true); // Force refresh claims on auth state change
-        }
-        setUserAuthState({ user: firebaseUser, isAuthLoading: false, userError: null });
-        if (!firebaseUser) {
-           // Reset the login logged flag when user logs out
-           loginLoggedRef.current = false;
+          try {
+            // Force refresh claims on every auth state change.
+            const tokenResult = await firebaseUser.getIdTokenResult(true);
+            setUserAuthState({ user: firebaseUser, isAuthLoading: false, userError: null, claims: tokenResult.claims, areClaimsLoading: false });
+          } catch (error) {
+            console.error("FirebaseProvider: Error fetching token claims:", error);
+            setUserAuthState({ user: firebaseUser, isAuthLoading: false, userError: error as Error, claims: null, areClaimsLoading: false });
+          }
+        } else {
+          // User is logged out
+          setUserAuthState({ user: null, isAuthLoading: false, userError: null, claims: null, areClaimsLoading: false });
+          loginLoggedRef.current = false;
         }
       },
-      (error) => { // Auth listener error
+      (error) => {
         console.error("FirebaseProvider: onAuthStateChanged error:", error);
-        setUserAuthState({ user: null, isAuthLoading: false, userError: error });
+        setUserAuthState({ user: null, isAuthLoading: false, userError: error, claims: null, areClaimsLoading: false });
         toast({
-          title: 'Login Failed',
+          title: 'Authentication Error',
           description: error.message || 'An unknown authentication error occurred.',
           variant: 'destructive',
         });
       }
     );
-    return () => unsubscribe(); // Cleanup
+    return () => unsubscribe();
   }, [auth, toast]);
 
 
@@ -140,43 +150,18 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<AppUser>(userDocRef);
 
-  // --- Force token refresh when profile changes ---
-  useEffect(() => {
-    const forceTokenRefresh = async () => {
-        if (userAuthState.user) {
-            await userAuthState.user.getIdToken(true);
-        }
-    };
-    if (userProfile) { // This triggers whenever the userProfile data from Firestore is updated
-        forceTokenRefresh();
-    }
-  }, [userProfile, userAuthState.user]);
-
-
-  const adminDocRef = useMemoFirebase(() => {
-    if (!userAuthState.user || !firestore) return null;
-    return doc(firestore, 'roles_admin', userAuthState.user.uid);
-  }, [userAuthState.user, firestore]);
-
-  const { data: adminDoc, isLoading: isAdminLoading } = useDoc(adminDocRef);
-
-  const rolesQuery = useMemoFirebase(() => (firestore && userAuthState.user ? collection(firestore, 'roles') : null), [firestore, userAuthState.user]);
-  const { data: roles, isLoading: isLoadingRoles } = useCollection<Role>(rolesQuery);
-  
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
-    const isAdmin = !!adminDoc;
-
-    const isUserDataReady = !!userAuthState.user && !isProfileLoading && !isAdminLoading && !isLoadingRoles;
-    const isUserLoading = userAuthState.isAuthLoading || (!!userAuthState.user && !isUserDataReady);
-
-    // SAFEGUARD: Check for null on roles and userProfile before access
-    const userRole = isUserDataReady && !isAdmin && roles && userProfile ? (roles.find(r => r.id === userProfile.roleId)?.name || null) : (isAdmin ? 'Admin' : null);
-    
+    const userRole = (userAuthState.claims?.role as string) || null;
+    const isAdmin = userRole === 'Admin';
     const isVp = !!userRole?.toLowerCase().includes('vice president');
+    
     const supervisorRoles = ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit ODIMO'];
-    const isSupervisor = isUserDataReady ? (supervisorRoles.includes(userRole || '') || isVp) : false;
+    const isSupervisor = supervisorRoles.includes(userRole || '') || isVp;
+
+    // The user is fully loaded only when auth state is determined, claims are loaded, AND the Firestore profile is loaded.
+    const isUserLoading = userAuthState.isAuthLoading || userAuthState.areClaimsLoading || (!!userAuthState.user && isProfileLoading);
 
 
     return {
@@ -190,12 +175,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       userProfile,
       isProfileLoading,
       isAdmin,
-      isAdminLoading,
+      isAdminLoading: userAuthState.areClaimsLoading, // Admin status is derived from claims
       userRole,
       isSupervisor,
       isVp,
     };
-  }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading, adminDoc, isAdminLoading, roles, isLoadingRoles]);
+  }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading]);
   
   // A separate component or hook is needed to use the Activity Log context
   function ActivityLogger() {

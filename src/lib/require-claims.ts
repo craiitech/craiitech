@@ -1,3 +1,4 @@
+
 'use client';
 
 import { getAuth } from "firebase/auth";
@@ -21,8 +22,8 @@ export async function requireClaims(required: {
   const user = auth.currentUser;
   if (!user) throw new Error("Authentication error: No user is currently signed in.");
 
-  // Force a token refresh to get the latest claims, but only if necessary.
-  const token = await user.getIdTokenResult(false); // `false` checks for existing fresh token
+  // Force a token refresh to get the latest claims. This is crucial.
+  const token = await user.getIdTokenResult(true);
 
   const userRole = token.claims.role as string;
 
