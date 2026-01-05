@@ -20,7 +20,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MoreHorizontal, Loader2, ShieldQuestion, UserCheck, UserX } from 'lucide-react';
+import { MoreHorizontal, Loader2, UserCheck, UserX, ArrowUpDown, Search } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,9 +52,15 @@ import {
 } from '@/components/ui/tooltip';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { setCustomClaims } from '@/lib/set-custom-claims';
+import { Input } from '../ui/input';
 
 
 type FilterStatus = 'all' | 'pending' | 'verified';
+type SortConfig = {
+    key: keyof User | 'role' | 'campus' | 'unit';
+    direction: 'ascending' | 'descending';
+} | null;
+
 
 export function UserManagement() {
   const firestore = useFirestore();
@@ -65,6 +71,8 @@ export function UserManagement() {
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { logSessionActivity } = useSessionActivity();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'firstName', direction: 'ascending' });
 
 
   const usersQuery = useMemoFirebase(
@@ -95,20 +103,75 @@ export function UserManagement() {
   const { data: units, isLoading: isLoadingUnits } =
     useCollection<Unit>(unitsQuery);
 
-  const filteredUsers = useMemo(() => {
-    if (!users) return [];
-    if (filter === 'all') return users;
-    return users.filter((user) =>
-      filter === 'pending' ? !user.verified : user.verified
-    );
-  }, [users, filter]);
-
   const getRoleName = (roleId: string) =>
     roles?.find((r) => r.id === roleId)?.name || 'N/A';
   const getCampusName = (campusId: string) =>
     campuses?.find((c) => c.id === campusId)?.name || 'N/A';
   const getUnitName = (unitId: string) =>
     units?.find((u) => u.id === unitId)?.name || 'N/A';
+    
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
+
+    let filtered = [...users];
+
+    // Status filter
+    if (filter !== 'all') {
+      filtered = filtered.filter((user) =>
+        filter === 'pending' ? !user.verified : user.verified
+      );
+    }
+    
+    // Search filter
+    if (searchTerm) {
+        const lowercasedFilter = searchTerm.toLowerCase();
+        filtered = filtered.filter(user => {
+            return (
+                user.firstName?.toLowerCase().includes(lowercasedFilter) ||
+                user.lastName?.toLowerCase().includes(lowercasedFilter) ||
+                user.email?.toLowerCase().includes(lowercasedFilter) ||
+                getRoleName(user.roleId).toLowerCase().includes(lowercasedFilter) ||
+                getCampusName(user.campusId).toLowerCase().includes(lowercasedFilter) ||
+                getUnitName(user.unitId).toLowerCase().includes(lowercasedFilter)
+            );
+        });
+    }
+    
+    // Sorting
+    if (sortConfig !== null) {
+      filtered.sort((a, b) => {
+        let aValue: any, bValue: any;
+        
+        switch (sortConfig.key) {
+            case 'role': aValue = getRoleName(a.roleId); bValue = getRoleName(b.roleId); break;
+            case 'campus': aValue = getCampusName(a.campusId); bValue = getCampusName(b.campusId); break;
+            case 'unit': aValue = getUnitName(a.unitId); bValue = getUnitName(b.unitId); break;
+            default: aValue = a[sortConfig.key]; bValue = b[sortConfig.key];
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return filtered;
+  }, [users, filter, searchTerm, sortConfig, roles, campuses, units]);
+  
+  const requestSort = (key: keyof User | 'role' | 'campus' | 'unit') => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+        direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+  
+  const getSortIndicator = (key: keyof User | 'role' | 'campus' | 'unit') => {
+      if (!sortConfig || sortConfig.key !== key) {
+        return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
+      }
+      return sortConfig.direction === 'ascending' ? ' ▲' : ' ▼';
+  };
 
   const handleToggleActivation = async (userToToggle: User) => {
     if (!firestore) return;
@@ -202,7 +265,7 @@ export function UserManagement() {
     <TooltipProvider>
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
             <div>
                  <CardTitle>User Management</CardTitle>
                 <CardDescription>
@@ -210,12 +273,21 @@ export function UserManagement() {
                 </CardDescription>
             </div>
             <Tabs value={filter} onValueChange={(value) => setFilter(value as FilterStatus)} >
-                <TabsList>
+                <TabsList className="grid h-auto w-full grid-cols-3 sm:inline-flex sm:h-10 sm:w-auto">
                     <TabsTrigger value="all">All</TabsTrigger>
                     <TabsTrigger value="pending">Inactive</TabsTrigger>
                     <TabsTrigger value="verified">Active</TabsTrigger>
                 </TabsList>
             </Tabs>
+        </div>
+         <div className="relative pt-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search users by name, email, role..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 w-full md:w-1/3"
+            />
         </div>
       </CardHeader>
       <CardContent>
@@ -227,10 +299,30 @@ export function UserManagement() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Campus</TableHead>
-                <TableHead>Unit</TableHead>
+                <TableHead>
+                    <Button variant="ghost" onClick={() => requestSort('firstName')}>
+                        User
+                        {getSortIndicator('firstName')}
+                    </Button>
+                </TableHead>
+                <TableHead>
+                    <Button variant="ghost" onClick={() => requestSort('role')}>
+                        Role
+                        {getSortIndicator('role')}
+                    </Button>
+                </TableHead>
+                <TableHead>
+                    <Button variant="ghost" onClick={() => requestSort('campus')}>
+                        Campus
+                        {getSortIndicator('campus')}
+                    </Button>
+                </TableHead>
+                <TableHead>
+                    <Button variant="ghost" onClick={() => requestSort('unit')}>
+                        Unit
+                        {getSortIndicator('unit')}
+                    </Button>
+                </TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
@@ -251,11 +343,13 @@ export function UserManagement() {
                           {user.lastName?.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="font-medium">
-                        {user.firstName} {user.lastName}
-                      </div>
-                      <div className="hidden text-sm text-muted-foreground md:inline">
-                        {user.email}
+                      <div>
+                        <div className="font-medium">
+                            {user.firstName} {user.lastName}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                            {user.email}
+                        </div>
                       </div>
                     </div>
                   </TableCell>
@@ -321,7 +415,7 @@ export function UserManagement() {
         )}
          {!isLoading && filteredUsers.length === 0 && (
             <div className="text-center py-10 text-muted-foreground">
-                No {filter} users found.
+                No users found for the current filter.
             </div>
         )}
       </CardContent>
