@@ -177,7 +177,10 @@ service cloud.firestore {
                      (isCampusDirector() &&
                        (resource.data.campusIds.hasAny([getCampusIdFromToken()]) || request.resource.data.campusIds.hasAny([getCampusIdFromToken()])));
 
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() ||
+                     (isCampusDirector() &&
+                       resource.data.campusIds.size() == 1 &&
+                       resource.data.campusIds.hasOnly([getCampusIdFromToken()]));
     }
 
     match /activityLogs/{logId} {

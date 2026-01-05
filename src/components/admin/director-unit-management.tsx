@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, updateDoc, addDoc, serverTimestamp, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, doc, updateDoc, addDoc, serverTimestamp, arrayUnion, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -24,7 +24,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, Search, CheckCircle } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Search, CheckCircle, MoreHorizontal } from 'lucide-react';
 import type { Unit } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -42,6 +42,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 
 const newUnitSchema = z.object({
@@ -54,6 +61,7 @@ export function DirectorUnitManagement() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [unitToRemove, setUnitToRemove] = useState<Unit | null>(null);
+  const [unitToDelete, setUnitToDelete] = useState<Unit | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
 
@@ -129,7 +137,7 @@ export function DirectorUnitManagement() {
     try {
       await updateDoc(unitRef, updateData);
       toast({
-        title: 'Unit Removed',
+        title: 'Unit Unassigned',
         description: `"${unitToRemove.name}" has been removed from your campus.`,
       });
     } catch (error) {
@@ -180,14 +188,33 @@ export function DirectorUnitManagement() {
     } finally {
         setIsSubmitting(false);
     }
+  };
+
+  const handleDeleteUnit = async () => {
+    if (!firestore || !unitToDelete) return;
+    setIsSubmitting(true);
+    try {
+        await deleteDoc(doc(firestore, 'units', unitToDelete.id));
+        toast({ title: 'Success', description: 'Unit deleted successfully.' });
+    } catch(error) {
+        console.error("Error deleting unit:", error);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: `units/${unitToDelete.id}`,
+            operation: 'delete',
+        }));
+    } finally {
+        setIsSubmitting(false);
+        setUnitToDelete(null);
+    }
   }
 
-  if (userRole !== 'Campus Director' && userRole !== 'Campus ODIMO') {
+
+  if (userRole !== 'Campus Director') {
     return (
          <Card>
             <CardHeader>
                 <CardTitle>Permission Denied</CardTitle>
-                <CardDescription>Only Campus Directors and ODIMOs can manage units for their campus.</CardDescription>
+                <CardDescription>Only Campus Directors can manage units for their campus.</CardDescription>
             </CardHeader>
          </Card>
     );
@@ -212,7 +239,7 @@ export function DirectorUnitManagement() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -220,14 +247,28 @@ export function DirectorUnitManagement() {
                     <TableRow key={unit.id}>
                       <TableCell>{unit.name}</TableCell>
                       <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setUnitToRemove(unit)}
-                            disabled={isSubmitting}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => setUnitToRemove(unit)}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Unassign from Campus
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setUnitToDelete(unit)}
+                                className="text-destructive"
+                                disabled={(unit.campusIds?.length ?? 0) > 1}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Unit
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -354,6 +395,24 @@ export function DirectorUnitManagement() {
                 <AlertDialogAction onClick={handleRemoveUnitFromCampus} disabled={isSubmitting}>
                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Continue
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+
+    <AlertDialog open={!!unitToDelete} onOpenChange={(isOpen) => !isOpen && setUnitToDelete(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Delete Unit Permanently?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the unit "{unitToDelete?.name}". This is only allowed if the unit is not assigned to any other campus.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteUnit} disabled={isSubmitting}>
+                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Delete Permanently
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
