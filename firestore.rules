@@ -186,7 +186,7 @@ service cloud.firestore {
             ) ||
             (
               // Allow removing their own campusId via arrayRemove
-              request.resource.data.campusIds.size() == resource.data.campusIds.size() - 1 &&
+              resource.data.campusIds.size() == request.resource.data.campusIds.size() + 1 &&
               resource.data.campusIds.hasAll(request.resource.data.campusIds) &&
               resource.data.campusIds.hasAny([getTokenCampusId()])
             )
@@ -215,9 +215,8 @@ service cloud.firestore {
     }
 
     match /roles_admin/{userId} {
-      // The read rule is now direct and non-recursive. Only an Admin can read this collection.
-      allow read, list: if hasTokenRole('Admin');
-      allow write: if hasTokenRole('Admin');
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow list, write: if isAdmin();
     }
   }
 }
