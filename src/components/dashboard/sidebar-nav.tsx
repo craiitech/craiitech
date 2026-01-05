@@ -88,6 +88,10 @@ export function SidebarNav({
     if (!route.roles) {
       return true; // Route is visible to everyone
     }
+    if (isAdmin) {
+      // If the user is an admin, they can see all routes that are designated for admins.
+      return route.roles.includes('Admin');
+    }
     if (!userRole) {
       return false; // If role is not loaded yet, don't show role-specific routes
     }
