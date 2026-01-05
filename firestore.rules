@@ -173,9 +173,14 @@ service cloud.firestore {
 
       allow update: if isAdmin() ||
                      isVicePresident() ||
-                     (isCampusDirector() &&
-                       // Director can update if their campus is already in the list (for removal) OR if the unit is unassigned (for adding)
-                       (resource.data.campusIds.hasAny([getCampusIdFromToken()]) || resource.data.campusIds.size() == 0));
+                     (isCampusDirector() && 
+                        (
+                          // Rule for ADDING to campusIds
+                          request.resource.data.campusIds == resource.data.campusIds.concat([getCampusIdFromToken()]) ||
+                          // Rule for REMOVING from campusIds
+                          request.resource.data.campusIds == resource.data.campusIds.removeAll([getCampusIdFromToken()])
+                        )
+                     );
 
       allow delete: if isAdmin() ||
                      (isCampusDirector() &&
