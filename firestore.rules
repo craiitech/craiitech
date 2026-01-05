@@ -36,12 +36,19 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isAdmin() {
-      return request.auth.token.role == 'Admin';
+    // --- Token-based helpers (for performance and security in write rules) ---
+    function hasTokenRole(roleName) {
+        return isSignedIn() && request.auth.token.role == roleName;
     }
-
-    // --- Hybrid Role & Data Functions ---
-    // These functions safely check for a custom claim first, then fall back to a DB read.
+    
+    function getTokenCampusId() {
+        return request.auth.token.campusId;
+    }
+    
+    // --- Hybrid helpers (for reads, with fallback to DB) ---
+    function getUserProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
 
     function getRole() {
       return request.auth.token.role != null ? request.auth.token.role : getUserProfile().role;
@@ -54,35 +61,26 @@ service cloud.firestore {
     function getUnitId() {
         return getUserProfile().unitId;
     }
-
+    
+    // --- Role Checkers ---
+    function isAdmin() {
+      return hasTokenRole('Admin');
+    }
+    
     function isCampusDirector() {
-      return getRole() == "Campus Director";
+      return hasTokenRole("Campus Director");
     }
 
     function isCampusOdimo() {
-      return getRole() == "Campus ODIMO";
+      return hasTokenRole("Campus ODIMO");
     }
 
     function isUnitOdimo() {
-      return getRole() == "Unit ODIMO";
+      return hasTokenRole("Unit ODIMO");
     }
     
     function isVicePresident() {
       return getRole().matches("Vice President.*");
-    }
-
-    // --- Helper for DB reads ---
-    function getUserProfile() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-    
-    // --- Helpers for write rules (must use token) ---
-    function hasTokenRole(roleName) {
-        return isSignedIn() && request.auth.token.role == roleName;
-    }
-    
-    function getTokenCampusId() {
-        return request.auth.token.campusId;
     }
 
 
@@ -93,8 +91,8 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isSignedIn();
       allow list, create: if isOwner(userId);
-      allow update: if isOwner(userId) || hasTokenRole('Admin');
-      allow delete: if isOwner(userId) || hasTokenRole('Admin');
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     match /submissions/{submissionId} {
@@ -165,26 +163,30 @@ service cloud.firestore {
     match /units/{unitId} {
       allow get, list: if isSignedIn();
 
-      allow create: if hasTokenRole('Admin')
-        || (
-          hasTokenRole('Campus Director') &&
-          request.resource.data.campusIds is list &&
-          request.resource.data.campusIds.hasOnly([getTokenCampusId()])
-        );
+      allow create: if isAdmin()
+        || (isCampusDirector()
+            && request.resource.data.campusIds.hasOnly([getTokenCampusId()]));
       
-      // A Director can only add or remove their own campus from the campusIds list.
-      allow update: if hasTokenRole('Admin')
-        || hasTokenRole('Vice President') // VPs can edit units under them (e.g., assign a unit head)
-        || (hasTokenRole('Campus Director') &&
-             // Rule for ADDING their campus
-             (request.resource.data.campusIds == resource.data.campusIds.concat([getTokenCampusId()])) ||
-             // Rule for REMOVING their campus
-             (request.resource.data.campusIds == resource.data.campusIds.removeAll([getTokenCampusId()]))
+      allow update: if isAdmin()
+        || hasTokenRole('Vice President')
+        || (isCampusDirector() &&
+            // Rule for ADDING their campus to the list via arrayUnion
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['campusIds'])
+                && request.resource.data.campusIds.size() == resource.data.campusIds.size() + 1
+                && request.resource.data.campusIds.hasAll(resource.data.campusIds)
+                && !resource.data.campusIds.hasAny([getTokenCampusId()])
+            ) ||
+            // Rule for REMOVING their campus from the list
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['campusIds'])
+                && request.resource.data.campusIds.size() == resource.data.campusIds.size() - 1
+                && resource.data.campusIds.hasAll(request.resource.data.campusIds)
+                && resource.data.campusIds.hasAny([getTokenCampusId()])
+            )
            );
 
-      allow delete: if hasTokenRole('Admin')
+      allow delete: if isAdmin()
         || (
-          hasTokenRole('Campus Director')
+          isCampusDirector()
           // Can only delete if it's the ONLY campus assigned to the unit
           && resource.data.campusIds.size() == 1
           && resource.data.campusIds[0] == getTokenCampusId()
@@ -209,5 +211,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
