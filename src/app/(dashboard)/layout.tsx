@@ -102,6 +102,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return location;
   }, [userProfile, campuses, units, isSupervisor]);
 
+  const displayName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : user?.displayName;
+  const displayAvatar = userProfile?.avatar || user?.photoURL;
+  const fallbackAvatar = displayName ? displayName.split(' ').map(n => n[0]).join('') : '?';
+
+
   useEffect(() => {
     // 1. Wait for all user data to finish loading.
     if (isUserLoading) return;
@@ -167,17 +172,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <SidebarProvider>
         <Sidebar variant="sidebar" collapsible="icon">
           <SidebarHeader className="items-center justify-center text-center p-4">
-            {userProfile?.avatar && (
+            {displayAvatar && (
               <Avatar className="h-20 w-20">
-                <AvatarImage src={userProfile.avatar} alt={`${userProfile.firstName} ${userProfile.lastName}`} />
+                <AvatarImage src={displayAvatar} alt={displayName || 'User'} />
                 <AvatarFallback>
-                  {userProfile.firstName?.charAt(0)}
-                  {userProfile.lastName?.charAt(0)}
+                  {fallbackAvatar}
                 </AvatarFallback>
               </Avatar>
             )}
             <div className="mt-2 text-center">
-              <p className="font-semibold text-lg">{userProfile?.firstName} {userProfile?.lastName}</p>
+              <p className="font-semibold text-lg">{displayName}</p>
               <p className="text-sm text-sidebar-primary font-medium">{userRole}</p>
               {userLocation && (
                 <div className="flex items-center justify-center gap-1 text-sm text-sidebar-foreground/80 mt-1">
@@ -200,4 +204,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </ActivityLogProvider>
   );
 }
-
