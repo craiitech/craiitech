@@ -250,7 +250,7 @@ export function AdminUnitManagement() {
                     <TableCell>{unit.name}</TableCell>
                     <TableCell>
                       {unit.campusIds && unit.campusIds.length > 0 ? (
-                        unit.campusIds.map(id => campusMap[id] || 'Unknown').join(', ')
+                        unit.campusIds.map(id => <span key={id}>{campusMap[id] || 'Unknown'}</span>).reduce((prev, curr) => <>{prev}, {curr}</>)
                       ) : <span className="text-muted-foreground">Unassigned</span>}
                     </TableCell>
                     <TableCell className="text-right">
