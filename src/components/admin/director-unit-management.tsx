@@ -71,15 +71,19 @@ export function DirectorUnitManagement() {
   );
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(allUnitsQuery);
 
-  const { unitsInCampus, allOtherUnits } = useMemo(() => {
+  const { unitsInCampus, availableUnits } = useMemo(() => {
     if (!allUnits || !userProfile?.campusId) {
-      return { unitsInCampus: [], allOtherUnits: [] };
+      return { unitsInCampus: [], availableUnits: [] };
     }
     const unitsInCampus = allUnits.filter((unit) => unit.campusIds?.includes(userProfile.campusId));
-    // Show all units in the 'add' list
-    const allOther = allUnits.filter(unit => unit.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    // Only show units that are completely unassigned (campusIds is empty or doesn't exist)
+    const available = allUnits.filter(unit => 
+        (!unit.campusIds || unit.campusIds.length === 0) &&
+        unit.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-    return { unitsInCampus, allOtherUnits: allOther };
+    return { unitsInCampus, availableUnits: available };
   }, [allUnits, userProfile, searchTerm]);
   
 
@@ -99,9 +103,7 @@ export function DirectorUnitManagement() {
       });
       return;
     }
-    // Prevent re-adding
-    if (unit.campusIds?.includes(userProfile.campusId)) return;
-
+    
     setIsSubmitting(true);
 
     const unitRef = doc(firestore, 'units', unit.id);
@@ -161,16 +163,6 @@ export function DirectorUnitManagement() {
             variant: 'destructive',
         });
         return;
-    }
-
-    // Client-side validation to ensure the director can only assign to their own campus.
-    if (userRole === 'Campus Director' && !userProfile.campusId) {
-      toast({
-        title: 'Action Denied',
-        description: 'You must be associated with a campus to create a unit.',
-        variant: 'destructive',
-      });
-      return;
     }
 
     setIsSubmitting(true);
@@ -298,7 +290,7 @@ export function DirectorUnitManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Manage Units</CardTitle>
-          <CardDescription>Assign an official system unit or create a new unit unique to your campus.</CardDescription>
+          <CardDescription>Assign an unassigned system unit or create a new unit unique to your campus.</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="add-existing">
@@ -310,7 +302,7 @@ export function DirectorUnitManagement() {
                <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search all university units..."
+                  placeholder="Search all unassigned units..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -325,32 +317,25 @@ export function DirectorUnitManagement() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>University Units / Offices</TableHead>
+                        <TableHead>Unassigned University Units</TableHead>
                         <TableHead className="text-right">Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {allOtherUnits.map((unit) => {
-                        const isAssigned = unit.campusIds?.includes(userProfile?.campusId ?? '');
+                      {availableUnits.map((unit) => {
                         return (
-                            <TableRow key={unit.id} className={isAssigned ? 'bg-muted/50' : ''}>
+                            <TableRow key={unit.id}>
                               <TableCell>{unit.name}</TableCell>
                               <TableCell className="text-right">
-                                {isAssigned ? (
-                                    <span className="flex items-center justify-end gap-2 text-sm text-green-600">
-                                        <CheckCircle className="h-4 w-4" /> Assigned
-                                    </span>
-                                ) : (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleAddUnitToCampus(unit)}
-                                      disabled={isSubmitting}
-                                    >
-                                      <PlusCircle className="mr-2 h-4 w-4" />
-                                      Add
-                                    </Button>
-                                )}
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleAddUnitToCampus(unit)}
+                                    disabled={isSubmitting}
+                                >
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    Add to my Campus
+                                </Button>
                               </TableCell>
                             </TableRow>
                         );
@@ -358,9 +343,9 @@ export function DirectorUnitManagement() {
                     </TableBody>
                   </Table>
                 )}
-                {!isLoading && allOtherUnits.length === 0 && (
+                {!isLoading && availableUnits.length === 0 && (
                   <div className="text-center py-10 text-muted-foreground">
-                     {searchTerm ? 'No units match your search.' : 'No other units available.'}
+                     {searchTerm ? 'No unassigned units match your search.' : 'No unassigned units available.'}
                   </div>
                 )}
               </ScrollArea>
