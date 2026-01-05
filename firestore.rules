@@ -230,15 +230,16 @@ service cloud.firestore {
     /**
      * @description Unit definitions are readable by anyone.
      * Creation is allowed for Admins or Campus Directors (for their own campus).
-     * Updates are allowed for Admins or Campus Directors assigning/un-assigning a unit to their campus.
+     * Updates are allowed for Admins, Campus Directors (if their campus is involved), or the designated Vice President.
      */
     match /units/{unitId} {
       allow get, list: if isSignedIn();
       allow create: if isAdmin() || 
                        (isCampusDirector() && request.resource.data.campusIds.hasOnly([getUserProfile().campusId]));
-      allow update: if isAdmin() || 
-                       (isCampusDirector() && request.resource.data.campusIds.hasAny([getUserProfile().campusId])) ||
-                       isVicePresident();
+      // A Campus Director can add/remove their own campus. A VP can update any unit they are assigned to.
+      allow update: if isAdmin() ||
+                       (isCampusDirector() && resource.data.campusIds.hasAny([getUserProfile().campusId])) ||
+                       (isVicePresident() && resource.data.vicePresidentId == request.auth.uid);
       allow delete: if isAdmin();
     }
 
