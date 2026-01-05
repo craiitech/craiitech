@@ -103,23 +103,53 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [userProfile, campuses, units, isSupervisor]);
 
   useEffect(() => {
+    // 1. Wait for all user data to finish loading.
     if (isUserLoading) return;
-    if (!user) return redirect('/login');
-    if (isAdmin) return;
-    if (pathname === '/complete-registration' || pathname === '/awaiting-verification') return;
 
+    // 2. If there's no user, redirect to login.
+    if (!user) {
+      redirect('/login');
+      return;
+    }
+
+    // 3. If the user IS an admin, stop here and do nothing. They should see the dashboard.
+    if (isAdmin) {
+      return;
+    }
+
+    // 4. If we are already on a registration/verification page, don't redirect.
+    if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
+      return;
+    }
+
+    // 5. If we get here, the user is NOT an admin. Check if their profile is complete.
     if (userProfile) {
       const isVP = userRole?.toLowerCase().includes('vice president');
       const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
-      let incomplete = false;
+      
+      let isProfileIncomplete = false;
+      if (isVP || isCampusLevelUser) {
+        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
+      } else {
+        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
+      }
 
-      if (isVP || isCampusLevelUser) incomplete = !userProfile.campusId || !userProfile.roleId;
-      else incomplete = !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
-
-      if (incomplete) return redirect('/complete-registration');
-      if (!userProfile.verified) return redirect('/awaiting-verification');
+      if (isProfileIncomplete) {
+        redirect('/complete-registration');
+        return;
+      }
+      
+      if (!userProfile.verified) {
+        redirect('/awaiting-verification');
+        return;
+      }
+    } else {
+        // If the profile is still null after loading, it means something is wrong,
+        // or they are a new user. Send them to complete registration just in case.
+        redirect('/complete-registration');
     }
   }, [user, userProfile, isUserLoading, pathname, isAdmin, userRole]);
+
 
   if (!firebaseState.areServicesAvailable || isUserLoading) return <LoadingSkeleton />;
 
