@@ -174,25 +174,24 @@ service cloud.firestore {
       
       allow update: if isAdmin()
         || hasTokenRole('Vice President')
-        || (isCampusDirector() &&
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['campusIds']) &&
+        || (
+          isCampusDirector() &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['campusIds']) &&
+          (
             (
-                // Rule for ADDING their campus to the list via arrayUnion
-                (
-                    request.resource.data.campusIds.size() == resource.data.campusIds.size() + 1 &&
-                    request.resource.data.campusIds.hasAll(resource.data.campusIds) &&
-                    !resource.data.campusIds.hasAny([getTokenCampusId()]) // Ensure not adding a duplicate
-                ) ||
-                // Rule for REMOVING their campus from the list via arrayRemove
-                (
-                    request.resource.data.campusIds.size() == resource.data.campusIds.size() - 1 &&
-                    resource.data.campusIds.hasAll(request.resource.data.campusIds) &&
-                    resource.data.campusIds.hasAny([getTokenCampusId()]) // Ensure removing an existing one
-                )
-            ) &&
-            // This ensures the campus being added/removed is the director's own
-            (request.resource.data.campusIds.hasAny([getTokenCampusId()]) || resource.data.campusIds.hasAny([getTokenCampusId()]))
-           );
+              // Allow adding their own campusId via arrayUnion
+              request.resource.data.campusIds.size() == resource.data.campusIds.size() + 1 &&
+              request.resource.data.campusIds.hasAll(resource.data.campusIds) &&
+              !resource.data.campusIds.hasAny([getTokenCampusId()])
+            ) ||
+            (
+              // Allow removing their own campusId via arrayRemove
+              request.resource.data.campusIds.size() == resource.data.campusIds.size() - 1 &&
+              resource.data.campusIds.hasAll(request.resource.data.campusIds) &&
+              resource.data.campusIds.hasAny([getTokenCampusId()])
+            )
+          )
+        );
 
       allow delete: if isAdmin()
         || (
