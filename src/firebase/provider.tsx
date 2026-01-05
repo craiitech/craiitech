@@ -150,18 +150,26 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<AppUser>(userDocRef);
 
+  const adminRoleDocRef = useMemoFirebase(() => {
+    if (!userAuthState.user || !firestore) return null;
+    return doc(firestore, 'roles_admin', userAuthState.user.uid);
+  }, [userAuthState.user, firestore]);
+
+  const { data: adminRoleDoc, isLoading: isAdminRoleLoading } = useDoc(adminRoleDocRef);
+
+
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
-    const userRole = (userAuthState.claims?.role as string) || null;
-    const isAdmin = userRole === 'Admin';
+    const userRole = (userAuthState.claims?.role as string) || userProfile?.role || null;
+    const isAdmin = !!adminRoleDoc;
     const isVp = !!userRole?.toLowerCase().includes('vice president');
     
     const supervisorRoles = ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit ODIMO'];
-    const isSupervisor = supervisorRoles.includes(userRole || '') || isVp;
+    const isSupervisor = isAdmin || supervisorRoles.includes(userRole || '') || isVp;
 
     // The user is fully loaded only when auth state is determined, claims are loaded, AND the Firestore profile is loaded.
-    const isUserLoading = userAuthState.isAuthLoading || userAuthState.areClaimsLoading || (!!userAuthState.user && isProfileLoading);
+    const isUserLoading = userAuthState.isAuthLoading || userAuthState.areClaimsLoading || isAdminRoleLoading || (!!userAuthState.user && isProfileLoading);
 
 
     return {
@@ -175,12 +183,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       userProfile,
       isProfileLoading,
       isAdmin,
-      isAdminLoading: userAuthState.areClaimsLoading, // Admin status is derived from claims
+      isAdminLoading: isAdminRoleLoading, // Admin status is derived from the doc
       userRole,
       isSupervisor,
       isVp,
     };
-  }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading]);
+  }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading, adminRoleDoc, isAdminRoleLoading]);
   
   // A separate component or hook is needed to use the Activity Log context
   function ActivityLogger() {
@@ -286,3 +294,4 @@ export const useUser = (): UserHookResult => {
   const { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp, firestore } = context; 
   return { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp, firestore };
 };
+

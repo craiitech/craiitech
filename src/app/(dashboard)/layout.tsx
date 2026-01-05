@@ -67,7 +67,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const submissionsCollection = collection(firestore, 'submissions');
 
     if (isSupervisor) {
-      if (userRole === 'Admin') return query(submissionsCollection, where('statusId', '==', 'submitted'));
+      if (isAdmin) return query(submissionsCollection, where('statusId', '==', 'submitted'));
       if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
         if (!userProfile.campusId) return null;
         return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
@@ -83,7 +83,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   // The hook now receives a stable value or null.
-  const notificationQuery = useMemoFirebase(() => getNotificationQuery(), [firestore, userProfile, userRole, isSupervisor]);
+  const notificationQuery = useMemoFirebase(() => getNotificationQuery(), [firestore, userProfile, userRole, isSupervisor, isAdmin]);
 
   const { data: notifications } = useCollection<Submission>(notificationQuery);
 
@@ -111,18 +111,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       redirect('/login');
       return;
     }
+    
+    // If we are already on a registration/verification page, don't redirect.
+    if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
+      return;
+    }
 
     // 3. If the user IS an admin, stop here and do nothing. They should see the dashboard.
     if (isAdmin) {
       return;
     }
 
-    // 4. If we are already on a registration/verification page, don't redirect.
-    if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
-      return;
-    }
 
-    // 5. If we get here, the user is NOT an admin. Check if their profile is complete.
+    // 4. If we get here, the user is NOT an admin. Check if their profile is complete.
     if (userProfile) {
       const isVP = userRole?.toLowerCase().includes('vice president');
       const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
@@ -199,3 +200,4 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </ActivityLogProvider>
   );
 }
+
