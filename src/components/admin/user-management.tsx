@@ -283,22 +283,27 @@ export function UserManagement() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem
-                          onClick={() => handleToggleActivation(user)}
-                          disabled={!user.ndaAccepted && !user.verified}
-                        >
-                          {user.verified ? (
-                            <><UserX className="mr-2 h-4 w-4" /> Deactivate Account</>
-                          ) : (
-                            <><UserCheck className="mr-2 h-4 w-4" /> Activate Account</>
-                          )}
-                          {!user.ndaAccepted && !user.verified && (
-                             <Tooltip>
-                                <TooltipTrigger asChild><ShieldQuestion className="ml-2 h-4 w-4 text-destructive"/></TooltipTrigger>
-                                <TooltipContent><p>User has not accepted the NDA.</p></TooltipContent>
-                             </Tooltip>
-                           )}
-                        </DropdownMenuItem>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="w-full">
+                                    <DropdownMenuItem
+                                    onClick={() => handleToggleActivation(user)}
+                                    disabled={!user.ndaAccepted && !user.verified}
+                                    >
+                                    {user.verified ? (
+                                        <><UserX className="mr-2 h-4 w-4" /> Deactivate Account</>
+                                    ) : (
+                                        <><UserCheck className="mr-2 h-4 w-4" /> Activate Account</>
+                                    )}
+                                    </DropdownMenuItem>
+                                </div>
+                            </TooltipTrigger>
+                             {(!user.ndaAccepted && !user.verified) && (
+                                <TooltipContent>
+                                    <p>User has not accepted the NDA.</p>
+                                </TooltipContent>
+                             )}
+                        </Tooltip>
                         <DropdownMenuItem onClick={() => setEditingUser(user)}>
                             Edit
                         </DropdownMenuItem>
