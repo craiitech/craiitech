@@ -137,6 +137,21 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<AppUser>(userDocRef);
 
+  // --- Force token refresh when profile changes ---
+  useEffect(() => {
+    const forceTokenRefresh = async () => {
+        if (userAuthState.user) {
+            console.log("Profile updated, forcing token refresh...");
+            await userAuthState.user.getIdToken(true);
+            console.log("Token refreshed.");
+        }
+    };
+    if (userProfile) { // This triggers whenever the userProfile data from Firestore is updated
+        forceTokenRefresh();
+    }
+  }, [userProfile, userAuthState.user]);
+
+
   const adminDocRef = useMemoFirebase(() => {
     if (!userAuthState.user || !firestore) return null;
     return doc(firestore, 'roles_admin', userAuthState.user.uid);

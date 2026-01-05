@@ -51,6 +51,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useSessionActivity } from '@/lib/activity-log-provider';
+import { setCustomClaims } from '@/lib/set-custom-claims';
 
 
 type FilterStatus = 'all' | 'pending' | 'verified';
@@ -115,15 +116,30 @@ export function UserManagement() {
     const userRef = doc(firestore, 'users', userToToggle.id);
     try {
       await updateDoc(userRef, { verified: newStatus });
+      
       const action = newStatus ? 'activate_user' : 'deactivate_user';
       const description = `User ${userToToggle.email} has been ${newStatus ? 'activated' : 'deactivated'}.`;
       logSessionActivity(description, { action, details: { affectedUserId: userToToggle.id }});
-      toast({
-        title: 'Success',
-        description: `User account has been ${
-          newStatus ? 'activated' : 'deactivated'
-        }.`,
-      });
+
+      if (newStatus) {
+        // When activating, set their custom claims for the first time
+        const claimsResult = await setCustomClaims({
+          uid: userToToggle.id,
+          role: userToToggle.role,
+          campusId: userToToggle.campusId,
+        });
+
+        if (claimsResult.success) {
+            toast({ title: 'Success', description: 'User account has been activated and permissions set.' });
+        } else {
+            toast({ title: 'Activation Partial Success', description: `User activated, but failed to set permissions: ${claimsResult.message}`, variant: 'destructive'});
+        }
+      } else {
+        // When deactivating, clear their claims
+        await setCustomClaims({ uid: userToToggle.id, role: null, campusId: null });
+        toast({ title: 'Success', description: 'User account has been deactivated.' });
+      }
+
     } catch (error) {
       console.error('Error updating user status:', error);
       toast({

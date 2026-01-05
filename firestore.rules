@@ -165,28 +165,33 @@ service cloud.firestore {
     }
     
     match /units/{unitId} {
-      allow get, list: if isSignedIn();
+  allow get, list: if isSignedIn();
 
-      allow create: if isAdmin() ||
-                     (isCampusDirector() &&
-                       request.resource.data.campusIds.hasOnly([getCampusIdFromToken()]));
+  allow create: if isAdmin()
+    || (
+      isCampusDirector() &&
+      request.resource.data.campusIds is list &&
+      request.resource.data.campusIds.hasOnly([getCampusIdFromToken()])
+    );
 
-      allow update: if isAdmin() ||
-                     isVicePresident() ||
-                     (isCampusDirector() && 
-                        (
-                          // Rule for ADDING to campusIds
-                          request.resource.data.campusIds == resource.data.campusIds.concat([getCampusIdFromToken()]) ||
-                          // Rule for REMOVING from campusIds
-                          request.resource.data.campusIds == resource.data.campusIds.removeAll([getCampusIdFromToken()])
-                        )
-                     );
+  allow update: if
+    isAdmin()
+    || isVicePresident()
+    || (
+      isCampusDirector()
+      // 🔐 Only campusIds can change
+      && request.resource.data.diff(resource.data).changedKeys()
+           .hasOnly(['campusIds'])
+    );
 
-      allow delete: if isAdmin() ||
-                     (isCampusDirector() &&
-                       resource.data.campusIds.size() == 1 &&
-                       resource.data.campusIds.hasOnly([getCampusIdFromToken()]));
-    }
+  allow delete: if isAdmin()
+    || (
+      isCampusDirector()
+      && resource.data.campusIds.size() == 1
+      && resource.data.campusIds.hasOnly([getCampusIdFromToken()])
+    );
+}
+
 
     match /activityLogs/{logId} {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;

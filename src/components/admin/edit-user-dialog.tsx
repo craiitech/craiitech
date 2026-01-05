@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -36,6 +37,9 @@ import type { User, Role, Campus, Unit } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { setCustomClaims } from '@/lib/set-custom-claims';
+import { getAuth } from 'firebase/auth';
+
 
 interface EditUserDialogProps {
   user: User;
@@ -125,25 +129,45 @@ export function EditUserDialog({
         role: selectedRole ? selectedRole.name : '',
     };
 
-    updateDoc(userRef, updateData)
-        .then(() => {
+    try {
+        await updateDoc(userRef, updateData);
+
+        // After successfully updating Firestore, set the custom claims.
+        const claimsResult = await setCustomClaims({
+            uid: user.id,
+            role: updateData.role,
+            campusId: updateData.campusId,
+        });
+
+        if (claimsResult.success) {
             toast({
                 title: 'User Updated',
-                description: `${values.firstName} ${values.lastName}'s profile has been updated.`,
+                description: `${values.firstName} ${values.lastName}'s profile and permissions have been updated.`,
             });
-            onOpenChange(false);
-        })
-        .catch((error) => {
-            console.error('Error updating user:', error);
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: userRef.path,
-                operation: 'update',
-                requestResourceData: updateData
-            }));
-        })
-        .finally(() => {
-            setIsSubmitting(false);
-        });
+             // Force a token refresh on the client if the current user is being edited
+            const auth = getAuth();
+            if (auth.currentUser && auth.currentUser.uid === user.id) {
+                await auth.currentUser.getIdToken(true);
+            }
+        } else {
+             toast({
+                title: 'Partial Success: Profile Updated',
+                description: `User profile was saved, but permissions failed to update: ${claimsResult.message}`,
+                variant: 'destructive',
+            });
+        }
+
+        onOpenChange(false);
+    } catch (error) {
+         console.error('Error updating user:', error);
+         errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'update',
+            requestResourceData: updateData
+        }));
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   return (

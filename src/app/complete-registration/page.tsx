@@ -36,6 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/logo';
 import { Loader2 } from 'lucide-react';
 import type { Campus, Unit, Role } from '@/lib/types';
+import { setCustomClaims } from '@/lib/set-custom-claims';
 
 
 const registrationSchema = z.object({
@@ -129,15 +130,23 @@ export default function CompleteRegistrationPage() {
     setIsSubmitting(true);
     try {
       const selectedRoleObject = roles.find(r => r.id === values.roleId);
-
       const userDocRef = doc(firestore, 'users', user.uid);
-
-      await updateDoc(userDocRef, {
+      
+      const updateData = {
         campusId: values.campusId,
         unitId: isUnitRequired ? values.unitId : '',
         roleId: values.roleId,
         role: selectedRoleObject ? selectedRoleObject.name : '',
-        verified: false,
+        verified: false, // User is not verified until admin approval
+      };
+
+      await updateDoc(userDocRef, updateData);
+      
+      // Set claims immediately so that if an admin activates them, the claims are ready.
+      await setCustomClaims({
+        uid: user.uid,
+        role: updateData.role,
+        campusId: updateData.campusId,
       });
 
       toast({
