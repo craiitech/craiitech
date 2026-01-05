@@ -105,6 +105,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const displayName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : user?.displayName;
   const displayAvatar = userProfile?.avatar || user?.photoURL;
   const fallbackAvatar = displayName ? displayName.split(' ').map(n => n[0]).join('') : '?';
+  const displayRole = isAdmin ? 'Admin' : userRole;
 
 
   useEffect(() => {
@@ -182,7 +183,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
             <div className="mt-2 text-center">
               <p className="font-semibold text-lg">{displayName}</p>
-              <p className="text-sm text-sidebar-primary font-medium">{userRole}</p>
+              <p className="text-sm text-sidebar-primary font-medium">{displayRole}</p>
               {userLocation && (
                 <div className="flex items-center justify-center gap-1 text-sm text-sidebar-foreground/80 mt-1">
                   <Building2 className="h-4 w-4" />
