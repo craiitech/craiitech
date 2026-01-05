@@ -122,7 +122,7 @@ export function UserManagement() {
       logSessionActivity(description, { action, details: { affectedUserId: userToToggle.id }});
 
       if (newStatus) {
-        // When activating, set their custom claims for the first time
+        // When activating, set their custom claims.
         const claimsResult = await setCustomClaims({
           uid: userToToggle.id,
           role: userToToggle.role,
