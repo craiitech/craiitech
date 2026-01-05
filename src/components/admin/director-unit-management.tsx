@@ -77,9 +77,9 @@ export function DirectorUnitManagement() {
     }
     const unitsInCampus = allUnits.filter((unit) => unit.campusIds?.includes(userProfile.campusId));
     
-    // Only show units that are completely unassigned (campusIds is empty or doesn't exist)
+    // Corrected Logic: Show units that are not already in the director's campus.
     const available = allUnits.filter(unit => 
-        (!unit.campusIds || unit.campusIds.length === 0) &&
+        !unit.campusIds?.includes(userProfile.campusId) &&
         unit.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -290,7 +290,7 @@ export function DirectorUnitManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Manage Units</CardTitle>
-          <CardDescription>Assign an unassigned system unit or create a new unit unique to your campus.</CardDescription>
+          <CardDescription>Assign an existing system unit or create a new unit unique to your campus.</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="add-existing">
@@ -302,7 +302,7 @@ export function DirectorUnitManagement() {
                <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search all unassigned units..."
+                  placeholder="Search available units..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -317,7 +317,7 @@ export function DirectorUnitManagement() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Unassigned University Units</TableHead>
+                        <TableHead>Available University Units</TableHead>
                         <TableHead className="text-right">Action</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -345,7 +345,7 @@ export function DirectorUnitManagement() {
                 )}
                 {!isLoading && availableUnits.length === 0 && (
                   <div className="text-center py-10 text-muted-foreground">
-                     {searchTerm ? 'No unassigned units match your search.' : 'No unassigned units available.'}
+                     {searchTerm ? 'No available units match your search.' : 'No available units to add.'}
                   </div>
                 )}
               </ScrollArea>
