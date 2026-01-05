@@ -91,8 +91,7 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
 
     match /users/{userId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) || isAdmin();
@@ -158,7 +157,7 @@ service cloud.firestore {
     }
     
     match /campusSettings/{campusId} {
-      allow get: if (isSignedIn() && (getCampusId() == campusId || campusId == 'global')) || isAdmin();
+      allow get: if isSignedIn() && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.campusId == campusId || campusId == 'global' || isAdmin());
       allow write: if isAdmin() || (hasTokenRole('Campus Director') && getTokenCampusId() == campusId) || (hasTokenRole('Campus ODIMO') && getTokenCampusId() == campusId);
       allow list: if isAdmin();
     }
