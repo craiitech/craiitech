@@ -51,6 +51,7 @@ service cloud.firestore {
     }
 
     function getRole() {
+      // Prefer the token, but fall back to the DB for reads.
       return request.auth.token.role != null ? request.auth.token.role : getUserProfile().role;
     }
 
@@ -64,8 +65,8 @@ service cloud.firestore {
     
     // --- Role Checkers ---
     function isAdmin() {
-      // Check for admin role via token first, then fallback to DB check.
-      return hasTokenRole('Admin') || exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      // The single source of truth for admin status is the existence of their UID in the roles_admin collection.
+      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
     
     function isCampusDirector() {
@@ -179,12 +180,14 @@ service cloud.firestore {
                 // Rule for ADDING their campus to the list via arrayUnion
                 (
                     request.resource.data.campusIds.size() == resource.data.campusIds.size() + 1 &&
-                    request.resource.data.campusIds.hasAll(resource.data.campusIds)
+                    request.resource.data.campusIds.hasAll(resource.data.campusIds) &&
+                    !resource.data.campusIds.hasAny([getTokenCampusId()]) // Ensure not adding a duplicate
                 ) ||
                 // Rule for REMOVING their campus from the list via arrayRemove
                 (
                     request.resource.data.campusIds.size() == resource.data.campusIds.size() - 1 &&
-                    resource.data.campusIds.hasAll(request.resource.data.campusIds)
+                    resource.data.campusIds.hasAll(request.resource.data.campusIds) &&
+                    resource.data.campusIds.hasAny([getTokenCampusId()]) // Ensure removing an existing one
                 )
             ) &&
             // This ensures the campus being added/removed is the director's own
@@ -213,6 +216,7 @@ service cloud.firestore {
     }
 
     match /roles_admin/{userId} {
+      // The read rule is now direct and non-recursive. Only an Admin can read this collection.
       allow read, list: if hasTokenRole('Admin');
       allow write: if hasTokenRole('Admin');
     }
