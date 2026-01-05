@@ -224,7 +224,7 @@ export default function CompleteRegistrationPage() {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select your role" />
-                        </SelectTrigger>
+                        </Trigger>
                       </FormControl>
                       <SelectContent>
                         {assignableRoles.map((role) => (

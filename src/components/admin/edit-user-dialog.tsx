@@ -146,7 +146,7 @@ export function EditUserDialog({
                 description: `${values.firstName} ${values.lastName}'s profile and permissions have been updated.`,
             });
             // Force a token refresh on the client if the current user is being edited
-            if (auth.currentUser && auth.currentUser.uid === user.id) {
+            if (auth?.currentUser && auth.currentUser.uid === user.id) {
                 await auth.currentUser.getIdToken(true);
             }
         } else {

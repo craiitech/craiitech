@@ -172,7 +172,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const userRole = isUserDataReady && !isAdmin && roles && userProfile ? (roles.find(r => r.id === userProfile.roleId)?.name || null) : (isAdmin ? 'Admin' : null);
     
     const isVp = !!userRole?.toLowerCase().includes('vice president');
-    const supervisorRoles = ['Admin', 'Campus Director', 'Campus ODIMO'];
+    const supervisorRoles = ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit ODIMO'];
     const isSupervisor = isUserDataReady ? (supervisorRoles.includes(userRole || '') || isVp) : false;
 
 
@@ -259,28 +259,28 @@ export const useFirebase = (): FirebaseServicesAndUser | { areServicesAvailable:
 };
 
 /** Hook to access Firebase Auth instance. */
-export const useAuth = (): Auth => {
+export const useAuth = (): Auth | null => {
   const context = useFirebase();
    if (!context.areServicesAvailable) {
-    throw new Error("useAuth called before Firebase services were available.");
+    return null;
   }
   return context.auth;
 };
 
 /** Hook to access Firestore instance. */
-export const useFirestore = (): Firestore => {
+export const useFirestore = (): Firestore | null => {
   const context = useFirebase();
   if (!context.areServicesAvailable) {
-    throw new Error("useFirestore called before Firebase services were available.");
+    return null;
   }
   return context.firestore;
 };
 
 /** Hook to access Firebase App instance. */
-export const useFirebaseApp = (): FirebaseApp => {
+export const useFirebaseApp = (): FirebaseApp | null => {
   const context = useFirebase();
    if (!context.areServicesAvailable) {
-    throw new Error("useFirebaseApp called before Firebase services were available.");
+    return null;
   }
   return context.firebaseApp;
 };

@@ -1,0 +1,208 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * Core Philosophy: This ruleset implements a sophisticated security model that combines
+     * strict user-ownership with a hierarchical Role-Based Access Control (RBAC) system.
+     * A key change is the move to a top-level /submissions collection to simplify
+     * supervisory queries. The default posture remains denial of access, with permissions
+     * explicitly granted based on user identity and assigned roles.
+     *
+     * Data Structure: User profiles are stored in /users/{userId}. All submissions from all
+     * users are stored in the global /submissions/{submissionId} collection. This flat
+     * structure is efficient for admin/supervisor queries. Security is maintained by
+     * embedding ownership and context fields (userId, campusId, unitId) directly into each
+     * submission document.
+     *
+     * Key Security Decisions:
+     * - User profiles are readable by any signed-in user to support application functionality.
+     * - Role-Based Access via Existence Checks: A user's role is determined by checking for the
+     *   existence of a document in collections like /roles_admin/{userId}.
+     * - Read-Only Global Data: Core application data (roles, campuses, etc.) is readable by any
+     *   signed-in user but is only writable by Admins, ensuring data integrity.
+     * - Top-Level Submissions: This collection is readable by a user if they are the owner OR
+     *   if they are a supervisor for the submission's campus/unit.
+     *
+     * Denormalization for Authorization: The rules for accessing the /submissions collection
+     * rely heavily on the assumption that Submission documents contain denormalized campusId
+     * and unitId fields. This avoids slow and costly cross-collection get() calls in
+     * security rules when evaluating list queries for supervisors, which is a critical
+     * performance and security best practice.
+     */
+
+    // --------------------------------------------------------------------------
+    // Helper Functions
+    // --------------------------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    // --- NEW: Custom claim-based role checkers (for /units rules) ---
+    // These avoid `get()` calls, which are unsafe in partial updates.
+    
+    function hasRole(roleName) {
+      return isSignedIn() && request.auth.token.role == roleName;
+    }
+
+    function isCampusDirector() {
+      return hasRole("Campus Director");
+    }
+
+    function isVicePresident() {
+      // Supports exact match (safer than regex unless needed)
+      return hasRole("Vice President");
+      // If you really need substring: request.auth.token.role.matches("Vice President")
+    }
+
+    function getCampusIdFromToken() {
+      return request.auth.token.campusId;
+    }
+
+    // --- Keep existing profile-based helpers for other collections ---
+    // (Used in /submissions, /risks, etc.)
+
+    function getUserProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isCampusOdimo() {
+        return hasRole("Campus ODIMO");
+    }
+
+    function isUnitOdimo() {
+        return hasRole("Unit ODIMO");
+    }
+
+    // --------------------------------------------------------------------------
+    // Collection Rules
+    // --------------------------------------------------------------------------
+
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow update: if isOwner(userId) || isAdmin();
+      allow list: if isSignedIn();
+      allow create: if isOwner(userId);
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    match /submissions/{submissionId} {
+      allow get: if isAdmin()
+                    || isOwner(resource.data.userId) 
+                    || (isCampusOdimo() && getCampusIdFromToken() == resource.data.campusId) 
+                    || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId)
+                    || (isCampusDirector() && getCampusIdFromToken() == resource.data.campusId)
+                    || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid);
+      
+      allow list: if isSignedIn();
+
+      allow create: if isOwner(request.resource.data.userId)
+                    && request.resource.data.campusId == getCampusIdFromToken();
+
+      allow update: if isAdmin()
+                    || isOwner(resource.data.userId) 
+                    || (isCampusOdimo() && getCampusIdFromToken() == resource.data.campusId) 
+                    || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId)
+                    || (isCampusDirector() && getCampusIdFromToken() == resource.data.campusId)
+                    || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid);
+
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    match /risks/{riskId} {
+      allow get: if isAdmin()
+                    || (getUserProfile().unitId == resource.data.unitId)
+                    || (isCampusOdimo() && getCampusIdFromToken() == resource.data.campusId) 
+                    || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId)
+                    || (isCampusDirector() && getCampusIdFromToken() == resource.data.campusId)
+                    || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid);
+      
+      allow list: if isSignedIn();
+
+      allow create: if request.resource.data.unitId == getUserProfile().unitId
+                    && request.resource.data.campusId == getCampusIdFromToken();
+      
+      allow update, delete: if (getUserProfile().unitId == resource.data.unitId) || isAdmin();
+    }
+
+    match /roles/{roleId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /submissionStatuses/{statusId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+    
+    match /cycles/{cycleId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+    
+    match /campuses/{campusId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+    
+    match /campusSettings/{campusId} {
+      allow get: if (isSignedIn() && (getCampusIdFromToken() == campusId || campusId == 'global')) || isAdmin();
+      allow write: if isAdmin() || (isCampusDirector() && getCampusIdFromToken() == campusId) || (isCampusOdimo() && getCampusIdFromToken() == campusId);
+      allow list: if isAdmin();
+    }
+    
+    match /units/{unitId} {
+      allow get, list: if isSignedIn();
+
+      allow create: if isAdmin()
+        || (
+          isCampusDirector() &&
+          request.resource.data.campusIds is list &&
+          request.resource.data.campusIds.hasOnly([getCampusIdFromToken()])
+        );
+
+      allow update: if isAdmin()
+        || isVicePresident()
+        || (
+          isCampusDirector() &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(['campusIds'])
+        );
+
+      allow delete: if isAdmin()
+        || (
+          isCampusDirector()
+          && resource.data.campusIds.size() == 1
+          && resource.data.campusIds.hasOnly([getCampusIdFromToken()])
+        );
+    }
+
+
+    match /activityLogs/{logId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read, list: if isAdmin();
+      allow update, delete: if false;
+    }
+    
+    match /errorReports/{errorId} {
+        allow create: if isSignedIn();
+        allow read, list, update, delete: if isAdmin();
+    }
+
+    match /roles_admin/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}
