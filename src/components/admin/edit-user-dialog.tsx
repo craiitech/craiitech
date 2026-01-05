@@ -29,7 +29,7 @@ import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useAuth } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
@@ -69,6 +69,7 @@ export function EditUserDialog({
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const auth = useAuth();
 
   const form = useForm<z.infer<typeof editUserSchema>>({
     resolver: zodResolver(editUserSchema),
@@ -144,8 +145,7 @@ export function EditUserDialog({
                 title: 'User Updated',
                 description: `${values.firstName} ${values.lastName}'s profile and permissions have been updated.`,
             });
-             // Force a token refresh on the client if the current user is being edited
-            const auth = getAuth();
+            // Force a token refresh on the client if the current user is being edited
             if (auth.currentUser && auth.currentUser.uid === user.id) {
                 await auth.currentUser.getIdToken(true);
             }

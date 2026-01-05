@@ -141,9 +141,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   useEffect(() => {
     const forceTokenRefresh = async () => {
         if (userAuthState.user) {
-            console.log("Profile updated, forcing token refresh...");
             await userAuthState.user.getIdToken(true);
-            console.log("Token refreshed.");
         }
     };
     if (userProfile) { // This triggers whenever the userProfile data from Firestore is updated
