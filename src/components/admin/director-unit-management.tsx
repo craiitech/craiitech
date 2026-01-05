@@ -49,6 +49,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { requireClaims } from '@/lib/require-claims';
 
 
 const newUnitSchema = z.object({
@@ -111,10 +112,12 @@ export function DirectorUnitManagement() {
     
     setIsSubmitting(true);
 
-    const unitRef = doc(firestore, 'units', unit.id);
-    const updateData = { campusIds: arrayUnion(userProfile.campusId) };
-
     try {
+      await requireClaims({ role: ['Campus Director'], campusId: true });
+      
+      const unitRef = doc(firestore, 'units', unit.id);
+      const updateData = { campusIds: arrayUnion(userProfile.campusId) };
+      
       await updateDoc(unitRef, updateData);
       toast({
         title: 'Unit Assigned',
@@ -122,11 +125,12 @@ export function DirectorUnitManagement() {
       });
     } catch (error) {
       console.error('Error assigning unit:', error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: unitRef.path,
-        operation: 'update',
-        requestResourceData: { campusIds: `arrayUnion(${userProfile.campusId})` },
-      }));
+      const errorMessage = error instanceof Error ? error.message : 'Could not assign unit.';
+      toast({
+          title: "Operation Failed",
+          description: errorMessage,
+          variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -138,10 +142,12 @@ export function DirectorUnitManagement() {
     }
     setIsSubmitting(true);
 
-    const unitRef = doc(firestore, 'units', unitToRemove.id);
-    const updateData = { campusIds: arrayRemove(userProfile.campusId) }; 
-
     try {
+      await requireClaims({ role: ['Campus Director'], campusId: true });
+
+      const unitRef = doc(firestore, 'units', unitToRemove.id);
+      const updateData = { campusIds: arrayRemove(userProfile.campusId) }; 
+
       await updateDoc(unitRef, updateData);
       toast({
         title: 'Unit Unassigned',
@@ -149,11 +155,12 @@ export function DirectorUnitManagement() {
       });
     } catch (error) {
       console.error('Error removing unit:', error);
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: unitRef.path,
-        operation: 'update',
-        requestResourceData: { campusIds: `arrayRemove(${userProfile.campusId})` },
-      }));
+      const errorMessage = error instanceof Error ? error.message : 'Could not unassign unit.';
+       toast({
+          title: "Operation Failed",
+          description: errorMessage,
+          variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
       setUnitToRemove(null);
@@ -171,27 +178,32 @@ export function DirectorUnitManagement() {
     }
 
     setIsSubmitting(true);
-
-    const newUnitData = {
-        name: values.name,
-        campusIds: [userProfile.campusId], // Assign to current campus on creation
-    };
-
+    
     try {
-        const unitsCollection = collection(firestore, 'units');
-        await addDoc(unitsCollection, newUnitData);
-        toast({
-            title: 'Unit Created',
-            description: `The unit "${values.name}" has been created and assigned to your campus.`
-        });
-        form.reset();
+      await requireClaims({ role: ['Campus Director'], campusId: true });
+      
+      const newUnitData = {
+          name: values.name,
+          campusIds: [userProfile.campusId], // Assign to current campus on creation
+          createdAt: serverTimestamp(),
+      };
+
+      const unitsCollection = collection(firestore, 'units');
+      await addDoc(unitsCollection, newUnitData);
+      toast({
+          title: 'Unit Created',
+          description: `The unit "${values.name}" has been created and assigned to your campus.`
+      });
+      form.reset();
+
     } catch (error) {
-        console.error('Error creating new unit:', error);
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: 'units',
-            operation: 'create',
-            requestResourceData: newUnitData,
-        }));
+       console.error('Error creating new unit:', error);
+       const errorMessage = error instanceof Error ? error.message : 'Could not create new unit.';
+       toast({
+          title: "Operation Failed",
+          description: errorMessage,
+          variant: "destructive",
+      });
     } finally {
         setIsSubmitting(false);
     }
@@ -201,14 +213,17 @@ export function DirectorUnitManagement() {
     if (!firestore || !unitToDelete) return;
     setIsSubmitting(true);
     try {
+        await requireClaims({ role: ['Campus Director'], campusId: true });
         await deleteDoc(doc(firestore, 'units', unitToDelete.id));
         toast({ title: 'Success', description: 'Unit deleted successfully.' });
     } catch(error) {
         console.error("Error deleting unit:", error);
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: `units/${unitToDelete.id}`,
-            operation: 'delete',
-        }));
+        const errorMessage = error instanceof Error ? error.message : 'Could not delete unit.';
+         toast({
+            title: "Operation Failed",
+            description: errorMessage,
+            variant: "destructive",
+        });
     } finally {
         setIsSubmitting(false);
         setUnitToDelete(null);
@@ -337,7 +352,7 @@ export function DirectorUnitManagement() {
                                     onClick={() => handleAddUnitToCampus(unit)}
                                     disabled={isSubmitting}
                                 >
-                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <PlusCircle className="mr-2 h-4 w-4" />}
                                     Add to my Campus
                                 </Button>
                               </TableCell>

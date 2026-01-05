@@ -109,7 +109,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     const unsubscribe = onAuthStateChanged(
       auth,
-      (firebaseUser) => { // Auth state determined
+      async (firebaseUser) => { // Auth state determined
+        if (firebaseUser) {
+          await firebaseUser.getIdToken(true); // Force refresh claims on auth state change
+        }
         setUserAuthState({ user: firebaseUser, isAuthLoading: false, userError: null });
         if (!firebaseUser) {
            // Reset the login logged flag when user logs out
