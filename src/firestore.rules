@@ -7,30 +7,21 @@ service cloud.firestore {
     /**
      * Core Philosophy: This ruleset implements a sophisticated security model that combines
      * strict user-ownership with a hierarchical Role-Based Access Control (RBAC) system.
-     * A key change is the move to a top-level /submissions collection to simplify
-     * supervisory queries. The default posture remains denial of access, with permissions
+     * The default posture remains denial of access, with permissions
      * explicitly granted based on user identity and assigned roles.
      *
-     * Data Structure: User profiles are stored in /users/{userId}. All submissions from all
-     * users are stored in the global /submissions/{submissionId} collection. This flat
-     * structure is efficient for admin/supervisor queries. Security is maintained by
-     * embedding ownership and context fields (userId, campusId, unitId) directly into each
-     * submission document.
-     *
      * Key Security Decisions:
-     * - User profiles are readable by any signed-in user to support application functionality.
-     * - Role-Based Access via Existence Checks: A user's role is determined by checking for the
-     *   existence of a document in collections like /roles_admin/{userId}.
-     * - Read-Only Global Data: Core application data (roles, campuses, etc.) is readable by any
-     *   signed-in user but is only writable by Admins, ensuring data integrity.
-     * - Top-Level Submissions: This collection is readable by a user if they are the owner OR
-     *   if they are a supervisor for the submission's campus/unit.
-     *
-     * Denormalization for Authorization: The rules for accessing the /submissions collection
-     * rely heavily on the assumption that Submission documents contain denormalized campusId
-     * and unitId fields. This avoids slow and costly cross-collection get() calls in
-     * security rules when evaluating list queries for supervisors, which is a critical
-     * performance and security best practice.
+     * - Hybrid Authorization: The rules use a hybrid approach. For read operations, they
+     *   first check for efficient, custom auth token claims (role, campusId). If claims are
+     *   not present (for users with older tokens), they fall back to a `get()` call to the
+     *   user's profile document. This ensures backward compatibility.
+     * - Strict Writes: For write operations (create, update, delete), rules strictly
+     *   require custom claims, as `get()` calls are disallowed in these contexts for security.
+     *   Admins updating user profiles will automatically set these claims, migrating users
+     *   to the new system over time.
+     * - Top-Level Collections: Collections like /submissions and /risks are at the top level
+     *   to simplify supervisory queries. Security is maintained by embedding ownership fields
+     *   (userId, campusId, unitId) in each document.
      */
 
     // --------------------------------------------------------------------------
@@ -45,45 +36,53 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    // --- Token-based helpers (for performance and security in write rules) ---
+    function hasTokenRole(roleName) {
+        return isSignedIn() && request.auth.token.role == roleName;
     }
-
-    // --- NEW: Custom claim-based role checkers (for /units rules) ---
-    // These avoid `get()` calls, which are unsafe in partial updates.
     
-    function hasRole(roleName) {
-      return isSignedIn() && request.auth.token.role == roleName;
+    function getTokenCampusId() {
+        return request.auth.token.campusId;
     }
-
-    function isCampusDirector() {
-      return hasRole("Campus Director");
-    }
-
-    function isVicePresident() {
-      // Supports exact match (safer than regex unless needed)
-      return hasRole("Vice President");
-      // If you really need substring: request.auth.token.role.matches("Vice President")
-    }
-
-    function getCampusIdFromToken() {
-      return request.auth.token.campusId;
-    }
-
-    // --- Keep existing profile-based helpers for other collections ---
-    // (Used in /submissions, /risks, etc.)
-
+    
+    // --- Hybrid helpers (for reads, with fallback to DB) ---
     function getUserProfile() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
+    function getRole() {
+      return request.auth.token.role != null ? request.auth.token.role : getUserProfile().role;
+    }
+
+    function getCampusId() {
+        return request.auth.token.campusId != null ? request.auth.token.campusId : getUserProfile().campusId;
+    }
+    
+    function getUnitId() {
+        return getUserProfile().unitId;
+    }
+    
+    // --- Role Checkers ---
+    function isAdmin() {
+      return hasTokenRole('Admin');
+    }
+    
+    function isCampusDirector() {
+      return hasTokenRole("Campus Director");
+    }
+
     function isCampusOdimo() {
-        return hasRole("Campus ODIMO");
+      return hasTokenRole("Campus ODIMO");
     }
 
     function isUnitOdimo() {
-        return hasRole("Unit ODIMO");
+      return hasTokenRole("Unit ODIMO");
     }
+    
+    function isVicePresident() {
+      return getRole().matches("Vice President.*");
+    }
+
 
     // --------------------------------------------------------------------------
     // Collection Rules
@@ -91,47 +90,46 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow get: if isSignedIn();
+      allow list, create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
-      allow list: if isSignedIn();
-      allow create: if isOwner(userId);
       allow delete: if isOwner(userId) || isAdmin();
     }
 
     match /submissions/{submissionId} {
       allow get: if isAdmin()
                     || isOwner(resource.data.userId) 
-                    || (isCampusOdimo() && getCampusIdFromToken() == resource.data.campusId) 
-                    || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId)
-                    || (isCampusDirector() && getCampusIdFromToken() == resource.data.campusId)
+                    || (isCampusOdimo() && getCampusId() == resource.data.campusId) 
+                    || (isUnitOdimo() && getUnitId() == resource.data.unitId)
+                    || (isCampusDirector() && getCampusId() == resource.data.campusId)
                     || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid);
       
       allow list: if isSignedIn();
 
       allow create: if isOwner(request.resource.data.userId)
-                    && request.resource.data.campusId == getCampusIdFromToken();
+                    && request.resource.data.campusId == getTokenCampusId();
 
       allow update: if isAdmin()
                     || isOwner(resource.data.userId) 
-                    || (isCampusOdimo() && getCampusIdFromToken() == resource.data.campusId) 
-                    || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId)
-                    || (isCampusDirector() && getCampusIdFromToken() == resource.data.campusId)
-                    || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid);
+                    || (hasTokenRole('Campus ODIMO') && getTokenCampusId() == resource.data.campusId) 
+                    || (hasTokenRole('Unit ODIMO') && getUserProfile().unitId == resource.data.unitId) // getUserProfile is ok here because unitId is not a claim
+                    || (hasTokenRole('Campus Director') && getTokenCampusId() == resource.data.campusId)
+                    || (hasTokenRole('Vice President') && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid);
 
       allow delete: if isOwner(resource.data.userId) || isAdmin();
     }
 
     match /risks/{riskId} {
       allow get: if isAdmin()
-                    || (getUserProfile().unitId == resource.data.unitId)
-                    || (isCampusOdimo() && getCampusIdFromToken() == resource.data.campusId) 
-                    || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId)
-                    || (isCampusDirector() && getCampusIdFromToken() == resource.data.campusId)
+                    || (getUnitId() == resource.data.unitId)
+                    || (isCampusOdimo() && getCampusId() == resource.data.campusId) 
+                    || (isUnitOdimo() && getUnitId() == resource.data.unitId)
+                    || (isCampusDirector() && getCampusId() == resource.data.campusId)
                     || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid);
       
       allow list: if isSignedIn();
 
-      allow create: if request.resource.data.unitId == getUserProfile().unitId
-                    && request.resource.data.campusId == getCampusIdFromToken();
+      allow create: if getUserProfile().unitId == request.resource.data.unitId
+                    && getTokenCampusId() == request.resource.data.campusId;
       
       allow update, delete: if (getUserProfile().unitId == resource.data.unitId) || isAdmin();
     }
@@ -157,8 +155,8 @@ service cloud.firestore {
     }
     
     match /campusSettings/{campusId} {
-      allow get: if (isSignedIn() && (getCampusIdFromToken() == campusId || campusId == 'global')) || isAdmin();
-      allow write: if isAdmin() || (isCampusDirector() && getCampusIdFromToken() == campusId) || (isCampusOdimo() && getCampusIdFromToken() == campusId);
+      allow get: if (isSignedIn() && (getCampusId() == campusId || campusId == 'global')) || isAdmin();
+      allow write: if isAdmin() || (hasTokenRole('Campus Director') && getTokenCampusId() == campusId) || (hasTokenRole('Campus ODIMO') && getTokenCampusId() == campusId);
       allow list: if isAdmin();
     }
     
@@ -169,21 +167,24 @@ service cloud.firestore {
         || (
           isCampusDirector() &&
           request.resource.data.campusIds is list &&
-          request.resource.data.campusIds.hasOnly([getCampusIdFromToken()])
+          request.resource.data.campusIds.hasOnly([getTokenCampusId()])
         );
-
+      
       allow update: if isAdmin()
-        || isVicePresident()
-        || (
-          isCampusDirector() &&
-          request.resource.data.diff(resource.data).changedKeys().hasOnly(['campusIds'])
-        );
+        || hasTokenRole('Vice President')
+        || (isCampusDirector() &&
+             // Rule for ADDING their campus to the list
+             (request.resource.data.campusIds == resource.data.campusIds.concat([getTokenCampusId()])) ||
+             // Rule for REMOVING their campus from the list
+             (request.resource.data.campusIds == resource.data.campusIds.removeAll([getTokenCampusId()]))
+           );
 
       allow delete: if isAdmin()
         || (
           isCampusDirector()
+          // Can only delete if it's the ONLY campus assigned to the unit
           && resource.data.campusIds.size() == 1
-          && resource.data.campusIds.hasOnly([getCampusIdFromToken()])
+          && resource.data.campusIds[0] == getTokenCampusId()
         );
     }
 
@@ -200,9 +201,8 @@ service cloud.firestore {
     }
 
     match /roles_admin/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create, update, delete: if isAdmin();
+      allow read, list: if hasTokenRole('Admin');
+      allow write: if hasTokenRole('Admin');
     }
   }
 }

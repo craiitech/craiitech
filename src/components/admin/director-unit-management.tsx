@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -23,7 +24,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, Search, CheckCircle, MoreHorizontal } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Search, MoreHorizontal } from 'lucide-react';
 import type { Unit } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -81,6 +82,7 @@ export function DirectorUnitManagement() {
         unit.campusIds?.includes(directorCampusId)
     );
     
+    // Available units are those NOT in the director's campus and matching the search term
     const availableUnits = allUnits.filter(unit => 
         !unit.campusIds?.includes(directorCampusId) &&
         unit.name.toLowerCase().includes(searchTerm.toLowerCase())
