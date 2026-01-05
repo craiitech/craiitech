@@ -162,6 +162,17 @@ export function DirectorUnitManagement() {
         });
         return;
     }
+
+    // Client-side validation to ensure the director can only assign to their own campus.
+    if (userRole === 'Campus Director' && !userProfile.campusId) {
+      toast({
+        title: 'Action Denied',
+        description: 'You must be associated with a campus to create a unit.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     const newUnitData = {
