@@ -42,6 +42,7 @@ import {
   doc,
   arrayUnion,
   getDoc,
+  Query,
 } from 'firebase/firestore';
 import { useState, useEffect, useMemo } from 'react';
 import type { Submission, User as AppUser, Role, Comment, Unit } from '@/lib/types';
@@ -60,11 +61,12 @@ export default function ApprovalsPage() {
   const router = useRouter();
   const { logSessionActivity } = useSessionActivity();
 
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<Record<string, AppUser>>({});
-  
+
   const allUnitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(allUnitsQuery);
-
 
   // State for the feedback dialog
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -75,55 +77,62 @@ export default function ApprovalsPage() {
   
   const canApprove = isSupervisor;
 
-  const submissionsQuery = useMemoFirebase(() => {
-    if (!firestore || !userRole || !userProfile) return null;
-
-    const baseQuery = query(
-      collection(firestore, 'submissions'),
-      where('statusId', '==', 'submitted')
-    );
-
-    if (isAdmin) {
-      return baseQuery;
-    }
-    
-    // For all other supervisor roles, filter by their scope.
-    // This now correctly includes Campus Directors, ODIMOs, and VPs who all have a campusId.
-    if (isSupervisor && userProfile.campusId) {
-      return query(baseQuery, where('campusId', '==', userProfile.campusId));
-    }
-    
-    if (userRole === 'Unit ODIMO' && userProfile.unitId) {
-      return query(baseQuery, where('unitId', '==', userProfile.unitId));
+  useEffect(() => {
+    if (!firestore || !userRole || !userProfile) {
+      setIsLoading(false);
+      return;
     }
 
-    return null; // Return null if no valid query can be constructed
-  }, [firestore, userRole, userProfile, isAdmin, isSupervisor]);
+    const fetchSubmissions = async () => {
+      setIsLoading(true);
+      let submissionsQuery: Query | null = null;
+      const baseQuery = query(
+        collection(firestore, 'submissions'),
+        where('statusId', '==', 'submitted')
+      );
 
+      if (isAdmin) {
+        submissionsQuery = baseQuery;
+      } else if (isVp) {
+        if (allUnits) {
+          const vpUnitIds = allUnits.filter(u => u.vicePresidentId === userProfile.id).map(u => u.id);
+          if (vpUnitIds.length > 0) {
+            submissionsQuery = query(baseQuery, where('unitId', 'in', vpUnitIds));
+          } else {
+            setSubmissions([]); // VP has no units, so no submissions to approve
+          }
+        }
+      } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
+        submissionsQuery = query(baseQuery, where('campusId', '==', userProfile.campusId));
+      } else if (userRole === 'Unit ODIMO') {
+        submissionsQuery = query(baseQuery, where('unitId', '==', userProfile.unitId));
+      }
 
-  const { data: rawSubmissions, isLoading } = useCollection<Submission>(submissionsQuery);
+      if (submissionsQuery) {
+        const snapshot = await getDocs(submissionsQuery);
+        const fetchedSubmissions = snapshot.docs.map(doc => {
+          const data = doc.data() as Submission;
+          const submissionDate = data.submissionDate instanceof Timestamp
+              ? data.submissionDate.toDate()
+              : new Date((data.submissionDate as any)?.seconds * 1000);
+          return { ...data, id: doc.id, submissionDate };
+        });
 
-  const submissions = useMemo(() => {
-    if (!rawSubmissions || !userProfile) return [];
+        // CRITICAL: For ALL approvers, exclude submissions they made themselves.
+        const filtered = fetchedSubmissions.filter(s => s.userId !== userProfile.id);
+        setSubmissions(filtered);
+      }
+      setIsLoading(false);
+    };
+
+    // We need allUnits to be loaded before fetching for VPs
+    if (isVp && isLoadingUnits) {
+        // Wait for units to load
+    } else {
+        fetchSubmissions();
+    }
     
-    const fetchedSubmissions = rawSubmissions.map((s) => {
-        const data = s;
-        const submissionDateRaw = data.submissionDate;
-        const submissionDate =
-          submissionDateRaw instanceof Timestamp
-            ? submissionDateRaw.toDate()
-            : new Date((submissionDateRaw as any)?.seconds * 1000);
-        return {
-          ...data,
-          submissionDate,
-        } as Submission;
-      });
-
-    // CRITICAL: For ALL approvers (Admins, VPs, Directors, etc.),
-    // exclude submissions they made themselves.
-    return fetchedSubmissions.filter(s => s.userId !== userProfile.id);
-
-  }, [rawSubmissions, userProfile]);
+  }, [firestore, userRole, userProfile, isAdmin, isVp, allUnits, isLoadingUnits]);
 
 
   // Effect to fetch users for the loaded submissions
@@ -413,5 +422,3 @@ export default function ApprovalsPage() {
     </TooltipProvider>
   );
 }
-
-    
