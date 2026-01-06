@@ -77,8 +77,10 @@ export default function ApprovalsPage() {
   const canApprove = isSupervisor;
 
   useEffect(() => {
-    if (!firestore || !userRole || !userProfile || (isVp && isLoadingUnits)) {
-        setIsLoading(false);
+    // We must wait for all dependencies to be loaded before proceeding.
+    if (!firestore || !userRole || !userProfile || isLoadingUnits) {
+        // If we are still waiting on data, but the main loading state is not set, set it.
+        if (!isLoading) setIsLoading(true);
         return;
     }
 
@@ -90,9 +92,12 @@ export default function ApprovalsPage() {
         if (isAdmin) {
             submissionsQuery = baseQuery;
         } else if (isVp) {
-            const vpUnitIds = allUnits?.filter(u => u.vicePresidentId === userProfile.id).map(u => u.id) || [];
-            if (vpUnitIds.length > 0) {
-                submissionsQuery = query(baseQuery, where('unitId', 'in', vpUnitIds));
+            // Ensure allUnits is loaded and contains data before proceeding for VPs
+            if (allUnits && allUnits.length > 0) {
+                const vpUnitIds = allUnits.filter(u => u.vicePresidentId === userProfile.id).map(u => u.id);
+                if (vpUnitIds.length > 0) {
+                    submissionsQuery = query(baseQuery, where('unitId', 'in', vpUnitIds));
+                }
             }
         } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
             submissionsQuery = query(baseQuery, where('campusId', '==', userProfile.campusId));
@@ -121,7 +126,8 @@ export default function ApprovalsPage() {
                 toast({ title: "Error", description: "Could not fetch approval queue.", variant: "destructive"});
             }
         } else {
-            setSubmissions([]); // Clear if no valid query could be built
+            // If no valid query could be built (e.g., a VP with no assigned units), clear submissions.
+            setSubmissions([]);
         }
 
         setIsLoading(false);
@@ -421,7 +427,3 @@ export default function ApprovalsPage() {
     </TooltipProvider>
   );
 }
-
-    
-
-    
