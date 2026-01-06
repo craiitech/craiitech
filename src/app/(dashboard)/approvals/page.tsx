@@ -78,7 +78,9 @@ export default function ApprovalsPage() {
   const canApprove = isSupervisor;
 
   useEffect(() => {
-    if (!firestore || !userRole || !userProfile) {
+    // We only need firestore and the user's role to start.
+    // The userProfile might load slightly after, which is fine for non-admin roles.
+    if (!firestore || !userRole) {
       setIsLoading(false);
       return;
     }
@@ -91,41 +93,56 @@ export default function ApprovalsPage() {
         where('statusId', '==', 'submitted')
       );
 
+      // Admin case is simplest and should run immediately
       if (isAdmin) {
         submissionsQuery = baseQuery;
-      } else if (isVp) {
-        if (allUnits) {
-          const vpUnitIds = allUnits.filter(u => u.vicePresidentId === userProfile.id).map(u => u.id);
-          if (vpUnitIds.length > 0) {
-            submissionsQuery = query(baseQuery, where('unitId', 'in', vpUnitIds));
-          } else {
-            setSubmissions([]); // VP has no units, so no submissions to approve
+      } 
+      // For all other roles, we MUST wait for the userProfile to be loaded
+      else if (userProfile) {
+          if (isVp) {
+            // Wait for units to be loaded for VPs
+            if (allUnits) {
+                const vpUnitIds = allUnits.filter(u => u.vicePresidentId === userProfile.id).map(u => u.id);
+                if (vpUnitIds.length > 0) {
+                    submissionsQuery = query(baseQuery, where('unitId', 'in', vpUnitIds));
+                } else {
+                    setSubmissions([]); // VP has no units, so no submissions to approve
+                }
+            }
+          } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
+            submissionsQuery = query(baseQuery, where('campusId', '==', userProfile.campusId));
+          } else if (userRole === 'Unit ODIMO') {
+            submissionsQuery = query(baseQuery, where('unitId', '==', userProfile.unitId));
           }
-        }
-      } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-        submissionsQuery = query(baseQuery, where('campusId', '==', userProfile.campusId));
-      } else if (userRole === 'Unit ODIMO') {
-        submissionsQuery = query(baseQuery, where('unitId', '==', userProfile.unitId));
       }
 
       if (submissionsQuery) {
-        const snapshot = await getDocs(submissionsQuery);
-        const fetchedSubmissions = snapshot.docs.map(doc => {
-          const data = doc.data() as Submission;
-          const submissionDate = data.submissionDate instanceof Timestamp
-              ? data.submissionDate.toDate()
-              : new Date((data.submissionDate as any)?.seconds * 1000);
-          return { ...data, id: doc.id, submissionDate };
-        });
+        try {
+          const snapshot = await getDocs(submissionsQuery);
+          let fetchedSubmissions = snapshot.docs.map(doc => {
+            const data = doc.data() as Submission;
+            const submissionDate = data.submissionDate instanceof Timestamp
+                ? data.submissionDate.toDate()
+                : new Date((data.submissionDate as any)?.seconds * 1000);
+            return { ...data, id: doc.id, submissionDate };
+          });
 
-        // CRITICAL: For ALL approvers, exclude submissions they made themselves.
-        const filtered = fetchedSubmissions.filter(s => s.userId !== userProfile.id);
-        setSubmissions(filtered);
+          // CRITICAL: For ALL approvers, exclude submissions they made themselves.
+          if (userProfile) {
+            fetchedSubmissions = fetchedSubmissions.filter(s => s.userId !== userProfile.id);
+          }
+          
+          setSubmissions(fetchedSubmissions);
+        } catch(e) {
+          console.error("Failed to fetch submissions:", e);
+          toast({ title: "Error", description: "Could not fetch approval queue.", variant: "destructive"});
+        }
+
       }
       setIsLoading(false);
     };
-
-    // We need allUnits to be loaded before fetching for VPs
+    
+    // For VPs, wait until the units are loaded before fetching. For other roles, fetch immediately.
     if (isVp && isLoadingUnits) {
         // Wait for units to load
     } else {
@@ -185,6 +202,8 @@ export default function ApprovalsPage() {
         action: 'approve_submission',
         details: { submissionId: submission.id },
       });
+      // Refresh the list by filtering out the approved one
+      setSubmissions(prev => prev.filter(s => s.id !== submission.id));
     } catch (error) {
       console.error('Error approving submission:', error);
       toast({
@@ -239,6 +258,8 @@ export default function ApprovalsPage() {
         description: `Submission has been rejected.`,
       });
       setIsDialogOpen(false);
+      // Refresh the list by filtering out the rejected one
+      setSubmissions(prev => prev.filter(s => s.id !== currentSubmission.id));
     } catch (error) {
       console.error('Error rejecting submission:', error);
       toast({
