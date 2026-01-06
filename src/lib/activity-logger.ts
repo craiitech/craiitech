@@ -1,22 +1,7 @@
 
 'use server';
 
-import * as admin from 'firebase-admin';
-
-const ADMIN_APP_NAME = 'firebase-admin-activity-logger';
-
-// Helper function to initialize and get the admin app
-function getAdminApp(): admin.app.App {
-  if (admin.apps.some(app => app?.name === ADMIN_APP_NAME)) {
-    return admin.app(ADMIN_APP_NAME);
-  }
-  
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT!);
-  
-  return admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  }, ADMIN_APP_NAME);
-}
+import { getAdminFirestore } from '@/firebase/admin';
 
 /**
  * Logs a user activity to the 'activityLogs' collection in Firestore.
@@ -40,8 +25,7 @@ export async function logUserActivity(
   }
 
   try {
-    const adminApp = getAdminApp();
-    const firestore = admin.firestore(adminApp);
+    const firestore = getAdminFirestore();
     const logCollection = firestore.collection('activityLogs');
     await logCollection.add({
       userId,
@@ -49,7 +33,7 @@ export async function logUserActivity(
       userRole,
       action,
       details,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      timestamp: firestore.FieldValue.serverTimestamp(),
     });
   } catch (error) {
     console.error('Failed to log user activity:', error);
