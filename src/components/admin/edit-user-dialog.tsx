@@ -239,7 +239,7 @@ export function EditUserDialog({
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a campus" />
-                      </Trigger>
+                      </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {campuses.map((campus) => (
