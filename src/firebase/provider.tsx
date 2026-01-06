@@ -154,7 +154,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const isAdmin = !!adminRoleDoc;
     const isVp = !!userRole?.toLowerCase().includes('vice president');
     
-    // Corrected supervisorRoles array to include all roles with approval power.
     const supervisorRoles = ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit ODIMO', 'Vice President'];
     const isSupervisor = isAdmin || (userRole ? supervisorRoles.some(role => userRole.includes(role)) : false);
 
