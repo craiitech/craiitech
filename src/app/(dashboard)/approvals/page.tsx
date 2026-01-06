@@ -77,33 +77,33 @@ export default function ApprovalsPage() {
   const canApprove = isSupervisor;
 
   useEffect(() => {
-    if (!firestore || !userRole) {
+    if (!firestore || !userRole || !userProfile) {
         setIsLoading(false);
         return;
     }
 
     const fetchSubmissions = async () => {
         setIsLoading(true);
-        let submissionsQuery: Query | null = null;
         const baseQuery = query(collection(firestore, 'submissions'), where('statusId', '==', 'submitted'));
+        let submissionsQuery: Query | null = null;
 
         if (isAdmin) {
             submissionsQuery = baseQuery;
         } else if (isVp) {
-            if (userProfile && allUnits) {
+            if (allUnits) {
                 const vpUnitIds = allUnits.filter(u => u.vicePresidentId === userProfile.id).map(u => u.id);
                 if (vpUnitIds.length > 0) {
                     submissionsQuery = query(baseQuery, where('unitId', 'in', vpUnitIds));
+                } else {
+                    setSubmissions([]); // VP has no units, so no submissions to see
+                    setIsLoading(false);
+                    return;
                 }
             }
         } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-            if (userProfile?.campusId) {
-                submissionsQuery = query(baseQuery, where('campusId', '==', userProfile.campusId));
-            }
+            submissionsQuery = query(baseQuery, where('campusId', '==', userProfile.campusId));
         } else if (userRole === 'Unit ODIMO') {
-            if (userProfile?.unitId) {
-                submissionsQuery = query(baseQuery, where('unitId', '==', userProfile.unitId));
-            }
+            submissionsQuery = query(baseQuery, where('unitId', '==', userProfile.unitId));
         }
 
         if (submissionsQuery) {
@@ -117,9 +117,8 @@ export default function ApprovalsPage() {
                     return { ...data, id: doc.id, submissionDate };
                 });
 
-                if (userProfile) {
-                    fetchedSubmissions = fetchedSubmissions.filter(s => s.userId !== userProfile.id);
-                }
+                // Supervisors should not approve their own submissions
+                fetchedSubmissions = fetchedSubmissions.filter(s => s.userId !== userProfile.id);
                 
                 setSubmissions(fetchedSubmissions);
             } catch(e) {
@@ -127,21 +126,18 @@ export default function ApprovalsPage() {
                 toast({ title: "Error", description: "Could not fetch approval queue.", variant: "destructive"});
             }
         } else {
-            setSubmissions([]); // Clear if no valid query could be built
+            setSubmissions([]); // Clear if no valid query could be built (e.g. supervisor with no campus/unit)
         }
 
         setIsLoading(false);
     };
 
-    // We only proceed if we have the necessary data for the role.
-    if (isAdmin) {
-        fetchSubmissions();
-    } else if (isVp && !isLoadingUnits && userProfile) {
-        fetchSubmissions();
-    } else if (userProfile) { // For other roles that depend on userProfile
-        fetchSubmissions();
-    } else {
-        setIsLoading(false);
+    // Make sure we have the data we need before fetching.
+    // isVp depends on allUnits, so wait for that to be loaded.
+    if (isVp && !isLoadingUnits) {
+      fetchSubmissions();
+    } else if (!isVp) {
+      fetchSubmissions();
     }
     
   }, [firestore, userRole, userProfile, isAdmin, isVp, allUnits, isLoadingUnits]);
