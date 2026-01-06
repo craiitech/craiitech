@@ -66,19 +66,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!firestore || !userProfile || !userRole) return null;
     const submissionsCollection = collection(firestore, 'submissions');
 
-    if (isSupervisor) {
-      if (isAdmin) return query(submissionsCollection, where('statusId', '==', 'submitted'));
-      if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-        if (!userProfile.campusId) return null;
-        return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
-      }
-      if (userRole === 'Unit ODIMO') {
-        if (!userProfile.unitId) return null;
-        return query(submissionsCollection, where('unitId', '==', userProfile.unitId), where('statusId', '==', 'submitted'));
-      }
+    // Admin should see all pending submissions. This check is now first and independent.
+    if (isAdmin) {
+      return query(submissionsCollection, where('statusId', '==', 'submitted'));
     }
 
-    // Employees get notifications for rejected submissions
+    // Other supervisors (Campus Director, ODIMOs, VPs)
+    if (isSupervisor) {
+        if (userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president')) {
+            if (!userProfile.campusId) return null;
+            return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
+        }
+        if (userRole === 'Unit ODIMO') {
+            if (!userProfile.unitId) return null;
+            return query(submissionsCollection, where('unitId', '==', userProfile.unitId), where('statusId', '==', 'submitted'));
+        }
+    }
+    
+    // Regular employees get notifications for their own rejected submissions
     return query(submissionsCollection, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
   }
 
@@ -89,9 +94,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const notificationCount = useMemo(() => {
     if (!notifications || !userProfile) return 0;
-    if (isSupervisor) return notifications.filter(s => s.userId !== userProfile.id).length;
+    // For supervisors, filter out their own submissions from the notification count.
+    if (isSupervisor) {
+        return notifications.filter(s => s.userId !== userProfile.id).length;
+    }
     return notifications.length;
   }, [notifications, isSupervisor, userProfile]);
+
 
   const userLocation = useMemo(() => {
     if (!userProfile || !campuses || !units) return '';
