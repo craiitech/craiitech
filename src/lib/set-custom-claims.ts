@@ -1,7 +1,18 @@
 
 'use server';
 
-import { getAdminAuth } from '@/firebase/admin';
+import { getApps, initializeApp, type App, credential } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+
+// Helper function to initialize and get the admin app
+function getAdminApp(): App {
+  if (getApps().length > 0) {
+    return getApps()[0];
+  }
+  return initializeApp({
+    credential: credential.applicationDefault(),
+  });
+}
 
 interface SetClaimsPayload {
     uid: string;
@@ -22,7 +33,9 @@ export async function setCustomClaims(payload: SetClaimsPayload): Promise<{ succ
     }
 
     try {
-        const auth = await getAdminAuth();
+        const adminApp = getAdminApp();
+        const auth = getAuth(adminApp);
+        
         // Fetch existing claims to avoid overwriting them
         const { customClaims: existingClaims } = await auth.getUser(uid);
 

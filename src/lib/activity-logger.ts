@@ -1,8 +1,18 @@
 
 'use server';
 
-import { getAdminFirestore } from '@/firebase/admin';
-import { serverTimestamp } from 'firebase-admin/firestore';
+import { getApps, initializeApp, type App, credential } from 'firebase-admin/app';
+import { getFirestore, serverTimestamp } from 'firebase-admin/firestore';
+
+// Helper function to initialize and get the admin app
+function getAdminApp(): App {
+  if (getApps().length > 0) {
+    return getApps()[0];
+  }
+  return initializeApp({
+    credential: credential.applicationDefault(),
+  });
+}
 
 /**
  * Logs a user activity to the 'activityLogs' collection in Firestore.
@@ -26,7 +36,8 @@ export async function logUserActivity(
   }
 
   try {
-    const firestore = await getAdminFirestore();
+    const adminApp = getAdminApp();
+    const firestore = getFirestore(adminApp);
     const logCollection = firestore.collection('activityLogs');
     await logCollection.add({
       userId,
