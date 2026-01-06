@@ -52,6 +52,8 @@ import {
 } from '@/components/ui/tooltip';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Input } from '../ui/input';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 type FilterStatus = 'all' | 'pending' | 'verified';
@@ -206,11 +208,12 @@ export function UserManagement() {
 
     } catch (error) {
       console.error('Error updating user status:', error);
-      toast({
-        title: 'Error',
-        description: 'Could not update user status.',
-        variant: 'destructive',
+       const contextualError = new FirestorePermissionError({
+          path: userRef.path, // The primary path being written to.
+          operation: 'write',
+          requestResourceData: { verified: newStatus, role: roleName }
       });
+      errorEmitter.emit('permission-error', contextualError);
     }
   };
 
