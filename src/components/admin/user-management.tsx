@@ -177,12 +177,12 @@ export function UserManagement() {
   const handleToggleActivation = async (userToToggle: User) => {
     if (!firestore) return;
     const newStatus = !userToToggle.verified;
+    const roleName = userToToggle.role?.toLowerCase();
     
     const batch = writeBatch(firestore);
     const userRef = doc(firestore, 'users', userToToggle.id);
     batch.update(userRef, { verified: newStatus });
 
-    const roleName = userToToggle.role?.toLowerCase();
     let roleCollectionName: string | null = null;
     if (roleName === 'admin') roleCollectionName = 'roles_admin';
     if (roleName === 'campus odimo' || roleName === 'campus director') roleCollectionName = 'roles_campus_odimo';
