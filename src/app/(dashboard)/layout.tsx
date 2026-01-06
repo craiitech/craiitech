@@ -1,4 +1,3 @@
-
 'use client';
 
 import { redirect, usePathname } from 'next/navigation';
@@ -109,7 +108,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 
   useEffect(() => {
-    // 1. Wait until all user data has finished loading. This is the crucial first step.
+    // 1. Wait until all user data has finished loading.
     if (isUserLoading) {
       return;
     }
@@ -119,8 +118,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       redirect('/login');
       return;
     }
-
-    // 3. If the user is an admin, do nothing else. Let them access the page.
+    
+    // 3. If the user is an admin, do nothing else. Let them access any dashboard page.
     if (isAdmin) {
       return;
     }
@@ -129,8 +128,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
       return;
     }
-
-    // 5. At this point, the user is loaded, is NOT an admin, and is not on a special page.
+    
+    // 5. At this point, the user is loaded and is NOT an admin.
     // Now we can safely check their profile status.
     if (userProfile) {
       const isVP = userRole?.toLowerCase().includes('vice president');
@@ -155,7 +154,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return;
       }
     } else {
-      // If the profile is still null after loading (and user is not admin), they are a new user.
+      // If the profile is still null after loading, they are a new user needing to register.
       redirect('/complete-registration');
     }
   }, [user, userProfile, isUserLoading, isAdmin, userRole, pathname]);
