@@ -61,6 +61,10 @@ export default function ApprovalsPage() {
   const { logSessionActivity } = useSessionActivity();
 
   const [users, setUsers] = useState<Record<string, AppUser>>({});
+  
+  const allUnitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
+  const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(allUnitsQuery);
+
 
   // State for the feedback dialog
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -79,7 +83,8 @@ export default function ApprovalsPage() {
       where('statusId', '==', 'submitted')
     );
 
-    if (isAdmin) {
+    if (isAdmin || isVp) {
+      // Admins and VPs initially fetch all submitted documents. VPs will filter client-side.
       return baseQuery;
     }
     
@@ -91,14 +96,6 @@ export default function ApprovalsPage() {
     if (userRole === 'Unit ODIMO') {
       if (!userProfile.unitId) return null;
       return query(baseQuery, where('unitId', '==', userProfile.unitId));
-    }
-
-    if (isVp) {
-        // This is a client-side limitation. A proper implementation for VPs
-        // would require either denormalizing the VP on the submission,
-        // or performing this logic on a backend. We'll show an empty list for now.
-        // The security rules DO correctly enforce this.
-        return query(baseQuery, where('__vp_unqueriable__', '==', true));
     }
 
     return null; // Return null if no valid query can be constructed for the user's role
@@ -123,11 +120,20 @@ export default function ApprovalsPage() {
         } as Submission;
       });
 
+    // Client-side filtering for VPs
+    let vpFilteredSubmissions = fetchedSubmissions;
+    if (isVp && allUnits) {
+        vpFilteredSubmissions = fetchedSubmissions.filter(submission => {
+            const unit = allUnits.find(u => u.id === submission.unitId);
+            return unit?.vicePresidentId === userProfile.id;
+        });
+    }
+
     // CRITICAL FIX: Exclude submissions made by the approver themselves.
     // This applies to ALL roles. An admin shouldn't see their own submission here either.
-    return fetchedSubmissions.filter(s => s.userId !== userProfile.id);
+    return vpFilteredSubmissions.filter(s => s.userId !== userProfile.id);
 
-  }, [rawSubmissions, userProfile]);
+  }, [rawSubmissions, userProfile, isVp, allUnits]);
 
 
   // Effect to fetch users for the loaded submissions
@@ -251,7 +257,7 @@ export default function ApprovalsPage() {
     return user ? `${user.firstName} ${user.lastName}` : 'Loading...';
   };
 
-  if (isLoading) {
+  if (isLoading || isLoadingUnits) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin" />
