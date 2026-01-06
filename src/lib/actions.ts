@@ -5,8 +5,8 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { Role } from './types';
 import { users } from './data';
-import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
-import { getFirestore, serverTimestamp } from 'firebase-admin/firestore';
+import { firestore } from '@/firebase/admin';
+import { serverTimestamp } from 'firebase-admin/firestore';
 
 const AUTH_COOKIE_NAME = 'rsu-eoms-auth';
 
@@ -26,13 +26,6 @@ export async function logout() {
 
 
 // --- Error Reporting Action ---
-
-if (!getApps().length) {
-    initializeApp();
-}
-
-const firestore = getFirestore();
-
 interface ErrorReportPayload {
     errorMessage?: string;
     errorStack?: string;

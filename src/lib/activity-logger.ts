@@ -1,15 +1,8 @@
 
 'use server';
 
-import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
-import { getFirestore, serverTimestamp } from 'firebase-admin/firestore';
-
-// Initialize Firebase Admin SDK if not already initialized
-if (!getApps().length) {
-    initializeApp();
-}
-
-const firestore = getFirestore();
+import { firestore } from '@/firebase/admin';
+import { serverTimestamp } from 'firebase-admin/firestore';
 
 /**
  * Logs a user activity to the 'activityLogs' collection in Firestore.
