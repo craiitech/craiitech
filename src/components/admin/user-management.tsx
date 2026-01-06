@@ -146,7 +146,7 @@ export function UserManagement() {
             case 'role': aValue = getRoleName(a.roleId); bValue = getRoleName(b.roleId); break;
             case 'campus': aValue = getCampusName(a.campusId); bValue = getCampusName(b.campusId); break;
             case 'unit': aValue = getUnitName(a.unitId); bValue = getUnitName(b.unitId); break;
-            default: aValue = a[sortConfig.key]; bValue = b[sortConfig.key];
+            default: aValue = a[sortConfig.key as keyof User]; bValue = b[sortConfig.key as keyof User];
         }
 
         if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
@@ -186,6 +186,7 @@ export function UserManagement() {
 
       if (newStatus) {
         // When activating, set their custom claims.
+        // This is the critical fix: passing userToToggle.role (the name) instead of roleId
         const claimsResult = await setCustomClaims({
           uid: userToToggle.id,
           role: userToToggle.role,
@@ -195,7 +196,9 @@ export function UserManagement() {
         if (claimsResult.success) {
             toast({ title: 'Success', description: 'User account has been activated and permissions set.' });
         } else {
-            toast({ title: 'Activation Partial Success', description: `User activated, but failed to set permissions: ${claimsResult.message}`, variant: 'destructive'});
+            // Rollback verification status if claims fail
+            await updateDoc(userRef, { verified: false });
+            toast({ title: 'Activation Failed', description: `Failed to set permissions: ${claimsResult.message}. User remains inactive.`, variant: 'destructive'});
         }
       } else {
         // When deactivating, clear their claims
@@ -205,9 +208,10 @@ export function UserManagement() {
 
     } catch (error) {
       console.error('Error updating user status:', error);
+      // If the initial DB update fails, show an error.
       toast({
         title: 'Error',
-        description: 'Could not update user status.',
+        description: 'Could not update user status in the database.',
         variant: 'destructive',
       });
     }
