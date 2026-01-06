@@ -177,28 +177,11 @@ export function UserManagement() {
   const handleToggleActivation = async (userToToggle: User) => {
     if (!firestore) return;
     const newStatus = !userToToggle.verified;
-    const roleName = userToToggle.role?.toLowerCase();
     
-    const batch = writeBatch(firestore);
     const userRef = doc(firestore, 'users', userToToggle.id);
-    batch.update(userRef, { verified: newStatus });
-
-    let roleCollectionName: string | null = null;
-    if (roleName === 'admin') roleCollectionName = 'roles_admin';
-    if (roleName === 'campus odimo' || roleName === 'campus director') roleCollectionName = 'roles_campus_odimo';
-    if (roleName === 'unit odimo') roleCollectionName = 'roles_unit_odimo';
-    
-    if (roleCollectionName) {
-        const roleRef = doc(firestore, roleCollectionName, userToToggle.id);
-        if (newStatus) {
-            batch.set(roleRef, { uid: userToToggle.id }); // Activate: add to role collection
-        } else {
-            batch.delete(roleRef); // Deactivate: remove from role collection
-        }
-    }
 
     try {
-      await batch.commit();
+      await updateDoc(userRef, { verified: newStatus });
 
       const action = newStatus ? 'activate_user' : 'deactivate_user';
       const description = `User ${userToToggle.email} has been ${newStatus ? 'activated' : 'deactivated'}.`;
@@ -211,7 +194,7 @@ export function UserManagement() {
        const contextualError = new FirestorePermissionError({
           path: userRef.path, // The primary path being written to.
           operation: 'write',
-          requestResourceData: { verified: newStatus, role: roleName }
+          requestResourceData: { verified: newStatus }
       });
       errorEmitter.emit('permission-error', contextualError);
     }
@@ -458,3 +441,5 @@ export function UserManagement() {
     </>
   );
 }
+
+    

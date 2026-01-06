@@ -119,6 +119,8 @@ export function EditUserDialog({
     const batch = writeBatch(firestore);
     const userRef = doc(firestore, 'users', user.id);
     const selectedRole = roles.find(r => r.id === values.roleId);
+    const newRoleName = selectedRole?.name.toLowerCase() || '';
+    const oldRoleName = user.role.toLowerCase() || '';
     
     const updateData = {
         ...values,
@@ -128,28 +130,29 @@ export function EditUserDialog({
     
     batch.update(userRef, updateData);
 
-    const oldRoleName = user.role.toLowerCase();
-    const newRoleName = selectedRole?.name.toLowerCase();
+    // If the role has changed, update the role collections
+    if (newRoleName !== oldRoleName) {
+        // Delete from the old role collection
+        let oldRoleCollectionName: string | null = null;
+        if (oldRoleName === 'admin') oldRoleCollectionName = 'roles_admin';
+        if (oldRoleName === 'campus odimo' || oldRoleName === 'campus director') oldRoleCollectionName = 'roles_campus_odimo';
+        if (oldRoleName === 'unit odimo') oldRoleCollectionName = 'roles_unit_odimo';
 
-    // Logic to remove from old role collection if it exists
-    let oldRoleCollectionName: string | null = null;
-    if (oldRoleName === 'admin') oldRoleCollectionName = 'roles_admin';
-    if (oldRoleName === 'campus odimo' || oldRoleName === 'campus director') oldRoleCollectionName = 'roles_campus_odimo';
-    if (oldRoleName === 'unit odimo') oldRoleCollectionName = 'roles_unit_odimo';
+        if (oldRoleCollectionName) {
+            batch.delete(doc(firestore, oldRoleCollectionName, user.id));
+        }
 
-    if (oldRoleCollectionName) {
-        batch.delete(doc(firestore, oldRoleCollectionName, user.id));
+        // Add to the new role collection
+        let newRoleCollectionName: string | null = null;
+        if (newRoleName === 'admin') newRoleCollectionName = 'roles_admin';
+        if (newRoleName === 'campus odimo' || newRoleName === 'campus director') newRoleCollectionName = 'roles_campus_odimo';
+        if (newRoleName === 'unit odimo') newRoleCollectionName = 'roles_unit_odimo';
+        
+        if (newRoleCollectionName) {
+            batch.set(doc(firestore, newRoleCollectionName, user.id), { uid: user.id });
+        }
     }
 
-    // Logic to add to new role collection if it exists
-    let newRoleCollectionName: string | null = null;
-    if (newRoleName === 'admin') newRoleCollectionName = 'roles_admin';
-    if (newRoleName === 'campus odimo' || newRoleName === 'campus director') newRoleCollectionName = 'roles_campus_odimo';
-    if (newRoleName === 'unit odimo') newRoleCollectionName = 'roles_unit_odimo';
-    
-    if (newRoleCollectionName) {
-        batch.set(doc(firestore, newRoleCollectionName, user.id), { uid: user.id });
-    }
 
     try {
         await batch.commit();
@@ -292,3 +295,5 @@ export function EditUserDialog({
     </Dialog>
   );
 }
+
+    
