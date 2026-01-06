@@ -122,10 +122,13 @@ export default function HomePage() {
     if (isAdmin) return collection(firestore, 'submissions');
     if (!userProfile) return null;
     if (isSupervisor) {
-      return query(
-        collection(firestore, 'submissions'),
-        where('campusId', '==', userProfile.campusId)
-      );
+      if (userProfile.campusId) {
+        return query(
+          collection(firestore, 'submissions'),
+          where('campusId', '==', userProfile.campusId)
+        );
+      }
+      return null;
     }
     return query(
       collection(firestore, 'submissions'),
@@ -156,18 +159,16 @@ export default function HomePage() {
         return baseRisksQuery;
     }
     if (isSupervisor) {
-        // Supervisors must have a campusId to query by it.
         if (userProfile.campusId) {
             return query(baseRisksQuery, where('campusId', '==', userProfile.campusId));
         }
-        return null; // Don't query if campusId isn't loaded yet.
+        return null; 
     }
-    // Regular users must have a unitId to query by it.
     if (userProfile.unitId) {
         return query(baseRisksQuery, where('unitId', '==', userProfile.unitId));
     }
     
-    return null; // Return null if no valid condition is met.
+    return null; 
   }, [firestore, userProfile, isAdmin, isSupervisor]);
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
@@ -175,17 +176,17 @@ export default function HomePage() {
 
   // Fetch users based on role
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile) return null;
+    if (!firestore) return null;
     if (isAdmin) {
         return collection(firestore, 'users');
     }
-    if (isSupervisor) {
-        if (!userProfile.campusId) return null; // Wait for campusId
+    if (isSupervisor && userProfile?.campusId) {
         return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
     }
-    // Regular users only need their own profile, which is already available in userProfile.
-    // However, to keep allUsersMap populated consistently, we can query for the single user.
-    return query(collection(firestore, 'users'), where('id', '==', userProfile.id));
+    if (userProfile) {
+        return query(collection(firestore, 'users'), where('id', '==', userProfile.id));
+    }
+    return null;
   }, [firestore, isAdmin, isSupervisor, userProfile]);
 
   const { data: allUsersData, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
@@ -195,25 +196,17 @@ export default function HomePage() {
     if (allUsersData) {
         allUsersData.forEach(u => userMap.set(u.id, u));
     }
-    // For regular users, their data might not come from the collection query if it's null
-    if (userProfile && !allUsersData?.find(u => u.id === userProfile.id)) {
+    if (userProfile && !userMap.has(userProfile.id)) {
         userMap.set(userProfile.id, userProfile);
     }
     return userMap;
   }, [allUsersData, userProfile]);
 
 
-  const allUnitsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'units');
-  }, [firestore]);
-
+  const allUnitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(allUnitsQuery);
 
-   const allCampusesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'campuses');
-  }, [firestore]);
+   const allCampusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(allCampusesQuery);
   
   const allCyclesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'cycles') : null, [firestore]);
@@ -230,7 +223,6 @@ export default function HomePage() {
     useDoc(campusSettingsDocRef);
 
   const globalAnnouncementDocRef = useMemoFirebase(() => {
-    // Global announcements should be fetched for all signed-in users
     if (!firestore || !user) return null;
     return doc(firestore, 'campusSettings', 'global');
   }, [firestore, user]);
@@ -485,7 +477,7 @@ export default function HomePage() {
       case 'submitted':
         return <Clock className="h-5 w-5 text-yellow-500" />;
       default:
-        return <Circle className="h-5 w-5 text-muted-foreground" />;
+        return <XCircle className="h-5 w-5 text-muted-foreground" />;
     }
   };
   
@@ -1255,5 +1247,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    

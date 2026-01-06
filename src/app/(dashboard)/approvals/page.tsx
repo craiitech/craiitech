@@ -68,7 +68,6 @@ export default function ApprovalsPage() {
   const allUnitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(allUnitsQuery);
 
-  // State for the feedback dialog
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentSubmission, setCurrentSubmission] =
     useState<Submission | null>(null);
@@ -78,76 +77,76 @@ export default function ApprovalsPage() {
   const canApprove = isSupervisor;
 
   useEffect(() => {
-    // Only proceed when firestore is available. Other dependencies will be checked inside.
-    if (!firestore) {
-      setIsLoading(false);
-      return;
+    if (!firestore || !userRole) {
+        setIsLoading(false);
+        return;
     }
 
     const fetchSubmissions = async () => {
-      setIsLoading(true);
-      setSubmissions([]); // Clear previous state on new fetch
-      
-      let submissionsQuery: Query | null = null;
-      const baseQuery = query(
-        collection(firestore, 'submissions'),
-        where('statusId', '==', 'submitted')
-      );
+        setIsLoading(true);
+        let submissionsQuery: Query | null = null;
+        const baseQuery = query(collection(firestore, 'submissions'), where('statusId', '==', 'submitted'));
 
-      // Prioritize Admin role to prevent race conditions.
-      if (isAdmin) {
-        submissionsQuery = baseQuery;
-      } 
-      // For all other roles, we might need userProfile or other data.
-      else if (userRole && userProfile) {
-          if (isVp) {
-            if (allUnits) { // Wait for units to be loaded for VPs
+        if (isAdmin) {
+            submissionsQuery = baseQuery;
+        } else if (isVp) {
+            if (userProfile && allUnits) {
                 const vpUnitIds = allUnits.filter(u => u.vicePresidentId === userProfile.id).map(u => u.id);
                 if (vpUnitIds.length > 0) {
                     submissionsQuery = query(baseQuery, where('unitId', 'in', vpUnitIds));
                 }
             }
-          } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-            submissionsQuery = query(baseQuery, where('campusId', '==', userProfile.campusId));
-          } else if (userRole === 'Unit ODIMO') {
-            submissionsQuery = query(baseQuery, where('unitId', '==', userProfile.unitId));
-          }
-      }
-
-      if (submissionsQuery) {
-        try {
-          const snapshot = await getDocs(submissionsQuery);
-          let fetchedSubmissions = snapshot.docs.map(doc => {
-            const data = doc.data() as Submission;
-            const submissionDate = data.submissionDate instanceof Timestamp
-                ? data.submissionDate.toDate()
-                : new Date((data.submissionDate as any)?.seconds * 1000);
-            return { ...data, id: doc.id, submissionDate };
-          });
-
-          // CRITICAL: For ALL approvers, exclude submissions they made themselves.
-          // This filter runs after fetching the data.
-          if (userProfile) {
-            fetchedSubmissions = fetchedSubmissions.filter(s => s.userId !== userProfile.id);
-          }
-          
-          setSubmissions(fetchedSubmissions);
-        } catch(e) {
-          console.error("Failed to fetch submissions:", e);
-          toast({ title: "Error", description: "Could not fetch approval queue.", variant: "destructive"});
+        } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
+            if (userProfile?.campusId) {
+                submissionsQuery = query(baseQuery, where('campusId', '==', userProfile.campusId));
+            }
+        } else if (userRole === 'Unit ODIMO') {
+            if (userProfile?.unitId) {
+                submissionsQuery = query(baseQuery, where('unitId', '==', userProfile.unitId));
+            }
         }
-      }
-      setIsLoading(false);
+
+        if (submissionsQuery) {
+            try {
+                const snapshot = await getDocs(submissionsQuery);
+                let fetchedSubmissions = snapshot.docs.map(doc => {
+                    const data = doc.data() as Submission;
+                    const submissionDate = data.submissionDate instanceof Timestamp
+                        ? data.submissionDate.toDate()
+                        : new Date((data.submissionDate as any)?.seconds * 1000);
+                    return { ...data, id: doc.id, submissionDate };
+                });
+
+                if (userProfile) {
+                    fetchedSubmissions = fetchedSubmissions.filter(s => s.userId !== userProfile.id);
+                }
+                
+                setSubmissions(fetchedSubmissions);
+            } catch(e) {
+                console.error("Failed to fetch submissions:", e);
+                toast({ title: "Error", description: "Could not fetch approval queue.", variant: "destructive"});
+            }
+        } else {
+            setSubmissions([]); // Clear if no valid query could be built
+        }
+
+        setIsLoading(false);
     };
+
+    // We only proceed if we have the necessary data for the role.
+    if (isAdmin) {
+        fetchSubmissions();
+    } else if (isVp && !isLoadingUnits && userProfile) {
+        fetchSubmissions();
+    } else if (userProfile) { // For other roles that depend on userProfile
+        fetchSubmissions();
+    } else {
+        setIsLoading(false);
+    }
     
-    // The main condition to re-fetch is when the user's role or profile changes.
-    // For VPs, we also need to wait for the units list.
-    fetchSubmissions();
-    
-  }, [firestore, userRole, userProfile, isAdmin, isVp, allUnits]);
+  }, [firestore, userRole, userProfile, isAdmin, isVp, allUnits, isLoadingUnits]);
 
 
-  // Effect to fetch users for the loaded submissions
   useEffect(() => {
     if (!firestore || !submissions || submissions.length === 0) return;
 
@@ -213,7 +212,7 @@ export default function ApprovalsPage() {
     submission: Submission,
   ) => {
     setCurrentSubmission(submission);
-    setFeedback(''); // Clear feedback for new rejection
+    setFeedback(''); 
     setIsDialogOpen(true);
   };
 
@@ -253,7 +252,6 @@ export default function ApprovalsPage() {
         description: `Submission has been rejected.`,
       });
       setIsDialogOpen(false);
-      // Refresh the list by filtering out the rejected one
       setSubmissions(prev => prev.filter(s => s.id !== currentSubmission.id));
     } catch (error) {
       console.error('Error rejecting submission:', error);
