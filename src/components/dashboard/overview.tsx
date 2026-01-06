@@ -42,7 +42,8 @@ export function Overview({ submissions, isLoading }: OverviewProps) {
       submissions.forEach((submission) => {
         // This is a more robust check for a valid date
         const submissionDate = new Date(submission.submissionDate);
-        if (submissionDate && !isNaN(submissionDate.getTime())) {
+        if (submissionDate && 
+!isNaN(submissionDate.getTime())) {
             const monthKey = format(submissionDate, 'yyyy-MM');
             if (monthlyData[monthKey]) {
               monthlyData[monthKey].total += 1;
