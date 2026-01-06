@@ -40,7 +40,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import type { User, Role, Campus, Unit } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { EditUserDialog } from './edit-user-dialog';
@@ -51,7 +51,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useSessionActivity } from '@/lib/activity-log-provider';
-import { setCustomClaims } from '@/lib/set-custom-claims';
 import { Input } from '../ui/input';
 
 
@@ -176,42 +175,40 @@ export function UserManagement() {
   const handleToggleActivation = async (userToToggle: User) => {
     if (!firestore) return;
     const newStatus = !userToToggle.verified;
+    
+    const batch = writeBatch(firestore);
     const userRef = doc(firestore, 'users', userToToggle.id);
+    batch.update(userRef, { verified: newStatus });
+
+    const roleName = userToToggle.role?.toLowerCase();
+    let roleCollectionName: string | null = null;
+    if (roleName === 'admin') roleCollectionName = 'roles_admin';
+    if (roleName === 'campus odimo' || roleName === 'campus director') roleCollectionName = 'roles_campus_odimo';
+    if (roleName === 'unit odimo') roleCollectionName = 'roles_unit_odimo';
+    
+    if (roleCollectionName) {
+        const roleRef = doc(firestore, roleCollectionName, userToToggle.id);
+        if (newStatus) {
+            batch.set(roleRef, { uid: userToToggle.id }); // Activate: add to role collection
+        } else {
+            batch.delete(roleRef); // Deactivate: remove from role collection
+        }
+    }
+
     try {
-      await updateDoc(userRef, { verified: newStatus });
-      
+      await batch.commit();
+
       const action = newStatus ? 'activate_user' : 'deactivate_user';
       const description = `User ${userToToggle.email} has been ${newStatus ? 'activated' : 'deactivated'}.`;
       logSessionActivity(description, { action, details: { affectedUserId: userToToggle.id }});
 
-      if (newStatus) {
-        // When activating, set their custom claims.
-        // This is the critical fix: passing userToToggle.role (the name) instead of roleId
-        const claimsResult = await setCustomClaims({
-          uid: userToToggle.id,
-          role: userToToggle.role,
-          campusId: userToToggle.campusId,
-        });
-
-        if (claimsResult.success) {
-            toast({ title: 'Success', description: 'User account has been activated and permissions set.' });
-        } else {
-            // Rollback verification status if claims fail
-            await updateDoc(userRef, { verified: false });
-            toast({ title: 'Activation Failed', description: `Failed to set permissions: ${claimsResult.message}. User remains inactive.`, variant: 'destructive'});
-        }
-      } else {
-        // When deactivating, clear their claims
-        await setCustomClaims({ uid: userToToggle.id, role: null, campusId: null });
-        toast({ title: 'Success', description: 'User account has been deactivated.' });
-      }
+      toast({ title: 'Success', description: 'User status has been updated.' });
 
     } catch (error) {
       console.error('Error updating user status:', error);
-      // If the initial DB update fails, show an error.
       toast({
         title: 'Error',
-        description: 'Could not update user status in the database.',
+        description: 'Could not update user status.',
         variant: 'destructive',
       });
     }

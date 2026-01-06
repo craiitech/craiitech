@@ -1,43 +1,11 @@
 
 'use server';
 
-import { getAdminAuth } from '@/firebase/admin';
+// This file is no longer needed as the authorization model has been changed to be purely database-driven.
+// Keeping it to prevent import errors in case it's referenced somewhere unexpectedly,
+// but its functionality is now handled by Firestore security rules and role collections.
 
-interface SetClaimsPayload {
-    uid: string;
-    role?: string | null;
-    campusId?: string | null;
-}
-
-/**
- * Sets custom claims on a Firebase user.
- * This is a server action and should only be called from trusted server environments.
- * @param payload - An object containing the user's UID and the claims to set.
- */
-export async function setCustomClaims(payload: SetClaimsPayload): Promise<{ success: boolean; message: string }> {
-    const { uid, role, campusId } = payload;
-    
-    if (!uid) {
-        return { success: false, message: 'User ID is required.' };
-    }
-
-    try {
-        const auth = getAdminAuth();
-        
-        // Fetch existing claims to avoid overwriting them
-        const { customClaims: existingClaims } = await auth.getUser(uid);
-
-        const newClaims = {
-            ...existingClaims,
-            role: role || null,
-            campusId: campusId || null,
-        };
-
-        await auth.setCustomUserClaims(uid, newClaims);
-        console.log(`Successfully set custom claims for user ${uid}:`, newClaims);
-        return { success: true, message: 'Custom claims updated successfully.' };
-    } catch (error: any) {
-        console.error('Error setting custom claims:', error.message);
-        return { success: false, message: `Failed to set custom claims: ${error.message}` };
-    }
+export async function setCustomClaims(payload: any): Promise<{ success: boolean; message: string }> {
+    console.warn("setCustomClaims is deprecated and should no longer be used.");
+    return { success: true, message: 'This function is deprecated.' };
 }

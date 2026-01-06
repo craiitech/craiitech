@@ -30,16 +30,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useAuth } from '@/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { User, Role, Campus, Unit } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { setCustomClaims } from '@/lib/set-custom-claims';
-import { getAuth } from 'firebase/auth';
-
 
 interface EditUserDialogProps {
   user: User;
@@ -121,6 +116,7 @@ export function EditUserDialog({
 
     setIsSubmitting(true);
     
+    const batch = writeBatch(firestore);
     const userRef = doc(firestore, 'users', user.id);
     const selectedRole = roles.find(r => r.id === values.roleId);
     
@@ -129,42 +125,44 @@ export function EditUserDialog({
         unitId: isUnitRequired ? values.unitId : '',
         role: selectedRole ? selectedRole.name : '',
     };
+    
+    batch.update(userRef, updateData);
+
+    const oldRoleName = user.role.toLowerCase();
+    const newRoleName = selectedRole?.name.toLowerCase();
+
+    // Logic to remove from old role collection if it exists
+    let oldRoleCollectionName: string | null = null;
+    if (oldRoleName === 'admin') oldRoleCollectionName = 'roles_admin';
+    if (oldRoleName === 'campus odimo' || oldRoleName === 'campus director') oldRoleCollectionName = 'roles_campus_odimo';
+    if (oldRoleName === 'unit odimo') oldRoleCollectionName = 'roles_unit_odimo';
+
+    if (oldRoleCollectionName) {
+        batch.delete(doc(firestore, oldRoleCollectionName, user.id));
+    }
+
+    // Logic to add to new role collection if it exists
+    let newRoleCollectionName: string | null = null;
+    if (newRoleName === 'admin') newRoleCollectionName = 'roles_admin';
+    if (newRoleName === 'campus odimo' || newRoleName === 'campus director') newRoleCollectionName = 'roles_campus_odimo';
+    if (newRoleName === 'unit odimo') newRoleCollectionName = 'roles_unit_odimo';
+    
+    if (newRoleCollectionName) {
+        batch.set(doc(firestore, newRoleCollectionName, user.id), { uid: user.id });
+    }
 
     try {
-        await updateDoc(userRef, updateData);
+        await batch.commit();
 
-        // After successfully updating Firestore, set the custom claims.
-        const claimsResult = await setCustomClaims({
-            uid: user.id,
-            role: updateData.role,
-            campusId: updateData.campusId,
+        toast({
+            title: 'User Updated',
+            description: `${values.firstName} ${values.lastName}'s profile and role have been updated.`,
         });
-
-        if (claimsResult.success) {
-            toast({
-                title: 'User Updated',
-                description: `${values.firstName} ${values.lastName}'s profile and permissions have been updated.`,
-            });
-            // Force a token refresh on the client if the current user is being edited
-            if (auth?.currentUser && auth.currentUser.uid === user.id) {
-                await auth.currentUser.getIdToken(true);
-            }
-        } else {
-             toast({
-                title: 'Partial Success: Profile Updated',
-                description: `User profile was saved, but permissions failed to update: ${claimsResult.message}`,
-                variant: 'destructive',
-            });
-        }
-
+        
         onOpenChange(false);
     } catch (error) {
          console.error('Error updating user:', error);
-         errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: userRef.path,
-            operation: 'update',
-            requestResourceData: updateData
-        }));
+         toast({ title: 'Error', description: 'Could not update user.', variant: 'destructive'});
     } finally {
         setIsSubmitting(false);
     }
@@ -241,7 +239,7 @@ export function EditUserDialog({
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a campus" />
-                      </SelectTrigger>
+                      </Trigger>
                     </FormControl>
                     <SelectContent>
                       {campuses.map((campus) => (

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -6,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -35,7 +36,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/logo';
 import { Loader2 } from 'lucide-react';
 import type { Campus, Unit, Role } from '@/lib/types';
-import { setCustomClaims } from '@/lib/set-custom-claims';
 
 
 const registrationSchema = z.object({
@@ -131,6 +131,8 @@ export default function CompleteRegistrationPage() {
     setIsSubmitting(true);
     try {
       const selectedRoleObject = roles.find(r => r.id === values.roleId);
+      
+      const batch = writeBatch(firestore);
       const userDocRef = doc(firestore, 'users', user.uid);
       
       const updateData = {
@@ -141,14 +143,14 @@ export default function CompleteRegistrationPage() {
         verified: false, // User is not verified until admin approval
       };
 
-      await updateDoc(userDocRef, updateData);
-      
-      // Set claims immediately so that if an admin activates them, the claims are ready.
-      await setCustomClaims({
-        uid: user.uid,
-        role: updateData.role,
-        campusId: updateData.campusId,
-      });
+      batch.update(userDocRef, updateData);
+
+      // This logic can be removed if we are not using custom claims for roles anymore,
+      // but keeping it doesn't harm if the backend function is a no-op.
+      // Alternatively, we could create the role document here.
+      // For now, let's keep the responsibility on the admin during activation.
+
+      await batch.commit();
 
       toast({
         title: 'Registration Details Submitted',

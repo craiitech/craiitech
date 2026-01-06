@@ -26,8 +26,6 @@ interface UserAuthState {
   user: User | null;
   isAuthLoading: boolean;
   userError: Error | null;
-  claims: Record<string, any> | null;
-  areClaimsLoading: boolean;
 }
 
 // Combined state for the Firebase context
@@ -96,8 +94,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     user: null,
     isAuthLoading: true, // Start loading until first auth event
     userError: null,
-    claims: null,
-    areClaimsLoading: true,
   });
   const { toast } = useToast();
 
@@ -107,31 +103,24 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
     if (!auth) {
-      setUserAuthState({ user: null, isAuthLoading: false, userError: new Error("Auth service not provided."), claims: null, areClaimsLoading: false });
+      setUserAuthState({ user: null, isAuthLoading: false, userError: new Error("Auth service not provided.") });
       return;
     }
 
     const unsubscribe = onAuthStateChanged(
       auth,
-      async (firebaseUser) => {
+      (firebaseUser) => {
         if (firebaseUser) {
-          try {
-            // Force refresh claims on every auth state change.
-            const tokenResult = await firebaseUser.getIdTokenResult(true);
-            setUserAuthState({ user: firebaseUser, isAuthLoading: false, userError: null, claims: tokenResult.claims, areClaimsLoading: false });
-          } catch (error) {
-            console.error("FirebaseProvider: Error fetching token claims:", error);
-            setUserAuthState({ user: firebaseUser, isAuthLoading: false, userError: error as Error, claims: null, areClaimsLoading: false });
-          }
+          setUserAuthState({ user: firebaseUser, isAuthLoading: false, userError: null });
         } else {
           // User is logged out
-          setUserAuthState({ user: null, isAuthLoading: false, userError: null, claims: null, areClaimsLoading: false });
+          setUserAuthState({ user: null, isAuthLoading: false, userError: null });
           loginLoggedRef.current = false;
         }
       },
       (error) => {
         console.error("FirebaseProvider: onAuthStateChanged error:", error);
-        setUserAuthState({ user: null, isAuthLoading: false, userError: error, claims: null, areClaimsLoading: false });
+        setUserAuthState({ user: null, isAuthLoading: false, userError: error });
         toast({
           title: 'Authentication Error',
           description: error.message || 'An unknown authentication error occurred.',
@@ -161,15 +150,15 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
-    const userRole = (userAuthState.claims?.role as string) || userProfile?.role || null;
+    const userRole = userProfile?.role || null;
     const isAdmin = !!adminRoleDoc;
     const isVp = !!userRole?.toLowerCase().includes('vice president');
     
     const supervisorRoles = ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit ODIMO'];
     const isSupervisor = isAdmin || supervisorRoles.includes(userRole || '') || isVp;
 
-    // The user is fully loaded only when auth state is determined, claims are loaded, AND the Firestore profile is loaded.
-    const isUserLoading = userAuthState.isAuthLoading || userAuthState.areClaimsLoading || isAdminRoleLoading || (!!userAuthState.user && isProfileLoading);
+    // The user is fully loaded only when auth state is determined AND the Firestore profile is loaded.
+    const isUserLoading = userAuthState.isAuthLoading || (!!userAuthState.user && isProfileLoading) || (!!userAuthState.user && isAdminRoleLoading);
 
 
     return {
@@ -183,7 +172,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       userProfile,
       isProfileLoading,
       isAdmin,
-      isAdminLoading: isAdminRoleLoading, // Admin status is derived from the doc
+      isAdminLoading: isAdminRoleLoading,
       userRole,
       isSupervisor,
       isVp,
@@ -294,4 +283,3 @@ export const useUser = (): UserHookResult => {
   const { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp, firestore } = context; 
   return { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp, firestore };
 };
-
