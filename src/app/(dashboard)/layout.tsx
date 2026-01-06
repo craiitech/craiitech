@@ -118,36 +118,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 
   useEffect(() => {
-    // 1. Wait until all user data has finished loading.
     if (isUserLoading) {
-      return;
+      return; // Wait until all user data has finished loading.
     }
 
-    // 2. If loading is done and there's still no user, they need to log in.
     if (!user) {
-      redirect('/login');
-      return;
-    }
-    
-    // 3. If the user is an admin, do nothing else. Let them access any dashboard page.
-    if (isAdmin) {
+      redirect('/login'); // If no user, they need to log in.
       return;
     }
 
-    // 4. If we are on a registration/verification page, don't enter a redirect loop.
+    if (isAdmin) {
+      return; // Admins are always allowed.
+    }
+
+    // Don't run checks on registration/verification pages to avoid redirect loops.
     if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
       return;
     }
     
-    // 5. At this point, the user is loaded and is NOT an admin.
+    // If we reach here, the user is loaded and is NOT an admin.
     // Now we can safely check their profile status.
     if (userProfile) {
-      const isVP = userRole?.toLowerCase().includes('vice president');
-      const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+      if (!userProfile.verified) {
+        redirect('/awaiting-verification');
+        return;
+      }
+      
+      const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
       
       let isProfileIncomplete = false;
-      // For campus-level roles, unitId is not required.
-      if (isVP || isCampusLevelUser) {
+      if (isCampusLevelUser) {
+        // For campus-level roles, unitId is not required.
         isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
       } else {
         // For all other roles (unit-level), all three are required.
@@ -158,11 +159,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         redirect('/complete-registration');
         return;
       }
-      
-      if (!userProfile.verified) {
-        redirect('/awaiting-verification');
-        return;
-      }
+
     } else {
       // If the profile is still null after loading, they are a new user needing to register.
       redirect('/complete-registration');
