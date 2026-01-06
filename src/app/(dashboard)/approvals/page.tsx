@@ -83,8 +83,9 @@ export default function ApprovalsPage() {
       where('statusId', '==', 'submitted')
     );
 
+    // Admins and VPs fetch all 'submitted' docs, then filter client-side.
+    // This is necessary for VPs to check unit assignments.
     if (isAdmin || isVp) {
-      // Admins and VPs initially fetch all submitted documents. VPs will filter client-side.
       return baseQuery;
     }
     
@@ -122,18 +123,18 @@ export default function ApprovalsPage() {
 
     // Client-side filtering for VPs
     let vpFilteredSubmissions = fetchedSubmissions;
-    if (isVp && allUnits) {
+    if (isVp && allUnits && !isAdmin) {
         vpFilteredSubmissions = fetchedSubmissions.filter(submission => {
             const unit = allUnits.find(u => u.id === submission.unitId);
             return unit?.vicePresidentId === userProfile.id;
         });
     }
 
-    // CRITICAL FIX: Exclude submissions made by the approver themselves.
+    // CRITICAL: Exclude submissions made by the approver themselves.
     // This applies to ALL roles. An admin shouldn't see their own submission here either.
     return vpFilteredSubmissions.filter(s => s.userId !== userProfile.id);
 
-  }, [rawSubmissions, userProfile, isVp, allUnits]);
+  }, [rawSubmissions, userProfile, isVp, isAdmin, allUnits]);
 
 
   // Effect to fetch users for the loaded submissions

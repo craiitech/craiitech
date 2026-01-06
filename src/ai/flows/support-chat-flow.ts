@@ -14,10 +14,6 @@ import { z } from 'genkit';
 
 const SupportChatInputSchema = z.object({
   query: z.string().describe('The user\'s question about the EOMS portal.'),
-  history: z.array(z.object({
-    role: z.enum(['user', 'model']),
-    content: z.string(),
-  })).optional().describe('The conversation history.'),
 });
 export type SupportChatInput = z.infer<typeof SupportChatInputSchema>;
 
@@ -89,7 +85,6 @@ const supportChatFlow = ai.defineFlow(
     outputSchema: SupportChatOutputSchema,
   },
   async input => {
-    // For now, we are not using history but it is here for future enhancement.
     const { output } = await supportChatPrompt(input);
     return output!;
   }
