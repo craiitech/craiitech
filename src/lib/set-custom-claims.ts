@@ -1,17 +1,19 @@
 
 'use server';
 
-import { getApps, initializeApp, type App, credential } from 'firebase-admin/app';
+import { getApps, initializeApp, type App, credential, getApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+
+const ADMIN_APP_NAME = 'firebase-admin';
 
 // Helper function to initialize and get the admin app
 function getAdminApp(): App {
-  if (getApps().length > 0) {
-    return getApps()[0];
+  if (getApps().some(app => app.name === ADMIN_APP_NAME)) {
+    return getApp(ADMIN_APP_NAME);
   }
   return initializeApp({
     credential: credential.applicationDefault(),
-  });
+  }, ADMIN_APP_NAME);
 }
 
 interface SetClaimsPayload {

@@ -4,17 +4,19 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { Role } from './types';
-import { getApps, initializeApp, type App, credential } from 'firebase-admin/app';
+import { getApps, initializeApp, type App, credential, getApp } from 'firebase-admin/app';
 import { getFirestore, serverTimestamp } from 'firebase-admin/firestore';
+
+const ADMIN_APP_NAME = 'firebase-admin';
 
 // Helper function to initialize and get the admin app
 function getAdminApp(): App {
-  if (getApps().length > 0) {
-    return getApps()[0];
+  if (getApps().some(app => app.name === ADMIN_APP_NAME)) {
+    return getApp(ADMIN_APP_NAME);
   }
   return initializeApp({
     credential: credential.applicationDefault(),
-  });
+  }, ADMIN_APP_NAME);
 }
 
 const AUTH_COOKIE_NAME = 'rsu-eoms-auth';
