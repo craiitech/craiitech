@@ -109,27 +109,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 
   useEffect(() => {
-    // 1. Wait for all user data to finish loading.
-    if (isUserLoading) return;
+    // 1. Wait until all user data has finished loading. This is the crucial first step.
+    if (isUserLoading) {
+      return;
+    }
 
-    // 2. If there's no user, redirect to login.
+    // 2. If loading is done and there's still no user, they need to log in.
     if (!user) {
       redirect('/login');
       return;
     }
-    
-    // If we are already on a registration/verification page, don't redirect.
-    if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
-      return;
-    }
 
-    // 3. If the user IS an admin, stop here and do nothing. They should see the dashboard.
+    // 3. If the user is an admin, do nothing else. Let them access the page.
+    // This check is now safe because isUserLoading is false, meaning isAdmin status is determined.
     if (isAdmin) {
       return;
     }
 
+    // 4. If we are on a registration/verification page, don't enter a redirect loop.
+    if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
+      return;
+    }
 
-    // 4. If we get here, the user is NOT an admin. Check if their profile is complete.
+    // 5. At this point, the user is loaded, is NOT an admin, and is not on a special page.
+    // Now we can safely check their profile status.
     if (userProfile) {
       const isVP = userRole?.toLowerCase().includes('vice president');
       const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
@@ -151,11 +154,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return;
       }
     } else {
-        // If the profile is still null after loading, it means something is wrong,
-        // or they are a new user. Send them to complete registration just in case.
-        redirect('/complete-registration');
+      // If the profile is still null after loading (and user is not admin), they are a new user.
+      redirect('/complete-registration');
     }
-  }, [user, userProfile, isUserLoading, pathname, isAdmin, userRole]);
+  }, [user, userProfile, isUserLoading, isAdmin, userRole, pathname]);
 
 
   if (!firebaseState.areServicesAvailable || isUserLoading) return <LoadingSkeleton />;
