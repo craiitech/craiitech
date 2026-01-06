@@ -127,13 +127,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return;
     }
 
-    if (isAdmin) {
-      return; // Admins are always allowed.
-    }
-
     // Don't run checks on registration/verification pages to avoid redirect loops.
     if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
       return;
+    }
+
+    if (isAdmin) {
+      return; // Admins are always allowed and don't need profile checks.
     }
     
     // If we reach here, the user is loaded and is NOT an admin.
