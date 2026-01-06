@@ -41,21 +41,24 @@ import {
   updateDoc,
   doc,
   arrayUnion,
+  getDoc,
 } from 'firebase/firestore';
 import { useState, useEffect, useMemo } from 'react';
-import type { Submission, User as AppUser, Role, Comment } from '@/lib/types';
+import type { Submission, User as AppUser, Role, Comment, Unit } from '@/lib/types';
 import { format } from 'date-fns';
 import { Check, X, MessageSquare, Loader2, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useRouter } from 'next/navigation';
+import { useSessionActivity } from '@/lib/activity-log-provider';
 
 export default function ApprovalsPage() {
-  const { user, userProfile, isSupervisor, userRole } = useUser();
+  const { user, userProfile, isSupervisor, userRole, isVp } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
+  const { logSessionActivity } = useSessionActivity();
 
   const [users, setUsers] = useState<Record<string, AppUser>>({});
 
@@ -65,29 +68,27 @@ export default function ApprovalsPage() {
     useState<Submission | null>(null);
   const [feedback, setFeedback] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
-  const [dialogMode, setDialogMode] = useState<'reject' | 'view'>('view');
   
   const canApprove = isSupervisor;
 
   const submissionsQuery = useMemoFirebase(() => {
-    if (!firestore || !userRole) {
+    if (!firestore || !userRole || !userProfile) {
       return null;
-    }
-    // Supervisors (non-admin) need to wait for their profile to get campus/unit IDs
-    if (isSupervisor && userRole !== 'Admin' && !userProfile?.campusId) {
-        return null;
     }
 
     const submissionsCollection = collection(firestore, 'submissions');
-    
+
+    // Admin sees all submitted reports
     if (userRole === 'Admin') {
       return query(
         submissionsCollection,
         where('statusId', '==', 'submitted')
       );
-    } 
-    
-    if (isSupervisor && userProfile?.campusId) {
+    }
+
+    // Campus Director and Campus ODIMO see all submitted reports in their campus
+    if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
+      if (!userProfile.campusId) return null;
       return query(
         submissionsCollection,
         where('campusId', '==', userProfile.campusId),
@@ -95,7 +96,9 @@ export default function ApprovalsPage() {
       );
     }
     
-     if (userRole === 'Unit ODIMO' && userProfile?.unitId) {
+    // Unit ODIMO sees submitted reports in their specific unit
+    if (userRole === 'Unit ODIMO') {
+      if (!userProfile.unitId) return null;
       return query(
         submissionsCollection,
         where('unitId', '==', userProfile.unitId),
@@ -103,8 +106,18 @@ export default function ApprovalsPage() {
       );
     }
 
-    return null; // Return null if no valid query can be constructed
-  }, [firestore, userRole, userProfile, isSupervisor]);
+    // A VP needs to see submissions from all units that list them as the VP.
+    if (isVp) {
+        // This is a client-side limitation. A proper implementation for VPs
+        // would require either denormalizing the VP on the submission,
+        // or performing this logic on a backend. We'll show an empty list for now.
+        // The security rules DO correctly enforce this.
+        return query(submissionsCollection, where('__vp_unqueriable__', '==', true));
+    }
+
+
+    return null; // Return null if no valid query can be constructed for the user's role
+  }, [firestore, userRole, userProfile, isVp]);
 
   const { data: rawSubmissions, isLoading } = useCollection<Submission>(submissionsQuery);
 
@@ -137,7 +150,6 @@ export default function ApprovalsPage() {
 
   // Effect to fetch users for the loaded submissions
   useEffect(() => {
-    // CRITICAL FIX: Ensure submissions is not null and has items before fetching users.
     if (!firestore || !submissions || submissions.length === 0) return;
 
     const fetchUsers = async () => {
@@ -145,7 +157,6 @@ export default function ApprovalsPage() {
       const newUsers: Record<string, AppUser> = {};
 
       if (userIds.length > 0) {
-        // Firestore 'in' query limit is 30. Chunk if necessary.
         const chunks: string[][] = [];
         for (let i = 0; i < userIds.length; i += 30) {
           chunks.push(userIds.slice(i, i + 30));
@@ -153,7 +164,7 @@ export default function ApprovalsPage() {
 
         await Promise.all(
           chunks.map(async (chunk) => {
-            if (chunk.length === 0) return; // Skip empty chunks
+            if (chunk.length === 0) return;
             const usersQuery = query(
               collection(firestore, 'users'),
               where('id', 'in', chunk)
@@ -173,15 +184,19 @@ export default function ApprovalsPage() {
   }, [firestore, submissions]);
 
   const handleApprove = async (
-    submissionId: string
+    submission: Submission
   ) => {
-    if (!firestore) return;
-    const submissionRef = doc(firestore, 'submissions', submissionId);
+    if (!firestore || !userProfile) return;
+    const submissionRef = doc(firestore, 'submissions', submission.id);
     try {
       await updateDoc(submissionRef, { statusId: 'approved' });
       toast({
         title: 'Success',
         description: `Submission has been approved.`,
+      });
+       logSessionActivity(`Approved submission: ${submission.reportType}`, {
+        action: 'approve_submission',
+        details: { submissionId: submission.id },
       });
     } catch (error) {
       console.error('Error approving submission:', error);
@@ -195,23 +210,9 @@ export default function ApprovalsPage() {
 
   const handleOpenDialog = (
     submission: Submission,
-    mode: 'reject' | 'view'
   ) => {
     setCurrentSubmission(submission);
-    // This logic handles both old string-based comments and new array-based comments for viewing
-    if (mode === 'view') {
-        const comments = submission.comments;
-        if (Array.isArray(comments) && comments.length > 0) {
-            setFeedback(comments[comments.length - 1]?.text || 'No comment text found.');
-        } else if (typeof comments === 'string') { // Backwards compatibility
-            setFeedback(comments);
-        } else {
-            setFeedback('');
-        }
-    } else {
-        setFeedback(''); // Clear feedback for new rejection
-    }
-    setDialogMode(mode);
+    setFeedback(''); // Clear feedback for new rejection
     setIsDialogOpen(true);
   };
 
@@ -240,6 +241,12 @@ export default function ApprovalsPage() {
         statusId: 'rejected',
         comments: arrayUnion(newComment),
       });
+
+      logSessionActivity(`Rejected submission: ${currentSubmission.reportType}`, {
+        action: 'reject_submission',
+        details: { submissionId: currentSubmission.id },
+      });
+
       toast({
         title: 'Success',
         description: `Submission has been rejected.`,
@@ -346,7 +353,7 @@ export default function ApprovalsPage() {
                                 className="text-green-600 hover:text-green-700"
                                 onClick={() =>
                                   handleApprove(
-                                    submission.id
+                                    submission
                                   )
                                 }
                               >
@@ -364,7 +371,7 @@ export default function ApprovalsPage() {
                                 size="icon"
                                 className="text-red-600 hover:text-red-700"
                                 onClick={() =>
-                                  handleOpenDialog(submission, 'reject')
+                                  handleOpenDialog(submission)
                                 }
                               >
                                 <X className="h-4 w-4" />
@@ -393,15 +400,9 @@ export default function ApprovalsPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {dialogMode === 'reject'
-                ? 'Provide Feedback for Rejection'
-                : 'View Submission Comments'}
-            </DialogTitle>
+            <DialogTitle>Provide Feedback for Rejection</DialogTitle>
             <DialogDescription>
-              {dialogMode === 'reject'
-                ? 'Please provide a reason for rejecting this submission. This feedback will be sent to the user.'
-                : 'Viewing comments for the submission.'}
+                Please provide a reason for rejecting this submission. This feedback will be sent to the user.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -414,17 +415,11 @@ export default function ApprovalsPage() {
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
                 className="col-span-3"
-                readOnly={dialogMode === 'view'}
-                placeholder={
-                  dialogMode === 'reject'
-                    ? 'Type your feedback here...'
-                    : 'No comments provided.'
-                }
+                placeholder="Type your feedback here..."
               />
             </div>
           </div>
           <DialogFooter>
-            {dialogMode === 'reject' ? (
               <Button
                 onClick={handleRejectWithFeedback}
                 disabled={isSubmittingFeedback}
@@ -434,9 +429,6 @@ export default function ApprovalsPage() {
                 )}
                 Submit Rejection
               </Button>
-            ) : (
-              <Button onClick={() => setIsDialogOpen(false)}>Close</Button>
-            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
