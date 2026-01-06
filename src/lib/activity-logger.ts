@@ -1,18 +1,18 @@
 
 'use server';
 
-import { getApps, initializeApp, type App, credential, getApp } from 'firebase-admin/app';
+import * as admin from 'firebase-admin';
 import { getFirestore, serverTimestamp } from 'firebase-admin/firestore';
 
 const ADMIN_APP_NAME = 'firebase-admin';
 
 // Helper function to initialize and get the admin app
-function getAdminApp(): App {
-  if (getApps().some(app => app.name === ADMIN_APP_NAME)) {
-    return getApp(ADMIN_APP_NAME);
+function getAdminApp(): admin.app.App {
+  if (admin.apps.some(app => app?.name === ADMIN_APP_NAME)) {
+    return admin.app(ADMIN_APP_NAME);
   }
-  return initializeApp({
-    credential: credential.applicationDefault(),
+  return admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
   }, ADMIN_APP_NAME);
 }
 
