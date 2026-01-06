@@ -1,4 +1,6 @@
-import { getApps, initializeApp, type App } from 'firebase-admin/app';
+'use server';
+
+import { getApps, initializeApp, type App, credential } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 
@@ -8,18 +10,22 @@ function initializeAdminApp() {
   if (getApps().length > 0) {
     adminApp = getApps()[0];
   } else {
-    adminApp = initializeApp();
+    // Use Application Default Credentials. This is the standard and secure way
+    // for server-side code to authenticate in a Google Cloud environment.
+    adminApp = initializeApp({
+      credential: credential.applicationDefault(),
+    });
   }
 }
 
-export function getAdminFirestore() {
+export async function getAdminFirestore() {
   if (!adminApp) {
     initializeAdminApp();
   }
   return getFirestore(adminApp);
 }
 
-export function getAdminAuth() {
+export async function getAdminAuth() {
   if (!adminApp) {
     initializeAdminApp();
   }

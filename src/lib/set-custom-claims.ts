@@ -16,13 +16,13 @@ interface SetClaimsPayload {
  */
 export async function setCustomClaims(payload: SetClaimsPayload): Promise<{ success: boolean; message: string }> {
     const { uid, role, campusId } = payload;
-    const auth = getAdminAuth();
-
+    
     if (!uid) {
         return { success: false, message: 'User ID is required.' };
     }
 
     try {
+        const auth = await getAdminAuth();
         // Fetch existing claims to avoid overwriting them
         const { customClaims: existingClaims } = await auth.getUser(uid);
 

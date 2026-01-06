@@ -26,7 +26,7 @@ export async function logUserActivity(
   }
 
   try {
-    const firestore = getAdminFirestore();
+    const firestore = await getAdminFirestore();
     const logCollection = firestore.collection('activityLogs');
     await logCollection.add({
       userId,

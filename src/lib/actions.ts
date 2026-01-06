@@ -37,11 +37,7 @@ interface ErrorReportPayload {
 }
 
 export async function logError(payload: ErrorReportPayload) {
-    const firestore = getAdminFirestore();
-    if (!firestore) {
-        console.error("Firestore not initialized. Cannot log error.");
-        throw new Error("Server configuration error.");
-    }
+    const firestore = await getAdminFirestore();
     
     try {
         const reportCollection = firestore.collection('errorReports');
