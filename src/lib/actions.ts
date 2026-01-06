@@ -4,7 +4,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { Role } from './types';
-import { firestore } from '@/firebase/admin';
+import { getAdminFirestore } from '@/firebase/admin';
 import { serverTimestamp } from 'firebase-admin/firestore';
 
 const AUTH_COOKIE_NAME = 'rsu-eoms-auth';
@@ -37,6 +37,7 @@ interface ErrorReportPayload {
 }
 
 export async function logError(payload: ErrorReportPayload) {
+    const firestore = getAdminFirestore();
     if (!firestore) {
         console.error("Firestore not initialized. Cannot log error.");
         throw new Error("Server configuration error.");

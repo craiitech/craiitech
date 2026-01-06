@@ -1,7 +1,7 @@
 
 'use server';
 
-import { auth } from '@/firebase/admin';
+import { getAdminAuth } from '@/firebase/admin';
 
 interface SetClaimsPayload {
     uid: string;
@@ -16,6 +16,7 @@ interface SetClaimsPayload {
  */
 export async function setCustomClaims(payload: SetClaimsPayload): Promise<{ success: boolean; message: string }> {
     const { uid, role, campusId } = payload;
+    const auth = getAdminAuth();
 
     if (!uid) {
         return { success: false, message: 'User ID is required.' };

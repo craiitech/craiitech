@@ -1,7 +1,7 @@
 
 'use server';
 
-import { firestore } from '@/firebase/admin';
+import { getAdminFirestore } from '@/firebase/admin';
 import { serverTimestamp } from 'firebase-admin/firestore';
 
 /**
@@ -26,6 +26,7 @@ export async function logUserActivity(
   }
 
   try {
+    const firestore = getAdminFirestore();
     const logCollection = firestore.collection('activityLogs');
     await logCollection.add({
       userId,
