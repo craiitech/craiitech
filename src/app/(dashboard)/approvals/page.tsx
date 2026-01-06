@@ -83,24 +83,22 @@ export default function ApprovalsPage() {
       where('statusId', '==', 'submitted')
     );
 
-    // Admins and VPs fetch all 'submitted' docs, then filter client-side.
-    // This is necessary for VPs to check unit assignments.
-    if (isAdmin || isVp) {
+    if (isAdmin) {
       return baseQuery;
     }
     
-    if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-      if (!userProfile.campusId) return null;
+    // For all other supervisor roles, filter by their scope.
+    // This now correctly includes Campus Directors, ODIMOs, and VPs who all have a campusId.
+    if (isSupervisor && userProfile.campusId) {
       return query(baseQuery, where('campusId', '==', userProfile.campusId));
     }
     
-    if (userRole === 'Unit ODIMO') {
-      if (!userProfile.unitId) return null;
+    if (userRole === 'Unit ODIMO' && userProfile.unitId) {
       return query(baseQuery, where('unitId', '==', userProfile.unitId));
     }
 
-    return null; // Return null if no valid query can be constructed for the user's role
-  }, [firestore, userRole, userProfile, isAdmin, isVp]);
+    return null; // Return null if no valid query can be constructed
+  }, [firestore, userRole, userProfile, isAdmin, isSupervisor]);
 
 
   const { data: rawSubmissions, isLoading } = useCollection<Submission>(submissionsQuery);
@@ -121,20 +119,11 @@ export default function ApprovalsPage() {
         } as Submission;
       });
 
-    // Client-side filtering for VPs
-    let vpFilteredSubmissions = fetchedSubmissions;
-    if (isVp && allUnits && !isAdmin) {
-        vpFilteredSubmissions = fetchedSubmissions.filter(submission => {
-            const unit = allUnits.find(u => u.id === submission.unitId);
-            return unit?.vicePresidentId === userProfile.id;
-        });
-    }
+    // CRITICAL: For ALL approvers (Admins, VPs, Directors, etc.),
+    // exclude submissions they made themselves.
+    return fetchedSubmissions.filter(s => s.userId !== userProfile.id);
 
-    // CRITICAL: Exclude submissions made by the approver themselves.
-    // This applies to ALL roles. An admin shouldn't see their own submission here either.
-    return vpFilteredSubmissions.filter(s => s.userId !== userProfile.id);
-
-  }, [rawSubmissions, userProfile, isVp, isAdmin, allUnits]);
+  }, [rawSubmissions, userProfile]);
 
 
   // Effect to fetch users for the loaded submissions
@@ -424,3 +413,5 @@ export default function ApprovalsPage() {
     </TooltipProvider>
   );
 }
+
+    
