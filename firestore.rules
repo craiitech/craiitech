@@ -127,7 +127,7 @@ service cloud.firestore {
                     || (isCampusOdimo() && getUserProfile().campusId == resource.data.campusId) 
                     || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId)
                     || (isCampusDirector() && getUserProfile().campusId == resource.data.campusId)
-                    || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid);
+                    || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.campusIds.hasAny(getUserProfile().campusIds));
       
       allow list: if isSignedIn();
 
@@ -141,7 +141,7 @@ service cloud.firestore {
                     || (isCampusOdimo() && getUserProfile().campusId == resource.data.campusId) 
                     || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId)
                     || (isCampusDirector() && getUserProfile().campusId == resource.data.campusId)
-                    || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid);
+                    || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.campusIds.hasAny(getUserProfile().campusIds));
 
       allow delete: if isOwner(resource.data.userId) || isAdmin();
     }
@@ -158,7 +158,7 @@ service cloud.firestore {
                     || (isCampusOdimo() && getUserProfile().campusId == resource.data.campusId) 
                     || (isUnitOdimo() && getUserProfile().unitId == resource.data.unitId)
                     || (isCampusDirector() && getUserProfile().campusId == resource.data.campusId)
-                    || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.vicePresidentId == request.auth.uid);
+                    || (isVicePresident() && get(/databases/$(database)/documents/units/$(resource.data.unitId)).data.campusIds.hasAny(getUserProfile().campusIds));
       
       allow list: if isSignedIn();
 
