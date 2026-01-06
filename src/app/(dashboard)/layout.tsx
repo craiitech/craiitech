@@ -121,7 +121,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
 
     // 3. If the user is an admin, do nothing else. Let them access the page.
-    // This check is now safe because isUserLoading is false, meaning isAdmin status is determined.
     if (isAdmin) {
       return;
     }
@@ -138,9 +137,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
       
       let isProfileIncomplete = false;
+      // For campus-level roles, unitId is not required.
       if (isVP || isCampusLevelUser) {
         isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
       } else {
+        // For all other roles (unit-level), all three are required.
         isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
       }
 
