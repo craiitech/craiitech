@@ -2,6 +2,7 @@
 'use server';
 
 import { getAdminFirestore } from '@/firebase/admin';
+import { useUser } from '@/firebase';
 
 // --- Error Reporting Action ---
 interface ErrorReportPayload {
@@ -16,14 +17,14 @@ interface ErrorReportPayload {
 }
 
 export async function logError(payload: ErrorReportPayload) {
-    const firestore = getAdminFirestore();
-    
     try {
+        const firestore = getAdminFirestore();
         const reportCollection = firestore.collection('errorReports');
+        
         await reportCollection.add({
             ...payload,
             status: 'new',
-            timestamp: firestore.FieldValue.serverTimestamp(),
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
         });
     } catch (error) {
         console.error('Failed to log error to Firestore:', error);

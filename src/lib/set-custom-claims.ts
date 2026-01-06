@@ -36,9 +36,8 @@ export async function setCustomClaims(payload: SetClaimsPayload): Promise<{ succ
         await auth.setCustomUserClaims(uid, newClaims);
         console.log(`Successfully set custom claims for user ${uid}:`, newClaims);
         return { success: true, message: 'Custom claims updated successfully.' };
-    } catch (error) {
-        console.error('Error setting custom claims:', error);
-        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-        return { success: false, message: `Failed to set custom claims: ${errorMessage}` };
+    } catch (error: any) {
+        console.error('Error setting custom claims:', error.message);
+        return { success: false, message: `Failed to set custom claims: ${error.message}` };
     }
 }

@@ -1,7 +1,7 @@
-
 import * as admin from 'firebase-admin';
+import { firebaseAdminConfig } from './config-admin';
 
-const ADMIN_APP_NAME = 'firebase-admin-app';
+const ADMIN_APP_NAME = 'firebase-admin-app-rsu-eoms';
 
 let adminApp: admin.app.App;
 
@@ -12,13 +12,11 @@ function initializeAdminApp() {
     }
 
     try {
-        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT!);
         adminApp = admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
+            credential: admin.credential.cert(firebaseAdminConfig as admin.ServiceAccount)
         }, ADMIN_APP_NAME);
-    } catch (error) {
-        console.error('Firebase Admin Initialization Error:', error);
-        // This will prevent the app from starting if creds are bad
+    } catch (error: any) {
+        console.error('Firebase Admin Initialization Error:', error.message);
         throw new Error('Could not initialize Firebase Admin SDK. Please check service account credentials.');
     }
 }

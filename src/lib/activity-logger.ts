@@ -2,6 +2,7 @@
 'use server';
 
 import { getAdminFirestore } from '@/firebase/admin';
+import * as admin from 'firebase-admin';
 
 /**
  * Logs a user activity to the 'activityLogs' collection in Firestore.
@@ -33,7 +34,7 @@ export async function logUserActivity(
       userRole,
       action,
       details,
-      timestamp: firestore.FieldValue.serverTimestamp(),
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
     });
   } catch (error) {
     console.error('Failed to log user activity:', error);
