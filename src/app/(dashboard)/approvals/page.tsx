@@ -77,9 +77,7 @@ export default function ApprovalsPage() {
   const canApprove = isSupervisor;
 
   useEffect(() => {
-    // We must wait for all dependencies to be loaded before proceeding.
     if (!firestore || !userRole || !userProfile || isLoadingUnits) {
-        // If we are still waiting on data, but the main loading state is not set, set it.
         if (!isLoading) setIsLoading(true);
         return;
     }
@@ -92,12 +90,19 @@ export default function ApprovalsPage() {
         if (isAdmin) {
             submissionsQuery = baseQuery;
         } else if (isVp) {
-            // Ensure allUnits is loaded and contains data before proceeding for VPs
             if (allUnits && allUnits.length > 0) {
                 const vpUnitIds = allUnits.filter(u => u.vicePresidentId === userProfile.id).map(u => u.id);
                 if (vpUnitIds.length > 0) {
                     submissionsQuery = query(baseQuery, where('unitId', 'in', vpUnitIds));
+                } else {
+                    setSubmissions([]);
+                    setIsLoading(false);
+                    return;
                 }
+            } else {
+                setSubmissions([]);
+                setIsLoading(false);
+                return;
             }
         } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
             submissionsQuery = query(baseQuery, where('campusId', '==', userProfile.campusId));
@@ -117,7 +122,6 @@ export default function ApprovalsPage() {
                     return { ...data, id: doc.id, submissionDate };
                 });
 
-                // Supervisors should not approve their own submissions
                 fetchedSubmissions = fetchedSubmissions.filter(s => s.userId !== userProfile.id);
                 
                 setSubmissions(fetchedSubmissions);
@@ -126,7 +130,6 @@ export default function ApprovalsPage() {
                 toast({ title: "Error", description: "Could not fetch approval queue.", variant: "destructive"});
             }
         } else {
-            // If no valid query could be built (e.g., a VP with no assigned units), clear submissions.
             setSubmissions([]);
         }
 
