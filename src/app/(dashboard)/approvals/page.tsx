@@ -78,35 +78,33 @@ export default function ApprovalsPage() {
   const canApprove = isSupervisor;
 
   useEffect(() => {
-    // We only need firestore and the user's role to start.
-    // The userProfile might load slightly after, which is fine for non-admin roles.
-    if (!firestore || !userRole) {
+    // Only proceed when firestore is available. Other dependencies will be checked inside.
+    if (!firestore) {
       setIsLoading(false);
       return;
     }
 
     const fetchSubmissions = async () => {
       setIsLoading(true);
+      setSubmissions([]); // Clear previous state on new fetch
+      
       let submissionsQuery: Query | null = null;
       const baseQuery = query(
         collection(firestore, 'submissions'),
         where('statusId', '==', 'submitted')
       );
 
-      // Admin case is simplest and should run immediately
+      // Prioritize Admin role to prevent race conditions.
       if (isAdmin) {
         submissionsQuery = baseQuery;
       } 
-      // For all other roles, we MUST wait for the userProfile to be loaded
-      else if (userProfile) {
+      // For all other roles, we might need userProfile or other data.
+      else if (userRole && userProfile) {
           if (isVp) {
-            // Wait for units to be loaded for VPs
-            if (allUnits) {
+            if (allUnits) { // Wait for units to be loaded for VPs
                 const vpUnitIds = allUnits.filter(u => u.vicePresidentId === userProfile.id).map(u => u.id);
                 if (vpUnitIds.length > 0) {
                     submissionsQuery = query(baseQuery, where('unitId', 'in', vpUnitIds));
-                } else {
-                    setSubmissions([]); // VP has no units, so no submissions to approve
                 }
             }
           } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
@@ -128,6 +126,7 @@ export default function ApprovalsPage() {
           });
 
           // CRITICAL: For ALL approvers, exclude submissions they made themselves.
+          // This filter runs after fetching the data.
           if (userProfile) {
             fetchedSubmissions = fetchedSubmissions.filter(s => s.userId !== userProfile.id);
           }
@@ -137,19 +136,15 @@ export default function ApprovalsPage() {
           console.error("Failed to fetch submissions:", e);
           toast({ title: "Error", description: "Could not fetch approval queue.", variant: "destructive"});
         }
-
       }
       setIsLoading(false);
     };
     
-    // For VPs, wait until the units are loaded before fetching. For other roles, fetch immediately.
-    if (isVp && isLoadingUnits) {
-        // Wait for units to load
-    } else {
-        fetchSubmissions();
-    }
+    // The main condition to re-fetch is when the user's role or profile changes.
+    // For VPs, we also need to wait for the units list.
+    fetchSubmissions();
     
-  }, [firestore, userRole, userProfile, isAdmin, isVp, allUnits, isLoadingUnits]);
+  }, [firestore, userRole, userProfile, isAdmin, isVp, allUnits]);
 
 
   // Effect to fetch users for the loaded submissions
