@@ -1,15 +1,23 @@
+'use server';
 
-import { getApps, initializeApp } from 'firebase-admin/app';
+import { getApps, initializeApp, type App } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 
-// Initialize Firebase Admin SDK only if it hasn't been initialized yet.
-// For managed environments like Firebase Functions or App Hosting,
-// initializeApp() can be called without arguments. It will automatically
-// detect the service account credentials.
-if (!getApps().length) {
-  initializeApp();
+// This function initializes and returns the Firebase Admin App instance.
+// It ensures that initialization only happens once.
+function getFirebaseAdminApp(): App {
+  // If the app is already initialized, return it.
+  if (getApps().length > 0) {
+    return getApps()[0];
+  }
+  
+  // Otherwise, initialize the app. In a managed environment like App Hosting,
+  // initializeApp() can be called without arguments.
+  return initializeApp();
 }
 
-export const firestore = getFirestore();
-export const auth = getAuth();
+// Export singleton instances of Firestore and Auth services.
+const adminApp = getFirebaseAdminApp();
+export const firestore = getFirestore(adminApp);
+export const auth = getAuth(adminApp);
