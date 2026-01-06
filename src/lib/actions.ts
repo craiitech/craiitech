@@ -4,7 +4,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { Role } from './types';
-import { users } from './data';
 import { firestore } from '@/firebase/admin';
 import { serverTimestamp } from 'firebase-admin/firestore';
 
