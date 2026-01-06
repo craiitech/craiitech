@@ -54,7 +54,7 @@ import { useRouter } from 'next/navigation';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 
 export default function ApprovalsPage() {
-  const { user, userProfile, isSupervisor, userRole, isVp } = useUser();
+  const { user, userProfile, isSupervisor, userRole, isVp, isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
@@ -72,59 +72,45 @@ export default function ApprovalsPage() {
   const canApprove = isSupervisor;
 
   const submissionsQuery = useMemoFirebase(() => {
-    if (!firestore || !userRole || !userProfile) {
-      return null;
-    }
+    if (!firestore || !userRole || !userProfile) return null;
 
-    const submissionsCollection = collection(firestore, 'submissions');
+    const baseQuery = query(
+      collection(firestore, 'submissions'),
+      where('statusId', '==', 'submitted')
+    );
 
-    // Admin sees all submitted reports
-    if (userRole === 'Admin') {
-      return query(
-        submissionsCollection,
-        where('statusId', '==', 'submitted')
-      );
-    }
-
-    // Campus Director and Campus ODIMO see all submitted reports in their campus
-    if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-      if (!userProfile.campusId) return null;
-      return query(
-        submissionsCollection,
-        where('campusId', '==', userProfile.campusId),
-        where('statusId', '==', 'submitted')
-      );
+    if (isAdmin) {
+      return baseQuery;
     }
     
-    // Unit ODIMO sees submitted reports in their specific unit
+    if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
+      if (!userProfile.campusId) return null;
+      return query(baseQuery, where('campusId', '==', userProfile.campusId));
+    }
+    
     if (userRole === 'Unit ODIMO') {
       if (!userProfile.unitId) return null;
-      return query(
-        submissionsCollection,
-        where('unitId', '==', userProfile.unitId),
-        where('statusId', '==', 'submitted')
-      );
+      return query(baseQuery, where('unitId', '==', userProfile.unitId));
     }
 
-    // A VP needs to see submissions from all units that list them as the VP.
     if (isVp) {
         // This is a client-side limitation. A proper implementation for VPs
         // would require either denormalizing the VP on the submission,
         // or performing this logic on a backend. We'll show an empty list for now.
         // The security rules DO correctly enforce this.
-        return query(submissionsCollection, where('__vp_unqueriable__', '==', true));
+        return query(baseQuery, where('__vp_unqueriable__', '==', true));
     }
 
-
     return null; // Return null if no valid query can be constructed for the user's role
-  }, [firestore, userRole, userProfile, isVp]);
+  }, [firestore, userRole, userProfile, isAdmin, isVp]);
+
 
   const { data: rawSubmissions, isLoading } = useCollection<Submission>(submissionsQuery);
 
   const submissions = useMemo(() => {
-    if (!rawSubmissions) return [];
+    if (!rawSubmissions || !userProfile) return [];
     
-    let fetchedSubmissions = rawSubmissions.map((s) => {
+    const fetchedSubmissions = rawSubmissions.map((s) => {
         const data = s;
         const submissionDateRaw = data.submissionDate;
         const submissionDate =
@@ -137,15 +123,11 @@ export default function ApprovalsPage() {
         } as Submission;
       });
 
-    // Filter out submissions made by the approver themselves, unless they are an admin
-    if (userRole !== 'Admin' && userProfile) {
-        fetchedSubmissions = fetchedSubmissions.filter(
-            (s) => s.userId !== userProfile.id
-        );
-    }
-    
-    return fetchedSubmissions;
-  }, [rawSubmissions, userRole, userProfile]);
+    // CRITICAL FIX: Exclude submissions made by the approver themselves.
+    // This applies to ALL roles. An admin shouldn't see their own submission here either.
+    return fetchedSubmissions.filter(s => s.userId !== userProfile.id);
+
+  }, [rawSubmissions, userProfile]);
 
 
   // Effect to fetch users for the loaded submissions
