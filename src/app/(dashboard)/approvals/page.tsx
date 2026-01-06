@@ -78,7 +78,7 @@ export default function ApprovalsPage() {
 
   useEffect(() => {
     if (!firestore || !userRole || !userProfile || isLoadingUnits) {
-        if (!isLoading) setIsLoading(true);
+        setIsLoading(false); // Ensure loading stops if prerequisites aren't met
         return;
     }
 
@@ -95,12 +95,13 @@ export default function ApprovalsPage() {
                 if (vpUnitIds.length > 0) {
                     submissionsQuery = query(baseQuery, where('unitId', 'in', vpUnitIds));
                 } else {
+                    // VP has no units assigned, so no submissions to see.
                     setSubmissions([]);
                     setIsLoading(false);
                     return;
                 }
             } else {
-                setSubmissions([]);
+                 // allUnits is not ready yet, wait for the next render.
                 setIsLoading(false);
                 return;
             }
@@ -122,6 +123,7 @@ export default function ApprovalsPage() {
                     return { ...data, id: doc.id, submissionDate };
                 });
 
+                // Supervisors should not see their own submissions in the approval queue
                 fetchedSubmissions = fetchedSubmissions.filter(s => s.userId !== userProfile.id);
                 
                 setSubmissions(fetchedSubmissions);
@@ -130,6 +132,7 @@ export default function ApprovalsPage() {
                 toast({ title: "Error", description: "Could not fetch approval queue.", variant: "destructive"});
             }
         } else {
+            // If no query was built (e.g., user has no approval role), the list is empty.
             setSubmissions([]);
         }
 
