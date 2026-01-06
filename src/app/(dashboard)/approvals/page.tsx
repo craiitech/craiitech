@@ -55,7 +55,7 @@ import { useRouter } from 'next/navigation';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 
 export default function ApprovalsPage() {
-  const { user, userProfile, isSupervisor, userRole, isVp, isAdmin } from useUser();
+  const { user, userProfile, isSupervisor, userRole, isVp, isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
@@ -421,5 +421,7 @@ export default function ApprovalsPage() {
     </TooltipProvider>
   );
 }
+
+    
 
     
