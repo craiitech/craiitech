@@ -1,3 +1,4 @@
+
 'use server';
 
 import { cookies } from 'next/headers';
@@ -27,21 +28,7 @@ export async function logout() {
 // --- Error Reporting Action ---
 
 if (!getApps().length) {
-    try {
-        const serviceAccount = JSON.parse(
-            process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string
-        );
-        initializeApp({
-            credential: cert(serviceAccount),
-        });
-    } catch (e) {
-        console.error("Firebase Admin SDK initialization failed in actions.ts. Ensure FIREBASE_SERVICE_ACCOUNT_KEY is set.", e);
-        try {
-            initializeApp();
-        } catch (autoInitError) {
-             console.error("Firebase Admin SDK auto-initialization also failed.", autoInitError);
-        }
-    }
+    initializeApp();
 }
 
 const firestore = getFirestore();

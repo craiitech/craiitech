@@ -6,16 +6,7 @@ import { getAuth } from 'firebase-admin/auth';
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!getApps().length) {
-    try {
-        const serviceAccount = JSON.parse(
-            process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string
-        );
-        initializeApp({
-            credential: cert(serviceAccount),
-        });
-    } catch (e) {
-        console.error("Firebase Admin SDK initialization failed. Ensure FIREBASE_SERVICE_ACCOUNT_KEY is set.", e);
-    }
+    initializeApp();
 }
 
 interface SetClaimsPayload {

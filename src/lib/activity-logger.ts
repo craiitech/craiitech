@@ -6,22 +6,7 @@ import { getFirestore, serverTimestamp } from 'firebase-admin/firestore';
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!getApps().length) {
-    try {
-        const serviceAccount = JSON.parse(
-            process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string
-        );
-        initializeApp({
-            credential: cert(serviceAccount),
-        });
-    } catch (e) {
-        console.error("Firebase Admin SDK initialization failed. Ensure FIREBASE_SERVICE_ACCOUNT_KEY is set in .env.local", e);
-        // Fallback for environments where it might be auto-configured (like Google Cloud Run)
-        try {
-            initializeApp();
-        } catch (autoInitError) {
-             console.error("Firebase Admin SDK auto-initialization also failed.", autoInitError);
-        }
-    }
+    initializeApp();
 }
 
 const firestore = getFirestore();
