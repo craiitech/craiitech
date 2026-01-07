@@ -114,54 +114,50 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 
   useEffect(() => {
-    // 1. Wait until all loading is finished.
+    // 1. Gatekeeper: If user data is still loading, do nothing and wait.
+    // This is the most critical part of the fix.
     if (isUserLoading) {
       return; 
     }
+    
+    // Exempt these specific pages from any redirection logic to prevent loops.
+    if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
+        return;
+    }
 
-    // 2. If loading is done and there's no user, redirect to login.
+    // 2. No User: If loading is finished and there's no user, redirect to login.
     if (!user) {
       redirect('/login');
       return;
     }
 
-    // 3. At this point, `user` exists. If `userProfile` is also loaded, we can make decisions.
-    if (userProfile) {
-        // Exempt these pages from profile checks to prevent redirect loops.
-        if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
-            return;
-        }
-        
-        // Admin is always allowed, regardless of profile status.
-        if (isAdmin) {
-            return;
-        }
+    // 3. Admin User: Admins are always allowed, regardless of profile status.
+    if (isAdmin) {
+        return;
+    }
 
-        // Check if the user is verified.
+    // 4. At this point, a non-admin user is logged in. Check their profile.
+    if (userProfile) {
+        // If the profile is not verified, redirect to the waiting page.
         if (!userProfile.verified) {
             redirect('/awaiting-verification');
             return;
         }
         
-        // Check if the profile is incomplete.
+        // Check if the profile is incomplete based on their role.
         const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
-        let isProfileIncomplete = false;
-        if (isCampusLevelUser) {
-            isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
-        } else {
-            isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
-        }
+        const isProfileIncomplete = isCampusLevelUser
+            ? !userProfile.campusId || !userProfile.roleId
+            : !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
 
         if (isProfileIncomplete) {
             redirect('/complete-registration');
             return;
         }
-    } else if (user) {
-      // 4. This is the key case: user is loaded, but profile is not.
-      // This means the user is returning, not new. They must complete their profile.
-      if (pathname !== '/complete-registration') {
-        redirect('/complete-registration');
-      }
+    } else {
+      // 5. This case handles returning users whose profile document might not exist yet.
+      // If the user is logged in but has no profile, send them to complete it.
+      redirect('/complete-registration');
     }
   }, [user, userProfile, isUserLoading, isAdmin, userRole, pathname]);
 
