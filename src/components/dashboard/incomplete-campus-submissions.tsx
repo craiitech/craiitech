@@ -6,7 +6,7 @@ import type { Submission, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileWarning, School } from 'lucide-react';
+import { FileWarning, School, CheckCircle } from 'lucide-react';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -78,10 +78,6 @@ export function IncompleteCampusSubmissions({
     );
   }
 
-  if (incompleteReportsByCampus.length === 0) {
-    return null; // Or a success message card
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -108,25 +104,33 @@ export function IncompleteCampusSubmissions({
         </div>
       </CardHeader>
       <CardContent>
-        <Accordion type="multiple" className="w-full">
-          {incompleteReportsByCampus.map(campus => (
-            <AccordionItem value={campus.campusId} key={campus.campusId}>
-              <AccordionTrigger className="font-medium hover:no-underline">
-                <div className="flex items-center gap-3">
-                    <School className="h-4 w-4 text-muted-foreground" />
-                    <span>{campus.campusName}</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <ul className="list-disc space-y-1 pl-6 text-sm text-muted-foreground">
-                    {campus.missingReports.map(reportName => (
-                        <li key={reportName}>{reportName}</li>
-                    ))}
-                </ul>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+        {incompleteReportsByCampus.length > 0 ? (
+            <Accordion type="multiple" className="w-full">
+            {incompleteReportsByCampus.map(campus => (
+                <AccordionItem value={campus.campusId} key={campus.campusId}>
+                <AccordionTrigger className="font-medium hover:no-underline">
+                    <div className="flex items-center gap-3">
+                        <School className="h-4 w-4 text-muted-foreground" />
+                        <span>{campus.campusName}</span>
+                    </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                    <ul className="list-disc space-y-1 pl-6 text-sm text-muted-foreground">
+                        {campus.missingReports.map(reportName => (
+                            <li key={reportName}>{reportName}</li>
+                        ))}
+                    </ul>
+                </AccordionContent>
+                </AccordionItem>
+            ))}
+            </Accordion>
+        ) : (
+             <div className="flex flex-col items-center justify-center text-center text-sm text-muted-foreground h-40">
+                <CheckCircle className="h-8 w-8 text-green-500 mb-2" />
+                <p className="font-semibold">All Compliant!</p>
+                <p>All campuses have submitted all required reports for {selectedYear}.</p>
+            </div>
+        )}
       </CardContent>
     </Card>
   );
