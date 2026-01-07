@@ -1,3 +1,4 @@
+
 'use client';
 
 import { redirect, usePathname } from 'next/navigation';
@@ -113,64 +114,64 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 
   useEffect(() => {
-    // Wait until all user data has finished loading before making any decisions.
+    // 1. Wait until all loading is finished.
     if (isUserLoading) {
       return; 
     }
 
-    // If loading is done and there's no user, redirect to login.
+    // 2. If loading is done and there's no user, redirect to login.
     if (!user) {
       redirect('/login');
       return;
     }
 
-    // Don't run checks on these specific pages to avoid redirect loops.
-    if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
-      return;
-    }
-    
-    // If loading is complete and we have a user profile, check its status.
+    // 3. At this point, `user` exists. If `userProfile` is also loaded, we can make decisions.
     if (userProfile) {
-      if (isAdmin) {
-        // If the user is an admin, they are always allowed.
-        return;
-      }
-      
-      if (!userProfile.verified) {
-        redirect('/awaiting-verification');
-        return;
-      }
-      
-      const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
-      
-      let isProfileIncomplete = false;
-      if (isCampusLevelUser) {
-        // For campus-level roles, unitId is not required.
-        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
-      } else {
-        // For all other roles (unit-level), all three are required.
-        isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
-      }
+        // Exempt these pages from profile checks to prevent redirect loops.
+        if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
+            return;
+        }
+        
+        // Admin is always allowed, regardless of profile status.
+        if (isAdmin) {
+            return;
+        }
 
-      if (isProfileIncomplete) {
+        // Check if the user is verified.
+        if (!userProfile.verified) {
+            redirect('/awaiting-verification');
+            return;
+        }
+        
+        // Check if the profile is incomplete.
+        const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
+        let isProfileIncomplete = false;
+        if (isCampusLevelUser) {
+            isProfileIncomplete = !userProfile.campusId || !userProfile.roleId;
+        } else {
+            isProfileIncomplete = !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
+        }
+
+        if (isProfileIncomplete) {
+            redirect('/complete-registration');
+            return;
+        }
+    } else if (user) {
+      // 4. This is the key case: user is loaded, but profile is not.
+      // This means the user is returning, not new. They must complete their profile.
+      if (pathname !== '/complete-registration') {
         redirect('/complete-registration');
-        return;
       }
-
-    } else {
-      // If loading is complete but the profile is still null, they are a new user.
-      redirect('/complete-registration');
     }
   }, [user, userProfile, isUserLoading, isAdmin, userRole, pathname]);
 
 
-  if (isUserLoading || (!userProfile && !['/complete-registration', '/awaiting-verification'].includes(pathname))) {
+  if (isUserLoading) {
       return <LoadingSkeleton />;
   }
 
   // Final check to prevent rendering children if user is not authenticated and not on a public-like page
   if (!user && !['/complete-registration', '/awaiting-verification'].includes(pathname)) {
-    // Redirect should have already been called, but this is a safeguard.
     return (
         <div className="flex h-screen w-screen items-center justify-center">
             <Skeleton className="h-16 w-16" />
