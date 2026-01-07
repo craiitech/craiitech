@@ -77,10 +77,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             if (!userProfile.campusId) return null;
             return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
         }
-        if (userRole === 'Unit ODIMO') {
-            if (!userProfile.unitId) return null;
-            return query(submissionsCollection, where('unitId', '==', userProfile.unitId), where('statusId', '==', 'submitted'));
-        }
     }
     
     // Regular employees get notifications for their own rejected submissions
@@ -132,8 +128,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return;
     }
 
+    // If loading is complete and the user is an admin, they are allowed.
     if (isAdmin) {
-      return; // Admins are always allowed and don't need profile checks.
+      return;
     }
     
     // If we reach here, the user is loaded and is NOT an admin.
