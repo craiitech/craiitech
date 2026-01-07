@@ -112,6 +112,7 @@ export default function HomePage() {
   const [isGlobalAnnouncementVisible, setIsGlobalAnnouncementVisible] = useState(true);
   const [selectedRiskYear, setSelectedRiskYear] = useState(new Date().getFullYear());
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [selectedIncompleteYear, setSelectedIncompleteYear] = useState(new Date().getFullYear());
 
 
   const canViewCampusAnnouncements = userProfile?.campusId;
@@ -885,6 +886,14 @@ export default function HomePage() {
                     userProfile={userProfile}
                     isCampusSupervisor={isCampusSupervisor}
                 />
+                <IncompleteCampusSubmissions
+                    allSubmissions={submissions}
+                    allCampuses={allCampuses}
+                    allUnits={allUnits}
+                    isLoading={isLoading}
+                    selectedYear={selectedIncompleteYear}
+                    onYearChange={setSelectedIncompleteYear}
+                />
                 {selectedUnitId && (
                     <UnitSubmissionDetailCard
                         unitId={selectedUnitId}
@@ -917,12 +926,6 @@ export default function HomePage() {
                         <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
                     </CardContent>
                 </Card>
-                 <IncompleteCampusSubmissions
-                    allSubmissions={submissions}
-                    allCampuses={allCampuses}
-                    allUnits={allUnits}
-                    isLoading={isLoading}
-                />
             </div>
         </div>
       </TabsContent>
@@ -940,7 +943,7 @@ export default function HomePage() {
       </TabsContent>
       <TabsContent value="strategic" className="space-y-6">
         <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
-        <RiskMatrix allRisks={risks} />
+        <RiskMatrix allRisks={allRisks} />
         <RiskFunnel allRisks={risks} />
         <CycleSubmissionBreakdown allSubmissions={submissions} />
       </TabsContent>
