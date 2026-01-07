@@ -943,7 +943,7 @@ export default function HomePage() {
       </TabsContent>
       <TabsContent value="strategic" className="space-y-6">
         <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
-        <RiskMatrix allRisks={allRisks} />
+        <RiskMatrix allRisks={risks} />
         <RiskFunnel allRisks={risks} />
         <CycleSubmissionBreakdown allSubmissions={submissions} />
       </TabsContent>
