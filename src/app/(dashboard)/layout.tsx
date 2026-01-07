@@ -114,28 +114,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 
   useEffect(() => {
+    // Wait until all user data has finished loading before making any decisions.
     if (isUserLoading) {
-      return; // Wait until all user data has finished loading.
+      return; 
     }
 
+    // If loading is done and there's no user, redirect to login.
     if (!user) {
-      redirect('/login'); // If no user, they need to log in.
+      redirect('/login');
       return;
     }
 
-    // Don't run checks on registration/verification pages to avoid redirect loops.
+    // Don't run checks on these specific pages to avoid redirect loops.
     if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
       return;
     }
-
-    // If loading is complete and the user is an admin, they are allowed.
-    if (isAdmin) {
-      return;
-    }
     
-    // If we reach here, the user is loaded and is NOT an admin.
-    // Now we can safely check their profile status.
+    // If loading is complete and we have a user profile, check its status.
     if (userProfile) {
+      if (isAdmin) {
+        // If the user is an admin, they are always allowed.
+        return;
+      }
+      
       if (!userProfile.verified) {
         redirect('/awaiting-verification');
         return;
@@ -158,13 +159,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
 
     } else {
-      // If the profile is still null after loading, they are a new user needing to register.
+      // If loading is complete but the profile is still null, they are a new user.
       redirect('/complete-registration');
     }
   }, [user, userProfile, isUserLoading, isAdmin, userRole, pathname]);
 
 
-  if (!firebaseState.areServicesAvailable || isUserLoading) return <LoadingSkeleton />;
+  if (isUserLoading) return <LoadingSkeleton />;
 
   if (!user || (!userProfile && !isAdmin && pathname !== '/complete-registration' && pathname !== '/awaiting-verification')) {
     return (
