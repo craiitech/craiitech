@@ -154,8 +154,9 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const isAdmin = !!adminRoleDoc;
     const isVp = !!userRole?.toLowerCase().includes('vice president');
     
-    const supervisorRoles = ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit ODIMO', 'Vice President'];
-    const isSupervisor = isAdmin || (userRole ? supervisorRoles.some(role => userRole.includes(role)) : false);
+    // Unit ODIMO is no longer a supervisor for approvals
+    const supervisorRoles = ['Admin', 'Campus Director', 'Campus ODIMO'];
+    const isSupervisor = isAdmin || (userRole ? supervisorRoles.some(role => userRole.includes(role)) : false) || isVp;
 
     // The user is fully loaded only when auth state is determined AND the Firestore profile is loaded.
     const isUserLoading = userAuthState.isAuthLoading || (!!userAuthState.user && isProfileLoading) || (!!userAuthState.user && isAdminRoleLoading);
