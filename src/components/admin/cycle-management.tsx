@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -31,9 +31,27 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Edit } from 'lucide-react';
+import { Loader2, PlusCircle, Edit, Trash2, MoreHorizontal } from 'lucide-react';
 import type { Cycle } from '@/lib/types';
 import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -76,6 +94,7 @@ export function CycleManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCycle, setEditingCycle] = useState<Cycle | null>(null);
+  const [deletingCycle, setDeletingCycle] = useState<Cycle | null>(null);
 
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: cycles, isLoading } = useCollection<Cycle>(cyclesQuery);
@@ -147,6 +166,29 @@ export function CycleManagement() {
     }
   };
 
+  const handleDeleteCycle = async () => {
+    if (!firestore || !deletingCycle) return;
+    setIsSubmitting(true);
+    const cycleRef = doc(firestore, 'cycles', deletingCycle.id);
+    try {
+        await deleteDoc(cycleRef);
+        toast({
+            title: "Cycle Deleted",
+            description: "The submission cycle has been successfully deleted.",
+        });
+    } catch (error) {
+        console.error("Error deleting cycle:", error);
+        toast({
+            title: "Error",
+            description: "Could not delete the cycle.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsSubmitting(false);
+        setDeletingCycle(null);
+    }
+  }
+
   return (
     <>
       <Card>
@@ -184,9 +226,25 @@ export function CycleManagement() {
                     <TableCell>{cycle.startDate ? format(cycle.startDate.toDate(), 'PPP') : 'N/A'}</TableCell>
                     <TableCell>{cycle.endDate ? format(cycle.endDate.toDate(), 'PPP') : 'N/A'}</TableCell>
                     <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(cycle)}>
-                            <Edit className="h-4 w-4" />
-                        </Button>
+                         <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleOpenDialog(cycle)}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive" onClick={() => setDeletingCycle(cycle)}>
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -286,6 +344,24 @@ export function CycleManagement() {
              </Form>
         </DialogContent>
       </Dialog>
+
+       <AlertDialog open={!!deletingCycle} onOpenChange={() => setDeletingCycle(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the cycle "{deletingCycle?.name} {deletingCycle?.year}".
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteCycle} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Delete
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }
