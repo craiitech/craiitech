@@ -165,13 +165,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [user, userProfile, isUserLoading, isAdmin, userRole, pathname]);
 
 
-  if (isUserLoading) return <LoadingSkeleton />;
+  if (isUserLoading || (!userProfile && !['/complete-registration', '/awaiting-verification'].includes(pathname))) {
+      return <LoadingSkeleton />;
+  }
 
-  if (!user || (!userProfile && !isAdmin && pathname !== '/complete-registration' && pathname !== '/awaiting-verification')) {
+  // Final check to prevent rendering children if user is not authenticated and not on a public-like page
+  if (!user && !['/complete-registration', '/awaiting-verification'].includes(pathname)) {
+    // Redirect should have already been called, but this is a safeguard.
     return (
-      <div className="flex h-screen w-screen items-center justify-center">
-        <Skeleton className="h-16 w-16" />
-      </div>
+        <div className="flex h-screen w-screen items-center justify-center">
+            <Skeleton className="h-16 w-16" />
+        </div>
     );
   }
 
