@@ -558,41 +558,49 @@ export default function SubmissionsPage() {
                   Export to Excel
               </Button>
             {canSubmit && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    New Submission
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Submission Instructions</AlertDialogTitle>
-                    <AlertDialogDescription asChild>
-                      <ul className="list-disc space-y-2 pl-5 text-sm">
-                          <li>
-                              Prepare all required EOMS documents as a single PDF file (using Complete Staff Work format) in your RSU Google Drive.
-                          </li>
-                          <li>
-                              Ensure the document is saved on your unit's Google Drive using your RSU email and that sharing is set to "anyone with the link can view."
-                          </li>
-                          <li>
-                              The submission must be verified and approved by the QA Office.
-                          </li>
-                          <li>
-                              You may receive comments if the submission is invalid or incorrect.
-                          </li>
-                      </ul>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => router.push('/submissions/new')}>
-                      Continue
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <>
+                <Button variant="outline" asChild>
+                    <Link href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank">
+                        <Download className="mr-2 h-4 w-4" />
+                        Download Templates
+                    </Link>
+                </Button>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                    <Button>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        New Submission
+                    </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Submission Instructions</AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                        <ul className="list-disc space-y-2 pl-5 text-sm">
+                            <li>
+                                Prepare all required EOMS documents as a single PDF file (using Complete Staff Work format) in your RSU Google Drive.
+                            </li>
+                            <li>
+                                Ensure the document is saved on your unit's Google Drive using your RSU email and that sharing is set to "anyone with the link can view."
+                            </li>
+                            <li>
+                                The submission must be verified and approved by the QA Office.
+                            </li>
+                            <li>
+                                You may receive comments if the submission is invalid or incorrect.
+                            </li>
+                        </ul>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => router.push('/submissions/new')}>
+                        Continue
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+              </>
             )}
           </div>
         </div>
