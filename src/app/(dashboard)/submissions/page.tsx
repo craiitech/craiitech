@@ -280,7 +280,7 @@ const SubmissionsTable = ({
 
 
 export default function SubmissionsPage() {
-  const { userProfile, isAdmin, isSupervisor } = useUser();
+  const { userProfile, isAdmin, isSupervisor, userRole } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -534,6 +534,8 @@ export default function SubmissionsPage() {
     XLSX.writeFile(workbook, 'submissions-export.xlsx');
   };
 
+  const canSubmit = !isSupervisor || userRole === 'Unit ODIMO';
+
 
   return (
     <>
@@ -555,7 +557,7 @@ export default function SubmissionsPage() {
                   <FileDown className="mr-2 h-4 w-4" />
                   Export to Excel
               </Button>
-            {!isSupervisor && (
+            {canSubmit && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button>
