@@ -55,7 +55,7 @@ import { useRouter } from 'next/navigation';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 
 export default function ApprovalsPage() {
-  const { user, userProfile, isSupervisor, userRole, isVp, isAdmin } = useUser();
+  const { user, userProfile, isUserLoading, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
@@ -65,20 +65,17 @@ export default function ApprovalsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<Record<string, AppUser>>({});
 
-  const allUnitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
-  const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(allUnitsQuery);
-
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentSubmission, setCurrentSubmission] =
     useState<Submission | null>(null);
   const [feedback, setFeedback] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   
-  const canApprove = isSupervisor;
+  const canApprove = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO';
 
   useEffect(() => {
-    if (!firestore || !userRole || !userProfile || isLoadingUnits) {
-        setIsLoading(false); // Ensure loading stops if prerequisites aren't met
+    if (isUserLoading || !firestore || !userProfile) {
+        setIsLoading(false);
         return;
     }
 
@@ -89,29 +86,10 @@ export default function ApprovalsPage() {
 
         if (isAdmin) {
             submissionsQuery = baseQuery;
-        } else if (isVp) {
-            if (allUnits && allUnits.length > 0) {
-                const vpUnitIds = allUnits.filter(u => u.vicePresidentId === userProfile.id).map(u => u.id);
-                if (vpUnitIds.length > 0) {
-                    submissionsQuery = query(baseQuery, where('unitId', 'in', vpUnitIds));
-                } else {
-                    // VP has no units assigned, so no submissions to see.
-                    setSubmissions([]);
-                    setIsLoading(false);
-                    return;
-                }
-            } else {
-                 // allUnits is not ready yet, wait for the next render.
-                setIsLoading(false);
-                return;
-            }
         } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
             submissionsQuery = query(baseQuery, where('campusId', '==', userProfile.campusId));
-        } else if (userRole === 'Unit ODIMO') {
-            submissionsQuery = query(baseQuery, where('unitId', '==', userProfile.unitId));
         }
         
-
         if (submissionsQuery) {
             try {
                 const snapshot = await getDocs(submissionsQuery);
@@ -141,7 +119,7 @@ export default function ApprovalsPage() {
 
     fetchSubmissions();
     
-  }, [firestore, userRole, userProfile, isAdmin, isVp, allUnits, isLoadingUnits]);
+  }, [firestore, userRole, userProfile, isAdmin, isUserLoading]);
 
 
   useEffect(() => {
@@ -267,7 +245,7 @@ export default function ApprovalsPage() {
     return user ? `${user.firstName} ${user.lastName}` : 'Loading...';
   };
 
-  if (isLoading || isLoadingUnits) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin" />
