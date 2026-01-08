@@ -12,7 +12,7 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Campus, Unit, Submission } from '@/lib/types';
 import { collection, query, where, Query } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -20,6 +20,7 @@ import { Building2 } from 'lucide-react';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';
 import { Header } from '@/components/dashboard/header';
 import { Chatbot } from '@/components/dashboard/chatbot';
+import { useToast } from '@/hooks/use-toast';
 
 const LoadingSkeleton = () => (
   <div className="flex items-start">
@@ -50,10 +51,66 @@ const LoadingSkeleton = () => (
   </div>
 );
 
+/**
+ * Custom hook to detect user inactivity and trigger a callback.
+ * @param onIdle - The function to call when the user is idle.
+ * @param idleTime - The inactivity timeout in milliseconds.
+ */
+const useIdleTimer = (onIdle: () => void, idleTime: number) => {
+  const timeoutId = useRef<NodeJS.Timeout | null>(null);
+
+  const resetTimer = useCallback(() => {
+    if (timeoutId.current) {
+      clearTimeout(timeoutId.current);
+    }
+    timeoutId.current = setTimeout(onIdle, idleTime);
+  }, [onIdle, idleTime]);
+
+  useEffect(() => {
+    const events = ['mousemove', 'keydown', 'mousedown', 'scroll'];
+
+    const handleActivity = () => {
+      resetTimer();
+    };
+
+    // Set up event listeners
+    events.forEach(event => {
+      window.addEventListener(event, handleActivity);
+    });
+
+    // Initialize the timer
+    resetTimer();
+
+    // Cleanup function
+    return () => {
+      if (timeoutId.current) {
+        clearTimeout(timeoutId.current);
+      }
+      events.forEach(event => {
+        window.removeEventListener(event, handleActivity);
+      });
+    };
+  }, [resetTimer]);
+};
+
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const firebaseState = useFirebase();
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
   const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, isSupervisor } = useUser();
+
+  // Implement the inactivity logout timer.
+  const handleIdle = useCallback(() => {
+    toast({
+      title: 'Session Timeout',
+      description: 'You have been logged out due to inactivity.',
+    });
+    router.push('/logout');
+  }, [router, toast]);
+  
+  useIdleTimer(handleIdle, 2 * 60 * 1000); // 2 minutes
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
@@ -61,17 +118,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
 
-  // This logic is now outside the hook, ensuring hook calls are stable.
   const getNotificationQuery = (): Query | null => {
     if (!firestore || !userProfile || !userRole) return null;
     const submissionsCollection = collection(firestore, 'submissions');
 
-    // Admin should see all pending submissions. This check is now first and independent.
     if (isAdmin) {
       return query(submissionsCollection, where('statusId', '==', 'submitted'));
     }
 
-    // Other supervisors (Campus Director, ODIMOs, VPs)
     if (isSupervisor) {
         if (userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president')) {
             if (!userProfile.campusId) return null;
@@ -79,18 +133,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
     }
     
-    // Regular employees get notifications for their own rejected submissions
     return query(submissionsCollection, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
   }
 
-  // The hook now receives a stable value or null.
   const notificationQuery = useMemoFirebase(() => getNotificationQuery(), [firestore, userProfile, userRole, isSupervisor, isAdmin]);
 
   const { data: notifications } = useCollection<Submission>(notificationQuery);
 
   const notificationCount = useMemo(() => {
     if (!notifications || !userProfile) return 0;
-    // For supervisors, filter out their own submissions from the notification count.
     if (isSupervisor) {
         return notifications.filter(s => s.userId !== userProfile.id).length;
     }
@@ -114,37 +165,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 
   useEffect(() => {
-    // 1. Gatekeeper: If user data is still loading, do nothing and wait.
-    // This is the most critical part of the fix.
     if (isUserLoading) {
       return; 
     }
     
-    // Exempt these specific pages from any redirection logic to prevent loops.
     if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
         return;
     }
 
-    // 2. No User: If loading is finished and there's no user, redirect to login.
     if (!user) {
       redirect('/login');
       return;
     }
 
-    // 3. Admin User: Admins are always allowed, regardless of profile status.
     if (isAdmin) {
         return;
     }
 
-    // 4. At this point, a non-admin user is logged in. Check their profile.
     if (userProfile) {
-        // If the profile is not verified, redirect to the waiting page.
         if (!userProfile.verified) {
             redirect('/awaiting-verification');
             return;
         }
         
-        // Check if the profile is incomplete based on their role.
         const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
         const isProfileIncomplete = isCampusLevelUser
             ? !userProfile.campusId || !userProfile.roleId
@@ -155,8 +198,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             return;
         }
     } else {
-      // 5. This case handles returning users whose profile document might not exist yet.
-      // If the user is logged in but has no profile, send them to complete it.
       redirect('/complete-registration');
     }
   }, [user, userProfile, isUserLoading, isAdmin, userRole, pathname]);
@@ -166,7 +207,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return <LoadingSkeleton />;
   }
 
-  // Final check to prevent rendering children if user is not authenticated and not on a public-like page
   if (!user && !['/complete-registration', '/awaiting-verification'].includes(pathname)) {
     return (
         <div className="flex h-screen w-screen items-center justify-center">
