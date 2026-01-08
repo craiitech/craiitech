@@ -78,7 +78,7 @@ export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivac
 
                  <h3 className="font-semibold">5. Consent</h3>
                  <p>
-                    By checking the "I agree to the Data Privacy Statement" box and creating an account, you confirm that you have read and understood this statement and you give your consent to the collection, processing, and use of your personal data as described herein.
+                    By clicking "Understand and Accept" below and proceeding to create an account, you confirm that you have read and understood this statement and you give your consent to the collection, processing, and use of your personal data as described herein.
                 </p>
             </div>
         </ScrollArea>
