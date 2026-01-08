@@ -4,7 +4,6 @@
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -14,6 +13,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter } from 'next/navigation';
 import { Button } from '../ui/button';
+import { useState } from 'react';
 
 interface DataPrivacyDialogProps {
   isOpen: boolean;
@@ -23,11 +23,20 @@ interface DataPrivacyDialogProps {
 
 export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivacyDialogProps) {
   const router = useRouter();
+  const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false);
 
   const handleDecline = () => {
     onOpenChange(false);
     router.push('/');
   }
+
+  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
+    // Check if user is near the bottom (with a 5px tolerance)
+    if (scrollTop + clientHeight >= scrollHeight - 5) {
+      setHasScrolledToEnd(true);
+    }
+  };
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
@@ -39,7 +48,7 @@ export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivac
           </AlertDialogDescription>
         </AlertDialogHeader>
         
-        <ScrollArea className="h-[400px] w-full rounded-md border p-4 text-sm">
+        <ScrollArea className="h-[400px] w-full rounded-md border p-4 text-sm" onScroll={handleScroll}>
             <div className="space-y-4">
                 <h3 className="font-semibold">1. Data We Collect</h3>
                 <p>
@@ -96,7 +105,9 @@ export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivac
         
         <AlertDialogFooter>
             <Button variant="destructive" onClick={handleDecline}>I do not agree</Button>
-            <AlertDialogAction onClick={onAccept}>Understand and Accept</AlertDialogAction>
+            <AlertDialogAction onClick={onAccept} disabled={!hasScrolledToEnd}>
+              Understand and Accept
+            </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
