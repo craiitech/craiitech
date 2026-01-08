@@ -24,7 +24,7 @@ interface DataPrivacyDialogProps {
 export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivacyDialogProps) {
   const router = useRouter();
   const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const endOfContentRef = useRef<HTMLDivElement>(null);
 
   const handleDecline = () => {
     onOpenChange(false);
@@ -39,30 +39,35 @@ export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivac
   }, [isOpen]);
 
   useEffect(() => {
-    const scrollViewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
-    
-    const handleScroll = (event: Event) => {
-        const target = event.target as HTMLDivElement;
-        if (!target) return;
-        
-        const { scrollTop, scrollHeight, clientHeight } = target;
-        // Check if user is near the bottom (with a 5px tolerance)
-        if (scrollTop + clientHeight >= scrollHeight - 5) {
+    if (!isOpen) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
           setHasScrolledToEnd(true);
+          // Once it's visible, we don't need to observe anymore
+          observer.disconnect();
         }
-    };
-    
-    if (scrollViewport) {
-      scrollViewport.addEventListener('scroll', handleScroll);
+      },
+      {
+        root: null, // viewport
+        threshold: 1.0, // Fully visible
+      }
+    );
+
+    const currentRef = endOfContentRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
-    // Cleanup function to remove the event listener
     return () => {
-      if (scrollViewport) {
-        scrollViewport.removeEventListener('scroll', handleScroll);
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
+      observer.disconnect();
     };
-  }, [isOpen]); // Re-attach listener if dialog re-opens
+  }, [isOpen]);
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
@@ -74,7 +79,7 @@ export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivac
           </AlertDialogDescription>
         </AlertDialogHeader>
         
-        <ScrollArea className="h-[400px] w-full rounded-md border" ref={scrollAreaRef}>
+        <ScrollArea className="h-[400px] w-full rounded-md border">
             <div className="p-4 text-sm space-y-4">
                 <h3 className="font-semibold">1. Data We Collect</h3>
                 <p>
@@ -126,6 +131,7 @@ export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivac
                  <p>
                     By clicking "Understand and Accept" below and proceeding to create an account, you confirm that you have read and understood this statement and you give your consent to the collection, processing, and use of your personal data as described herein.
                 </p>
+                <div ref={endOfContentRef} />
             </div>
           <ScrollBar />
         </ScrollArea>
