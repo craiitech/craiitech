@@ -13,7 +13,7 @@ import {
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useRouter } from 'next/navigation';
 import { Button } from '../ui/button';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface DataPrivacyDialogProps {
   isOpen: boolean;
@@ -24,19 +24,45 @@ interface DataPrivacyDialogProps {
 export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivacyDialogProps) {
   const router = useRouter();
   const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const handleDecline = () => {
     onOpenChange(false);
     router.push('/');
   }
 
-  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
-    // Check if user is near the bottom (with a 5px tolerance)
-    if (scrollTop + clientHeight >= scrollHeight - 5) {
-      setHasScrolledToEnd(true);
+  // Reset scroll state when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setHasScrolledToEnd(false);
     }
-  };
+  }, [isOpen]);
+
+  useEffect(() => {
+    const scrollViewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    
+    const handleScroll = (event: Event) => {
+        const target = event.target as HTMLDivElement;
+        if (!target) return;
+        
+        const { scrollTop, scrollHeight, clientHeight } = target;
+        // Check if user is near the bottom (with a 5px tolerance)
+        if (scrollTop + clientHeight >= scrollHeight - 5) {
+          setHasScrolledToEnd(true);
+        }
+    };
+    
+    if (scrollViewport) {
+      scrollViewport.addEventListener('scroll', handleScroll);
+    }
+
+    // Cleanup function to remove the event listener
+    return () => {
+      if (scrollViewport) {
+        scrollViewport.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [isOpen]); // Re-attach listener if dialog re-opens
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
@@ -48,7 +74,7 @@ export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivac
           </AlertDialogDescription>
         </AlertDialogHeader>
         
-        <ScrollArea className="h-[400px] w-full rounded-md border" onScroll={handleScroll}>
+        <ScrollArea className="h-[400px] w-full rounded-md border" ref={scrollAreaRef}>
             <div className="p-4 text-sm space-y-4">
                 <h3 className="font-semibold">1. Data We Collect</h3>
                 <p>
