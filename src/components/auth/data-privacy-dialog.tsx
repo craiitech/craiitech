@@ -23,51 +23,11 @@ interface DataPrivacyDialogProps {
 
 export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivacyDialogProps) {
   const router = useRouter();
-  const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false);
-  const endOfContentRef = useRef<HTMLDivElement>(null);
 
   const handleDecline = () => {
     onOpenChange(false);
     router.push('/');
   }
-
-  // Reset scroll state when dialog opens
-  useEffect(() => {
-    if (isOpen) {
-      setHasScrolledToEnd(false);
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const [entry] = entries;
-        if (entry.isIntersecting) {
-          setHasScrolledToEnd(true);
-          // Once it's visible, we don't need to observe anymore
-          observer.disconnect();
-        }
-      },
-      {
-        root: null, // viewport
-        threshold: 1.0, // Fully visible
-      }
-    );
-
-    const currentRef = endOfContentRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
-
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
-      observer.disconnect();
-    };
-  }, [isOpen]);
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
@@ -131,14 +91,13 @@ export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivac
                  <p>
                     By clicking "Understand and Accept" below and proceeding to create an account, you confirm that you have read and understood this statement and you give your consent to the collection, processing, and use of your personal data as described herein.
                 </p>
-                <div ref={endOfContentRef} />
             </div>
           <ScrollBar />
         </ScrollArea>
         
         <AlertDialogFooter>
             <Button variant="destructive" onClick={handleDecline}>I do not agree</Button>
-            <AlertDialogAction onClick={onAccept} disabled={!hasScrolledToEnd}>
+            <AlertDialogAction onClick={onAccept}>
               Understand and Accept
             </AlertDialogAction>
         </AlertDialogFooter>
