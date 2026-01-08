@@ -4,12 +4,16 @@
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useRouter } from 'next/navigation';
+import { Button } from '../ui/button';
 
 interface DataPrivacyDialogProps {
   isOpen: boolean;
@@ -18,6 +22,13 @@ interface DataPrivacyDialogProps {
 }
 
 export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivacyDialogProps) {
+  const router = useRouter();
+
+  const handleDecline = () => {
+    onOpenChange(false);
+    router.push('/');
+  }
+
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-2xl">
@@ -83,9 +94,10 @@ export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivac
             </div>
         </ScrollArea>
         
-        <div className="flex justify-end">
+        <AlertDialogFooter>
+            <Button variant="destructive" onClick={handleDecline}>I do not agree</Button>
             <AlertDialogAction onClick={onAccept}>Understand and Accept</AlertDialogAction>
-        </div>
+        </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
