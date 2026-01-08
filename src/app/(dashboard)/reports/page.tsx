@@ -25,6 +25,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, School, Users, FileCheck2, Printer } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 export default function ReportsPage() {
   const { userProfile, isAdmin, isUserLoading, isSupervisor } = useUser();
@@ -97,11 +98,36 @@ export default function ReportsPage() {
     return allUnits.filter(unit => unit.campusIds?.includes(selectedCampusId));
   }, [selectedCampusId, allUnits]);
 
-  const submittedUnits = useMemo(() => {
-    if (!allSubmissions || !allUnits) return [];
-    const submittedUnitIds = new Set(allSubmissions.map(s => s.unitId));
-    return allUnits.filter(unit => submittedUnitIds.has(unit.id));
-  }, [allSubmissions, allUnits]);
+  const submittedUnitsByCampus = useMemo(() => {
+    if (!allSubmissions || !allUnits || !allCampuses) return [];
+
+    // Create maps for quick lookups
+    const unitMap = new Map(allUnits.map(u => [u.id, u.name]));
+    const campusMap = new Map(allCampuses.map(c => [c.id, c.name]));
+
+    // Group submissions by campus, then by unit
+    const grouped = allSubmissions.reduce((acc, submission) => {
+        const campusName = campusMap.get(submission.campusId);
+        const unitName = unitMap.get(submission.unitId);
+
+        if (campusName && unitName) {
+            if (!acc[campusName]) {
+                acc[campusName] = new Set<string>();
+            }
+            acc[campusName].add(unitName);
+        }
+        return acc;
+    }, {} as Record<string, Set<string>>);
+
+    // Convert to a sorted array structure for rendering
+    return Object.entries(grouped)
+        .map(([campusName, unitSet]) => ({
+            campusName,
+            units: Array.from(unitSet).sort(),
+        }))
+        .sort((a, b) => a.campusName.localeCompare(b.campusName));
+
+  }, [allSubmissions, allUnits, allCampuses]);
 
   const campusMap = useMemo(() => {
     if (!allCampuses) return new Map();
@@ -213,34 +239,30 @@ export default function ReportsPage() {
                   <FileCheck2 className="h-5 w-5" />
                   Units With Submissions
                 </CardTitle>
-                <CardDescription>A list of all units that have made at least one submission.</CardDescription>
+                <CardDescription>A list of all units that have made at least one submission, grouped by campus.</CardDescription>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-48 rounded-md border print:h-auto print:border-none">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Unit Name</TableHead>
-                        <TableHead>Campuses</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {submittedUnits.length > 0 ? (
-                        submittedUnits.map(unit => (
-                          <TableRow key={unit.id}>
-                            <TableCell>{unit.name}</TableCell>
-                            <TableCell>{unit.campusIds?.map(id => campusMap.get(id)).join(', ') || 'N/A'}</TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={2} className="text-center text-muted-foreground">
-                            No units have submitted reports yet.
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                  {submittedUnitsByCampus.length > 0 ? (
+                    <Accordion type="multiple" className="w-full">
+                      {submittedUnitsByCampus.map(campus => (
+                        <AccordionItem value={campus.campusName} key={campus.campusName}>
+                          <AccordionTrigger>{campus.campusName}</AccordionTrigger>
+                          <AccordionContent>
+                            <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                              {campus.units.map(unitName => (
+                                <li key={unitName}>{unitName}</li>
+                              ))}
+                            </ul>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                      No units have submitted reports yet.
+                    </div>
+                  )}
                 </ScrollArea>
               </CardContent>
             </Card>
