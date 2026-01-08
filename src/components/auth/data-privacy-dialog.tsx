@@ -73,7 +73,7 @@ export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivac
                     <li><strong>The Right to Data Portability:</strong> You can obtain a copy of your data in a structured, commonly used, and machine-readable format.</li>
                 </ul>
                 <p>
-                    To exercise any of these rights, please contact the RSU Data Protection Officer.
+                    To exercise any of these rights, please contact the RSU Data Protection Officer at <a href="mailto:dpo@rsu.edu.ph" className="text-primary underline">dpo@rsu.edu.ph</a>.
                 </p>
 
                  <h3 className="font-semibold">5. Consent</h3>
