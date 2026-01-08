@@ -10,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useRouter } from 'next/navigation';
 import { Button } from '../ui/button';
 import { useState } from 'react';
@@ -48,8 +48,8 @@ export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivac
           </AlertDialogDescription>
         </AlertDialogHeader>
         
-        <ScrollArea className="h-[400px] w-full rounded-md border p-4 text-sm" onScroll={handleScroll}>
-            <div className="space-y-4">
+        <ScrollArea className="h-[400px] w-full rounded-md border" onScroll={handleScroll}>
+            <div className="p-4 text-sm space-y-4">
                 <h3 className="font-semibold">1. Data We Collect</h3>
                 <p>
                     To create and manage your account for the RSU EOMS Submission Portal, we collect the following personal information:
@@ -101,6 +101,7 @@ export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivac
                     By clicking "Understand and Accept" below and proceeding to create an account, you confirm that you have read and understood this statement and you give your consent to the collection, processing, and use of your personal data as described herein.
                 </p>
             </div>
+          <ScrollBar />
         </ScrollArea>
         
         <AlertDialogFooter>
