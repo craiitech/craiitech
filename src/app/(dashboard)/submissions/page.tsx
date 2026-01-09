@@ -53,6 +53,8 @@ import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UnitSubmissionsView } from '@/components/submissions/unit-submissions-view';
 import { CampusSubmissionsView } from '@/components/submissions/campus-submissions-view';
+import { SubmissionReport } from '@/components/submissions/submission-report';
+import ReactDOMServer from 'react-dom/server';
 
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -503,7 +505,53 @@ export default function SubmissionsPage() {
   }, [submissions, activeFilter, sortConfig, usersMap, campusMap]);
 
   const handlePrint = () => {
-    window.print();
+    if (!userProfile || !cycles) return;
+
+    // Find the most relevant cycle for the title.
+    const latestCycle = cycles
+        .filter(c => c.year === new Date().getFullYear())
+        .sort((a, b) => (a.name === 'final' ? 1 : -1))[0] || cycles[0];
+
+    const reportProps = {
+        user: userProfile,
+        submissions: sortedSubmissions,
+        campusName: campusMap.get(userProfile.campusId) || 'N/A',
+        cycle: latestCycle?.name || '',
+        year: latestCycle?.year || new Date().getFullYear(),
+    };
+
+    const reportHtml = ReactDOMServer.renderToStaticMarkup(<SubmissionReport {...reportProps} />);
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Submission Report</title>
+                    <style>
+                        body { font-family: sans-serif; margin: 2rem; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f2f2f2; }
+                        h1, h2, h3 { margin: 0; }
+                        .header { text-align: center; margin-bottom: 2rem; }
+                        .footer { margin-top: 2rem; font-style: italic; color: #555; }
+                        .report-title { margin-top: 1rem; text-align: center; font-weight: bold; text-transform: uppercase; }
+                        .user-info { margin-top: 1rem; }
+                    </style>
+                </head>
+                <body>
+                    ${reportHtml}
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            window.onafterprint = function() { window.close(); }
+                        }
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    }
   };
 
   const handleExportToExcel = () => {
@@ -541,7 +589,7 @@ export default function SubmissionsPage() {
     <>
     <TooltipProvider>
       <div className="space-y-2">
-        <div className="flex items-start justify-between print:hidden">
+        <div className="flex items-start justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Submissions</h2>
             <p className="text-muted-foreground">
@@ -606,13 +654,8 @@ export default function SubmissionsPage() {
         </div>
       </div>
       
-       <div className="hidden print:block text-center mb-4">
-          <h1 className="text-2xl font-bold">Submissions Report</h1>
-          <p className="text-muted-foreground">Generated on: {new Date().toLocaleDateString()}</p>
-      </div>
-
        <Tabs defaultValue="all-submissions" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="print:hidden">
+        <TabsList>
             <TabsTrigger value="all-submissions">
               <Rows className="mr-2 h-4 w-4" />
               All Submissions
@@ -630,9 +673,9 @@ export default function SubmissionsPage() {
               </TabsTrigger>
             )}
         </TabsList>
-        <TabsContent value="all-submissions" className="printable-area" data-state={activeTab === 'all-submissions' ? 'active' : 'inactive'}>
+        <TabsContent value="all-submissions" data-state={activeTab === 'all-submissions' ? 'active' : 'inactive'}>
             <Card>
-                <CardHeader className="print:hidden">
+                <CardHeader>
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                     <div className='mb-4 md:mb-0'>
                         <CardTitle>{isSupervisor ? 'All Submissions' : 'My Submissions'}</CardTitle>
@@ -680,7 +723,7 @@ export default function SubmissionsPage() {
             </Card>
         </TabsContent>
         {isSupervisor && !isAdmin && (
-            <TabsContent value="by-unit" className="printable-area" data-state={activeTab === 'by-unit' ? 'active' : 'inactive'}>
+            <TabsContent value="by-unit" data-state={activeTab === 'by-unit' ? 'active' : 'inactive'}>
                 <UnitSubmissionsView
                     allSubmissions={submissions}
                     allUnits={units}
@@ -690,7 +733,7 @@ export default function SubmissionsPage() {
             </TabsContent>
         )}
         {isAdmin && (
-            <TabsContent value="by-campus" className="printable-area" data-state={activeTab === 'by-campus' ? 'active' : 'inactive'}>
+            <TabsContent value="by-campus" data-state={activeTab === 'by-campus' ? 'active' : 'inactive'}>
                 <CampusSubmissionsView
                     allSubmissions={submissions}
                     allCampuses={campuses}

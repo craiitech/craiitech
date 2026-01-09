@@ -98,68 +98,12 @@
 
 @layer utilities {
     @media print {
-        body {
-            background-color: white !important;
-        }
-
-        /* Hide everything by default */
-        body * {
-            visibility: hidden;
-        }
-
-        /* Show the printable area and its children */
-        .printable-area, .printable-area * {
-            visibility: visible;
-        }
-        
-        /* For pages with tabs, only show the active tab content */
-        .printable-area[data-state="inactive"] {
-            display: none;
-        }
-        
-        .printable-area[data-state="active"] {
-            display: block !important;
-            visibility: visible !important;
-        }
-
-        /* Position the active printable area to take up the whole page */
-        .printable-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            margin: 0;
-            padding: 1rem;
-        }
-
-        .print\:hidden {
-            display: none !important;
-        }
-        
-        .print\:block {
-            display: block;
-        }
-        
-        .print\:break-inside-avoid {
-            break-inside: avoid;
-        }
-
-        .print\:grid-cols-1 {
-            grid-template-columns: repeat(1, minmax(0, 1fr));
-        }
-
-        .print\:space-y-8 > :not([hidden]) ~ :not([hidden]) {
-            --tw-space-y-reverse: 0;
-            margin-top: calc(2rem * calc(1 - var(--tw-space-y-reverse)));
-            margin-bottom: calc(2rem * var(--tw-space-y-reverse));
-        }
-
-        .print\:h-auto {
-            height: auto;
-        }
-        
-        .print\:border-none {
-            border: none;
-        }
+      body {
+        background: white !important;
+        color: black !important;
+      }
+      .no-print {
+        display: none !important;
+      }
     }
 }
