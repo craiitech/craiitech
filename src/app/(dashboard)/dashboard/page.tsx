@@ -241,7 +241,7 @@ export default function HomePage() {
       const timer = setTimeout(() => {
         setIsAnnouncementVisible(false);
         setIsGlobalAnnouncementVisible(false);
-      }, 120000); // 120 seconds
+      }, 80000); // 80 seconds
 
       // Cleanup function to clear the timer if the component unmounts
       // or if the announcements change before the timer finishes.
