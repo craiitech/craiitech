@@ -18,6 +18,7 @@ export function SubmissionReport({ user, submissions, campusName, cycle, year }:
       <div className="header">
         <h1>ROMBLON STATE UNIVERSITY</h1>
         <h2>QUALITY ASSURANCE OFFICE</h2>
+        <h3>Updated as of {new Date().toLocaleDateString()}</h3>
       </div>
 
       <div className="user-info">

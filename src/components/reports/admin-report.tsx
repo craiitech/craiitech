@@ -32,6 +32,7 @@ export function AdminReport({ submissions, campuses, units }: AdminReportProps) 
       <div className="header">
         <h1>ROMBLON STATE UNIVERSITY</h1>
         <h2>QUALITY ASSURANCE OFFICE</h2>
+        <h3>Updated as of {new Date().toLocaleDateString()}</h3>
         <h3 className="report-title">SUBMISSION REPORTS</h3>
       </div>
 
