@@ -578,7 +578,7 @@ export default function SubmissionsPage() {
                         <AlertDialogDescription asChild>
                         <ul className="list-disc space-y-2 pl-5 text-sm">
                             <li>
-                                Prepare all required EOMS documents (Updated SWOT, Updated Need and Expectation, Operational Plan, Objectives Monitoring, Risk and Opportunities and Risk and Opportunity Action Plans) in PDF Format (using Complete Staff Work) in your EOMS Folder on the RSU Google Drive.
+                                Prepare all required EOMS documents (Updated SWOT, Updated Need and Expectation, Operational Plan, Objectives Monitoring, Risk and Opportunities and Risk and Opportunity Action Plans) in PDF Format (using Complete Staff Work) in your EOMS Folder on your RSU Google Drive or Official Unit Google Drive.
                             </li>
                             <li>
                                 Ensure the document is saved on your unit's Google Drive using your RSU email and that sharing is set to "anyone with the link can view."
