@@ -234,8 +234,20 @@ export default function HomePage() {
   const announcement = campusSetting?.announcement;
   const globalAnnouncement = globalSetting?.announcement;
   
-  useEffect(() => { setIsAnnouncementVisible(true); }, [announcement]);
-  useEffect(() => { setIsGlobalAnnouncementVisible(true); }, [globalAnnouncement]);
+  useEffect(() => {
+    // This effect runs when announcement data changes.
+    // If there is an announcement, we set a timer to hide it.
+    if (announcement || globalAnnouncement) {
+      const timer = setTimeout(() => {
+        setIsAnnouncementVisible(false);
+        setIsGlobalAnnouncementVisible(false);
+      }, 120000); // 120 seconds
+
+      // Cleanup function to clear the timer if the component unmounts
+      // or if the announcements change before the timer finishes.
+      return () => clearTimeout(timer);
+    }
+  }, [announcement, globalAnnouncement]);
 
   
   const unitsInCampus = useMemo(() => {
