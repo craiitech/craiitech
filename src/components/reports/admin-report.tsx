@@ -21,7 +21,10 @@ export function AdminReport({ submissions, campuses, units }: AdminReportProps) 
     }
     const unitA = unitMap.get(a.unitId) || '';
     const unitB = unitMap.get(b.unitId) || '';
-    return unitA.localeCompare(unitB);
+    if (unitA !== unitB) {
+        return unitA.localeCompare(unitB);
+    }
+    return new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime();
   });
 
   return (

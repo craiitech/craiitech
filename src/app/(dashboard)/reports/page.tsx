@@ -104,31 +104,41 @@ export default function ReportsPage() {
   const submittedUnitsByCampus = useMemo(() => {
     if (!allSubmissions || !allUnits || !allCampuses) return [];
 
-    // Create maps for quick lookups
-    const unitMap = new Map(allUnits.map(u => [u.id, u.name]));
     const campusMap = new Map(allCampuses.map(c => [c.id, c.name]));
-
-    // Group submissions by campus, then by unit
+    
+    // Create a map where each entry is a campus ID, and the value is a Set of unit names that have submitted under that campus
     const grouped = allSubmissions.reduce((acc, submission) => {
-        const campusName = campusMap.get(submission.campusId);
-        const unitName = unitMap.get(submission.unitId);
+        const campusId = submission.campusId;
+        const unitId = submission.unitId;
 
-        if (campusName && unitName) {
-            if (!acc[campusName]) {
-                acc[campusName] = new Set<string>();
+        if (campusId && unitId) {
+            if (!acc[campusId]) {
+                acc[campusId] = new Set<string>();
             }
-            acc[campusName].add(unitName);
+            acc[campusId].add(unitId);
         }
         return acc;
     }, {} as Record<string, Set<string>>);
 
+    const unitMap = new Map(allUnits.map(u => [u.id, u.name]));
+    
     // Convert to a sorted array structure for rendering
     return Object.entries(grouped)
-        .map(([campusName, unitSet]) => ({
-            campusName,
-            units: Array.from(unitSet).sort(),
-        }))
-        .sort((a, b) => a.campusName.localeCompare(b.campusName));
+        .map(([campusId, unitIdSet]) => {
+            const campusName = campusMap.get(campusId);
+            if (!campusName) return null;
+            
+            const units = Array.from(unitIdSet)
+              .map(id => unitMap.get(id))
+              .filter(Boolean) as string[];
+
+            return {
+                campusName,
+                units: units.sort(),
+            }
+        })
+        .filter(Boolean)
+        .sort((a, b) => a!.campusName.localeCompare(b!.campusName));
 
   }, [allSubmissions, allUnits, allCampuses]);
 
@@ -208,10 +218,12 @@ export default function ReportsPage() {
           <h2 className="text-2xl font-bold tracking-tight">Reports</h2>
           <p className="text-muted-foreground">Generate and view system-wide reports.</p>
         </div>
-        <Button onClick={handlePrint}>
-            <Printer className="mr-2 h-4 w-4" />
-            Print Report
-        </Button>
+        {isAdmin && (
+          <Button onClick={handlePrint}>
+              <Printer className="mr-2 h-4 w-4" />
+              Print Report
+          </Button>
+        )}
       </div>
       
       <div className="printable-area">
@@ -288,11 +300,11 @@ export default function ReportsPage() {
                   {submittedUnitsByCampus.length > 0 ? (
                     <Accordion type="multiple" className="w-full">
                       {submittedUnitsByCampus.map(campus => (
-                        <AccordionItem value={campus.campusName} key={campus.campusName}>
-                          <AccordionTrigger>{campus.campusName}</AccordionTrigger>
+                        <AccordionItem value={campus!.campusName} key={campus!.campusName}>
+                          <AccordionTrigger>{campus!.campusName}</AccordionTrigger>
                           <AccordionContent>
                             <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                              {campus.units.map(unitName => (
+                              {campus!.units.map(unitName => (
                                 <li key={unitName}>{unitName}</li>
                               ))}
                             </ul>

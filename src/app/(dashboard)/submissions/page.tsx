@@ -515,7 +515,7 @@ export default function SubmissionsPage() {
     const reportProps = {
         user: userProfile,
         submissions: sortedSubmissions,
-        campusName: campusMap.get(userProfile.campusId) || 'N/A',
+        campusName: campusMap.get(userProfile.campusId) || 'All Campuses',
         cycle: latestCycle?.name || '',
         year: latestCycle?.year || new Date().getFullYear(),
     };
@@ -530,11 +530,11 @@ export default function SubmissionsPage() {
                     <style>
                         body { font-family: sans-serif; margin: 2rem; }
                         table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
-                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 10px; }
                         th { background-color: #f2f2f2; }
                         h1, h2, h3 { margin: 0; }
                         .header { text-align: center; margin-bottom: 2rem; }
-                        .footer { margin-top: 2rem; font-style: italic; color: #555; }
+                        .footer { margin-top: 2rem; font-style: italic; color: #555; font-size: 10px; }
                         .report-title { margin-top: 1rem; text-align: center; font-weight: bold; text-transform: uppercase; }
                         .user-info { margin-top: 1rem; }
                     </style>
