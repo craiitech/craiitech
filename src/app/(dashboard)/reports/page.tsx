@@ -26,6 +26,9 @@ import { Loader2, School, Users, FileCheck2, Printer } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import ReactDOMServer from 'react-dom/server';
+import { AdminReport } from '@/components/reports/admin-report';
+
 
 export default function ReportsPage() {
   const { userProfile, isAdmin, isUserLoading, isSupervisor } = useUser();
@@ -137,7 +140,46 @@ export default function ReportsPage() {
   const isLoading = isUserLoading || isLoadingCampuses || isLoadingUnits || isLoadingSubmissions || isLoadingUsers;
 
   const handlePrint = () => {
-    window.print();
+    if (!isAdmin || !allSubmissions || !allCampuses || !allUnits) return;
+    
+    const reportProps = {
+      submissions: allSubmissions,
+      campuses: allCampuses,
+      units: allUnits
+    };
+
+    const reportHtml = ReactDOMServer.renderToStaticMarkup(<AdminReport {...reportProps} />);
+    const printWindow = window.open('', '_blank');
+    
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Admin Submission Report</title>
+            <style>
+              body { font-family: sans-serif; margin: 2rem; }
+              table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; font-size: 10px; }
+              th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+              th { background-color: #f2f2f2; }
+              h1, h2, h3 { margin: 0; }
+              .header { text-align: center; margin-bottom: 2rem; }
+              .footer { margin-top: 2rem; font-style: italic; color: #555; font-size: 10px; }
+              .report-title { margin-top: 1rem; text-align: center; font-weight: bold; text-transform: uppercase; }
+            </style>
+          </head>
+          <body>
+            ${reportHtml}
+            <script>
+              window.onload = function() {
+                window.print();
+                window.onafterprint = function() { window.close(); }
+              }
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
   };
 
   if (isLoading) {
