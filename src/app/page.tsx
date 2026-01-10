@@ -71,6 +71,11 @@ export default function Home() {
                         Register
                     </Link>
                 </Button>
+                <Button asChild size="lg" variant="default">
+                    <Link href="/login">
+                        IQA Portal
+                    </Link>
+                </Button>
                  <Button asChild size="lg" variant="outline" className="bg-transparent text-white border-white hover:bg-white/10">
                     <Link href="/help">
                         Support
