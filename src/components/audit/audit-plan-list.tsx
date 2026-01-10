@@ -15,6 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { format } from 'date-fns';
+import { Separator } from '../ui/separator';
 
 interface AuditPlanListProps {
   plans: AuditPlan[];
@@ -60,43 +61,46 @@ export function AuditPlanList({ plans, schedules, campuses, users, units, onEdit
                             {campusMap.get(plan.campusId) || 'Unknown Campus'} &bull; Auditing: {plan.auditeeType}
                         </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEditPlan(plan); }}>
-                            <Edit className="mr-2 h-4 w-4"/> Edit Plan
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onScheduleAudit(plan); }}>
-                             <CalendarPlus className="mr-2 h-4 w-4"/> Schedule Audit
-                        </Button>
-                    </div>
                 </div>
             </AccordionTrigger>
             <AccordionContent>
-              {planSchedules.length > 0 ? (
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Auditee</TableHead>
-                            <TableHead>Auditor</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Status</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {planSchedules.map(schedule => (
-                            <TableRow key={schedule.id}>
-                                <TableCell>{getAuditeeName(schedule)}</TableCell>
-                                <TableCell>{schedule.auditorName}</TableCell>
-                                <TableCell>{format(schedule.scheduledDate.toDate(), 'PPP')}</TableCell>
-                                <TableCell>{schedule.status}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center text-sm text-muted-foreground p-4">
-                    No audits have been scheduled for this plan yet.
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 border-t pt-4">
+                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEditPlan(plan); }}>
+                        <Edit className="mr-2 h-4 w-4"/> Edit Plan
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onScheduleAudit(plan); }}>
+                            <CalendarPlus className="mr-2 h-4 w-4"/> Schedule Audit
+                    </Button>
                 </div>
-              )}
+                
+                {planSchedules.length > 0 ? (
+                  <Table>
+                      <TableHeader>
+                          <TableRow>
+                              <TableHead>Auditee</TableHead>
+                              <TableHead>Auditor</TableHead>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Status</TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {planSchedules.map(schedule => (
+                              <TableRow key={schedule.id}>
+                                  <TableCell>{getAuditeeName(schedule)}</TableCell>
+                                  <TableCell>{schedule.auditorName}</TableCell>
+                                  <TableCell>{format(schedule.scheduledDate.toDate(), 'PPP')}</TableCell>
+                                  <TableCell>{schedule.status}</TableCell>
+                              </TableRow>
+                          ))}
+                      </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center text-sm text-muted-foreground p-4 border-t">
+                      No audits have been scheduled for this plan yet.
+                  </div>
+                )}
+              </div>
             </AccordionContent>
           </AccordionItem>
         )
