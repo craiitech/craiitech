@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -7,7 +6,7 @@ import {
   useUser,
   useAuth,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, User as UserIcon } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, User as UserIcon, ClipboardList } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../ui/sidebar';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -25,13 +24,6 @@ export function SidebarNav({
   const { logSessionActivity } = useSessionActivity();
 
   const handleLogout = () => {
-    if (user && userProfile && userRole) {
-      logSessionActivity('User logged out from sidebar', {
-        action: 'user_logout',
-        details: { method: 'manual' },
-      });
-    }
-    // Redirect to the logout page which will show the summary and then handle the sign-out.
     router.push('/logout');
   };
 
@@ -53,6 +45,13 @@ export function SidebarNav({
       label: 'Risk Register',
       active: pathname.startsWith('/risk-register'),
       icon: <ShieldCheck />,
+    },
+    {
+      href: '/audit',
+      label: 'Audit',
+      active: pathname.startsWith('/audit'),
+      roles: ['Admin', 'Auditor'],
+      icon: <ClipboardList />,
     },
     {
       href: '/approvals',
@@ -89,8 +88,7 @@ export function SidebarNav({
       return true; // Route is visible to everyone
     }
     if (isAdmin) {
-      // If the user is an admin, they can see all routes that are designated for admins.
-      return route.roles.includes('Admin');
+      return true;
     }
     if (!userRole) {
       return false; // If role is not loaded yet, don't show role-specific routes
