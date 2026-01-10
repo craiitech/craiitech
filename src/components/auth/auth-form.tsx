@@ -126,8 +126,8 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
     try {
         await signInWithEmailAndPassword(auth, email, password);
-        // On success, the onAuthStateChanged listener in the provider will handle the user state.
-        // We can now safely redirect.
+        // On success, set the session flag
+        sessionStorage.setItem('isInitialLogin', 'true');
         router.push('/dashboard');
     } catch (error) {
         console.error('Sign in error:', error);
@@ -183,6 +183,9 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       setLastName('');
       setEmail('');
       setPassword('');
+      
+      // Set the flag for the new session
+      sessionStorage.setItem('isInitialLogin', 'true');
 
       toast({
         title: 'Account Created!',
@@ -211,6 +214,9 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         const user = result.user;
         const additionalInfo = getAdditionalUserInfo(result);
         const [first = '', last = ''] = user.displayName?.split(' ') || [];
+        
+        // Set the session flag regardless of new or returning user
+        sessionStorage.setItem('isInitialLogin', 'true');
 
         if (additionalInfo?.isNewUser) {
           const userDocRef = doc(firestore, 'users', user.uid);
@@ -253,7 +259,6 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             });
              router.push('/complete-registration');
           } else {
-            // We don't log here, the provider will log on auth state change
             router.push('/dashboard');
           }
         }

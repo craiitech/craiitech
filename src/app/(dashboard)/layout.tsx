@@ -111,6 +111,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [router, toast]);
   
   useIdleTimer(handleIdle, 2 * 60 * 1000); // 2 minutes
+  
+  // Implement the refresh-logout logic
+  useEffect(() => {
+    const isInitialLogin = sessionStorage.getItem('isInitialLogin');
+
+    if (isInitialLogin === 'true') {
+      // This is the first load after login, so we remove the flag
+      sessionStorage.removeItem('isInitialLogin');
+    } else {
+      // The flag is not present, which means this is a refresh
+      // We only trigger this if a user is actually logged in, to avoid loops on other pages
+      if (user) {
+        toast({
+            title: 'Security Logout',
+            description: 'You have been logged out due to a page refresh.',
+        });
+        router.push('/logout');
+      }
+    }
+  }, [user, router, toast]); // Run this effect when user state is available
+
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
