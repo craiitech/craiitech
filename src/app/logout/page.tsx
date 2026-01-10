@@ -41,7 +41,12 @@ export default function LogoutPage() {
       router.push('/');
     };
 
-    handleFinalLogout();
+    // Delay the logout slightly to allow any final logging to complete if needed
+    const timer = setTimeout(() => {
+      handleFinalLogout();
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer);
   }, [auth, clearSessionLogs, router, toast]);
 
 
