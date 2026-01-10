@@ -126,8 +126,6 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
     try {
         await signInWithEmailAndPassword(auth, email, password);
-        // On success, set the session flag
-        sessionStorage.setItem('isInitialLogin', 'true');
         router.push('/dashboard');
     } catch (error) {
         console.error('Sign in error:', error);
@@ -184,9 +182,6 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       setEmail('');
       setPassword('');
       
-      // Set the flag for the new session
-      sessionStorage.setItem('isInitialLogin', 'true');
-
       toast({
         title: 'Account Created!',
         description: 'Please complete your registration.',
@@ -215,9 +210,6 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         const additionalInfo = getAdditionalUserInfo(result);
         const [first = '', last = ''] = user.displayName?.split(' ') || [];
         
-        // Set the session flag regardless of new or returning user
-        sessionStorage.setItem('isInitialLogin', 'true');
-
         if (additionalInfo?.isNewUser) {
           const userDocRef = doc(firestore, 'users', user.uid);
           await setDoc(userDocRef, {
