@@ -82,6 +82,13 @@ service cloud.firestore {
     }
 
     /**
+     * Checks if the current user has Auditor privileges.
+     */
+    function isAuditor() {
+      return isSignedIn() && getUserProfile().role == 'Auditor';
+    }
+
+    /**
      * Checks if the current user has Vice President privileges by checking if their role name contains "Vice President".
      */
     function isVicePresident() {
@@ -256,5 +263,62 @@ service cloud.firestore {
       allow list: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
+
+    /**
+     * @description ISO Clauses are read-only for all signed-in users, writable only by Admins.
+     */
+    match /isoClauses/{clauseId} {
+        allow get, list: if isSignedIn();
+        allow write: if isAdmin();
+    }
+
+    /**
+     * @description Audit Plans can be created and managed by Admins. They are readable by Admins and Auditors.
+     */
+    match /auditPlans/{planId} {
+        allow read: if isAdmin() || isAuditor();
+        allow write: if isAdmin();
+    }
+
+    /**
+     * @description Audit Schedules can be created/managed by Admins. Auditors can read schedules assigned to them. Auditees can read schedules targeting them.
+     */
+    match /auditSchedules/{scheduleId} {
+        allow get: if isAdmin() 
+                    || (isAuditor() && resource.data.auditorId == request.auth.uid)
+                    || (resource.data.targetType == 'Unit' && getUserProfile().unitId == resource.data.targetId)
+                    || (resource.data.targetType == 'User' && isOwner(resource.data.targetId));
+        allow list: if isAdmin() || isAuditor();
+        allow write: if isAdmin();
+    }
+
+    /**
+     * @description Audit Findings can be created by the assigned auditor. They can be read by the auditor, the auditee, and admins/supervisors.
+     */
+    match /auditFindings/{findingId} {
+        allow get: if isAdmin() 
+                    || isAuditor()
+                    || (get(/databases/$(database)/documents/auditSchedules/$(resource.data.auditScheduleId)).data.targetType == 'Unit' && getUserProfile().unitId == get(/databases/$(database)/documents/auditSchedules/$(resource.data.auditScheduleId)).data.targetId)
+                    || (get(/databases/$(database)/documents/auditSchedules/$(resource.data.auditScheduleId)).data.targetType == 'User' && isOwner(get(/databases/$(database)/documents/auditSchedules/$(resource.data.auditScheduleId)).data.targetId));
+        allow list: if isSignedIn();
+        allow create: if isAuditor() && get(/databases/$(database)/documents/auditSchedules/$(request.resource.data.auditScheduleId)).data.auditorId == request.auth.uid;
+        allow update: if isAuditor() && isOwner(resource.data.authorId);
+        allow delete: if isAdmin();
+    }
+
+     /**
+     * @description Corrective Action Plans can be created by the auditee. They are readable by the auditee, auditor, and admins.
+     */
+    match /correctiveActionPlans/{planId} {
+        allow get: if isAdmin()
+                    || isAuditor()
+                    || isOwner(resource.data.authorId);
+        allow list: if isSignedIn();
+        allow create: if isOwner(request.resource.data.authorId);
+        allow update: if isOwner(resource.data.authorId) || isAdmin();
+        allow delete: if isAdmin();
+    }
   }
 }
+
+    

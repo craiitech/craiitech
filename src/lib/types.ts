@@ -136,4 +136,59 @@ export type ErrorReport = {
   userEmail?: string;
   timestamp: any; // serverTimestamp()
 }
+
+export type ISOClause = {
+    id: string;
+    title: string;
+    description: string;
+};
+
+export type AuditPlan = {
+    id: string;
+    title: string;
+    year: number;
+    campusId: string;
+    auditeeType: 'Units' | 'Top Management';
+    scope: string;
+    createdAt: any; // serverTimestamp()
+};
+
+export type AuditSchedule = {
+    id: string;
+    auditPlanId: string;
+    auditorId: string;
+    auditorName: string;
+    targetId: string; // unitId or userId
+    targetType: 'Unit' | 'User';
+    targetName: string; // unit name or user name
+    scheduledDate: any; // Timestamp
+    isoClausesToAudit: string[];
+    status: 'Scheduled' | 'In Progress' | 'Completed';
+};
+
+export type AuditFinding = {
+    id: string;
+    auditScheduleId: string;
+    isoClause: string;
+    type: 'Non-Conformance' | 'Observation for Improvement' | 'Commendation';
+    description: string;
+    evidence: string;
+    createdAt: any; // serverTimestamp()
+    authorId: string;
+};
+
+export type CorrectiveActionPlan = {
+    id: string;
+    findingId: string;
+    rootCauseAnalysis: string;
+    correctionPlan: string;
+    correctiveAction: string;
+    responsiblePersonId: string;
+    responsiblePersonName: string;
+    targetDate: any; // Timestamp
+    status: 'Submitted' | 'Accepted' | 'Rejected' | 'Completed';
+    authorId: string;
+    createdAt: any; // serverTimestamp()
+};
+
     

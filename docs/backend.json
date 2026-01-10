@@ -436,6 +436,90 @@
         "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["errorMessage", "errorDigest", "url", "timestamp"]
+    },
+    "ISOClause": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ISOClause",
+      "type": "object",
+      "description": "Represents a single clause from the ISO 21001:2018 standard.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the clause, e.g., '4.1'." },
+        "title": { "type": "string", "description": "The title of the clause." },
+        "description": { "type": "string", "description": "A brief description of the clause's requirements." }
+      },
+      "required": ["id", "title", "description"]
+    },
+    "AuditPlan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AuditPlan",
+      "type": "object",
+      "description": "Represents an overall Internal Quality Audit plan for a specific campus and year.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "description": "The title of the audit plan (e.g., 'Annual IQA 2025')." },
+        "year": { "type": "number", "description": "The year the audit plan is for." },
+        "campusId": { "type": "string", "description": "The campus this plan applies to." },
+        "auditeeType": { "type": "string", "enum": ["Units", "Top Management"], "description": "Specifies the target group for this audit plan." },
+        "scope": { "type": "string", "description": "A general description of the audit's scope." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "year", "campusId", "auditeeType", "createdAt"]
+    },
+    "AuditSchedule": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AuditSchedule",
+      "type": "object",
+      "description": "Represents a specific scheduled audit for a unit or individual within an AuditPlan.",
+      "properties": {
+        "id": { "type": "string" },
+        "auditPlanId": { "type": "string", "description": "The parent AuditPlan this schedule belongs to." },
+        "auditorId": { "type": "string", "description": "The UID of the assigned auditor." },
+        "auditorName": { "type": "string", "description": "Denormalized name of the auditor." },
+        "targetId": { "type": "string", "description": "The ID of the auditee (can be a unitId or a userId for Top Management)." },
+        "targetType": { "type": "string", "enum": ["Unit", "User"], "description": "Specifies if the target is a Unit or a User." },
+        "targetName": { "type": "string", "description": "Denormalized name of the auditee (unit name or user name)." },
+        "scheduledDate": { "type": "string", "format": "date-time" },
+        "isoClausesToAudit": { "type": "array", "items": { "type": "string" }, "description": "A list of ISO clause IDs to be audited." },
+        "status": { "type": "string", "enum": ["Scheduled", "In Progress", "Completed"], "default": "Scheduled" }
+      },
+      "required": ["id", "auditPlanId", "auditorId", "auditorName", "targetId", "targetType", "targetName", "scheduledDate", "status"]
+    },
+    "AuditFinding": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AuditFinding",
+      "type": "object",
+      "description": "Represents a single finding (NC, OFI, Commendation) recorded during an audit.",
+      "properties": {
+        "id": { "type": "string" },
+        "auditScheduleId": { "type": "string", "description": "The schedule this finding is associated with." },
+        "isoClause": { "type": "string", "description": "The specific ISO 21001:2018 clause number (e.g., '7.1.2')." },
+        "type": { "type": "string", "enum": ["Non-Conformance", "Observation for Improvement", "Commendation"], "description": "The type of the finding." },
+        "description": { "type": "string", "description": "A detailed description of the finding." },
+        "evidence": { "type": "string", "description": "A description or link to the evidence supporting the finding." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "authorId": { "type": "string", "description": "The UID of the auditor who created the finding." }
+      },
+      "required": ["id", "auditScheduleId", "isoClause", "type", "description", "evidence", "createdAt", "authorId"]
+    },
+    "CorrectiveActionPlan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CorrectiveActionPlan",
+      "type": "object",
+      "description": "A plan submitted by an auditee to address a Non-Conformance finding.",
+      "properties": {
+        "id": { "type": "string" },
+        "findingId": { "type": "string", "description": "The Non-Conformance finding this plan addresses." },
+        "rootCauseAnalysis": { "type": "string", "description": "Analysis of the root cause of the non-conformance." },
+        "correctionPlan": { "type": "string", "description": "The immediate action taken to correct the issue." },
+        "correctiveAction": { "type": "string", "description": "The long-term action to prevent recurrence." },
+        "responsiblePersonId": { "type": "string", "description": "The UID of the user responsible for implementation." },
+        "responsiblePersonName": { "type": "string", "description": "Denormalized name of the responsible person." },
+        "targetDate": { "type": "string", "format": "date-time", "description": "The target date for completion." },
+        "status": { "type": "string", "enum": ["Submitted", "Accepted", "Rejected", "Completed"], "default": "Submitted" },
+        "authorId": { "type": "string", "description": "The UID of the user who submitted the plan." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "findingId", "rootCauseAnalysis", "correctionPlan", "correctiveAction", "responsiblePersonId", "targetDate", "status", "authorId", "createdAt"]
     }
   },
   "auth": {
@@ -615,6 +699,51 @@
         }
       },
       {
+        "path": "/isoClauses/{clauseId}",
+        "definition": {
+            "entityName": "ISOClause",
+            "schema": { "$ref": "#/backend/entities/ISOClause" },
+            "description": "Stores the clauses of the ISO 21001:2018 standard.",
+            "params": [{ "name": "clauseId" }]
+        }
+      },
+      {
+        "path": "/auditPlans/{planId}",
+        "definition": {
+            "entityName": "AuditPlan",
+            "schema": { "$ref": "#/backend/entities/AuditPlan" },
+            "description": "Top-level collection for audit plans.",
+            "params": [{ "name": "planId" }]
+        }
+      },
+      {
+        "path": "/auditSchedules/{scheduleId}",
+        "definition": {
+            "entityName": "AuditSchedule",
+            "schema": { "$ref": "#/backend/entities/AuditSchedule" },
+            "description": "Top-level collection for specific audit schedules.",
+            "params": [{ "name": "scheduleId" }]
+        }
+      },
+      {
+        "path": "/auditFindings/{findingId}",
+        "definition": {
+            "entityName": "AuditFinding",
+            "schema": { "$ref": "#/backend/entities/AuditFinding" },
+            "description": "Top-level collection for all audit findings.",
+            "params": [{ "name": "findingId" }]
+        }
+      },
+      {
+        "path": "/correctiveActionPlans/{planId}",
+        "definition": {
+            "entityName": "CorrectiveActionPlan",
+            "schema": { "$ref": "#/backend/entities/CorrectiveActionPlan" },
+            "description": "Top-level collection for corrective action plans.",
+            "params": [{ "name": "planId" }]
+        }
+      },
+      {
         "path": "/roles_admin/{userId}",
         "definition": {
           "entityName": "adminRole",
@@ -666,3 +795,5 @@
     "reasoning": "This Firestore structure prioritizes security, scalability, and query performance. The key change is moving submissions to a top-level collection, which simplifies queries for administrative and supervisory roles. This avoids the need for collection group queries for most common scenarios, making the rules and application logic more straightforward.\n\n**Top-Level Collections:** Both `/submissions/{submissionId}` and `/risks/{riskId}` are top-level collections. This allows admins and supervisors to easily query across all items (e.g., `where('statusId', '==', 'submitted')` or `where('rating', '==', 'High')`) without needing a `collectionGroup` index. Security is maintained by embedding ownership and context fields (`userId`, `campusId`, `unitId`) directly into each document. Security rules can then use these fields to enforce access control.\n\n**Authorization Independence:** Access control is still enforced at the document level. Security rules check the `unitId` or `campusId` in the document against the authenticated user's profile data (fetched via a `get()` call in the rule), ensuring they can only access items within their scope.\n\n**DBAC (Database-Based Access Control):** User roles and campus/unit assignments stored in the `/users` collection remain the source of truth for authorization. Helper functions in the security rules (`isAdmin()`, `isCampusOdimo()`, etc.) continue to provide a clear and secure way to check a user's role.\n\n**Denormalization:** The collections rely on denormalization of context fields. This is critical for writing efficient security rules that do not require joins or multiple `get()` calls to check permissions, which is a key performance and security best practice for Firestore.\n\n**Invariants:** The structure ensures the integrity of ownership and denormalized data. Security rules on `create` and `update` for the collections will enforce that the `userId` matches the authenticated user and that the denormalized fields like `campusId` and `unitId` match the user's profile, preventing tampering."
   }
 }
+
+    
