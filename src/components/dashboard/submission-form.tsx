@@ -19,7 +19,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { validateGoogleDriveLinkAccessibility } from '@/ai/flows/validate-google-drive-link-accessibility';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, arrayUnion } from 'firebase/firestore';
 import type { Unit, Submission, Comment } from '@/lib/types';
@@ -150,10 +149,15 @@ export function SubmissionForm({
     setValidationStatus('validating');
 
     try {
-      const result = await validateGoogleDriveLinkAccessibility({
-        googleDriveLink: link,
+      const response = await fetch('/api/validate-drive-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: link }),
       });
-      if (result.isAccessible) {
+      
+      const result = await response.json();
+
+      if (response.ok && result.isAccessible) {
         setValidationStatus('valid');
         form.clearErrors('googleDriveLink');
       } else {
@@ -166,7 +170,7 @@ export function SubmissionForm({
       }
     } catch (error) {
       setValidationStatus('invalid');
-      const reason = 'Could not validate the link. Please double-check the sharing permissions.';
+      const reason = 'Could not validate the link. Please check the sharing permissions.';
       form.setError('googleDriveLink', {
         type: 'manual',
         message: reason,
@@ -531,3 +535,5 @@ export function SubmissionForm({
     </>
   );
 }
+
+    
