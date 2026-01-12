@@ -320,12 +320,17 @@ service cloud.firestore {
     
     /**
      * @description Procedure Manuals.
-     * - read (get, list): Allowed for any signed-in user, as they are public university resources.
-     * - write (create, update, delete): Restricted to Admins only.
+     * - list: Allowed for any signed-in user for the client to get the list of manuals.
+     * - get: Allowed for any signed-in user to read a specific manual.
+     * - write: Restricted to Admins only.
      */
+    match /procedureManuals {
+      allow list: if isSignedIn();
+    }
+    
     match /procedureManuals/{unitId} {
-      allow get, list: if isSignedIn();
-      allow write: if isAdmin();
+      allow get: if isSignedIn();
+      allow create, update, delete: if isAdmin();
     }
   }
 }
