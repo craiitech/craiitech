@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -24,12 +25,12 @@ const ValidateGoogleDriveLinkAccessibilityOutputSchema = z.object({
   isAccessible: z
     .boolean()
     .describe(
-      'Whether the Google Drive link is accessible.'
+      'Whether the Google Drive link is publicly accessible to anyone on the internet without needing to sign in.'
     ),
   reason: z
     .string()
     .optional()
-    .describe('The reason why the link is not accessible.'),
+    .describe('A brief, user-friendly reason why the link is not accessible.'),
 });
 export type ValidateGoogleDriveLinkAccessibilityOutput =
   z.infer<typeof ValidateGoogleDriveLinkAccessibilityOutputSchema>;
@@ -48,12 +49,14 @@ const validateGoogleDriveLinkAccessibilityPrompt = ai.definePrompt({
   output: {
     schema: ValidateGoogleDriveLinkAccessibilityOutputSchema,
   },
-  prompt: `You are an expert at determining if a Google Drive link is accessible.
+  prompt: `You are an expert security scanner that determines if a Google Drive link is publicly accessible.
 
-  Given a Google Drive link, you will determine if the link is a valid and accessible link to a Google Drive file.
+  Act as if you are an anonymous user on the internet with no special permissions.
+  Given a Google Drive link, you will determine if the link is accessible to ANYONE on the internet without requiring them to sign into a Google account.
 
-  If the link is accessible, return isAccessible: true.
-  If the link is not accessible (e.g., it requires a sign-in, is a malformed URL, or points to a file that does not exist), return isAccessible: false and provide a simple reason.
+  - If the link leads directly to a file preview or folder that anyone can see, return isAccessible: true.
+  - If the link prompts for a sign-in, shows a "You need access" page, is restricted to a specific organization, or is a malformed URL, return isAccessible: false.
+  - If the link is not accessible, provide a simple, user-friendly reason. For example: "This link requires you to sign in." or "This link is restricted to a specific organization."
 
   Google Drive Link: {{{googleDriveLink}}}`,
 });
@@ -77,11 +80,11 @@ const validateGoogleDriveLinkAccessibilityFlow = ai.defineFlow(
         const {output} = await validateGoogleDriveLinkAccessibilityPrompt(input);
         return output!;
     } catch (e) {
-        console.error("Error validating Google Drive link with AI, falling back to basic check", e);
-        // Fallback in case the AI fails for some reason.
+        console.error("Error validating Google Drive link with AI, falling back to a default invalid state.", e);
+        // Fallback in case the AI fails for some reason. Default to not accessible to be safe.
         return {
-            isAccessible: true,
-            reason: ''
+            isAccessible: false,
+            reason: 'Could not automatically verify the link. Please double-check sharing permissions.'
         };
     }
   }
