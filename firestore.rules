@@ -322,8 +322,7 @@ service cloud.firestore {
      * @description Procedure Manuals are readable by any signed-in user but only managed by Admins.
      */
     match /procedureManuals/{unitId} {
-      allow get: if isSignedIn();
-      allow list: if isAdmin();
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
   }
