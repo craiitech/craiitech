@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -5,12 +6,16 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   useUser,
   useAuth,
+  useCollection,
+  useMemoFirebase,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, User as UserIcon, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, User as UserIcon, ClipboardList, BookOpen } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../ui/sidebar';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useSessionActivity } from '@/lib/activity-log-provider';
+import type { ProcedureManual } from '@/lib/types';
+import { collection } from 'firebase/firestore';
 
 export function SidebarNav({
   className,
@@ -20,12 +25,17 @@ export function SidebarNav({
   const router = useRouter();
   const auth = useAuth();
   const { toast } = useToast();
-  const { user, userProfile, isAdmin, userRole, isSupervisor } = useUser();
+  const { user, userProfile, isAdmin, userRole, isSupervisor, firestore } = useUser();
   const { logSessionActivity } = useSessionActivity();
 
   const handleLogout = () => {
     router.push('/logout');
   };
+
+  const manualsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'procedureManuals') : null), [firestore]);
+  const { data: manuals } = useCollection<ProcedureManual>(manualsQuery);
+
+  const userManual = userProfile?.unitId ? manuals?.find(m => m.id === userProfile.unitId) : null;
 
   const allRoutes = [
     {
@@ -113,6 +123,15 @@ export function SidebarNav({
             </Link>
           </SidebarMenuItem>
         ))}
+         {userManual && (
+            <SidebarMenuItem className="rounded-md">
+                <a href={userManual.googleDriveLink} target="_blank" rel="noopener noreferrer">
+                    <SidebarMenuButton icon={<BookOpen />} className="hover:bg-sidebar-accent">
+                        View Process Manual
+                    </SidebarMenuButton>
+                </a>
+            </SidebarMenuItem>
+        )}
       </SidebarMenu>
       <div className="mt-auto">
          <SidebarMenu>
@@ -133,3 +152,5 @@ export function SidebarNav({
     </div>
   );
 }
+
+    

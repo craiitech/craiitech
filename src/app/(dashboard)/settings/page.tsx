@@ -19,6 +19,7 @@ import { AnnouncementManagement } from '@/components/admin/announcement-manageme
 import { Separator } from '@/components/ui/separator';
 import { CycleManagement } from '@/components/admin/cycle-management';
 import { ErrorReportManagement } from '@/components/admin/error-report-management';
+import { ProcedureManualManagement } from '@/components/admin/procedure-manual-management';
 
 
 export default function SettingsPage() {
@@ -54,6 +55,7 @@ export default function SettingsPage() {
             <TabsTrigger value="campuses">Campuses</TabsTrigger>
             <TabsTrigger value="units">Units</TabsTrigger>
             <TabsTrigger value="roles">Roles</TabsTrigger>
+            <TabsTrigger value="manuals">Procedure Manuals</TabsTrigger>
             <TabsTrigger value="cycles">Cycles &amp; Deadlines</TabsTrigger>
             <TabsTrigger value="campus-settings">Campus Settings</TabsTrigger>
             <TabsTrigger value="error-reports">Error Reports</TabsTrigger>
@@ -69,6 +71,9 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="roles" className="space-y-4">
             <RoleManagement />
+          </TabsContent>
+          <TabsContent value="manuals" className="space-y-4">
+            <ProcedureManualManagement />
           </TabsContent>
            <TabsContent value="cycles" className="space-y-4">
             <CycleManagement />
@@ -119,3 +124,5 @@ export default function SettingsPage() {
       </div>
   )
 }
+
+    

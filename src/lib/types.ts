@@ -191,4 +191,12 @@ export type CorrectiveActionPlan = {
     createdAt: any; // serverTimestamp()
 };
 
+export type ProcedureManual = {
+    id: string; // Same as unitId
+    unitName: string;
+    googleDriveLink: string;
+    updatedAt: any; // serverTimestamp()
+}
+    
+
     

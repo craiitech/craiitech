@@ -115,9 +115,8 @@ service cloud.firestore {
      * The `list` rule is allowed for signed-in users to support client-side queries and filtering.
      */
     match /users/{userId} {
-      allow get: if isSignedIn();
+      allow get, list: if isSignedIn();
       allow update: if isOwner(userId) || isAdmin();
-      allow list: if isSignedIn();
       allow create: if isOwner(userId); // A user can create their own document.
       allow delete: if isOwner(userId) || isAdmin();
     }
@@ -317,6 +316,14 @@ service cloud.firestore {
         allow create: if isOwner(request.resource.data.authorId);
         allow update: if isOwner(resource.data.authorId) || isAdmin();
         allow delete: if isAdmin();
+    }
+    
+    /**
+     * @description Procedure Manuals are readable by any signed-in user but only managed by Admins.
+     */
+    match /procedureManuals/{unitId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
   }
 }

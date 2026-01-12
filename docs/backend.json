@@ -520,6 +520,19 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "findingId", "rootCauseAnalysis", "correctionPlan", "correctiveAction", "responsiblePersonId", "targetDate", "status", "authorId", "createdAt"]
+    },
+    "ProcedureManual": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ProcedureManual",
+      "type": "object",
+      "description": "Represents an official procedure manual for a specific university unit.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the manual, matching the unitId." },
+        "unitName": { "type": "string", "description": "Denormalized name of the unit." },
+        "googleDriveLink": { "type": "string", "format": "uri", "description": "A public link to the manual on Google Drive." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of the last update." }
+      },
+      "required": ["id", "unitName", "googleDriveLink", "updatedAt"]
     }
   },
   "auth": {
@@ -741,6 +754,20 @@
             "schema": { "$ref": "#/backend/entities/CorrectiveActionPlan" },
             "description": "Top-level collection for corrective action plans.",
             "params": [{ "name": "planId" }]
+        }
+      },
+      {
+        "path": "/procedureManuals/{unitId}",
+        "definition": {
+            "entityName": "ProcedureManual",
+            "schema": { "$ref": "#/backend/entities/ProcedureManual" },
+            "description": "Stores links to official procedure manuals for each unit.",
+            "params": [
+                {
+                    "name": "unitId",
+                    "description": "The unique identifier of the unit."
+                }
+            ]
         }
       },
       {
