@@ -179,6 +179,7 @@ export function SubmissionForm({
         }
     }
     fetchExistingSubmission();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firestore, user, reportType, year, cycleId]);
 
 
@@ -352,7 +353,7 @@ export function SubmissionForm({
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="aspect-video w-full rounded-lg border bg-muted mb-6">
             {previewUrl ? (
-                <iframe src={previewUrl} className="h-full w-full" allow="autoplay"></iframe>
+                <iframe src={previewUrl} className="h-full w-full" allow="autoplay" title="File Preview"></iframe>
             ) : (
                 <div className="flex h-full items-center justify-center text-muted-foreground p-4 text-center">
                     <p>A preview of your Google Drive file will appear here.</p>
