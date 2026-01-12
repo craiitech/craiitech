@@ -275,7 +275,7 @@ service cloud.firestore {
      * @description Audit Plans can be created and managed by Admins. They are readable by Admins and Auditors.
      */
     match /auditPlans/{planId} {
-        allow read: if isAdmin() || isAuditor();
+        allow read, list: if isAdmin() || isAuditor();
         allow write: if isAdmin();
     }
 
@@ -328,3 +328,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
