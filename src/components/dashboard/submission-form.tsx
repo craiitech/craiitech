@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -39,6 +40,7 @@ import {
 import { useMemoFirebase, useCollection } from '@/firebase';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useRouter } from 'next/navigation';
+import { debounce } from 'lodash';
 
 
 const submissionSchema = z.object({
@@ -139,50 +141,6 @@ export function SubmissionForm({
     },
   });
 
-  const handleLinkChange = (link: string) => {
-    if (link && link.startsWith('https://drive.google.com/')) {
-      const embedUrl = link.replace('/view', '/preview').replace('?usp=sharing', '');
-      setPreviewUrl(embedUrl);
-    } else {
-      setPreviewUrl('');
-    }
-  };
-  
-  const googleDriveLinkValue = form.watch('googleDriveLink');
-  useEffect(() => {
-    handleLinkChange(googleDriveLinkValue);
-  }, [googleDriveLinkValue]);
-
-
-  useEffect(() => {
-    const fetchExistingSubmission = async () => {
-        if (!firestore || !user) return;
-        setValidationStatus('idle'); // Reset on change
-        setRiskRating(null);
-        form.reset({ googleDriveLink: '', comments: '' }); // Clear form
-        setCheckedState(checklistItems.reduce((acc, item) => ({ ...acc, [item.id]: false }), {})); // Reset checklist
-        
-        const q = query(
-            collection(firestore, 'submissions'),
-            where('userId', '==', user.uid),
-            where('reportType', '==', reportType),
-            where('year', '==', year),
-            where('cycleId', '==', cycleId)
-        );
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-            const existingData = querySnapshot.docs[0].data() as Submission;
-            if (existingData.googleDriveLink) {
-              form.setValue('googleDriveLink', existingData.googleDriveLink);
-              handleLinkValidation(existingData.googleDriveLink);
-            }
-        }
-    }
-    fetchExistingSubmission();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firestore, user, reportType, year, cycleId]);
-
-
   const handleLinkValidation = async (link: string) => {
     if (!link.startsWith('https://drive.google.com/') || !z.string().url().safeParse(link).success) {
       setValidationStatus('idle');
@@ -208,13 +166,56 @@ export function SubmissionForm({
       }
     } catch (error) {
       setValidationStatus('invalid');
-      const reason = 'Could not validate the link. Please check the format and try again.';
+      const reason = 'Could not validate the link. Please double-check the sharing permissions.';
       form.setError('googleDriveLink', {
         type: 'manual',
         message: reason,
       });
     }
   };
+
+  const debouncedValidation = useCallback(debounce(handleLinkValidation, 500), []);
+  
+  const googleDriveLinkValue = form.watch('googleDriveLink');
+
+  useEffect(() => {
+    if (googleDriveLinkValue) {
+      const embedUrl = googleDriveLinkValue.replace('/view', '/preview').replace('?usp=sharing', '');
+      setPreviewUrl(embedUrl);
+      debouncedValidation(googleDriveLinkValue);
+    } else {
+      setPreviewUrl('');
+      setValidationStatus('idle');
+    }
+  }, [googleDriveLinkValue, debouncedValidation]);
+
+
+  useEffect(() => {
+    const fetchExistingSubmission = async () => {
+        if (!firestore || !user) return;
+        setValidationStatus('idle'); // Reset on change
+        setRiskRating(null);
+        form.reset({ googleDriveLink: '', comments: '' }); // Clear form
+        setCheckedState(checklistItems.reduce((acc, item) => ({ ...acc, [item.id]: false }), {})); // Reset checklist
+        
+        const q = query(
+            collection(firestore, 'submissions'),
+            where('userId', '==', user.uid),
+            where('reportType', '==', reportType),
+            where('year', '==', year),
+            where('cycleId', '==', cycleId)
+        );
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            const existingData = querySnapshot.docs[0].data() as Submission;
+            if (existingData.googleDriveLink) {
+              form.setValue('googleDriveLink', existingData.googleDriveLink);
+            }
+        }
+    }
+    fetchExistingSubmission();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firestore, user, reportType, year, cycleId]);
 
   const onSubmit = async (values: z.infer<typeof submissionSchema>) => {
     if (!user || !firestore || !userProfile) {
@@ -372,10 +373,6 @@ export function SubmissionForm({
                   <Input
                     placeholder="https://drive.google.com/..."
                     {...field}
-                    onBlur={(e) => {
-                      field.onBlur();
-                      handleLinkValidation(e.target.value);
-                    }}
                   />
                   <div className="absolute inset-y-0 right-3 flex items-center">
                     {renderValidationIcon()}
