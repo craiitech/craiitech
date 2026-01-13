@@ -211,5 +211,3 @@ export function ProcedureManualManagement() {
     </>
   );
 }
-
-    
