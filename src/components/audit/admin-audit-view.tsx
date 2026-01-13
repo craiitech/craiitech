@@ -4,21 +4,27 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2 } from 'lucide-react';
+import { PlusCircle, Loader2, Database } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
-import type { AuditPlan, Campus, User, Unit, AuditSchedule } from '@/lib/types';
+import type { AuditPlan, Campus, User, Unit, AuditSchedule, ISOClause } from '@/lib/types';
 import { AuditPlanDialog } from './audit-plan-dialog';
 import { AuditScheduleDialog } from './audit-schedule-dialog';
 import { AuditPlanList } from './audit-plan-list';
+import { seedIsoClauses } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 export function AdminAuditView() {
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<AuditPlan | null>(null);
 
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [selectedPlanForScheduling, setSelectedPlanForScheduling] = useState<AuditPlan | null>(null);
+  
+  const [isSeeding, setIsSeeding] = useState(false);
 
   const auditPlansQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'auditPlans')) : null, [firestore]);
   const { data: auditPlans, isLoading: isLoadingPlans } = useCollection<AuditPlan>(auditPlansQuery);
@@ -35,6 +41,9 @@ export function AdminAuditView() {
   const unitsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'units')) : null, [firestore]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
+  const isoClausesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'isoClauses')) : null, [firestore]);
+  const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
+
   const handleNewPlan = () => {
     setEditingPlan(null);
     setIsPlanDialogOpen(true);
@@ -50,7 +59,26 @@ export function AdminAuditView() {
     setIsScheduleDialogOpen(true);
   };
   
-  const isLoading = isLoadingPlans || isLoadingCampuses || isLoadingUsers || isLoadingUnits || isLoadingSchedules;
+  const handleSeedClauses = async () => {
+    setIsSeeding(true);
+    try {
+        const result = await seedIsoClauses();
+        toast({
+            title: 'Seeding Complete',
+            description: result.message,
+        });
+    } catch(error) {
+         toast({
+            title: 'Seeding Failed',
+            description: error instanceof Error ? error.message : 'An unknown error occurred.',
+            variant: 'destructive',
+        });
+    } finally {
+        setIsSeeding(false);
+    }
+  }
+  
+  const isLoading = isLoadingPlans || isLoadingCampuses || isLoadingUsers || isLoadingUnits || isLoadingSchedules || isLoadingClauses;
 
   return (
     <>
@@ -60,11 +88,26 @@ export function AdminAuditView() {
             <h2 className="text-2xl font-bold tracking-tight">Internal Quality Audit Management</h2>
             <p className="text-muted-foreground">Create and manage audit plans and schedules.</p>
           </div>
-          <Button onClick={handleNewPlan}>
+          <Button onClick={handleNewPlan} disabled={isLoadingClauses && !isoClauses}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Create Audit Plan
           </Button>
         </div>
+
+        {!isLoadingClauses && (!isoClauses || isoClauses.length === 0) && (
+            <Alert>
+                <Database className="h-4 w-4" />
+                <AlertTitle>Initial Setup Required</AlertTitle>
+                <AlertDescription className="flex items-center justify-between">
+                    <span>The ISO Clause database is empty. Please seed the data to enable audit scheduling.</span>
+                    <Button onClick={handleSeedClauses} disabled={isSeeding}>
+                        {isSeeding && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                        Seed ISO Clauses
+                    </Button>
+                </AlertDescription>
+            </Alert>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Audit Plans</CardTitle>

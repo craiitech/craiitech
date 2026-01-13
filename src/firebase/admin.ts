@@ -1,3 +1,4 @@
+
 import * as admin from 'firebase-admin';
 
 // This is the path to the service account key file that has been securely 
@@ -5,19 +6,16 @@ import * as admin from 'firebase-admin';
 const SERVICE_ACCOUNT_FILE_PATH = './firebase-admin-service-account.json';
 const ADMIN_APP_NAME = 'firebase-admin-app';
 
-let adminApp: admin.app.App;
 
-function initializeAdminApp() {
+function getAdminApp(): admin.app.App {
   // Check if the app is already initialized to prevent errors.
   if (admin.apps.some(app => app?.name === ADMIN_APP_NAME)) {
-    adminApp = admin.app(ADMIN_APP_NAME);
-    return;
+    return admin.app(ADMIN_APP_NAME);
   }
 
   try {
     // Initialize the app with a service account credential from the file path.
-    // This is the most robust method and avoids all JSON parsing issues.
-    adminApp = admin.initializeApp({
+    return admin.initializeApp({
       credential: admin.credential.cert(SERVICE_ACCOUNT_FILE_PATH),
     }, ADMIN_APP_NAME);
   } catch (error: any) {
@@ -31,18 +29,14 @@ function initializeAdminApp() {
  * Returns an initialized Firestore admin instance.
  */
 export function getAdminFirestore() {
-  if (!adminApp) {
-    initializeAdminApp();
-  }
-  return admin.firestore(adminApp);
+  const app = getAdminApp();
+  return admin.firestore(app);
 }
 
 /**
  * Returns an initialized Auth admin instance.
  */
 export function getAdminAuth() {
-  if (!adminApp) {
-    initializeAdminApp();
-  }
-  return admin.auth(adminApp);
+  const app = getAdminApp();
+  return admin.auth(app);
 }
