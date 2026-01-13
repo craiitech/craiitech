@@ -262,6 +262,14 @@ service cloud.firestore {
       allow list: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
+    
+    match /procedureManuals/{document=**} {
+      allow read, list: if isSignedIn();
+    }
+
+    match /procedureManuals/{unitId} {
+      allow write: if isAdmin();
+    }
 
     /**
      * @description ISO Clauses are read-only for all signed-in users, writable only by Admins.
@@ -316,18 +324,6 @@ service cloud.firestore {
         allow create: if isOwner(request.resource.data.authorId);
         allow update: if isOwner(resource.data.authorId) || isAdmin();
         allow delete: if isAdmin();
-    }
-    
-    /**
-     * @description Procedure Manuals can be read by any signed-in user, but only written by an Admin.
-     * This structure separates the collection-level list/read from document-level write.
-     */
-    match /procedureManuals/{document=**} {
-      allow read: if isSignedIn();
-    }
-
-    match /procedureManuals/{unitId} {
-      allow write: if isAdmin();
     }
   }
 }

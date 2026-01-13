@@ -60,7 +60,7 @@ export function SidebarNav({
       href: '/audit',
       label: 'Audit',
       active: pathname.startsWith('/audit'),
-      roles: ['Admin', 'Auditor'],
+      roles: ['Admin', 'Auditor', 'Unit Coordinator', 'Unit ODIMO', 'Campus Director', 'Campus ODIMO', 'Vice President'],
       icon: <ClipboardList />,
     },
     {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
@@ -12,6 +11,7 @@ import { Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FindingForm } from '@/components/audit/finding-form';
 import { FindingsList } from '@/components/audit/findings-list';
+import { useMemo } from 'react';
 
 const LoadingSkeleton = () => (
   <div className="space-y-6">
