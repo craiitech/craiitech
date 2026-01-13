@@ -2,7 +2,7 @@
 'use server';
 
 import { getAdminFirestore } from '@/firebase/admin';
-import * as admin from 'firebase/admin';
+import * as admin from 'firebase-admin';
 import isoClausesData from './iso-clauses.json';
 
 // --- Error Reporting Action ---
