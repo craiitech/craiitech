@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -64,25 +63,26 @@ export default function ProcedureManualsPage() {
               </div>
             ) : (
               <ScrollArea className="h-full">
-                <div className="space-y-2">
-                  {filteredManuals.map(manual => (
-                    <Button
-                      key={manual.id}
-                      variant="ghost"
-                      onClick={() => setSelectedManual(manual)}
-                      className={cn(
-                        "w-full justify-start text-left h-auto p-3",
-                        selectedManual?.id === manual.id && "bg-muted font-semibold"
-                      )}
-                    >
-                      <Building className="mr-3 h-4 w-4 flex-shrink-0" />
-                      <span>{manual.unitName}</span>
-                    </Button>
-                  ))}
-                </div>
-                {!isLoading && filteredManuals.length === 0 && (
+                {filteredManuals && filteredManuals.length > 0 ? (
+                  <div className="space-y-2">
+                    {filteredManuals.map(manual => (
+                      <Button
+                        key={manual.id}
+                        variant="ghost"
+                        onClick={() => setSelectedManual(manual)}
+                        className={cn(
+                          "w-full justify-start text-left h-auto p-3",
+                          selectedManual?.id === manual.id && "bg-muted font-semibold"
+                        )}
+                      >
+                        <Building className="mr-3 h-4 w-4 flex-shrink-0" />
+                        <span>{manual.unitName}</span>
+                      </Button>
+                    ))}
+                  </div>
+                ) : (
                     <div className="text-center text-sm text-muted-foreground pt-10">
-                        No manuals found matching your search.
+                        {searchTerm ? 'No manuals found matching your search.' : 'No procedure manuals have been registered yet.'}
                     </div>
                 )}
               </ScrollArea>
