@@ -288,15 +288,16 @@ service cloud.firestore {
     }
 
     /**
-     * @description Audit Schedules can be created/managed by Admins. Auditors can read schedules assigned to them. Auditees can read schedules targeting them.
+     * @description Audit Schedules can be created/managed by Admins. Auditors can read/update schedules. Auditees can read schedules targeting them.
      */
     match /auditSchedules/{scheduleId} {
         allow get: if isAdmin() 
-                    || (isAuditor() && resource.data.auditorId == request.auth.uid)
+                    || isAuditor()
                     || (resource.data.targetType == 'Unit' && getUserProfile().unitId == resource.data.targetId)
                     || (resource.data.targetType == 'User' && isOwner(resource.data.targetId));
         allow list: if isAdmin() || isAuditor();
-        allow write: if isAdmin();
+        allow create: if isAdmin();
+        allow update: if isAdmin() || (isAuditor() && resource.data.auditorId == null); // Allow auditor to claim an unassigned audit
     }
 
     /**

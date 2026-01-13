@@ -472,8 +472,8 @@
       "properties": {
         "id": { "type": "string" },
         "auditPlanId": { "type": "string", "description": "The parent AuditPlan this schedule belongs to." },
-        "auditorId": { "type": "string", "description": "The UID of the assigned auditor." },
-        "auditorName": { "type": "string", "description": "Denormalized name of the auditor." },
+        "auditorId": { "type": "string", "description": "The UID of the assigned auditor. Optional at creation." },
+        "auditorName": { "type": "string", "description": "Denormalized name of the auditor. Optional at creation." },
         "targetId": { "type": "string", "description": "The ID of the auditee (can be a unitId or a userId for Top Management)." },
         "targetType": { "type": "string", "enum": ["Unit", "User"], "description": "Specifies if the target is a Unit or a User." },
         "targetName": { "type": "string", "description": "Denormalized name of the auditee (unit name or user name)." },
@@ -481,7 +481,7 @@
         "isoClausesToAudit": { "type": "array", "items": { "type": "string" }, "description": "A list of ISO clause IDs to be audited." },
         "status": { "type": "string", "enum": ["Scheduled", "In Progress", "Completed"], "default": "Scheduled" }
       },
-      "required": ["id", "auditPlanId", "auditorId", "auditorName", "targetId", "targetType", "targetName", "scheduledDate", "status"]
+      "required": ["id", "auditPlanId", "targetId", "targetType", "targetName", "scheduledDate", "status"]
     },
     "AuditFinding": {
       "$schema": "http://json-schema.org/draft-07/schema#",

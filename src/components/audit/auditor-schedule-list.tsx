@@ -15,14 +15,17 @@ import {
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
+import { Check } from 'lucide-react';
 
 interface AuditorScheduleListProps {
     schedules: AuditSchedule[];
     campuses: Campus[];
     units: Unit[];
+    isClaimView: boolean;
+    onClaimAudit?: (scheduleId: string) => void;
 }
 
-export function AuditorScheduleList({ schedules, campuses, units }: AuditorScheduleListProps) {
+export function AuditorScheduleList({ schedules, campuses, units, isClaimView, onClaimAudit }: AuditorScheduleListProps) {
   const router = useRouter();
   
   const getAuditeeName = (schedule: AuditSchedule) => {
@@ -32,7 +35,6 @@ export function AuditorScheduleList({ schedules, campuses, units }: AuditorSched
       const campus = campuses.find(c => unit.campusIds?.includes(c.id));
       return `${unit.name} (${campus?.name || '...'})`;
     }
-    // In a real app, you'd fetch the user's name
     return schedule.targetName;
   }
   
@@ -41,7 +43,9 @@ export function AuditorScheduleList({ schedules, campuses, units }: AuditorSched
   }, [schedules]);
 
   if (schedules.length === 0) {
-    return <div className="text-center text-muted-foreground py-10">You have no audits scheduled.</div>;
+    return <div className="text-center text-muted-foreground py-10">
+        {isClaimView ? 'No audits are available to be claimed.' : 'You have no audits scheduled.'}
+    </div>;
   }
 
   return (
@@ -61,9 +65,15 @@ export function AuditorScheduleList({ schedules, campuses, units }: AuditorSched
                 <TableCell>{getAuditeeName(schedule)}</TableCell>
                 <TableCell><Badge>{schedule.status}</Badge></TableCell>
                 <TableCell className="text-right">
-                    <Button variant="outline" onClick={() => router.push(`/audit/${schedule.id}`)}>
-                        Start Audit
-                    </Button>
+                    {isClaimView ? (
+                        <Button variant="default" size="sm" onClick={() => onClaimAudit?.(schedule.id)}>
+                            <Check className="mr-2 h-4 w-4" /> Claim Audit
+                        </Button>
+                    ) : (
+                        <Button variant="outline" onClick={() => router.push(`/audit/${schedule.id}`)}>
+                            Start Audit
+                        </Button>
+                    )}
                 </TableCell>
             </TableRow>
         ))}

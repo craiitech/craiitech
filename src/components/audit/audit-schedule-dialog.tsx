@@ -51,7 +51,6 @@ interface AuditScheduleDialogProps {
 }
 
 const formSchema = z.object({
-  auditorId: z.string().min(1, 'Auditor is required'),
   targetId: z.string().min(1, 'Auditee is required'),
   scheduledDate: z.date({ required_error: 'A date is required.'}),
   isoClausesToAudit: z.array(z.string()).min(1, 'At least one ISO clause must be selected.'),
@@ -87,7 +86,6 @@ export function AuditScheduleDialog({
     if (!firestore) return;
     setIsSubmitting(true);
     
-    const auditor = auditors.find(a => a.id === values.auditorId);
     let targetName = 'Unknown';
     if (plan.auditeeType === 'Units') {
         targetName = allUnits.find(u => u.id === values.targetId)?.name || 'Unknown Unit';
@@ -98,8 +96,8 @@ export function AuditScheduleDialog({
 
     const scheduleData = {
       auditPlanId: plan.id,
-      auditorId: values.auditorId,
-      auditorName: auditor ? `${auditor.firstName} ${auditor.lastName}` : 'Unknown',
+      auditorId: null, // Auditor is not assigned at this stage
+      auditorName: null,
       targetId: values.targetId,
       targetType: plan.auditeeType === 'Units' ? 'Unit' : 'User',
       targetName,
@@ -128,25 +126,11 @@ export function AuditScheduleDialog({
         <DialogHeader>
           <DialogTitle>Schedule New Audit</DialogTitle>
           <DialogDescription>
-            Schedule an audit for the plan: "{plan.title}".
+            Schedule an audit for the plan: "{plan.title}". An auditor can claim this schedule later.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-             <FormField
-                control={form.control}
-                name="auditorId"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Assign Auditor</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select an auditor"/></SelectTrigger></FormControl>
-                            <SelectContent>{auditors.map(a => <SelectItem key={a.id} value={a.id}>{a.firstName} {a.lastName}</SelectItem>)}</SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
              <FormField
                 control={form.control}
                 name="targetId"
