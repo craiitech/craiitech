@@ -62,10 +62,17 @@ export default function CompleteRegistrationPage() {
   
   const assignableRoles = useMemo(() => {
     if (!roles) return [];
-    // Filter out high-privilege roles that should not be self-assigned.
-    const restrictedRoles = ['admin', 'vice president'];
+    // Define the exact roles a user can self-assign to prevent privilege escalation.
+    const allowedRoles = [
+      'campus director', 
+      'campus odimo', 
+      'unit odimo', 
+      'unit coordinator', 
+      'auditor',
+      'employee' // Assuming 'employee' is a base role
+    ];
     return roles.filter(role => 
-        !restrictedRoles.some(restricted => role.name.toLowerCase().includes(restricted))
+        allowedRoles.includes(role.name.toLowerCase())
     );
   }, [roles]);
 
