@@ -32,11 +32,6 @@ export function SidebarNav({
     router.push('/logout');
   };
 
-  const manualsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'procedureManuals') : null), [firestore]);
-  const { data: manuals } = useCollection<ProcedureManual>(manualsQuery);
-
-  const userManual = userProfile?.unitId ? manuals?.find(m => m.id === userProfile.unitId) : null;
-
   const allRoutes = [
     {
       href: '/dashboard',
@@ -49,6 +44,12 @@ export function SidebarNav({
       label: 'Submissions',
       active: pathname.startsWith('/submissions'),
       icon: <FileText />,
+    },
+     {
+      href: '/manuals',
+      label: 'Procedure Manuals',
+      active: pathname.startsWith('/manuals'),
+      icon: <BookOpen />,
     },
     {
       href: '/risk-register',
@@ -123,15 +124,6 @@ export function SidebarNav({
             </Link>
           </SidebarMenuItem>
         ))}
-         {userManual && (
-            <SidebarMenuItem className="rounded-md">
-                <a href={userManual.googleDriveLink} target="_blank" rel="noopener noreferrer">
-                    <SidebarMenuButton icon={<BookOpen />} className="hover:bg-sidebar-accent">
-                        View Process Manual
-                    </SidebarMenuButton>
-                </a>
-            </SidebarMenuItem>
-        )}
       </SidebarMenu>
       <div className="mt-auto">
          <SidebarMenu>
