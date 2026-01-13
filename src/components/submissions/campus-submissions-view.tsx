@@ -56,9 +56,14 @@ export function CampusSubmissionsView({
   
   const unitsInSelectedCampus = useMemo(() => {
     if (!selectedCampusId || !allUnits || !allSubmissions) return [];
-    const submittedUnitIds = new Set(allSubmissions.map(s => s.unitId));
+    
+    // Get all submissions for the selected campus
+    const campusSubmissions = allSubmissions.filter(s => s.campusId === selectedCampusId);
+    const submittedUnitIdsForCampus = new Set(campusSubmissions.map(s => s.unitId));
+
+    // Filter units that belong to the campus AND have submissions within that campus
     return allUnits.filter(unit => 
-        unit.campusIds?.includes(selectedCampusId) && submittedUnitIds.has(unit.id)
+        unit.campusIds?.includes(selectedCampusId) && submittedUnitIdsForCampus.has(unit.id)
     ).sort((a, b) => a.name.localeCompare(b.name));
   }, [selectedCampusId, allUnits, allSubmissions]);
 
