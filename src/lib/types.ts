@@ -163,6 +163,9 @@ export type AuditSchedule = {
     scheduledDate: any; // Timestamp
     isoClausesToAudit: string[];
     status: 'Scheduled' | 'In Progress' | 'Completed';
+    summaryCommendablePractices?: string;
+    summaryOFI?: string;
+    summaryNC?: string;
 };
 
 export type AuditFinding = {

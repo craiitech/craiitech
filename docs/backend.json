@@ -479,7 +479,10 @@
         "targetName": { "type": "string", "description": "Denormalized name of the auditee (unit name or user name)." },
         "scheduledDate": { "type": "string", "format": "date-time" },
         "isoClausesToAudit": { "type": "array", "items": { "type": "string" }, "description": "A list of ISO clause IDs to be audited." },
-        "status": { "type": "string", "enum": ["Scheduled", "In Progress", "Completed"], "default": "Scheduled" }
+        "status": { "type": "string", "enum": ["Scheduled", "In Progress", "Completed"], "default": "Scheduled" },
+        "summaryCommendablePractices": { "type": "string", "description": "A summary of commendable practices found during the audit." },
+        "summaryOFI": { "type": "string", "description": "A summary of opportunities for improvement." },
+        "summaryNC": { "type": "string", "description": "A summary of non-conformances." }
       },
       "required": ["id", "auditPlanId", "targetId", "targetType", "targetName", "scheduledDate", "status"]
     },
