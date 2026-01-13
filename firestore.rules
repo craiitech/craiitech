@@ -319,20 +319,15 @@ service cloud.firestore {
     }
     
     /**
-     * @description Procedure Manuals.
-     * - list: Allowed for any signed-in user for the client to get the list of manuals.
-     * - get: Allowed for any signed-in user to read a specific manual.
-     * - write: Restricted to Admins only.
+     * @description Procedure Manuals can be read by any signed-in user, but only written by an Admin.
+     * This structure separates the collection-level list/read from document-level write.
      */
-    match /procedureManuals {
-      allow list: if isSignedIn();
+    match /procedureManuals/{document=**} {
+      allow read: if isSignedIn();
     }
-    
+
     match /procedureManuals/{unitId} {
-      allow get: if isSignedIn();
-      allow create, update, delete: if isAdmin();
+      allow write: if isAdmin();
     }
   }
 }
-
-    
