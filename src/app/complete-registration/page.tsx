@@ -83,13 +83,11 @@ export default function CompleteRegistrationPage() {
   const selectedCampusId = form.watch('campusId');
   
   const isUnitRequired = useMemo(() => {
-    // Default to NOT required if data is missing, to prevent flicker and incorrect state.
     if (!selectedRoleId || !roles) return false; 
     const selectedRole = roles.find((r) => r.id === selectedRoleId);
     if (!selectedRole) return false;
 
-    const campusLevelRoles = ['campus director', 'campus odimo'];
-    // It is required if it's NOT a campus-level role.
+    const campusLevelRoles = ['campus director', 'campus odimo', 'auditor'];
     return !campusLevelRoles.includes(selectedRole.name.toLowerCase());
   }, [selectedRoleId, roles]);
 
