@@ -220,6 +220,17 @@ const SubmissionsTable = ({
                         <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
                           {getStatusText(submission.statusId)}
                         </Badge>
+                        {submission.statusId === 'rejected' && submission.comments && (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onViewFeedbackClick(submission.comments)}>
+                                        <MessageSquare className="h-4 w-4" />
+                                        <span className="sr-only">View Feedback</span>
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>View Feedback</p></TooltipContent>
+                            </Tooltip>
+                        )}
                         {isLate(submission) && (
                             <Tooltip>
                                 <TooltipTrigger>
@@ -233,12 +244,6 @@ const SubmissionsTable = ({
                     </div>
                   </TableCell>
                   <TableCell className="text-right space-x-1">
-                     {submission.statusId === 'rejected' && submission.comments && (
-                        <Button variant="ghost" size="icon" onClick={() => onViewFeedbackClick(submission.comments)}>
-                            <MessageSquare className="h-4 w-4" />
-                            <span className="sr-only">View Feedback</span>
-                        </Button>
-                     )}
                     <Button variant="ghost" size="icon" onClick={() => onEyeClick(submission.id)}>
                         <Eye className="h-4 w-4" />
                         <span className="sr-only">View Details</span>
