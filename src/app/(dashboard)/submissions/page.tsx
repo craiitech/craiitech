@@ -263,7 +263,7 @@ const SubmissionsTable = ({
                     )}
                   </TableCell>
                   <TableCell className="text-right space-x-1">
-                    {submission.statusId === 'rejected' ? (
+                    {submission.statusId === 'rejected' && !isSupervisor && !isAdmin ? (
                         <Button variant="destructive" size="sm" onClick={() => onEyeClick(submission.id)}>
                             <Edit className="mr-2 h-4 w-4" /> Resubmit
                         </Button>
