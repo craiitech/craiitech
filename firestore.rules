@@ -295,7 +295,7 @@ service cloud.firestore {
                     || isAuditor()
                     || (resource.data.targetType == 'Unit' && getUserProfile().unitId == resource.data.targetId)
                     || (resource.data.targetType == 'User' && isOwner(resource.data.targetId));
-        allow list: if isAdmin() || isAuditor() || (request.query.limit <= 10 && request.query.targetId == getUserProfile().unitId);
+        allow list: if isAdmin() || isAuditor() || (request.query.limit <= 10 && request.query.where.targetId == getUserProfile().unitId);
         allow create: if isAdmin();
         allow update: if isAdmin() || (isAuditor() && resource.data.auditorId == null); // Allow auditor to claim an unassigned audit
     }
@@ -328,5 +328,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
