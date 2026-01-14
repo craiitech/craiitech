@@ -241,15 +241,25 @@ const SubmissionsTable = ({
                                 </TooltipContent>
                             </Tooltip>
                         )}
+                        {submission.statusId === 'rejected' && latestComment && (
+                             <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onFeedbackClick(latestComment)}>
+                                        <MessageSquare className="h-4 w-4"/>
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>View Feedback</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground max-w-xs">
-                    {submission.statusId === 'rejected' && latestComment ? (
-                       <p className="cursor-pointer hover:text-foreground" onClick={() => onFeedbackClick(latestComment)}>
-                         {latestComment}
-                       </p>
+                  <TableCell className="text-xs text-muted-foreground max-w-xs whitespace-pre-wrap">
+                    {latestComment ? (
+                      <p>{latestComment}</p>
                     ) : (
-                        '--'
+                      '--'
                     )}
                   </TableCell>
                   <TableCell className="text-right space-x-1">
@@ -797,3 +807,6 @@ export default function SubmissionsPage() {
     </>
   );
 }
+
+
+    
