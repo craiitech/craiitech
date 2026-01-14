@@ -97,6 +97,7 @@ const SubmissionsTable = ({
     campusMap,
     onEyeClick, 
     onDeleteClick,
+    onFeedbackClick,
     sortConfig,
     requestSort,
     cycles,
@@ -108,6 +109,7 @@ const SubmissionsTable = ({
     campusMap: Map<string, string>,
     onEyeClick: (submissionId: string) => void, 
     onDeleteClick: (submission: Submission) => void,
+    onFeedbackClick: (feedback: string) => void,
     sortConfig: SortConfig,
     requestSort: (key: keyof Submission | 'submitterName' | 'campusName') => void,
     cycles: Map<string, Cycle>
@@ -219,24 +221,31 @@ const SubmissionsTable = ({
                     {submission.submissionDate instanceof Date ? format(submission.submissionDate, 'MMMM d, yyyy') : 'Invalid Date'}
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col items-start gap-1">
-                        <div className="flex items-center gap-2">
-                             <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
-                                {getStatusText(submission.statusId)}
-                            </Badge>
-                            {isLate(submission) && (
-                                <Tooltip>
-                                    <TooltipTrigger>
-                                        <AlertCircle className="h-4 w-4 text-destructive" />
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Submitted after deadline</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            )}
-                        </div>
+                    <div className="flex items-center gap-2">
+                         <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
+                            {getStatusText(submission.statusId)}
+                        </Badge>
+                        {isLate(submission) && (
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <AlertCircle className="h-4 w-4 text-destructive" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Submitted after deadline</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
                         {submission.statusId === 'rejected' && latestComment && (
-                           <p className="text-xs text-muted-foreground p-2 bg-muted rounded-md max-w-xs">{latestComment}</p>
+                           <Tooltip>
+                             <TooltipTrigger asChild>
+                               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onFeedbackClick(latestComment)}>
+                                 <MessageSquare className="h-4 w-4" />
+                               </Button>
+                             </TooltipTrigger>
+                             <TooltipContent>
+                               <p>View Feedback</p>
+                             </TooltipContent>
+                           </Tooltip>
                         )}
                     </div>
                   </TableCell>
@@ -290,6 +299,9 @@ export default function SubmissionsPage() {
   const { toast } = useToast();
   const { logSessionActivity } = useSessionActivity();
   
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+  const [feedbackToShow, setFeedbackToShow] = useState('');
+
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     if (isAdmin) {
@@ -445,6 +457,11 @@ export default function SubmissionsPage() {
     if (!cycles) return new Map<string, Cycle>();
     return new Map(cycles.map(c => [c.id, c]));
   }, [cycles]);
+
+  const handleFeedbackClick = (feedback: string) => {
+    setFeedbackToShow(feedback);
+    setIsFeedbackDialogOpen(true);
+  };
 
 
   const sortedSubmissions = useMemo(() => {
@@ -702,6 +719,7 @@ export default function SubmissionsPage() {
                             campusMap={campusMap}
                             onEyeClick={handleEyeClick}
                             onDeleteClick={handleDeleteClick}
+                            onFeedbackClick={handleFeedbackClick}
                             sortConfig={sortConfig}
                             requestSort={requestSort}
                             cycles={cycleMap}
@@ -733,6 +751,11 @@ export default function SubmissionsPage() {
       </Tabs>
 
       </TooltipProvider>
+      <FeedbackDialog
+        isOpen={isFeedbackDialogOpen}
+        onOpenChange={setIsFeedbackDialogOpen}
+        feedback={feedbackToShow}
+      />
       <AlertDialog open={!!deletingSubmission} onOpenChange={() => setDeletingSubmission(null)}>
         <AlertDialogContent>
             <AlertDialogHeader>
@@ -765,5 +788,6 @@ export default function SubmissionsPage() {
     </>
   );
 }
+
 
 
