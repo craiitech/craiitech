@@ -14,7 +14,7 @@ export function AuditeeAuditView() {
   const firestore = useFirestore();
 
   const schedulesQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile) return null;
+    if (!firestore || !userProfile?.unitId) return null;
     return query(collection(firestore, 'auditSchedules'), where('targetId', '==', userProfile.unitId));
   }, [firestore, userProfile]);
   
@@ -38,7 +38,7 @@ export function AuditeeAuditView() {
 
   const { data: caps, isLoading: isLoadingCaps } = useCollection<CorrectiveActionPlan>(capsQuery);
 
-  const isLoading = isUserLoading || isLoadingSchedules || isLoadingFindings || isLoadingCaps;
+  const isLoading = isUserLoading || isLoadingSchedules || (scheduleIds.length > 0 && (isLoadingFindings || isLoadingCaps));
 
   return (
     <div className="space-y-4">
@@ -58,13 +58,17 @@ export function AuditeeAuditView() {
                  <div className="flex justify-center items-center h-48">
                     <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
-            ) : (
+            ) : schedules && schedules.length > 0 ? (
                 <FindingsList
                     findings={findings || []}
-                    schedules={schedules || []}
+                    schedules={schedules}
                     correctiveActionPlans={caps || []}
                     isAuditor={false}
                 />
+            ) : (
+                <div className="text-center text-muted-foreground py-10">
+                    No audit schedules have been assigned to your unit yet.
+                </div>
             )}
         </CardContent>
       </Card>
