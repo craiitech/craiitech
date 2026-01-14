@@ -146,12 +146,27 @@ export default function SubmissionDetailPage() {
   const handleApprove = async () => {
     if (!submissionDocRef) return;
     setIsSubmitting(true);
-    const updateData = { statusId: 'approved' };
+
+    const updateData: any = { statusId: 'approved' };
+    
+    if (feedback) {
+        const newComment: Comment = {
+            text: feedback,
+            authorId: user!.uid,
+            authorName: userProfile!.firstName + ' ' + userProfile!.lastName,
+            createdAt: new Date(),
+            authorRole: userRole || 'User'
+        }
+        updateData.comments = arrayUnion(newComment);
+    }
+    
     updateDoc(submissionDocRef, updateData)
         .then(() => {
             toast({ title: 'Success', description: 'Submission has been approved.' });
             if (isSupervisor) {
                 router.push('/approvals');
+            } else {
+                router.push('/submissions');
             }
         })
         .catch(error => {
@@ -188,6 +203,9 @@ export default function SubmissionDetailPage() {
         .then(() => {
           toast({ title: 'Success', description: 'Submission has been rejected.' });
           setFeedback('');
+           if (isSupervisor) {
+                router.push('/approvals');
+            }
         })
         .catch(error => {
            console.error('Error rejecting submission', error);
@@ -309,14 +327,14 @@ export default function SubmissionDetailPage() {
              <Card>
                 <CardHeader>
                     <CardTitle>Take Action</CardTitle>
-                    <CardDescription>Approve or reject this submission.</CardDescription>
+                    <CardDescription>Approve or reject this submission. Comments are optional for approvals but required for rejections.</CardDescription>
                 </CardHeader>
                  <CardContent className="space-y-4">
                     <div>
-                        <Label htmlFor="feedback">Feedback for Rejection</Label>
+                        <Label htmlFor="feedback">Comments / Feedback</Label>
                         <Textarea 
                             id="feedback"
-                            placeholder="Provide clear reasons for rejection..."
+                            placeholder="Provide clear reasons for rejection or optional comments for approval..."
                             value={feedback}
                             onChange={(e) => setFeedback(e.target.value)}
                             disabled={isSubmitting}

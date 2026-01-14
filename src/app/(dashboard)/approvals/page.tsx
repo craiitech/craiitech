@@ -398,7 +398,7 @@ export default function ApprovalsPage() {
           <DialogFooter>
               <Button
                 onClick={handleRejectWithFeedback}
-                disabled={isSubmittingFeedback}
+                disabled={isSubmittingFeedback || !feedback}
               >
                 {isSubmittingFeedback && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
