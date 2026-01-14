@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Separator } from '@/components/ui/separator';
 
 
 const statusVariant: Record<
@@ -374,7 +375,7 @@ export default function SubmissionDetailPage() {
 
         </div>
 
-        {/* Right Column: Details */}
+        {/* Right Column: Details & Comments */}
         <div className="space-y-4">
             <Card>
                 <CardHeader>
@@ -407,32 +408,31 @@ export default function SubmissionDetailPage() {
                         <span className="text-muted-foreground">Cycle:</span>
                         <span className="capitalize">{submission.cycleId}</span>
                     </div>
+
+                    {Array.isArray(submission.comments) && submission.comments.length > 0 && (
+                        <>
+                            <Separator className="my-4" />
+                            <h3 className="font-semibold text-base">Conversation History</h3>
+                            <div className="space-y-4">
+                                {submission.comments.slice().sort((a,b) => (a.createdAt as Timestamp)?.toMillis() - (b.createdAt as Timestamp)?.toMillis()).map((comment, index) => (
+                                <div key={index} className="flex gap-3">
+                                    <Avatar className="h-8 w-8">
+                                            <AvatarFallback>{comment.authorName.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-center">
+                                                <p className="text-sm font-medium">{comment.authorName} <span className="text-xs text-muted-foreground">({comment.authorRole})</span></p>
+                                                <p className="text-xs text-muted-foreground">{getFormattedDate(comment.createdAt)}</p>
+                                            </div>
+                                            <p className="text-sm text-muted-foreground mt-1">{comment.text}</p>
+                                        </div>
+                                </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </CardContent>
             </Card>
-
-            {Array.isArray(submission.comments) && submission.comments.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Conversation History</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {submission.comments.slice().sort((a,b) => (a.createdAt as Timestamp)?.toMillis() - (b.createdAt as Timestamp)?.toMillis()).map((comment, index) => (
-                           <div key={index} className="flex gap-3">
-                               <Avatar className="h-8 w-8">
-                                    <AvatarFallback>{comment.authorName.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1">
-                                    <div className="flex justify-between items-center">
-                                        <p className="text-sm font-medium">{comment.authorName} <span className="text-xs text-muted-foreground">({comment.authorRole})</span></p>
-                                        <p className="text-xs text-muted-foreground">{getFormattedDate(comment.createdAt)}</p>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground mt-1">{comment.text}</p>
-                                </div>
-                           </div>
-                        ))}
-                    </CardContent>
-                </Card>
-            )}
         </div>
       </div>
     </div>
