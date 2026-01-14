@@ -76,7 +76,7 @@ const submissionTypes = [
 ];
 
 type SortConfig = {
-    key: keyof Submission | 'submitterName' | 'campusName';
+    key: keyof Submission | 'submitterName' | 'campusName' | 'comments';
     direction: 'ascending' | 'descending';
 } | null;
 
@@ -111,7 +111,7 @@ const SubmissionsTable = ({
     onDeleteClick: (submission: Submission) => void,
     onFeedbackClick: (feedback: string) => void,
     sortConfig: SortConfig,
-    requestSort: (key: keyof Submission | 'submitterName' | 'campusName') => void,
+    requestSort: (key: keyof Submission | 'submitterName' | 'campusName' | 'comments') => void,
     cycles: Map<string, Cycle>
  }) => {
     if (submissions.length === 0) {
@@ -122,7 +122,7 @@ const SubmissionsTable = ({
         );
     }
 
-    const getSortIndicator = (key: keyof Submission | 'submitterName' | 'campusName') => {
+    const getSortIndicator = (key: keyof Submission | 'submitterName' | 'campusName' | 'comments') => {
       if (!sortConfig || sortConfig.key !== key) {
         return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
       }
@@ -200,6 +200,12 @@ const SubmissionsTable = ({
                         {getSortIndicator('statusId')}
                     </Button>
                 </TableHead>
+                <TableHead>
+                    <Button variant="ghost" onClick={() => requestSort('comments')}>
+                        Comments
+                        {getSortIndicator('comments')}
+                    </Button>
+                </TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -235,19 +241,16 @@ const SubmissionsTable = ({
                                 </TooltipContent>
                             </Tooltip>
                         )}
-                        {submission.statusId === 'rejected' && latestComment && (
-                           <Tooltip>
-                             <TooltipTrigger asChild>
-                               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onFeedbackClick(latestComment)}>
-                                 <MessageSquare className="h-4 w-4" />
-                               </Button>
-                             </TooltipTrigger>
-                             <TooltipContent>
-                               <p>View Feedback</p>
-                             </TooltipContent>
-                           </Tooltip>
-                        )}
                     </div>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground max-w-xs truncate">
+                    {submission.statusId === 'rejected' && latestComment ? (
+                       <p className="cursor-pointer hover:text-foreground" onClick={() => onFeedbackClick(latestComment)}>
+                         {latestComment}
+                       </p>
+                    ) : (
+                        '--'
+                    )}
                   </TableCell>
                   <TableCell className="text-right space-x-1">
                     <Button variant="ghost" size="icon" onClick={() => onEyeClick(submission.id)}>
@@ -445,7 +448,7 @@ export default function SubmissionsPage() {
   }
 
 
-  const requestSort = (key: keyof Submission | 'submitterName' | 'campusName') => {
+  const requestSort = (key: keyof Submission | 'submitterName' | 'campusName' | 'comments') => {
     let direction: 'ascending' | 'descending' = 'ascending';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
         direction = 'descending';
@@ -482,7 +485,11 @@ export default function SubmissionsPage() {
             } else if (sortConfig.key === 'campusName') {
                 aValue = campusMap.get(a.campusId) ?? '';
                 bValue = campusMap.get(b.campusId) ?? '';
-            } else {
+            } else if (sortConfig.key === 'comments') {
+                aValue = a.comments && a.comments.length > 0 ? a.comments[a.comments.length - 1].text : '';
+                bValue = b.comments && b.comments.length > 0 ? b.comments[b.comments.length - 1].text : '';
+            }
+             else {
                 aValue = a[sortConfig.key as keyof Submission];
                 bValue = b[sortConfig.key as keyof Submission];
             }
@@ -562,6 +569,7 @@ export default function SubmissionsPage() {
 
   const handleExportToExcel = () => {
     const dataToExport = sortedSubmissions.map(s => {
+        const latestComment = (s.comments && s.comments.length > 0) ? s.comments[s.comments.length - 1].text : '';
         const baseData: any = {
             'Report Type': s.reportType,
             'Unit': s.unitName,
@@ -570,6 +578,7 @@ export default function SubmissionsPage() {
             'Submitted At': format(s.submissionDate, 'yyyy-MM-dd HH:mm'),
             'Status': s.statusId,
             'Link': s.googleDriveLink,
+            'Comments': latestComment
         };
 
         if (isAdmin) {
@@ -788,6 +797,3 @@ export default function SubmissionsPage() {
     </>
   );
 }
-
-
-
