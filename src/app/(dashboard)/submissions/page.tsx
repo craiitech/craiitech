@@ -96,7 +96,6 @@ const SubmissionsTable = ({
     usersMap, 
     campusMap,
     onEyeClick, 
-    onViewFeedbackClick,
     onDeleteClick,
     sortConfig,
     requestSort,
@@ -108,7 +107,6 @@ const SubmissionsTable = ({
     usersMap: Map<string, AppUser>, 
     campusMap: Map<string, string>,
     onEyeClick: (submissionId: string) => void, 
-    onViewFeedbackClick: (comments: any) => void,
     onDeleteClick: (submission: Submission) => void,
     sortConfig: SortConfig,
     requestSort: (key: keyof Submission | 'submitterName' | 'campusName') => void,
@@ -204,7 +202,12 @@ const SubmissionsTable = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {submissions.map((submission) => (
+              {submissions.map((submission) => {
+                const latestComment = (submission.comments && submission.comments.length > 0)
+                    ? submission.comments[submission.comments.length - 1].text
+                    : 'No feedback provided.';
+                
+                return (
                 <TableRow key={submission.id}>
                   {isAdmin && <TableCell>{campusMap.get(submission.campusId) ?? '...'}</TableCell>}
                   <TableCell className="font-medium">{submission.reportType}</TableCell>
@@ -217,19 +220,22 @@ const SubmissionsTable = ({
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                        <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
-                          {getStatusText(submission.statusId)}
-                        </Badge>
-                        {submission.statusId === 'rejected' && submission.comments && (
+                        {submission.statusId === 'rejected' ? (
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onViewFeedbackClick(submission.comments)}>
-                                        <MessageSquare className="h-4 w-4" />
-                                        <span className="sr-only">View Feedback</span>
-                                    </Button>
+                                     <Badge variant={statusVariant[submission.statusId]} className="capitalize cursor-help">
+                                        {getStatusText(submission.statusId)}
+                                    </Badge>
                                 </TooltipTrigger>
-                                <TooltipContent><p>View Feedback</p></TooltipContent>
+                                <TooltipContent className="max-w-xs break-words">
+                                    <p className="font-medium">Rejection Reason:</p>
+                                    <p>{latestComment}</p>
+                                </TooltipContent>
                             </Tooltip>
+                        ) : (
+                             <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
+                                {getStatusText(submission.statusId)}
+                            </Badge>
                         )}
                         {isLate(submission) && (
                             <Tooltip>
@@ -279,7 +285,7 @@ const SubmissionsTable = ({
                     )}
                   </TableCell>
                 </TableRow>
-              ))}
+              )})}
             </TableBody>
           </Table>
     );
@@ -360,8 +366,6 @@ export default function SubmissionsPage() {
 
   const isLoading = isLoadingSubmissions || isLoadingCampuses || isLoadingCycles || isLoadingUnits || isLoadingUsers;
 
-  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
-  const [feedbackToShow, setFeedbackToShow] = useState('');
   const [activeFilter, setActiveFilter] = useState<string>('All Submissions');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'submissionDate', direction: 'descending'});
   const [activeTab, setActiveTab] = useState('all-submissions');
@@ -395,17 +399,6 @@ export default function SubmissionsPage() {
     }));
   }, [submissionsData]);
 
-  
-  const handleViewFeedback = (comments: any) => {
-    if(Array.isArray(comments) && comments.length > 0) {
-        setFeedbackToShow(comments[comments.length-1]?.text || 'No feedback provided');
-    } else if (typeof comments === 'string') { // Backwards compatibility
-        setFeedbackToShow(comments);
-    } else {
-        setFeedbackToShow('No feedback provided.');
-    }
-    setIsFeedbackDialogOpen(true);
-  }
   
   const handleEyeClick = (submissionId: string) => {
       router.push(`/submissions/${submissionId}`);
@@ -717,7 +710,6 @@ export default function SubmissionsPage() {
                             usersMap={usersMap}
                             campusMap={campusMap}
                             onEyeClick={handleEyeClick}
-                            onViewFeedbackClick={handleViewFeedback}
                             onDeleteClick={handleDeleteClick}
                             sortConfig={sortConfig}
                             requestSort={requestSort}
@@ -750,11 +742,6 @@ export default function SubmissionsPage() {
       </Tabs>
 
       </TooltipProvider>
-      <FeedbackDialog 
-        isOpen={isFeedbackDialogOpen}
-        onOpenChange={setIsFeedbackDialogOpen}
-        feedback={feedbackToShow}
-      />
       <AlertDialog open={!!deletingSubmission} onOpenChange={() => setDeletingSubmission(null)}>
         <AlertDialogContent>
             <AlertDialogHeader>
@@ -787,3 +774,4 @@ export default function SubmissionsPage() {
     </>
   );
 }
+
