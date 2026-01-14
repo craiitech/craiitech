@@ -205,7 +205,7 @@ const SubmissionsTable = ({
               {submissions.map((submission) => {
                 const latestComment = (submission.comments && submission.comments.length > 0)
                     ? submission.comments[submission.comments.length - 1].text
-                    : 'No feedback provided.';
+                    : null;
                 
                 return (
                 <TableRow key={submission.id}>
@@ -219,33 +219,24 @@ const SubmissionsTable = ({
                     {submission.submissionDate instanceof Date ? format(submission.submissionDate, 'MMMM d, yyyy') : 'Invalid Date'}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                        {submission.statusId === 'rejected' ? (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                     <Badge variant={statusVariant[submission.statusId]} className="capitalize cursor-help">
-                                        {getStatusText(submission.statusId)}
-                                    </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs break-words">
-                                    <p className="font-medium">Rejection Reason:</p>
-                                    <p>{latestComment}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        ) : (
+                    <div className="flex flex-col items-start gap-1">
+                        <div className="flex items-center gap-2">
                              <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
                                 {getStatusText(submission.statusId)}
                             </Badge>
-                        )}
-                        {isLate(submission) && (
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <AlertCircle className="h-4 w-4 text-destructive" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Submitted after deadline</p>
-                                </TooltipContent>
-                            </Tooltip>
+                            {isLate(submission) && (
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <AlertCircle className="h-4 w-4 text-destructive" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Submitted after deadline</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                        </div>
+                        {submission.statusId === 'rejected' && latestComment && (
+                           <p className="text-xs text-muted-foreground p-2 bg-muted rounded-md max-w-xs">{latestComment}</p>
                         )}
                     </div>
                   </TableCell>
@@ -774,4 +765,5 @@ export default function SubmissionsPage() {
     </>
   );
 }
+
 
