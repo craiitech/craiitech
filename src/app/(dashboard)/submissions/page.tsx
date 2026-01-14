@@ -243,7 +243,7 @@ const SubmissionsTable = ({
                         )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground max-w-xs truncate">
+                  <TableCell className="text-xs text-muted-foreground max-w-xs">
                     {submission.statusId === 'rejected' && latestComment ? (
                        <p className="cursor-pointer hover:text-foreground" onClick={() => onFeedbackClick(latestComment)}>
                          {latestComment}
