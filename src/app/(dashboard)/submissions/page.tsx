@@ -1,7 +1,7 @@
 
 'use client';
 
-import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2, Printer, FileDown, Download, AlertCircle, Library, Rows, Building2 } from 'lucide-react';
+import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2, Printer, FileDown, Download, AlertCircle, Library, Rows, Building2, Send, Edit } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -241,7 +241,7 @@ const SubmissionsTable = ({
                                 </TooltipContent>
                             </Tooltip>
                         )}
-                        {submission.statusId === 'rejected' && latestComment && (
+                        {latestComment && (
                              <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onFeedbackClick(latestComment)}>
@@ -249,7 +249,7 @@ const SubmissionsTable = ({
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>View Feedback</p>
+                                    <p>View Comment</p>
                                 </TooltipContent>
                             </Tooltip>
                         )}
@@ -263,10 +263,15 @@ const SubmissionsTable = ({
                     )}
                   </TableCell>
                   <TableCell className="text-right space-x-1">
-                    <Button variant="ghost" size="icon" onClick={() => onEyeClick(submission.id)}>
-                        <Eye className="h-4 w-4" />
-                        <span className="sr-only">View Details</span>
-                    </Button>
+                    {submission.statusId === 'rejected' ? (
+                        <Button variant="destructive" size="sm" onClick={() => onEyeClick(submission.id)}>
+                            <Edit className="mr-2 h-4 w-4" /> Resubmit
+                        </Button>
+                    ) : (
+                         <Button variant="outline" size="sm" onClick={() => onEyeClick(submission.id)}>
+                            <Eye className="mr-2 h-4 w-4" /> View
+                        </Button>
+                    )}
                     {isAdmin && (
                         <>
                           <Tooltip>
