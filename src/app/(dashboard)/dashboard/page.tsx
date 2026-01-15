@@ -890,14 +890,6 @@ export default function HomePage() {
                         onUnitClick={setSelectedUnitId}
                     />
                 </div>
-                 <Leaderboard 
-                    allSubmissions={submissions}
-                    allUnits={allUnits}
-                    allCampuses={allCampuses}
-                    isLoading={isLoading}
-                    userProfile={userProfile}
-                    isCampusSupervisor={isCampusSupervisor}
-                />
                 <IncompleteCampusSubmissions
                     allSubmissions={submissions}
                     allCampuses={allCampuses}
@@ -916,6 +908,14 @@ export default function HomePage() {
                 )}
             </div>
              <div className="lg:col-span-3 space-y-4">
+                <Leaderboard 
+                    allSubmissions={submissions}
+                    allUnits={allUnits}
+                    allCampuses={allCampuses}
+                    isLoading={isLoading}
+                    userProfile={userProfile}
+                    isCampusSupervisor={isCampusSupervisor}
+                />
                 <Card>
                     <CardHeader>
                         <CardTitle>Submissions Overview</CardTitle>
