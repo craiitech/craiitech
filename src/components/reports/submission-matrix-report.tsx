@@ -10,6 +10,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Check, X } from 'lucide-react';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { useUser } from '@/firebase';
 
 interface SubmissionMatrixReportProps {
   allSubmissions: Submission[] | null;
@@ -33,16 +34,20 @@ export function SubmissionMatrixReport({
   userProfile
 }: SubmissionMatrixReportProps) {
     
+  const { isAdmin, isSupervisor } = useUser();
+
   const years = useMemo(() => {
     if (!allCycles) return [new Date().getFullYear()];
-    return [...new Set(allCycles.map(c => c.year))].sort((a,b) => b-a);
+    const uniqueYears = [...new Set(allCycles.map(c => c.year))].sort((a,b) => b-a);
+    if (uniqueYears.length > 0) return uniqueYears;
+    return [new Date().getFullYear()];
   }, [allCycles]);
 
   const matrixData = useMemo(() => {
     if (!allSubmissions || !allCampuses || !allUnits || !userProfile) {
       return [];
     }
-
+    
     const submissionsForYear = allSubmissions.filter(s => s.year === selectedYear);
 
     const submissionLookup = new Set(
@@ -51,11 +56,12 @@ export function SubmissionMatrixReport({
       )
     );
     
-    const relevantCampuses = userProfile.role === 'Admin'
+    const relevantCampuses = isAdmin
         ? allCampuses
         : allCampuses.filter(c => c.id === userProfile.campusId);
 
     return relevantCampuses.map(campus => {
+      // Correctly filter units for the current campus being processed
       const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
 
       if (campusUnits.length === 0) {
@@ -88,7 +94,7 @@ export function SubmissionMatrixReport({
     .filter((c): c is NonNullable<typeof c> => c !== null)
     .sort((a, b) => a.campusName.localeCompare(b.campusName));
 
-  }, [allSubmissions, allCampuses, allUnits, selectedYear, userProfile]);
+  }, [allSubmissions, allCampuses, allUnits, selectedYear, userProfile, isAdmin]);
 
   return (
     <Card>
