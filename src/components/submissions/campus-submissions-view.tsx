@@ -56,15 +56,20 @@ export function CampusSubmissionsView({
   
   const unitsInSelectedCampus = useMemo(() => {
     if (!selectedCampusId || !allUnits || !allSubmissions) return [];
-    
-    // Get all submissions for the selected campus
-    const campusSubmissions = allSubmissions.filter(s => s.campusId === selectedCampusId);
-    const submittedUnitIdsForCampus = new Set(campusSubmissions.map(s => s.unitId));
 
-    // Filter units that belong to the campus AND have submissions within that campus
-    return allUnits.filter(unit => 
-        unit.campusIds?.includes(selectedCampusId) && submittedUnitIdsForCampus.has(unit.id)
-    ).sort((a, b) => a.name.localeCompare(b.name));
+    // 1. Get all units that are officially part of the selected campus.
+    const unitsForCampus = allUnits.filter(unit =>
+        unit.campusIds?.includes(selectedCampusId)
+    );
+
+    // 2. Get the set of unit IDs that have made submissions.
+    const submittedUnitIds = new Set(allSubmissions.map(s => s.unitId));
+
+    // 3. Return units that are in the campus AND have submitted something.
+    return unitsForCampus
+        .filter(unit => submittedUnitIds.has(unit.id))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
   }, [selectedCampusId, allUnits, allSubmissions]);
 
 
@@ -110,12 +115,11 @@ export function CampusSubmissionsView({
           <div className="md:col-span-1">
             <ScrollArea className="h-[60vh] rounded-md border">
                  {campusesWithSubmissions.length > 0 ? (
-                    <Accordion type="single" collapsible>
+                    <Accordion type="single" collapsible value={selectedCampusId || ''} onValueChange={handleCampusSelect}>
                         {campusesWithSubmissions.map(campus => (
                             <AccordionItem value={campus.id} key={campus.id}>
                                 <AccordionTrigger 
                                     className="p-3 hover:no-underline hover:bg-muted/50"
-                                    onClick={() => handleCampusSelect(campus.id)}
                                 >
                                     <div className="flex items-center gap-3">
                                         <School className="mr-3 h-4 w-4 flex-shrink-0" />
