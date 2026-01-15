@@ -870,26 +870,6 @@ export default function HomePage() {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
              <div className="lg:col-span-4 space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                    <CompletedSubmissions 
-                        allUnits={allUnits}
-                        allCampuses={allCampuses}
-                        allSubmissions={submissions}
-                        isLoading={isLoading}
-                        userProfile={userProfile}
-                        isCampusSupervisor={isCampusSupervisor}
-                    />
-                    <UnitsWithoutSubmissions
-                        allUnits={allUnits}
-                        allCampuses={allCampuses}
-                        allSubmissions={submissions}
-                        isLoading={isLoading}
-                        userProfile={userProfile}
-                        isAdmin={isAdmin}
-                        isCampusSupervisor={isCampusSupervisor}
-                        onUnitClick={setSelectedUnitId}
-                    />
-                </div>
                 <IncompleteCampusSubmissions
                     allSubmissions={submissions}
                     allCampuses={allCampuses}
