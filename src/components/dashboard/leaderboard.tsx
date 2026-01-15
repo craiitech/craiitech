@@ -46,7 +46,6 @@ export function Leaderboard({
     }
 
     const currentYear = new Date().getFullYear();
-    const campusMap = new Map(allCampuses.map(c => [c.id, c.name]));
     
     let relevantCampuses = allCampuses;
     // If it's a campus supervisor, only show their campus
@@ -60,14 +59,14 @@ export function Leaderboard({
         const unitsInCampus = allUnits.filter(u => u.campusIds?.includes(campus.id));
 
         unitsInCampus.forEach(unit => {
-            // Filter submissions by year, unit, AND campus
+            // Filter submissions by year, unit, AND campus to get an accurate count for this specific context
             const campusUnitSubmissions = allSubmissions.filter(s => 
                 s.year === currentYear &&
                 s.unitId === unit.id &&
                 s.campusId === campus.id
             );
             
-            // A unique submission is a combination of report type and cycle for that specific unit/campus
+            // A unique submission is a combination of report type and cycle for that specific unit/campus pair
             const uniqueSubmissions = new Set(
                 campusUnitSubmissions.map(s => `${s.reportType}-${s.cycleId}`)
             );
