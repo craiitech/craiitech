@@ -41,6 +41,14 @@ export function SubmissionMatrixReport({
       return [];
     }
 
+    // Create a Set for efficient lookups. This is the core of the fix.
+    // It processes all submissions for the selected year just once.
+    const submittedSet = new Set(
+      allSubmissions
+        .filter(s => s.year === selectedYear)
+        .map(s => `${s.unitId}-${s.reportType}-${s.cycleId}`)
+    );
+
     return allCampuses.map(campus => {
       const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
       
@@ -50,14 +58,9 @@ export function SubmissionMatrixReport({
         submissionTypes.forEach(reportType => {
           cycles.forEach(cycleId => {
             const key = `${reportType}-${cycleId}`;
-            const hasSubmission = allSubmissions.some(
-              s =>
-                s.unitId === unit.id &&
-                s.reportType === reportType &&
-                s.cycleId === cycleId &&
-                s.year === selectedYear
-            );
-            statuses[key] = hasSubmission;
+            // Perform a fast lookup in the Set.
+            const lookupKey = `${unit.id}-${reportType}-${cycleId}`;
+            statuses[key] = submittedSet.has(lookupKey);
           });
         });
 
