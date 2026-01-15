@@ -288,6 +288,7 @@ export default function ApprovalsPage() {
                   <TableHead>Submitter</TableHead>
                   <TableHead>Submitted At</TableHead>
                   <TableHead>Cycle</TableHead>
+                  <TableHead>Year</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -311,6 +312,7 @@ export default function ApprovalsPage() {
                     <TableCell className="capitalize">
                       {submission.cycleId}
                     </TableCell>
+                    <TableCell>{submission.year}</TableCell>
                     <TableCell className="text-right space-x-1">
                       <Button
                         variant="outline"
