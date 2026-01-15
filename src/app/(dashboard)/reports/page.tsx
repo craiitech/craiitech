@@ -384,6 +384,7 @@ export default function ReportsPage() {
                 allCycles={allCycles}
                 selectedYear={selectedMatrixYear}
                 onYearChange={setSelectedMatrixYear}
+                userProfile={userProfile}
             />
         )}
 

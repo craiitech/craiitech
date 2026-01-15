@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useMemo } from 'react';
-import type { Submission, Campus, Unit, Cycle } from '@/lib/types';
+import type { Submission, Campus, Unit, Cycle, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -18,6 +18,7 @@ interface SubmissionMatrixReportProps {
   allCycles: Cycle[] | null;
   selectedYear: number;
   onYearChange: (year: number) => void;
+  userProfile: User | null;
 }
 
 const cycles = ['first', 'final'] as const;
@@ -29,6 +30,7 @@ export function SubmissionMatrixReport({
   allCycles,
   selectedYear,
   onYearChange,
+  userProfile
 }: SubmissionMatrixReportProps) {
     
   const years = useMemo(() => {
@@ -37,7 +39,7 @@ export function SubmissionMatrixReport({
   }, [allCycles]);
 
   const matrixData = useMemo(() => {
-    if (!allSubmissions || !allCampuses || !allUnits) {
+    if (!allSubmissions || !allCampuses || !allUnits || !userProfile) {
       return [];
     }
 
@@ -48,8 +50,12 @@ export function SubmissionMatrixReport({
         `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`
       )
     );
+    
+    const relevantCampuses = userProfile.role === 'Admin'
+        ? allCampuses
+        : allCampuses.filter(c => c.id === userProfile.campusId);
 
-    return allCampuses.map(campus => {
+    return relevantCampuses.map(campus => {
       const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
 
       if (campusUnits.length === 0) {
@@ -82,7 +88,7 @@ export function SubmissionMatrixReport({
     .filter((c): c is NonNullable<typeof c> => c !== null)
     .sort((a, b) => a.campusName.localeCompare(b.campusName));
 
-  }, [allSubmissions, allCampuses, allUnits, selectedYear]);
+  }, [allSubmissions, allCampuses, allUnits, selectedYear, userProfile]);
 
   return (
     <Card>
