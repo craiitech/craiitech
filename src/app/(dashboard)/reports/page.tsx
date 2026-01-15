@@ -376,7 +376,7 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {isAdmin && (
+        {(isAdmin || isSupervisor) && (
             <SubmissionMatrixReport 
                 allSubmissions={allSubmissions}
                 allCampuses={allCampuses}
