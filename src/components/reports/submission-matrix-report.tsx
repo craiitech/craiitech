@@ -40,30 +40,33 @@ export function SubmissionMatrixReport({
     if (!allSubmissions || !allCampuses || !allUnits) {
       return [];
     }
-    
+
     const submissionsForYear = allSubmissions.filter(s => s.year === selectedYear);
 
-    // Create a Set of all units that have at least one submission for the selected year.
-    const submittedUnitIds = new Set(submissionsForYear.map(s => s.unitId));
-
-    const submittedSet = new Set(
-      submissionsForYear.map(s => `${s.unitId}-${s.reportType}-${s.cycleId}`)
-    );
+    // 1. Create a highly efficient lookup map of submissions by unitId.
+    // The value is a Set of "reportType-cycleId" strings for fast checking.
+    const submissionsByUnit = new Map<string, Set<string>>();
+    for (const sub of submissionsForYear) {
+      if (!submissionsByUnit.has(sub.unitId)) {
+        submissionsByUnit.set(sub.unitId, new Set());
+      }
+      submissionsByUnit.get(sub.unitId)!.add(`${sub.reportType}-${sub.cycleId}`);
+    }
 
     return allCampuses.map(campus => {
-      // Get units for the campus, but only if they have submissions this year.
-      const campusUnits = allUnits.filter(unit => 
-        unit.campusIds?.includes(campus.id) && submittedUnitIds.has(unit.id)
-      );
+      // 2. Get all units assigned to this campus.
+      const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
       
       const unitStatuses = campusUnits.map(unit => {
         const statuses: Record<string, boolean> = {};
-        
+        // 3. Get the specific submission set for this unit.
+        const unitSubmissionsSet = submissionsByUnit.get(unit.id) || new Set();
+
         submissionTypes.forEach(reportType => {
           cycles.forEach(cycleId => {
             const key = `${reportType}-${cycleId}`;
-            const lookupKey = `${unit.id}-${reportType}-${cycleId}`;
-            statuses[key] = submittedSet.has(lookupKey);
+            // 4. Check if this specific unit has submitted this specific report for this cycle.
+            statuses[key] = unitSubmissionsSet.has(key);
           });
         });
 
@@ -72,14 +75,14 @@ export function SubmissionMatrixReport({
           unitName: unit.name,
           statuses,
         };
-      }).sort((a,b) => a.unitName.localeCompare(b.unitName));
+      }).sort((a, b) => a.unitName.localeCompare(b.unitName));
 
       return {
         campusId: campus.id,
         campusName: campus.name,
         units: unitStatuses,
       };
-    }).filter(c => c.units.length > 0).sort((a,b) => a.campusName.localeCompare(b.campusName));
+    }).filter(c => c.units.length > 0).sort((a, b) => a.campusName.localeCompare(b.campusName));
 
   }, [allSubmissions, allCampuses, allUnits, selectedYear]);
 
@@ -95,7 +98,7 @@ export function SubmissionMatrixReport({
         <div className="w-[120px]">
             <Select value={String(selectedYear)} onValueChange={(v) => onYearChange(Number(v))}>
                 <SelectTrigger>
-                <SelectValue placeholder="Year" />
+                    <SelectValue placeholder="Select Year" />
                 </SelectTrigger>
                 <SelectContent>
                 {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
