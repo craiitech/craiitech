@@ -43,7 +43,6 @@ export function SubmissionMatrixReport({
 
     const submissionsForYear = allSubmissions.filter(s => s.year === selectedYear);
 
-    // Correct: Create a lookup Set with a campus-aware key.
     const submissionLookup = new Set(
       submissionsForYear.map(s =>
         `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`
@@ -62,7 +61,6 @@ export function SubmissionMatrixReport({
         
         submissionTypes.forEach(reportType => {
           cycles.forEach(cycleId => {
-            // Correct: Use the campus-aware key for the status check.
             const submissionKey = `${campus.id}-${unit.id}-${reportType}-${cycleId}`;
             statuses[submissionKey] = submissionLookup.has(submissionKey);
           });
