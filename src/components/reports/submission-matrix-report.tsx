@@ -111,16 +111,16 @@ export function SubmissionMatrixReport({
         </div>
       </CardHeader>
       <CardContent>
-        <Accordion type="multiple" className="w-full">
+        <Accordion type="multiple" className="w-full" defaultValue={matrixData.map(d => d.campusId)}>
             {matrixData.map(({ campusId, campusName, units }) => (
                 <AccordionItem value={campusId} key={campusId}>
-                    <AccordionTrigger>{campusName}</AccordionTrigger>
+                    <AccordionTrigger>SITE {campusId} - {campusName.toUpperCase()}</AccordionTrigger>
                     <AccordionContent>
-                        <div className="overflow-x-auto">
+                        <div className="relative overflow-x-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead rowSpan={2} className="sticky left-0 bg-background border-r">Unit</TableHead>
+                                        <TableHead rowSpan={2} className="sticky left-0 bg-background border-r z-10">Unit</TableHead>
                                         {submissionTypes.map(type => (
                                             <TableHead key={type} colSpan={2} className="text-center border-l">{type}</TableHead>
                                         ))}
@@ -129,7 +129,7 @@ export function SubmissionMatrixReport({
                                         {submissionTypes.map(type => (
                                             <React.Fragment key={type}>
                                                 <TableHead className="text-center border-l">First</TableHead>
-                                                <TableHead className="text-center border-l">Final</TableHead>
+                                                <TableHead className="text-center border-r">Final</TableHead>
                                             </React.Fragment>
                                         ))}
                                     </TableRow>
@@ -137,13 +137,13 @@ export function SubmissionMatrixReport({
                                 <TableBody>
                                     {units.map(({ unitId, unitName, statuses }) => (
                                         <TableRow key={unitId}>
-                                            <TableCell className="font-medium sticky left-0 bg-background border-r">{unitName}</TableCell>
+                                            <TableCell className="font-medium sticky left-0 bg-background border-r z-10">{unitName}</TableCell>
                                             {submissionTypes.map(type => (
                                                 <React.Fragment key={type}>
                                                     <TableCell className="text-center border-l">
                                                         {statuses[`${campusId}-${unitId}-${type}-first`] ? <Check className="h-4 w-4 text-green-500 mx-auto" /> : <X className="h-4 w-4 text-red-500 mx-auto" />}
                                                     </TableCell>
-                                                     <TableCell className="text-center border-l">
+                                                     <TableCell className="text-center border-r">
                                                         {statuses[`${campusId}-${unitId}-${type}-final`] ? <Check className="h-4 w-4 text-green-500 mx-auto" /> : <X className="h-4 w-4 text-red-500 mx-auto" />}
                                                     </TableCell>
                                                 </React.Fragment>
