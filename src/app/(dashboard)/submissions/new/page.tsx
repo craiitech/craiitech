@@ -42,8 +42,6 @@ export const submissionTypes = [
   'SWOT Analysis',
 ];
 
-const currentYear = new Date().getFullYear();
-
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
     pending: 'secondary',
@@ -59,14 +57,13 @@ export default function NewSubmissionPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
-  const [selectedCycle, setSelectedCycle] = useState<'first' | 'final'>('first');
-  const [selectedReport, setSelectedReport] = useState<string>(submissionTypes[0]);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedCycle, setSelectedCycle] = useState<'first' | 'final' | null>(null);
+  const [selectedReport, setSelectedReport] = useState<string | null>(null);
   
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [feedbackToShow, setFeedbackToShow] = useState('');
   
-  // State for the new carry-over logic
   const [showUpdateDialog, setShowUpdateDialog] = useState<string | null>(null);
   const [isCarryingOver, setIsCarryingOver] = useState(false);
   const [showFormForUpdate, setShowFormForUpdate] = useState(false);
@@ -75,19 +72,18 @@ export default function NewSubmissionPage() {
   const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
 
   const years = useMemo(() => {
-    if (!allCycles) return [currentYear];
+    if (!allCycles) return [];
     const uniqueYears = [...new Set(allCycles.map(c => c.year))];
     return uniqueYears.sort((a, b) => b - a);
   }, [allCycles]);
 
 
   const submissionsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore || !user || !selectedYear) return null;
     return query(
       collection(firestore, 'submissions'),
       where('userId', '==', user.uid),
       where('year', '==', selectedYear)
-      // We query for the whole year now
     );
   }, [firestore, user, selectedYear]);
 
@@ -122,15 +118,13 @@ export default function NewSubmissionPage() {
 
   const handleSelectReport = (reportType: string) => {
     setSelectedReport(reportType);
-    setShowFormForUpdate(false); // Reset form visibility when changing report
+    setShowFormForUpdate(false); 
     
-    // Check if we need to show the update dialog
     if (
       selectedCycle === 'final' &&
       specialUpdateReports.includes(reportType) &&
       firstCycleStatusMap.has(reportType)
     ) {
-      // If a final submission already exists, don't show the dialog
       if (finalCycleStatusMap.has(reportType)) {
         setShowUpdateDialog(null);
       } else {
@@ -165,7 +159,6 @@ export default function NewSubmissionPage() {
     
     const unitName = units.find((u) => u.id === userProfile.unitId)?.name || 'Unknown Unit';
 
-    // Construct the new submission data correctly, using the current user's profile info
     const newSubmissionData = {
       userId: user.uid,
       campusId: userProfile.campusId,
@@ -199,8 +192,8 @@ export default function NewSubmissionPage() {
 
 
   const handleFormSuccess = () => {
-    setShowFormForUpdate(false); // Hide form after successful submission
-    router.push('/submissions'); // Redirect to the main submissions list
+    setShowFormForUpdate(false); 
+    router.push('/submissions'); 
   };
   
   const handleViewFeedback = (comments: any) => {
@@ -229,6 +222,7 @@ export default function NewSubmissionPage() {
     return status === 'submitted' ? 'Awaiting Approval' : status;
   }
 
+  const isCycleSelected = selectedYear !== null && selectedCycle !== null;
 
   return (
     <div className="space-y-4">
@@ -237,7 +231,7 @@ export default function NewSubmissionPage() {
         <p className="text-muted-foreground">Select a report to submit for the chosen year and cycle.</p>
       </div>
       
-       {selectedCycle === 'final' && specialUpdateReports.includes(selectedReport) && !finalCycleStatusMap.has(selectedReport) && (
+       {selectedCycle === 'final' && selectedReport && specialUpdateReports.includes(selectedReport) && !finalCycleStatusMap.has(selectedReport) && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Final Cycle Submission</AlertTitle>
@@ -248,16 +242,15 @@ export default function NewSubmissionPage() {
       )}
 
        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* --- LEFT COLUMN: CHECKLIST & INSTRUCTIONS --- */}
         <div className="lg:col-span-1 space-y-4">
             <Card>
                 <CardHeader>
                 <CardTitle>Submission Status</CardTitle>
                 <CardDescription>Select the year and cycle to view submission status.</CardDescription>
                 <div className="flex flex-col items-stretch gap-2 pt-2 md:flex-row md:items-center">
-                    <Select value={String(selectedYear)} onValueChange={(value) => setSelectedYear(Number(value))}>
+                    <Select value={selectedYear ? String(selectedYear) : undefined} onValueChange={(value) => setSelectedYear(Number(value))}>
                     <SelectTrigger>
-                        <SelectValue placeholder="Year" />
+                        <SelectValue placeholder="Select Year" />
                     </SelectTrigger>
                     <SelectContent>
                         {years.map((year) => (
@@ -267,9 +260,9 @@ export default function NewSubmissionPage() {
                         ))}
                     </SelectContent>
                     </Select>
-                    <Select value={selectedCycle} onValueChange={(value: 'first' | 'final') => setSelectedCycle(value)}>
+                    <Select value={selectedCycle ?? undefined} onValueChange={(value: 'first' | 'final') => setSelectedCycle(value)}>
                     <SelectTrigger>
-                        <SelectValue placeholder="Cycle" />
+                        <SelectValue placeholder="Select Cycle" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="first">First Submission</SelectItem>
@@ -285,7 +278,7 @@ export default function NewSubmissionPage() {
                         <Skeleton key={i} className="h-14 w-full" />
                     ))}
                     </div>
-                ) : (
+                ) : isCycleSelected ? (
                     submissionTypes.map((reportType) => {
                     const submission = submissionStatusMap.get(reportType);
                     const isSelected = selectedReport === reportType;
@@ -314,6 +307,10 @@ export default function NewSubmissionPage() {
                         </div>
                     );
                     })
+                ) : (
+                    <div className="text-center text-muted-foreground py-10">
+                        Please select a year and cycle to begin.
+                    </div>
                 )}
                 </CardContent>
             </Card>
@@ -354,49 +351,56 @@ export default function NewSubmissionPage() {
             </Card>
         </div>
 
-        {/* --- RIGHT COLUMN: PREVIEW & FORM --- */}
         <div className="lg:col-span-2">
-            <Card className="lg:sticky top-20">
-                <CardHeader>
-                    <CardTitle>Submit: {selectedReport}</CardTitle>
-                    <CardDescription>
-                        {submissionStatusMap.get(selectedReport)
-                            ? `You have already submitted this report. You can update it by submitting again.`
-                            : `Fill out the form below to submit this report.`}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {showUpdateDialog === selectedReport && !showFormForUpdate ? (
-                        <AlertDialog open={true} onOpenChange={(open) => !open && setShowUpdateDialog(null)}>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Update Confirmation</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        A submission for this report was made in the First Cycle. Are there any updates for the Final Cycle?
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel onClick={handleCarryOverSubmission} disabled={isCarryingOver}>
-                                        {isCarryingOver && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                        No, No Updates
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => setShowFormForUpdate(true)}>
-                                        Yes, I Have Updates
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    ) : (
-                        <SubmissionForm
-                            reportType={selectedReport}
-                            year={selectedYear}
-                            cycleId={selectedCycle}
-                            onSuccess={handleFormSuccess}
-                            key={`${selectedReport}-${selectedYear}-${selectedCycle}`}
-                        />
-                    )}
-                </CardContent>
-            </Card>
+            {isCycleSelected && selectedReport ? (
+                <Card className="lg:sticky top-20">
+                    <CardHeader>
+                        <CardTitle>Submit: {selectedReport}</CardTitle>
+                        <CardDescription>
+                            {submissionStatusMap.get(selectedReport)
+                                ? `You have already submitted this report. You can update it by submitting again.`
+                                : `Fill out the form below to submit this report.`}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {showUpdateDialog === selectedReport && !showFormForUpdate ? (
+                            <AlertDialog open={true} onOpenChange={(open) => !open && setShowUpdateDialog(null)}>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Update Confirmation</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            A submission for this report was made in the First Cycle. Are there any updates for the Final Cycle?
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel onClick={handleCarryOverSubmission} disabled={isCarryingOver}>
+                                            {isCarryingOver && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                            No, No Updates
+                                        </AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => setShowFormForUpdate(true)}>
+                                            Yes, I Have Updates
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        ) : (
+                            <SubmissionForm
+                                reportType={selectedReport}
+                                year={selectedYear}
+                                cycleId={selectedCycle}
+                                onSuccess={handleFormSuccess}
+                                key={`${selectedReport}-${selectedYear}-${selectedCycle}`}
+                            />
+                        )}
+                    </CardContent>
+                </Card>
+            ) : (
+                 <Card className="lg:sticky top-20 flex items-center justify-center h-96">
+                    <div className="text-center text-muted-foreground">
+                        <p>Please select a report from the list on the left to start a submission.</p>
+                    </div>
+                </Card>
+            )}
         </div>
       </div>
       <FeedbackDialog 
