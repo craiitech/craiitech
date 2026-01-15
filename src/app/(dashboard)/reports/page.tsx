@@ -63,8 +63,17 @@ export default function ReportsPage() {
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
   const unitsQuery = useMemoFirebase(
-    () => (firestore && canViewReports ? collection(firestore, 'units') : null),
-    [firestore, canViewReports]
+    () => {
+        if (!firestore || !canViewReports) return null;
+        if (isAdmin) {
+            return collection(firestore, 'units');
+        }
+        if (isSupervisor && userProfile?.campusId) {
+            return query(collection(firestore, 'units'), where('campusIds', 'array-contains', userProfile.campusId));
+        }
+        return null;
+    },
+    [firestore, canViewReports, isAdmin, isSupervisor, userProfile]
   );
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
@@ -236,7 +245,7 @@ export default function ReportsPage() {
       <div className="printable-area space-y-8">
         <div className="hidden print:block text-center mb-8">
             <h1 className="text-3xl font-bold">RSU EOMS - System Report</h1>
-            <p className="text-muted-foreground">Generated on: {new Date().toLocaleDateString()}</p>
+            <p className="text-muted-foreground">Generated on: ${new Date().toLocaleDateString()}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:grid-cols-1 print:space-y-8">

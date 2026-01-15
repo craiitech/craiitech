@@ -33,7 +33,7 @@ export function SubmissionMatrixReport({
   onYearChange,
   userProfile,
 }: SubmissionMatrixReportProps) {
-  const { isAdmin, isSupervisor } = useUser();
+  const { isAdmin } = useUser();
 
   const years = useMemo(() => {
     if (!allCycles) return [new Date().getFullYear()];
@@ -48,15 +48,14 @@ export function SubmissionMatrixReport({
     }
 
     const submissionsForYear = allSubmissions.filter(s => s.year === selectedYear);
-    
-    // Create a performant lookup set with the correct campus-aware key.
+
+    // Create a Set for very fast lookups. The key is campus-aware.
     const submissionLookup = new Set(
       submissionsForYear.map(s =>
         `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`
       )
     );
-
-    // Determine which campuses to iterate over.
+    
     const relevantCampuses = isAdmin
       ? allCampuses
       : allCampuses.filter(c => c.id === userProfile.campusId);
@@ -64,10 +63,9 @@ export function SubmissionMatrixReport({
     return relevantCampuses.map(campus => {
       // Get all units assigned to the current campus.
       const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
-
-      // Don't render a section for a campus with no units.
+      
       if (campusUnits.length === 0) {
-        return null;
+        return null; // Skip campuses with no units.
       }
       
       const unitStatuses = campusUnits.map(unit => {
@@ -75,7 +73,6 @@ export function SubmissionMatrixReport({
         
         submissionTypes.forEach(reportType => {
           cycles.forEach(cycleId => {
-            // Use the correct campus-aware key to check for submission.
             const submissionKey = `${campus.id}-${unit.id}-${reportType}-${cycleId}`;
             statuses[submissionKey] = submissionLookup.has(submissionKey);
           });
@@ -123,7 +120,7 @@ export function SubmissionMatrixReport({
         <Accordion type="multiple" className="w-full" defaultValue={matrixData.map(d => d.campusId)}>
           {matrixData.map(({ campusId, campusName, units }) => (
             <AccordionItem value={campusId} key={campusId}>
-              <AccordionTrigger>SITE {campusId} - {campusName.toUpperCase()}</AccordionTrigger>
+              <AccordionTrigger>SITE {campusId.slice(0,4).toUpperCase()} - {campusName.toUpperCase()}</AccordionTrigger>
               <AccordionContent>
                 <div className="relative overflow-x-auto">
                   <Table>
@@ -159,12 +156,24 @@ export function SubmissionMatrixReport({
                           ))}
                         </TableRow>
                       ))}
+                       {units.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={submissionTypes.length * 2 + 1} className="text-center h-24">
+                            No units with submissions found for this campus.
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </div>
               </AccordionContent>
             </AccordionItem>
           ))}
+            {matrixData.length === 0 && (
+                <div className="text-center py-10 text-muted-foreground">
+                    No data to display for the selected year.
+                </div>
+            )}
         </Accordion>
       </CardContent>
     </Card>
