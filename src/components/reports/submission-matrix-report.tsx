@@ -40,17 +40,21 @@ export function SubmissionMatrixReport({
     if (!allSubmissions || !allCampuses || !allUnits) {
       return [];
     }
+    
+    const submissionsForYear = allSubmissions.filter(s => s.year === selectedYear);
 
-    // Create a Set for efficient lookups. This is the core of the fix.
-    // It processes all submissions for the selected year just once.
+    // Create a Set of all units that have at least one submission for the selected year.
+    const submittedUnitIds = new Set(submissionsForYear.map(s => s.unitId));
+
     const submittedSet = new Set(
-      allSubmissions
-        .filter(s => s.year === selectedYear)
-        .map(s => `${s.unitId}-${s.reportType}-${s.cycleId}`)
+      submissionsForYear.map(s => `${s.unitId}-${s.reportType}-${s.cycleId}`)
     );
 
     return allCampuses.map(campus => {
-      const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
+      // Get units for the campus, but only if they have submissions this year.
+      const campusUnits = allUnits.filter(unit => 
+        unit.campusIds?.includes(campus.id) && submittedUnitIds.has(unit.id)
+      );
       
       const unitStatuses = campusUnits.map(unit => {
         const statuses: Record<string, boolean> = {};
@@ -58,7 +62,6 @@ export function SubmissionMatrixReport({
         submissionTypes.forEach(reportType => {
           cycles.forEach(cycleId => {
             const key = `${reportType}-${cycleId}`;
-            // Perform a fast lookup in the Set.
             const lookupKey = `${unit.id}-${reportType}-${cycleId}`;
             statuses[key] = submittedSet.has(lookupKey);
           });
