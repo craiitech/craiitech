@@ -41,28 +41,29 @@ export function SubmissionMatrixReport({
       return [];
     }
 
-    // 1. Filter submissions for the selected year and create a fast lookup Set.
     const submissionsForYear = allSubmissions.filter(s => s.year === selectedYear);
+
+    // Correct: Create a lookup Set with a campus-aware key
     const submissionLookup = new Set(
-      submissionsForYear.map(s => `${s.unitId}-${s.reportType}-${s.cycleId}`)
+      submissionsForYear.map(s =>
+        `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`
+      )
     );
 
-    // 2. Iterate through each campus.
     return allCampuses.map(campus => {
-      // 3. Find all units officially registered to this campus.
       const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
 
       if (campusUnits.length === 0) {
         return null;
       }
       
-      // 4. For each registered unit, determine its submission status using the lookup Set.
       const unitStatuses = campusUnits.map(unit => {
         const statuses: Record<string, boolean> = {};
         
         submissionTypes.forEach(reportType => {
           cycles.forEach(cycleId => {
-            const submissionKey = `${unit.id}-${reportType}-${cycleId}`;
+            // Correct: Use the campus-aware key for the status check
+            const submissionKey = `${campus.id}-${unit.id}-${reportType}-${cycleId}`;
             statuses[submissionKey] = submissionLookup.has(submissionKey);
           });
         });
@@ -89,7 +90,7 @@ export function SubmissionMatrixReport({
     <Card>
       <CardHeader className="flex flex-row items-start justify-between">
         <div>
-            <CardTitle>Detailed Submission Matrix ({selectedYear})</CardTitle>
+            <CardTitle>Detailed Submission Matrix</CardTitle>
             <CardDescription>
             An overview of submitted documents for each unit, per cycle. <Check className="inline h-4 w-4 text-green-500" /> indicates submitted, <X className="inline h-4 w-4 text-red-500" /> indicates not submitted.
             </CardDescription>
@@ -136,10 +137,10 @@ export function SubmissionMatrixReport({
                                             {submissionTypes.map(type => (
                                                 <React.Fragment key={type}>
                                                     <TableCell className="text-center border-l">
-                                                        {statuses[`${unitId}-${type}-first`] ? <Check className="h-4 w-4 text-green-500 mx-auto" /> : <X className="h-4 w-4 text-red-500 mx-auto" />}
+                                                        {statuses[`${campusId}-${unitId}-${type}-first`] ? <Check className="h-4 w-4 text-green-500 mx-auto" /> : <X className="h-4 w-4 text-red-500 mx-auto" />}
                                                     </TableCell>
                                                      <TableCell className="text-center border-l">
-                                                        {statuses[`${unitId}-${type}-final`] ? <Check className="h-4 w-4 text-green-500 mx-auto" /> : <X className="h-4 w-4 text-red-500 mx-auto" />}
+                                                        {statuses[`${campusId}-${unitId}-${type}-final`] ? <Check className="h-4 w-4 text-green-500 mx-auto" /> : <X className="h-4 w-4 text-red-500 mx-auto" />}
                                                     </TableCell>
                                                 </React.Fragment>
                                             ))}
@@ -156,4 +157,3 @@ export function SubmissionMatrixReport({
     </Card>
   );
 }
-
