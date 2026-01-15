@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import ReactDOMServer from 'react-dom/server';
 import { AdminReport } from '@/components/reports/admin-report';
+import { SubmissionMatrixReport } from '@/components/reports/submission-matrix-report';
 
 
 export default function ReportsPage() {
@@ -226,7 +227,7 @@ export default function ReportsPage() {
         )}
       </div>
       
-      <div className="printable-area">
+      <div className="printable-area space-y-8">
         <div className="hidden print:block text-center mb-8">
             <h1 className="text-3xl font-bold">RSU EOMS - System Report</h1>
             <p className="text-muted-foreground">Generated on: {new Date().toLocaleDateString()}</p>
@@ -368,6 +369,15 @@ export default function ReportsPage() {
             </Card>
           </div>
         </div>
+
+        {isAdmin && (
+            <SubmissionMatrixReport 
+                allSubmissions={allSubmissions}
+                allCampuses={allCampuses}
+                allUnits={allUnits}
+            />
+        )}
+
       </div>
     </div>
   );
