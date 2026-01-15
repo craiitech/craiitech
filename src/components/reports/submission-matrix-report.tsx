@@ -43,47 +43,55 @@ export function SubmissionMatrixReport({
   
     const submissionsForYear = allSubmissions.filter(s => s.year === selectedYear);
   
-    // 1. Create a highly efficient lookup map. The key is now "campusId-unitId".
-    // This ensures we only look at submissions for a unit *within a specific campus*.
-    const submissionsByCampusUnit = new Map<string, Set<string>>();
+    const unitMap = new Map(allUnits.map(u => [u.id, u.name]));
+  
+    // 1. Group submissions by campus. Each campus gets its own bucket of submissions.
+    const submissionsByCampus = new Map<string, Submission[]>();
     for (const sub of submissionsForYear) {
-      const key = `${sub.campusId}-${sub.unitId}`;
-      if (!submissionsByCampusUnit.has(key)) {
-        submissionsByCampusUnit.set(key, new Set());
+      if (!submissionsByCampus.has(sub.campusId)) {
+        submissionsByCampus.set(sub.campusId, []);
       }
-      submissionsByCampusUnit.get(key)!.add(`${sub.reportType}-${sub.cycleId}`);
+      submissionsByCampus.get(sub.campusId)!.push(sub);
     }
   
-    // 2. Map through campuses to build the final data structure.
+    // 2. Iterate through each campus to build its report data.
     return allCampuses.map(campus => {
-      // Get all units officially assigned to this campus.
-      const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
+      const campusSubmissions = submissionsByCampus.get(campus.id) || [];
+      if (campusSubmissions.length === 0) {
+        return null; // Skip campuses with no submissions for the year
+      }
       
-      const unitStatuses = campusUnits.map(unit => {
+      // 3. From this campus's submissions, find which units have submitted.
+      const unitsInThisCampusWithSubmissions = new Set(campusSubmissions.map(s => s.unitId));
+      
+      // 4. Create a submission lookup map ONLY for this campus's data.
+      const campusSubmissionLookup = new Map<string, Set<string>>();
+      for (const sub of campusSubmissions) {
+          const key = sub.unitId;
+          if (!campusSubmissionLookup.has(key)) {
+              campusSubmissionLookup.set(key, new Set());
+          }
+          campusSubmissionLookup.get(key)!.add(`${sub.reportType}-${sub.cycleId}`);
+      }
+      
+      // 5. Build the status rows for each unit that has submissions in this campus.
+      const unitStatuses = Array.from(unitsInThisCampusWithSubmissions).map(unitId => {
         const statuses: Record<string, boolean> = {};
+        const unitSubmissionsSet = campusSubmissionLookup.get(unitId) || new Set();
         
-        // 3. Create the specific key for this campus-unit pair to look up its submissions.
-        const campusUnitKey = `${campus.id}-${unit.id}`;
-        const unitSubmissionsSet = submissionsByCampusUnit.get(campusUnitKey) || new Set();
-
         submissionTypes.forEach(reportType => {
           cycles.forEach(cycleId => {
             const submissionKey = `${reportType}-${cycleId}`;
-            // 4. Check if this submission exists in the set for this specific campus-unit pair.
             statuses[submissionKey] = unitSubmissionsSet.has(submissionKey);
           });
         });
   
         return {
-          unitId: unit.id,
-          unitName: unit.name,
+          unitId: unitId,
+          unitName: unitMap.get(unitId) || 'Unknown Unit',
           statuses,
-          hasAnySubmission: unitSubmissionsSet.size > 0, // Flag to check if unit has any submissions for this campus
         };
-      })
-      // 5. Only include units that have at least one submission for this campus.
-      .filter(unit => unit.hasAnySubmission)
-      .sort((a, b) => a.unitName.localeCompare(b.unitName));
+      }).sort((a,b) => a.unitName.localeCompare(b.unitName));
 
       return {
         campusId: campus.id,
@@ -91,8 +99,7 @@ export function SubmissionMatrixReport({
         units: unitStatuses,
       };
     })
-    // 6. Only include campuses that have at least one unit with submissions.
-    .filter(c => c.units.length > 0)
+    .filter((c): c is NonNullable<typeof c> => c !== null) // Remove null campus entries
     .sort((a, b) => a.campusName.localeCompare(b.campusName));
 
   }, [allSubmissions, allCampuses, allUnits, selectedYear]);
