@@ -6,7 +6,7 @@ import type { Submission, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileWarning, School, CheckCircle } from 'lucide-react';
+import { FileWarning, School, CheckCircle, Building } from 'lucide-react';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -32,32 +32,50 @@ export function IncompleteCampusSubmissions({
   onYearChange,
 }: IncompleteCampusSubmissionsProps) {
 
-  const incompleteReportsByCampus = useMemo(() => {
+  const incompleteSubmissionsByCampus = useMemo(() => {
     if (!allSubmissions || !allCampuses || !allUnits) {
       return [];
     }
 
+    const unitsByCampus = allUnits.reduce((acc, unit) => {
+      unit.campusIds?.forEach(campusId => {
+        if (!acc[campusId]) {
+          acc[campusId] = [];
+        }
+        acc[campusId].push(unit);
+      });
+      return acc;
+    }, {} as Record<string, Unit[]>);
+
     return allCampuses.map(campus => {
-      // Get all unit IDs for the current campus
-      const campusUnitIds = allUnits.filter(u => u.campusIds?.includes(campus.id)).map(u => u.id);
-      
-      // Get all submissions from those units for the selected year
-      const campusSubmissions = allSubmissions.filter(s => 
-        campusUnitIds.includes(s.unitId) && s.year === selectedYear
-      );
-      
-      // Find which report types have been submitted at least once
-      const submittedTypes = new Set(campusSubmissions.map(s => s.reportType));
-      
-      // Determine which reports are missing
-      const missingReports = submissionTypes.filter(type => !submittedTypes.has(type));
+      const campusUnits = unitsByCampus[campus.id] || [];
+      const incompleteUnits = campusUnits.map(unit => {
+        const firstCycleSubmissions = new Set(
+          allSubmissions.filter(s => s.unitId === unit.id && s.year === selectedYear && s.cycleId === 'first').map(s => s.reportType)
+        );
+        const finalCycleSubmissions = new Set(
+          allSubmissions.filter(s => s.unitId === unit.id && s.year === selectedYear && s.cycleId === 'final').map(s => s.reportType)
+        );
+
+        const missingFirst = submissionTypes.filter(type => !firstCycleSubmissions.has(type));
+        const missingFinal = submissionTypes.filter(type => !finalCycleSubmissions.has(type));
+        
+        if (missingFirst.length > 0 || missingFinal.length > 0) {
+          return {
+            unitId: unit.id,
+            unitName: unit.name,
+            missingCount: missingFirst.length + missingFinal.length,
+          };
+        }
+        return null;
+      }).filter(Boolean);
 
       return {
         campusId: campus.id,
         campusName: campus.name,
-        missingReports: missingReports,
+        incompleteUnits: incompleteUnits as { unitId: string; unitName: string; missingCount: number; }[],
       };
-    }).filter(campus => campus.missingReports.length > 0); // Only include campuses with missing reports
+    }).filter(campus => campus.incompleteUnits.length > 0);
 
   }, [allSubmissions, allCampuses, allUnits, selectedYear]);
 
@@ -85,10 +103,10 @@ export function IncompleteCampusSubmissions({
             <div>
                  <CardTitle className="flex items-center gap-2">
                     <FileWarning className="text-destructive" />
-                    Campus-Wide Missing Reports
+                    Incomplete Submissions
                 </CardTitle>
                 <CardDescription>
-                Campuses that have not received any submissions for the following report types for {selectedYear}.
+                A list of units that have not completed all required submissions for {selectedYear}.
                 </CardDescription>
             </div>
             <div className="w-[120px]">
@@ -104,20 +122,24 @@ export function IncompleteCampusSubmissions({
         </div>
       </CardHeader>
       <CardContent>
-        {incompleteReportsByCampus.length > 0 ? (
+        {incompleteSubmissionsByCampus.length > 0 ? (
             <Accordion type="multiple" className="w-full">
-            {incompleteReportsByCampus.map(campus => (
+            {incompleteSubmissionsByCampus.map(campus => (
                 <AccordionItem value={campus.campusId} key={campus.campusId}>
                 <AccordionTrigger className="font-medium hover:no-underline">
                     <div className="flex items-center gap-3">
                         <School className="h-4 w-4 text-muted-foreground" />
-                        <span>{campus.campusName}</span>
+                        <span>{campus.campusName} ({campus.incompleteUnits.length} Incomplete Units)</span>
                     </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                    <ul className="list-disc space-y-1 pl-6 text-sm text-muted-foreground">
-                        {campus.missingReports.map(reportName => (
-                            <li key={reportName}>{reportName}</li>
+                    <ul className="list-disc space-y-2 pl-6 text-sm text-muted-foreground">
+                        {campus.incompleteUnits.map(unit => (
+                            <li key={unit.unitId} className="flex items-center gap-2">
+                              <Building className="h-4 w-4" />
+                              <span className="font-semibold text-card-foreground">{unit.unitName}</span> - 
+                              <span className="text-destructive">{unit.missingCount} report(s) missing</span>
+                            </li>
                         ))}
                     </ul>
                 </AccordionContent>
@@ -128,7 +150,7 @@ export function IncompleteCampusSubmissions({
              <div className="flex flex-col items-center justify-center text-center text-sm text-muted-foreground h-40">
                 <CheckCircle className="h-8 w-8 text-green-500 mb-2" />
                 <p className="font-semibold">All Compliant!</p>
-                <p>All campuses have submitted all required reports for {selectedYear}.</p>
+                <p>All units across all campuses have submitted their required reports for {selectedYear}.</p>
             </div>
         )}
       </CardContent>
