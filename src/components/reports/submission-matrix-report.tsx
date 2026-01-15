@@ -31,14 +31,13 @@ export function SubmissionMatrixReport({
   allCycles,
   selectedYear,
   onYearChange,
-  userProfile
+  userProfile,
 }: SubmissionMatrixReportProps) {
-    
   const { isAdmin, isSupervisor } = useUser();
 
   const years = useMemo(() => {
     if (!allCycles) return [new Date().getFullYear()];
-    const uniqueYears = [...new Set(allCycles.map(c => c.year))].sort((a,b) => b-a);
+    const uniqueYears = [...new Set(allCycles.map(c => c.year))].sort((a, b) => b - a);
     if (uniqueYears.length > 0) return uniqueYears;
     return [new Date().getFullYear()];
   }, [allCycles]);
@@ -47,23 +46,26 @@ export function SubmissionMatrixReport({
     if (!allSubmissions || !allCampuses || !allUnits || !userProfile) {
       return [];
     }
-    
-    const submissionsForYear = allSubmissions.filter(s => s.year === selectedYear);
 
+    const submissionsForYear = allSubmissions.filter(s => s.year === selectedYear);
+    
+    // Create a performant lookup set with the correct campus-aware key.
     const submissionLookup = new Set(
       submissionsForYear.map(s =>
         `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`
       )
     );
-    
+
+    // Determine which campuses to iterate over.
     const relevantCampuses = isAdmin
-        ? allCampuses
-        : allCampuses.filter(c => c.id === userProfile.campusId);
+      ? allCampuses
+      : allCampuses.filter(c => c.id === userProfile.campusId);
 
     return relevantCampuses.map(campus => {
-      // Correctly filter units for the current campus being processed
+      // Get all units assigned to the current campus.
       const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
 
+      // Don't render a section for a campus with no units.
       if (campusUnits.length === 0) {
         return null;
       }
@@ -73,6 +75,7 @@ export function SubmissionMatrixReport({
         
         submissionTypes.forEach(reportType => {
           cycles.forEach(cycleId => {
+            // Use the correct campus-aware key to check for submission.
             const submissionKey = `${campus.id}-${unit.id}-${reportType}-${cycleId}`;
             statuses[submissionKey] = submissionLookup.has(submissionKey);
           });
@@ -100,68 +103,68 @@ export function SubmissionMatrixReport({
     <Card>
       <CardHeader className="flex flex-row items-start justify-between">
         <div>
-            <CardTitle>Detailed Submission Matrix</CardTitle>
-            <CardDescription>
+          <CardTitle>Detailed Submission Matrix</CardTitle>
+          <CardDescription>
             An overview of submitted documents for each unit, per cycle. <Check className="inline h-4 w-4 text-green-500" /> indicates submitted, <X className="inline h-4 w-4 text-red-500" /> indicates not submitted.
-            </CardDescription>
+          </CardDescription>
         </div>
         <div className="w-[120px]">
-            <Select value={String(selectedYear)} onValueChange={(v) => onYearChange(Number(v))}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Select Year" />
-                </SelectTrigger>
-                <SelectContent>
-                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                </SelectContent>
-            </Select>
+          <Select value={String(selectedYear)} onValueChange={(v) => onYearChange(Number(v))}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Year" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
       </CardHeader>
       <CardContent>
         <Accordion type="multiple" className="w-full" defaultValue={matrixData.map(d => d.campusId)}>
-            {matrixData.map(({ campusId, campusName, units }) => (
-                <AccordionItem value={campusId} key={campusId}>
-                    <AccordionTrigger>SITE {campusId} - {campusName.toUpperCase()}</AccordionTrigger>
-                    <AccordionContent>
-                        <div className="relative overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead rowSpan={2} className="sticky left-0 bg-background border-r z-10">Unit</TableHead>
-                                        {submissionTypes.map(type => (
-                                            <TableHead key={type} colSpan={2} className="text-center border-l">{type}</TableHead>
-                                        ))}
-                                    </TableRow>
-                                    <TableRow>
-                                        {submissionTypes.map(type => (
-                                            <React.Fragment key={type}>
-                                                <TableHead className="text-center border-l">First</TableHead>
-                                                <TableHead className="text-center border-r">Final</TableHead>
-                                            </React.Fragment>
-                                        ))}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {units.map(({ unitId, unitName, statuses }) => (
-                                        <TableRow key={unitId}>
-                                            <TableCell className="font-medium sticky left-0 bg-background border-r z-10">{unitName}</TableCell>
-                                            {submissionTypes.map(type => (
-                                                <React.Fragment key={type}>
-                                                    <TableCell className="text-center border-l">
-                                                        {statuses[`${campusId}-${unitId}-${type}-first`] ? <Check className="h-4 w-4 text-green-500 mx-auto" /> : <X className="h-4 w-4 text-red-500 mx-auto" />}
-                                                    </TableCell>
-                                                     <TableCell className="text-center border-r">
-                                                        {statuses[`${campusId}-${unitId}-${type}-final`] ? <Check className="h-4 w-4 text-green-500 mx-auto" /> : <X className="h-4 w-4 text-red-500 mx-auto" />}
-                                                    </TableCell>
-                                                </React.Fragment>
-                                            ))}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </AccordionContent>
-                </AccordionItem>
-            ))}
+          {matrixData.map(({ campusId, campusName, units }) => (
+            <AccordionItem value={campusId} key={campusId}>
+              <AccordionTrigger>SITE {campusId} - {campusName.toUpperCase()}</AccordionTrigger>
+              <AccordionContent>
+                <div className="relative overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead rowSpan={2} className="sticky left-0 bg-background border-r z-10">Unit</TableHead>
+                        {submissionTypes.map(type => (
+                          <TableHead key={type} colSpan={2} className="text-center border-l">{type}</TableHead>
+                        ))}
+                      </TableRow>
+                      <TableRow>
+                        {submissionTypes.map(type => (
+                          <React.Fragment key={type}>
+                            <TableHead className="text-center border-l">First</TableHead>
+                            <TableHead className="text-center border-r">Final</TableHead>
+                          </React.Fragment>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {units.map(({ unitId, unitName, statuses }) => (
+                        <TableRow key={unitId}>
+                          <TableCell className="font-medium sticky left-0 bg-background border-r z-10">{unitName}</TableCell>
+                          {submissionTypes.map(type => (
+                            <React.Fragment key={type}>
+                              <TableCell className="text-center border-l">
+                                {statuses[`${campusId}-${unitId}-${type}-first`] ? <Check className="h-4 w-4 text-green-500 mx-auto" /> : <X className="h-4 w-4 text-red-500 mx-auto" />}
+                              </TableCell>
+                              <TableCell className="text-center border-r">
+                                {statuses[`${campusId}-${unitId}-${type}-final`] ? <Check className="h-4 w-4 text-green-500 mx-auto" /> : <X className="h-4 w-4 text-red-500 mx-auto" />}
+                              </TableCell>
+                            </React.Fragment>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
         </Accordion>
       </CardContent>
     </Card>
