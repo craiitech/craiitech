@@ -41,54 +41,39 @@ export function SubmissionMatrixReport({
       return [];
     }
   
+    // 1. Filter all submissions for the selected year just once.
     const submissionsForYear = allSubmissions.filter(s => s.year === selectedYear);
-  
-    const unitMap = new Map(allUnits.map(u => [u.id, u.name]));
-  
-    // 1. Group submissions by campus. Each campus gets its own bucket of submissions.
-    const submissionsByCampus = new Map<string, Submission[]>();
-    for (const sub of submissionsForYear) {
-      if (!submissionsByCampus.has(sub.campusId)) {
-        submissionsByCampus.set(sub.campusId, []);
-      }
-      submissionsByCampus.get(sub.campusId)!.push(sub);
-    }
-  
-    // 2. Iterate through each campus to build its report data.
+
+    // 2. Create an efficient lookup Set for existing submissions.
+    // The key is a unique identifier for a submission from a specific unit.
+    const submissionLookup = new Set(
+      submissionsForYear.map(s => `${s.unitId}-${s.reportType}-${s.cycleId}`)
+    );
+
+    // 3. Iterate through each campus to build its report data.
     return allCampuses.map(campus => {
-      const campusSubmissions = submissionsByCampus.get(campus.id) || [];
-      if (campusSubmissions.length === 0) {
-        return null; // Skip campuses with no submissions for the year
+      // 4. Get all units that are officially registered to this campus.
+      const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
+
+      if (campusUnits.length === 0) {
+        return null;
       }
       
-      // 3. From this campus's submissions, find which units have submitted.
-      const unitsInThisCampusWithSubmissions = new Set(campusSubmissions.map(s => s.unitId));
-      
-      // 4. Create a submission lookup map ONLY for this campus's data.
-      const campusSubmissionLookup = new Map<string, Set<string>>();
-      for (const sub of campusSubmissions) {
-          const key = sub.unitId;
-          if (!campusSubmissionLookup.has(key)) {
-              campusSubmissionLookup.set(key, new Set());
-          }
-          campusSubmissionLookup.get(key)!.add(`${sub.reportType}-${sub.cycleId}`);
-      }
-      
-      // 5. Build the status rows for each unit that has submissions in this campus.
-      const unitStatuses = Array.from(unitsInThisCampusWithSubmissions).map(unitId => {
+      // 5. For each registered unit, determine its submission status.
+      const unitStatuses = campusUnits.map(unit => {
         const statuses: Record<string, boolean> = {};
-        const unitSubmissionsSet = campusSubmissionLookup.get(unitId) || new Set();
         
         submissionTypes.forEach(reportType => {
           cycles.forEach(cycleId => {
-            const submissionKey = `${reportType}-${cycleId}`;
-            statuses[submissionKey] = unitSubmissionsSet.has(submissionKey);
+            // 6. Use the lookup Set for a fast and accurate check.
+            const submissionKey = `${unit.id}-${reportType}-${cycleId}`;
+            statuses[submissionKey] = submissionLookup.has(submissionKey);
           });
         });
   
         return {
-          unitId: unitId,
-          unitName: unitMap.get(unitId) || 'Unknown Unit',
+          unitId: unit.id,
+          unitName: unit.name,
           statuses,
         };
       }).sort((a,b) => a.unitName.localeCompare(b.unitName));
@@ -99,7 +84,7 @@ export function SubmissionMatrixReport({
         units: unitStatuses,
       };
     })
-    .filter((c): c is NonNullable<typeof c> => c !== null) // Remove null campus entries
+    .filter((c): c is NonNullable<typeof c> => c !== null)
     .sort((a, b) => a.campusName.localeCompare(b.campusName));
 
   }, [allSubmissions, allCampuses, allUnits, selectedYear]);
