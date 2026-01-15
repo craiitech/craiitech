@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import type { Campus, Unit, Submission, User as AppUser } from '@/lib/types';
+import type { Campus, Unit, Submission, User as AppUser, Cycle } from '@/lib/types';
 import { collection, query, where } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -36,6 +36,8 @@ export default function ReportsPage() {
   const firestore = useFirestore();
 
   const [selectedCampusId, setSelectedCampusId] = useState<string | null>(null);
+  const [selectedMatrixYear, setSelectedMatrixYear] = useState<number>(new Date().getFullYear());
+
 
   const canViewReports = isAdmin || isSupervisor;
 
@@ -96,6 +98,10 @@ export default function ReportsPage() {
     [firestore, canViewReports, isAdmin, isSupervisor, userProfile]
   );
   const { data: allUsers, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
+  
+  const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
+  const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
+
 
   const unitsInSelectedCampus = useMemo(() => {
     if (!selectedCampusId || !allUnits) return [];
@@ -148,7 +154,7 @@ export default function ReportsPage() {
     return new Map(allCampuses.map(c => [c.id, c.name]));
   }, [allCampuses]);
 
-  const isLoading = isUserLoading || isLoadingCampuses || isLoadingUnits || isLoadingSubmissions || isLoadingUsers;
+  const isLoading = isUserLoading || isLoadingCampuses || isLoadingUnits || isLoadingSubmissions || isLoadingUsers || isLoadingCycles;
 
   const handlePrint = () => {
     if (!isAdmin || !allSubmissions || !allCampuses || !allUnits) return;
@@ -375,6 +381,9 @@ export default function ReportsPage() {
                 allSubmissions={allSubmissions}
                 allCampuses={allCampuses}
                 allUnits={allUnits}
+                allCycles={allCycles}
+                selectedYear={selectedMatrixYear}
+                onYearChange={setSelectedMatrixYear}
             />
         )}
 

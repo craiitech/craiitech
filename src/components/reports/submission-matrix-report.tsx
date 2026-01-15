@@ -3,17 +3,21 @@
 
 import * as React from 'react';
 import { useMemo } from 'react';
-import type { Submission, Campus, Unit } from '@/lib/types';
+import type { Submission, Campus, Unit, Cycle } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Check, X } from 'lucide-react';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface SubmissionMatrixReportProps {
   allSubmissions: Submission[] | null;
   allCampuses: Campus[] | null;
   allUnits: Unit[] | null;
+  allCycles: Cycle[] | null;
+  selectedYear: number;
+  onYearChange: (year: number) => void;
 }
 
 const cycles = ['first', 'final'] as const;
@@ -22,13 +26,20 @@ export function SubmissionMatrixReport({
   allSubmissions,
   allCampuses,
   allUnits,
+  allCycles,
+  selectedYear,
+  onYearChange,
 }: SubmissionMatrixReportProps) {
+    
+  const years = useMemo(() => {
+    if (!allCycles) return [new Date().getFullYear()];
+    return [...new Set(allCycles.map(c => c.year))].sort((a,b) => b-a);
+  }, [allCycles]);
+
   const matrixData = useMemo(() => {
     if (!allSubmissions || !allCampuses || !allUnits) {
       return [];
     }
-
-    const currentYear = new Date().getFullYear();
 
     return allCampuses.map(campus => {
       const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
@@ -44,7 +55,7 @@ export function SubmissionMatrixReport({
                 s.unitId === unit.id &&
                 s.reportType === reportType &&
                 s.cycleId === cycleId &&
-                s.year === currentYear
+                s.year === selectedYear
             );
             statuses[key] = hasSubmission;
           });
@@ -64,15 +75,27 @@ export function SubmissionMatrixReport({
       };
     }).filter(c => c.units.length > 0).sort((a,b) => a.campusName.localeCompare(b.campusName));
 
-  }, [allSubmissions, allCampuses, allUnits]);
+  }, [allSubmissions, allCampuses, allUnits, selectedYear]);
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Detailed Submission Matrix ({new Date().getFullYear()})</CardTitle>
-        <CardDescription>
-          An overview of submitted documents for each unit, per cycle. <Check className="inline h-4 w-4 text-green-500" /> indicates submitted, <X className="inline h-4 w-4 text-red-500" /> indicates not submitted.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between">
+        <div>
+            <CardTitle>Detailed Submission Matrix ({selectedYear})</CardTitle>
+            <CardDescription>
+            An overview of submitted documents for each unit, per cycle. <Check className="inline h-4 w-4 text-green-500" /> indicates submitted, <X className="inline h-4 w-4 text-red-500" /> indicates not submitted.
+            </CardDescription>
+        </div>
+        <div className="w-[120px]">
+            <Select value={String(selectedYear)} onValueChange={(v) => onYearChange(Number(v))}>
+                <SelectTrigger>
+                <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent>
+                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                </SelectContent>
+            </Select>
+        </div>
       </CardHeader>
       <CardContent>
         <Accordion type="multiple" className="w-full">
