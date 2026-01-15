@@ -40,32 +40,28 @@ export function SubmissionMatrixReport({
     if (!allSubmissions || !allCampuses || !allUnits) {
       return [];
     }
-  
-    // 1. Filter all submissions for the selected year just once.
-    const submissionsForYear = allSubmissions.filter(s => s.year === selectedYear);
 
-    // 2. Create an efficient lookup Set for existing submissions.
-    // The key is a unique identifier for a submission from a specific unit.
+    // 1. Filter submissions for the selected year and create a fast lookup Set.
+    const submissionsForYear = allSubmissions.filter(s => s.year === selectedYear);
     const submissionLookup = new Set(
       submissionsForYear.map(s => `${s.unitId}-${s.reportType}-${s.cycleId}`)
     );
 
-    // 3. Iterate through each campus to build its report data.
+    // 2. Iterate through each campus.
     return allCampuses.map(campus => {
-      // 4. Get all units that are officially registered to this campus.
+      // 3. Find all units officially registered to this campus.
       const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
 
       if (campusUnits.length === 0) {
         return null;
       }
       
-      // 5. For each registered unit, determine its submission status.
+      // 4. For each registered unit, determine its submission status using the lookup Set.
       const unitStatuses = campusUnits.map(unit => {
         const statuses: Record<string, boolean> = {};
         
         submissionTypes.forEach(reportType => {
           cycles.forEach(cycleId => {
-            // 6. Use the lookup Set for a fast and accurate check.
             const submissionKey = `${unit.id}-${reportType}-${cycleId}`;
             statuses[submissionKey] = submissionLookup.has(submissionKey);
           });
@@ -140,10 +136,10 @@ export function SubmissionMatrixReport({
                                             {submissionTypes.map(type => (
                                                 <React.Fragment key={type}>
                                                     <TableCell className="text-center border-l">
-                                                        {statuses[`${type}-first`] ? <Check className="h-4 w-4 text-green-500 mx-auto" /> : <X className="h-4 w-4 text-red-500 mx-auto" />}
+                                                        {statuses[`${unitId}-${type}-first`] ? <Check className="h-4 w-4 text-green-500 mx-auto" /> : <X className="h-4 w-4 text-red-500 mx-auto" />}
                                                     </TableCell>
                                                      <TableCell className="text-center border-l">
-                                                        {statuses[`${type}-final`] ? <Check className="h-4 w-4 text-green-500 mx-auto" /> : <X className="h-4 w-4 text-red-500 mx-auto" />}
+                                                        {statuses[`${unitId}-${type}-final`] ? <Check className="h-4 w-4 text-green-500 mx-auto" /> : <X className="h-4 w-4 text-red-500 mx-auto" />}
                                                     </TableCell>
                                                 </React.Fragment>
                                             ))}
@@ -160,3 +156,4 @@ export function SubmissionMatrixReport({
     </Card>
   );
 }
+
