@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, doc, arrayUnion } from 'firebase/firestore';
-import type { Submission, Comment, Unit } from '@/lib/types';
+import type { Submission, Comment, Unit, Cycle } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
@@ -44,7 +43,6 @@ export const submissionTypes = [
 ];
 
 const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 5 }, (_, i) => currentYear + i - 2);
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -72,6 +70,15 @@ export default function NewSubmissionPage() {
   const [showUpdateDialog, setShowUpdateDialog] = useState<string | null>(null);
   const [isCarryingOver, setIsCarryingOver] = useState(false);
   const [showFormForUpdate, setShowFormForUpdate] = useState(false);
+  
+  const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
+  const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
+
+  const years = useMemo(() => {
+    if (!allCycles) return [currentYear];
+    const uniqueYears = [...new Set(allCycles.map(c => c.year))];
+    return uniqueYears.sort((a, b) => b - a);
+  }, [allCycles]);
 
 
   const submissionsQuery = useMemoFirebase(() => {
@@ -84,10 +91,10 @@ export default function NewSubmissionPage() {
     );
   }, [firestore, user, selectedYear]);
 
-  const { data: submissions, isLoading } = useCollection<Submission>(submissionsQuery);
+  const { data: submissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
   
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
-  const { data: units } = useCollection<Unit>(unitsQuery);
+  const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
     if (!submissions) {
@@ -110,6 +117,8 @@ export default function NewSubmissionPage() {
   const submissionStatusMap = selectedCycle === 'first' ? firstCycleStatusMap : finalCycleStatusMap;
   
   const specialUpdateReports = ['SWOT Analysis', 'Updated Needs and Expectation of Interested Parties'];
+
+  const isLoading = isLoadingCycles || isLoadingSubmissions || isLoadingUnits;
 
   const handleSelectReport = (reportType: string) => {
     setSelectedReport(reportType);
