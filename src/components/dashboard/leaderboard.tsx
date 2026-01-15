@@ -2,19 +2,23 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { Unit, Submission, Campus, User as AppUser } from '@/lib/types';
+import type { Unit, Submission, Campus, User as AppUser, Cycle } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trophy, Star, Building } from 'lucide-react';
 import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface LeaderboardProps {
   allSubmissions: Submission[] | null;
   allUnits: Unit[] | null;
   allCampuses: Campus[] | null;
+  allCycles: Cycle[] | null;
   isLoading: boolean;
   userProfile: AppUser | null;
   isCampusSupervisor: boolean;
+  selectedYear: number;
+  onYearChange: (year: number) => void;
 }
 
 const StarRating = ({ percentage }: { percentage: number }) => {
@@ -35,17 +39,25 @@ export function Leaderboard({
   allSubmissions,
   allUnits,
   allCampuses,
+  allCycles,
   isLoading,
   userProfile,
   isCampusSupervisor,
+  selectedYear,
+  onYearChange
 }: LeaderboardProps) {
+
+  const years = useMemo(() => {
+    if (!allCycles) return [new Date().getFullYear()];
+    const uniqueYears = [...new Set(allCycles.map(c => c.year))];
+    if (uniqueYears.length === 0) return [new Date().getFullYear()];
+    return uniqueYears.sort((a, b) => b - a);
+  }, [allCycles]);
 
   const leaderboardData = useMemo(() => {
     if (!allUnits || !allSubmissions || !allCampuses) {
       return [];
     }
-
-    const currentYear = new Date().getFullYear();
     
     let relevantCampuses = allCampuses;
     // If it's a campus supervisor, only show their campus
@@ -61,7 +73,7 @@ export function Leaderboard({
         unitsInCampus.forEach(unit => {
             // Filter submissions by year, unit, AND campus to get an accurate count for this specific context
             const campusUnitSubmissions = allSubmissions.filter(s => 
-                s.year === currentYear &&
+                s.year === selectedYear &&
                 s.unitId === unit.id &&
                 s.campusId === campus.id
             );
@@ -87,7 +99,7 @@ export function Leaderboard({
       .filter(item => item.percentage >= 50)
       .sort((a, b) => b.percentage - a.percentage);
 
-  }, [allSubmissions, allUnits, allCampuses, userProfile, isCampusSupervisor]);
+  }, [allSubmissions, allUnits, allCampuses, userProfile, isCampusSupervisor, selectedYear]);
 
   if (isLoading) {
     return (
@@ -105,20 +117,61 @@ export function Leaderboard({
     );
   }
 
-  if (leaderboardData.length === 0) {
-    return null; // Don't render the card if there's no one to show
+  if (leaderboardData.length === 0 && !isCampusSupervisor) {
+    return (
+         <Card>
+            <CardHeader className="flex flex-row items-start justify-between">
+                <div>
+                     <CardTitle className="flex items-center gap-2">
+                        <Trophy className="text-yellow-500" />
+                        Top Performing Units
+                    </CardTitle>
+                    <CardDescription>
+                    Units with 50% or more completed submissions for {selectedYear}.
+                    </CardDescription>
+                </div>
+                 <div className="w-[120px]">
+                    <Select value={String(selectedYear)} onValueChange={(v) => onYearChange(Number(v))}>
+                        <SelectTrigger>
+                        <SelectValue placeholder="Year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                        {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <div className="h-40 flex items-center justify-center text-muted-foreground text-sm">
+                    No units have reached 50% completion yet for {selectedYear}.
+                </div>
+            </CardContent>
+         </Card>
+    )
   }
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Trophy className="text-yellow-500" />
-          Top Performing Units
-        </CardTitle>
-        <CardDescription>
-          Units with 50% or more completed submissions for {new Date().getFullYear()}.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between">
+        <div>
+            <CardTitle className="flex items-center gap-2">
+            <Trophy className="text-yellow-500" />
+            Top Performing Units
+            </CardTitle>
+            <CardDescription>
+            Units with 50% or more completed submissions for {selectedYear}.
+            </CardDescription>
+        </div>
+        <div className="w-[120px]">
+             <Select value={String(selectedYear)} onValueChange={(v) => onYearChange(Number(v))}>
+                <SelectTrigger>
+                <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent>
+                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                </SelectContent>
+            </Select>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

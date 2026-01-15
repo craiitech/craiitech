@@ -113,6 +113,7 @@ export default function HomePage() {
   const [selectedRiskYear, setSelectedRiskYear] = useState(new Date().getFullYear());
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [selectedIncompleteYear, setSelectedIncompleteYear] = useState(new Date().getFullYear());
+  const [selectedLeaderboardYear, setSelectedLeaderboardYear] = useState(new Date().getFullYear());
 
 
   const canViewCampusAnnouncements = userProfile?.campusId;
@@ -775,9 +776,12 @@ export default function HomePage() {
                     allSubmissions={submissions}
                     allUnits={allUnits}
                     allCampuses={allCampuses}
+                    allCycles={allCycles}
                     isLoading={isLoading}
                     userProfile={userProfile}
                     isCampusSupervisor={isCampusSupervisor}
+                    selectedYear={selectedLeaderboardYear}
+                    onYearChange={setSelectedLeaderboardYear}
                 />
                  <Card>
                     <CardHeader>
@@ -868,9 +872,9 @@ export default function HomePage() {
             (stats.stat3 as any).description
           )}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-             <div className="lg:col-span-4 space-y-4">
-                <IncompleteCampusSubmissions
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 space-y-4">
+                 <IncompleteCampusSubmissions
                     allSubmissions={submissions}
                     allCampuses={allCampuses}
                     allUnits={allUnits}
@@ -878,23 +882,18 @@ export default function HomePage() {
                     selectedYear={selectedIncompleteYear}
                     onYearChange={setSelectedIncompleteYear}
                 />
-                {selectedUnitId && (
-                    <UnitSubmissionDetailCard
-                        unitId={selectedUnitId}
-                        allUnits={allUnits}
-                        allSubmissions={submissions}
-                        onClose={() => setSelectedUnitId(null)}
-                    />
-                )}
             </div>
-             <div className="lg:col-span-3 space-y-4">
+             <div className="lg:col-span-1 space-y-4">
                 <Leaderboard 
                     allSubmissions={submissions}
                     allUnits={allUnits}
                     allCampuses={allCampuses}
+                    allCycles={allCycles}
                     isLoading={isLoading}
                     userProfile={userProfile}
                     isCampusSupervisor={isCampusSupervisor}
+                    selectedYear={selectedLeaderboardYear}
+                    onYearChange={setSelectedLeaderboardYear}
                 />
                 <Card>
                     <CardHeader>
@@ -920,6 +919,14 @@ export default function HomePage() {
                 </Card>
             </div>
         </div>
+        {selectedUnitId && (
+            <UnitSubmissionDetailCard
+                unitId={selectedUnitId}
+                allUnits={allUnits}
+                allSubmissions={submissions}
+                onClose={() => setSelectedUnitId(null)}
+            />
+        )}
       </TabsContent>
       <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
