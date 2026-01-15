@@ -38,45 +38,59 @@ export function IncompleteCampusSubmissions({
     }
 
     const unitsByCampus = allUnits.reduce((acc, unit) => {
-      unit.campusIds?.forEach(campusId => {
-        if (!acc[campusId]) {
-          acc[campusId] = [];
-        }
-        acc[campusId].push(unit);
-      });
+      if (unit.campusIds) {
+        unit.campusIds.forEach(campusId => {
+          if (!acc[campusId]) {
+            acc[campusId] = [];
+          }
+          acc[campusId].push(unit);
+        });
+      }
       return acc;
     }, {} as Record<string, Unit[]>);
+    
 
     return allCampuses.map(campus => {
       const campusUnits = unitsByCampus[campus.id] || [];
+      if (campusUnits.length === 0) return null;
+
       const incompleteUnits = campusUnits.map(unit => {
-        const firstCycleSubmissions = new Set(
-          allSubmissions.filter(s => s.unitId === unit.id && s.year === selectedYear && s.cycleId === 'first').map(s => s.reportType)
-        );
-        const finalCycleSubmissions = new Set(
-          allSubmissions.filter(s => s.unitId === unit.id && s.year === selectedYear && s.cycleId === 'final').map(s => s.reportType)
+        const unitSubmissionsForYear = allSubmissions.filter(
+          s => s.unitId === unit.id && s.year === selectedYear
         );
 
+        const firstCycleSubmissions = new Set(
+          unitSubmissionsForYear.filter(s => s.cycleId === 'first').map(s => s.reportType)
+        );
+        const finalCycleSubmissions = new Set(
+          unitSubmissionsForYear.filter(s => s.cycleId === 'final').map(s => s.reportType)
+        );
+        
         const missingFirst = submissionTypes.filter(type => !firstCycleSubmissions.has(type));
         const missingFinal = submissionTypes.filter(type => !finalCycleSubmissions.has(type));
         
-        if (missingFirst.length > 0 || missingFinal.length > 0) {
+        const missingCount = missingFirst.length + missingFinal.length;
+        if (missingCount > 0) {
           return {
             unitId: unit.id,
             unitName: unit.name,
-            missingCount: missingFirst.length + missingFinal.length,
+            missingCount,
           };
         }
         return null;
-      }).filter(Boolean);
+      }).filter((u): u is { unitId: string; unitName: string; missingCount: number } => u !== null);
 
-      return {
-        campusId: campus.id,
-        campusName: campus.name,
-        incompleteUnits: incompleteUnits as { unitId: string; unitName: string; missingCount: number; }[],
-      };
-    }).filter(campus => campus.incompleteUnits.length > 0);
+      if (incompleteUnits.length > 0) {
+        return {
+          campusId: campus.id,
+          campusName: campus.name,
+          incompleteUnits,
+        };
+      }
+      return null;
 
+    }).filter((c): c is { campusId: string; campusName: string; incompleteUnits: { unitId: string; unitName: string; missingCount: number; }[] } => c !== null);
+    
   }, [allSubmissions, allCampuses, allUnits, selectedYear]);
 
   if (isLoading) {
