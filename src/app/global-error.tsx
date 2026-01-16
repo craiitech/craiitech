@@ -77,7 +77,7 @@ export default function GlobalError({
                 </CardContent>
                 <CardFooter className="flex flex-col gap-3">
                     <div className="flex w-full gap-3">
-                         <Button variant="outline" className="w-full" onClick={() => reset()}>
+                         <Button variant="outline" className="w-full" onClick={() => window.location.reload()}>
                             Try Again
                         </Button>
                         <Button className="w-full" onClick={handleReportError} disabled={isReporting || reportSent}>
