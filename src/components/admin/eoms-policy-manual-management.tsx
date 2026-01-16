@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -20,6 +21,7 @@ import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '../ui/skeleton';
 
 const manualSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
@@ -105,11 +107,6 @@ export function EomsPolicyManualManagement() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        ) : (
           <ScrollArea className="h-[60vh] pr-4">
             <Table>
               <TableHeader>
@@ -124,6 +121,20 @@ export function EomsPolicyManualManagement() {
               </TableHeader>
               <TableBody>
                 {sections.map((section) => {
+                  if (isLoading) {
+                    return (
+                        <TableRow key={section.id}>
+                            <TableCell className="font-medium">{section.number}</TableCell>
+                            <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-12" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                            <TableCell className="text-right">
+                                <Skeleton className="h-9 w-24" />
+                            </TableCell>
+                        </TableRow>
+                    )
+                  }
                   const manual = manualMap.get(section.id);
                   return (
                     <TableRow key={section.id}>
@@ -134,7 +145,7 @@ export function EomsPolicyManualManagement() {
                       <TableCell>{manual?.executionDate ? format(manual.executionDate.toDate(), 'PPP') : '-'}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="outline" size="sm" onClick={() => handleOpenDialog(section)}>
-                          <Edit className="mr-2 h-4 w-4" /> Edit
+                          <Edit className="mr-2 h-4 w-4" /> {manual ? 'Edit' : 'Add'}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -143,7 +154,6 @@ export function EomsPolicyManualManagement() {
               </TableBody>
             </Table>
           </ScrollArea>
-        )}
       </CardContent>
     </Card>
 

@@ -12,6 +12,7 @@ import { Loader2, Search, BookOpen, Building, Calendar, Hash, FileText } from 'l
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const sections = Array.from({ length: 10 }, (_, i) => ({
   id: `section-${i + 1}`,
@@ -52,35 +53,32 @@ export default function EomsPolicyManualPage() {
             <CardDescription>Select a section to view its content.</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 overflow-hidden">
-            {isLoading ? (
-              <div className="flex h-full items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin" />
+            <ScrollArea className="h-full">
+              <div className="space-y-2">
+                {sections.map(section => {
+                  if (isLoading) {
+                    return <Skeleton key={section.id} className="h-12 w-full" />;
+                  }
+                  const manual = manualMap.get(section.id);
+                  return (
+                    <Button
+                      key={section.id}
+                      variant="ghost"
+                      onClick={() => manual && setSelectedManual(manual)}
+                      disabled={!manual}
+                      className={cn(
+                        "w-full justify-start text-left h-auto p-3",
+                        selectedManual?.id === manual?.id && "bg-muted font-semibold"
+                      )}
+                    >
+                      <span className="font-bold mr-3">{section.number}.</span>
+                      <span className="flex-1 truncate">{manual?.title || `Section ${section.number}`}</span>
+                      {!manual && <Badge variant="outline" className="ml-2">Not Set</Badge>}
+                    </Button>
+                  );
+                })}
               </div>
-            ) : (
-              <ScrollArea className="h-full">
-                <div className="space-y-2">
-                  {sections.map(section => {
-                    const manual = manualMap.get(section.id);
-                    return (
-                      <Button
-                        key={section.id}
-                        variant="ghost"
-                        onClick={() => manual && setSelectedManual(manual)}
-                        disabled={!manual}
-                        className={cn(
-                          "w-full justify-start text-left h-auto p-3",
-                          selectedManual?.id === manual?.id && "bg-muted font-semibold"
-                        )}
-                      >
-                        <span className="font-bold mr-3">{section.number}.</span>
-                        <span className="flex-1 truncate">{manual?.title || `Section ${section.number}`}</span>
-                        {!manual && <Badge variant="outline" className="ml-2">Not Set</Badge>}
-                      </Button>
-                    );
-                  })}
-                </div>
-              </ScrollArea>
-            )}
+            </ScrollArea>
           </CardContent>
         </Card>
         <div className="lg:col-span-2">
