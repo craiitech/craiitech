@@ -20,6 +20,7 @@ import { Separator } from '@/components/ui/separator';
 import { CycleManagement } from '@/components/admin/cycle-management';
 import { ErrorReportManagement } from '@/components/admin/error-report-management';
 import { ProcedureManualManagement } from '@/components/admin/procedure-manual-management';
+import { EomsPolicyManualManagement } from '@/components/admin/eoms-policy-manual-management';
 
 
 export default function SettingsPage() {
@@ -55,7 +56,8 @@ export default function SettingsPage() {
             <TabsTrigger value="campuses">Campuses</TabsTrigger>
             <TabsTrigger value="units">Units</TabsTrigger>
             <TabsTrigger value="roles">Roles</TabsTrigger>
-            <TabsTrigger value="manuals">Procedure Manuals</TabsTrigger>
+            <TabsTrigger value="procedure-manuals">Procedure Manuals</TabsTrigger>
+            <TabsTrigger value="eoms-policy-manual">EOMS Policy Manual</TabsTrigger>
             <TabsTrigger value="cycles">Cycles &amp; Deadlines</TabsTrigger>
             <TabsTrigger value="campus-settings">Campus Settings</TabsTrigger>
             <TabsTrigger value="error-reports">Error Reports</TabsTrigger>
@@ -72,8 +74,11 @@ export default function SettingsPage() {
           <TabsContent value="roles" className="space-y-4">
             <RoleManagement />
           </TabsContent>
-          <TabsContent value="manuals" className="space-y-4">
+          <TabsContent value="procedure-manuals" className="space-y-4">
             <ProcedureManualManagement />
+          </TabsContent>
+          <TabsContent value="eoms-policy-manual" className="space-y-4">
+            <EomsPolicyManualManagement />
           </TabsContent>
            <TabsContent value="cycles" className="space-y-4">
             <CycleManagement />

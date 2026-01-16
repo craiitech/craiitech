@@ -265,9 +265,11 @@ service cloud.firestore {
     
     match /procedureManuals/{document=**} {
       allow read, list: if isSignedIn();
+      allow write: if isAdmin();
     }
 
-    match /procedureManuals/{unitId} {
+    match /eomsPolicyManuals/{document=**} {
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
@@ -328,5 +330,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

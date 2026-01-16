@@ -8,7 +8,7 @@ import {
   useCollection,
   useMemoFirebase,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, User as UserIcon, ClipboardList, BookOpen } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, User as UserIcon, ClipboardList, BookOpen, BookMarked } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../ui/sidebar';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -49,6 +49,12 @@ export function SidebarNav({
       label: 'Procedure Manuals',
       active: pathname.startsWith('/manuals'),
       icon: <BookOpen />,
+    },
+    {
+      href: '/eoms-policy-manual',
+      label: 'EOMS Policy Manual',
+      active: pathname.startsWith('/eoms-policy-manual'),
+      icon: <BookMarked />,
     },
     {
       href: '/risk-register',

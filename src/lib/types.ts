@@ -199,4 +199,14 @@ export type ProcedureManual = {
     googleDriveLink: string;
     updatedAt: any; // serverTimestamp()
 }
-    
+
+export type EomsPolicyManual = {
+    id: string; // e.g., 'section-1'
+    sectionNumber: number;
+    title: string;
+    googleDriveLink: string;
+    revisionNumber: string;
+    pageCount: number;
+    executionDate: any; // Timestamp
+    updatedAt: any; // serverTimestamp()
+}

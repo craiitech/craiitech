@@ -535,6 +535,23 @@
         "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of the last update." }
       },
       "required": ["id", "unitName", "googleDriveLink", "updatedAt"]
+    },
+    "EomsPolicyManual": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "EomsPolicyManual",
+      "type": "object",
+      "description": "Represents a single section of the EOMS Policy Manual.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the section, e.g., 'section-1'." },
+        "sectionNumber": { "type": "number", "description": "The order of the section (1-10)." },
+        "title": { "type": "string", "description": "The title of the manual section." },
+        "googleDriveLink": { "type": "string", "format": "uri", "description": "A public link to the manual section on Google Drive." },
+        "revisionNumber": { "type": "string", "description": "The revision number of the document." },
+        "pageCount": { "type": "number", "description": "The number of pages in the document." },
+        "executionDate": { "type": "string", "format": "date-time", "description": "The execution or effectivity date of the document." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of the last update." }
+      },
+      "required": ["id", "sectionNumber", "title", "googleDriveLink", "updatedAt"]
     }
   },
   "auth": {
@@ -768,6 +785,20 @@
                 {
                     "name": "unitId",
                     "description": "The unique identifier of the unit."
+                }
+            ]
+        }
+      },
+      {
+        "path": "/eomsPolicyManuals/{sectionId}",
+        "definition": {
+            "entityName": "EomsPolicyManual",
+            "schema": { "$ref": "#/backend/entities/EomsPolicyManual" },
+            "description": "Stores the 10 sections of the EOMS Policy Manual.",
+            "params": [
+                {
+                    "name": "sectionId",
+                    "description": "The unique identifier of the manual section, e.g., 'section-1'."
                 }
             ]
         }
