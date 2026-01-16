@@ -215,6 +215,9 @@ export function SubmissionForm({
             if (existingData.googleDriveLink) {
               form.setValue('googleDriveLink', existingData.googleDriveLink);
             }
+            if (existingData.riskRating) {
+                setRiskRating(existingData.riskRating);
+            }
         }
     }
     fetchExistingSubmission();
@@ -264,6 +267,10 @@ export function SubmissionForm({
           submissionDate: new Date(),
         };
 
+        if (isRorForm) {
+            updateData.riskRating = riskRating;
+        }
+
         if (newComment) {
             updateData.comments = arrayUnion(newComment);
         }
@@ -308,6 +315,10 @@ export function SubmissionForm({
             comments: newComment ? [newComment] : [],
         };
         
+        if (isRorForm) {
+            newSubmissionData.riskRating = riskRating;
+        }
+
         try {
             const docRef = await addDoc(submissionCollectionRef, newSubmissionData);
             const logMessage = `Created new submission: ${reportType}`;
@@ -536,4 +547,3 @@ export function SubmissionForm({
   );
 }
 
-    
