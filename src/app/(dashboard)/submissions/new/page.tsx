@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -197,8 +196,8 @@ export default function NewSubmissionPage() {
 
 
   const handleFormSuccess = () => {
-    setShowFormForUpdate(false); 
-    // We don't need to push, as the page will refetch and update automatically.
+    setShowFormForUpdate(false);
+    router.push('/submissions');
   };
   
   const handleViewFeedback = (comments: any) => {
