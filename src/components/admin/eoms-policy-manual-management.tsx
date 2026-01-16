@@ -41,54 +41,50 @@ export function EomsPolicyManualManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedSection, setSelectedSection] = useState<{ id: string; number: number } | null>(null);
 
-  const [manuals, setManuals] = useState<EomsPolicyManual[]>([]);
+  const [manuals, setManuals] = useState<Map<string, EomsPolicyManual>>(new Map());
   const [isLoadingManuals, setIsLoadingManuals] = useState(true);
 
   useEffect(() => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
 
-    const fetchManuals = async () => {
+    const fetchAllManuals = async () => {
       setIsLoadingManuals(true);
       try {
-        const promises = sections.map(section => getDoc(doc(firestore, 'eomsPolicyManuals', section.id)));
+        const promises = sections.map(section => 
+          getDoc(doc(firestore, 'eomsPolicyManuals', section.id))
+        );
+        
         const docSnapshots = await Promise.all(promises);
-        const fetchedManuals = docSnapshots
-          .filter(snap => snap.exists())
-          .map(snap => snap.data() as EomsPolicyManual);
-        setManuals(fetchedManuals);
-      } catch (error) {
-        console.error("EOMS Policy Manual fetch error:", error);
-         let errorMessage = 'An unknown error occurred while fetching EOMS manuals.';
-        let errorStack = 'No stack trace available.';
-        if (error instanceof Error) {
-            errorMessage = `Failed to fetch EOMS manuals: ${error.message}`;
-            errorStack = error.stack || 'No stack trace available.';
-        } else if (typeof error === 'string') {
-            errorMessage = error;
-        }
 
+        const fetchedMap = new Map<string, EomsPolicyManual>();
+        docSnapshots.forEach(snap => {
+          if (snap.exists()) {
+            fetchedMap.set(snap.id, snap.data() as EomsPolicyManual);
+          }
+        });
+
+        setManuals(fetchedMap);
+
+      } catch (error: any) {
+        console.error("EOMS Policy Manual fetch error:", error);
         logError({
-            errorMessage,
-            errorStack,
+            errorMessage: error.message || 'Failed to fetch EOMS Policy Manuals.',
+            errorStack: error.stack,
             url: window.location.href,
             userId: user?.uid,
             userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
             userRole: userRole || undefined,
             userEmail: userProfile?.email
         }).catch(e => console.error("Secondary error: could not log initial error.", e));
-
-        toast({ title: 'Error', description: 'Could not load manual data.', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Could not load EOMS Policy Manual data.', variant: 'destructive' });
       } finally {
         setIsLoadingManuals(false);
       }
     };
 
-    fetchManuals();
-  }, [firestore, isSubmitting, toast, user, userProfile, userRole]);
+    fetchAllManuals();
+  }, [firestore, user, isSubmitting, toast, userProfile, userRole]);
 
-  const manualMap = useMemo(() => {
-    return new Map(manuals.map(m => [m.id, m]));
-  }, [manuals]);
 
   const form = useForm<z.infer<typeof manualSchema>>({
     resolver: zodResolver(manualSchema),
@@ -103,7 +99,7 @@ export function EomsPolicyManualManagement() {
 
   const handleOpenDialog = (section: { id: string; number: number }) => {
     setSelectedSection(section);
-    const existingManual = manualMap.get(section.id);
+    const existingManual = manuals.get(section.id);
     form.reset({
       title: existingManual?.title || `Section ${section.number}`,
       googleDriveLink: existingManual?.googleDriveLink || '',
@@ -136,30 +132,19 @@ export function EomsPolicyManualManagement() {
     try {
       await setDoc(manualRef, { ...manualData, updatedAt: serverTimestamp() }, { merge: true });
       toast({ title: 'Success', description: `Manual Section ${selectedSection.number} has been saved.` });
-      setIsSubmitting(false); // Do this before closing to trigger refetch
       handleCloseDialog();
-    } catch (error) {
+      setIsSubmitting(false); // Set to false to trigger refetch
+    } catch (error: any) {
       console.error('Error saving manual section:', error);
-      
-      let errorMessage = 'An unknown error occurred while saving the manual section.';
-      let errorStack = 'No stack trace available.';
-      if (error instanceof Error) {
-          errorMessage = `Failed to save EOMS manual section ${selectedSection?.id}: ${error.message}`;
-          errorStack = error.stack || 'No stack trace available.';
-      } else if (typeof error === 'string') {
-          errorMessage = error;
-      }
-      
       logError({
-          errorMessage,
-          errorStack,
+          errorMessage: `Failed to save EOMS manual section ${selectedSection?.id}: ${error.message}`,
+          errorStack: error.stack,
           url: window.location.href,
           userId: user?.uid,
           userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
           userRole: userRole || undefined,
           userEmail: userProfile?.email
       }).catch(e => console.error("Secondary error: could not log initial error.", e));
-      
       toast({ title: 'Error', description: 'Could not save the manual section.', variant: 'destructive' });
       setIsSubmitting(false);
     }
@@ -203,7 +188,7 @@ export function EomsPolicyManualManagement() {
                       </TableRow>
                     )
                   }
-                  const manual = manualMap.get(section.id);
+                  const manual = manuals.get(section.id);
                   return (
                     <TableRow key={section.id}>
                       <TableCell className="font-medium">{section.number}</TableCell>

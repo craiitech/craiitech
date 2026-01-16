@@ -24,47 +24,46 @@ export default function EomsPolicyManualPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { user, userProfile, userRole } = useUser();
-  const [manuals, setManuals] = useState<EomsPolicyManual[]>([]);
+  const [manuals, setManuals] = useState<Map<string, EomsPolicyManual>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [selectedManual, setSelectedManual] = useState<EomsPolicyManual | null>(null);
 
   useEffect(() => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
 
     const fetchManuals = async () => {
       setIsLoading(true);
       try {
         const promises = sections.map(section => getDoc(doc(firestore, 'eomsPolicyManuals', section.id)));
         const docSnapshots = await Promise.all(promises);
-        const fetchedManuals = docSnapshots
-          .filter(snap => snap.exists())
-          .map(snap => snap.data() as EomsPolicyManual);
         
-        setManuals(fetchedManuals);
+        const fetchedMap = new Map<string, EomsPolicyManual>();
+        const fetchedArray: EomsPolicyManual[] = [];
 
-        if (fetchedManuals.length > 0) {
+        docSnapshots.forEach(snap => {
+            if (snap.exists()) {
+                const manualData = snap.data() as EomsPolicyManual;
+                fetchedMap.set(snap.id, manualData);
+                fetchedArray.push(manualData);
+            }
+        });
+        
+        setManuals(fetchedMap);
+
+        if (fetchedArray.length > 0) {
             const firstAvailable = sections
-                .map(s => fetchedManuals.find(m => m.id === s.id))
+                .map(s => fetchedArray.find(m => m.id === s.id))
                 .find(Boolean);
             if (firstAvailable) {
                 setSelectedManual(firstAvailable);
             }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("EOMS Policy Manual fetch error:", error);
         
-        let errorMessage = 'An unknown error occurred while fetching EOMS manuals.';
-        let errorStack = 'No stack trace available.';
-        if (error instanceof Error) {
-            errorMessage = `User failed to fetch EOMS manuals: ${error.message}`;
-            errorStack = error.stack || 'No stack trace available.';
-        } else if (typeof error === 'string') {
-            errorMessage = error;
-        }
-
         logError({
-            errorMessage,
-            errorStack,
+            errorMessage: `User failed to fetch EOMS manuals: ${error.message}`,
+            errorStack: error.stack || 'No stack trace available.',
             url: window.location.href,
             userId: user?.uid,
             userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
@@ -80,11 +79,6 @@ export default function EomsPolicyManualPage() {
 
     fetchManuals();
   }, [firestore, toast, user, userProfile, userRole]);
-
-
-  const manualMap = useMemo(() => {
-    return new Map(manuals.map(m => [m.id, m]));
-  }, [manuals]);
   
   const previewUrl = selectedManual?.googleDriveLink
     ? selectedManual.googleDriveLink.replace('/view', '/preview').replace('?usp=sharing', '')
@@ -111,7 +105,7 @@ export default function EomsPolicyManualPage() {
                   if (isLoading) {
                     return <Skeleton key={section.id} className="h-12 w-full" />;
                   }
-                  const manual = manualMap.get(section.id);
+                  const manual = manuals.get(section.id);
                   return (
                     <Button
                       key={section.id}
