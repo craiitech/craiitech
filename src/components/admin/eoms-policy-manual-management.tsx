@@ -84,7 +84,7 @@ export function EomsPolicyManualManagement() {
     };
 
     fetchManuals();
-  }, [firestore, isSubmitting]);
+  }, [firestore, isSubmitting, toast, user, userProfile, userRole]);
 
   const manualMap = useMemo(() => {
     return new Map(manuals.map(m => [m.id, m]));
