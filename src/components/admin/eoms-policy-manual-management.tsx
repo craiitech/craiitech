@@ -24,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 const manualSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
   googleDriveLink: z.string().url('Please enter a valid Google Drive link.'),
-  revisionNumber: z.string().min(1, 'Revision number is required.'),
+  revisionNumber: z.string().nonempty('Revision number is required.'),
   pageCount: z.coerce.number().min(1, 'Number of pages is required.'),
   executionYear: z.string().nonempty('Year is required.'),
   executionMonth: z.string().nonempty('Month is required.'),
@@ -98,7 +98,7 @@ export function EomsPolicyManualManagement() {
       title: existingManual?.title || `Section ${section.number}`,
       googleDriveLink: existingManual?.googleDriveLink || '',
       revisionNumber: existingManual?.revisionNumber || '',
-      pageCount: existingManual?.pageCount || undefined,
+      pageCount: existingManual?.pageCount,
       executionYear: executionDate ? String(executionDate.getFullYear()) : undefined,
       executionMonth: executionDate ? String(executionDate.getMonth()) : undefined,
       executionDay: executionDate ? String(executionDate.getDate()) : undefined,
@@ -219,7 +219,7 @@ export function EomsPolicyManualManagement() {
                   <FormItem><FormLabel>Revision No.</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="pageCount" render={({ field }) => (
-                  <FormItem><FormLabel>No. of Pages</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>No. of Pages</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
               
