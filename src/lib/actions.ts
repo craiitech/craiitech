@@ -22,8 +22,19 @@ export async function logError(payload: ErrorReportPayload) {
         const firestore = getAdminFirestore();
         const reportCollection = firestore.collection('errorReports');
         
+        const sanitizedPayload = {
+            errorMessage: payload.errorMessage || 'No error message provided.',
+            errorStack: payload.errorStack || 'No stack trace provided.',
+            errorDigest: payload.errorDigest || null,
+            url: payload.url,
+            userId: payload.userId || null,
+            userName: payload.userName || null,
+            userRole: payload.userRole || null,
+            userEmail: payload.userEmail || null,
+        };
+
         await reportCollection.add({
-            ...payload,
+            ...sanitizedPayload,
             status: 'new',
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
         });
