@@ -21,6 +21,7 @@ import { ActivityLogProvider } from '@/lib/activity-log-provider';
 import { Header } from '@/components/dashboard/header';
 import { Chatbot } from '@/components/dashboard/chatbot';
 import { useToast } from '@/hooks/use-toast';
+import { logError } from '@/lib/actions';
 
 const LoadingSkeleton = () => (
   <div className="flex items-start">
@@ -100,6 +101,52 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const { toast } = useToast();
   const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, isSupervisor } = useUser();
+
+  // Global console.error trapping to automatically log client-side errors to Firestore
+  useEffect(() => {
+    const originalConsoleError = console.error;
+    console.error = (...args) => {
+      // Call the original console.error to not lose the default browser behavior
+      originalConsoleError(...args);
+
+      // Prevent infinite loops if logging itself fails
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('Failed to log error to Firestore')) {
+        return;
+      }
+      
+      const errorMessage = args.map(arg => {
+        if (arg instanceof Error) {
+          return `${arg.message}${arg.stack ? `\nStack: ${arg.stack}`: ''}${arg.digest ? `\nDigest: ${arg.digest}` : ''}`;
+        }
+        try {
+          // Attempt to stringify objects for more detail
+          return JSON.stringify(arg, null, 2);
+        } catch (e) {
+          return String(arg);
+        }
+      }).join('\n');
+
+      // Automatically log the captured error to the backend
+      logError({
+          errorMessage: errorMessage,
+          errorStack: new Error().stack, // Get a stack trace for where the log was called
+          url: window.location.href,
+          userId: user?.uid,
+          userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
+          userRole: userProfile?.role,
+          userEmail: userProfile?.email,
+      }).catch(e => {
+        // Use the original console.error to report if the logging service itself fails
+        originalConsoleError('Failed to log error to Firestore:', e);
+      });
+    };
+
+    // Cleanup function to restore the original console.error when the component unmounts
+    return () => {
+      console.error = originalConsoleError;
+    };
+  }, [user, userProfile]);
+
 
   // Implement the inactivity logout timer.
   const handleIdle = useCallback(() => {
