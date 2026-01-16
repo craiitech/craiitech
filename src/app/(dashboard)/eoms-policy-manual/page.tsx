@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -10,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, BookOpen, Hash, FileText, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -38,7 +36,6 @@ export default function EomsPolicyManualPage() {
           .map(snap => snap.data() as EomsPolicyManual);
         setManuals(fetchedManuals);
 
-        // Auto-select the first available manual
         if (fetchedManuals.length > 0) {
             const firstAvailable = sections
                 .map(s => fetchedManuals.find(m => m.id === s.id))

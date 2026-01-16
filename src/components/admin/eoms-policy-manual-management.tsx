@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -17,7 +16,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Loader2, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
-import { format } from 'date-fns';
 import { Skeleton } from '../ui/skeleton';
 
 const manualSchema = z.object({
@@ -25,8 +23,9 @@ const manualSchema = z.object({
   googleDriveLink: z.string().url('Please enter a valid Google Drive link.'),
   revisionNumber: z.string().nonempty('Revision number is required.'),
   pageCount: z.coerce.number().min(1, 'Number of pages is required.'),
-  executionDate: z.string().nonempty('Execution date is required.'),
+  executionDate: z.string().nonempty("Execution date is required."),
 });
+
 
 const sections = Array.from({ length: 10 }, (_, i) => ({
   id: `section-${i + 1}`,
@@ -44,11 +43,11 @@ export function EomsPolicyManualManagement() {
 
   useEffect(() => {
     if (!firestore) return;
-    setIsLoadingManuals(true);
+
     const fetchManuals = async () => {
+      setIsLoadingManuals(true);
       try {
-        const sectionIds = Array.from({ length: 10 }, (_, i) => `section-${i + 1}`);
-        const promises = sectionIds.map(id => getDoc(doc(firestore, 'eomsPolicyManuals', id)));
+        const promises = sections.map(section => getDoc(doc(firestore, 'eomsPolicyManuals', section.id)));
         const docSnapshots = await Promise.all(promises);
         const fetchedManuals = docSnapshots
           .filter(snap => snap.exists())
@@ -61,6 +60,7 @@ export function EomsPolicyManualManagement() {
         setIsLoadingManuals(false);
       }
     };
+
     fetchManuals();
   }, [firestore, isSubmitting, toast]);
 
@@ -74,6 +74,8 @@ export function EomsPolicyManualManagement() {
       title: '',
       googleDriveLink: '',
       revisionNumber: '',
+      pageCount: undefined,
+      executionDate: '',
     }
   });
 
@@ -206,7 +208,6 @@ export function EomsPolicyManualManagement() {
                   <FormItem><FormLabel>No. of Pages</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
-              
               <FormField
                 control={form.control}
                 name="executionDate"
@@ -214,16 +215,15 @@ export function EomsPolicyManualManagement() {
                   <FormItem>
                     <FormLabel>Execution Date</FormLabel>
                     <FormControl>
-                      <Input type="text" placeholder="e.g., 2024-12-31" {...field} />
+                      <Input type="text" placeholder="e.g., December 31, 2024" {...field} />
                     </FormControl>
                     <FormDescription>
-                      Enter the date in YYYY-MM-DD format.
+                      Enter the date as text.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={handleCloseDialog}>Cancel</Button>
                 <Button type="submit" disabled={isSubmitting}>
