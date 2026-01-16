@@ -26,9 +26,9 @@ const manualSchema = z.object({
   googleDriveLink: z.string().url('Please enter a valid Google Drive link.'),
   revisionNumber: z.string().min(1, 'Revision number is required.'),
   pageCount: z.coerce.number().min(1, 'Number of pages is required.'),
-  executionYear: z.string({ required_error: 'Year is required.' }),
-  executionMonth: z.string({ required_error: 'Month is required.' }),
-  executionDay: z.string({ required_error: 'Day is required.' }),
+  executionYear: z.string().nonempty('Year is required.'),
+  executionMonth: z.string().nonempty('Month is required.'),
+  executionDay: z.string().nonempty('Day is required.'),
 });
 
 const sections = Array.from({ length: 10 }, (_, i) => ({
@@ -232,7 +232,7 @@ export function EomsPolicyManualManagement() {
                         <FormControl>
                           <SelectTrigger><SelectValue placeholder="Month" /></SelectTrigger>
                         </FormControl>
-                        <SelectContent>{months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent>
+                        <SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
@@ -243,7 +243,7 @@ export function EomsPolicyManualManagement() {
                         <FormControl>
                           <SelectTrigger><SelectValue placeholder="Day" /></SelectTrigger>
                         </FormControl>
-                        <SelectContent>{days.map(d => <SelectItem key={d} value={String(d)}>{d}</SelectItem>)}</SelectContent>
+                        <SelectContent>{days.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
