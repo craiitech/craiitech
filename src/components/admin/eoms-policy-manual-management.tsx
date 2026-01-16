@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -114,11 +115,12 @@ export function EomsPolicyManualManagement() {
     try {
       await setDoc(manualRef, { ...manualData, updatedAt: serverTimestamp() }, { merge: true });
       toast({ title: 'Success', description: `Manual Section ${selectedSection.number} has been saved.` });
+      // This will cause the useEffect to re-fetch the data after a successful submission.
+      setIsSubmitting(false); // Set to false before closing to trigger re-fetch
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving manual section:', error);
       toast({ title: 'Error', description: 'Could not save the manual section.', variant: 'destructive' });
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -237,3 +239,5 @@ export function EomsPolicyManualManagement() {
     </>
   );
 }
+
+    
