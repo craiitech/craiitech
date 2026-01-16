@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -10,6 +11,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Search, BookOpen, Building, Calendar, Hash, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
+
+const sections = Array.from({ length: 10 }, (_, i) => ({
+  id: `section-${i + 1}`,
+  number: i + 1,
+}));
 
 export default function EomsPolicyManualPage() {
   const firestore = useFirestore();
@@ -20,6 +27,11 @@ export default function EomsPolicyManualPage() {
     [firestore]
   );
   const { data: manuals, isLoading } = useCollection<EomsPolicyManual>(manualsQuery);
+  
+  const manualMap = useMemo(() => {
+    if (!manuals) return new Map<string, EomsPolicyManual>();
+    return new Map(manuals.map(m => [m.id, m]));
+  }, [manuals]);
 
   const previewUrl = selectedManual?.googleDriveLink
     ? selectedManual.googleDriveLink.replace('/view', '/preview').replace('?usp=sharing', '')
@@ -46,28 +58,27 @@ export default function EomsPolicyManualPage() {
               </div>
             ) : (
               <ScrollArea className="h-full">
-                {manuals && manuals.length > 0 ? (
-                  <div className="space-y-2">
-                    {manuals.map(manual => (
+                <div className="space-y-2">
+                  {sections.map(section => {
+                    const manual = manualMap.get(section.id);
+                    return (
                       <Button
-                        key={manual.id}
+                        key={section.id}
                         variant="ghost"
-                        onClick={() => setSelectedManual(manual)}
+                        onClick={() => manual && setSelectedManual(manual)}
+                        disabled={!manual}
                         className={cn(
                           "w-full justify-start text-left h-auto p-3",
-                          selectedManual?.id === manual.id && "bg-muted font-semibold"
+                          selectedManual?.id === manual?.id && "bg-muted font-semibold"
                         )}
                       >
-                        <span className="font-bold mr-3">{manual.sectionNumber}.</span>
-                        <span>{manual.title || `Section ${manual.sectionNumber}`}</span>
+                        <span className="font-bold mr-3">{section.number}.</span>
+                        <span className="flex-1 truncate">{manual?.title || `Section ${section.number}`}</span>
+                        {!manual && <Badge variant="outline" className="ml-2">Not Set</Badge>}
                       </Button>
-                    ))}
-                  </div>
-                ) : (
-                    <div className="text-center text-sm text-muted-foreground pt-10">
-                        No manual sections have been uploaded yet.
-                    </div>
-                )}
+                    );
+                  })}
+                </div>
               </ScrollArea>
             )}
           </CardContent>
