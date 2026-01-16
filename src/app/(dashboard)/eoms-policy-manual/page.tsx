@@ -1,9 +1,8 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { useState, useMemo, useEffect } from 'react';
+import { useFirestore } from '@/firebase';
+import { collection, doc, getDoc } from 'firebase/firestore';
 import type { EomsPolicyManual } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,12 +21,34 @@ const sections = Array.from({ length: 10 }, (_, i) => ({
 export default function EomsPolicyManualPage() {
   const firestore = useFirestore();
   const [selectedManual, setSelectedManual] = useState<EomsPolicyManual | null>(null);
+  const [manuals, setManuals] = useState<EomsPolicyManual[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const manualsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'eomsPolicyManuals'), orderBy('sectionNumber')) : null),
-    [firestore]
-  );
-  const { data: manuals, isLoading } = useCollection<EomsPolicyManual>(manualsQuery);
+  useEffect(() => {
+    if (!firestore) return;
+
+    const fetchManuals = async () => {
+      setIsLoading(true);
+      try {
+        const sectionIds = sections.map(s => s.id);
+        const manualPromises = sectionIds.map(id => getDoc(doc(firestore, 'eomsPolicyManuals', id)));
+        const manualSnapshots = await Promise.all(manualPromises);
+        
+        const fetchedManuals = manualSnapshots
+          .filter(snapshot => snapshot.exists())
+          .map(snapshot => snapshot.data() as EomsPolicyManual);
+        
+        setManuals(fetchedManuals);
+      } catch (error) {
+        console.error("Failed to fetch EOMS policy manuals:", error);
+        // You might want to show a toast message here in a real app
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchManuals();
+  }, [firestore]);
   
   const manualMap = useMemo(() => {
     if (!manuals) return new Map<string, EomsPolicyManual>();
@@ -37,6 +58,14 @@ export default function EomsPolicyManualPage() {
   const previewUrl = selectedManual?.googleDriveLink
     ? selectedManual.googleDriveLink.replace('/view', '/preview').replace('?usp=sharing', '')
     : '';
+    
+  // On initial load, select the first available manual
+  useEffect(() => {
+      if (!isLoading && manuals && manuals.length > 0 && !selectedManual) {
+          const firstManual = manuals.sort((a,b) => a.sectionNumber - b.sectionNumber)[0];
+          setSelectedManual(firstManual);
+      }
+  }, [isLoading, manuals, selectedManual]);
 
   return (
     <div className="space-y-4">
@@ -89,8 +118,12 @@ export default function EomsPolicyManualPage() {
                     {selectedManual ? 'Viewing official EOMS Policy documentation.' : 'Select a section from the list to view its content.'}
                 </CardDescription>
             </CardHeader>
-            <CardContent className="flex-1 h-[calc(100%-12rem)]">
-              {previewUrl ? (
+            <CardContent className="flex-1 h-full">
+               {isLoading ? (
+                 <div className="flex h-full items-center justify-center rounded-md border border-dashed">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground"/>
+                 </div>
+               ) : previewUrl ? (
                 <iframe
                   src={previewUrl}
                   className="h-full w-full rounded-md border"
