@@ -267,13 +267,13 @@ service cloud.firestore {
       allow read, list: if isSignedIn();
       allow write: if isAdmin();
     }
-
-    match /eomsPolicyManuals/{docId} {
-      allow get: if isSignedIn();
-      allow write: if isAdmin();
-    }
+    
     match /eomsPolicyManuals {
         allow list: if isSignedIn();
+    }
+    match /eomsPolicyManuals/{docId} {
+        allow get: if isSignedIn();
+        allow write: if isAdmin();
     }
 
     /**
