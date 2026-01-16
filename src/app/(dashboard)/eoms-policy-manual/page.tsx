@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -12,6 +11,7 @@ import { Loader2, BookOpen, Hash, FileText, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 const sections = Array.from({ length: 10 }, (_, i) => ({
   id: `section-${i + 1}`,
@@ -20,6 +20,7 @@ const sections = Array.from({ length: 10 }, (_, i) => ({
 
 export default function EomsPolicyManualPage() {
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [manuals, setManuals] = useState<EomsPolicyManual[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedManual, setSelectedManual] = useState<EomsPolicyManual | null>(null);
@@ -47,13 +48,14 @@ export default function EomsPolicyManualPage() {
         }
       } catch (error) {
         console.error("Error fetching EOMS manuals:", error);
+        toast({ title: 'Error', description: 'Could not load EOMS Policy Manual data.', variant: 'destructive'});
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchManuals();
-  }, [firestore]);
+  }, [firestore, toast]);
 
 
   const manualMap = useMemo(() => {
@@ -169,5 +171,3 @@ export default function EomsPolicyManualPage() {
     </div>
   );
 }
-
-    
