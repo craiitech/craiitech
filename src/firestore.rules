@@ -269,14 +269,10 @@ service cloud.firestore {
     }
     
     match /eomsPolicyManuals/{docId} {
-        allow get: if isSignedIn();
+        allow get, list: if isSignedIn();
         allow write: if isAdmin();
     }
     
-    match /eomsPolicyManuals {
-        allow list: if isSignedIn();
-    }
-
     /**
      * @description ISO Clauses are read-only for all signed-in users, writable only by Admins.
      */
