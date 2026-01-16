@@ -61,7 +61,7 @@ export function EomsPolicyManualManagement() {
         title: existingManual?.title || `Section ${section.number}`,
         googleDriveLink: existingManual?.googleDriveLink || '',
         revisionNumber: existingManual?.revisionNumber || '',
-        pageCount: existingManual?.pageCount || 0,
+        pageCount: existingManual?.pageCount || undefined,
         executionDate: existingManual?.executionDate?.toDate(),
     });
   };
@@ -94,8 +94,6 @@ export function EomsPolicyManualManagement() {
       setIsSubmitting(false);
     }
   };
-  
-  const isLoading = isLoadingManuals;
 
   return (
     <>
@@ -121,7 +119,7 @@ export function EomsPolicyManualManagement() {
               </TableHeader>
               <TableBody>
                 {sections.map((section) => {
-                  if (isLoading) {
+                  if (isLoadingManuals) {
                     return (
                         <TableRow key={section.id}>
                             <TableCell className="font-medium">{section.number}</TableCell>
