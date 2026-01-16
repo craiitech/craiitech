@@ -101,7 +101,7 @@ export function EomsPolicyManualManagement() {
     setIsSubmitting(true);
 
     const manualRef = doc(firestore, 'eomsPolicyManuals', selectedSection.id);
-    const manualData = {
+    const manualData: Omit<EomsPolicyManual, 'updatedAt'> = {
       title: values.title,
       googleDriveLink: values.googleDriveLink,
       revisionNumber: values.revisionNumber,
@@ -109,11 +109,10 @@ export function EomsPolicyManualManagement() {
       executionDate: values.executionDate,
       id: selectedSection.id,
       sectionNumber: selectedSection.number,
-      updatedAt: serverTimestamp(),
     };
 
     try {
-      await setDoc(manualRef, manualData, { merge: true });
+      await setDoc(manualRef, { ...manualData, updatedAt: serverTimestamp() }, { merge: true });
       toast({ title: 'Success', description: `Manual Section ${selectedSection.number} has been saved.` });
       handleCloseDialog();
     } catch (error) {
