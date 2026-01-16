@@ -88,6 +88,7 @@ import { ComplianceOverTime } from '@/components/dashboard/strategic/compliance-
 import { RiskMatrix } from '@/components/dashboard/strategic/risk-matrix';
 import { RiskFunnel } from '@/components/dashboard/strategic/risk-funnel';
 import { CycleSubmissionBreakdown } from '@/components/dashboard/strategic/cycle-submission-breakdown';
+import { cn } from '@/lib/utils';
 
 
 export const TOTAL_REPORTS_PER_CYCLE = 6;
@@ -1029,3 +1030,4 @@ export default function HomePage() {
     </div>
   );
 }
+
