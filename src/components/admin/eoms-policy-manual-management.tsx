@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { collection, doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import type { EomsPolicyManual } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,12 +41,27 @@ export function EomsPolicyManualManagement() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedSection, setSelectedSection] = useState<{id: string; number: number} | null>(null);
+  
+  const [manuals, setManuals] = useState<EomsPolicyManual[]>([]);
+  const [isLoadingManuals, setIsLoadingManuals] = useState(true);
 
-  const manualsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'eomsPolicyManuals') : null), [firestore]);
-  const { data: manuals, isLoading: isLoadingManuals } = useCollection<EomsPolicyManual>(manualsQuery);
+  useEffect(() => {
+    if (!firestore) return;
+    setIsLoadingManuals(true);
+    const fetchManuals = async () => {
+      const sectionIds = Array.from({ length: 10 }, (_, i) => `section-${i + 1}`);
+      const promises = sectionIds.map(id => getDoc(doc(firestore, 'eomsPolicyManuals', id)));
+      const docSnapshots = await Promise.all(promises);
+      const fetchedManuals = docSnapshots
+        .filter(snap => snap.exists())
+        .map(snap => snap.data() as EomsPolicyManual);
+      setManuals(fetchedManuals);
+      setIsLoadingManuals(false);
+    };
+    fetchManuals();
+  }, [firestore, isSubmitting]); // Refetch when a submission happens
   
   const manualMap = useMemo(() => {
-    if (!manuals) return new Map();
     return new Map(manuals.map(m => [m.id, m]));
   }, [manuals]);
 

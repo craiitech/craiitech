@@ -2,8 +2,8 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { collection, doc, getDoc } from 'firebase/firestore';
 import type { EomsPolicyManual } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,26 +21,47 @@ const sections = Array.from({ length: 10 }, (_, i) => ({
 
 export default function EomsPolicyManualPage() {
   const firestore = useFirestore();
+  const [manuals, setManuals] = useState<EomsPolicyManual[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedManual, setSelectedManual] = useState<EomsPolicyManual | null>(null);
 
-  const manualsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'eomsPolicyManuals') : null), [firestore]);
-  const { data: manuals, isLoading } = useCollection<EomsPolicyManual>(manualsQuery);
+  useEffect(() => {
+    if (!firestore) return;
+
+    const fetchManuals = async () => {
+      setIsLoading(true);
+      try {
+        const promises = sections.map(section => getDoc(doc(firestore, 'eomsPolicyManuals', section.id)));
+        const docSnapshots = await Promise.all(promises);
+        const fetchedManuals = docSnapshots
+          .filter(snap => snap.exists())
+          .map(snap => snap.data() as EomsPolicyManual);
+        setManuals(fetchedManuals);
+
+        // Auto-select the first available manual
+        if (fetchedManuals.length > 0) {
+            const firstAvailable = sections
+                .map(s => fetchedManuals.find(m => m.id === s.id))
+                .find(Boolean);
+            if (firstAvailable) {
+                setSelectedManual(firstAvailable);
+            }
+        }
+      } catch (error) {
+        console.error("Error fetching EOMS manuals:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchManuals();
+  }, [firestore]);
+
 
   const manualMap = useMemo(() => {
-    if (!manuals) return new Map<string, EomsPolicyManual>();
     return new Map(manuals.map(m => [m.id, m]));
   }, [manuals]);
   
-  // On initial load, select the first available manual
-  useEffect(() => {
-      if (!isLoading && manuals && !selectedManual) {
-          const firstAvailable = sections.map(s => manualMap.get(s.id)).find(Boolean);
-          if (firstAvailable) {
-              setSelectedManual(firstAvailable);
-          }
-      }
-  }, [isLoading, manuals, manualMap, selectedManual]);
-
   const previewUrl = selectedManual?.googleDriveLink
     ? selectedManual.googleDriveLink.replace('/view', '/preview').replace('?usp=sharing', '')
     : '';
