@@ -263,13 +263,13 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
     
-    match /procedureManuals/{document=**} {
+    match /procedureManuals/{unitId} {
       allow read, list: if isSignedIn();
       allow write: if isAdmin();
     }
 
-    match /eomsPolicyManuals/{document=**} {
-      allow read: if isSignedIn();
+    match /eomsPolicyManuals/{sectionId} {
+      allow read, list: if isSignedIn();
       allow write: if isAdmin();
     }
 
@@ -330,3 +330,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
