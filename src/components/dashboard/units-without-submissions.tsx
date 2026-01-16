@@ -8,7 +8,7 @@ import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building, AlertCircle, Send, Loader2 } from 'lucide-react';
 import { Badge } from '../ui/badge';
-import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
+import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Button } from '../ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
@@ -53,7 +53,6 @@ export function UnitsWithoutSubmissions({
 
     const currentYear = new Date().getFullYear();
 
-    // Create a map of units grouped by campusId
     const unitsByCampus = allUnits.reduce((acc, unit) => {
       unit.campusIds?.forEach(campusId => {
         if (!acc[campusId]) {
@@ -64,32 +63,39 @@ export function UnitsWithoutSubmissions({
       return acc;
     }, {} as Record<string, Unit[]>);
     
-    // Determine which campuses to show
     let relevantCampuses = allCampuses;
     if (isCampusSupervisor && userProfile?.campusId) {
         relevantCampuses = allCampuses.filter(c => c.id === userProfile.campusId);
     }
 
-    // Process each campus
     return relevantCampuses.map(campus => {
         const campusUnits = unitsByCampus[campus.id] || [];
         const incompleteUnits = campusUnits.map(unit => {
             const unitSubmissions = allSubmissions.filter(s => s.unitId === unit.id && s.year === currentYear);
-            // A unique submission is a combination of report type and cycle
+            
+            const firstCycleRegistry = unitSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry Form');
+            const requiredFirst = firstCycleRegistry?.riskRating === 'low' ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+
+            const finalCycleRegistry = unitSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry Form');
+            const requiredFinal = finalCycleRegistry?.riskRating === 'low' ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+
+            const totalRequired = requiredFirst + requiredFinal;
+
             const uniqueSubmissions = new Set(unitSubmissions.map(s => `${s.reportType}-${s.cycleId}`));
             return {
                 id: unit.id,
                 name: unit.name,
-                count: uniqueSubmissions.size
+                count: uniqueSubmissions.size,
+                totalRequired: totalRequired
             };
-        }).filter(unit => unit.count < TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT);
+        }).filter(unit => unit.count < unit.totalRequired);
         
         return {
             campusId: campus.id,
             campusName: campus.name,
             incompleteUnits: incompleteUnits.sort((a,b) => a.count - b.count)
         };
-    }).filter(campus => campus.incompleteUnits.length > 0); // Only include campuses with incomplete units
+    }).filter(campus => campus.incompleteUnits.length > 0);
 
   }, [allUnits, allCampuses, allSubmissions, isCampusSupervisor, userProfile]);
   
@@ -98,7 +104,7 @@ export function UnitsWithoutSubmissions({
     setIsSendingReminders(true);
 
     const batch = writeBatch(firestore);
-    const reminderMessage = `Reminder: Please ensure all ${TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT} required EOMS reports for ${new Date().getFullYear()} are submitted as soon as possible.`;
+    const reminderMessage = `Reminder: Please ensure all required EOMS reports for ${new Date().getFullYear()} are submitted as soon as possible.`;
 
     const campusIdsToRemind = incompleteSubmissionsByCampus.map(c => c.campusId);
 
@@ -158,7 +164,7 @@ export function UnitsWithoutSubmissions({
                 Incomplete Submissions by Campus
             </CardTitle>
             <CardDescription>
-            The following campuses have units that have not completed all {TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT} required submissions for {new Date().getFullYear()}.
+            The following campuses have units that have not completed all required submissions for {new Date().getFullYear()}.
             </CardDescription>
         </div>
         {isAdmin && (
@@ -189,7 +195,7 @@ export function UnitsWithoutSubmissions({
                                     <span className="font-medium">{unit.name}</span>
                                   </div>
                                   <Badge variant={unit.count === 0 ? 'destructive' : 'secondary'}>
-                                    {unit.count} of {TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT}
+                                    {unit.count} of {unit.totalRequired}
                                   </Badge>
                               </Button>
                             </ListItem>

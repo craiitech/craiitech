@@ -47,11 +47,17 @@ export function NonCompliantUnits({
         const nonCompliantUnits = relevantUnits.map(unit => {
             const submittedTypes = new Set(
                 allSubmissions
-                    .filter(s => s.unitId === unit.id && s.cycleId === cycle.id)
+                    .filter(s => s.unitId === unit.id && s.cycleId === cycle.id && s.year === cycle.year)
                     .map(s => s.reportType)
             );
             
-            const missingReports = submissionTypes.filter(type => !submittedTypes.has(type));
+            const registry = allSubmissions.find(s => s.unitId === unit.id && s.cycleId === cycle.id && s.year === cycle.year && s.reportType === 'Risk and Opportunity Registry Form');
+            const isActionPlanNA = registry?.riskRating === 'low';
+
+            const missingReports = submissionTypes.filter(type => 
+                !submittedTypes.has(type) &&
+                !(type === 'Risk and Opportunity Action Plan' && isActionPlanNA)
+            );
             
             return {
                 id: unit.id,

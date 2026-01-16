@@ -6,7 +6,7 @@ import type { Unit, Submission, Campus, User as AppUser, Cycle } from '@/lib/typ
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trophy, Star, Building } from 'lucide-react';
-import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
+import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface LeaderboardProps {
@@ -60,7 +60,6 @@ export function Leaderboard({
     }
     
     let relevantCampuses = allCampuses;
-    // If it's a campus supervisor, only show their campus
     if (isCampusSupervisor && userProfile?.campusId) {
         relevantCampuses = allCampuses.filter(c => c.id === userProfile.campusId);
     }
@@ -71,22 +70,28 @@ export function Leaderboard({
         const unitsInCampus = allUnits.filter(u => u.campusIds?.includes(campus.id));
 
         unitsInCampus.forEach(unit => {
-            // Filter submissions by year, unit, AND campus to get an accurate count for this specific context
             const campusUnitSubmissions = allSubmissions.filter(s => 
                 s.year === selectedYear &&
                 s.unitId === unit.id &&
                 s.campusId === campus.id
             );
             
-            // A unique submission is a combination of report type and cycle for that specific unit/campus pair
+            const firstCycleRegistry = campusUnitSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry Form');
+            const requiredFirst = firstCycleRegistry?.riskRating === 'low' ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+            
+            const finalCycleRegistry = campusUnitSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry Form');
+            const requiredFinal = finalCycleRegistry?.riskRating === 'low' ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+            
+            const totalRequired = requiredFirst + requiredFinal;
+
             const uniqueSubmissions = new Set(
                 campusUnitSubmissions.map(s => `${s.reportType}-${s.cycleId}`)
             );
             const submissionCount = uniqueSubmissions.size;
-            const percentage = Math.round((submissionCount / TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT) * 100);
+            const percentage = totalRequired > 0 ? Math.round((submissionCount / totalRequired) * 100) : 0;
 
             campusUnitProgress.push({
-                id: `${unit.id}-${campus.id}`, // Create a unique key for the unit-campus pair
+                id: `${unit.id}-${campus.id}`,
                 name: unit.name,
                 campusName: campus.name,
                 percentage,
