@@ -269,8 +269,11 @@ service cloud.firestore {
     }
 
     match /eomsPolicyManuals/{docId} {
-      allow get, list: if isSignedIn();
+      allow get: if isSignedIn();
       allow write: if isAdmin();
+    }
+    match /eomsPolicyManuals {
+        allow list: if isSignedIn();
     }
 
     /**
