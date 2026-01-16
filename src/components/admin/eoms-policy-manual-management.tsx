@@ -28,7 +28,7 @@ const manualSchema = z.object({
   googleDriveLink: z.string().url('Please enter a valid Google Drive link.'),
   revisionNumber: z.string().min(1, 'Revision number is required.'),
   pageCount: z.coerce.number().min(1, 'Number of pages is required.'),
-  executionDate: z.date({ required_error: 'An execution date is required.'}),
+  executionDate: z.date({ required_error: 'An execution date is required.' }),
 });
 
 const sections = Array.from({ length: 10 }, (_, i) => ({
@@ -40,8 +40,8 @@ export function EomsPolicyManualManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedSection, setSelectedSection] = useState<{id: string; number: number} | null>(null);
-  
+  const [selectedSection, setSelectedSection] = useState<{ id: string; number: number } | null>(null);
+
   const [manuals, setManuals] = useState<EomsPolicyManual[]>([]);
   const [isLoadingManuals, setIsLoadingManuals] = useState(true);
 
@@ -49,18 +49,24 @@ export function EomsPolicyManualManagement() {
     if (!firestore) return;
     setIsLoadingManuals(true);
     const fetchManuals = async () => {
-      const sectionIds = Array.from({ length: 10 }, (_, i) => `section-${i + 1}`);
-      const promises = sectionIds.map(id => getDoc(doc(firestore, 'eomsPolicyManuals', id)));
-      const docSnapshots = await Promise.all(promises);
-      const fetchedManuals = docSnapshots
-        .filter(snap => snap.exists())
-        .map(snap => snap.data() as EomsPolicyManual);
-      setManuals(fetchedManuals);
-      setIsLoadingManuals(false);
+      try {
+        const sectionIds = Array.from({ length: 10 }, (_, i) => `section-${i + 1}`);
+        const promises = sectionIds.map(id => getDoc(doc(firestore, 'eomsPolicyManuals', id)));
+        const docSnapshots = await Promise.all(promises);
+        const fetchedManuals = docSnapshots
+          .filter(snap => snap.exists())
+          .map(snap => snap.data() as EomsPolicyManual);
+        setManuals(fetchedManuals);
+      } catch (error) {
+        console.error("Error fetching EOMS manuals:", error);
+        toast({ title: 'Error', description: 'Could not load manual data.', variant: 'destructive' });
+      } finally {
+        setIsLoadingManuals(false);
+      }
     };
     fetchManuals();
-  }, [firestore, isSubmitting]); // Refetch when a submission happens
-  
+  }, [firestore, isSubmitting, toast]);
+
   const manualMap = useMemo(() => {
     return new Map(manuals.map(m => [m.id, m]));
   }, [manuals]);
@@ -68,19 +74,19 @@ export function EomsPolicyManualManagement() {
   const form = useForm<z.infer<typeof manualSchema>>({
     resolver: zodResolver(manualSchema),
   });
-  
-  const handleOpenDialog = (section: {id: string; number: number}) => {
+
+  const handleOpenDialog = (section: { id: string; number: number }) => {
     setSelectedSection(section);
     const existingManual = manualMap.get(section.id);
     form.reset({
-        title: existingManual?.title || `Section ${section.number}`,
-        googleDriveLink: existingManual?.googleDriveLink || '',
-        revisionNumber: existingManual?.revisionNumber || '',
-        pageCount: existingManual?.pageCount || undefined,
-        executionDate: existingManual?.executionDate?.toDate(),
+      title: existingManual?.title || `Section ${section.number}`,
+      googleDriveLink: existingManual?.googleDriveLink || '',
+      revisionNumber: existingManual?.revisionNumber || '',
+      pageCount: existingManual?.pageCount || undefined,
+      executionDate: existingManual?.executionDate?.toDate(),
     });
   };
-  
+
   const handleCloseDialog = () => {
     setSelectedSection(null);
     form.reset();
@@ -89,7 +95,7 @@ export function EomsPolicyManualManagement() {
   const onSubmit = async (values: z.infer<typeof manualSchema>) => {
     if (!firestore || !selectedSection) return;
     setIsSubmitting(true);
-    
+
     const manualRef = doc(firestore, 'eomsPolicyManuals', selectedSection.id);
     const manualData = {
       ...values,
@@ -112,14 +118,14 @@ export function EomsPolicyManualManagement() {
 
   return (
     <>
-    <Card>
-      <CardHeader>
-        <CardTitle>EOMS Policy Manual</CardTitle>
-        <CardDescription>
-          Manage the 10 sections of the official EOMS Policy Manual.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+      <Card>
+        <CardHeader>
+          <CardTitle>EOMS Policy Manual</CardTitle>
+          <CardDescription>
+            Manage the 10 sections of the official EOMS Policy Manual.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           <ScrollArea className="h-[60vh] pr-4">
             <Table>
               <TableHeader>
@@ -136,16 +142,16 @@ export function EomsPolicyManualManagement() {
                 {sections.map((section) => {
                   if (isLoadingManuals) {
                     return (
-                        <TableRow key={section.id}>
-                            <TableCell className="font-medium">{section.number}</TableCell>
-                            <TableCell><Skeleton className="h-5 w-48" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-12" /></TableCell>
-                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                            <TableCell className="text-right">
-                                <Skeleton className="h-9 w-24" />
-                            </TableCell>
-                        </TableRow>
+                      <TableRow key={section.id}>
+                        <TableCell className="font-medium">{section.number}</TableCell>
+                        <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-12" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                        <TableCell className="text-right">
+                          <Skeleton className="h-9 w-24" />
+                        </TableCell>
+                      </TableRow>
                     )
                   }
                   const manual = manualMap.get(section.id);
@@ -167,62 +173,62 @@ export function EomsPolicyManualManagement() {
               </TableBody>
             </Table>
           </ScrollArea>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
 
-    <Dialog open={!!selectedSection} onOpenChange={(open) => !open && handleCloseDialog()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Manage Manual Section {selectedSection?.number}</DialogTitle>
-          <DialogDescription>
-            Enter the details for this section of the EOMS Policy Manual.
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-             <FormField control={form.control} name="title" render={({ field }) => (
+      <Dialog open={!!selectedSection} onOpenChange={(open) => !open && handleCloseDialog()}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Manage Manual Section {selectedSection?.number}</DialogTitle>
+            <DialogDescription>
+              Enter the details for this section of the EOMS Policy Manual.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+              <FormField control={form.control} name="title" render={({ field }) => (
                 <FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-            )}/>
-             <FormField control={form.control} name="googleDriveLink" render={({ field }) => (
+              )} />
+              <FormField control={form.control} name="googleDriveLink" render={({ field }) => (
                 <FormItem><FormLabel>Google Drive Link</FormLabel><FormControl><Input placeholder="https://drive.google.com/..." {...field} /></FormControl><FormMessage /></FormItem>
-            )}/>
-            <div className="grid grid-cols-2 gap-4">
+              )} />
+              <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="revisionNumber" render={({ field }) => (
-                    <FormItem><FormLabel>Revision No.</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
-                 <FormField control={form.control} name="pageCount" render={({ field }) => (
-                    <FormItem><FormLabel>No. of Pages</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                )}/>
-            </div>
-            <FormField control={form.control} name="executionDate" render={({ field }) => (
+                  <FormItem><FormLabel>Revision No.</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="pageCount" render={({ field }) => (
+                  <FormItem><FormLabel>No. of Pages</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+              </div>
+              <FormField control={form.control} name="executionDate" render={({ field }) => (
                 <FormItem className="flex flex-col"><FormLabel>Execution Date</FormLabel>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                    {field.value ? format(field.value, "PPP") : (<span>Pick a date</span>)}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                        </PopoverContent>
-                    </Popover>
-                    <FormMessage />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                          {field.value ? format(field.value, "PPP") : (<span>Pick a date</span>)}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
                 </FormItem>
-            )}/>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleCloseDialog}>Cancel</Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Section
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+              )} />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={handleCloseDialog}>Cancel</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Section
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
