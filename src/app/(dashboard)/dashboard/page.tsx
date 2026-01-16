@@ -90,7 +90,9 @@ import { RiskFunnel } from '@/components/dashboard/strategic/risk-funnel';
 import { CycleSubmissionBreakdown } from '@/components/dashboard/strategic/cycle-submission-breakdown';
 
 
-export const TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT = 12; // 6 for First, 6 for Final
+export const TOTAL_REPORTS_PER_CYCLE = 6;
+export const TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT = TOTAL_REPORTS_PER_CYCLE * 2; 
+
 
 const statusVariant: Record<
   string,
@@ -357,30 +359,27 @@ export default function HomePage() {
         },
       };
     } else {
-        const uniqueFirstCycle = new Set(
-            currentYearSubmissions
-            .filter((s) => s.cycleId === 'first')
-            .map((s) => s.reportType)
-        );
-        const uniqueFinalCycle = new Set(
-            currentYearSubmissions
-            .filter((s) => s.cycleId === 'final')
-            .map((s) => s.reportType)
-        );
+        const firstCycleSubmissions = currentYearSubmissions.filter(s => s.cycleId === 'first');
+        const firstCycleRegistry = firstCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry Form');
+        const requiredFirstCycle = firstCycleRegistry?.riskRating === 'low' ? (TOTAL_REPORTS_PER_CYCLE - 1) : TOTAL_REPORTS_PER_CYCLE;
 
-        const firstCycleCount = uniqueFirstCycle.size;
-        const finalCycleCount = uniqueFinalCycle.size;
+        const finalCycleSubmissions = currentYearSubmissions.filter(s => s.cycleId === 'final');
+        const finalCycleRegistry = finalCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry Form');
+        const requiredFinalCycle = finalCycleRegistry?.riskRating === 'low' ? (TOTAL_REPORTS_PER_CYCLE - 1) : TOTAL_REPORTS_PER_CYCLE;
+
+        const firstCycleCount = new Set(firstCycleSubmissions.map(s => s.reportType)).size;
+        const finalCycleCount = new Set(finalCycleSubmissions.map(s => s.reportType)).size;
         
         return {
             stat1: {
               title: 'First Cycle',
-              value: `${firstCycleCount} of ${submissionTypes.length}`,
+              value: `${firstCycleCount} of ${requiredFirstCycle}`,
               description: `Submissions for ${new Date().getFullYear()}`,
               icon: <FileText className="h-6 w-6 text-primary" />,
             },
             stat2: {
               title: 'Final Cycle',
-              value: `${finalCycleCount} of ${submissionTypes.length}`,
+              value: `${finalCycleCount} of ${requiredFinalCycle}`,
               description: `Submissions for ${new Date().getFullYear()}`,
               icon: <FileText className="h-6 w-6 text-primary" />,
             },
@@ -496,9 +495,15 @@ export default function HomePage() {
   };
   
   const renderSubmissionChecklist = (cycle: 'first' | 'final', statusMap: Map<string, Submission>) => {
-    const cycleSubmissions = Array.from(statusMap.values());
-    const uniqueSubmissions = new Set(cycleSubmissions.map((s) => s.reportType));
-    const progress = (uniqueSubmissions.size / submissionTypes.length) * 100;
+    const registryFormSubmission = statusMap.get('Risk and Opportunity Registry Form');
+    const isActionPlanNA = registryFormSubmission?.riskRating === 'low';
+
+    const requiredReports = isActionPlanNA
+      ? submissionTypes.filter(t => t !== 'Risk and Opportunity Action Plan')
+      : submissionTypes;
+    
+    const submittedCount = Array.from(statusMap.keys()).filter(type => requiredReports.includes(type)).length;
+    const progress = (submittedCount / requiredReports.length) * 100;
     
     return (
         <div className="space-y-4">
@@ -511,17 +516,16 @@ export default function HomePage() {
               {submissionTypes.map((reportType) => {
                 const submission = statusMap.get(reportType);
                 const isSubmitted = !!submission;
+                const isNA = reportType === 'Risk and Opportunity Action Plan' && isActionPlanNA;
                 return (
-                  <div key={reportType} className="flex items-center justify-between rounded-md border p-4">
+                  <div key={reportType} className={cn("flex items-center justify-between rounded-md border p-4", isNA && "opacity-50 bg-muted/50")}>
                       <div className="flex items-center gap-3">
-                         {isSubmitted ? (
-                          getIconForStatus(submission.statusId)
-                        ) : (
-                          <XCircle className="h-6 w-6 text-muted-foreground" />
-                        )}
+                         {getIconForStatus(isNA ? 'n/a' : submission?.statusId)}
                         <span className="font-medium">{reportType}</span>
                       </div>
-                      {isSubmitted ? (
+                      {isNA ? (
+                         <Badge variant="secondary">N/A</Badge>
+                      ) : isSubmitted ? (
                          <Badge
                             variant={statusVariant[submission.statusId]}
                             className="capitalize"

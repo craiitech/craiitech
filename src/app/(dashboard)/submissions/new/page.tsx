@@ -47,7 +47,8 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
     pending: 'secondary',
     rejected: 'destructive',
     submitted: 'outline',
-    'awaiting approval': 'outline'
+    'awaiting approval': 'outline',
+    'n/a': 'secondary',
 }
 
 
@@ -117,6 +118,10 @@ export default function NewSubmissionPage() {
   const isLoading = isLoadingCycles || isLoadingSubmissions || isLoadingUnits;
 
   const handleSelectReport = (reportType: string) => {
+    // Prevent selection if the report is N/A
+    const isActionPlanNA = reportType === 'Risk and Opportunity Action Plan' && submissionStatusMap.get('Risk and Opportunity Registry Form')?.riskRating === 'low';
+    if (isActionPlanNA) return;
+
     setSelectedReport(reportType);
     setShowFormForUpdate(false); 
     
@@ -193,7 +198,7 @@ export default function NewSubmissionPage() {
 
   const handleFormSuccess = () => {
     setShowFormForUpdate(false); 
-    router.push('/submissions'); 
+    // We don't need to push, as the page will refetch and update automatically.
   };
   
   const handleViewFeedback = (comments: any) => {
@@ -213,6 +218,8 @@ export default function NewSubmissionPage() {
         return <AlertCircle className="h-5 w-5 text-destructive" />;
       case 'submitted':
         return <Circle className="h-5 w-5 text-yellow-500" />;
+      case 'n/a':
+        return <CheckCircle className="h-5 w-5 text-muted-foreground" />;
       default:
         return <XCircle className="h-5 w-5 text-muted-foreground" />;
     }
@@ -281,23 +288,30 @@ export default function NewSubmissionPage() {
                 ) : isCycleSelected ? (
                     submissionTypes.map((reportType) => {
                     const submission = submissionStatusMap.get(reportType);
+                    const isActionPlan = reportType === 'Risk and Opportunity Action Plan';
+                    const registryFormSubmission = submissionStatusMap.get('Risk and Opportunity Registry Form');
+                    const isActionPlanNA = isActionPlan && registryFormSubmission?.riskRating === 'low';
                     const isSelected = selectedReport === reportType;
                     return (
                         <div
                             key={reportType}
                             role="button"
+                            aria-disabled={isActionPlanNA}
                             onClick={() => handleSelectReport(reportType)}
                             className={cn(
-                                "flex w-full items-center justify-between p-3 text-left rounded-lg cursor-pointer border transition-colors",
-                                isSelected ? "bg-muted ring-2 ring-primary" : "hover:bg-muted/50"
+                                "flex w-full items-center justify-between p-3 text-left rounded-lg border transition-colors",
+                                isSelected ? "bg-muted ring-2 ring-primary" : "hover:bg-muted/50",
+                                isActionPlanNA ? "cursor-not-allowed opacity-50 bg-muted/30" : "cursor-pointer"
                             )}
                         >
                             <div className="flex flex-1 items-center gap-3">
-                                {getIconForStatus(submission?.statusId)}
+                                {getIconForStatus(isActionPlanNA ? 'n/a' : submission?.statusId)}
                                 <span className="font-medium flex-1">{reportType}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                {submission && (
+                                {isActionPlanNA ? (
+                                    <Badge variant="secondary">N/A</Badge>
+                                ) : submission && (
                                     <Badge variant={statusVariant[submission.statusId]} className="capitalize">
                                         {getStatusText(submission.statusId)}
                                     </Badge>

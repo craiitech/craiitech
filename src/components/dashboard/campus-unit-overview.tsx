@@ -8,7 +8,7 @@ import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
+import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
 
 interface CampusUnitOverviewProps {
   allUnits: Unit[] | null;
@@ -33,17 +33,26 @@ export function CampusUnitOverview({
     const campusUnits = allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
 
     return campusUnits.map(unit => {
-      const unitSubmissions = allSubmissions.filter(s => s.unitId === unit.id && s.year === currentYear);
-      // A unique submission is a combination of report type and cycle
-      const uniqueSubmissions = new Set(unitSubmissions.map(s => `${s.reportType}-${s.cycleId}`));
+      const unitSubmissionsForYear = allSubmissions.filter(s => s.unitId === unit.id && s.year === currentYear);
+      
+      const firstCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry Form');
+      const requiredFirst = firstCycleRegistry?.riskRating === 'low' ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+      
+      const finalCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry Form');
+      const requiredFinal = finalCycleRegistry?.riskRating === 'low' ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+      
+      const totalRequired = requiredFirst + requiredFinal;
+
+      const uniqueSubmissions = new Set(unitSubmissionsForYear.map(s => `${s.reportType}-${s.cycleId}`));
       const submissionCount = uniqueSubmissions.size;
-      const progress = (submissionCount / TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT) * 100;
+      const progress = totalRequired > 0 ? (submissionCount / totalRequired) * 100 : 0;
 
       return {
         id: unit.id,
         name: unit.name,
         submissionCount,
         progress,
+        totalRequired,
       };
     });
 
@@ -87,7 +96,7 @@ export function CampusUnitOverview({
                   <span className="font-medium">{unit.name}</span>
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  {unit.submissionCount} of {TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT}
+                  {unit.submissionCount} of {unit.totalRequired}
                 </span>
               </div>
               <Progress value={unit.progress} className="mt-2 h-2" />
