@@ -268,8 +268,8 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /eomsPolicyManuals/{sectionId} {
-      allow read, list: if isSignedIn();
+    match /eomsPolicyManuals/{docId} {
+      allow get, list: if request.auth != null;
       allow write: if isAdmin();
     }
 
@@ -330,5 +330,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
