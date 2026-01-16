@@ -57,12 +57,9 @@ export function EomsPolicyManualManagement() {
           .map(snap => snap.data() as EomsPolicyManual);
         setManuals(fetchedManuals);
       } catch (error) {
-        console.error("Error fetching EOMS manuals:", error);
-        toast({ title: 'Error', description: 'Could not load manual data.', variant: 'destructive' });
-
-        let errorMessage = 'An unknown error occurred while fetching EOMS manuals.';
+        console.error("EOMS Policy Manual fetch error:", error);
+         let errorMessage = 'An unknown error occurred while fetching EOMS manuals.';
         let errorStack = 'No stack trace available.';
-
         if (error instanceof Error) {
             errorMessage = `Failed to fetch EOMS manuals: ${error.message}`;
             errorStack = error.stack || 'No stack trace available.';
@@ -79,13 +76,15 @@ export function EomsPolicyManualManagement() {
             userRole: userRole || undefined,
             userEmail: userProfile?.email
         }).catch(e => console.error("Secondary error: could not log initial error.", e));
+
+        toast({ title: 'Error', description: 'Could not load manual data.', variant: 'destructive' });
       } finally {
         setIsLoadingManuals(false);
       }
     };
 
     fetchManuals();
-  }, [firestore, isSubmitting, toast, user, userProfile, userRole]);
+  }, [firestore, isSubmitting]);
 
   const manualMap = useMemo(() => {
     return new Map(manuals.map(m => [m.id, m]));
@@ -137,15 +136,13 @@ export function EomsPolicyManualManagement() {
     try {
       await setDoc(manualRef, { ...manualData, updatedAt: serverTimestamp() }, { merge: true });
       toast({ title: 'Success', description: `Manual Section ${selectedSection.number} has been saved.` });
-      setIsSubmitting(false);
+      setIsSubmitting(false); // Do this before closing to trigger refetch
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving manual section:', error);
-      toast({ title: 'Error', description: 'Could not save the manual section.', variant: 'destructive' });
       
       let errorMessage = 'An unknown error occurred while saving the manual section.';
       let errorStack = 'No stack trace available.';
-
       if (error instanceof Error) {
           errorMessage = `Failed to save EOMS manual section ${selectedSection?.id}: ${error.message}`;
           errorStack = error.stack || 'No stack trace available.';
@@ -162,6 +159,8 @@ export function EomsPolicyManualManagement() {
           userRole: userRole || undefined,
           userEmail: userProfile?.email
       }).catch(e => console.error("Secondary error: could not log initial error.", e));
+      
+      toast({ title: 'Error', description: 'Could not save the manual section.', variant: 'destructive' });
       setIsSubmitting(false);
     }
   };

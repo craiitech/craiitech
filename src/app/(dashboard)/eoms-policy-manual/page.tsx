@@ -39,6 +39,7 @@ export default function EomsPolicyManualPage() {
         const fetchedManuals = docSnapshots
           .filter(snap => snap.exists())
           .map(snap => snap.data() as EomsPolicyManual);
+        
         setManuals(fetchedManuals);
 
         if (fetchedManuals.length > 0) {
@@ -50,12 +51,10 @@ export default function EomsPolicyManualPage() {
             }
         }
       } catch (error) {
-        console.error("Error fetching EOMS manuals:", error);
-        toast({ title: 'Error', description: 'Could not load EOMS Policy Manual data.', variant: 'destructive'});
+        console.error("EOMS Policy Manual fetch error:", error);
         
-        let errorMessage = 'An unknown error occurred while fetching EOMS manuals for the user.';
+        let errorMessage = 'An unknown error occurred while fetching EOMS manuals.';
         let errorStack = 'No stack trace available.';
-
         if (error instanceof Error) {
             errorMessage = `User failed to fetch EOMS manuals: ${error.message}`;
             errorStack = error.stack || 'No stack trace available.';
@@ -72,6 +71,8 @@ export default function EomsPolicyManualPage() {
             userRole: userRole || undefined,
             userEmail: userProfile?.email
         }).catch(e => console.error("Secondary error: could not log initial error.", e));
+        
+        toast({ title: 'Error', description: 'Could not load EOMS Policy Manual data.', variant: 'destructive'});
       } finally {
         setIsLoading(false);
       }

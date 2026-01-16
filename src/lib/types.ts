@@ -211,5 +211,3 @@ export type EomsPolicyManual = {
     executionDate: string;
     updatedAt: any; // serverTimestamp()
 }
-
-    
