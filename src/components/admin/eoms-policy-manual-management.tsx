@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { collection, doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import type { EomsPolicyManual } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -17,13 +17,14 @@ import { Loader2, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Skeleton } from '../ui/skeleton';
+import { logError } from '@/lib/actions';
 
 const manualSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
   googleDriveLink: z.string().url('Please enter a valid Google Drive link.'),
   revisionNumber: z.string().nonempty('Revision number is required.'),
   pageCount: z.coerce.number().min(1, 'Number of pages is required.'),
-  executionDate: z.string().nonempty("Execution date is required."),
+  executionDate: z.string().min(1, 'Execution Date is required.'),
 });
 
 
@@ -35,6 +36,7 @@ const sections = Array.from({ length: 10 }, (_, i) => ({
 export function EomsPolicyManualManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { user, userProfile, userRole } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedSection, setSelectedSection] = useState<{ id: string; number: number } | null>(null);
 
@@ -56,13 +58,24 @@ export function EomsPolicyManualManagement() {
       } catch (error) {
         console.error("Error fetching EOMS manuals:", error);
         toast({ title: 'Error', description: 'Could not load manual data.', variant: 'destructive' });
+        if (error instanceof Error) {
+            await logError({
+                errorMessage: `Failed to fetch EOMS manuals: ${error.message}`,
+                errorStack: error.stack,
+                url: window.location.href,
+                userId: user?.uid,
+                userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
+                userRole: userRole || undefined,
+                userEmail: userProfile?.email
+            });
+        }
       } finally {
         setIsLoadingManuals(false);
       }
     };
 
     fetchManuals();
-  }, [firestore, isSubmitting, toast]);
+  }, [firestore, isSubmitting, toast, user, userProfile, userRole]);
 
   const manualMap = useMemo(() => {
     return new Map(manuals.map(m => [m.id, m]));
@@ -120,6 +133,17 @@ export function EomsPolicyManualManagement() {
     } catch (error) {
       console.error('Error saving manual section:', error);
       toast({ title: 'Error', description: 'Could not save the manual section.', variant: 'destructive' });
+      if (error instanceof Error) {
+        await logError({
+            errorMessage: `Failed to save EOMS manual section ${selectedSection?.id}: ${error.message}`,
+            errorStack: error.stack,
+            url: window.location.href,
+            userId: user?.uid,
+            userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
+            userRole: userRole || undefined,
+            userEmail: userProfile?.email
+        });
+      }
       setIsSubmitting(false);
     }
   };
