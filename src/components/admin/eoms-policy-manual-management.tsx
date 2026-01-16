@@ -14,27 +14,37 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, Edit, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { format } from 'date-fns';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Calendar } from '../ui/calendar';
-import { cn } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const manualSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
   googleDriveLink: z.string().url('Please enter a valid Google Drive link.'),
   revisionNumber: z.string().min(1, 'Revision number is required.'),
   pageCount: z.coerce.number().min(1, 'Number of pages is required.'),
-  executionDate: z.date({ required_error: 'An execution date is required.' }),
+  executionYear: z.string({ required_error: 'Year is required.' }),
+  executionMonth: z.string({ required_error: 'Month is required.' }),
+  executionDay: z.string({ required_error: 'Day is required.' }),
 });
 
 const sections = Array.from({ length: 10 }, (_, i) => ({
   id: `section-${i + 1}`,
   number: i + 1,
 }));
+
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
+const months = [
+  { value: '0', label: 'January' }, { value: '1', label: 'February' }, { value: '2', label: 'March' },
+  { value: '3', label: 'April' }, { value: '4', label: 'May' }, { value: '5', label: 'June' },
+  { value: '6', label: 'July' }, { value: '7', label: 'August' }, { value: '8', label: 'September' },
+  { value: '9', label: 'October' }, { value: '10', label: 'November' }, { value: '11', label: 'December' },
+];
+const days = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
 export function EomsPolicyManualManagement() {
   const firestore = useFirestore();
@@ -73,17 +83,25 @@ export function EomsPolicyManualManagement() {
 
   const form = useForm<z.infer<typeof manualSchema>>({
     resolver: zodResolver(manualSchema),
+    defaultValues: {
+      title: '',
+      googleDriveLink: '',
+      revisionNumber: '',
+    }
   });
 
   const handleOpenDialog = (section: { id: string; number: number }) => {
     setSelectedSection(section);
     const existingManual = manualMap.get(section.id);
+    const executionDate = existingManual?.executionDate?.toDate();
     form.reset({
       title: existingManual?.title || `Section ${section.number}`,
       googleDriveLink: existingManual?.googleDriveLink || '',
       revisionNumber: existingManual?.revisionNumber || '',
       pageCount: existingManual?.pageCount || undefined,
-      executionDate: existingManual?.executionDate?.toDate(),
+      executionYear: executionDate ? String(executionDate.getFullYear()) : undefined,
+      executionMonth: executionDate ? String(executionDate.getMonth()) : undefined,
+      executionDay: executionDate ? String(executionDate.getDate()) : undefined,
     });
   };
 
@@ -98,7 +116,11 @@ export function EomsPolicyManualManagement() {
 
     const manualRef = doc(firestore, 'eomsPolicyManuals', selectedSection.id);
     const manualData = {
-      ...values,
+      title: values.title,
+      googleDriveLink: values.googleDriveLink,
+      revisionNumber: values.revisionNumber,
+      pageCount: values.pageCount,
+      executionDate: new Date(Number(values.executionYear), Number(values.executionMonth), Number(values.executionDay)),
       id: selectedSection.id,
       sectionNumber: selectedSection.number,
       updatedAt: serverTimestamp(),
@@ -200,24 +222,46 @@ export function EomsPolicyManualManagement() {
                   <FormItem><FormLabel>No. of Pages</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
-              <FormField control={form.control} name="executionDate" render={({ field }) => (
-                <FormItem className="flex flex-col"><FormLabel>Execution Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                          {field.value ? format(field.value, "PPP") : (<span>Pick a date</span>)}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              
+              <div className="space-y-2">
+                <FormLabel>Execution Date</FormLabel>
+                <div className="grid grid-cols-3 gap-2">
+                  <FormField control={form.control} name="executionMonth" render={({ field }) => (
+                    <FormItem>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Month" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>{months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="executionDay" render={({ field }) => (
+                    <FormItem>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Day" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>{days.map(d => <SelectItem key={d} value={String(d)}>{d}</SelectItem>)}</SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="executionYear" render={({ field }) => (
+                    <FormItem>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+              </div>
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={handleCloseDialog}>Cancel</Button>
                 <Button type="submit" disabled={isSubmitting}>
