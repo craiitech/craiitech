@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { collection, doc, getDoc } from 'firebase/firestore';
 import type { EomsPolicyManual } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { logError } from '@/lib/actions';
 
 const sections = Array.from({ length: 10 }, (_, i) => ({
   id: `section-${i + 1}`,
@@ -21,6 +23,7 @@ const sections = Array.from({ length: 10 }, (_, i) => ({
 export default function EomsPolicyManualPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { user, userProfile, userRole } = useUser();
   const [manuals, setManuals] = useState<EomsPolicyManual[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedManual, setSelectedManual] = useState<EomsPolicyManual | null>(null);
@@ -49,13 +52,33 @@ export default function EomsPolicyManualPage() {
       } catch (error) {
         console.error("Error fetching EOMS manuals:", error);
         toast({ title: 'Error', description: 'Could not load EOMS Policy Manual data.', variant: 'destructive'});
+        
+        let errorMessage = 'An unknown error occurred while fetching EOMS manuals for the user.';
+        let errorStack = 'No stack trace available.';
+
+        if (error instanceof Error) {
+            errorMessage = `User failed to fetch EOMS manuals: ${error.message}`;
+            errorStack = error.stack || 'No stack trace available.';
+        } else if (typeof error === 'string') {
+            errorMessage = error;
+        }
+
+        logError({
+            errorMessage,
+            errorStack,
+            url: window.location.href,
+            userId: user?.uid,
+            userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
+            userRole: userRole || undefined,
+            userEmail: userProfile?.email
+        }).catch(e => console.error("Secondary error: could not log initial error.", e));
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchManuals();
-  }, [firestore, toast]);
+  }, [firestore, toast, user, userProfile, userRole]);
 
 
   const manualMap = useMemo(() => {

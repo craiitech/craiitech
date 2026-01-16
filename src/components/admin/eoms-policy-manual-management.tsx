@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -58,17 +59,26 @@ export function EomsPolicyManualManagement() {
       } catch (error) {
         console.error("Error fetching EOMS manuals:", error);
         toast({ title: 'Error', description: 'Could not load manual data.', variant: 'destructive' });
+
+        let errorMessage = 'An unknown error occurred while fetching EOMS manuals.';
+        let errorStack = 'No stack trace available.';
+
         if (error instanceof Error) {
-            await logError({
-                errorMessage: `Failed to fetch EOMS manuals: ${error.message}`,
-                errorStack: error.stack,
-                url: window.location.href,
-                userId: user?.uid,
-                userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
-                userRole: userRole || undefined,
-                userEmail: userProfile?.email
-            });
+            errorMessage = `Failed to fetch EOMS manuals: ${error.message}`;
+            errorStack = error.stack || 'No stack trace available.';
+        } else if (typeof error === 'string') {
+            errorMessage = error;
         }
+
+        logError({
+            errorMessage,
+            errorStack,
+            url: window.location.href,
+            userId: user?.uid,
+            userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
+            userRole: userRole || undefined,
+            userEmail: userProfile?.email
+        }).catch(e => console.error("Secondary error: could not log initial error.", e));
       } finally {
         setIsLoadingManuals(false);
       }
@@ -127,23 +137,31 @@ export function EomsPolicyManualManagement() {
     try {
       await setDoc(manualRef, { ...manualData, updatedAt: serverTimestamp() }, { merge: true });
       toast({ title: 'Success', description: `Manual Section ${selectedSection.number} has been saved.` });
-      // This will cause the useEffect to re-fetch the data after a successful submission.
-      setIsSubmitting(false); // Set to false before closing to trigger re-fetch
+      setIsSubmitting(false);
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving manual section:', error);
       toast({ title: 'Error', description: 'Could not save the manual section.', variant: 'destructive' });
+      
+      let errorMessage = 'An unknown error occurred while saving the manual section.';
+      let errorStack = 'No stack trace available.';
+
       if (error instanceof Error) {
-        await logError({
-            errorMessage: `Failed to save EOMS manual section ${selectedSection?.id}: ${error.message}`,
-            errorStack: error.stack,
-            url: window.location.href,
-            userId: user?.uid,
-            userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
-            userRole: userRole || undefined,
-            userEmail: userProfile?.email
-        });
+          errorMessage = `Failed to save EOMS manual section ${selectedSection?.id}: ${error.message}`;
+          errorStack = error.stack || 'No stack trace available.';
+      } else if (typeof error === 'string') {
+          errorMessage = error;
       }
+      
+      logError({
+          errorMessage,
+          errorStack,
+          url: window.location.href,
+          userId: user?.uid,
+          userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
+          userRole: userRole || undefined,
+          userEmail: userProfile?.email
+      }).catch(e => console.error("Secondary error: could not log initial error.", e));
       setIsSubmitting(false);
     }
   };
