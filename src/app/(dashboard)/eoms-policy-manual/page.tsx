@@ -159,7 +159,7 @@ export default function EomsPolicyManualPage() {
                         <div>
                             <p className="font-semibold">Execution Date</p>
                             <p className="text-muted-foreground">
-                                {selectedManual.executionDate ? format(selectedManual.executionDate.toDate(), 'PPP') : 'N/A'}
+                                {selectedManual.executionDate || 'N/A'}
                             </p>
                         </div>
                     </div>

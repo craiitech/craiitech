@@ -1,3 +1,4 @@
+
 // This file can be used for mock data types, but for Firebase, 
 // consider using Zod schemas and inferring types from them, 
 // especially for a Firestore documents.
@@ -207,6 +208,6 @@ export type EomsPolicyManual = {
     googleDriveLink: string;
     revisionNumber: string;
     pageCount: number;
-    executionDate: any; // Timestamp
+    executionDate: string;
     updatedAt: any; // serverTimestamp()
 }

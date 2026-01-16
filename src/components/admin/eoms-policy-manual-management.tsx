@@ -12,39 +12,26 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { format } from 'date-fns';
 import { Skeleton } from '../ui/skeleton';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const manualSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
   googleDriveLink: z.string().url('Please enter a valid Google Drive link.'),
   revisionNumber: z.string().nonempty('Revision number is required.'),
   pageCount: z.coerce.number().min(1, 'Number of pages is required.'),
-  executionYear: z.string().nonempty('Year is required.'),
-  executionMonth: z.string().nonempty('Month is required.'),
-  executionDay: z.string().nonempty('Day is required.'),
+  executionDate: z.string().nonempty('Execution date is required.'),
 });
 
 const sections = Array.from({ length: 10 }, (_, i) => ({
   id: `section-${i + 1}`,
   number: i + 1,
 }));
-
-const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
-const months = [
-  { value: '0', label: 'January' }, { value: '1', label: 'February' }, { value: '2', label: 'March' },
-  { value: '3', label: 'April' }, { value: '4', label: 'May' }, { value: '5', label: 'June' },
-  { value: '6', label: 'July' }, { value: '7', label: 'August' }, { value: '8', label: 'September' },
-  { value: '9', label: 'October' }, { value: '10', label: 'November' }, { value: '11', label: 'December' },
-];
-const days = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
 export function EomsPolicyManualManagement() {
   const firestore = useFirestore();
@@ -93,15 +80,12 @@ export function EomsPolicyManualManagement() {
   const handleOpenDialog = (section: { id: string; number: number }) => {
     setSelectedSection(section);
     const existingManual = manualMap.get(section.id);
-    const executionDate = existingManual?.executionDate?.toDate();
     form.reset({
       title: existingManual?.title || `Section ${section.number}`,
       googleDriveLink: existingManual?.googleDriveLink || '',
       revisionNumber: existingManual?.revisionNumber || '',
       pageCount: existingManual?.pageCount,
-      executionYear: executionDate ? String(executionDate.getFullYear()) : undefined,
-      executionMonth: executionDate ? String(executionDate.getMonth()) : undefined,
-      executionDay: executionDate ? String(executionDate.getDate()) : undefined,
+      executionDate: existingManual?.executionDate || '',
     });
   };
 
@@ -120,7 +104,7 @@ export function EomsPolicyManualManagement() {
       googleDriveLink: values.googleDriveLink,
       revisionNumber: values.revisionNumber,
       pageCount: values.pageCount,
-      executionDate: new Date(Number(values.executionYear), Number(values.executionMonth), Number(values.executionDay)),
+      executionDate: values.executionDate,
       id: selectedSection.id,
       sectionNumber: selectedSection.number,
       updatedAt: serverTimestamp(),
@@ -183,7 +167,7 @@ export function EomsPolicyManualManagement() {
                       <TableCell>{manual?.title || 'Not Set'}</TableCell>
                       <TableCell>{manual?.revisionNumber || '-'}</TableCell>
                       <TableCell>{manual?.pageCount || '-'}</TableCell>
-                      <TableCell>{manual?.executionDate ? format(manual.executionDate.toDate(), 'PPP') : '-'}</TableCell>
+                      <TableCell>{manual?.executionDate || '-'}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="outline" size="sm" onClick={() => handleOpenDialog(section)}>
                           <Edit className="mr-2 h-4 w-4" /> {manual ? 'Edit' : 'Add'}
@@ -223,44 +207,22 @@ export function EomsPolicyManualManagement() {
                 )} />
               </div>
               
-              <div className="space-y-2">
-                <FormLabel>Execution Date</FormLabel>
-                <div className="grid grid-cols-3 gap-2">
-                  <FormField control={form.control} name="executionMonth" render={({ field }) => (
-                    <FormItem>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Month" /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="executionDay" render={({ field }) => (
-                    <FormItem>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Day" /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>{days.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="executionYear" render={({ field }) => (
-                    <FormItem>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                </div>
-              </div>
+              <FormField
+                control={form.control}
+                name="executionDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Execution Date</FormLabel>
+                    <FormControl>
+                      <Input type="text" placeholder="e.g., 2024-12-31" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Enter the date in YYYY-MM-DD format.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={handleCloseDialog}>Cancel</Button>
