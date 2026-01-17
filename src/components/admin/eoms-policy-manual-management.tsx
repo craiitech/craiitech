@@ -1,11 +1,12 @@
+
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useUser } from '@/firebase';
-import { collection, doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { EomsPolicyManual } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,50 +41,16 @@ export function EomsPolicyManualManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedSection, setSelectedSection] = useState<{ id: string; number: number } | null>(null);
 
-  const [manuals, setManuals] = useState<Map<string, EomsPolicyManual>>(new Map());
-  const [isLoadingManuals, setIsLoadingManuals] = useState(true);
+  const manualsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'eomsPolicyManuals') : null),
+    [firestore]
+  );
+  const { data: manualsData, isLoading: isLoadingManuals } = useCollection<EomsPolicyManual>(manualsQuery);
 
-  // This effect fetches each document individually, avoiding the 'list' operation.
-  useEffect(() => {
-    if (!firestore || !user) return;
-
-    const fetchAllManuals = async () => {
-      setIsLoadingManuals(true);
-      try {
-        const promises = sections.map(section => 
-          getDoc(doc(firestore, 'eomsPolicyManuals', section.id))
-        );
-        
-        const docSnapshots = await Promise.all(promises);
-
-        const fetchedMap = new Map<string, EomsPolicyManual>();
-        docSnapshots.forEach(snap => {
-          if (snap.exists()) {
-            fetchedMap.set(snap.id, snap.data() as EomsPolicyManual);
-          }
-        });
-
-        setManuals(fetchedMap);
-
-      } catch (error: any) {
-        console.error("EOMS Policy Manual fetch error:", error);
-        logError({
-            errorMessage: `Admin failed to fetch EOMS manuals: ${error.message}`,
-            errorStack: error.stack,
-            url: window.location.href,
-            userId: user?.uid,
-            userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
-            userRole: userRole || undefined,
-            userEmail: userProfile?.email
-        }).catch(e => console.error("Secondary error: could not log initial error.", e));
-        toast({ title: 'Error', description: 'Could not load EOMS Policy Manual data.', variant: 'destructive' });
-      } finally {
-        setIsLoadingManuals(false);
-      }
-    };
-
-    fetchAllManuals();
-  }, [firestore, user, isSubmitting, toast, userProfile, userRole]); // Rerun on isSubmitting change to refresh data after save
+  const manuals = useMemo(() => {
+    if (!manualsData) return new Map<string, EomsPolicyManual>();
+    return new Map(manualsData.map(m => [m.id, m]));
+  }, [manualsData]);
 
 
   const form = useForm<z.infer<typeof manualSchema>>({
@@ -133,7 +100,6 @@ export function EomsPolicyManualManagement() {
       await setDoc(manualRef, { ...manualData, updatedAt: serverTimestamp() }, { merge: true });
       toast({ title: 'Success', description: `Manual Section ${selectedSection.number} has been saved.` });
       handleCloseDialog();
-      setIsSubmitting(false); // Set to false to trigger refetch via useEffect dependency
     } catch (error: any) {
       console.error('Error saving manual section:', error);
       logError({
@@ -146,7 +112,8 @@ export function EomsPolicyManualManagement() {
           userEmail: userProfile?.email
       }).catch(e => console.error("Secondary error: could not log initial error.", e));
       toast({ title: 'Error', description: 'Could not save the manual section.', variant: 'destructive' });
-      setIsSubmitting(false);
+    } finally {
+        setIsSubmitting(false);
     }
   };
 

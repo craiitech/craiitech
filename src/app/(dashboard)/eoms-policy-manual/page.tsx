@@ -1,8 +1,9 @@
+
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { useFirestore, useUser } from '@/firebase';
-import { collection, doc, getDoc } from 'firebase/firestore';
+import { useState, useMemo } from 'react';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 import type { EomsPolicyManual } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { logError } from '@/lib/actions';
+import { useUser } from '@/firebase';
+
 
 const sections = Array.from({ length: 10 }, (_, i) => ({
   id: `section-${i + 1}`,
@@ -23,62 +26,32 @@ export default function EomsPolicyManualPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { user, userProfile, userRole } = useUser();
-  const [manuals, setManuals] = useState<Map<string, EomsPolicyManual>>(new Map());
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedManual, setSelectedManual] = useState<EomsPolicyManual | null>(null);
 
-  useEffect(() => {
-    if (!firestore || !user) return;
+  const manualsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'eomsPolicyManuals') : null),
+    [firestore]
+  );
+  const { data: manualsData, isLoading } = useCollection<EomsPolicyManual>(manualsQuery);
 
-    const fetchManuals = async () => {
-      setIsLoading(true);
-      try {
-        const promises = sections.map(section => getDoc(doc(firestore, 'eomsPolicyManuals', section.id)));
-        const docSnapshots = await Promise.all(promises);
-        
-        const fetchedMap = new Map<string, EomsPolicyManual>();
-        const fetchedArray: EomsPolicyManual[] = [];
+  const manuals = useMemo(() => {
+    if (!manualsData) return new Map<string, EomsPolicyManual>();
+    return new Map(manualsData.map(m => [m.id, m]));
+  }, [manualsData]);
 
-        docSnapshots.forEach(snap => {
-            if (snap.exists()) {
-                const manualData = snap.data() as EomsPolicyManual;
-                fetchedMap.set(snap.id, manualData);
-                fetchedArray.push(manualData);
-            }
-        });
-        
-        setManuals(fetchedMap);
 
-        if (fetchedArray.length > 0) {
-            // Find the first available manual in the order of sections
-            const firstAvailable = sections
-                .map(s => fetchedArray.find(m => m.id === s.id))
-                .find(Boolean); // find the first non-undefined value
-            if (firstAvailable) {
-                setSelectedManual(firstAvailable);
-            }
+  // Effect to set the initially selected manual once data is loaded
+  useMemo(() => {
+    if (manuals.size > 0 && !selectedManual) {
+        // Find the first available manual in the order of sections
+        const firstAvailable = sections
+            .map(s => manuals.get(s.id))
+            .find(Boolean); // find the first non-undefined value
+        if (firstAvailable) {
+            setSelectedManual(firstAvailable);
         }
-      } catch (error: any) {
-        console.error("EOMS Policy Manual fetch error:", error);
-        
-        logError({
-            errorMessage: `User failed to fetch EOMS manuals: ${error.message}`,
-            errorStack: error.stack || 'No stack trace available.',
-            url: window.location.href,
-            userId: user?.uid,
-            userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
-            userRole: userRole || undefined,
-            userEmail: userProfile?.email
-        }).catch(e => console.error("Secondary error: could not log initial error.", e));
-        
-        toast({ title: 'Error', description: 'Could not load EOMS Policy Manual data.', variant: 'destructive'});
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchManuals();
-  }, [firestore, toast, user, userProfile, userRole]);
+    }
+  }, [manuals, selectedManual]);
   
   const previewUrl = selectedManual?.googleDriveLink
     ? selectedManual.googleDriveLink.replace('/view', '/preview').replace('?usp=sharing', '')
