@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useState, useMemo, useEffect } from 'react';
+import { useFirestore, useUser } from '@/firebase';
+import { collection, doc, getDoc } from 'firebase/firestore';
 import type { EomsPolicyManual } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,10 +12,7 @@ import { Loader2, BookOpen, Hash, FileText, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
 import { logError } from '@/lib/actions';
-import { useUser } from '@/firebase';
-
 
 const sections = Array.from({ length: 10 }, (_, i) => ({
   id: `section-${i + 1}`,
@@ -24,34 +21,48 @@ const sections = Array.from({ length: 10 }, (_, i) => ({
 
 export default function EomsPolicyManualPage() {
   const firestore = useFirestore();
-  const { toast } = useToast();
-  const { user, userProfile, userRole } = useUser();
   const [selectedManual, setSelectedManual] = useState<EomsPolicyManual | null>(null);
+  const [manuals, setManuals] = useState<Map<string, EomsPolicyManual>>(new Map());
+  const [isLoading, setIsLoading] = useState(true);
 
-  const manualsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'eomsPolicyManuals') : null),
-    [firestore]
-  );
-  const { data: manualsData, isLoading } = useCollection<EomsPolicyManual>(manualsQuery);
+  useEffect(() => {
+    const fetchManuals = async () => {
+      if (!firestore) return;
+      setIsLoading(true);
+      try {
+        const manualPromises = sections.map(section =>
+          getDoc(doc(firestore, 'eomsPolicyManuals', section.id))
+        );
+        const manualSnapshots = await Promise.all(manualPromises);
+        
+        const fetchedManuals = manualSnapshots
+          .filter(snap => snap.exists())
+          .map(snap => snap.data() as EomsPolicyManual);
 
-  const manuals = useMemo(() => {
-    if (!manualsData) return new Map<string, EomsPolicyManual>();
-    return new Map(manualsData.map(m => [m.id, m]));
-  }, [manualsData]);
+        const map = new Map<string, EomsPolicyManual>();
+        fetchedManuals.forEach(m => map.set(m.id, m));
+        setManuals(map);
 
-
-  // Effect to set the initially selected manual once data is loaded
-  useMemo(() => {
-    if (manuals.size > 0 && !selectedManual) {
-        // Find the first available manual in the order of sections
-        const firstAvailable = sections
-            .map(s => manuals.get(s.id))
-            .find(Boolean); // find the first non-undefined value
-        if (firstAvailable) {
-            setSelectedManual(firstAvailable);
+        if (fetchedManuals.length > 0) {
+            const firstAvailable = sections.map(s => map.get(s.id)).find(Boolean);
+            if(firstAvailable) {
+                setSelectedManual(firstAvailable);
+            }
         }
-    }
-  }, [manuals, selectedManual]);
+      } catch (error: any) {
+        console.error("EOMS Policy Manual fetch error:", error);
+        logError({
+            errorMessage: `EOMS Policy Manual fetch error: ${error.message}`,
+            errorStack: error.stack,
+            url: window.location.href,
+        }).catch(e => console.error("Secondary error: could not log initial error.", e));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchManuals();
+  }, [firestore]);
   
   const previewUrl = selectedManual?.googleDriveLink
     ? selectedManual.googleDriveLink.replace('/view', '/preview').replace('?usp=sharing', '')

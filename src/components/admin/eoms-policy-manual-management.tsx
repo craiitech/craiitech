@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
+import { collection, doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import type { EomsPolicyManual } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,17 +40,40 @@ export function EomsPolicyManualManagement() {
   const { user, userProfile, userRole } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedSection, setSelectedSection] = useState<{ id: string; number: number } | null>(null);
+  const [isLoadingManuals, setIsLoadingManuals] = useState(true);
+  const [manuals, setManuals] = useState<Map<string, EomsPolicyManual>>(new Map());
 
-  const manualsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'eomsPolicyManuals') : null),
-    [firestore]
-  );
-  const { data: manualsData, isLoading: isLoadingManuals } = useCollection<EomsPolicyManual>(manualsQuery);
+  useEffect(() => {
+    const fetchManuals = async () => {
+      if (!firestore) return;
+      setIsLoadingManuals(true);
+      try {
+        const manualPromises = sections.map(section => 
+          getDoc(doc(firestore, 'eomsPolicyManuals', section.id))
+        );
+        const manualSnapshots = await Promise.all(manualPromises);
+        
+        const fetchedManuals = manualSnapshots
+          .filter(snap => snap.exists())
+          .map(snap => snap.data() as EomsPolicyManual);
 
-  const manuals = useMemo(() => {
-    if (!manualsData) return new Map<string, EomsPolicyManual>();
-    return new Map(manualsData.map(m => [m.id, m]));
-  }, [manualsData]);
+        const map = new Map<string, EomsPolicyManual>();
+        fetchedManuals.forEach(m => map.set(m.id, m));
+        setManuals(map);
+      } catch (error: any) {
+        console.error("EOMS Policy Manual fetch error:", error);
+         logError({
+            errorMessage: `EOMS Policy Manual fetch error: ${error.message}`,
+            errorStack: error.stack,
+            url: window.location.href,
+        }).catch(e => console.error("Secondary error: could not log initial error.", e));
+      } finally {
+        setIsLoadingManuals(false);
+      }
+    };
+
+    fetchManuals();
+  }, [firestore]);
 
 
   const form = useForm<z.infer<typeof manualSchema>>({
@@ -99,11 +122,15 @@ export function EomsPolicyManualManagement() {
     try {
       await setDoc(manualRef, { ...manualData, updatedAt: serverTimestamp() }, { merge: true });
       toast({ title: 'Success', description: `Manual Section ${selectedSection.number} has been saved.` });
+      // Refresh data after save
+      const newManuals = new Map(manuals);
+      newManuals.set(selectedSection.id, { ...manualData, updatedAt: new Date() });
+      setManuals(newManuals);
       handleCloseDialog();
     } catch (error: any) {
       console.error('Error saving manual section:', error);
       logError({
-          errorMessage: `Failed to save EOMS manual section ${selectedSection?.id}: ${error.message}`,
+          errorMessage: `Error saving manual section: ${error.message}`,
           errorStack: error.stack,
           url: window.location.href,
           userId: user?.uid,
