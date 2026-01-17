@@ -269,8 +269,8 @@ service cloud.firestore {
     }
     
     match /eomsPolicyManuals/{docId} {
-        allow get, list: if isSignedIn();
-        allow create, update, delete: if isAdmin();
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
     }
 
     /**
@@ -330,3 +330,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
