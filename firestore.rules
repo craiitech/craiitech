@@ -264,17 +264,13 @@ service cloud.firestore {
     }
     
     match /procedureManuals/{unitId} {
-      allow read, list: if isSignedIn();
-      allow write: if isAdmin();
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
     }
     
     match /eomsPolicyManuals/{docId} {
-        allow get: if isSignedIn();
-        allow write: if isAdmin();
-    }
-    
-    match /eomsPolicyManuals {
-        allow list: if isSignedIn();
+        allow get, list: if isSignedIn();
+        allow create, update, delete: if isAdmin();
     }
 
     /**
