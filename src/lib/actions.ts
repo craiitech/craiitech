@@ -40,8 +40,8 @@ export async function logError(payload: ErrorReportPayload) {
         });
     } catch (error) {
         console.error('Failed to log error to Firestore:', error);
-        // We throw an error here so the client knows the report failed.
-        throw new Error("Could not submit error report.");
+        // Do not re-throw. The error reporting system should fail silently
+        // to avoid causing further errors. The console.error is sufficient for debugging.
     }
 }
 
