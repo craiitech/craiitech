@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -51,9 +50,10 @@ export default function EomsPolicyManualPage() {
         setManuals(fetchedMap);
 
         if (fetchedArray.length > 0) {
+            // Find the first available manual in the order of sections
             const firstAvailable = sections
                 .map(s => fetchedArray.find(m => m.id === s.id))
-                .find(Boolean);
+                .find(Boolean); // find the first non-undefined value
             if (firstAvailable) {
                 setSelectedManual(firstAvailable);
             }

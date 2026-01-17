@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -44,6 +43,7 @@ export function EomsPolicyManualManagement() {
   const [manuals, setManuals] = useState<Map<string, EomsPolicyManual>>(new Map());
   const [isLoadingManuals, setIsLoadingManuals] = useState(true);
 
+  // This effect fetches each document individually, avoiding the 'list' operation.
   useEffect(() => {
     if (!firestore || !user) return;
 
@@ -68,7 +68,7 @@ export function EomsPolicyManualManagement() {
       } catch (error: any) {
         console.error("EOMS Policy Manual fetch error:", error);
         logError({
-            errorMessage: error.message || 'Failed to fetch EOMS Policy Manuals.',
+            errorMessage: `Admin failed to fetch EOMS manuals: ${error.message}`,
             errorStack: error.stack,
             url: window.location.href,
             userId: user?.uid,
@@ -83,7 +83,7 @@ export function EomsPolicyManualManagement() {
     };
 
     fetchAllManuals();
-  }, [firestore, user, isSubmitting, toast, userProfile, userRole]);
+  }, [firestore, user, isSubmitting, toast, userProfile, userRole]); // Rerun on isSubmitting change to refresh data after save
 
 
   const form = useForm<z.infer<typeof manualSchema>>({
@@ -119,7 +119,7 @@ export function EomsPolicyManualManagement() {
     setIsSubmitting(true);
 
     const manualRef = doc(firestore, 'eomsPolicyManuals', selectedSection.id);
-    const manualData: Omit<EomsPolicyManual, 'updatedAt'> = {
+    const manualData: Omit<EomsPolicyManual, 'updatedAt'> & { id: string, sectionNumber: number } = {
       title: values.title,
       googleDriveLink: values.googleDriveLink,
       revisionNumber: values.revisionNumber,
@@ -133,7 +133,7 @@ export function EomsPolicyManualManagement() {
       await setDoc(manualRef, { ...manualData, updatedAt: serverTimestamp() }, { merge: true });
       toast({ title: 'Success', description: `Manual Section ${selectedSection.number} has been saved.` });
       handleCloseDialog();
-      setIsSubmitting(false); // Set to false to trigger refetch
+      setIsSubmitting(false); // Set to false to trigger refetch via useEffect dependency
     } catch (error: any) {
       console.error('Error saving manual section:', error);
       logError({
