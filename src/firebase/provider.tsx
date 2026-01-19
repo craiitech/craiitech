@@ -149,7 +149,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   const { data: adminRoleDoc, isLoading: isAdminRoleLoading } = useDoc(adminRoleDocRef);
 
-  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
+  const campusesQuery = useMemoFirebase(() => {
+    // Wait for the user to be authenticated before trying to fetch campuses.
+    if (!firestore || !userAuthState.user) return null;
+    return collection(firestore, 'campuses');
+  }, [firestore, userAuthState.user]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
   // Memoize the context value
