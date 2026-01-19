@@ -162,9 +162,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const userStatusRef = doc(firestore, 'users', user.uid);
     
-    // Set online status and last seen timestamp when the user becomes active
+    // Set last seen timestamp when the user becomes active
     updateDoc(userStatusRef, {
-        isOnline: true,
         lastSeen: serverTimestamp()
     });
 

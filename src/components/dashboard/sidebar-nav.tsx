@@ -24,44 +24,48 @@ import { Skeleton } from '../ui/skeleton';
 const AdminStatusIndicator = () => {
     const { firestore } = useUser();
 
-    // Fetch all online users to perform a case-insensitive check on the client.
-    const onlineUsersQuery = useMemoFirebase(() => {
+    // 1. Get all admin UIDs from the roles_admin collection
+    const adminRolesQuery = useMemoFirebase(() => {
         if (!firestore) return null;
-        return query(
-            collection(firestore, 'users'),
-            where('isOnline', '==', true)
-        );
+        return collection(firestore, 'roles_admin');
     }, [firestore]);
+    const { data: adminRoles, isLoading: isLoadingAdminRoles } = useCollection<{ uid: string }>(adminRolesQuery);
 
-    const { data: onlineUsers, isLoading: isLoadingOnlineUsers } = useCollection<AppUser>(onlineUsersQuery);
+    const adminUIDs = useMemo(() => adminRoles?.map(role => role.uid) || [], [adminRoles]);
 
+    // 2. Fetch the user documents for all admins using their UIDs
+    const adminUsersQuery = useMemoFirebase(() => {
+        if (!firestore || adminUIDs.length === 0) return null;
+        // Firestore 'in' queries are limited to 30 items. If there are more admins, multiple queries would be needed.
+        // For this app, assuming less than 30 admins is a safe bet.
+        return query(collection(firestore, 'users'), where('id', 'in', adminUIDs));
+    }, [firestore, adminUIDs]);
+    const { data: adminUsers, isLoading: isLoadingAdminUsers } = useCollection<AppUser>(adminUsersQuery);
+
+    // 3. Check if any admin has a recent 'lastSeen' timestamp
     const adminIsOnline = useMemo(() => {
-        if (!onlineUsers || onlineUsers.length === 0) return false;
-
-        // Filter for admins on the client-side to handle case-insensitivity
-        const onlineAdmins = onlineUsers.filter(user => user.role?.toLowerCase().includes('admin'));
-
-        if (onlineAdmins.length === 0) return false;
-
+        if (!adminUsers || adminUsers.length === 0) return false;
         const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
         
-        return onlineAdmins.some(admin => {
+        return adminUsers.some(admin => {
             if (!admin.lastSeen) return false;
 
             let lastSeenMillis = 0;
-            // Robustly check for a Timestamp object.
+            // Robustly handle both server-side and client-side Timestamp objects
             if (admin.lastSeen?.toDate && typeof admin.lastSeen.toDate === 'function') {
                 lastSeenMillis = admin.lastSeen.toDate().getTime();
             } else if (typeof (admin.lastSeen as any)?.seconds === 'number') {
-                // Handle serialized timestamp objects.
+                // Handle serialized timestamp objects that come from server-rendered components
                 lastSeenMillis = (admin.lastSeen as any).seconds * 1000;
             }
 
             return lastSeenMillis > twoMinutesAgo;
         });
-    }, [onlineUsers]);
+    }, [adminUsers]);
+
+    const isLoading = isLoadingAdminRoles || (adminUIDs.length > 0 && isLoadingAdminUsers);
     
-    if (isLoadingOnlineUsers) {
+    if (isLoading) {
         return (
              <SidebarMenuItem>
                 <div className="flex h-10 items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm text-sidebar-foreground/80 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-2">

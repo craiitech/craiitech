@@ -39,15 +39,6 @@ export default function LogoutPage() {
 
     const handleFinalLogout = async () => {
       try {
-        // Explicitly set the user's status to offline. This is a critical step for the presence system.
-        const userStatusRef = doc(firestore, 'users', user.uid);
-        await updateDoc(userStatusRef, { isOnline: false });
-      } catch (error) {
-        console.error('Error setting user offline:', error);
-        // Do not block logout if this fails, but log the error.
-      }
-      
-      try {
         // Proceed with Firebase sign-out.
         await signOut(auth);
         clearSessionLogs();
