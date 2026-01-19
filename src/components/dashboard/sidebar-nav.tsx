@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -24,35 +23,42 @@ import { Skeleton } from '../ui/skeleton';
 const AdminStatusIndicator = () => {
     const [adminIsOnline, setAdminIsOnline] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (!isMounted) {
+            return;
+        }
+
         const fetchAdminStatus = async () => {
             try {
                 const response = await fetch('/api/admin-status');
                 if (!response.ok) {
-                    console.error('Failed to fetch admin status:', response.statusText);
-                    setAdminIsOnline(false); // Assume offline on failure
+                    const errorDetails = `Status: ${response.status}, StatusText: ${response.statusText}`;
+                    console.error('Failed to fetch admin status.', errorDetails);
+                    setAdminIsOnline(false);
                     return;
                 }
                 const data = await response.json();
                 setAdminIsOnline(data.isAdminOnline);
             } catch (error) {
-                console.error('Failed to fetch admin status:', error);
-                setAdminIsOnline(false); // Assume offline on network error
+                const errorMessage = (error instanceof Error) ? error.message : 'An unknown network error occurred.';
+                console.error('Failed to fetch admin status:', errorMessage);
+                setAdminIsOnline(false);
             } finally {
-                if (isLoading) {
-                    setIsLoading(false);
-                }
+                setIsLoading(false);
             }
         };
 
-        // Fetch immediately and then poll every 30 seconds
         fetchAdminStatus();
         const intervalId = setInterval(fetchAdminStatus, 30000);
 
-        // Cleanup on unmount
         return () => clearInterval(intervalId);
-    }, [isLoading]); // Rerunning this effect isn't necessary, but keeping a dependency helps with React's rules.
+    }, [isMounted]);
 
     if (isLoading) {
         return (
