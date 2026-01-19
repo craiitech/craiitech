@@ -30,31 +30,29 @@ const AdminStatusIndicator = () => {
             try {
                 const response = await fetch('/api/admin-status');
                 if (!response.ok) {
-                    // Don't throw, just log and assume offline for UI stability
                     console.error('Failed to fetch admin status:', response.statusText);
-                    setAdminIsOnline(false);
+                    setAdminIsOnline(false); // Assume offline on failure
                     return;
                 }
                 const data = await response.json();
                 setAdminIsOnline(data.isAdminOnline);
             } catch (error) {
-                console.error(error);
-                // Gracefully fail to offline status on network error
-                setAdminIsOnline(false);
+                console.error('Failed to fetch admin status:', error);
+                setAdminIsOnline(false); // Assume offline on network error
             } finally {
-                // Set loading to false only on the first fetch.
-                // Subsequent calls from the interval won't change the state.
-                setIsLoading(false);
+                if (isLoading) {
+                    setIsLoading(false);
+                }
             }
         };
 
         // Fetch immediately and then poll every 30 seconds
         fetchAdminStatus();
-        const intervalId = setInterval(fetchAdminStatus, 30000); // Poll every 30 seconds
+        const intervalId = setInterval(fetchAdminStatus, 30000);
 
-        return () => clearInterval(intervalId); // Cleanup on unmount
-    }, []);
-
+        // Cleanup on unmount
+        return () => clearInterval(intervalId);
+    }, [isLoading]); // Rerunning this effect isn't necessary, but keeping a dependency helps with React's rules.
 
     if (isLoading) {
         return (
