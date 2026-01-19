@@ -21,16 +21,16 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { cn } from '@/lib/utils';
 
 const AdminStatusIndicator = () => {
-    const { firestore, isAdmin } = useUser();
+    const { firestore, isAdmin, user } = useUser();
 
     // Fetch all online users to perform a case-insensitive check on the client.
     const onlineUsersQuery = useMemoFirebase(() => {
-        if (!firestore || isAdmin) return null;
+        if (!firestore || isAdmin || !user) return null;
         return query(
             collection(firestore, 'users'),
             where('isOnline', '==', true)
         );
-    }, [firestore, isAdmin]);
+    }, [firestore, isAdmin, user]);
 
     const { data: onlineUsers, isLoading: isLoadingOnlineUsers } = useCollection<AppUser>(onlineUsersQuery);
 
@@ -39,7 +39,7 @@ const AdminStatusIndicator = () => {
         if (!onlineUsers || onlineUsers.length === 0) return false;
 
         // Filter for admins on the client-side to handle case-insensitivity.
-        const onlineAdmins = onlineUsers.filter(user => user.role?.toLowerCase() === 'admin');
+        const onlineAdmins = onlineUsers.filter(user => user.role?.toLowerCase().includes('admin'));
 
         // If the filtered list of admins is empty, none are online.
         if (onlineAdmins.length === 0) return false;
