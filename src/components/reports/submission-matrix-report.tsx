@@ -120,7 +120,7 @@ export function SubmissionMatrixReport({
         <Accordion type="multiple" className="w-full" defaultValue={matrixData.map(d => d.campusId)}>
           {matrixData.map(({ campusId, campusName, units }) => (
             <AccordionItem value={campusId} key={campusId}>
-              <AccordionTrigger>SITE {campusId.slice(0,4).toUpperCase()} - {campusName.toUpperCase()}</AccordionTrigger>
+              <AccordionTrigger>{campusName.toUpperCase()}</AccordionTrigger>
               <AccordionContent>
                 <div className="relative overflow-x-auto">
                   <Table>
