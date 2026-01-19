@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -36,14 +37,25 @@ const AdminStatusIndicator = () => {
     const adminIsOnline = useMemo(() => {
         if (!onlineAdmins || onlineAdmins.length === 0) return false;
         const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+        
         return onlineAdmins.some(admin => {
             if (!admin.lastSeen) return false;
-            const lastSeenDate = admin.lastSeen instanceof Timestamp ? admin.lastSeen.toDate().getTime() : 0;
-            return lastSeenDate > twoMinutesAgo;
+
+            // Robustly get milliseconds from a Firestore Timestamp-like object
+            let lastSeenMillis = 0;
+            if (admin.lastSeen.toDate && typeof admin.lastSeen.toDate === 'function') {
+                // It's a proper Firestore Timestamp object
+                lastSeenMillis = admin.lastSeen.toDate().getTime();
+            } else if (typeof admin.lastSeen.seconds === 'number') {
+                // It's a plain object with seconds and nanoseconds that can come from server serialization
+                lastSeenMillis = admin.lastSeen.seconds * 1000;
+            }
+
+            return lastSeenMillis > twoMinutesAgo;
         });
     }, [onlineAdmins]);
     
-    if (isAdmin || isLoadingOnlineAdmins || !onlineAdmins) {
+    if (isAdmin || isLoadingOnlineAdmins) {
         return null;
     }
     
@@ -108,12 +120,12 @@ export function SidebarNav({
       active: pathname.startsWith('/manuals'),
       icon: <BookOpen />,
     },
-    /* {
-      href: '/eoms-policy-manual',
-      label: 'EOMS Policy Manual',
-      active: pathname.startsWith('/eoms-policy-manual'),
-      icon: <BookMarked />,
-    }, */
+    // {
+    //   href: '/eoms-policy-manual',
+    //   label: 'EOMS Policy Manual',
+    //   active: pathname.startsWith('/eoms-policy-manual'),
+    //   icon: <BookMarked />,
+    // },
     {
       href: '/risk-register',
       label: 'Risk Register',
