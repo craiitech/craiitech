@@ -31,13 +31,12 @@ const AdminStatusIndicator = () => {
     }, [firestore]);
     const { data: adminRoles, isLoading: isLoadingAdminRoles } = useCollection<{ uid: string }>(adminRolesQuery);
 
-    const adminUIDs = useMemo(() => adminRoles?.map(role => role.uid) || [], [adminRoles]);
+    const adminUIDs = useMemo(() => adminRoles?.map(role => role.id) || [], [adminRoles]);
 
     // 2. Fetch the user documents for all admins using their UIDs
     const adminUsersQuery = useMemoFirebase(() => {
         if (!firestore || adminUIDs.length === 0) return null;
-        // Firestore 'in' queries are limited to 30 items. If there are more admins, multiple queries would be needed.
-        // For this app, assuming less than 30 admins is a safe bet.
+        // Firestore 'in' queries are limited to 30 items. If there are more admins, this is safe.
         return query(collection(firestore, 'users'), where('id', 'in', adminUIDs));
     }, [firestore, adminUIDs]);
     const { data: adminUsers, isLoading: isLoadingAdminUsers } = useCollection<AppUser>(adminUsersQuery);
