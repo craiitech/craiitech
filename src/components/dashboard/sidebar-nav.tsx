@@ -19,34 +19,32 @@ import { collection, query, where, Timestamp } from 'firebase/firestore';
 import { useMemo } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '../ui/skeleton';
 
 const AdminStatusIndicator = () => {
-    const { firestore, isAdmin, user } = useUser();
+    const { firestore } = useUser();
 
     // Fetch all online users to perform a case-insensitive check on the client.
     const onlineUsersQuery = useMemoFirebase(() => {
-        if (!firestore || isAdmin || !user) return null;
+        if (!firestore) return null;
         return query(
             collection(firestore, 'users'),
             where('isOnline', '==', true)
         );
-    }, [firestore, isAdmin, user]);
+    }, [firestore]);
 
     const { data: onlineUsers, isLoading: isLoadingOnlineUsers } = useCollection<AppUser>(onlineUsersQuery);
 
     const adminIsOnline = useMemo(() => {
-        // If there are no online users at all, no admin can be online.
         if (!onlineUsers || onlineUsers.length === 0) return false;
 
-        // Filter for admins on the client-side to handle case-insensitivity.
+        // Filter for admins on the client-side to handle case-insensitivity
         const onlineAdmins = onlineUsers.filter(user => user.role?.toLowerCase().includes('admin'));
 
-        // If the filtered list of admins is empty, none are online.
         if (onlineAdmins.length === 0) return false;
 
         const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
         
-        // Check if AT LEAST ONE of the online admins has a recent timestamp.
         return onlineAdmins.some(admin => {
             if (!admin.lastSeen) return false;
 
@@ -63,15 +61,22 @@ const AdminStatusIndicator = () => {
         });
     }, [onlineUsers]);
     
-    if (isAdmin || isLoadingOnlineUsers) {
-        return null;
+    if (isLoadingOnlineUsers) {
+        return (
+             <SidebarMenuItem>
+                <div className="flex h-10 items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm text-sidebar-foreground/80 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-2">
+                    <Skeleton className="h-3 w-3 rounded-full" />
+                    <Skeleton className="h-4 w-20 group-data-[collapsible=icon]:hidden" />
+                </div>
+            </SidebarMenuItem>
+        );
     }
     
     const statusText = adminIsOnline ? "Admin Online" : "Admin Offline";
     const statusColor = adminIsOnline ? "bg-green-500" : "bg-destructive";
     const tooltipText = adminIsOnline 
-        ? "An administrator is currently online. Submissions may be reviewed shortly."
-        : "No administrators are currently online. Submissions will be reviewed later.";
+        ? "An administrator is currently online."
+        : "No administrators are currently online.";
 
     return (
         <SidebarMenuItem className="cursor-default">
@@ -214,7 +219,7 @@ export function SidebarNav({
       </SidebarMenu>
       <div className="mt-auto">
          <SidebarMenu>
-            {!isAdmin && <AdminStatusIndicator />}
+            <AdminStatusIndicator />
             <SidebarMenuItem>
                 <Link href="/help" passHref>
                     <SidebarMenuButton as="a" isActive={pathname.startsWith('/help')} icon={<HelpCircle/>} className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground hover:bg-sidebar-accent">
