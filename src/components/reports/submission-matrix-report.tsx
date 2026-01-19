@@ -10,7 +10,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Check, X } from 'lucide-react';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { useUser } from '@/firebase';
 
 interface SubmissionMatrixReportProps {
   allSubmissions: Submission[] | null;
@@ -33,7 +32,6 @@ export function SubmissionMatrixReport({
   onYearChange,
   userProfile,
 }: SubmissionMatrixReportProps) {
-  const { isAdmin } = useUser();
 
   const years = useMemo(() => {
     if (!allCycles) return [new Date().getFullYear()];
@@ -56,9 +54,10 @@ export function SubmissionMatrixReport({
       )
     );
     
-    const relevantCampuses = isAdmin
-      ? allCampuses
-      : allCampuses.filter(c => c.id === userProfile.campusId);
+    // The data passed in the `allCampuses` prop is already scoped
+    // correctly by the parent component for both Admins and Supervisors.
+    // We can use it directly without re-filtering.
+    const relevantCampuses = allCampuses;
 
     return relevantCampuses.map(campus => {
       // Get all units assigned to the current campus.
@@ -94,7 +93,7 @@ export function SubmissionMatrixReport({
     .filter((c): c is NonNullable<typeof c> => c !== null)
     .sort((a, b) => a.campusName.localeCompare(b.campusName));
 
-  }, [allSubmissions, allCampuses, allUnits, selectedYear, userProfile, isAdmin]);
+  }, [allSubmissions, allCampuses, allUnits, selectedYear, userProfile]);
 
   return (
     <Card>
