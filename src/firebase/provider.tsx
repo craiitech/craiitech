@@ -8,7 +8,7 @@ import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 import { useDoc } from './firestore/use-doc';
 import { useCollection, type WithId } from './firestore/use-collection';
-import type { User as AppUser, Role } from '@/lib/types';
+import type { User as AppUser, Role, Campus } from '@/lib/types';
 import { useMemoFirebase } from './';
 import { useSessionActivity, ActivityLogProvider } from '@/lib/activity-log-provider';
 import { useToast } from '@/hooks/use-toast';
@@ -45,6 +45,7 @@ export interface FirebaseContextState {
   userRole: string | null;
   isSupervisor: boolean;
   isVp: boolean;
+  isMainCampusCoordinator: boolean;
 }
 
 // Return type for useFirebase()
@@ -63,6 +64,7 @@ export interface FirebaseServicesAndUser {
   userRole: string | null;
   isSupervisor: boolean;
   isVp: boolean;
+  isMainCampusCoordinator: boolean;
 }
 
 // Return type for useUser() - specific to user auth state
@@ -75,6 +77,7 @@ export interface UserHookResult {
   userRole: string | null;
   isSupervisor: boolean;
   isVp: boolean;
+  isMainCampusCoordinator: boolean;
   firestore: Firestore | null; // Added for convenience in some hooks
 }
 
@@ -146,6 +149,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   const { data: adminRoleDoc, isLoading: isAdminRoleLoading } = useDoc(adminRoleDocRef);
 
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
+  const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {
@@ -158,8 +163,16 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const supervisorRoles = ['Admin', 'Campus Director', 'Campus ODIMO'];
     const isSupervisor = isAdmin || (userRole ? supervisorRoles.some(role => userRole.includes(role)) : false) || isVp;
 
+    const mainCampus = campuses?.find(c => c.name === 'Main Campus');
+    const isMainCampusCoordinator = !!(
+      userProfile &&
+      mainCampus &&
+      userProfile.campusId === mainCampus.id &&
+      (userProfile.role === 'Unit Coordinator' || userProfile.role === 'Unit ODIMO')
+    );
+
     // The user is fully loaded only when auth state is determined AND the Firestore profile is loaded.
-    const isUserLoading = userAuthState.isAuthLoading || (!!userAuthState.user && isProfileLoading) || (!!userAuthState.user && isAdminRoleLoading);
+    const isUserLoading = userAuthState.isAuthLoading || (!!userAuthState.user && (isProfileLoading || isAdminRoleLoading || isLoadingCampuses));
 
 
     return {
@@ -177,8 +190,9 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       userRole,
       isSupervisor,
       isVp,
+      isMainCampusCoordinator,
     };
-  }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading, adminRoleDoc, isAdminRoleLoading]);
+  }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading, adminRoleDoc, isAdminRoleLoading, campuses, isLoadingCampuses]);
   
   // A separate component or hook is needed to use the Activity Log context
   function ActivityLogger() {
@@ -241,6 +255,7 @@ export const useFirebase = (): FirebaseServicesAndUser | { areServicesAvailable:
     userRole: context.userRole,
     isSupervisor: context.isSupervisor,
     isVp: context.isVp,
+    isMainCampusCoordinator: context.isMainCampusCoordinator,
   };
 };
 
@@ -279,8 +294,8 @@ export const useFirebaseApp = (): FirebaseApp | null => {
 export const useUser = (): UserHookResult => { 
   const context = useFirebase();
    if (!context.areServicesAvailable) {
-      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, userRole: null, isSupervisor: false, isVp: false, firestore: null };
+      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, userRole: null, isSupervisor: false, isVp: false, isMainCampusCoordinator: false, firestore: null };
   }
-  const { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp, firestore } = context; 
-  return { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp, firestore };
+  const { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator } = context; 
+  return { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator };
 };

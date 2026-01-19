@@ -311,7 +311,7 @@ const SubmissionsTable = ({
 
 
 export default function SubmissionsPage() {
-  const { userProfile, isAdmin, isSupervisor, userRole } = useUser();
+  const { user, userProfile, isAdmin, isSupervisor, userRole, isMainCampusCoordinator } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -319,10 +319,12 @@ export default function SubmissionsPage() {
   
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [feedbackToShow, setFeedbackToShow] = useState('');
+  const [crossCampusSubmissions, setCrossCampusSubmissions] = useState<Submission[]>([]);
+  const [isLoadingCrossCampus, setIsLoadingCrossCampus] = useState(false);
 
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
-    if (isAdmin) {
+    if (isAdmin || isMainCampusCoordinator) {
         return collection(firestore, 'users');
     }
     if (isSupervisor) {
@@ -331,7 +333,7 @@ export default function SubmissionsPage() {
     }
     // For single user view, we only need their own user object
     return query(collection(firestore, 'users'), where('id', '==', userProfile.id));
-  }, [firestore, isAdmin, isSupervisor, userProfile]);
+  }, [firestore, isAdmin, isSupervisor, userProfile, isMainCampusCoordinator]);
   
   const { data: users, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
 
@@ -359,31 +361,47 @@ export default function SubmissionsPage() {
   const { data: cycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
 
 
-  // Effect to fetch user data based on loaded submissions
+  // Effect for cross-campus data
   useEffect(() => {
-    if (!submissionsData || !firestore || !isSupervisor) return;
+    if (!isMainCampusCoordinator || !user) return;
 
-    const fetchUsers = async () => {
-      const userIds = [...new Set(submissionsData.map(s => s.userId))];
-      if (userIds.length === 0) return;
+    const fetchCrossCampusSubmissions = async () => {
+        setIsLoadingCrossCampus(true);
+        try {
+            const token = await user.getIdToken();
+            const response = await fetch('/api/get-unit-submissions', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
 
-      const newUsersMap = new Map<string, AppUser>();
-      // Firestore 'in' query is limited to 30 elements. We might need to batch this.
-      const batchSize = 30;
-      for (let i = 0; i < userIds.length; i += batchSize) {
-        const batchIds = userIds.slice(i, i + batchSize);
-        if (batchIds.length > 0) {
-          const q = query(collection(firestore, 'users'), where('id', 'in', batchIds));
-          const userSnap = await getDocs(q);
-          userSnap.forEach(doc => {
-            newUsersMap.set(doc.id, { ...doc.data() as AppUser, id: doc.id });
-          });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to fetch cross-campus submissions');
+            }
+
+            const data = await response.json();
+            const parsedData = data.map((s: any) => ({
+                ...s,
+                submissionDate: new Date(s.submissionDate),
+                 ...(s.createdAt && { createdAt: new Date(s.createdAt) }),
+                ...(s.updatedAt && { updatedAt: new Date(s.updatedAt) }),
+            }));
+            setCrossCampusSubmissions(parsedData);
+        } catch (error) {
+            console.error(error);
+            toast({
+                title: 'Error',
+                description: 'Could not load monitoring data.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsLoadingCrossCampus(false);
         }
-      }
     };
 
-    fetchUsers();
-  }, [submissionsData, firestore, isSupervisor]);
+    fetchCrossCampusSubmissions();
+  }, [isMainCampusCoordinator, user, toast]);
 
   const isLoading = isLoadingSubmissions || isLoadingCampuses || isLoadingCycles || isLoadingUnits || isLoadingUsers;
 
@@ -411,6 +429,12 @@ export default function SubmissionsPage() {
       }
       return map;
   }, [campuses]);
+  
+  const unitName = useMemo(() => {
+    if (!userProfile?.unitId || !units) return '';
+    return units.find(u => u.id === userProfile.unitId)?.name || '';
+  }, [userProfile, units]);
+
 
   const submissions = useMemo(() => {
     if (!submissionsData) return [];
@@ -702,6 +726,12 @@ export default function SubmissionsPage() {
                 Campus Submissions
               </TabsTrigger>
             )}
+             {isMainCampusCoordinator && (
+                <TabsTrigger value="cross-campus">
+                    <Send className="mr-2 h-4 w-4" />
+                    Cross-Campus Monitoring
+                </TabsTrigger>
+            )}
         </TabsList>
         <TabsContent value="all-submissions" data-state={activeTab === 'all-submissions' ? 'active' : 'inactive'}>
             <Card>
@@ -770,6 +800,39 @@ export default function SubmissionsPage() {
                     allUnits={units}
                     isLoading={isLoading}
                 />
+            </TabsContent>
+        )}
+        {isMainCampusCoordinator && (
+            <TabsContent value="cross-campus" data-state={activeTab === 'cross-campus' ? 'active' : 'inactive'}>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Cross-Campus Unit Monitoring</CardTitle>
+                        <CardDescription>
+                            Viewing all submissions for "{unitName}" across all campuses. This is a read-only view.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {isLoadingCrossCampus ? (
+                            <div className="flex justify-center items-center h-64">
+                                <Loader2 className="h-8 w-8 animate-spin" />
+                            </div>
+                        ) : (
+                           <SubmissionsTable 
+                                submissions={crossCampusSubmissions}
+                                isSupervisor={true}
+                                isAdmin={true}
+                                usersMap={usersMap}
+                                campusMap={campusMap}
+                                onEyeClick={handleEyeClick}
+                                onDeleteClick={() => {}}
+                                onFeedbackClick={handleFeedbackClick}
+                                sortConfig={sortConfig}
+                                requestSort={requestSort}
+                                cycles={cycleMap}
+                           />
+                        )}
+                    </CardContent>
+                </Card>
             </TabsContent>
         )}
       </Tabs>
