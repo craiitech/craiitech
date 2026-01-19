@@ -182,14 +182,21 @@ export function SidebarNav({
     if (!route.roles) {
       return true;
     }
-    // If roles are required, check if user is an admin OR has one of the required roles.
-    if (isAdmin) {
-      return route.roles.includes('Admin');
+    // Specific check for admins
+    if (isAdmin && route.roles.includes('Admin')) {
+        return true;
     }
-    const canSeeAsRole = userRole && route.roles.includes(userRole);
-    const canSeeAsVp = userRole && route.roles.includes('Vice President') && userRole.toLowerCase().includes('vice president');
-    
-    return canSeeAsRole || canSeeAsVp;
+    // Check for other roles
+    if (userRole) {
+        const isVp = userRole.toLowerCase().includes('vice president');
+        if (route.roles.includes(userRole)) {
+            return true;
+        }
+        if (isVp && route.roles.includes('Vice President')) {
+            return true;
+        }
+    }
+    return false;
   });
 
   return (

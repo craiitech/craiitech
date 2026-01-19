@@ -162,7 +162,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const userStatusRef = doc(firestore, 'users', user.uid);
     
-    // Set online status and last seen timestamp
+    // Set online status and last seen timestamp when the user becomes active
     updateDoc(userStatusRef, {
         isOnline: true,
         lastSeen: serverTimestamp()
@@ -177,17 +177,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
     }, 60000);
 
-    // Best-effort attempt to set offline on tab close
-    const handleBeforeUnload = () => {
-        updateDoc(userStatusRef, { isOnline: false });
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
     // Cleanup on unmount
     return () => {
         clearInterval(interval);
-        window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [user, firestore]);
 
