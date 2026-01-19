@@ -20,7 +20,7 @@ export default function Home() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero-landing');
   const isoImage = PlaceHolderImages.find(p => p.id === 'iso-certification');
   return (
-    <div className="relative flex flex-col min-h-screen w-full items-center justify-center text-center text-white overflow-hidden">
+    <div className="relative flex flex-col min-h-screen w-full items-center justify-between text-center text-white overflow-hidden">
         {heroImage && (
             <Image
                 src={heroImage.imageUrl}
@@ -33,7 +33,7 @@ export default function Home() {
         )}
         <div className="absolute inset-0 bg-black/50 -z-10" />
 
-        <div className="flex flex-col items-center justify-center space-y-6 p-4">
+        <div className="flex flex-col items-center justify-center space-y-6 p-4 pt-24 md:pt-32">
             <div className="flex items-center justify-center gap-4">
                 <Logo className="h-12 w-12 text-white" />
                 <h1 className="text-4xl font-bold tracking-tighter sm:text-6xl xl:text-7xl/none">
@@ -117,6 +117,9 @@ export default function Home() {
                     </AlertDialogContent>
                 </AlertDialog>
             </div>
+        </div>
+        
+        <div className="w-full p-4">
              <p className="text-xs text-white/60">
                 &copy; 2025 Romblon State University - Quality Assurance Office. All rights reserved. 
                 <Link href="/terms" className="underline hover:text-white ml-1">Read our Terms and Conditions.</Link>
