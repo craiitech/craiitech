@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -22,43 +22,52 @@ export default function LogoutPage() {
   const auth = useAuth();
   const { toast } = useToast();
   const { clearSessionLogs } = useSessionActivity();
-  const { user, firestore } = useUser();
+  const { user, firestore, isUserLoading } = useUser();
+  const hasInitiatedLogout = useRef(false);
 
   useEffect(() => {
-    const handleFinalLogout = async () => {
-      if (auth && firestore && user) {
-        try {
-          // Set user offline before signing out
-          const userStatusRef = doc(firestore, 'users', user.uid);
-          await updateDoc(userStatusRef, { isOnline: false });
+    // Wait until user loading is complete and we have a user object.
+    if (isUserLoading || !user || !auth || !firestore) {
+      return;
+    }
+    
+    // Ensure the logout process only runs once.
+    if (hasInitiatedLogout.current) {
+      return;
+    }
+    hasInitiatedLogout.current = true;
 
-          await signOut(auth);
-          clearSessionLogs();
-        } catch (error) {
-          console.error('Error during logout process: ', error);
-          toast({
-            title: "Logout Error",
-            description: "There was an issue logging you out.",
-            variant: 'destructive',
-          });
-        }
-      } else if (auth) {
-        // Fallback for cases where context might not be ready
+    const handleFinalLogout = async () => {
+      try {
+        // Explicitly set the user's status to offline. This is a critical step for the presence system.
+        const userStatusRef = doc(firestore, 'users', user.uid);
+        await updateDoc(userStatusRef, { isOnline: false });
+      } catch (error) {
+        console.error('Error setting user offline:', error);
+        // Do not block logout if this fails, but log the error.
+      }
+      
+      try {
+        // Proceed with Firebase sign-out.
         await signOut(auth);
         clearSessionLogs();
+      } catch (error) {
+        console.error('Error during sign out: ', error);
+        toast({
+          title: "Logout Error",
+          description: "There was an issue signing you out.",
+          variant: 'destructive',
+        });
+      } finally {
+        // Always redirect to the home page.
+        router.push('/');
       }
-      // Use router.push('/') for a client-side navigation to the home page.
-      router.push('/');
     };
+    
+    // Start the logout process.
+    handleFinalLogout();
 
-    // Delay the logout slightly to allow any final logging to complete if needed
-    const timer = setTimeout(() => {
-      handleFinalLogout();
-    }, 500); // 500ms delay
-
-    return () => clearTimeout(timer);
-  }, [auth, clearSessionLogs, router, toast, firestore, user]);
-
+  }, [user, isUserLoading, auth, firestore, router, toast, clearSessionLogs]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4 dark:bg-gray-900">
