@@ -50,12 +50,12 @@ export function SidebarNav({
       active: pathname.startsWith('/manuals'),
       icon: <BookOpen />,
     },
-    {
+    /* {
       href: '/eoms-policy-manual',
       label: 'EOMS Policy Manual',
       active: pathname.startsWith('/eoms-policy-manual'),
       icon: <BookMarked />,
-    },
+    }, */
     {
       href: '/risk-register',
       label: 'Risk Register',
