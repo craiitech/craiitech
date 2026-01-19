@@ -20,6 +20,8 @@ export type User = {
   unitId: string;
   verified: boolean;
   ndaAccepted?: boolean;
+  isOnline?: boolean;
+  lastSeen?: any;
 };
 
 export type Status = 'Pending' | 'Approved' | 'Rejected' | 'Submitted';

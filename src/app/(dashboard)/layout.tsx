@@ -1,4 +1,3 @@
-
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -14,7 +13,7 @@ import {
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
 import { useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Campus, Unit, Submission } from '@/lib/types';
-import { collection, query, where, Query } from 'firebase/firestore';
+import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Building2 } from 'lucide-react';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';
@@ -146,6 +145,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       console.error = originalConsoleError;
     };
   }, [user, userProfile]);
+
+  // Presence system effect
+  useEffect(() => {
+    if (!user || !firestore) return;
+
+    const userStatusRef = doc(firestore, 'users', user.uid);
+    
+    // Set online status and last seen timestamp
+    updateDoc(userStatusRef, {
+        isOnline: true,
+        lastSeen: serverTimestamp()
+    });
+
+    // Heartbeat to keep status fresh every minute
+    const interval = setInterval(() => {
+        if (document.hasFocus()) { // Only update if tab is active
+            updateDoc(userStatusRef, {
+                lastSeen: serverTimestamp()
+            });
+        }
+    }, 60000);
+
+    // Best-effort attempt to set offline on tab close
+    const handleBeforeUnload = () => {
+        updateDoc(userStatusRef, { isOnline: false });
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Cleanup on unmount
+    return () => {
+        clearInterval(interval);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [user, firestore]);
 
 
   // Implement the inactivity logout timer.

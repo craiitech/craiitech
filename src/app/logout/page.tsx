@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import {
   Card,
@@ -15,27 +14,37 @@ import {
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSessionActivity } from '@/lib/activity-log-provider';
+import { doc, updateDoc } from 'firebase/firestore';
 
 export default function LogoutPage() {
   const router = useRouter();
   const auth = useAuth();
   const { toast } = useToast();
   const { clearSessionLogs } = useSessionActivity();
+  const { user, firestore } = useUser();
 
   useEffect(() => {
     const handleFinalLogout = async () => {
-      if (auth) {
+      if (auth && firestore && user) {
         try {
+          // Set user offline before signing out
+          const userStatusRef = doc(firestore, 'users', user.uid);
+          await updateDoc(userStatusRef, { isOnline: false });
+
           await signOut(auth);
-          clearSessionLogs(); // Clear the logs from the client-side context
+          clearSessionLogs();
         } catch (error) {
-          console.error('Error signing out: ', error);
+          console.error('Error during logout process: ', error);
           toast({
             title: "Logout Error",
             description: "There was an issue logging you out.",
             variant: 'destructive',
           });
         }
+      } else if (auth) {
+        // Fallback for cases where context might not be ready
+        await signOut(auth);
+        clearSessionLogs();
       }
       // Use router.push('/') for a client-side navigation to the home page.
       router.push('/');
@@ -47,7 +56,7 @@ export default function LogoutPage() {
     }, 500); // 500ms delay
 
     return () => clearTimeout(timer);
-  }, [auth, clearSessionLogs, router, toast]);
+  }, [auth, clearSessionLogs, router, toast, firestore, user]);
 
 
   return (

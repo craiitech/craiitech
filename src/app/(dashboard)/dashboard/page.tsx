@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -35,6 +34,7 @@ import {
   User,
   LayoutDashboard,
   BrainCircuit,
+  Info,
 } from 'lucide-react';
 import {
   useUser,
@@ -195,6 +195,30 @@ export default function HomePage() {
   }, [firestore, isAdmin, isSupervisor, userProfile]);
 
   const { data: allUsersData, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
+
+  const onlineAdminsQuery = useMemoFirebase(() => {
+    if (!firestore || isAdmin) return null;
+    return query(
+        collection(firestore, 'users'),
+        where('role', '==', 'Admin'),
+        where('isOnline', '==', true)
+    );
+  }, [firestore, isAdmin]);
+
+  const { data: onlineAdmins, isLoading: isLoadingOnlineAdmins } = useCollection<AppUser>(onlineAdminsQuery);
+
+  const adminIsOnline = useMemo(() => {
+    if (!onlineAdmins || onlineAdmins.length === 0) return false;
+    
+    const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+    
+    return onlineAdmins.some(admin => {
+        if (!admin.lastSeen) return false;
+        const lastSeenDate = admin.lastSeen instanceof Timestamp ? admin.lastSeen.toDate().getTime() : 0;
+        return lastSeenDate > twoMinutesAgo;
+    });
+  }, [onlineAdmins]);
+
 
   const allUsersMap = useMemo(() => {
     const userMap = new Map<string, AppUser>();
@@ -992,6 +1016,19 @@ export default function HomePage() {
             </p>
           </div>
         </div>
+        {!isAdmin && !isLoadingOnlineAdmins && (
+            <Alert variant={adminIsOnline ? 'default' : 'destructive'}>
+                <Info className="h-4 w-4" />
+                <AlertTitle>
+                    {adminIsOnline ? "An Administrator is Currently Online" : "No Administrators are Currently Online"}
+                </AlertTitle>
+                <AlertDescription>
+                    {adminIsOnline
+                        ? "Your submissions may be reviewed shortly."
+                        : "Your submissions will be reviewed once an administrator is available. Please allow some time for this process."}
+                </AlertDescription>
+            </Alert>
+        )}
         {showAnnouncements && (
           <Card>
             <CardHeader>
@@ -1030,4 +1067,3 @@ export default function HomePage() {
     </div>
   );
 }
-
