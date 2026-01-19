@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -49,7 +48,7 @@ export default function Home() {
             {isoImage && (
                 <div className="mt-4 flex flex-col items-center gap-2">
                     <Image
-                        src="/ISOlogo.jpg"
+                        src={isoImage.imageUrl}
                         alt={isoImage.description}
                         width={200}
                         height={200}
@@ -57,7 +56,7 @@ export default function Home() {
                         className="rounded-lg"
                         data-ai-hint={isoImage.imageHint}
                     />
-                    <p className="text-xs text-white/70">Certified ISO 21001:2018</p>
+                    <p className="text-xs text-white/70">{isoImage.description}</p>
                 </div>
             )}
             <div className="flex flex-wrap justify-center gap-4">
