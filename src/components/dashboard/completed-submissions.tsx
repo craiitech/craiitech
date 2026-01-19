@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -17,6 +16,7 @@ interface CompletedSubmissionsProps {
   isLoading: boolean;
   userProfile: AppUser | null;
   isCampusSupervisor: boolean;
+  selectedYear: number;
 }
 
 export function CompletedSubmissions({
@@ -26,14 +26,13 @@ export function CompletedSubmissions({
   isLoading,
   userProfile,
   isCampusSupervisor,
+  selectedYear,
 }: CompletedSubmissionsProps) {
   
   const completedSubmissionsByCampus = useMemo(() => {
     if (!allUnits || !allSubmissions || !allCampuses) {
       return [];
     }
-
-    const currentYear = new Date().getFullYear();
 
     const unitsByCampus = allUnits.reduce((acc, unit) => {
       unit.campusIds?.forEach(campusId => {
@@ -53,7 +52,7 @@ export function CompletedSubmissions({
     return relevantCampuses.map(campus => {
         const campusUnits = unitsByCampus[campus.id] || [];
         const completedUnits = campusUnits.map(unit => {
-            const unitSubmissions = allSubmissions.filter(s => s.unitId === unit.id && s.year === currentYear);
+            const unitSubmissions = allSubmissions.filter(s => s.unitId === unit.id && s.year === selectedYear);
             // A unique submission is a combination of report type and cycle
             const uniqueSubmissions = new Set(unitSubmissions.map(s => `${s.reportType}-${s.cycleId}`));
             return {
@@ -70,7 +69,7 @@ export function CompletedSubmissions({
         };
     }).filter(campus => campus.completedUnits.length > 0);
 
-  }, [allUnits, allCampuses, allSubmissions, isCampusSupervisor, userProfile]);
+  }, [allUnits, allCampuses, allSubmissions, isCampusSupervisor, userProfile, selectedYear]);
 
 
   if (isLoading) {
@@ -102,7 +101,7 @@ export function CompletedSubmissions({
             On-Track Units
         </CardTitle>
         <CardDescription>
-            Congratulations to the following units for completing all {TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT} required submissions for {new Date().getFullYear()}.
+            Congratulations to the following units for completing all {TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT} required submissions for {selectedYear}.
         </CardDescription>
       </CardHeader>
       <CardContent>

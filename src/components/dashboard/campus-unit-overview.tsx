@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -15,6 +14,7 @@ interface CampusUnitOverviewProps {
   allSubmissions: Submission[] | null;
   isLoading: boolean;
   userProfile: AppUser | null;
+  selectedYear: number;
 }
 
 export function CampusUnitOverview({
@@ -22,6 +22,7 @@ export function CampusUnitOverview({
   allSubmissions,
   isLoading,
   userProfile,
+  selectedYear,
 }: CampusUnitOverviewProps) {
 
   const unitSubmissionProgress = useMemo(() => {
@@ -29,11 +30,10 @@ export function CampusUnitOverview({
       return [];
     }
 
-    const currentYear = new Date().getFullYear();
     const campusUnits = allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
 
     return campusUnits.map(unit => {
-      const unitSubmissionsForYear = allSubmissions.filter(s => s.unitId === unit.id && s.year === currentYear);
+      const unitSubmissionsForYear = allSubmissions.filter(s => s.unitId === unit.id && s.year === selectedYear);
       
       const firstCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry Form');
       const requiredFirst = firstCycleRegistry?.riskRating === 'low' ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
@@ -56,7 +56,7 @@ export function CampusUnitOverview({
       };
     });
 
-  }, [allUnits, allSubmissions, userProfile?.campusId]);
+  }, [allUnits, allSubmissions, userProfile?.campusId, selectedYear]);
 
   if (isLoading) {
     return (
@@ -83,7 +83,7 @@ export function CampusUnitOverview({
       <CardHeader>
         <CardTitle>Submission Status per Unit</CardTitle>
         <CardDescription>
-          Shows the submission progress for each unit within your campus for the current year ({new Date().getFullYear()}).
+          Shows the submission progress for each unit within your campus for {selectedYear}.
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -15,6 +14,7 @@ interface UnitSubmissionDetailCardProps {
   allUnits: Unit[] | null;
   allSubmissions: Submission[] | null;
   onClose: () => void;
+  selectedYear: number;
 }
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -41,6 +41,7 @@ export function UnitSubmissionDetailCard({
   allUnits,
   allSubmissions,
   onClose,
+  selectedYear,
 }: UnitSubmissionDetailCardProps) {
   const unit = useMemo(() => allUnits?.find(u => u.id === unitId), [allUnits, unitId]);
 
@@ -48,9 +49,8 @@ export function UnitSubmissionDetailCard({
     if (!allSubmissions || !unitId) {
       return { firstCycle: new Map(), finalCycle: new Map() };
     }
-    const currentYear = new Date().getFullYear();
     const submissionsForUnit = allSubmissions.filter(
-      s => s.unitId === unitId && s.year === currentYear
+      s => s.unitId === unitId && s.year === selectedYear
     );
 
     const firstCycle = new Map(
@@ -65,7 +65,7 @@ export function UnitSubmissionDetailCard({
     );
 
     return { firstCycle, finalCycle };
-  }, [allSubmissions, unitId]);
+  }, [allSubmissions, unitId, selectedYear]);
   
   if (!unit) return null;
 
@@ -100,7 +100,7 @@ export function UnitSubmissionDetailCard({
       <CardHeader className="flex flex-row items-start justify-between">
         <div>
           <CardTitle>{unit.name}</CardTitle>
-          <CardDescription>Submission Status for {new Date().getFullYear()}</CardDescription>
+          <CardDescription>Submission Status for {selectedYear}</CardDescription>
         </div>
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="h-4 w-4" />

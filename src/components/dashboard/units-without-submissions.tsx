@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -28,6 +27,7 @@ interface UnitsWithoutSubmissionsProps {
   isAdmin: boolean;
   isCampusSupervisor: boolean;
   onUnitClick: (unitId: string) => void;
+  selectedYear: number;
 }
 
 export function UnitsWithoutSubmissions({
@@ -39,6 +39,7 @@ export function UnitsWithoutSubmissions({
   isAdmin,
   isCampusSupervisor,
   onUnitClick,
+  selectedYear,
 }: UnitsWithoutSubmissionsProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -50,8 +51,6 @@ export function UnitsWithoutSubmissions({
     if (!allUnits || !allSubmissions || !allCampuses) {
       return [];
     }
-
-    const currentYear = new Date().getFullYear();
 
     const unitsByCampus = allUnits.reduce((acc, unit) => {
       unit.campusIds?.forEach(campusId => {
@@ -71,7 +70,7 @@ export function UnitsWithoutSubmissions({
     return relevantCampuses.map(campus => {
         const campusUnits = unitsByCampus[campus.id] || [];
         const incompleteUnits = campusUnits.map(unit => {
-            const unitSubmissions = allSubmissions.filter(s => s.unitId === unit.id && s.year === currentYear);
+            const unitSubmissions = allSubmissions.filter(s => s.unitId === unit.id && s.year === selectedYear);
             
             const firstCycleRegistry = unitSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry Form');
             const requiredFirst = firstCycleRegistry?.riskRating === 'low' ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
@@ -97,14 +96,14 @@ export function UnitsWithoutSubmissions({
         };
     }).filter(campus => campus.incompleteUnits.length > 0);
 
-  }, [allUnits, allCampuses, allSubmissions, isCampusSupervisor, userProfile]);
+  }, [allUnits, allCampuses, allSubmissions, isCampusSupervisor, userProfile, selectedYear]);
   
   const handleSendReminders = async () => {
     if (!firestore || incompleteSubmissionsByCampus.length === 0) return;
     setIsSendingReminders(true);
 
     const batch = writeBatch(firestore);
-    const reminderMessage = `Reminder: Please ensure all required EOMS reports for ${new Date().getFullYear()} are submitted as soon as possible.`;
+    const reminderMessage = `Reminder: Please ensure all required EOMS reports for ${selectedYear} are submitted as soon as possible.`;
 
     const campusIdsToRemind = incompleteSubmissionsByCampus.map(c => c.campusId);
 
@@ -161,10 +160,10 @@ export function UnitsWithoutSubmissions({
         <div>
             <CardTitle className="flex items-center gap-2">
                 <AlertCircle className="text-destructive" />
-                Incomplete Submissions by Campus
+                Incomplete Submissions
             </CardTitle>
             <CardDescription>
-            The following campuses have units that have not completed all required submissions for {new Date().getFullYear()}.
+            Campuses with units that have not completed all submissions for {selectedYear}.
             </CardDescription>
         </div>
         {isAdmin && (
@@ -213,7 +212,7 @@ export function UnitsWithoutSubmissions({
             <AlertDialogHeader>
                 <AlertDialogTitle>Confirm Reminders</AlertDialogTitle>
                 <AlertDialogDescription>
-                    This will post a standard reminder announcement to the dashboard of all users in the {incompleteSubmissionsByCampus.length} campus(es) listed with incomplete submissions. Are you sure?
+                    This will post a standard reminder announcement to the dashboard of all users in the {incompleteSubmissionsByCampus.length} campus(es) with incomplete submissions for {selectedYear}. Are you sure?
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

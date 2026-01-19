@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -17,6 +16,7 @@ interface NonCompliantUnitsProps {
   allUnits: Unit[] | null;
   userProfile: AppUser | null;
   isLoading: boolean;
+  selectedYear: number;
 }
 
 export function NonCompliantUnits({
@@ -25,6 +25,7 @@ export function NonCompliantUnits({
   allUnits,
   userProfile,
   isLoading,
+  selectedYear,
 }: NonCompliantUnitsProps) {
   const nonCompliantUnitsByCycle = useMemo(() => {
     if (!allCycles || !allSubmissions || !allUnits || !userProfile) {
@@ -32,9 +33,10 @@ export function NonCompliantUnits({
     }
     
     const now = new Date();
+    // Filter for cycles of the selected year whose deadlines have passed
     const passedDeadlines = allCycles.filter(cycle => {
         const endDate = cycle.endDate instanceof Timestamp ? cycle.endDate.toDate() : new Date(cycle.endDate);
-        return isAfter(now, endDate);
+        return cycle.year === selectedYear && isAfter(now, endDate);
     });
 
     if (passedDeadlines.length === 0) return [];
@@ -73,7 +75,7 @@ export function NonCompliantUnits({
         };
     }).filter(cycle => cycle.nonCompliantUnits.length > 0);
 
-  }, [allCycles, allSubmissions, allUnits, userProfile]);
+  }, [allCycles, allSubmissions, allUnits, userProfile, selectedYear]);
 
   if (isLoading) {
     return (
@@ -98,7 +100,7 @@ export function NonCompliantUnits({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-destructive">
           <AlertTriangle />
-          Non-Compliant Units (Past Deadlines)
+          Non-Compliant Units (Past Deadlines for {selectedYear})
         </CardTitle>
         <CardDescription>
           The following units failed to submit all required reports before the official deadline for the listed cycles.

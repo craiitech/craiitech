@@ -1,4 +1,3 @@
-
 'use client';
 import { useMemo } from 'react';
 import type { Submission, Unit, User as AppUser } from '@/lib/types';
@@ -18,6 +17,7 @@ interface SubmissionAnalyticsProps {
   isLoading: boolean;
   isAdmin: boolean;
   userProfile: AppUser | null;
+  selectedYear: number;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -36,26 +36,32 @@ const REPORT_TYPE_COLORS: Record<string, string> = {
 }
 
 
-export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdmin, userProfile }: SubmissionAnalyticsProps) {
+export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdmin, userProfile, selectedYear }: SubmissionAnalyticsProps) {
   const firestore = useFirestore();
   const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
-  const submissionStatusData = useMemo(() => {
+  const yearSubmissions = useMemo(() => {
     if (!allSubmissions) return [];
-    const statusCounts = allSubmissions.reduce((acc, submission) => {
+    return allSubmissions.filter(s => s.year === selectedYear);
+  }, [allSubmissions, selectedYear]);
+
+
+  const submissionStatusData = useMemo(() => {
+    if (!yearSubmissions) return [];
+    const statusCounts = yearSubmissions.reduce((acc, submission) => {
       acc[submission.statusId] = (acc[submission.statusId] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
     return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
-  }, [allSubmissions]);
+  }, [yearSubmissions]);
   
   const submissionsByCampusData = useMemo(() => {
-      if (!allSubmissions || !allCampuses) return [];
+      if (!yearSubmissions || !allCampuses) return [];
       
       const campusMap = new Map(allCampuses.map(c => [c.id, c.name]));
-      const campusCounts = allSubmissions.reduce((acc, submission) => {
+      const campusCounts = yearSubmissions.reduce((acc, submission) => {
         const campusName = campusMap.get(submission.campusId) || 'Unknown Campus';
         acc[campusName] = (acc[campusName] || 0) + 1;
         return acc;
@@ -63,15 +69,15 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
 
       return Object.entries(campusCounts).map(([name, total]) => ({ name, total }));
 
-  }, [allSubmissions, allCampuses]);
+  }, [yearSubmissions, allCampuses]);
 
   const submissionsByUnitData = useMemo(() => {
-    if (!allSubmissions || !allUnits || !userProfile?.campusId) return [];
+    if (!yearSubmissions || !allUnits || !userProfile?.campusId) return [];
 
     const campusUnits = allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
     const unitMap = new Map(campusUnits.map(u => [u.id, u.name]));
 
-    const unitCounts = allSubmissions.reduce((acc, submission) => {
+    const unitCounts = yearSubmissions.reduce((acc, submission) => {
       // Only count submissions for units within the supervisor's campus
       if (unitMap.has(submission.unitId)) {
         const unitName = submission.unitName || 'Unknown Unit';
@@ -81,12 +87,12 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
     }, {} as Record<string, number>);
 
     return Object.entries(unitCounts).map(([name, total]) => ({ name, total }));
-  }, [allSubmissions, allUnits, userProfile]);
+  }, [yearSubmissions, allUnits, userProfile]);
   
   const submissionsByReportTypeData = useMemo(() => {
-    if (!allSubmissions) return [];
+    if (!yearSubmissions) return [];
 
-    const reportTypeCounts = allSubmissions.reduce((acc, submission) => {
+    const reportTypeCounts = yearSubmissions.reduce((acc, submission) => {
         acc[submission.reportType] = (acc[submission.reportType] || 0) + 1;
         return acc;
     }, {} as Record<string, number>);
@@ -98,7 +104,7 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
     }));
 
     return data;
-  }, [allSubmissions]);
+  }, [yearSubmissions]);
 
   const isDataLoading = isLoading || isLoadingCampuses;
 
@@ -125,7 +131,7 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
       <Card>
         <CardHeader>
           <CardTitle>Submissions by Status</CardTitle>
-          <CardDescription>A breakdown of all submissions by their current status.</CardDescription>
+          <CardDescription>A breakdown of all submissions in {selectedYear} by their current status.</CardDescription>
         </CardHeader>
         <CardContent>
            <ChartContainer config={{}} className="min-h-[200px] w-full aspect-square">
@@ -166,7 +172,7 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
        <Card>
         <CardHeader>
           <CardTitle>{isAdmin ? "Submissions by Campus" : "Submissions by Unit"}</CardTitle>
-          <CardDescription>Total number of submissions from each {isAdmin ? "campus" : "unit"}.</CardDescription>
+          <CardDescription>Total number of submissions from each {isAdmin ? "campus" : "unit"} in {selectedYear}.</CardDescription>
         </CardHeader>
         <CardContent>
             <ChartContainer config={{}} className="min-h-[200px] w-full">
@@ -189,7 +195,7 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
       <Card>
         <CardHeader>
             <CardTitle>Submissions by Report Type</CardTitle>
-            <CardDescription>Total number of submissions for each report type.</CardDescription>
+            <CardDescription>Total number of submissions for each report type in {selectedYear}.</CardDescription>
         </CardHeader>
         <CardContent>
              <ChartContainer config={{}} className="min-h-[200px] w-full">

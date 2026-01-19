@@ -89,6 +89,7 @@ import { RiskMatrix } from '@/components/dashboard/strategic/risk-matrix';
 import { RiskFunnel } from '@/components/dashboard/strategic/risk-funnel';
 import { CycleSubmissionBreakdown } from '@/components/dashboard/strategic/cycle-submission-breakdown';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 export const TOTAL_REPORTS_PER_CYCLE = 6;
@@ -113,11 +114,8 @@ export default function HomePage() {
 
   const [isAnnouncementVisible, setIsAnnouncementVisible] = useState(true);
   const [isGlobalAnnouncementVisible, setIsGlobalAnnouncementVisible] = useState(true);
-  const [selectedRiskYear, setSelectedRiskYear] = useState(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
-  const [selectedIncompleteYear, setSelectedIncompleteYear] = useState(new Date().getFullYear());
-  const [selectedLeaderboardYear, setSelectedLeaderboardYear] = useState(new Date().getFullYear());
-
 
   const canViewCampusAnnouncements = userProfile?.campusId;
 
@@ -217,6 +215,21 @@ export default function HomePage() {
   const allCyclesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'cycles') : null, [firestore]);
   const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(allCyclesQuery);
   
+  const years = useMemo(() => {
+    if (!allCycles) return [new Date().getFullYear()];
+    const uniqueYears = [...new Set(allCycles.map(c => c.year))].sort((a, b) => b - a);
+    if (uniqueYears.length === 0) return [new Date().getFullYear()];
+    if (!uniqueYears.includes(new Date().getFullYear())) {
+        uniqueYears.unshift(new Date().getFullYear());
+    }
+    return uniqueYears;
+  }, [allCycles]);
+
+  useEffect(() => {
+    if (years.length > 0 && !years.includes(selectedYear)) {
+      setSelectedYear(years[0]);
+    }
+  }, [years, selectedYear]);
 
   const campusSettingsDocRef = useMemoFirebase(() => {
     if (!firestore || !userProfile?.campusId || !canViewCampusAnnouncements)
@@ -313,8 +326,8 @@ export default function HomePage() {
     if (!submissions || !userProfile) return defaultStats;
     
     const userCount = allUsersMap.size;
-    const currentYearSubmissions = submissions.filter(
-      (s) => s.year === new Date().getFullYear()
+    const yearSubmissions = submissions.filter(
+      (s) => s.year === selectedYear
     );
 
     if (isAdmin) {
@@ -337,19 +350,19 @@ export default function HomePage() {
       };
     } else if (isSupervisor) {
       const totalRequired = unitsInCampus.length * TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT;
-      const uniqueSubmissionsCount = new Set(currentYearSubmissions.map(s => s.reportType + s.unitId + s.cycleId)).size;
+      const uniqueSubmissionsCount = new Set(yearSubmissions.map(s => s.reportType + s.unitId + s.cycleId)).size;
 
       return {
         stat1: {
           title: 'Required Submissions',
           value: `${uniqueSubmissionsCount} of ${totalRequired}`,
-          description: `Across ${unitsInCampus.length} units`,
+          description: `Across ${unitsInCampus.length} units in ${selectedYear}`,
           icon: <FileText className="h-6 w-6 text-primary" />,
         },
         stat2: {
           title: 'Campus Submissions',
-          value: currentYearSubmissions.length,
-          description: `Total for your campus this year`,
+          value: yearSubmissions.length,
+          description: `Total for your campus in ${selectedYear}`,
           icon: <FileText className="h-6 w-6 text-primary" />,
         },
         stat3: {
@@ -360,11 +373,11 @@ export default function HomePage() {
         },
       };
     } else {
-        const firstCycleSubmissions = currentYearSubmissions.filter(s => s.cycleId === 'first');
+        const firstCycleSubmissions = yearSubmissions.filter(s => s.cycleId === 'first');
         const firstCycleRegistry = firstCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry Form');
         const requiredFirstCycle = firstCycleRegistry?.riskRating === 'low' ? (TOTAL_REPORTS_PER_CYCLE - 1) : TOTAL_REPORTS_PER_CYCLE;
 
-        const finalCycleSubmissions = currentYearSubmissions.filter(s => s.cycleId === 'final');
+        const finalCycleSubmissions = yearSubmissions.filter(s => s.cycleId === 'final');
         const finalCycleRegistry = finalCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry Form');
         const requiredFinalCycle = finalCycleRegistry?.riskRating === 'low' ? (TOTAL_REPORTS_PER_CYCLE - 1) : TOTAL_REPORTS_PER_CYCLE;
 
@@ -375,13 +388,13 @@ export default function HomePage() {
             stat1: {
               title: 'First Cycle',
               value: `${firstCycleCount} of ${requiredFirstCycle}`,
-              description: `Submissions for ${new Date().getFullYear()}`,
+              description: `Submissions for ${selectedYear}`,
               icon: <FileText className="h-6 w-6 text-primary" />,
             },
             stat2: {
               title: 'Final Cycle',
               value: `${finalCycleCount} of ${requiredFinalCycle}`,
-              description: `Submissions for ${new Date().getFullYear()}`,
+              description: `Submissions for ${selectedYear}`,
               icon: <FileText className="h-6 w-6 text-primary" />,
             },
             stat3: {
@@ -392,7 +405,7 @@ export default function HomePage() {
             },
         };
     }
-  }, [submissions, isSupervisor, isAdmin, allUsersMap, userProfile, unitsInCampus]);
+  }, [submissions, isSupervisor, isAdmin, allUsersMap, userProfile, unitsInCampus, selectedYear]);
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
     const emptyResult = {
@@ -402,17 +415,17 @@ export default function HomePage() {
     if (!submissions) {
       return emptyResult;
     }
-    const currentYearSubmissions = submissions.filter(
-      (s) => s.year === new Date().getFullYear()
+    const yearSubmissions = submissions.filter(
+      (s) => s.year === selectedYear
     );
 
     const firstCycleMap = new Map(
-      currentYearSubmissions
+      yearSubmissions
         .filter(s => s.cycleId === 'first')
         .map((s) => [s.reportType, s])
     );
      const finalCycleMap = new Map(
-      currentYearSubmissions
+      yearSubmissions
         .filter(s => s.cycleId === 'final')
         .map((s) => [s.reportType, s])
     );
@@ -421,7 +434,7 @@ export default function HomePage() {
       firstCycleStatusMap: firstCycleMap,
       finalCycleStatusMap: finalCycleMap,
     };
-  }, [submissions]);
+  }, [submissions, selectedYear]);
 
   const approvalQueue = useMemo(() => {
     if (!submissions) return [];
@@ -445,9 +458,9 @@ export default function HomePage() {
   const noRisksLogged = useMemo(() => {
     const isUnitUser = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
     if (!isUnitUser || !risks) return false;
-    const currentYearRisks = risks.filter(r => r.year === new Date().getFullYear());
-    return currentYearRisks.length === 0;
-  }, [risks, userRole]);
+    const yearRisks = risks.filter(r => r.year === selectedYear);
+    return yearRisks.length === 0;
+  }, [risks, userRole, selectedYear]);
   
   const getStatusText = (status: string) => {
     return status === 'submitted' ? 'Awaiting Approval' : status;
@@ -558,7 +571,7 @@ export default function HomePage() {
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Action Required: Risk Register</AlertTitle>
             <AlertDescription>
-              Your unit has not logged any risks or opportunities for the current year. It is critical to populate the{' '}
+              Your unit has not logged any risks or opportunities for {selectedYear}. It is critical to populate the{' '}
               <Link href="/risk-register" className="font-semibold underline">Risk Register</Link>
               {' '}to ensure compliance.
             </AlertDescription>
@@ -589,7 +602,7 @@ export default function HomePage() {
           )}
         </div>
          <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
             <CardHeader>
@@ -620,7 +633,7 @@ export default function HomePage() {
             <CardTitle>Submission Status</CardTitle>
             <CardDescription>
               Checklist for all required submissions for{' '}
-              {new Date().getFullYear()}.
+              {selectedYear}.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -752,6 +765,7 @@ export default function HomePage() {
                         isLoading={isLoading}
                         userProfile={userProfile}
                         isCampusSupervisor={isSupervisor}
+                        selectedYear={selectedYear}
                     />
                     <UnitsWithoutSubmissions
                         allUnits={allUnits}
@@ -762,6 +776,7 @@ export default function HomePage() {
                         isAdmin={isAdmin}
                         isCampusSupervisor={isSupervisor}
                         onUnitClick={setSelectedUnitId}
+                        selectedYear={selectedYear}
                     />
                 </div>
                 <Card className="col-span-4">
@@ -785,8 +800,8 @@ export default function HomePage() {
                     isLoading={isLoading}
                     userProfile={userProfile}
                     isCampusSupervisor={isCampusSupervisor}
-                    selectedYear={selectedLeaderboardYear}
-                    onYearChange={setSelectedLeaderboardYear}
+                    selectedYear={selectedYear}
+                    onYearChange={setSelectedYear}
                 />
                  <Card>
                     <CardHeader>
@@ -805,6 +820,7 @@ export default function HomePage() {
                         allUnits={allUnits}
                         allSubmissions={submissions}
                         onClose={() => setSelectedUnitId(null)}
+                        selectedYear={selectedYear}
                     />
                 )}
             </div>
@@ -812,12 +828,13 @@ export default function HomePage() {
       </TabsContent>
        <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin}/>
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin}/>
         <CampusUnitOverview 
             allUnits={allUnits}
             allSubmissions={submissions}
             isLoading={isLoading}
             userProfile={userProfile}
+            selectedYear={selectedYear}
         />
         <SubmissionAnalytics
           allSubmissions={submissions}
@@ -825,6 +842,7 @@ export default function HomePage() {
           isLoading={isLoading}
           isAdmin={isAdmin}
           userProfile={userProfile}
+          selectedYear={selectedYear}
         />
       </TabsContent>
        <TabsContent value="users" className="space-y-4">
@@ -884,8 +902,8 @@ export default function HomePage() {
                     allCampuses={allCampuses}
                     allUnits={allUnits}
                     isLoading={isLoading}
-                    selectedYear={selectedIncompleteYear}
-                    onYearChange={setSelectedIncompleteYear}
+                    selectedYear={selectedYear}
+                    onYearChange={setSelectedYear}
                 />
             </div>
              <div className="lg:col-span-1 space-y-4">
@@ -897,8 +915,8 @@ export default function HomePage() {
                     isLoading={isLoading}
                     userProfile={userProfile}
                     isCampusSupervisor={isCampusSupervisor}
-                    selectedYear={selectedLeaderboardYear}
-                    onYearChange={setSelectedLeaderboardYear}
+                    selectedYear={selectedYear}
+                    onYearChange={setSelectedYear}
                 />
                 <Card>
                     <CardHeader>
@@ -930,19 +948,21 @@ export default function HomePage() {
                 allUnits={allUnits}
                 allSubmissions={submissions}
                 onClose={() => setSelectedUnitId(null)}
+                selectedYear={selectedYear}
             />
         )}
       </TabsContent>
       <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin} />
-        <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading}/>
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
+        <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading} selectedYear={selectedYear}/>
         <SubmissionAnalytics
             allSubmissions={submissions}
             allUnits={allUnits}
             isLoading={isLoading}
             isAdmin={isAdmin}
             userProfile={userProfile}
+            selectedYear={selectedYear}
         />
       </TabsContent>
       <TabsContent value="strategic" className="space-y-6">
@@ -988,8 +1008,18 @@ export default function HomePage() {
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Home</h2>
             <p className="text-muted-foreground">
-              Welcome back, {userProfile?.firstName}! Here's your overview.
+              Welcome back, {userProfile?.firstName}! Here's your overview for {selectedYear}.
             </p>
+          </div>
+           <div className="w-[150px]">
+            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Year" />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         
