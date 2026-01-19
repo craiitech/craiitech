@@ -56,8 +56,9 @@ const LoadingSkeleton = () => (
  * Custom hook to detect user inactivity and trigger a callback.
  * @param onIdle - The function to call when the user is idle.
  * @param idleTime - The inactivity timeout in milliseconds.
+ * @param enabled - A boolean to enable or disable the timer.
  */
-const useIdleTimer = (onIdle: () => void, idleTime: number) => {
+const useIdleTimer = (onIdle: () => void, idleTime: number, enabled: boolean) => {
   const timeoutId = useRef<NodeJS.Timeout | null>(null);
 
   const resetTimer = useCallback(() => {
@@ -68,6 +69,14 @@ const useIdleTimer = (onIdle: () => void, idleTime: number) => {
   }, [onIdle, idleTime]);
 
   useEffect(() => {
+    // If the timer is disabled, clean up any existing timer and do nothing.
+    if (!enabled) {
+      if (timeoutId.current) {
+        clearTimeout(timeoutId.current);
+      }
+      return;
+    }
+
     const events = ['mousemove', 'keydown', 'mousedown', 'scroll'];
 
     const handleActivity = () => {
@@ -91,7 +100,7 @@ const useIdleTimer = (onIdle: () => void, idleTime: number) => {
         window.removeEventListener(event, handleActivity);
       });
     };
-  }, [resetTimer]);
+  }, [resetTimer, enabled]);
 };
 
 
@@ -192,7 +201,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push('/logout');
   }, [router, toast]);
   
-  useIdleTimer(handleIdle, 2 * 60 * 1000); // 2 minutes
+  // Conditionally enable the timer. It will not run for admins.
+  useIdleTimer(handleIdle, 2 * 60 * 1000, !isAdmin); // 2 minutes
 
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
