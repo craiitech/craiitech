@@ -41,14 +41,11 @@ const AdminStatusIndicator = () => {
         return onlineAdmins.some(admin => {
             if (!admin.lastSeen) return false;
 
-            // Robustly get milliseconds from a Firestore Timestamp-like object
             let lastSeenMillis = 0;
             if (admin.lastSeen.toDate && typeof admin.lastSeen.toDate === 'function') {
-                // It's a proper Firestore Timestamp object
                 lastSeenMillis = admin.lastSeen.toDate().getTime();
-            } else if (typeof admin.lastSeen.seconds === 'number') {
-                // It's a plain object with seconds and nanoseconds that can come from server serialization
-                lastSeenMillis = admin.lastSeen.seconds * 1000;
+            } else if (typeof (admin.lastSeen as any).seconds === 'number') {
+                lastSeenMillis = (admin.lastSeen as any).seconds * 1000;
             }
 
             return lastSeenMillis > twoMinutesAgo;
@@ -136,7 +133,7 @@ export function SidebarNav({
       href: '/audit',
       label: 'Audit',
       active: pathname.startsWith('/audit'),
-      roles: ['Admin', 'Auditor', 'Unit Coordinator', 'Unit ODIMO', 'Campus Director', 'Campus ODIMO', 'Vice President'],
+      roles: ['Admin'],
       icon: <ClipboardList />,
     },
     {
