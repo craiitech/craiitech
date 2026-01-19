@@ -1,3 +1,4 @@
+
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -224,11 +225,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const notificationCount = useMemo(() => {
     if (!notifications || !userProfile) return 0;
-    if (isSupervisor) {
-        return notifications.filter(s => s.userId !== userProfile.id).length;
+    
+    // Admin should see a count of all pending submissions.
+    if (isAdmin) {
+      return notifications.length;
     }
+    
+    // Other supervisors should not see their own submissions in the notification count.
+    if (isSupervisor) {
+      return notifications.filter(s => s.userId !== userProfile.id).length;
+    }
+    
+    // Regular users see notifications for their rejected items.
     return notifications.length;
-  }, [notifications, isSupervisor, userProfile]);
+  }, [notifications, userProfile, isAdmin, isSupervisor]);
 
 
   const userLocation = useMemo(() => {
