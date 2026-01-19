@@ -16,54 +16,47 @@ import { useToast } from '@/hooks/use-toast';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import type { User as AppUser } from '@/lib/types';
 import { collection, query, where, Timestamp } from 'firebase/firestore';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
 
 const AdminStatusIndicator = () => {
-    const { firestore } = useUser();
+    const [adminIsOnline, setAdminIsOnline] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // 1. Get all admin UIDs from the roles_admin collection
-    const adminRolesQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return collection(firestore, 'roles_admin');
-    }, [firestore]);
-    const { data: adminRoles, isLoading: isLoadingAdminRoles } = useCollection<{ uid: string }>(adminRolesQuery);
-
-    const adminUIDs = useMemo(() => adminRoles?.map(role => role.id) || [], [adminRoles]);
-
-    // 2. Fetch the user documents for all admins using their UIDs
-    const adminUsersQuery = useMemoFirebase(() => {
-        if (!firestore || adminUIDs.length === 0) return null;
-        // Firestore 'in' queries are limited to 30 items. If there are more admins, this is safe.
-        return query(collection(firestore, 'users'), where('id', 'in', adminUIDs));
-    }, [firestore, adminUIDs]);
-    const { data: adminUsers, isLoading: isLoadingAdminUsers } = useCollection<AppUser>(adminUsersQuery);
-
-    // 3. Check if any admin has a recent 'lastSeen' timestamp
-    const adminIsOnline = useMemo(() => {
-        if (!adminUsers || adminUsers.length === 0) return false;
-        const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
-        
-        return adminUsers.some(admin => {
-            if (!admin.lastSeen) return false;
-
-            let lastSeenMillis = 0;
-            // Robustly handle both server-side and client-side Timestamp objects
-            if (admin.lastSeen?.toDate && typeof admin.lastSeen.toDate === 'function') {
-                lastSeenMillis = admin.lastSeen.toDate().getTime();
-            } else if (typeof (admin.lastSeen as any)?.seconds === 'number') {
-                // Handle serialized timestamp objects that come from server-rendered components
-                lastSeenMillis = (admin.lastSeen as any).seconds * 1000;
+    useEffect(() => {
+        const fetchAdminStatus = async () => {
+            try {
+                const response = await fetch('/api/admin-status');
+                if (!response.ok) {
+                    // Don't throw, just log and assume offline for UI stability
+                    console.error('Failed to fetch admin status:', response.statusText);
+                    setAdminIsOnline(false);
+                    return;
+                }
+                const data = await response.json();
+                setAdminIsOnline(data.isAdminOnline);
+            } catch (error) {
+                console.error(error);
+                // Gracefully fail to offline status on network error
+                setAdminIsOnline(false);
+            } finally {
+                // Set loading to false only on the first fetch
+                if (isLoading) {
+                    setIsLoading(false);
+                }
             }
+        };
 
-            return lastSeenMillis > twoMinutesAgo;
-        });
-    }, [adminUsers]);
+        // Fetch immediately and then poll every 30 seconds
+        fetchAdminStatus();
+        const intervalId = setInterval(fetchAdminStatus, 30000); // Poll every 30 seconds
 
-    const isLoading = isLoadingAdminRoles || (adminUIDs.length > 0 && isLoadingAdminUsers);
-    
+        return () => clearInterval(intervalId); // Cleanup on unmount
+    }, [isLoading]); // Rerun effect if isLoading changes (it won't, but it's a dependency)
+
+
     if (isLoading) {
         return (
              <SidebarMenuItem>
@@ -152,7 +145,7 @@ export function SidebarNav({
       href: '/audit',
       label: 'Audit',
       active: pathname.startsWith('/audit'),
-      roles: ['Admin'],
+      roles: ['Admin', 'Auditor'],
       icon: <ClipboardList />,
     },
     {
