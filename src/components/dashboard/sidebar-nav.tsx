@@ -42,10 +42,9 @@ const AdminStatusIndicator = () => {
                 // Gracefully fail to offline status on network error
                 setAdminIsOnline(false);
             } finally {
-                // Set loading to false only on the first fetch
-                if (isLoading) {
-                    setIsLoading(false);
-                }
+                // Set loading to false only on the first fetch.
+                // Subsequent calls from the interval won't change the state.
+                setIsLoading(false);
             }
         };
 
@@ -54,7 +53,7 @@ const AdminStatusIndicator = () => {
         const intervalId = setInterval(fetchAdminStatus, 30000); // Poll every 30 seconds
 
         return () => clearInterval(intervalId); // Cleanup on unmount
-    }, [isLoading]); // Rerun effect if isLoading changes (it won't, but it's a dependency)
+    }, []);
 
 
     if (isLoading) {
@@ -129,12 +128,12 @@ export function SidebarNav({
       active: pathname.startsWith('/manuals'),
       icon: <BookOpen />,
     },
-    // {
-    //   href: '/eoms-policy-manual',
-    //   label: 'EOMS Policy Manual',
-    //   active: pathname.startsWith('/eoms-policy-manual'),
-    //   icon: <BookMarked />,
-    // },
+    {
+      href: '/eoms-policy-manual',
+      label: 'EOMS Policy Manual',
+      active: pathname.startsWith('/eoms-policy-manual'),
+      icon: <BookMarked />,
+    },
     {
       href: '/risk-register',
       label: 'Risk Register',
