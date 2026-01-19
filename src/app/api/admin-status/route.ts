@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import * as admin from 'firebase-admin';
@@ -26,7 +27,9 @@ export async function GET(req: NextRequest) {
         const userPromises = [];
         for (let i = 0; i < adminUIDs.length; i += 30) {
             const chunk = adminUIDs.slice(i, i + 30);
-            userPromises.push(firestore.collection('users').where(admin.firestore.FieldPath.documentId(), 'in', chunk).get());
+            if (chunk.length > 0) {
+                userPromises.push(firestore.collection('users').where(admin.firestore.FieldPath.documentId(), 'in', chunk).get());
+            }
         }
         
         const userSnapshots = await Promise.all(userPromises);
@@ -36,7 +39,14 @@ export async function GET(req: NextRequest) {
         const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
         
         const adminIsOnline = adminUsers.some(adminUser => {
-            if (!adminUser.lastSeen) return false;
+            if (!adminUser || !adminUser.lastSeen) return false;
+
+            // Defensive check: ensure lastSeen is a Firestore Timestamp object.
+            // Both client and admin SDK Timestamps have a `toMillis` method.
+            if (typeof adminUser.lastSeen.toMillis !== 'function') {
+                console.warn(`User document for an admin has an invalid 'lastSeen' field. It is not a Timestamp object.`);
+                return false;
+            }
 
             const lastSeenMillis = adminUser.lastSeen.toMillis();
             return lastSeenMillis > twoMinutesAgo;
