@@ -42,9 +42,9 @@ const AdminStatusIndicator = () => {
             if (!admin.lastSeen) return false;
 
             let lastSeenMillis = 0;
-            if (admin.lastSeen.toDate && typeof admin.lastSeen.toDate === 'function') {
+            if (admin.lastSeen?.toDate && typeof admin.lastSeen.toDate === 'function') {
                 lastSeenMillis = admin.lastSeen.toDate().getTime();
-            } else if (typeof (admin.lastSeen as any).seconds === 'number') {
+            } else if (typeof (admin.lastSeen as any)?.seconds === 'number') {
                 lastSeenMillis = (admin.lastSeen as any).seconds * 1000;
             }
 
@@ -167,21 +167,17 @@ export function SidebarNav({
   ];
 
   const visibleRoutes = allRoutes.filter((route) => {
+    // If no roles are required, show the route.
     if (!route.roles) {
-      return true; // Route is visible to everyone
-    }
-    if (isAdmin) {
       return true;
     }
-    if (!userRole) {
-      return false; // If role is not loaded yet, don't show role-specific routes
-    }
-    // Handle VP role matching
-    if (route.roles.includes('Vice President') && userRole.toLowerCase().includes('vice president')) {
-      return true;
-    }
-    // Check if the user's role is included in the route's allowed roles
-    return route.roles.includes(userRole);
+
+    // If roles are required, check if the user has AT LEAST ONE of the required permissions.
+    const canSeeAsAdmin = isAdmin && route.roles.includes('Admin');
+    const canSeeAsRole = userRole && route.roles.includes(userRole);
+    const canSeeAsVp = userRole && route.roles.includes('Vice President') && userRole.toLowerCase().includes('vice president');
+    
+    return canSeeAsAdmin || canSeeAsRole || canSeeAsVp;
   });
 
   return (
