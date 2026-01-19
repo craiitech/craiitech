@@ -23,36 +23,47 @@ import { cn } from '@/lib/utils';
 const AdminStatusIndicator = () => {
     const { firestore, isAdmin } = useUser();
 
-    const onlineAdminsQuery = useMemoFirebase(() => {
+    // Fetch all online users to perform a case-insensitive check on the client.
+    const onlineUsersQuery = useMemoFirebase(() => {
         if (!firestore || isAdmin) return null;
         return query(
             collection(firestore, 'users'),
-            where('role', '==', 'Admin'),
             where('isOnline', '==', true)
         );
     }, [firestore, isAdmin]);
 
-    const { data: onlineAdmins, isLoading: isLoadingOnlineAdmins } = useCollection<AppUser>(onlineAdminsQuery);
+    const { data: onlineUsers, isLoading: isLoadingOnlineUsers } = useCollection<AppUser>(onlineUsersQuery);
 
     const adminIsOnline = useMemo(() => {
-        if (!onlineAdmins || onlineAdmins.length === 0) return false;
+        // If there are no online users at all, no admin can be online.
+        if (!onlineUsers || onlineUsers.length === 0) return false;
+
+        // Filter for admins on the client-side to handle case-insensitivity.
+        const onlineAdmins = onlineUsers.filter(user => user.role?.toLowerCase() === 'admin');
+
+        // If the filtered list of admins is empty, none are online.
+        if (onlineAdmins.length === 0) return false;
+
         const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
         
+        // Check if AT LEAST ONE of the online admins has a recent timestamp.
         return onlineAdmins.some(admin => {
             if (!admin.lastSeen) return false;
 
             let lastSeenMillis = 0;
+            // Robustly check for a Timestamp object.
             if (admin.lastSeen?.toDate && typeof admin.lastSeen.toDate === 'function') {
                 lastSeenMillis = admin.lastSeen.toDate().getTime();
             } else if (typeof (admin.lastSeen as any)?.seconds === 'number') {
+                // Handle serialized timestamp objects.
                 lastSeenMillis = (admin.lastSeen as any).seconds * 1000;
             }
 
             return lastSeenMillis > twoMinutesAgo;
         });
-    }, [onlineAdmins]);
+    }, [onlineUsers]);
     
-    if (isAdmin || isLoadingOnlineAdmins) {
+    if (isAdmin || isLoadingOnlineUsers) {
         return null;
     }
     
@@ -171,13 +182,14 @@ export function SidebarNav({
     if (!route.roles) {
       return true;
     }
-
-    // If roles are required, check if the user has AT LEAST ONE of the required permissions.
-    const canSeeAsAdmin = isAdmin && route.roles.includes('Admin');
+    // If roles are required, check if user is an admin OR has one of the required roles.
+    if (isAdmin) {
+      return route.roles.includes('Admin');
+    }
     const canSeeAsRole = userRole && route.roles.includes(userRole);
     const canSeeAsVp = userRole && route.roles.includes('Vice President') && userRole.toLowerCase().includes('vice president');
     
-    return canSeeAsAdmin || canSeeAsRole || canSeeAsVp;
+    return canSeeAsRole || canSeeAsVp;
   });
 
   return (
