@@ -13,8 +13,66 @@ import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../ui/sidebar';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useSessionActivity } from '@/lib/activity-log-provider';
-import type { ProcedureManual } from '@/lib/types';
-import { collection } from 'firebase/firestore';
+import type { User as AppUser } from '@/lib/types';
+import { collection, query, where, Timestamp } from 'firebase/firestore';
+import { useMemo } from 'react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { cn } from '@/lib/utils';
+
+const AdminStatusIndicator = () => {
+    const { firestore, isAdmin } = useUser();
+
+    const onlineAdminsQuery = useMemoFirebase(() => {
+        if (!firestore || isAdmin) return null;
+        return query(
+            collection(firestore, 'users'),
+            where('role', '==', 'Admin'),
+            where('isOnline', '==', true)
+        );
+    }, [firestore, isAdmin]);
+
+    const { data: onlineAdmins, isLoading: isLoadingOnlineAdmins } = useCollection<AppUser>(onlineAdminsQuery);
+
+    const adminIsOnline = useMemo(() => {
+        if (!onlineAdmins || onlineAdmins.length === 0) return false;
+        const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+        return onlineAdmins.some(admin => {
+            if (!admin.lastSeen) return false;
+            const lastSeenDate = admin.lastSeen instanceof Timestamp ? admin.lastSeen.toDate().getTime() : 0;
+            return lastSeenDate > twoMinutesAgo;
+        });
+    }, [onlineAdmins]);
+    
+    if (isAdmin || isLoadingOnlineAdmins || !onlineAdmins) {
+        return null;
+    }
+    
+    const statusText = adminIsOnline ? "Admin Online" : "Admin Offline";
+    const statusColor = adminIsOnline ? "bg-green-500" : "bg-destructive";
+    const tooltipText = adminIsOnline 
+        ? "An administrator is currently online. Submissions may be reviewed shortly."
+        : "No administrators are currently online. Submissions will be reviewed later.";
+
+    return (
+        <SidebarMenuItem className="cursor-default">
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div className="flex h-10 items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm text-sidebar-foreground/80 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-2">
+                        <span className={cn("relative flex h-3 w-3 shrink-0", "group-data-[collapsible=icon]:h-3.5 group-data-[collapsible=icon]:w-3.5")}>
+                            {adminIsOnline && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />}
+                            <span className={cn("relative inline-flex h-3 w-3 rounded-full", statusColor)} />
+                        </span>
+                        <span className="truncate group-data-[collapsible=icon]:hidden">{statusText}</span>
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent side="right" align="center">
+                    <p>{tooltipText}</p>
+                </TooltipContent>
+            </Tooltip>
+        </SidebarMenuItem>
+    );
+};
+
 
 export function SidebarNav({
   className,
@@ -132,6 +190,7 @@ export function SidebarNav({
       </SidebarMenu>
       <div className="mt-auto">
          <SidebarMenu>
+            {!isAdmin && <AdminStatusIndicator />}
             <SidebarMenuItem>
                 <Link href="/help" passHref>
                     <SidebarMenuButton as="a" isActive={pathname.startsWith('/help')} icon={<HelpCircle/>} className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground hover:bg-sidebar-accent">
