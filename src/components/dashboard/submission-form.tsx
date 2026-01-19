@@ -231,8 +231,25 @@ export function SubmissionForm({
     }
     if (!units) {
       toast({ title: 'Error', description: 'Could not load unit data. Please try again.', variant: 'destructive' });
+      setIsSubmitting(false);
       return;
     }
+
+    // --- FIX STARTS HERE ---
+    // Strict validation for unitName before proceeding
+    const unitName = units.find((u) => u.id === userProfile.unitId)?.name;
+
+    if (!unitName) {
+        toast({
+            title: 'User Profile Error',
+            description: 'Your assigned unit could not be found in the system. Please contact an administrator to have your profile corrected before submitting.',
+            variant: 'destructive',
+            duration: 10000,
+        });
+        setIsSubmitting(false);
+        return; // Abort submission
+    }
+    // --- FIX ENDS HERE ---
 
     setIsSubmitting(true);
     
@@ -247,7 +264,6 @@ export function SubmissionForm({
     );
     
     const querySnapshot = await getDocs(q);
-    const unitName = units.find((u) => u.id === userProfile.unitId)?.name || 'Unknown Unit';
 
     const newComment: Comment | null = values.comments ? {
         text: values.comments,
@@ -265,6 +281,7 @@ export function SubmissionForm({
           googleDriveLink: values.googleDriveLink,
           statusId: 'submitted',
           submissionDate: new Date(),
+          unitName: unitName, // Ensure unitName is updated if it was previously wrong
         };
 
         if (isRorForm) {
@@ -290,12 +307,7 @@ export function SubmissionForm({
             if (onSuccess) onSuccess();
         } catch (error) {
             console.error('Error updating submission:', error);
-            const permissionError = new FirestorePermissionError({
-                path: existingDocRef.path,
-                operation: 'update',
-                requestResourceData: updateData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
+            toast({ title: 'Error', description: 'Could not update submission.', variant: 'destructive'});
         } finally {
             setIsSubmitting(false);
         }
@@ -334,12 +346,7 @@ export function SubmissionForm({
             if (onSuccess) onSuccess();
         } catch(error) {
             console.error('Error creating submission:', error);
-            const permissionError = new FirestorePermissionError({
-                path: submissionCollectionRef.path,
-                operation: 'create',
-                requestResourceData: newSubmissionData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
+            toast({ title: 'Error', description: 'Could not create submission.', variant: 'destructive'});
         } finally {
             setIsSubmitting(false);
         }
@@ -546,4 +553,3 @@ export function SubmissionForm({
     </>
   );
 }
-
