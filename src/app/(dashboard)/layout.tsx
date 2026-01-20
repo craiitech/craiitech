@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -333,7 +334,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </SidebarHeader>
           <SidebarContent className="p-4">
-            <SidebarNav />
+            <SidebarNav notificationCount={notificationCount} />
           </SidebarContent>
         </Sidebar>
         <SidebarInset>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -9,7 +10,7 @@ import {
   useMemoFirebase,
 } from '@/firebase';
 import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, User as UserIcon, ClipboardList, BookOpen, BookMarked } from 'lucide-react';
-import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '../ui/sidebar';
+import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useSessionActivity } from '@/lib/activity-log-provider';
@@ -20,10 +21,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
 
+interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
+  notificationCount: number;
+}
+
 export function SidebarNav({
   className,
+  notificationCount,
   ...props
-}: React.HTMLAttributes<HTMLElement>) {
+}: SidebarNavProps) {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
@@ -133,6 +139,9 @@ export function SidebarNav({
             <Link href={route.href} passHref>
               <SidebarMenuButton as="a" isActive={route.active} icon={route.icon} {...props} className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground hover:bg-sidebar-accent">
                 {route.label}
+                {route.href === '/approvals' && isSupervisor && notificationCount > 0 && (
+                  <SidebarMenuBadge>{notificationCount}</SidebarMenuBadge>
+                )}
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
