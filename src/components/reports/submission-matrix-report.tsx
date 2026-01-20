@@ -1,9 +1,8 @@
-
 'use client';
 
 import * as React from 'react';
 import { useMemo } from 'react';
-import type { Submission, Campus, Unit, Cycle } from '@/lib/types';
+import type { Campus, Cycle } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -11,21 +10,27 @@ import { Check, X } from 'lucide-react';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
+const cycles = ['first', 'final'] as const;
+
+type MatrixData = {
+    campusId: string;
+    campusName: string;
+    units: {
+        unitId: string;
+        unitName: string;
+        statuses: Record<string, boolean>;
+    }[];
+}[];
+
 interface SubmissionMatrixReportProps {
-  allSubmissions: Submission[] | null;
-  allCampuses: Campus[] | null;
-  allUnits: Unit[] | null;
+  matrixData: MatrixData;
   allCycles: Cycle[] | null;
   selectedYear: number;
   onYearChange: (year: number) => void;
 }
 
-const cycles = ['first', 'final'] as const;
-
 export function SubmissionMatrixReport({
-  allSubmissions,
-  allCampuses,
-  allUnits,
+  matrixData,
   allCycles,
   selectedYear,
   onYearChange,
@@ -37,54 +42,6 @@ export function SubmissionMatrixReport({
     if (uniqueYears.length > 0) return uniqueYears;
     return [new Date().getFullYear()];
   }, [allCycles]);
-
-  const matrixData = useMemo(() => {
-    if (!allSubmissions || !allCampuses || !allUnits) {
-      return [];
-    }
-
-    const submissionsForYear = allSubmissions.filter(s => s.year === selectedYear);
-
-    const submissionLookup = new Set(
-      submissionsForYear.map(s =>
-        `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`
-      )
-    );
-    
-    return allCampuses.map(campus => {
-      const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
-      
-      if (campusUnits.length === 0) {
-        return null;
-      }
-      
-      const unitStatuses = campusUnits.map(unit => {
-        const statuses: Record<string, boolean> = {};
-        
-        submissionTypes.forEach(reportType => {
-          cycles.forEach(cycleId => {
-            const submissionKey = `${campus.id}-${unit.id}-${reportType}-${cycleId}`;
-            statuses[submissionKey] = submissionLookup.has(submissionKey);
-          });
-        });
-  
-        return {
-          unitId: unit.id,
-          unitName: unit.name,
-          statuses,
-        };
-      }).sort((a,b) => a.unitName.localeCompare(b.unitName));
-
-      return {
-        campusId: campus.id,
-        campusName: campus.name,
-        units: unitStatuses,
-      };
-    })
-    .filter((c): c is NonNullable<typeof c> => c !== null)
-    .sort((a, b) => a.campusName.localeCompare(b.campusName));
-
-  }, [allSubmissions, allCampuses, allUnits, selectedYear]);
 
   return (
     <Card>

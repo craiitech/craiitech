@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -29,7 +28,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import ReactDOMServer from 'react-dom/server';
 import { AdminReport } from '@/components/reports/admin-report';
 import { SubmissionMatrixReport } from '@/components/reports/submission-matrix-report';
+import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 
+const cycles = ['first', 'final'] as const;
 
 export default function ReportsPage() {
   const { userProfile, isAdmin, isUserLoading, isSupervisor } = useUser();
@@ -162,6 +163,55 @@ export default function ReportsPage() {
     if (!allCampuses) return new Map();
     return new Map(allCampuses.map(c => [c.id, c.name]));
   }, [allCampuses]);
+
+  // Moved from submission-matrix-report
+  const matrixData = useMemo(() => {
+    if (!allSubmissions || !allCampuses || !allUnits) {
+      return [];
+    }
+
+    const submissionsForYear = allSubmissions.filter(s => s.year === selectedMatrixYear);
+
+    const submissionLookup = new Set(
+      submissionsForYear.map(s =>
+        `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`
+      )
+    );
+    
+    return allCampuses.map(campus => {
+      const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
+      
+      if (campusUnits.length === 0) {
+        return null;
+      }
+      
+      const unitStatuses = campusUnits.map(unit => {
+        const statuses: Record<string, boolean> = {};
+        
+        submissionTypes.forEach(reportType => {
+          cycles.forEach(cycleId => {
+            const submissionKey = `${campus.id}-${unit.id}-${reportType}-${cycleId}`;
+            statuses[submissionKey] = submissionLookup.has(submissionKey);
+          });
+        });
+  
+        return {
+          unitId: unit.id,
+          unitName: unit.name,
+          statuses,
+        };
+      }).sort((a,b) => a.unitName.localeCompare(b.unitName));
+
+      return {
+        campusId: campus.id,
+        campusName: campus.name,
+        units: unitStatuses,
+      };
+    })
+    .filter((c): c is NonNullable<typeof c> => c !== null)
+    .sort((a, b) => a.campusName.localeCompare(b.campusName));
+
+  }, [allSubmissions, allCampuses, allUnits, selectedMatrixYear]);
 
   const isLoading = isUserLoading || isLoadingCampuses || isLoadingUnits || isLoadingSubmissions || isLoadingUsers || isLoadingCycles;
 
@@ -387,9 +437,7 @@ export default function ReportsPage() {
 
         {(isAdmin || isSupervisor) && (
             <SubmissionMatrixReport 
-                allSubmissions={allSubmissions}
-                allCampuses={allCampuses}
-                allUnits={allUnits}
+                matrixData={matrixData}
                 allCycles={allCycles}
                 selectedYear={selectedMatrixYear}
                 onYearChange={setSelectedMatrixYear}
