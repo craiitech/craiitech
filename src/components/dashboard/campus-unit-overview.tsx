@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -36,15 +37,23 @@ export function CampusUnitOverview({
       const unitSubmissionsForYear = allSubmissions.filter(s => s.unitId === unit.id && s.year === selectedYear);
       
       const firstCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry Form');
-      const requiredFirst = firstCycleRegistry?.riskRating === 'low' ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+      const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
+      const requiredFirst = isFirstActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+      const firstCycleSubmissions = new Set(unitSubmissionsForYear.filter(s => s.cycleId === 'first').map(s => s.reportType));
+      if (isFirstActionPlanNA) {
+        firstCycleSubmissions.delete('Risk and Opportunity Action Plan');
+      }
       
       const finalCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry Form');
-      const requiredFinal = finalCycleRegistry?.riskRating === 'low' ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+      const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
+      const requiredFinal = isFinalActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+      const finalCycleSubmissions = new Set(unitSubmissionsForYear.filter(s => s.cycleId === 'final').map(s => s.reportType));
+       if (isFinalActionPlanNA) {
+        finalCycleSubmissions.delete('Risk and Opportunity Action Plan');
+      }
       
       const totalRequired = requiredFirst + requiredFinal;
-
-      const uniqueSubmissions = new Set(unitSubmissionsForYear.map(s => `${s.reportType}-${s.cycleId}`));
-      const submissionCount = uniqueSubmissions.size;
+      const submissionCount = firstCycleSubmissions.size + finalCycleSubmissions.size;
       const progress = totalRequired > 0 ? (submissionCount / totalRequired) * 100 : 0;
 
       return {

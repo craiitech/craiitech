@@ -76,18 +76,27 @@ export function Leaderboard({
                 s.campusId === campus.id
             );
             
+            // Per-cycle calculation
             const firstCycleRegistry = campusUnitSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry Form');
-            const requiredFirst = firstCycleRegistry?.riskRating === 'low' ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
-            
+            const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
+            const requiredFirst = isFirstActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+            const firstCycleSubmissions = new Set(campusUnitSubmissions.filter(s => s.cycleId === 'first').map(s => s.reportType));
+            if (isFirstActionPlanNA) {
+                firstCycleSubmissions.delete('Risk and Opportunity Action Plan');
+            }
+            const firstCycleCount = firstCycleSubmissions.size;
+
             const finalCycleRegistry = campusUnitSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry Form');
-            const requiredFinal = finalCycleRegistry?.riskRating === 'low' ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+            const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
+            const requiredFinal = isFinalActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+            const finalCycleSubmissions = new Set(campusUnitSubmissions.filter(s => s.cycleId === 'final').map(s => s.reportType));
+            if (isFinalActionPlanNA) {
+                finalCycleSubmissions.delete('Risk and Opportunity Action Plan');
+            }
+            const finalCycleCount = finalCycleSubmissions.size;
             
             const totalRequired = requiredFirst + requiredFinal;
-
-            const uniqueSubmissions = new Set(
-                campusUnitSubmissions.map(s => `${s.reportType}-${s.cycleId}`)
-            );
-            const submissionCount = uniqueSubmissions.size;
+            const submissionCount = firstCycleCount + finalCycleCount;
             const percentage = totalRequired > 0 ? Math.round((submissionCount / totalRequired) * 100) : 0;
 
             campusUnitProgress.push({

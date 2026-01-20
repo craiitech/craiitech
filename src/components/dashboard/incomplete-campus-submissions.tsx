@@ -59,17 +59,24 @@ export function IncompleteCampusSubmissions({
           s => s.unitId === unit.id && s.year === selectedYear
         );
 
-        const firstCycleSubmissions = new Set(
-          unitSubmissionsForYear.filter(s => s.cycleId === 'first').map(s => s.reportType)
-        );
-        const finalCycleSubmissions = new Set(
-          unitSubmissionsForYear.filter(s => s.cycleId === 'final').map(s => s.reportType)
-        );
+        const firstCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry Form');
+        const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
+        const firstCycleSubmitted = new Set(unitSubmissionsForYear.filter(s => s.cycleId === 'first').map(s => s.reportType));
+        const missingFirst = submissionTypes.filter(type => {
+            if (isFirstActionPlanNA && type === 'Risk and Opportunity Action Plan') return false;
+            return !firstCycleSubmitted.has(type);
+        });
         
-        const missingFirst = submissionTypes.filter(type => !firstCycleSubmissions.has(type));
-        const missingFinal = submissionTypes.filter(type => !finalCycleSubmissions.has(type));
-        
+        const finalCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry Form');
+        const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
+        const finalCycleSubmitted = new Set(unitSubmissionsForYear.filter(s => s.cycleId === 'final').map(s => s.reportType));
+        const missingFinal = submissionTypes.filter(type => {
+            if (isFinalActionPlanNA && type === 'Risk and Opportunity Action Plan') return false;
+            return !finalCycleSubmitted.has(type);
+        });
+
         const missingCount = missingFirst.length + missingFinal.length;
+        
         if (missingCount > 0) {
           return {
             unitId: unit.id,

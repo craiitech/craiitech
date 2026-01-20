@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -7,7 +8,7 @@ import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Building, Heart } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
+import { TOTAL_REPORTS_PER_CYCLE, TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
 
 interface CompletedSubmissionsProps {
   allUnits: Unit[] | null;
@@ -53,14 +54,31 @@ export function CompletedSubmissions({
         const campusUnits = unitsByCampus[campus.id] || [];
         const completedUnits = campusUnits.map(unit => {
             const unitSubmissions = allSubmissions.filter(s => s.unitId === unit.id && s.year === selectedYear);
-            // A unique submission is a combination of report type and cycle
-            const uniqueSubmissions = new Set(unitSubmissions.map(s => `${s.reportType}-${s.cycleId}`));
+            
+            const firstCycleRegistry = unitSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry Form');
+            const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
+            const requiredFirst = isFirstActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+            const firstCycleSubmissions = new Set(unitSubmissions.filter(s => s.cycleId === 'first').map(s => s.reportType));
+             if (isFirstActionPlanNA) {
+                firstCycleSubmissions.delete('Risk and Opportunity Action Plan');
+            }
+
+            const finalCycleRegistry = unitSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry Form');
+            const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
+            const requiredFinal = isFinalActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
+            const finalCycleSubmissions = new Set(unitSubmissions.filter(s => s.cycleId === 'final').map(s => s.reportType));
+            if (isFinalActionPlanNA) {
+                finalCycleSubmissions.delete('Risk and Opportunity Action Plan');
+            }
+
+            const isComplete = firstCycleSubmissions.size >= requiredFirst && finalCycleSubmissions.size >= requiredFinal;
+            
             return {
                 id: unit.id,
                 name: unit.name,
-                count: uniqueSubmissions.size
+                isComplete,
             };
-        }).filter(unit => unit.count >= TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT);
+        }).filter(unit => unit.isComplete);
         
         return {
             campusId: campus.id,
@@ -101,7 +119,7 @@ export function CompletedSubmissions({
             On-Track Units
         </CardTitle>
         <CardDescription>
-            Congratulations to the following units for completing all {TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT} required submissions for {selectedYear}.
+            Congratulations to the following units for completing all required submissions for {selectedYear}.
         </CardDescription>
       </CardHeader>
       <CardContent>
