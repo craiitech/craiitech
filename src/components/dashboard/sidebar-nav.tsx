@@ -20,84 +20,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
 
-const AdminStatusIndicator = () => {
-    const [adminIsOnline, setAdminIsOnline] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isMounted, setIsMounted] = useState(false);
-
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
-
-    useEffect(() => {
-        if (!isMounted) {
-            return;
-        }
-
-        const fetchAdminStatus = async () => {
-            try {
-                const response = await fetch('/api/admin-status');
-                if (!response.ok) {
-                    const errorDetails = `Status: ${response.status}, StatusText: ${response.statusText}`;
-                    console.error('Failed to fetch admin status.', errorDetails);
-                    setAdminIsOnline(false);
-                    return;
-                }
-                const data = await response.json();
-                setAdminIsOnline(data.isAdminOnline);
-            } catch (error) {
-                const errorMessage = (error instanceof Error) ? error.message : 'An unknown network error occurred.';
-                console.error('Failed to fetch admin status:', errorMessage);
-                setAdminIsOnline(false);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchAdminStatus();
-        const intervalId = setInterval(fetchAdminStatus, 30000);
-
-        return () => clearInterval(intervalId);
-    }, [isMounted]);
-
-    if (isLoading) {
-        return (
-             <SidebarMenuItem>
-                <div className="flex h-10 items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm text-sidebar-foreground/80 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-2">
-                    <Skeleton className="h-3 w-3 rounded-full" />
-                    <Skeleton className="h-4 w-20 group-data-[collapsible=icon]:hidden" />
-                </div>
-            </SidebarMenuItem>
-        );
-    }
-    
-    const statusText = adminIsOnline ? "Admin Online" : "Admin Offline";
-    const statusColor = adminIsOnline ? "bg-green-500" : "bg-destructive";
-    const tooltipText = adminIsOnline 
-        ? "An administrator is currently online."
-        : "No administrators are currently online.";
-
-    return (
-        <SidebarMenuItem className="cursor-default">
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <div className="flex h-10 items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm text-sidebar-foreground/80 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-2">
-                        <span className={cn("relative flex h-3 w-3 shrink-0", "group-data-[collapsible=icon]:h-3.5 group-data-[collapsible=icon]:w-3.5")}>
-                            {adminIsOnline && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />}
-                            <span className={cn("relative inline-flex h-3 w-3 rounded-full", statusColor)} />
-                        </span>
-                        <span className="truncate group-data-[collapsible=icon]:hidden">{statusText}</span>
-                    </div>
-                </TooltipTrigger>
-                <TooltipContent side="right" align="center">
-                    <p>{tooltipText}</p>
-                </TooltipContent>
-            </Tooltip>
-        </SidebarMenuItem>
-    );
-};
-
-
 export function SidebarNav({
   className,
   ...props
@@ -218,7 +140,6 @@ export function SidebarNav({
       </SidebarMenu>
       <div className="mt-auto">
          <SidebarMenu>
-            <AdminStatusIndicator />
             <SidebarMenuItem>
                 <Link href="/help" passHref>
                     <SidebarMenuButton as="a" isActive={pathname.startsWith('/help')} icon={<HelpCircle/>} className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground hover:bg-sidebar-accent">
