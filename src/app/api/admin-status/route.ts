@@ -39,29 +39,25 @@ export async function GET(req: NextRequest) {
         const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
         
         const adminIsOnline = adminUsers.some(adminUser => {
-            try {
-                if (!adminUser || !adminUser.lastSeen) {
-                    return false;
-                }
-
-                // Robust check for a Timestamp object (both client and admin SDK)
-                if (adminUser.lastSeen.toMillis && typeof adminUser.lastSeen.toMillis === 'function') {
-                    const lastSeenMillis = adminUser.lastSeen.toMillis();
-                    return lastSeenMillis > twoMinutesAgo;
-                }
-
-                console.warn(`User document for admin ${adminUser.id} has an invalid 'lastSeen' field format.`, adminUser.lastSeen);
+            // New, more robust checking logic
+            if (!adminUser || typeof adminUser.lastSeen !== 'object' || adminUser.lastSeen === null) {
                 return false;
-            } catch (e: any) {
-                console.error(`Error processing 'lastSeen' for admin ${adminUser.id}:`, e.message);
-                return false; // Safely ignore this user and continue checking others.
             }
+            
+            if (typeof adminUser.lastSeen.toMillis === 'function') {
+                const lastSeenMillis = adminUser.lastSeen.toMillis();
+                return lastSeenMillis > twoMinutesAgo;
+            }
+
+            // If it's not a valid timestamp-like object, log it and skip.
+            console.warn(`User document for admin ${adminUser.id} has an invalid 'lastSeen' field format.`, adminUser.lastSeen);
+            return false;
         });
 
         return NextResponse.json({ isAdminOnline: adminIsOnline }, { status: 200 });
 
     } catch (error: any) {
         console.error('API Error in /api/admin-status:', error);
-        return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
     }
 }
