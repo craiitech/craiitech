@@ -33,23 +33,29 @@ export async function GET(req: NextRequest) {
         }
         
         const userSnapshots = await Promise.all(userPromises);
-        const adminUsers = userSnapshots.flatMap(snapshot => snapshot.docs.map(doc => doc.data()));
+        const adminUsers = userSnapshots.flatMap(snapshot => snapshot.docs.map(doc => ({...doc.data(), id: doc.id})));
 
         // 3. Check if any admin has a recent 'lastSeen' timestamp
         const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
         
         const adminIsOnline = adminUsers.some(adminUser => {
-            if (!adminUser || !adminUser.lastSeen) return false;
+            try {
+                if (!adminUser || !adminUser.lastSeen) {
+                    return false;
+                }
 
-            // Defensive check: ensure lastSeen is a Firestore Timestamp object.
-            // Both client and admin SDK Timestamps have a `toMillis` method.
-            if (typeof adminUser.lastSeen.toMillis !== 'function') {
-                console.warn(`User document for an admin has an invalid 'lastSeen' field. It is not a Timestamp object.`);
+                // Robust check for a Timestamp object (both client and admin SDK)
+                if (adminUser.lastSeen.toMillis && typeof adminUser.lastSeen.toMillis === 'function') {
+                    const lastSeenMillis = adminUser.lastSeen.toMillis();
+                    return lastSeenMillis > twoMinutesAgo;
+                }
+
+                console.warn(`User document for admin ${adminUser.id} has an invalid 'lastSeen' field format.`, adminUser.lastSeen);
                 return false;
+            } catch (e: any) {
+                console.error(`Error processing 'lastSeen' for admin ${adminUser.id}:`, e.message);
+                return false; // Safely ignore this user and continue checking others.
             }
-
-            const lastSeenMillis = adminUser.lastSeen.toMillis();
-            return lastSeenMillis > twoMinutesAgo;
         });
 
         return NextResponse.json({ isAdminOnline: adminIsOnline }, { status: 200 });
