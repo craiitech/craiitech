@@ -28,6 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 const statusVariant: Record<
@@ -40,6 +41,15 @@ const statusVariant: Record<
   submitted: 'outline',
   'awaiting approval': 'outline',
 };
+
+const approverChecklistItems = [
+    { id: 'titleAndContent', label: 'Is the document title and content correct for the report type?', rejectionReason: 'Document title and/or content is incorrect for the report type.' },
+    { id: 'signatures', label: 'Are all required signatures present and valid?', rejectionReason: 'Signatures are not valid / missing.' },
+    { id: 'alignment', label: 'Does the content align with the objectives for this submission cycle?', rejectionReason: 'Content does not align with submission cycle objectives.' },
+    { id: 'accuracy', label: 'Is the data presented clearly and accurately?', rejectionReason: 'Data presented is not clear or accurate.' },
+    { id: 'link', label: 'Does the link open the correct and final version of the document?', rejectionReason: 'Link does not open the correct/final document version.' },
+];
+
 
 const LoadingSkeleton = () => (
   <div className="space-y-6">
@@ -94,6 +104,17 @@ export default function SubmissionDetailPage() {
   // State for resubmission form
   const [newLink, setNewLink] = useState('');
   const [newComment, setNewComment] = useState('');
+  
+  const [approverChecklist, setApproverChecklist] = useState<Record<string, boolean>>(
+    approverChecklistItems.reduce((acc, item) => ({ ...acc, [item.id]: false }), {})
+  );
+
+  const handleChecklistChange = (id: string) => {
+    setApproverChecklist(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+  
+  const isChecklistComplete = useMemo(() => Object.values(approverChecklist).every(Boolean), [approverChecklist]);
+  const canReject = useMemo(() => !isChecklistComplete || feedback.trim() !== '', [isChecklistComplete, feedback]);
 
 
   const submissionId = Array.isArray(id) ? id[0] : id;
@@ -151,7 +172,7 @@ export default function SubmissionDetailPage() {
     
     if (feedback) {
         const newComment: Comment = {
-            text: feedback,
+            text: `(Approval Comment) ${feedback}`,
             authorId: user!.uid,
             authorName: userProfile!.firstName + ' ' + userProfile!.lastName,
             createdAt: new Date(),
@@ -183,13 +204,34 @@ export default function SubmissionDetailPage() {
   }
 
   const handleReject = async () => {
-      if (!submissionDocRef || !feedback) {
-        toast({ title: 'Error', description: 'Feedback is required to reject.', variant: 'destructive'});
+      if (!submissionDocRef) return;
+      
+      const uncheckedReasons = approverChecklistItems
+        .filter(item => !approverChecklist[item.id])
+        .map(item => `* ${item.rejectionReason}`);
+
+      if (uncheckedReasons.length === 0 && !feedback.trim()) {
+        toast({ title: 'Error', description: 'To reject, please uncheck an item or provide manual feedback.', variant: 'destructive'});
         return;
       };
+
       setIsSubmitting(true);
+
+      let rejectionComment = '';
+      if (uncheckedReasons.length > 0) {
+        rejectionComment += `**Rejection based on:**\n${uncheckedReasons.join('\n')}`;
+      }
+
+      if (feedback.trim()) {
+        if (rejectionComment) {
+            rejectionComment += `\n\n**Additional Comments:**\n${feedback.trim()}`;
+        } else {
+            rejectionComment = feedback.trim();
+        }
+      }
+      
       const newComment: Comment = {
-          text: feedback,
+          text: rejectionComment,
           authorId: user!.uid,
           authorName: userProfile!.firstName + ' ' + userProfile!.lastName,
           createdAt: new Date(),
@@ -324,34 +366,59 @@ export default function SubmissionDetailPage() {
           </Card>
           
           {isApprover && submission.statusId === 'submitted' && (
-             <Card>
-                <CardHeader>
-                    <CardTitle>Take Action</CardTitle>
-                    <CardDescription>Approve or reject this submission. Comments are optional for approvals but required for rejections.</CardDescription>
-                </CardHeader>
-                 <CardContent className="space-y-4">
-                    <div>
-                        <Label htmlFor="feedback">Comments / Feedback</Label>
-                        <Textarea 
-                            id="feedback"
-                            placeholder="Provide clear reasons for rejection or optional comments for approval..."
-                            value={feedback}
-                            onChange={(e) => setFeedback(e.target.value)}
-                            disabled={isSubmitting}
-                        />
-                    </div>
-                 </CardContent>
-                <CardFooter className="flex justify-end gap-2">
-                    <Button variant="destructive" onClick={handleReject} disabled={isSubmitting || !feedback}>
-                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4"/>}
-                        Reject
-                    </Button>
-                     <Button onClick={handleApprove} disabled={isSubmitting}>
-                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4"/>}
-                        Approve
-                    </Button>
-                </CardFooter>
-             </Card>
+             <>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Approver's Final Check</CardTitle>
+                        <CardDescription>Please confirm the following before taking action.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {approverChecklistItems.map(item => (
+                            <div key={item.id} className="flex items-center space-x-3">
+                                <Checkbox
+                                    id={`approver-${item.id}`}
+                                    checked={approverChecklist[item.id]}
+                                    onCheckedChange={() => handleChecklistChange(item.id)}
+                                    disabled={isSubmitting}
+                                />
+                                <Label htmlFor={`approver-${item.id}`} className="text-sm font-normal leading-snug">
+                                    {item.label}
+                                </Label>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Take Action</CardTitle>
+                        <CardDescription>
+                            Provide additional comments below. Unchecked items from the list above will be automatically included in the rejection feedback.
+                        </CardDescription>
+                    </CardHeader>
+                        <CardContent className="space-y-4">
+                        <div>
+                            <Label htmlFor="feedback">Additional Comments</Label>
+                            <Textarea 
+                                id="feedback"
+                                placeholder="Provide any extra details or comments here..."
+                                value={feedback}
+                                onChange={(e) => setFeedback(e.target.value)}
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                        </CardContent>
+                    <CardFooter className="flex justify-end gap-2">
+                        <Button variant="destructive" onClick={handleReject} disabled={isSubmitting || !canReject}>
+                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4"/>}
+                            Reject
+                        </Button>
+                            <Button onClick={handleApprove} disabled={isSubmitting || !isChecklistComplete}>
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4"/>}
+                            Approve
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </>
           )}
 
           {isSubmitter && submission.statusId === 'rejected' && (
@@ -442,7 +509,7 @@ export default function SubmissionDetailPage() {
                                                 <p className="text-sm font-medium">{comment.authorName} <span className="text-xs text-muted-foreground">({comment.authorRole})</span></p>
                                                 <p className="text-xs text-muted-foreground">{getFormattedDate(comment.createdAt)}</p>
                                             </div>
-                                            <p className="text-sm text-muted-foreground mt-1">{comment.text}</p>
+                                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{comment.text}</p>
                                         </div>
                                 </div>
                                 ))}
@@ -456,3 +523,5 @@ export default function SubmissionDetailPage() {
     </div>
   );
 }
+
+    
