@@ -43,11 +43,12 @@ const statusVariant: Record<
 };
 
 const approverChecklistItems = [
-    { id: 'titleAndContent', label: 'Is the document title and content correct for the report type?', rejectionReason: 'Document title and/or content is incorrect for the report type.' },
-    { id: 'signatures', label: 'Are all required signatures present and valid?', rejectionReason: 'Signatures are not valid / missing.' },
-    { id: 'alignment', label: 'Does the content align with the objectives for this submission cycle?', rejectionReason: 'Content does not align with submission cycle objectives.' },
-    { id: 'accuracy', label: 'Is the data presented clearly and accurately?', rejectionReason: 'Data presented is not clear or accurate.' },
-    { id: 'link', label: 'Does the link open the correct and final version of the document?', rejectionReason: 'Link does not open the correct/final document version.' },
+    { id: 'viewable', label: 'Is the document viewable and accessible?', rejectionReason: 'Document link is not viewable or accessible. Please check sharing settings.' },
+    { id: 'correctDocument', label: 'Is this the correct document for the specified report type?', rejectionReason: 'The submitted document is not the correct one for this report type.' },
+    { id: 'correctYear', label: 'Is the year specified in the document correct?', rejectionReason: 'The year in the document is incorrect.' },
+    { id: 'correctCycle', label: 'Is the submission cycle (First/Final) correct in the document?', rejectionReason: 'The submission cycle in the document is incorrect.' },
+    { id: 'correctContents', label: 'Are the contents of the document complete, accurate, and aligned with objectives?', rejectionReason: 'The document contents are incomplete, inaccurate, or not aligned with cycle objectives.' },
+    { id: 'signaturesPresent', label: 'Are all required signatures present and valid?', rejectionReason: 'Required signatures are missing or invalid.' },
 ];
 
 
@@ -523,5 +524,3 @@ export default function SubmissionDetailPage() {
     </div>
   );
 }
-
-    
