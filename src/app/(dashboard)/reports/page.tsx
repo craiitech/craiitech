@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -164,7 +165,6 @@ export default function ReportsPage() {
     return new Map(allCampuses.map(c => [c.id, c.name]));
   }, [allCampuses]);
 
-  // Moved from submission-matrix-report
   const matrixData = useMemo(() => {
     if (!allSubmissions || !allCampuses || !allUnits) {
       return [];
@@ -172,13 +172,19 @@ export default function ReportsPage() {
 
     const submissionsForYear = allSubmissions.filter(s => s.year === selectedMatrixYear);
 
-    const submissionLookup = new Set(
-      submissionsForYear.map(s =>
-        `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`
-      )
+    // Create a map for quick lookup of submissions and their risk ratings
+    const submissionMap = new Map<string, Submission>(
+      submissionsForYear.map(s => {
+        const key = `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`;
+        return [key, s];
+      })
     );
     
-    return allCampuses.map(campus => {
+    const relevantCampuses = isSupervisor && !isAdmin && userProfile?.campusId
+      ? allCampuses.filter(c => c.id === userProfile.campusId)
+      : allCampuses;
+
+    return relevantCampuses.map(campus => {
       const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
       
       if (campusUnits.length === 0) {
@@ -186,13 +192,23 @@ export default function ReportsPage() {
       }
       
       const unitStatuses = campusUnits.map(unit => {
-        const statuses: Record<string, boolean> = {};
+        const statuses: Record<string, 'submitted' | 'missing' | 'not-applicable'> = {};
         
-        submissionTypes.forEach(reportType => {
-          cycles.forEach(cycleId => {
-            const submissionKey = `${campus.id}-${unit.id}-${reportType}-${cycleId}`;
-            statuses[submissionKey] = submissionLookup.has(submissionKey);
-          });
+        cycles.forEach(cycleId => {
+            const rorKey = `${campus.id}-${unit.id}-Risk and Opportunity Registry Form-${cycleId}`;
+            const rorSubmission = submissionMap.get(rorKey);
+            const isActionPlanNA = rorSubmission?.riskRating === 'low';
+
+            submissionTypes.forEach(reportType => {
+                const submissionKey = `${campus.id}-${unit.id}-${reportType}-${cycleId}`;
+                if (reportType === 'Risk and Opportunity Action Plan' && isActionPlanNA) {
+                    statuses[submissionKey] = 'not-applicable';
+                } else if (submissionMap.has(submissionKey)) {
+                    statuses[submissionKey] = 'submitted';
+                } else {
+                    statuses[submissionKey] = 'missing';
+                }
+            });
         });
   
         return {
@@ -211,7 +227,7 @@ export default function ReportsPage() {
     .filter((c): c is NonNullable<typeof c> => c !== null)
     .sort((a, b) => a.campusName.localeCompare(b.campusName));
 
-  }, [allSubmissions, allCampuses, allUnits, selectedMatrixYear]);
+  }, [allSubmissions, allCampuses, allUnits, selectedMatrixYear, isSupervisor, isAdmin, userProfile]);
 
   const isLoading = isUserLoading || isLoadingCampuses || isLoadingUnits || isLoadingSubmissions || isLoadingUsers || isLoadingCycles;
 

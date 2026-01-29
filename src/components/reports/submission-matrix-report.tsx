@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -6,7 +7,7 @@ import type { Campus, Cycle } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Check, X } from 'lucide-react';
+import { Check, X, Minus } from 'lucide-react';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -18,7 +19,7 @@ type MatrixData = {
     units: {
         unitId: string;
         unitName: string;
-        statuses: Record<string, boolean>;
+        statuses: Record<string, 'submitted' | 'missing' | 'not-applicable'>;
     }[];
 }[];
 
@@ -42,6 +43,19 @@ export function SubmissionMatrixReport({
     if (uniqueYears.length > 0) return uniqueYears;
     return [new Date().getFullYear()];
   }, [allCycles]);
+  
+  const renderCell = (status: 'submitted' | 'missing' | 'not-applicable' | undefined) => {
+    switch (status) {
+      case 'submitted':
+        return <Check className="h-4 w-4 text-green-500 mx-auto" />;
+      case 'missing':
+        return <X className="h-4 w-4 text-red-500 mx-auto" />;
+      case 'not-applicable':
+        return <Minus className="h-4 w-4 text-gray-400 mx-auto" />;
+      default:
+        return <X className="h-4 w-4 text-red-500 mx-auto" />;
+    }
+  };
 
   return (
     <Card>
@@ -49,7 +63,7 @@ export function SubmissionMatrixReport({
         <div>
           <CardTitle>Detailed Submission Matrix</CardTitle>
           <CardDescription>
-            An overview of submitted documents for each unit, per cycle. <Check className="inline h-4 w-4 text-green-500" /> indicates submitted, <X className="inline h-4 w-4 text-red-500" /> indicates not submitted.
+            An overview of submitted documents for each unit, per cycle. <Check className="inline h-4 w-4 text-green-500" /> indicates submitted, <X className="inline h-4 w-4 text-red-500" /> indicates not submitted, and <Minus className="inline h-4 w-4 text-gray-400" /> indicates Not Applicable.
           </CardDescription>
         </div>
         <div className="w-[120px]">
@@ -94,10 +108,10 @@ export function SubmissionMatrixReport({
                           {submissionTypes.map(type => (
                             <React.Fragment key={type}>
                               <TableCell className="text-center border-l">
-                                {statuses[`${campusId}-${unitId}-${type}-first`] ? <Check className="h-4 w-4 text-green-500 mx-auto" /> : <X className="h-4 w-4 text-red-500 mx-auto" />}
+                                {renderCell(statuses[`${campusId}-${unitId}-${type}-first`])}
                               </TableCell>
                               <TableCell className="text-center border-r">
-                                {statuses[`${campusId}-${unitId}-${type}-final`] ? <Check className="h-4 w-4 text-green-500 mx-auto" /> : <X className="h-4 w-4 text-red-500 mx-auto" />}
+                                {renderCell(statuses[`${campusId}-${unitId}-${type}-final`])}
                               </TableCell>
                             </React.Fragment>
                           ))}
