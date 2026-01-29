@@ -8,7 +8,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Skeleton } from '@/components/ui/skeleton';
 import { FileWarning, School, CheckCircle, Building } from 'lucide-react';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
-import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
+import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const currentYear = new Date().getFullYear();
@@ -37,22 +37,14 @@ export function IncompleteCampusSubmissions({
       return [];
     }
 
-    const unitsByCampus = allUnits.reduce((acc, unit) => {
-      if (unit.campusIds) {
-        unit.campusIds.forEach(campusId => {
-          if (!acc[campusId]) {
-            acc[campusId] = [];
-          }
-          acc[campusId].push(unit);
-        });
-      }
-      return acc;
-    }, {} as Record<string, Unit[]>);
-    
-
     return allCampuses.map(campus => {
-      const campusUnits = unitsByCampus[campus.id] || [];
-      if (campusUnits.length === 0) return null;
+      // Direct Filtering: For each campus, get a fresh list of its units.
+      // This is more robust than the previous `reduce` method.
+      const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
+
+      if (campusUnits.length === 0) {
+        return null;
+      }
 
       const incompleteUnits = campusUnits.map(unit => {
         const unitSubmissionsForYear = allSubmissions.filter(
