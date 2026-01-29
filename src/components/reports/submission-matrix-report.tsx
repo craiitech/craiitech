@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -7,7 +6,7 @@ import type { Campus, Cycle } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Check, X, Minus } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -51,7 +50,7 @@ export function SubmissionMatrixReport({
       case 'missing':
         return <X className="h-4 w-4 text-red-500 mx-auto" />;
       case 'not-applicable':
-        return <Minus className="h-4 w-4 text-gray-400 mx-auto" />;
+        return <span className="text-xs font-semibold text-muted-foreground">N/A</span>;
       default:
         return <X className="h-4 w-4 text-red-500 mx-auto" />;
     }
@@ -63,7 +62,7 @@ export function SubmissionMatrixReport({
         <div>
           <CardTitle>Detailed Submission Matrix</CardTitle>
           <CardDescription>
-            An overview of submitted documents for each unit, per cycle. <Check className="inline h-4 w-4 text-green-500" /> indicates submitted, <X className="inline h-4 w-4 text-red-500" /> indicates not submitted, and <Minus className="inline h-4 w-4 text-gray-400" /> indicates Not Applicable.
+            An overview of submitted documents for each unit, per cycle. <Check className="inline h-4 w-4 text-green-500" /> indicates submitted, <X className="inline h-4 w-4 text-red-500" /> indicates not submitted, and "N/A" indicates Not Applicable.
           </CardDescription>
         </div>
         <div className="w-[120px]">
