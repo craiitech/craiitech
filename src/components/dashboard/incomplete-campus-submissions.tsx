@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FileWarning, School, CheckCircle, Building } from 'lucide-react';
-import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -33,7 +32,7 @@ export function IncompleteCampusSubmissions({
 }: IncompleteCampusSubmissionsProps) {
 
   const incompleteSubmissionsByCampus = useMemo(() => {
-    if (!allSubmissions || !allCampuses || !allUnits) {
+    if (!allSubmissions || !allCampuses || !allUnits || !selectedYear) {
       return [];
     }
 
@@ -43,40 +42,47 @@ export function IncompleteCampusSubmissions({
       if (unitsInThisCampus.length === 0) {
         return null;
       }
-
+      
       const incompleteUnits = unitsInThisCampus.map(unit => {
-        const unitSubmissionsForYear = allSubmissions.filter(
-          s => s.unitId === unit.id && s.year === selectedYear
-        );
+        const submissionsForUnitAndYear = allSubmissions.filter(s => s.unitId === unit.id && s.year === selectedYear);
 
-        // --- Explicitly calculate submitted and required for First Cycle ---
-        const firstCycleSubmissions = unitSubmissionsForYear.filter(s => s.cycleId === 'first');
+        // --- FIRST CYCLE ---
+        const firstCycleSubmissions = submissionsForUnitAndYear.filter(s => s.cycleId === 'first');
         const firstCycleSubmittedTypes = new Set(firstCycleSubmissions.map(s => s.reportType));
-        const firstCycleRegistry = firstCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry Form');
-        const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
+        const firstRegistry = firstCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry Form');
+        const firstIsActionPlanNA = firstRegistry?.riskRating === 'low';
         
-        let firstCycleSubmittedCount = firstCycleSubmittedTypes.size;
-        // If the non-required action plan was submitted, don't count it towards the total
-        if (isFirstActionPlanNA && firstCycleSubmittedTypes.has('Risk and Opportunity Action Plan')) {
-            firstCycleSubmittedCount--;
+        let requiredInFirst = TOTAL_REPORTS_PER_CYCLE;
+        if (firstIsActionPlanNA) {
+          requiredInFirst = TOTAL_REPORTS_PER_CYCLE - 1;
         }
-        const requiredFirst = isFirstActionPlanNA ? (TOTAL_REPORTS_PER_CYCLE - 1) : TOTAL_REPORTS_PER_CYCLE;
-        const missingFirst = Math.max(0, requiredFirst - firstCycleSubmittedCount);
 
+        let submittedInFirst = firstCycleSubmittedTypes.size;
+        if (firstIsActionPlanNA && firstCycleSubmittedTypes.has('Risk and Opportunity Action Plan')) {
+          submittedInFirst = submittedInFirst - 1;
+        }
 
-        // --- Explicitly calculate submitted and required for Final Cycle ---
-        const finalCycleSubmissions = unitSubmissionsForYear.filter(s => s.cycleId === 'final');
+        const missingFirst = Math.max(0, requiredInFirst - submittedInFirst);
+
+        // --- FINAL CYCLE ---
+        const finalCycleSubmissions = submissionsForUnitAndYear.filter(s => s.cycleId === 'final');
         const finalCycleSubmittedTypes = new Set(finalCycleSubmissions.map(s => s.reportType));
-        const finalCycleRegistry = finalCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry Form');
-        const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
-        
-        let finalCycleSubmittedCount = finalCycleSubmittedTypes.size;
-        if (isFinalActionPlanNA && finalCycleSubmittedTypes.has('Risk and Opportunity Action Plan')) {
-            finalCycleSubmittedCount--;
-        }
-        const requiredFinal = isFinalActionPlanNA ? (TOTAL_REPORTS_PER_CYCLE - 1) : TOTAL_REPORTS_PER_CYCLE;
-        const missingFinal = Math.max(0, requiredFinal - finalCycleSubmittedCount);
+        const finalRegistry = finalCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry Form');
+        const finalIsActionPlanNA = finalRegistry?.riskRating === 'low';
 
+        let requiredInFinal = TOTAL_REPORTS_PER_CYCLE;
+        if (finalIsActionPlanNA) {
+          requiredInFinal = TOTAL_REPORTS_PER_CYCLE - 1;
+        }
+        
+        let submittedInFinal = finalCycleSubmittedTypes.size;
+        if (finalIsActionPlanNA && finalCycleSubmittedTypes.has('Risk and Opportunity Action Plan')) {
+          submittedInFinal = submittedInFinal - 1;
+        }
+
+        const missingFinal = Math.max(0, requiredInFinal - submittedInFinal);
+
+        // --- TOTAL ---
         const totalMissing = missingFirst + missingFinal;
 
         return {
@@ -95,10 +101,9 @@ export function IncompleteCampusSubmissions({
       }
       
       return null;
-    }).filter((c): c is NonNullable<typeof c> => c !== null);
+    }).filter(Boolean as any);
 
     return campusResults;
-
   }, [allSubmissions, allCampuses, allUnits, selectedYear]);
 
   if (isLoading) {
