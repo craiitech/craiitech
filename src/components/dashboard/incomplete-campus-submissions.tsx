@@ -37,69 +37,67 @@ export function IncompleteCampusSubmissions({
       return [];
     }
 
-    // 1. Map over ALL units to determine their individual incompleteness
-    const allUnitsWithStatus = allUnits.map(unit => {
-      const unitSubmissionsForYear = allSubmissions.filter(
-        s => s.unitId === unit.id && s.year === selectedYear
-      );
+    const campusResults = allCampuses.map(campus => {
+      const unitsInThisCampus = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
 
-      const firstCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry Form');
-      const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
-      const firstCycleSubmitted = new Set(unitSubmissionsForYear.filter(s => s.cycleId === 'first').map(s => s.reportType));
-      const missingFirst = submissionTypes.filter(type => {
-          if (isFirstActionPlanNA && type === 'Risk and Opportunity Action Plan') return false;
-          return !firstCycleSubmitted.has(type);
-      });
-      
-      const finalCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry Form');
-      const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
-      const finalCycleSubmitted = new Set(unitSubmissionsForYear.filter(s => s.cycleId === 'final').map(s => s.reportType));
-      const missingFinal = submissionTypes.filter(type => {
-          if (isFinalActionPlanNA && type === 'Risk and Opportunity Action Plan') return false;
-          return !finalCycleSubmitted.has(type);
-      });
+      if (unitsInThisCampus.length === 0) {
+        return null;
+      }
 
-      const missingCount = missingFirst.length + missingFinal.length;
-      
-      return {
-        ...unit, // includes unit.id, unit.name, unit.campusIds
-        missingCount,
-      };
-    });
+      const incompleteUnits = unitsInThisCampus.map(unit => {
+        const unitSubmissionsForYear = allSubmissions.filter(
+          s => s.unitId === unit.id && s.year === selectedYear
+        );
 
-    // 2. Filter for only the incomplete units
-    const allIncompleteUnits = allUnitsWithStatus.filter(u => u.missingCount > 0);
-
-    // 3. Group these incomplete units by their campus
-    const incompleteByCampusId = allIncompleteUnits.reduce((acc, unit) => {
-      unit.campusIds?.forEach(campusId => {
-        if (!acc[campusId]) {
-          acc[campusId] = [];
+        // --- Explicitly calculate submitted and required for First Cycle ---
+        const firstCycleSubmissions = unitSubmissionsForYear.filter(s => s.cycleId === 'first');
+        const firstCycleSubmittedTypes = new Set(firstCycleSubmissions.map(s => s.reportType));
+        const firstCycleRegistry = firstCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry Form');
+        const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
+        
+        let firstCycleSubmittedCount = firstCycleSubmittedTypes.size;
+        // If the non-required action plan was submitted, don't count it towards the total
+        if (isFirstActionPlanNA && firstCycleSubmittedTypes.has('Risk and Opportunity Action Plan')) {
+            firstCycleSubmittedCount--;
         }
-        // Push a simpler object for rendering
-        acc[campusId].push({
+        const requiredFirst = isFirstActionPlanNA ? (TOTAL_REPORTS_PER_CYCLE - 1) : TOTAL_REPORTS_PER_CYCLE;
+        const missingFirst = Math.max(0, requiredFirst - firstCycleSubmittedCount);
+
+
+        // --- Explicitly calculate submitted and required for Final Cycle ---
+        const finalCycleSubmissions = unitSubmissionsForYear.filter(s => s.cycleId === 'final');
+        const finalCycleSubmittedTypes = new Set(finalCycleSubmissions.map(s => s.reportType));
+        const finalCycleRegistry = finalCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry Form');
+        const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
+        
+        let finalCycleSubmittedCount = finalCycleSubmittedTypes.size;
+        if (isFinalActionPlanNA && finalCycleSubmittedTypes.has('Risk and Opportunity Action Plan')) {
+            finalCycleSubmittedCount--;
+        }
+        const requiredFinal = isFinalActionPlanNA ? (TOTAL_REPORTS_PER_CYCLE - 1) : TOTAL_REPORTS_PER_CYCLE;
+        const missingFinal = Math.max(0, requiredFinal - finalCycleSubmittedCount);
+
+        const totalMissing = missingFirst + missingFinal;
+
+        return {
           unitId: unit.id,
           unitName: unit.name,
-          missingCount: unit.missingCount,
-        });
-      });
-      return acc;
-    }, {} as Record<string, { unitId: string; unitName: string; missingCount: number }[]>);
+          missingCount: totalMissing,
+        };
+      }).filter(unit => unit.missingCount > 0);
 
-    // 4. Map over all campuses to build the final structure, ensuring correct titles and counts
-    return allCampuses
-      .map(campus => {
-        const incompleteUnits = incompleteByCampusId[campus.id] || [];
-        if (incompleteUnits.length > 0) {
-          return {
-            campusId: campus.id,
-            campusName: campus.name,
-            incompleteUnits: incompleteUnits.sort((a,b) => b.missingCount - a.missingCount), // Sort by most missing
-          };
-        }
-        return null;
-      })
-      .filter((c): c is NonNullable<typeof c> => c !== null); // Filter out campuses with no incomplete units
+      if (incompleteUnits.length > 0) {
+        return {
+          campusId: campus.id,
+          campusName: campus.name,
+          incompleteUnits: incompleteUnits.sort((a,b) => b.missingCount - a.missingCount),
+        };
+      }
+      
+      return null;
+    }).filter((c): c is NonNullable<typeof c> => c !== null);
+
+    return campusResults;
 
   }, [allSubmissions, allCampuses, allUnits, selectedYear]);
 
