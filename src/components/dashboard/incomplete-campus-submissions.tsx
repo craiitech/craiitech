@@ -37,59 +37,70 @@ export function IncompleteCampusSubmissions({
       return [];
     }
 
-    return allCampuses.map(campus => {
-      // Direct Filtering: For each campus, get a fresh list of its units.
-      // This is more robust than the previous `reduce` method.
-      const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
+    // 1. Map over ALL units to determine their individual incompleteness
+    const allUnitsWithStatus = allUnits.map(unit => {
+      const unitSubmissionsForYear = allSubmissions.filter(
+        s => s.unitId === unit.id && s.year === selectedYear
+      );
 
-      if (campusUnits.length === 0) {
-        return null;
-      }
+      const firstCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry Form');
+      const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
+      const firstCycleSubmitted = new Set(unitSubmissionsForYear.filter(s => s.cycleId === 'first').map(s => s.reportType));
+      const missingFirst = submissionTypes.filter(type => {
+          if (isFirstActionPlanNA && type === 'Risk and Opportunity Action Plan') return false;
+          return !firstCycleSubmitted.has(type);
+      });
+      
+      const finalCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry Form');
+      const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
+      const finalCycleSubmitted = new Set(unitSubmissionsForYear.filter(s => s.cycleId === 'final').map(s => s.reportType));
+      const missingFinal = submissionTypes.filter(type => {
+          if (isFinalActionPlanNA && type === 'Risk and Opportunity Action Plan') return false;
+          return !finalCycleSubmitted.has(type);
+      });
 
-      const incompleteUnits = campusUnits.map(unit => {
-        const unitSubmissionsForYear = allSubmissions.filter(
-          s => s.unitId === unit.id && s.year === selectedYear
-        );
+      const missingCount = missingFirst.length + missingFinal.length;
+      
+      return {
+        ...unit, // includes unit.id, unit.name, unit.campusIds
+        missingCount,
+      };
+    });
 
-        const firstCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry Form');
-        const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
-        const firstCycleSubmitted = new Set(unitSubmissionsForYear.filter(s => s.cycleId === 'first').map(s => s.reportType));
-        const missingFirst = submissionTypes.filter(type => {
-            if (isFirstActionPlanNA && type === 'Risk and Opportunity Action Plan') return false;
-            return !firstCycleSubmitted.has(type);
+    // 2. Filter for only the incomplete units
+    const allIncompleteUnits = allUnitsWithStatus.filter(u => u.missingCount > 0);
+
+    // 3. Group these incomplete units by their campus
+    const incompleteByCampusId = allIncompleteUnits.reduce((acc, unit) => {
+      unit.campusIds?.forEach(campusId => {
+        if (!acc[campusId]) {
+          acc[campusId] = [];
+        }
+        // Push a simpler object for rendering
+        acc[campusId].push({
+          unitId: unit.id,
+          unitName: unit.name,
+          missingCount: unit.missingCount,
         });
-        
-        const finalCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry Form');
-        const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
-        const finalCycleSubmitted = new Set(unitSubmissionsForYear.filter(s => s.cycleId === 'final').map(s => s.reportType));
-        const missingFinal = submissionTypes.filter(type => {
-            if (isFinalActionPlanNA && type === 'Risk and Opportunity Action Plan') return false;
-            return !finalCycleSubmitted.has(type);
-        });
+      });
+      return acc;
+    }, {} as Record<string, { unitId: string; unitName: string; missingCount: number }[]>);
 
-        const missingCount = missingFirst.length + missingFinal.length;
-        
-        if (missingCount > 0) {
+    // 4. Map over all campuses to build the final structure, ensuring correct titles and counts
+    return allCampuses
+      .map(campus => {
+        const incompleteUnits = incompleteByCampusId[campus.id] || [];
+        if (incompleteUnits.length > 0) {
           return {
-            unitId: unit.id,
-            unitName: unit.name,
-            missingCount,
+            campusId: campus.id,
+            campusName: campus.name,
+            incompleteUnits: incompleteUnits.sort((a,b) => b.missingCount - a.missingCount), // Sort by most missing
           };
         }
         return null;
-      }).filter((u): u is { unitId: string; unitName: string; missingCount: number } => u !== null);
+      })
+      .filter((c): c is NonNullable<typeof c> => c !== null); // Filter out campuses with no incomplete units
 
-      if (incompleteUnits.length > 0) {
-        return {
-          campusId: campus.id,
-          campusName: campus.name,
-          incompleteUnits,
-        };
-      }
-      return null;
-
-    }).filter((c): c is { campusId: string; campusName: string; incompleteUnits: { unitId: string; unitName: string; missingCount: number; }[] } => c !== null);
-    
   }, [allSubmissions, allCampuses, allUnits, selectedYear]);
 
   if (isLoading) {
@@ -136,7 +147,7 @@ export function IncompleteCampusSubmissions({
       </CardHeader>
       <CardContent>
         {incompleteSubmissionsByCampus.length > 0 ? (
-            <Accordion type="multiple" className="w-full">
+            <Accordion type="multiple" className="w-full" defaultValue={incompleteSubmissionsByCampus.map(c => c.campusId)}>
             {incompleteSubmissionsByCampus.map(campus => (
                 <AccordionItem value={campus.campusId} key={campus.campusId}>
                 <AccordionTrigger className="font-medium hover:no-underline">
