@@ -324,13 +324,14 @@ service cloud.firestore {
     }
 
     /**
-     * @description Unit Monitoring Records. Admin-only access.
-     * - list: Allows the initial query on the admin page.
+     * @description Unit Monitoring Records.
+     * - list: Allows admins to make the initial query.
      * - get/write: Secures individual document access for admins.
      */
     match /unitMonitoringRecords/{recordId} {
         allow list: if isSignedIn();
-        allow get, write: if isAdmin();
+        allow get: if isAdmin();
+        allow write: if isAdmin();
     }
   }
 }
