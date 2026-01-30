@@ -234,13 +234,15 @@ service cloud.firestore {
 
     /**
      * @description Activity logs for auditing.
-     * - Create: Any signed-in user can create a log entry for their own actions.
-     * - Read/List: Only Admins can read or list logs.
-     * - Update/Delete: No one can modify or delete logs to ensure audit trail integrity.
+     * - list: Allows admins to make the initial query.
+     * - get: Secures individual document reads for admins.
+     * - create: Any signed-in user can create a log entry for their own actions.
+     * - update/delete: No one can modify or delete logs.
      */
     match /activityLogs/{logId} {
+      allow list: if isSignedIn();
+      allow get: if isAdmin();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow read, list: if isAdmin();
       allow update, delete: if false;
     }
     
@@ -322,10 +324,13 @@ service cloud.firestore {
     }
 
     /**
-     * @description Unit Monitoring Records can only be accessed by Admins.
+     * @description Unit Monitoring Records. Admin-only access.
+     * - list: Allows the initial query on the admin page.
+     * - get/write: Secures individual document access for admins.
      */
     match /unitMonitoringRecords/{recordId} {
-        allow read, write: if isAdmin();
+        allow list: if isSignedIn();
+        allow get, write: if isAdmin();
     }
   }
 }
