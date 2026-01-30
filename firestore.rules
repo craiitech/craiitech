@@ -56,7 +56,8 @@ service cloud.firestore {
      * Checks if the currently authenticated user has global Admin privileges.
      */
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      // Check the user's role field in their profile document.
+      return isSignedIn() && getUserProfile().role == 'Admin';
     }
     
     /**
@@ -254,16 +255,6 @@ service cloud.firestore {
         allow read, list, update, delete: if isAdmin();
     }
 
-    /**
-     * @description The collection for assigning Admin roles. Only other Admins can manage this list.
-     * The `get` permission is relaxed to allow `isAdmin()` helper function to work without recursion.
-     */
-    match /roles_admin/{userId} {
-      allow get: if isSignedIn();
-      allow list: if isAdmin();
-      allow create, update, delete: if isAdmin();
-    }
-    
     match /procedureManuals/{unitId} {
       allow get, list: if isSignedIn();
       allow create, update, delete: if isAdmin();
