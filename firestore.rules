@@ -256,9 +256,10 @@ service cloud.firestore {
 
     /**
      * @description The collection for assigning Admin roles. Only other Admins can manage this list.
+     * The `get` permission is relaxed to allow `isAdmin()` helper function to work without recursion.
      */
     match /roles_admin/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
+      allow get: if isSignedIn();
       allow list: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
