@@ -19,15 +19,15 @@ import { Loader2, Search } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function AuditLogPage() {
-  const { isAdmin, isUserLoading } = useUser();
+  const { user, isAdmin, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
 
   // This query is now strictly conditional. It will only be constructed when firestore is ready
-  // AND the isAdmin flag is definitively true. Otherwise, it's null.
+  // AND the user is a confirmed admin. Otherwise, it's null.
   const logsQuery = useMemoFirebase(
-    () => (firestore && isAdmin ? query(collection(firestore, 'activityLogs'), orderBy('timestamp', 'desc')) : null),
-    [firestore, isAdmin]
+    () => (firestore && user && isAdmin ? query(collection(firestore, 'activityLogs'), orderBy('timestamp', 'desc')) : null),
+    [firestore, user, isAdmin]
   );
 
   // useCollection will receive null for non-admins or during initial load, preventing it from running.

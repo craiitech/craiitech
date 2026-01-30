@@ -21,7 +21,7 @@ import {
 import { useRouter } from 'next/navigation';
 
 export default function MonitoringPage() {
-  const { isAdmin, isUserLoading } = useUser();
+  const { isAdmin, isUserLoading, user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
 
@@ -29,8 +29,8 @@ export default function MonitoringPage() {
   const [selectedRecord, setSelectedRecord] = useState<UnitMonitoringRecord | null>(null);
 
   const monitoringRecordsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'unitMonitoringRecords'), orderBy('visitDate', 'desc')) : null),
-    [firestore]
+    () => (firestore && user ? query(collection(firestore, 'unitMonitoringRecords'), orderBy('visitDate', 'desc')) : null),
+    [firestore, user]
   );
   const { data: records, isLoading: isLoadingRecords } = useCollection<UnitMonitoringRecord>(monitoringRecordsQuery);
 
