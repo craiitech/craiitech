@@ -328,5 +328,12 @@ service cloud.firestore {
         allow update: if isOwner(resource.data.authorId) || isAdmin();
         allow delete: if isAdmin();
     }
+
+    /**
+     * @description Unit Monitoring Records can only be accessed by Admins.
+     */
+    match /unitMonitoringRecords/{recordId} {
+        allow read, write: if isAdmin();
+    }
   }
 }

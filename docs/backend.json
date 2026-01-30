@@ -552,6 +552,36 @@
         "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of the last update." }
       },
       "required": ["id", "sectionNumber", "title", "googleDriveLink", "updatedAt"]
+    },
+    "UnitMonitoringRecord": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UnitMonitoringRecord",
+      "type": "object",
+      "description": "Represents a record of a single monitoring visit to a university unit.",
+      "properties": {
+        "id": { "type": "string" },
+        "visitDate": { "type": "string", "format": "date-time" },
+        "campusId": { "type": "string" },
+        "unitId": { "type": "string" },
+        "roomNumber": { "type": "string" },
+        "monitorId": { "type": "string" },
+        "monitorName": { "type": "string" },
+        "observations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "item": { "type": "string" },
+              "status": { "type": "string", "enum": ["Available", "Not Available", "For Improvement"] },
+              "remarks": { "type": "string" }
+            },
+            "required": ["item", "status"]
+          }
+        },
+        "generalRemarks": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "visitDate", "campusId", "unitId", "monitorId", "monitorName", "observations", "createdAt"]
     }
   },
   "auth": {
@@ -801,6 +831,15 @@
                     "description": "The unique identifier of the manual section, e.g., 'section-1'."
                 }
             ]
+        }
+      },
+      {
+        "path": "/unitMonitoringRecords/{recordId}",
+        "definition": {
+            "entityName": "UnitMonitoringRecord",
+            "schema": { "$ref": "#/backend/entities/UnitMonitoringRecord" },
+            "description": "Stores records from unit monitoring visits.",
+            "params": [{ "name": "recordId" }]
         }
       },
       {

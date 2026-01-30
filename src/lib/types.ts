@@ -212,3 +212,22 @@ export type EomsPolicyManual = {
     executionDate: string;
     updatedAt: any; // serverTimestamp()
 }
+
+export type ObservationItem = {
+  item: string;
+  status: 'Available' | 'Not Available' | 'For Improvement';
+  remarks?: string;
+};
+
+export type UnitMonitoringRecord = {
+  id: string;
+  visitDate: any; // Timestamp
+  campusId: string;
+  unitId: string;
+  roomNumber?: string;
+  monitorId: string;
+  monitorName: string;
+  observations: ObservationItem[];
+  generalRemarks?: string;
+  createdAt: any; // Timestamp
+};
