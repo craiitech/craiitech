@@ -1,0 +1,22 @@
+
+{
+  "name": "RSU EOMS Submission Portal",
+  "short_name": "RSU EOMS",
+  "description": "Submission and Monitoring Portal for Romblon State University",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ECEFF1",
+  "theme_color": "#3F51B5",
+  "icons": [
+    {
+      "src": "/rsupage.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/rsupage.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
