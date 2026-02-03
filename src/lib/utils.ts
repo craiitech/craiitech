@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -7,28 +6,44 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 const REPORT_TYPE_CODES: Record<string, string> = {
-  'Operational Plans': 'OP',
-  'Objectives Monitoring': 'OM',
+  'Operational Plans': 'OPE',
+  'Objectives Monitoring': 'OBM',
   'Risk and Opportunity Registry Form': 'ROR',
   'Risk and Opportunity Action Plan': 'ROA',
-  'Updated Needs and Expectation of Interested Parties': 'NEIP',
-  'SWOT Analysis': 'SWOT',
+  'Updated Needs and Expectation of Interested Parties': 'NEP',
+  'SWOT Analysis': 'SWO',
 };
 
 /**
  * Generates a standardized QA Document Control Number.
- * Format: RSU-EOMS-[CAMPUS]-[UNIT]-[YEAR]-[REPORT]-REV[X]
+ * Format: UNIVERSITY CODE - UNIT PREFIX - REVISION NO. - DOCUMENT CONTROL - DOCUMENT PREFIX - YYYY-MM-DD
+ * e.g. RSU-CAJ-00-0001-OPE-2026-02-03
  */
 export function generateControlNumber(
-  campusName: string,
   unitName: string,
-  year: number,
+  revision: number,
   reportType: string,
-  revision: number
+  date: Date
 ): string {
-  const campusCode = campusName.split(' ').map(word => word[0]).join('').toUpperCase();
-  const unitCode = unitName.split(' ').map(word => word[0]).join('').toUpperCase();
+  const universityCode = 'RSU';
+  
+  // Extract 3-letter unit prefix
+  const words = unitName.trim().split(/\s+/);
+  let unitPrefix = '';
+  if (words.length >= 3) {
+    unitPrefix = words.slice(0, 3).map(w => w[0]).join('').toUpperCase();
+  } else if (words.length === 2) {
+    unitPrefix = (words[0][0] + words[1].slice(0, 2)).toUpperCase();
+  } else {
+    unitPrefix = words[0].slice(0, 3).toUpperCase();
+  }
+  
+  const revPadded = String(revision).padStart(2, '0');
+  const docControl = '0001';
   const reportCode = REPORT_TYPE_CODES[reportType] || 'DOC';
   
-  return `RSU-EOMS-${campusCode}-${unitCode}-${year}-${reportCode}-REV${revision}`;
+  // Format date as YYYY-MM-DD
+  const dateStr = date.toISOString().split('T')[0];
+  
+  return `${universityCode}-${unitPrefix}-${revPadded}-${docControl}-${reportCode}-${dateStr}`;
 }

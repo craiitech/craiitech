@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -42,6 +41,7 @@ import { useRouter } from 'next/navigation';
 import { debounce } from 'lodash';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { generateControlNumber } from '@/lib/utils';
+import { Badge } from '../ui/badge';
 
 
 const submissionSchema = z.object({
@@ -253,10 +253,9 @@ export function SubmissionForm({
     }
 
     const unit = units.find((u) => u.id === userProfile.unitId);
-    const campus = campuses.find((c) => c.id === userProfile.campusId);
     
-    if (!unit || !campus) {
-        toast({ title: 'Profile Error', description: 'Your assigned unit or campus could not be found.', variant: 'destructive' });
+    if (!unit) {
+        toast({ title: 'Profile Error', description: 'Your assigned unit could not be found.', variant: 'destructive' });
         return;
     }
 
@@ -275,18 +274,19 @@ export function SubmissionForm({
     if (existingSubmission) {
         // Increment revision ONLY if it was previously rejected
         const newRevision = existingSubmission.statusId === 'rejected' 
-          ? existingSubmission.revision + 1 
+          ? (existingSubmission.revision || 0) + 1 
           : (existingSubmission.revision || 0);
         
-        const newControlNumber = generateControlNumber(campus.name, unit.name, year, reportType, newRevision);
+        const now = new Date();
+        const newControlNumber = generateControlNumber(unit.name, newRevision, reportType, now);
 
         const existingDocRef = doc(firestore, 'submissions', existingSubmission.id);
         const updateData: any = {
           googleDriveLink: values.googleDriveLink,
           statusId: 'submitted',
-          submissionDate: new Date(),
+          submissionDate: now,
           unitName: unit.name,
-          userId: user.uid, // Update to the person who made the revision
+          userId: user.uid,
           revision: newRevision,
           controlNumber: newControlNumber,
         };
@@ -320,7 +320,8 @@ export function SubmissionForm({
 
     } else {
         const initialRevision = 0;
-        const initialControlNumber = generateControlNumber(campus.name, unit.name, year, reportType, initialRevision);
+        const now = new Date();
+        const initialControlNumber = generateControlNumber(unit.name, initialRevision, reportType, now);
 
         const newSubmissionData: any = {
             googleDriveLink: values.googleDriveLink,
@@ -332,7 +333,7 @@ export function SubmissionForm({
             unitId: userProfile.unitId,
             unitName: unit.name,
             statusId: 'submitted',
-            submissionDate: new Date(),
+            submissionDate: now,
             comments: newComment ? [newComment] : [],
             revision: initialRevision,
             controlNumber: initialControlNumber,
@@ -401,7 +402,7 @@ export function SubmissionForm({
               <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Document Control Number</p>
               <p className="font-mono text-sm">{existingSubmission.controlNumber}</p>
             </div>
-            <Badge variant="secondary">Revision {existingSubmission.revision}</Badge>
+            <Badge variant="secondary">Revision {String(existingSubmission.revision || 0).padStart(2, '0')}</Badge>
           </div>
         )}
 

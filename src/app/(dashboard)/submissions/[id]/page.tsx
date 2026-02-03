@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
@@ -125,13 +124,7 @@ export default function SubmissionDetailPage() {
   );
   const { data: submitter, isLoading: isLoadingSubmitter } = useDoc<AppUser>(submitterDocRef);
 
-  const campusDocRef = useMemoFirebase(
-    () => (firestore && submission ? doc(firestore, 'campuses', submission.campusId) : null),
-    [firestore, submission]
-  );
-  const { data: campus, isLoading: isLoadingCampus } = useDoc<Campus>(campusDocRef);
-
-  const isLoading = isUserLoading || isLoadingSubmission || isLoadingSubmitter || isLoadingCampus;
+  const isLoading = isUserLoading || isLoadingSubmission || isLoadingSubmitter;
   
   const previewUrl = newLink || (submission?.googleDriveLink
     ? submission.googleDriveLink.replace('/view', '/preview').replace('?usp=sharing', '')
@@ -257,21 +250,22 @@ export default function SubmissionDetailPage() {
   }
   
   const handleResubmit = async () => {
-    if (!submissionDocRef || !submission || !campus || !newLink) {
+    if (!submissionDocRef || !submission || !newLink) {
         toast({ title: 'Error', description: 'Missing required data to resubmit.', variant: 'destructive' });
         return;
     }
     setIsSubmitting(true);
 
+    const now = new Date();
     // Increment revision because we are resubmitting after a rejection
     const nextRevision = (submission.revision || 0) + 1;
-    const nextControlNumber = generateControlNumber(campus.name, submission.unitName, submission.year, submission.reportType, nextRevision);
+    const nextControlNumber = generateControlNumber(submission.unitName, nextRevision, submission.reportType, now);
 
     try {
          const updateData: any = {
             googleDriveLink: newLink,
             statusId: 'submitted',
-            submissionDate: new Date(),
+            submissionDate: now,
             userId: user!.uid,
             revision: nextRevision,
             controlNumber: nextControlNumber,
@@ -290,7 +284,7 @@ export default function SubmissionDetailPage() {
         
         await updateDoc(submissionDocRef, updateData);
 
-        toast({ title: 'Success', description: `Resubmitted as Revision ${nextRevision}.` });
+        toast({ title: 'Success', description: `Resubmitted as Revision ${String(nextRevision).padStart(2, '0')}.` });
         router.push('/submissions');
 
     } catch (error) {
@@ -351,22 +345,22 @@ export default function SubmissionDetailPage() {
                             <ShieldCheck className="text-primary" />
                             Document Control Information
                         </CardTitle>
-                        <CardDescription>ISO 21001:2018 Naming Standard</CardDescription>
+                        <CardDescription>ISO 21001:2018 QA Standard</CardDescription>
                     </div>
                     <Badge variant="secondary" className="text-lg py-1 px-4">
-                        Revision {submission.revision}
+                        Revision {String(submission.revision || 0).padStart(2, '0')}
                     </Badge>
                 </div>
             </CardHeader>
             <CardContent className="pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground font-semibold uppercase">Control Number</p>
-                        <p className="font-mono text-base bg-muted p-2 rounded border">{submission.controlNumber}</p>
+                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Control Number</p>
+                        <p className="font-mono text-base bg-muted p-2 rounded border border-primary/10">{submission.controlNumber}</p>
                     </div>
                     <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground font-semibold uppercase">Current Status</p>
-                        <div className="flex items-center gap-2">
+                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Current Status</p>
+                        <div className="flex items-center gap-2 h-10">
                             <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
                                 {getStatusText(submission.statusId)}
                             </Badge>
@@ -463,7 +457,7 @@ export default function SubmissionDetailPage() {
                         <History className="text-destructive" />
                         Resubmit Report (New Revision)
                     </CardTitle>
-                    <CardDescription>Your submission was rejected. This resubmission will be logged as <strong>Revision {submission.revision + 1}</strong>.</CardDescription>
+                    <CardDescription>Your submission was rejected. This resubmission will be logged as <strong>Revision {String((submission.revision || 0) + 1).padStart(2, '0')}</strong>.</CardDescription>
                 </CardHeader>
                  <CardContent className="space-y-4 pt-6">
                     <div>
@@ -490,7 +484,7 @@ export default function SubmissionDetailPage() {
                 <CardFooter className="flex justify-end gap-2">
                     <Button onClick={handleResubmit} disabled={isSubmitting || !newLink}>
                          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4"/>}
-                        Submit Revision {submission.revision + 1}
+                        Submit Revision {String((submission.revision || 0) + 1).padStart(2, '0')}
                     </Button>
                 </CardFooter>
              </Card>
@@ -514,10 +508,6 @@ export default function SubmissionDetailPage() {
                      <div className="flex justify-between">
                         <span className="text-muted-foreground">Last Submitter:</span>
                         <span>{submitter ? `${submitter.firstName} ${submitter.lastName}` : <Loader2 className="h-4 w-4 animate-spin"/>}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground">Campus:</span>
-                        <span>{campus?.name ?? <Loader2 className="h-4 w-4 animate-spin"/>}</span>
                     </div>
                      <div className="flex justify-between">
                         <span className="text-muted-foreground">Unit:</span>
