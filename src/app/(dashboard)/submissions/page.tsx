@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2, Printer, FileDown, Download, AlertCircle, Library, Rows, Building2, Send, Edit } from 'lucide-react';
@@ -85,7 +84,6 @@ const getGoogleDriveDownloadLink = (url: string) => {
     if (fileId && fileId[1]) {
         return `https://drive.google.com/uc?export=download&id=${fileId[1]}`;
     }
-    // Fallback for different URL format or if regex fails
     return url;
 };
 
@@ -162,7 +160,7 @@ const SubmissionsTable = ({
                         {getSortIndicator('reportType')}
                     </Button>
                 </TableHead>
-                {isSupervisor && (
+                {(isSupervisor || true) && ( // UNIT-CENTRIC: Always show submitter for accountability
                     <TableHead>
                         <Button variant="ghost" onClick={() => requestSort('submitterName')}>
                             Submitter
@@ -215,11 +213,14 @@ const SubmissionsTable = ({
                     ? submission.comments[submission.comments.length - 1].text
                     : null;
                 
+                const submitter = usersMap.get(submission.userId);
+                const submitterName = submitter ? `${submitter.firstName} ${submitter.lastName}` : 'Unknown';
+
                 return (
                 <TableRow key={submission.id}>
                   {isAdmin && <TableCell>{campusMap.get(submission.campusId) ?? '...'}</TableCell>}
                   <TableCell className="font-medium">{submission.reportType}</TableCell>
-                   {isSupervisor && <TableCell>{`${usersMap.get(submission.userId)?.firstName || ''} ${usersMap.get(submission.userId)?.lastName || ''}`}</TableCell>}
+                   <TableCell>{submitterName}</TableCell>
                   <TableCell>{submission.unitName}</TableCell>
                   <TableCell>{submission.year}</TableCell>
                   <TableCell className="capitalize">{submission.cycleId}</TableCell>
@@ -257,7 +258,7 @@ const SubmissionsTable = ({
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground max-w-xs whitespace-pre-wrap">
                     {latestComment ? (
-                      <p>{latestComment}</p>
+                      <p className="line-clamp-2" title={latestComment}>{latestComment}</p>
                     ) : (
                       '--'
                     )}
@@ -324,15 +325,10 @@ export default function SubmissionsPage() {
 
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
-    if (isAdmin || isMainCampusCoordinator) {
+    if (isAdmin || isMainCampusCoordinator || isSupervisor) {
         return collection(firestore, 'users');
     }
-    if (isSupervisor) {
-        if (!userProfile.campusId) return null;
-        return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
-    }
-    // For single user view, we only need their own user object
-    return query(collection(firestore, 'users'), where('id', '==', userProfile.id));
+    return query(collection(firestore, 'users'), where('unitId', '==', userProfile.unitId));
   }, [firestore, isAdmin, isSupervisor, userProfile, isMainCampusCoordinator]);
   
   const { data: users, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
@@ -343,8 +339,9 @@ export default function SubmissionsPage() {
     if (isSupervisor && userProfile?.campusId) {
       return query(collection(firestore, 'submissions'), where('campusId', '==', userProfile.campusId));
     }
-    if (userProfile) {
-      return query(collection(firestore, 'submissions'), where('userId', '==', userProfile.id));
+    // UNIT-CENTRIC: Regular users see all submissions for their unit
+    if (userProfile?.unitId) {
+      return query(collection(firestore, 'submissions'), where('unitId', '==', userProfile.unitId));
     }
     return null;
   }, [firestore, isAdmin, isSupervisor, userProfile]);
@@ -361,7 +358,6 @@ export default function SubmissionsPage() {
   const { data: cycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
 
 
-  // Effect for cross-campus data
   useEffect(() => {
     if (!isMainCampusCoordinator || !user) return;
 
@@ -464,7 +460,7 @@ export default function SubmissionsPage() {
         const submissionRef = doc(firestore, 'submissions', deletingSubmission.id);
         await deleteDoc(submissionRef);
         
-        logSessionActivity(`Deleted submission: ${deletingSubmission.reportType} (ID: ${deletingSubmission.id})`, {
+        logSessionActivity(`Deleted unit submission: ${deletingSubmission.reportType} (ID: ${deletingSubmission.id})`, {
           action: 'delete_submission',
           details: { submissionId: deletingSubmission.id },
         });
@@ -559,7 +555,6 @@ export default function SubmissionsPage() {
   const handlePrint = () => {
     if (!userProfile || !cycles) return;
 
-    // Find the most relevant cycle for the title.
     const latestCycle = cycles
         .filter(c => c.year === new Date().getFullYear())
         .sort((a, b) => (a.name === 'final' ? 1 : -1))[0] || cycles[0];
@@ -608,9 +603,12 @@ export default function SubmissionsPage() {
 
   const handleExportToExcel = () => {
     const dataToExport = sortedSubmissions.map(s => {
+        const submitter = usersMap.get(s.userId);
+        const submitterName = submitter ? `${submitter.firstName} ${submitter.lastName}` : '';
         const latestComment = (s.comments && s.comments.length > 0) ? s.comments[s.comments.length - 1].text : '';
         const baseData: any = {
             'Report Type': s.reportType,
+            'Submitter': submitterName,
             'Unit': s.unitName,
             'Year': s.year,
             'Cycle': s.cycleId,
@@ -622,10 +620,6 @@ export default function SubmissionsPage() {
 
         if (isAdmin) {
             baseData['Campus'] = campusMap.get(s.campusId);
-        }
-        if (isSupervisor) {
-            const user = usersMap.get(s.userId);
-            baseData['Submitter'] = user ? `${user.firstName} ${user.lastName}` : '';
         }
         return baseData;
     });
@@ -647,7 +641,7 @@ export default function SubmissionsPage() {
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Submissions</h2>
             <p className="text-muted-foreground">
-              {isSupervisor ? 'A list of all submissions in your scope.' : "Here's a list of your report submissions."}
+              {isSupervisor ? 'A list of all submissions in your scope.' : `Viewing all submissions for the ${unitName}.`}
             </p>
           </div>
           <div className="flex items-center space-x-2">
@@ -689,7 +683,7 @@ export default function SubmissionsPage() {
                                 The submission must be verified and approved by the QA Office.
                             </li>
                             <li>
-                                You may receive comments if the submission is invalid or incorrect.
+                                Note: Submissions are unit-centric. Only one person needs to upload for the whole unit.
                             </li>
                         </ul>
                         </AlertDialogDescription>
@@ -738,9 +732,9 @@ export default function SubmissionsPage() {
                 <CardHeader>
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                     <div className='mb-4 md:mb-0'>
-                        <CardTitle>{isSupervisor ? 'All Submissions' : 'My Submissions'}</CardTitle>
+                        <CardTitle>{isSupervisor ? 'All Submissions' : 'Unit Submissions'}</CardTitle>
                         <CardDescription>
-                            {isSupervisor ? 'A history of all reports submitted by users in your campus/unit.' : 'A history of all reports you have submitted.'}
+                            {isSupervisor ? 'A history of all reports submitted by users in your campus/unit.' : `A history of all reports submitted for the ${unitName}.`}
                         </CardDescription>
                     </div>
                     <div className="w-full md:w-auto">
@@ -875,6 +869,3 @@ export default function SubmissionsPage() {
     </>
   );
 }
-
-
-    

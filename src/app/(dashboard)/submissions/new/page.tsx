@@ -79,13 +79,14 @@ export default function NewSubmissionPage() {
 
 
   const submissionsQuery = useMemoFirebase(() => {
-    if (!firestore || !user || !selectedYear) return null;
+    // UNIT-CENTRIC CHANGE: Query by unitId instead of userId
+    if (!firestore || !userProfile?.unitId || !selectedYear) return null;
     return query(
       collection(firestore, 'submissions'),
-      where('userId', '==', user.uid),
+      where('unitId', '==', userProfile.unitId),
       where('year', '==', selectedYear)
     );
-  }, [firestore, user, selectedYear]);
+  }, [firestore, userProfile?.unitId, selectedYear]);
 
   const { data: submissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
   
@@ -371,8 +372,8 @@ export default function NewSubmissionPage() {
                         <CardTitle>Submit: {selectedReport}</CardTitle>
                         <CardDescription>
                             {submissionStatusMap.get(selectedReport)
-                                ? `You have already submitted this report. You can update it by submitting again.`
-                                : `Fill out the form below to submit this report.`}
+                                ? `A report has already been submitted for your unit. You can update it by submitting again.`
+                                : `Fill out the form below to submit this report for your unit.`}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>

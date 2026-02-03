@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CheckCircle, XCircle, Loader2, HelpCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, HelpCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -20,8 +19,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, arrayUnion } from 'firebase/firestore';
-import type { Unit, Submission, Comment } from '@/lib/types';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, arrayUnion, getDoc } from 'firebase/firestore';
+import type { Unit, Submission, Comment, User as AppUser } from '@/lib/types';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/card';
 import { Checkbox } from '../ui/checkbox';
@@ -40,6 +39,7 @@ import { useMemoFirebase, useCollection } from '@/firebase';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useRouter } from 'next/navigation';
 import { debounce } from 'lodash';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 
 const submissionSchema = z.object({
@@ -80,13 +80,15 @@ export function SubmissionForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationStatus, setValidationStatus] = useState<ValidationStatus>('idle');
   const { toast } = useToast();
-  const { user, userProfile, userRole } = useUser();
+  const { user, userProfile, userRole, isAdmin } = useUser();
   const firestore = useFirestore();
   const { logSessionActivity } = useSessionActivity();
   const router = useRouter();
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [riskRating, setRiskRating] = useState<RiskRating>(null);
   const [isRiskDialogOpen, setIsRiskDialogOpen] = useState(false);
+  const [existingSubmission, setExistingSubmission] = useState<Submission | null>(null);
+  const [originalSubmitter, setOriginalSubmitter] = useState<AppUser | null>(null);
 
   const isRorForm = reportType === 'Risk and Opportunity Registry Form';
 
@@ -115,10 +117,7 @@ export function SubmissionForm({
 
 
   const isChecklistComplete = useMemo(() => {
-    // If it's the ROR form, a risk rating must be selected first
-    if (isRorForm && !riskRating) {
-      return false;
-    }
+    if (isRorForm && !riskRating) return false;
     return Object.values(checkedState).every(Boolean);
   }, [checkedState, isRorForm, riskRating]);
 
@@ -196,15 +195,18 @@ export function SubmissionForm({
 
   useEffect(() => {
     const fetchExistingSubmission = async () => {
-        if (!firestore || !user) return;
-        setValidationStatus('idle'); // Reset on change
+        // UNIT-CENTRIC CHANGE: Fetch based on unitId instead of userId
+        if (!firestore || !userProfile?.unitId) return;
+        setValidationStatus('idle');
         setRiskRating(null);
-        form.reset({ googleDriveLink: '', comments: '' }); // Clear form
-        setCheckedState(checklistItems.reduce((acc, item) => ({ ...acc, [item.id]: false }), {})); // Reset checklist
+        setExistingSubmission(null);
+        setOriginalSubmitter(null);
+        form.reset({ googleDriveLink: '', comments: '' });
+        setCheckedState(checklistItems.reduce((acc, item) => ({ ...acc, [item.id]: false }), {}));
         
         const q = query(
             collection(firestore, 'submissions'),
-            where('userId', '==', user.uid),
+            where('unitId', '==', userProfile.unitId),
             where('reportType', '==', reportType),
             where('year', '==', year),
             where('cycleId', '==', cycleId)
@@ -212,17 +214,35 @@ export function SubmissionForm({
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
             const existingData = querySnapshot.docs[0].data() as Submission;
+            setExistingSubmission({ ...existingData, id: querySnapshot.docs[0].id });
+            
             if (existingData.googleDriveLink) {
               form.setValue('googleDriveLink', existingData.googleDriveLink);
             }
             if (existingData.riskRating) {
                 setRiskRating(existingData.riskRating);
             }
+
+            // Fetch the original submitter details if it's not the current user
+            if (existingData.userId !== user?.uid) {
+                const submitterRef = doc(firestore, 'users', existingData.userId);
+                const submitterSnap = await getDoc(submitterRef);
+                if (submitterSnap.exists()) {
+                    setOriginalSubmitter(submitterSnap.data() as AppUser);
+                }
+            }
         }
     }
     fetchExistingSubmission();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firestore, user, reportType, year, cycleId]);
+  }, [firestore, user, userProfile?.unitId, reportType, year, cycleId]);
+
+  const canUpdateExisting = useMemo(() => {
+    if (!existingSubmission || !user || !userRole) return true;
+    if (existingSubmission.userId === user.uid) return true;
+    // Unit ODIMOs and Admins can update unit-wide submissions
+    if (userRole === 'Unit ODIMO' || isAdmin) return true;
+    return false;
+  }, [existingSubmission, user, userRole, isAdmin]);
 
   const onSubmit = async (values: z.infer<typeof submissionSchema>) => {
     if (!user || !firestore || !userProfile) {
@@ -231,40 +251,21 @@ export function SubmissionForm({
     }
     if (!units) {
       toast({ title: 'Error', description: 'Could not load unit data. Please try again.', variant: 'destructive' });
-      setIsSubmitting(false);
       return;
     }
 
-    // --- FIX STARTS HERE ---
-    // Strict validation for unitName before proceeding
     const unitName = units.find((u) => u.id === userProfile.unitId)?.name;
-
     if (!unitName) {
         toast({
             title: 'User Profile Error',
-            description: 'Your assigned unit could not be found in the system. Please contact an administrator to have your profile corrected before submitting.',
+            description: 'Your assigned unit could not be found. Please contact an administrator.',
             variant: 'destructive',
-            duration: 10000,
         });
-        setIsSubmitting(false);
-        return; // Abort submission
+        return;
     }
-    // --- FIX ENDS HERE ---
 
     setIsSubmitting(true);
     
-    const submissionCollectionRef = collection(firestore, 'submissions');
-
-    const q = query(
-        submissionCollectionRef,
-        where('userId', '==', user.uid),
-        where('reportType', '==', reportType),
-        where('year', '==', year),
-        where('cycleId', '==', cycleId)
-    );
-    
-    const querySnapshot = await getDocs(q);
-
     const newComment: Comment | null = values.comments ? {
         text: values.comments,
         authorId: user.uid,
@@ -275,13 +276,14 @@ export function SubmissionForm({
 
     let submissionSuccess = false;
 
-    if (!querySnapshot.empty) {
-        const existingDocRef = doc(firestore, 'submissions', querySnapshot.docs[0].id);
+    // UNIT-CENTRIC CHANGE: Update existing submission if found for the unit
+    if (existingSubmission) {
+        const existingDocRef = doc(firestore, 'submissions', existingSubmission.id);
         const updateData: any = {
           googleDriveLink: values.googleDriveLink,
           statusId: 'submitted',
           submissionDate: new Date(),
-          unitName: unitName, // Ensure unitName is updated if it was previously wrong
+          unitName: unitName,
         };
 
         if (isRorForm) {
@@ -294,20 +296,19 @@ export function SubmissionForm({
         
         try {
             await updateDoc(existingDocRef, updateData)
-            const logMessage = `Updated submission: ${reportType}`;
-            logSessionActivity(logMessage, {
+            logSessionActivity(`Updated unit submission: ${reportType}`, {
                 action: 'update_submission',
                 details: { submissionId: existingDocRef.id, reportType },
             });
             toast({
                 title: 'Submission Updated!',
-                description: `Your '${reportType}' report has been updated.`,
+                description: `Your unit's '${reportType}' report has been updated.`,
             });
             submissionSuccess = true;
             if (onSuccess) onSuccess();
         } catch (error) {
             console.error('Error updating submission:', error);
-            toast({ title: 'Error', description: 'Could not update submission.', variant: 'destructive'});
+            toast({ title: 'Error', description: 'Could not update submission. You may not have permission.', variant: 'destructive'});
         } finally {
             setIsSubmitting(false);
         }
@@ -332,15 +333,14 @@ export function SubmissionForm({
         }
 
         try {
-            const docRef = await addDoc(submissionCollectionRef, newSubmissionData);
-            const logMessage = `Created new submission: ${reportType}`;
-            logSessionActivity(logMessage, {
-            action: 'create_submission',
-            details: { submissionId: docRef.id, reportType },
+            const docRef = await addDoc(collection(firestore, 'submissions'), newSubmissionData);
+            logSessionActivity(`Created new unit submission: ${reportType}`, {
+                action: 'create_submission',
+                details: { submissionId: docRef.id, reportType },
             });
             toast({
                 title: 'Submission Successful!',
-                description: `Your '${reportType}' report has been submitted.`,
+                description: `Your unit's '${reportType}' report has been submitted.`,
             });
             submissionSuccess = true;
             if (onSuccess) onSuccess();
@@ -374,6 +374,17 @@ export function SubmissionForm({
     <>
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {!canUpdateExisting && originalSubmitter && (
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Submission Already Exists</AlertTitle>
+                <AlertDescription>
+                    This report was already submitted by <strong>{originalSubmitter.firstName} {originalSubmitter.lastName}</strong>. 
+                    As a Unit Coordinator, you cannot overwrite their submission. Please contact them or your <strong>Unit ODIMO</strong> if an update is needed.
+                </AlertDescription>
+            </Alert>
+        )}
+
         <div className="aspect-video w-full rounded-lg border bg-muted mb-6">
             {previewUrl ? (
                 <iframe src={previewUrl} className="h-full w-full" allow="autoplay" title="File Preview"></iframe>
@@ -395,6 +406,7 @@ export function SubmissionForm({
                   <Input
                     placeholder="https://drive.google.com/..."
                     {...field}
+                    disabled={!canUpdateExisting}
                   />
                   <div className="absolute inset-y-0 right-3 flex items-center">
                     {renderValidationIcon()}
@@ -457,6 +469,7 @@ export function SubmissionForm({
                 <Textarea
                   placeholder="Add any relevant comments for the approvers"
                   {...field}
+                  disabled={!canUpdateExisting}
                 />
               </FormControl>
               <FormMessage />
@@ -477,6 +490,7 @@ export function SubmissionForm({
                     onValueChange={(value: RiskRating) => setRiskRating(value)}
                     value={riskRating ?? ""}
                     className="flex items-center space-x-4"
+                    disabled={!canUpdateExisting}
                 >
                     <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl><RadioGroupItem value="low" /></FormControl>
@@ -505,6 +519,7 @@ export function SubmissionForm({
                         id={`${reportType}-${item.id}`}
                         checked={checkedState[item.id] || false}
                         onCheckedChange={() => handleCheckboxChange(item.id)}
+                        disabled={!canUpdateExisting}
                     />
                     <Label htmlFor={`${reportType}-${item.id}`} className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                         {item.label}
@@ -521,7 +536,8 @@ export function SubmissionForm({
             isSubmitting ||
             validationStatus === 'validating' ||
             validationStatus === 'invalid' ||
-            !isChecklistComplete
+            !isChecklistComplete ||
+            !canUpdateExisting
           }
         >
           {isSubmitting ? (
@@ -530,7 +546,7 @@ export function SubmissionForm({
               Submitting...
             </>
           ) : (
-            'Submit Report'
+            existingSubmission ? 'Update Unit Submission' : 'Submit Unit Report'
           )}
         </Button>
       </form>
@@ -540,7 +556,7 @@ export function SubmissionForm({
             <AlertDialogHeader>
                 <AlertDialogTitle>Next Step: Log Your Risk</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Because you have submitted a Medium or High-rated risk, you must now formally log it in the Risk Register to create an action plan.
+                    Because your unit has submitted a Medium or High-rated risk, you must now formally log it in the Risk Register to create an action plan.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
