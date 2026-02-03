@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -198,10 +196,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
-  const { data: campuses } = useCollection<Campus>(campusesQuery);
+  const { data: allCampuses } = useCollection<Campus>(campusesQuery);
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
-  const { data: units } = useCollection<Unit>(unitsQuery);
+  const { data: allUnits } = useCollection<Unit>(unitsQuery);
 
   const getNotificationQuery = (): Query | null => {
     if (!firestore || !userProfile || !userRole) return null;
@@ -244,13 +242,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 
   const userLocation = useMemo(() => {
-    if (!userProfile || !campuses || !units) return '';
-    const campusName = campuses.find(c => c.id === userProfile.campusId)?.name;
-    const unitName = units.find(u => u.id === userProfile.unitId)?.name;
+    if (!userProfile || !allCampuses || !allUnits) return '';
+    const campusName = allCampuses.find(c => c.id === userProfile.campusId)?.name;
+    const unitName = allUnits.find(u => u.id === userProfile.unitId)?.name;
     let location = campusName || '';
     if (unitName && !isSupervisor) location += ` / ${unitName}`;
     return location;
-  }, [userProfile, campuses, units, isSupervisor]);
+  }, [userProfile, allCampuses, allUnits, isSupervisor]);
 
   const displayName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : user?.displayName;
   const displayAvatar = userProfile?.avatar || user?.photoURL;
