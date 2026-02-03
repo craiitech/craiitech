@@ -1,4 +1,3 @@
-
 {
   "name": "nextn",
   "version": "0.1.0",
@@ -82,12 +81,25 @@
   "build": {
     "appId": "com.rsu.eoms.portal",
     "productName": "RSU EOMS Portal",
+    "copyright": "Copyright © 2025 Romblon State University",
     "directories": {
       "output": "dist"
     },
     "win": {
-      "target": "nsis",
+      "target": [
+        "nsis"
+      ],
       "icon": "public/icon.ico"
-    }
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "RSU EOMS Portal"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ]
   }
 }
