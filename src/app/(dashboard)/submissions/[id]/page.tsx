@@ -16,7 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Check, X, Send } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, X, Send, ShieldCheck, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
@@ -29,6 +29,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
+import { generateControlNumber } from '@/lib/utils';
 
 
 const statusVariant: Record<
@@ -77,14 +78,6 @@ const LoadingSkeleton = () => (
             <Skeleton className="h-5 w-full" />
             <Skeleton className="h-5 w-full" />
             <Skeleton className="h-5 w-full" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-24" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-16 w-full" />
           </CardContent>
         </Card>
       </div>
@@ -264,16 +257,24 @@ export default function SubmissionDetailPage() {
   }
   
   const handleResubmit = async () => {
-    if (!submissionDocRef || !newLink) {
-        toast({ title: 'Error', description: 'A new Google Drive link is required to resubmit.', variant: 'destructive' });
+    if (!submissionDocRef || !submission || !campus || !newLink) {
+        toast({ title: 'Error', description: 'Missing required data to resubmit.', variant: 'destructive' });
         return;
     }
     setIsSubmitting(true);
+
+    // Increment revision because we are resubmitting after a rejection
+    const nextRevision = (submission.revision || 0) + 1;
+    const nextControlNumber = generateControlNumber(campus.name, submission.unitName, submission.year, submission.reportType, nextRevision);
+
     try {
          const updateData: any = {
             googleDriveLink: newLink,
             statusId: 'submitted',
-            submissionDate: new Date()
+            submissionDate: new Date(),
+            userId: user!.uid,
+            revision: nextRevision,
+            controlNumber: nextControlNumber,
         };
 
         if (newComment) {
@@ -289,7 +290,7 @@ export default function SubmissionDetailPage() {
         
         await updateDoc(submissionDocRef, updateData);
 
-        toast({ title: 'Success', description: 'Submission has been resubmitted.' });
+        toast({ title: 'Success', description: `Resubmitted as Revision ${nextRevision}.` });
         router.push('/submissions');
 
     } catch (error) {
@@ -342,6 +343,39 @@ export default function SubmissionDetailPage() {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* Left Column: Document Preview & Actions */}
         <div className="lg:col-span-2 space-y-4">
+          <Card className="border-primary/20">
+            <CardHeader className="bg-muted/30">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <CardTitle className="flex items-center gap-2">
+                            <ShieldCheck className="text-primary" />
+                            Document Control Information
+                        </CardTitle>
+                        <CardDescription>ISO 21001:2018 Naming Standard</CardDescription>
+                    </div>
+                    <Badge variant="secondary" className="text-lg py-1 px-4">
+                        Revision {submission.revision}
+                    </Badge>
+                </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground font-semibold uppercase">Control Number</p>
+                        <p className="font-mono text-base bg-muted p-2 rounded border">{submission.controlNumber}</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground font-semibold uppercase">Current Status</p>
+                        <div className="flex items-center gap-2">
+                            <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
+                                {getStatusText(submission.statusId)}
+                            </Badge>
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
                 <CardTitle>{submission.reportType}</CardTitle>
@@ -423,12 +457,15 @@ export default function SubmissionDetailPage() {
           )}
 
           {isSubmitter && submission.statusId === 'rejected' && (
-             <Card>
-                <CardHeader>
-                    <CardTitle>Resubmit Report</CardTitle>
-                    <CardDescription>Your submission was rejected. Please update the link and add comments if necessary.</CardDescription>
+             <Card className="border-destructive/50">
+                <CardHeader className="bg-destructive/5">
+                    <CardTitle className="flex items-center gap-2">
+                        <History className="text-destructive" />
+                        Resubmit Report (New Revision)
+                    </CardTitle>
+                    <CardDescription>Your submission was rejected. This resubmission will be logged as <strong>Revision {submission.revision + 1}</strong>.</CardDescription>
                 </CardHeader>
-                 <CardContent className="space-y-4">
+                 <CardContent className="space-y-4 pt-6">
                     <div>
                         <Label htmlFor="new-link">New Google Drive Link</Label>
                         <Input 
@@ -443,7 +480,7 @@ export default function SubmissionDetailPage() {
                         <Label htmlFor="new-comment">Add a Comment</Label>
                         <Textarea 
                             id="new-comment"
-                            placeholder="Explain the changes you've made..."
+                            placeholder="Explain the changes you've made for this new revision..."
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
                             disabled={isSubmitting}
@@ -453,7 +490,7 @@ export default function SubmissionDetailPage() {
                 <CardFooter className="flex justify-end gap-2">
                     <Button onClick={handleResubmit} disabled={isSubmitting || !newLink}>
                          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4"/>}
-                        Resubmit
+                        Submit Revision {submission.revision + 1}
                     </Button>
                 </CardFooter>
              </Card>
@@ -475,7 +512,7 @@ export default function SubmissionDetailPage() {
                         </Badge>
                     </div>
                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Submitter:</span>
+                        <span className="text-muted-foreground">Last Submitter:</span>
                         <span>{submitter ? `${submitter.firstName} ${submitter.lastName}` : <Loader2 className="h-4 w-4 animate-spin"/>}</span>
                     </div>
                     <div className="flex justify-between">

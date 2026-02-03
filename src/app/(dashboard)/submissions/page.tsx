@@ -1,6 +1,7 @@
+
 'use client';
 
-import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2, Printer, FileDown, Download, AlertCircle, Library, Rows, Building2, Send, Edit } from 'lucide-react';
+import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2, Printer, FileDown, Download, AlertCircle, Library, Rows, Building2, Send, Edit, ShieldCheck } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -154,20 +155,14 @@ const SubmissionsTable = ({
                         </Button>
                     </TableHead>
                 )}
+                <TableHead>Control Number</TableHead>
                 <TableHead>
                    <Button variant="ghost" onClick={() => requestSort('reportType')}>
                         Report Type
                         {getSortIndicator('reportType')}
                     </Button>
                 </TableHead>
-                {(isSupervisor || true) && ( // UNIT-CENTRIC: Always show submitter for accountability
-                    <TableHead>
-                        <Button variant="ghost" onClick={() => requestSort('submitterName')}>
-                            Submitter
-                            {getSortIndicator('submitterName')}
-                        </Button>
-                    </TableHead>
-                )}
+                <TableHead>Rev</TableHead>
                 <TableHead>
                      <Button variant="ghost" onClick={() => requestSort('unitName')}>
                         Unit
@@ -198,12 +193,6 @@ const SubmissionsTable = ({
                         {getSortIndicator('statusId')}
                     </Button>
                 </TableHead>
-                <TableHead>
-                    <Button variant="ghost" onClick={() => requestSort('comments')}>
-                        Comments
-                        {getSortIndicator('comments')}
-                    </Button>
-                </TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -219,13 +208,23 @@ const SubmissionsTable = ({
                 return (
                 <TableRow key={submission.id}>
                   {isAdmin && <TableCell>{campusMap.get(submission.campusId) ?? '...'}</TableCell>}
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <ShieldCheck className="h-3 w-3 text-primary opacity-50" />
+                      <span className="font-mono text-[10px]" title={submission.controlNumber}>
+                        {submission.controlNumber || 'N/A'}
+                      </span>
+                    </div>
+                  </TableCell>
                   <TableCell className="font-medium">{submission.reportType}</TableCell>
-                   <TableCell>{submitterName}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-mono">R{submission.revision ?? 0}</Badge>
+                  </TableCell>
                   <TableCell>{submission.unitName}</TableCell>
                   <TableCell>{submission.year}</TableCell>
                   <TableCell className="capitalize">{submission.cycleId}</TableCell>
                   <TableCell>
-                    {submission.submissionDate instanceof Date ? format(submission.submissionDate, 'MMMM d, yyyy') : 'Invalid Date'}
+                    {submission.submissionDate instanceof Date ? format(submission.submissionDate, 'MM/dd/yy') : 'Invalid Date'}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -255,13 +254,6 @@ const SubmissionsTable = ({
                             </Tooltip>
                         )}
                     </div>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground max-w-xs whitespace-pre-wrap">
-                    {latestComment ? (
-                      <p className="line-clamp-2" title={latestComment}>{latestComment}</p>
-                    ) : (
-                      '--'
-                    )}
                   </TableCell>
                   <TableCell className="text-right space-x-1">
                     {submission.statusId === 'rejected' && !isSupervisor && !isAdmin ? (
@@ -339,7 +331,6 @@ export default function SubmissionsPage() {
     if (isSupervisor && userProfile?.campusId) {
       return query(collection(firestore, 'submissions'), where('campusId', '==', userProfile.campusId));
     }
-    // UNIT-CENTRIC: Regular users see all submissions for their unit
     if (userProfile?.unitId) {
       return query(collection(firestore, 'submissions'), where('unitId', '==', userProfile.unitId));
     }
@@ -607,6 +598,8 @@ export default function SubmissionsPage() {
         const submitterName = submitter ? `${submitter.firstName} ${submitter.lastName}` : '';
         const latestComment = (s.comments && s.comments.length > 0) ? s.comments[s.comments.length - 1].text : '';
         const baseData: any = {
+            'Control Number': s.controlNumber,
+            'Revision': s.revision,
             'Report Type': s.reportType,
             'Submitter': submitterName,
             'Unit': s.unitName,

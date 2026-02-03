@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -20,7 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, arrayUnion, getDoc } from 'firebase/firestore';
-import type { Unit, Submission, Comment, User as AppUser } from '@/lib/types';
+import type { Unit, Submission, Comment, User as AppUser, Campus } from '@/lib/types';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/card';
 import { Checkbox } from '../ui/checkbox';
@@ -40,6 +41,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useRouter } from 'next/navigation';
 import { debounce } from 'lodash';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { generateControlNumber } from '@/lib/utils';
 
 
 const submissionSchema = z.object({
@@ -131,6 +133,9 @@ export function SubmissionForm({
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
 
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
+  const { data: campuses } = useCollection<Campus>(campusesQuery);
+
   const form = useForm<z.infer<typeof submissionSchema>>({
     resolver: zodResolver(submissionSchema),
     defaultValues: {
@@ -195,7 +200,6 @@ export function SubmissionForm({
 
   useEffect(() => {
     const fetchExistingSubmission = async () => {
-        // UNIT-CENTRIC CHANGE: Fetch based on unitId instead of userId
         if (!firestore || !userProfile?.unitId) return;
         setValidationStatus('idle');
         setRiskRating(null);
@@ -223,7 +227,6 @@ export function SubmissionForm({
                 setRiskRating(existingData.riskRating);
             }
 
-            // Fetch the original submitter details if it's not the current user
             if (existingData.userId !== user?.uid) {
                 const submitterRef = doc(firestore, 'users', existingData.userId);
                 const submitterSnap = await getDoc(submitterRef);
@@ -239,28 +242,21 @@ export function SubmissionForm({
   const canUpdateExisting = useMemo(() => {
     if (!existingSubmission || !user || !userRole) return true;
     if (existingSubmission.userId === user.uid) return true;
-    // Unit ODIMOs and Admins can update unit-wide submissions
     if (userRole === 'Unit ODIMO' || isAdmin) return true;
     return false;
   }, [existingSubmission, user, userRole, isAdmin]);
 
   const onSubmit = async (values: z.infer<typeof submissionSchema>) => {
-    if (!user || !firestore || !userProfile) {
-      toast({ title: 'Error', description: 'You must be logged in to submit.', variant: 'destructive' });
-      return;
-    }
-    if (!units) {
-      toast({ title: 'Error', description: 'Could not load unit data. Please try again.', variant: 'destructive' });
+    if (!user || !firestore || !userProfile || !units || !campuses) {
+      toast({ title: 'Error', description: 'Data is still loading.', variant: 'destructive' });
       return;
     }
 
-    const unitName = units.find((u) => u.id === userProfile.unitId)?.name;
-    if (!unitName) {
-        toast({
-            title: 'User Profile Error',
-            description: 'Your assigned unit could not be found. Please contact an administrator.',
-            variant: 'destructive',
-        });
+    const unit = units.find((u) => u.id === userProfile.unitId);
+    const campus = campuses.find((c) => c.id === userProfile.campusId);
+    
+    if (!unit || !campus) {
+        toast({ title: 'Profile Error', description: 'Your assigned unit or campus could not be found.', variant: 'destructive' });
         return;
     }
 
@@ -276,14 +272,23 @@ export function SubmissionForm({
 
     let submissionSuccess = false;
 
-    // UNIT-CENTRIC CHANGE: Update existing submission if found for the unit
     if (existingSubmission) {
+        // Increment revision ONLY if it was previously rejected
+        const newRevision = existingSubmission.statusId === 'rejected' 
+          ? existingSubmission.revision + 1 
+          : (existingSubmission.revision || 0);
+        
+        const newControlNumber = generateControlNumber(campus.name, unit.name, year, reportType, newRevision);
+
         const existingDocRef = doc(firestore, 'submissions', existingSubmission.id);
         const updateData: any = {
           googleDriveLink: values.googleDriveLink,
           statusId: 'submitted',
           submissionDate: new Date(),
-          unitName: unitName,
+          unitName: unit.name,
+          userId: user.uid, // Update to the person who made the revision
+          revision: newRevision,
+          controlNumber: newControlNumber,
         };
 
         if (isRorForm) {
@@ -296,24 +301,27 @@ export function SubmissionForm({
         
         try {
             await updateDoc(existingDocRef, updateData)
-            logSessionActivity(`Updated unit submission: ${reportType}`, {
+            logSessionActivity(`Updated unit submission (Rev ${newRevision}): ${reportType}`, {
                 action: 'update_submission',
-                details: { submissionId: existingDocRef.id, reportType },
+                details: { submissionId: existingDocRef.id, reportType, revision: newRevision },
             });
             toast({
                 title: 'Submission Updated!',
-                description: `Your unit's '${reportType}' report has been updated.`,
+                description: `Revision ${newRevision} submitted for '${reportType}'.`,
             });
             submissionSuccess = true;
             if (onSuccess) onSuccess();
         } catch (error) {
             console.error('Error updating submission:', error);
-            toast({ title: 'Error', description: 'Could not update submission. You may not have permission.', variant: 'destructive'});
+            toast({ title: 'Error', description: 'Could not update submission.', variant: 'destructive'});
         } finally {
             setIsSubmitting(false);
         }
 
     } else {
+        const initialRevision = 0;
+        const initialControlNumber = generateControlNumber(campus.name, unit.name, year, reportType, initialRevision);
+
         const newSubmissionData: any = {
             googleDriveLink: values.googleDriveLink,
             reportType,
@@ -322,10 +330,12 @@ export function SubmissionForm({
             userId: user.uid,
             campusId: userProfile.campusId,
             unitId: userProfile.unitId,
-            unitName: unitName,
+            unitName: unit.name,
             statusId: 'submitted',
             submissionDate: new Date(),
             comments: newComment ? [newComment] : [],
+            revision: initialRevision,
+            controlNumber: initialControlNumber,
         };
         
         if (isRorForm) {
@@ -334,13 +344,13 @@ export function SubmissionForm({
 
         try {
             const docRef = await addDoc(collection(firestore, 'submissions'), newSubmissionData);
-            logSessionActivity(`Created new unit submission: ${reportType}`, {
+            logSessionActivity(`Created new unit submission (Rev 0): ${reportType}`, {
                 action: 'create_submission',
-                details: { submissionId: docRef.id, reportType },
+                details: { submissionId: docRef.id, reportType, controlNumber: initialControlNumber },
             });
             toast({
                 title: 'Submission Successful!',
-                description: `Your unit's '${reportType}' report has been submitted.`,
+                description: `New report '${reportType}' submitted under Revision 0.`,
             });
             submissionSuccess = true;
             if (onSuccess) onSuccess();
@@ -383,6 +393,16 @@ export function SubmissionForm({
                     As a Unit Coordinator, you cannot overwrite their submission. Please contact them or your <strong>Unit ODIMO</strong> if an update is needed.
                 </AlertDescription>
             </Alert>
+        )}
+
+        {existingSubmission && (
+          <div className="bg-muted p-4 rounded-lg flex justify-between items-center border">
+            <div>
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Document Control Number</p>
+              <p className="font-mono text-sm">{existingSubmission.controlNumber}</p>
+            </div>
+            <Badge variant="secondary">Revision {existingSubmission.revision}</Badge>
+          </div>
         )}
 
         <div className="aspect-video w-full rounded-lg border bg-muted mb-6">
@@ -546,7 +566,9 @@ export function SubmissionForm({
               Submitting...
             </>
           ) : (
-            existingSubmission ? 'Update Unit Submission' : 'Submit Unit Report'
+            existingSubmission 
+              ? (existingSubmission.statusId === 'rejected' ? 'Resubmit (Next Revision)' : 'Update Unit Submission')
+              : 'Submit Unit Report'
           )}
         </Button>
       </form>

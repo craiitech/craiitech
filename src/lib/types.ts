@@ -1,8 +1,4 @@
 
-// This file can be used for mock data types, but for Firebase, 
-// consider using Zod schemas and inferring types from them, 
-// especially for a Firestore documents.
-
 export type Role = {
   id: string;
   name: string;
@@ -48,6 +44,8 @@ export type Submission = {
   unitId: string;
   comments?: Comment[];
   riskRating?: 'low' | 'medium-high';
+  revision: number;
+  controlNumber: string;
 };
 
 export type Risk = {

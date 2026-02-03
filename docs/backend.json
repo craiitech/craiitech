@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -42,6 +43,10 @@
         "verified": {
           "type": "boolean",
           "description": "Indicates if the user's account has been verified by an admin."
+        },
+        "ndaAccepted": {
+          "type": "boolean",
+          "description": "Indicates if the user has accepted the NDA."
         }
       },
       "required": [
@@ -85,7 +90,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Submission",
       "type": "object",
-      "description": "Represents a report submission by an employee.",
+      "description": "Represents a report submission by a unit.",
       "properties": {
         "id": {
           "type": "string",
@@ -93,7 +98,7 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Submission).  The user who submitted the report."
+          "description": "The UID of the user who performed the most recent upload/update."
         },
         "submissionDate": {
           "type": "string",
@@ -107,11 +112,11 @@
         },
         "cycleId": {
           "type": "string",
-          "description": "Reference to Cycle. (Relationship: Submission 1:1 Cycle). Identifies the submission cycle (First or Final)."
+          "description": "Reference to Cycle. Identifies the submission cycle (First or Final)."
         },
         "statusId": {
           "type": "string",
-          "description": "Reference to SubmissionStatus. (Relationship: Submission 1:1 SubmissionStatus). Current status of the submission in the approval workflow."
+          "description": "Current status of the submission in the approval workflow."
         },
         "comments": {
             "type": "array",
@@ -137,6 +142,14 @@
         "unitId": {
             "type": "string",
             "description": "The denormalized ID of the unit for easier querying."
+        },
+        "revision": {
+          "type": "number",
+          "description": "The revision number of the document (starts at 0, increments on resubmission after reject)."
+        },
+        "controlNumber": {
+          "type": "string",
+          "description": "The QA standardized control number for the document."
         }
       },
       "required": [
@@ -150,7 +163,9 @@
         "year",
         "unitName",
         "campusId",
-        "unitId"
+        "unitId",
+        "revision",
+        "controlNumber"
       ]
     },
      "Comment": {
@@ -195,7 +210,7 @@
         },
         "name": {
           "type": "string",
-          "description": "Name of the submission status (e.g., Submitted, Approved by Unit ODIMO, Rejected)."
+          "description": "Name of the submission status (e.g., Submitted, Approved, Rejected)."
         },
         "description": {
           "type": "string",
@@ -286,7 +301,7 @@
         },
         "vicePresidentId": {
           "type": "string",
-          "description": "The UID of the Vice President this unit reports to. Optional."
+          "description": "The UID of the Vice President this unit reports to."
         },
         "campusIds": {
             "type": "array",
@@ -305,259 +320,186 @@
       "type": "object",
       "description": "Represents a single risk or opportunity item in the register.",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the Risk entity." },
-        "unitId": { "type": "string", "description": "The unit this risk belongs to." },
-        "campusId": { "type": "string", "description": "The campus this risk belongs to." },
-        "year": { "type": "number", "description": "The year this risk was identified." },
-        "objective": { "type": "string", "description": "The related process or function objective." },
-        "type": { "type": "string", "enum": ["Risk", "Opportunity"], "description": "Specifies whether the entry is a risk or an opportunity." },
-        "description": { "type": "string", "description": "A detailed description of the risk or opportunity." },
-        "currentControls": { "type": "string", "description": "Existing controls or mechanisms in place for this risk/opportunity." },
+        "id": { "type": "string" },
+        "unitId": { "type": "string" },
+        "campusId": { "type": "string" },
+        "year": { "type": "number" },
+        "objective": { "type": "string" },
+        "type": { "type": "string", "enum": ["Risk", "Opportunity"] },
+        "description": { "type": "string" },
+        "currentControls": { "type": "string" },
         "preTreatment": {
           "type": "object",
-          "description": "Risk/Opportunity analysis before treatment.",
           "properties": {
-            "likelihood": { "type": "number", "description": "Likelihood rating (1-5)." },
-            "consequence": { "type": "number", "description": "Consequence rating (1-5)." },
-            "magnitude": { "type": "number", "description": "Calculated magnitude (L x C)." },
-            "rating": { "type": "string", "description": "Risk rating (e.g., High, Medium, Low)." }
-          },
-          "required": ["likelihood", "consequence", "magnitude", "rating"]
+            "likelihood": { "type": "number" },
+            "consequence": { "type": "number" },
+            "magnitude": { "type": "number" },
+            "rating": { "type": "string" }
+          }
         },
-        "treatmentAction": { "type": "string", "description": "The plan or action to treat the risk or harness the opportunity. Required for Medium and High ratings." },
-        "responsiblePersonId": { "type": "string", "description": "The UID of the user responsible for the treatment." },
-        "responsiblePersonName": { "type": "string", "description": "Denormalized name of the responsible person." },
-        "targetDate": { "type": "string", "description": "The target date for completing the action.", "format": "date-time" },
-        "status": { "type": "string", "enum": ["Open", "In Progress", "Closed"], "description": "Current status of the treatment action." },
+        "treatmentAction": { "type": "string" },
+        "responsiblePersonId": { "type": "string" },
+        "responsiblePersonName": { "type": "string" },
+        "targetDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["Open", "In Progress", "Closed"] },
         "postTreatment": {
           "type": "object",
-          "description": "Risk/Opportunity analysis after treatment.",
           "properties": {
             "likelihood": { "type": "number" },
             "consequence": { "type": "number" },
             "magnitude": { "type": "number" },
             "rating": { "type": "string" },
-            "evidence": { "type": "string", "description": "A description of the evidence to support the risk closure." },
-            "dateImplemented": { "type": "string", "description": "The date the treatment was implemented.", "format": "date-time" }
+            "evidence": { "type": "string" },
+            "dateImplemented": { "type": "string", "format": "date-time" }
           }
         },
-        "oapNo": { "type": "string", "description": "The OAP (Objective Action Plan) number associated with this action plan." },
-        "resourcesNeeded": { "type": "string", "description": "The resources required to execute the action plan." },
-        "updates": { "type": "string", "description": "Progress updates or notes on the action plan's implementation." },
-        "preparedBy": { "type": "string", "description": "Name of the Unit Head who prepared the action plan." },
-        "approvedBy": { "type": "string", "description": "Name of the Vice President who approved the action plan." },
-        "createdAt": { "type": "string", "description": "Timestamp of when the risk was created.", "format": "date-time" },
-        "updatedAt": { "type": "string", "description": "Timestamp of the last update.", "format": "date-time" }
-      },
-      "required": [
-        "id", "unitId", "campusId", "year", "objective", "type", "description", "currentControls",
-        "preTreatment", "status", "createdAt"
-      ]
+        "oapNo": { "type": "string" },
+        "resourcesNeeded": { "type": "string" },
+        "updates": { "type": "string" },
+        "preparedBy": { "type": "string" },
+        "approvedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     },
     "CampusSetting": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CampusSetting",
       "type": "object",
-      "description": "Represents settings specific to a campus.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the CampusSetting entity, same as campusId."
-        },
-        "announcement": {
-          "type": "string",
-          "description": "A campus-specific announcement to be displayed on the dashboard."
-        }
+        "id": { "type": "string" },
+        "announcement": { "type": "string" }
       },
-      "required": [
-        "id"
-      ]
+      "required": ["id"]
     },
     "ActivityLog": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ActivityLog",
       "type": "object",
-      "description": "Represents a single logged user action for auditing.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ActivityLog entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "The UID of the user who performed the action."
-        },
-        "userName": {
-          "type": "string",
-          "description": "Denormalized name of the user for easy display."
-        },
-        "userRole": {
-          "type": "string",
-          "description": "Denormalized role of the user at the time of the action."
-        },
-        "action": {
-          "type": "string",
-          "description": "A short, machine-readable description of the action (e.g., 'user_login', 'create_submission')."
-        },
-        "details": {
-          "type": "object",
-          "description": "A flexible object to store additional context about the action.",
-          "properties": {
-             "submissionId": { "type": "string" },
-             "reportType": { "type": "string" },
-             "affectedUserId": { "type": "string" }
-          }
-        },
-        "timestamp": {
-          "type": "string",
-          "description": "The server timestamp when the action occurred.",
-          "format": "date-time"
-        }
-      },
-      "required": ["id", "userId", "userName", "userRole", "action", "timestamp"]
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userRole": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "object" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
     },
     "ErrorReport": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ErrorReport",
       "type": "object",
-      "description": "Represents a single error report submitted by a user.",
       "properties": {
         "id": { "type": "string" },
         "errorMessage": { "type": "string" },
         "errorStack": { "type": "string" },
         "errorDigest": { "type": "string" },
         "url": { "type": "string" },
-        "status": { "type": "string", "enum": ["new", "acknowledged", "resolved"], "default": "new" },
+        "status": { "type": "string", "enum": ["new", "acknowledged", "resolved"] },
         "userId": { "type": "string" },
         "userName": { "type": "string" },
         "userRole": { "type": "string" },
         "userEmail": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" }
-      },
-      "required": ["errorMessage", "errorDigest", "url", "timestamp"]
+      }
     },
     "ISOClause": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ISOClause",
       "type": "object",
-      "description": "Represents a single clause from the ISO 21001:2018 standard.",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the clause, e.g., '4.1'." },
-        "title": { "type": "string", "description": "The title of the clause." },
-        "description": { "type": "string", "description": "A brief description of the clause's requirements." }
-      },
-      "required": ["id", "title", "description"]
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" }
+      }
     },
     "AuditPlan": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AuditPlan",
       "type": "object",
-      "description": "Represents an overall Internal Quality Audit plan for a specific campus and year.",
       "properties": {
         "id": { "type": "string" },
-        "title": { "type": "string", "description": "The title of the audit plan (e.g., 'Annual IQA 2025')." },
-        "year": { "type": "number", "description": "The year the audit plan is for." },
-        "campusId": { "type": "string", "description": "The campus this plan applies to." },
-        "auditeeType": { "type": "string", "enum": ["Units", "Top Management"], "description": "Specifies the target group for this audit plan." },
-        "scope": { "type": "string", "description": "A general description of the audit's scope." },
+        "title": { "type": "string" },
+        "year": { "type": "number" },
+        "campusId": { "type": "string" },
+        "auditeeType": { "type": "string", "enum": ["Units", "Top Management"] },
+        "scope": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "title", "year", "campusId", "auditeeType", "createdAt"]
+      }
     },
     "AuditSchedule": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AuditSchedule",
       "type": "object",
-      "description": "Represents a specific scheduled audit for a unit or individual within an AuditPlan.",
       "properties": {
         "id": { "type": "string" },
-        "auditPlanId": { "type": "string", "description": "The parent AuditPlan this schedule belongs to." },
-        "auditorId": { "type": "string", "description": "The UID of the assigned auditor. Optional at creation." },
-        "auditorName": { "type": "string", "description": "Denormalized name of the auditor. Optional at creation." },
-        "targetId": { "type": "string", "description": "The ID of the auditee (can be a unitId or a userId for Top Management)." },
-        "targetType": { "type": "string", "enum": ["Unit", "User"], "description": "Specifies if the target is a Unit or a User." },
-        "targetName": { "type": "string", "description": "Denormalized name of the auditee (unit name or user name)." },
+        "auditPlanId": { "type": "string" },
+        "auditorId": { "type": "string" },
+        "auditorName": { "type": "string" },
+        "targetId": { "type": "string" },
+        "targetType": { "type": "string", "enum": ["Unit", "User"] },
+        "targetName": { "type": "string" },
         "scheduledDate": { "type": "string", "format": "date-time" },
-        "isoClausesToAudit": { "type": "array", "items": { "type": "string" }, "description": "A list of ISO clause IDs to be audited." },
-        "status": { "type": "string", "enum": ["Scheduled", "In Progress", "Completed"], "default": "Scheduled" },
-        "summaryCommendablePractices": { "type": "string", "description": "A summary of commendable practices found during the audit." },
-        "summaryOFI": { "type": "string", "description": "A summary of opportunities for improvement." },
-        "summaryNC": { "type": "string", "description": "A summary of non-conformances." }
-      },
-      "required": ["id", "auditPlanId", "targetId", "targetType", "targetName", "scheduledDate", "status"]
+        "isoClausesToAudit": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["Scheduled", "In Progress", "Completed"] },
+        "summaryCommendablePractices": { "type": "string" },
+        "summaryOFI": { "type": "string" },
+        "summaryNC": { "type": "string" }
+      }
     },
     "AuditFinding": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AuditFinding",
       "type": "object",
-      "description": "Represents a single finding (NC, OFI, Commendation) recorded during an audit.",
       "properties": {
         "id": { "type": "string" },
-        "auditScheduleId": { "type": "string", "description": "The schedule this finding is associated with." },
-        "isoClause": { "type": "string", "description": "The specific ISO 21001:2018 clause number (e.g., '7.1.2')." },
-        "type": { "type": "string", "enum": ["Non-Conformance", "Observation for Improvement", "Commendation"], "description": "The type of the finding." },
-        "description": { "type": "string", "description": "A detailed description of the finding." },
-        "evidence": { "type": "string", "description": "A description or link to the evidence supporting the finding." },
+        "auditScheduleId": { "type": "string" },
+        "isoClause": { "type": "string" },
+        "type": { "type": "string", "enum": ["Non-Conformance", "Observation for Improvement", "Commendation"] },
+        "description": { "type": "string" },
+        "evidence": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
-        "authorId": { "type": "string", "description": "The UID of the auditor who created the finding." }
-      },
-      "required": ["id", "auditScheduleId", "isoClause", "type", "description", "evidence", "createdAt", "authorId"]
+        "authorId": { "type": "string" }
+      }
     },
     "CorrectiveActionPlan": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CorrectiveActionPlan",
       "type": "object",
-      "description": "A plan submitted by an auditee to address a Non-Conformance finding.",
       "properties": {
         "id": { "type": "string" },
-        "findingId": { "type": "string", "description": "The Non-Conformance finding this plan addresses." },
-        "rootCauseAnalysis": { "type": "string", "description": "Analysis of the root cause of the non-conformance." },
-        "correctionPlan": { "type": "string", "description": "The immediate action taken to correct the issue." },
-        "correctiveAction": { "type": "string", "description": "The long-term action to prevent recurrence." },
-        "responsiblePersonId": { "type": "string", "description": "The UID of the user responsible for implementation." },
-        "responsiblePersonName": { "type": "string", "description": "Denormalized name of the responsible person." },
-        "targetDate": { "type": "string", "format": "date-time", "description": "The target date for completion." },
-        "status": { "type": "string", "enum": ["Submitted", "Accepted", "Rejected", "Completed"], "default": "Submitted" },
-        "authorId": { "type": "string", "description": "The UID of the user who submitted the plan." },
+        "findingId": { "type": "string" },
+        "rootCauseAnalysis": { "type": "string" },
+        "correctionPlan": { "type": "string" },
+        "correctiveAction": { "type": "string" },
+        "responsiblePersonId": { "type": "string" },
+        "responsiblePersonName": { "type": "string" },
+        "targetDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["Submitted", "Accepted", "Rejected", "Completed"] },
+        "authorId": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "findingId", "rootCauseAnalysis", "correctionPlan", "correctiveAction", "responsiblePersonId", "targetDate", "status", "authorId", "createdAt"]
+      }
     },
     "ProcedureManual": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ProcedureManual",
       "type": "object",
-      "description": "Represents an official procedure manual for a specific university unit.",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the manual, matching the unitId." },
-        "unitName": { "type": "string", "description": "Denormalized name of the unit." },
-        "googleDriveLink": { "type": "string", "format": "uri", "description": "A public link to the manual on Google Drive." },
-        "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of the last update." }
-      },
-      "required": ["id", "unitName", "googleDriveLink", "updatedAt"]
+        "id": { "type": "string" },
+        "unitName": { "type": "string" },
+        "googleDriveLink": { "type": "string", "format": "uri" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     },
     "EomsPolicyManual": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "EomsPolicyManual",
       "type": "object",
-      "description": "Represents a single section of the EOMS Policy Manual.",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the section, e.g., 'section-1'." },
-        "sectionNumber": { "type": "number", "description": "The order of the section (1-10)." },
-        "title": { "type": "string", "description": "The title of the manual section." },
-        "googleDriveLink": { "type": "string", "format": "uri", "description": "A public link to the manual section on Google Drive." },
-        "revisionNumber": { "type": "string", "description": "The revision number of the document." },
-        "pageCount": { "type": "number", "description": "The number of pages in the document." },
-        "executionDate": { "type": "string", "format": "date-time", "description": "The execution or effectivity date of the document." },
-        "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of the last update." }
-      },
-      "required": ["id", "sectionNumber", "title", "googleDriveLink", "updatedAt"]
+        "id": { "type": "string" },
+        "sectionNumber": { "type": "number" },
+        "title": { "type": "string" },
+        "googleDriveLink": { "type": "string", "format": "uri" },
+        "revisionNumber": { "type": "string" },
+        "pageCount": { "type": "number" },
+        "executionDate": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     },
     "UnitMonitoringRecord": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UnitMonitoringRecord",
       "type": "object",
-      "description": "Represents a record of a single monitoring visit to a university unit.",
       "properties": {
         "id": { "type": "string" },
         "visitDate": { "type": "string", "format": "date-time" },
@@ -574,14 +516,12 @@
               "item": { "type": "string" },
               "status": { "type": "string", "enum": ["Available", "Not Available", "For Improvement"] },
               "remarks": { "type": "string" }
-            },
-            "required": ["item", "status"]
+            }
           }
         },
         "generalRemarks": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "visitDate", "campusId", "unitId", "monitorId", "monitorName", "observations", "createdAt"]
+      }
     }
   },
   "auth": {
@@ -596,16 +536,9 @@
         "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user profile data. Includes denormalized 'role', 'campusId', and 'unitId' for easier access in security rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user, matching request.auth.uid."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/User" },
+          "description": "User profiles.",
+          "params": [{ "name": "userId" }]
         }
       },
       {
@@ -613,13 +546,8 @@
         "definition": {
             "entityName": "Submission",
             "schema": { "$ref": "#/backend/entities/Submission" },
-            "description": "Stores all report submissions in a single top-level collection. Documents include denormalized 'userId', 'campusId', and 'unitId' to allow for efficient security rules without needing cross-collection 'get' calls during list operations.",
-            "params": [
-                {
-                    "name": "submissionId",
-                    "description": "The unique identifier of the submission."
-                }
-            ]
+            "description": "Report submissions by units.",
+            "params": [{ "name": "submissionId" }]
         }
       },
        {
@@ -627,109 +555,62 @@
         "definition": {
             "entityName": "Risk",
             "schema": { "$ref": "#/backend/entities/Risk" },
-            "description": "Stores all risk and opportunity register items in a single top-level collection. Includes denormalized unitId and campusId for efficient, secure queries.",
-            "params": [
-                {
-                    "name": "riskId",
-                    "description": "The unique identifier of the risk/opportunity item."
-                }
-            ]
+            "description": "Risk register items.",
+            "params": [{ "name": "riskId" }]
         }
       },
       {
         "path": "/roles/{roleId}",
         "definition": {
           "entityName": "Role",
-          "schema": {
-            "$ref": "#/backend/entities/Role"
-          },
-          "description": "Stores role definitions (e.g., Admin, Campus Director, Employee).",
-          "params": [
-            {
-              "name": "roleId",
-              "description": "The unique identifier of the role."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/Role" },
+          "description": "User roles.",
+          "params": [{ "name": "roleId" }]
         }
       },
       {
         "path": "/submissionStatuses/{statusId}",
         "definition": {
           "entityName": "SubmissionStatus",
-          "schema": {
-            "$ref": "#/backend/entities/SubmissionStatus"
-          },
-          "description": "Stores the possible statuses of a submission (e.g., Submitted, Approved, Rejected).",
-          "params": [
-            {
-              "name": "statusId",
-              "description": "The unique identifier of the submission status."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/SubmissionStatus" },
+          "description": "Submission statuses.",
+          "params": [{ "name": "statusId" }]
         }
       },
       {
         "path": "/cycles/{cycleId}",
         "definition": {
           "entityName": "Cycle",
-          "schema": {
-            "$ref": "#/backend/entities/Cycle"
-          },
-          "description": "Stores submission cycle definitions (e.g., First Cycle, Final Cycle).",
-          "params": [
-            {
-              "name": "cycleId",
-              "description": "The unique identifier of the cycle."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/Cycle" },
+          "description": "Submission cycles.",
+          "params": [{ "name": "cycleId" }]
         }
       },
       {
         "path": "/campuses/{campusId}",
         "definition": {
           "entityName": "Campus",
-          "schema": {
-            "$ref": "#/backend/entities/Campus"
-          },
-          "description": "Stores campus information.",
-          "params": [
-            {
-              "name": "campusId",
-              "description": "The unique identifier of the campus."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/Campus" },
+          "description": "University campuses.",
+          "params": [{ "name": "campusId" }]
         }
       },
        {
         "path": "/campusSettings/{campusId}",
         "definition": {
           "entityName": "CampusSetting",
-          "schema": {
-            "$ref": "#/backend/entities/CampusSetting"
-          },
-          "description": "Stores campus-specific settings. The document ID is the same as the campusId.",
-          "params": [
-            {
-              "name": "campusId",
-              "description": "The unique identifier of the campus."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/CampusSetting" },
+          "description": "Campus-specific settings.",
+          "params": [{ "name": "campusId" }]
         }
       },
       {
         "path": "/units/{unitId}",
         "definition": {
           "entityName": "Unit",
-          "schema": {
-            "$ref": "#/backend/entities/Unit"
-          },
-          "description": "Stores unit information within a campus.",
-          "params": [
-            {
-              "name": "unitId",
-              "description": "The unique identifier of the unit."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/Unit" },
+          "description": "University units.",
+          "params": [{ "name": "unitId" }]
         }
       },
       {
@@ -737,13 +618,8 @@
         "definition": {
           "entityName": "ActivityLog",
           "schema": { "$ref": "#/backend/entities/ActivityLog" },
-          "description": "Stores an immutable record of user actions for auditing purposes. Write-only for users, read-only for admins.",
-          "params": [
-            {
-              "name": "logId",
-              "description": "The unique identifier of the log entry."
-            }
-          ]
+          "description": "User action logs.",
+          "params": [{ "name": "logId" }]
         }
       },
       {
@@ -751,13 +627,8 @@
         "definition": {
             "entityName": "ErrorReport",
             "schema": { "$ref": "#/backend/entities/ErrorReport" },
-            "description": "Stores error reports submitted by users.",
-            "params": [
-                {
-                    "name": "errorId",
-                    "description": "The unique identifier of the error report."
-                }
-            ]
+            "description": "User error reports.",
+            "params": [{ "name": "errorId" }]
         }
       },
       {
@@ -765,7 +636,7 @@
         "definition": {
             "entityName": "ISOClause",
             "schema": { "$ref": "#/backend/entities/ISOClause" },
-            "description": "Stores the clauses of the ISO 21001:2018 standard.",
+            "description": "ISO 21001 clauses.",
             "params": [{ "name": "clauseId" }]
         }
       },
@@ -774,7 +645,7 @@
         "definition": {
             "entityName": "AuditPlan",
             "schema": { "$ref": "#/backend/entities/AuditPlan" },
-            "description": "Top-level collection for audit plans.",
+            "description": "Audit plans.",
             "params": [{ "name": "planId" }]
         }
       },
@@ -783,7 +654,7 @@
         "definition": {
             "entityName": "AuditSchedule",
             "schema": { "$ref": "#/backend/entities/AuditSchedule" },
-            "description": "Top-level collection for specific audit schedules.",
+            "description": "Audit schedules.",
             "params": [{ "name": "scheduleId" }]
         }
       },
@@ -792,7 +663,7 @@
         "definition": {
             "entityName": "AuditFinding",
             "schema": { "$ref": "#/backend/entities/AuditFinding" },
-            "description": "Top-level collection for all audit findings.",
+            "description": "Audit findings.",
             "params": [{ "name": "findingId" }]
         }
       },
@@ -801,7 +672,7 @@
         "definition": {
             "entityName": "CorrectiveActionPlan",
             "schema": { "$ref": "#/backend/entities/CorrectiveActionPlan" },
-            "description": "Top-level collection for corrective action plans.",
+            "description": "Corrective action plans.",
             "params": [{ "name": "planId" }]
         }
       },
@@ -810,13 +681,8 @@
         "definition": {
             "entityName": "ProcedureManual",
             "schema": { "$ref": "#/backend/entities/ProcedureManual" },
-            "description": "Stores links to official procedure manuals for each unit.",
-            "params": [
-                {
-                    "name": "unitId",
-                    "description": "The unique identifier of the unit."
-                }
-            ]
+            "description": "Unit procedure manuals.",
+            "params": [{ "name": "unitId" }]
         }
       },
       {
@@ -824,13 +690,8 @@
         "definition": {
             "entityName": "EomsPolicyManual",
             "schema": { "$ref": "#/backend/entities/EomsPolicyManual" },
-            "description": "Stores the 10 sections of the EOMS Policy Manual.",
-            "params": [
-                {
-                    "name": "sectionId",
-                    "description": "The unique identifier of the manual section, e.g., 'section-1'."
-                }
-            ]
+            "description": "EOMS policy manual sections.",
+            "params": [{ "name": "sectionId" }]
         }
       },
       {
@@ -838,7 +699,7 @@
         "definition": {
             "entityName": "UnitMonitoringRecord",
             "schema": { "$ref": "#/backend/entities/UnitMonitoringRecord" },
-            "description": "Stores records from unit monitoring visits.",
+            "description": "Unit monitoring records.",
             "params": [{ "name": "recordId" }]
         }
       },
@@ -846,51 +707,11 @@
         "path": "/roles_admin/{userId}",
         "definition": {
           "entityName": "adminRole",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Documents in this collection denote admin privileges.  Authorization rules check for the existence of a document with the user's UID in this collection. Existence, not content, is important.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who is an admin."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/roles_campus_odimo/{userId}",
-        "definition": {
-          "entityName": "campusOdimoRole",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Documents in this collection denote Campus ODIMO privileges. Authorization rules check for the existence of a document with the user's UID in this collection. Existence, not content, is important.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who is a campus ODIMO."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/roles_unit_odimo/{userId}",
-        "definition": {
-          "entityName": "unitOdimoRole",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Documents in this collection denote Unit ODIMO privileges. Authorization rules check for the existence of a document with the user's UID in this collection. Existence, not content, is important.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who is a unit ODIMO."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/User" },
+          "description": "Admin privilegeDenoters.",
+          "params": [{ "name": "userId" }]
         }
       }
-    ],
-    "reasoning": "This Firestore structure prioritizes security, scalability, and query performance. The key change is moving submissions to a top-level collection, which simplifies queries for administrative and supervisory roles. This avoids the need for collection group queries for most common scenarios, making the rules and application logic more straightforward.\n\n**Top-Level Collections:** Both `/submissions/{submissionId}` and `/risks/{riskId}` are top-level collections. This allows admins and supervisors to easily query across all items (e.g., `where('statusId', '==', 'submitted')` or `where('rating', '==', 'High')`) without needing a `collectionGroup` index. Security is maintained by embedding ownership and context fields (`userId`, `campusId`, `unitId`) directly into each document. Security rules can then use these fields to enforce access control.\n\n**Authorization Independence:** Access control is still enforced at the document level. Security rules check the `unitId` or `campusId` in the document against the authenticated user's profile data (fetched via a `get()` call in the rule), ensuring they can only access items within their scope.\n\n**DBAC (Database-Based Access Control):** User roles and campus/unit assignments stored in the `/users` collection remain the source of truth for authorization. Helper functions in the security rules (`isAdmin()`, `isCampusOdimo()`, etc.) continue to provide a clear and secure way to check a user's role.\n\n**Denormalization:** The collections rely on denormalization of context fields. This is critical for writing efficient security rules that do not require joins or multiple `get()` calls to check permissions, which is a key performance and security best practice for Firestore.\n\n**Invariants:** The structure ensures the integrity of ownership and denormalized data. Security rules on `create` and `update` for the collections will enforce that the `userId` matches the authenticated user and that the denormalized fields like `campusId` and `unitId` match the user's profile, preventing tampering."
+    ]
   }
 }
