@@ -92,7 +92,7 @@ export default function NewSubmissionPage() {
   const { data: submissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
   
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
-  const { data: units } = useCollection<Unit>(unitsQuery);
+  const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
     if (!submissions) {
