@@ -27,13 +27,13 @@ export function generateControlNumber(
 ): string {
   const universityCode = 'RSU';
   
-  // Extract 3-letter unit prefix
-  const words = unitName.trim().split(/\s+/);
+  // Extract 3-letter unit prefix, ignoring common words
+  const words = unitName.trim().split(/\s+/).filter(w => !['of', 'and', 'the', '&', 'for'].includes(w.toLowerCase()));
   let unitPrefix = '';
   if (words.length >= 3) {
     unitPrefix = words.slice(0, 3).map(w => w[0]).join('').toUpperCase();
   } else if (words.length === 2) {
-    unitPrefix = (words[0][0] + words[1].slice(0, 2)).toUpperCase();
+    unitPrefix = (words[0].slice(0, 2) + words[1][0]).toUpperCase();
   } else {
     unitPrefix = words[0].slice(0, 3).toUpperCase();
   }

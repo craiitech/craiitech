@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CheckCircle, XCircle, Loader2, HelpCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, HelpCircle, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -237,7 +237,7 @@ export function SubmissionForm({
         }
     }
     fetchExistingSubmission();
-  }, [firestore, user, userProfile?.unitId, reportType, year, cycleId]);
+  }, [firestore, user, userProfile?.unitId, reportType, year, cycleId, checklistItems]);
 
   const canUpdateExisting = useMemo(() => {
     if (!existingSubmission || !user || !userRole) return true;
@@ -381,6 +381,16 @@ export function SubmissionForm({
     }
   };
 
+  const currentUnitName = useMemo(() => {
+    if (!units || !userProfile?.unitId) return '...';
+    return units.find(u => u.id === userProfile.unitId)?.name || '...';
+  }, [units, userProfile]);
+
+  const previewControlNumber = useMemo(() => {
+    const rev = existingSubmission?.statusId === 'rejected' ? (existingSubmission.revision || 0) + 1 : (existingSubmission?.revision || 0);
+    return generateControlNumber(currentUnitName, rev, reportType, new Date());
+  }, [currentUnitName, existingSubmission, reportType]);
+
   return (
     <>
     <Form {...form}>
@@ -396,15 +406,29 @@ export function SubmissionForm({
             </Alert>
         )}
 
-        {existingSubmission && (
-          <div className="bg-muted p-4 rounded-lg flex justify-between items-center border">
-            <div>
-              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Document Control Number</p>
-              <p className="font-mono text-sm">{existingSubmission.controlNumber}</p>
+        <div className="bg-muted p-4 rounded-lg flex flex-col gap-2 border border-primary/20">
+            <div className="flex items-center gap-2 text-primary">
+                <ShieldCheck className="h-5 w-5" />
+                <span className="text-sm font-bold uppercase tracking-wider">Document Control Information</span>
             </div>
-            <Badge variant="secondary">Revision {String(existingSubmission.revision || 0).padStart(2, '0')}</Badge>
-          </div>
-        )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                <div>
+                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Official Code</p>
+                    <p className="font-mono text-xs mt-1 bg-background/50 p-2 rounded border">{previewControlNumber}</p>
+                </div>
+                <div>
+                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Revision Tracking</p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="secondary" className="text-xs">
+                            Rev {String(existingSubmission?.statusId === 'rejected' ? (existingSubmission.revision || 0) + 1 : (existingSubmission?.revision || 0)).padStart(2, '0')}
+                        </Badge>
+                        {existingSubmission?.statusId === 'rejected' && (
+                            <span className="text-[10px] text-destructive font-medium animate-pulse">(Auto-Incremented)</span>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div className="aspect-video w-full rounded-lg border bg-muted mb-6">
             {previewUrl ? (
@@ -568,8 +592,8 @@ export function SubmissionForm({
             </>
           ) : (
             existingSubmission 
-              ? (existingSubmission.statusId === 'rejected' ? 'Resubmit (Next Revision)' : 'Update Unit Submission')
-              : 'Submit Unit Report'
+              ? (existingSubmission.statusId === 'rejected' ? `Submit Revision ${String((existingSubmission.revision || 0) + 1).padStart(2, '0')}` : 'Update Unit Submission')
+              : 'Submit Revision 00'
           )}
         </Button>
       </form>
