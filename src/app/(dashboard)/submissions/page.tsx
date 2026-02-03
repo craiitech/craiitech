@@ -330,8 +330,13 @@ export default function SubmissionsPage() {
     if (isSupervisor && userProfile?.campusId) {
       return query(collection(firestore, 'submissions'), where('campusId', '==', userProfile.campusId));
     }
-    if (userProfile?.unitId) {
-      return query(collection(firestore, 'submissions'), where('unitId', '==', userProfile.unitId));
+    // Unit User: Isolated by both unit and campus
+    if (userProfile?.unitId && userProfile?.campusId) {
+      return query(
+        collection(firestore, 'submissions'), 
+        where('unitId', '==', userProfile.unitId),
+        where('campusId', '==', userProfile.campusId)
+      );
     }
     return null;
   }, [firestore, isAdmin, isSupervisor, userProfile]);

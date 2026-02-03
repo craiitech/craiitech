@@ -200,7 +200,7 @@ export function SubmissionForm({
 
   useEffect(() => {
     const fetchExistingSubmission = async () => {
-        if (!firestore || !userProfile?.unitId) return;
+        if (!firestore || !userProfile?.unitId || !userProfile?.campusId) return;
         setValidationStatus('idle');
         setRiskRating(null);
         setExistingSubmission(null);
@@ -208,9 +208,11 @@ export function SubmissionForm({
         form.reset({ googleDriveLink: '', comments: '' });
         setCheckedState(checklistItems.reduce((acc, item) => ({ ...acc, [item.id]: false }), {}));
         
+        // UNIT-CENTRIC: Query by BOTH unit and campus to prevent branch leakage
         const q = query(
             collection(firestore, 'submissions'),
             where('unitId', '==', userProfile.unitId),
+            where('campusId', '==', userProfile.campusId),
             where('reportType', '==', reportType),
             where('year', '==', year),
             where('cycleId', '==', cycleId)
@@ -237,7 +239,7 @@ export function SubmissionForm({
         }
     }
     fetchExistingSubmission();
-  }, [firestore, user, userProfile?.unitId, reportType, year, cycleId, checklistItems]);
+  }, [firestore, user, userProfile?.unitId, userProfile?.campusId, reportType, year, cycleId, checklistItems]);
 
   const canUpdateExisting = useMemo(() => {
     if (!existingSubmission || !user || !userRole) return true;

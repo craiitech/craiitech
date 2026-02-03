@@ -79,19 +79,20 @@ export default function NewSubmissionPage() {
 
 
   const submissionsQuery = useMemoFirebase(() => {
-    // UNIT-CENTRIC CHANGE: Query by unitId instead of userId
-    if (!firestore || !userProfile?.unitId || !selectedYear) return null;
+    // UNIT-CENTRIC: Isolated by unitId AND campusId to handle branch units correctly
+    if (!firestore || !userProfile?.unitId || !userProfile?.campusId || !selectedYear) return null;
     return query(
       collection(firestore, 'submissions'),
       where('unitId', '==', userProfile.unitId),
+      where('campusId', '==', userProfile.campusId),
       where('year', '==', selectedYear)
     );
-  }, [firestore, userProfile?.unitId, selectedYear]);
+  }, [firestore, userProfile?.unitId, userProfile?.campusId, selectedYear]);
 
   const { data: submissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
   
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
-  const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+  const { data: units } = useCollection<Unit>(unitsQuery);
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
     if (!submissions) {

@@ -133,9 +133,11 @@ export default function HomePage() {
       }
       return null;
     }
+    // Unit User: Must filter by BOTH unitId and campusId to prevent leakage between campus branches
     return query(
       collection(firestore, 'submissions'),
-      where('userId', '==', userProfile.id)
+      where('unitId', '==', userProfile.unitId),
+      where('campusId', '==', userProfile.campusId)
     );
   }, [firestore, userProfile, isAdmin, isSupervisor]);
 
@@ -167,8 +169,12 @@ export default function HomePage() {
         }
         return null; 
     }
-    if (userProfile.unitId) {
-        return query(baseRisksQuery, where('unitId', '==', userProfile.unitId));
+    if (userProfile.unitId && userProfile.campusId) {
+        return query(
+          baseRisksQuery, 
+          where('unitId', '==', userProfile.unitId),
+          where('campusId', '==', userProfile.campusId)
+        );
     }
     
     return null; 
@@ -210,7 +216,7 @@ export default function HomePage() {
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(allUnitsQuery);
 
    const allCampusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
-  const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(allCampusesQuery);
+  const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(allCampusesQuery);
   
   const allCyclesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'cycles') : null, [firestore]);
   const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(allCyclesQuery);
@@ -711,7 +717,7 @@ export default function HomePage() {
   );
 
   const renderSupervisorHome = () => (
-     <Tabs defaultValue="overview" className="space-y-4">
+    <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
             <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
             <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
