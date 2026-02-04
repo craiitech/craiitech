@@ -93,7 +93,7 @@ export function SubmissionForm({
   const [existingSubmission, setExistingSubmission] = useState<Submission | null>(null);
   const [originalSubmitter, setOriginalSubmitter] = useState<AppUser | null>(null);
 
-  const isRorForm = reportType === 'Risk and Opportunity Registry Form';
+  const isRorForm = reportType === 'Risk and Opportunity Registry';
 
   const checklistItems = useMemo(() => {
     const dynamicBaseItems = [

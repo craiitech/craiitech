@@ -33,11 +33,11 @@ import { useRouter } from 'next/navigation';
 
 
 export const submissionTypes = [
-  'Operational Plans',
-  'Objectives Monitoring',
-  'Risk and Opportunity Registry Form',
+  'Operational Plan',
+  'Quality Objectives Monitoring',
+  'Risk and Opportunity Registry',
   'Risk and Opportunity Action Plan',
-  'Updated Needs and Expectation of Interested Parties',
+  'Needs and Expectation of Interested Parties',
   'SWOT Analysis',
 ];
 
@@ -114,13 +114,13 @@ export default function NewSubmissionPage() {
 
   const submissionStatusMap = selectedCycle === 'first' ? firstCycleStatusMap : finalCycleStatusMap;
   
-  const specialUpdateReports = ['SWOT Analysis', 'Updated Needs and Expectation of Interested Parties'];
+  const specialUpdateReports = ['SWOT Analysis', 'Needs and Expectation of Interested Parties'];
 
   const isLoading = isLoadingCycles || isLoadingSubmissions || isLoadingUnits;
 
   const handleSelectReport = (reportType: string) => {
     // Prevent selection if the report is N/A
-    const isActionPlanNA = reportType === 'Risk and Opportunity Action Plan' && submissionStatusMap.get('Risk and Opportunity Registry Form')?.riskRating === 'low';
+    const isActionPlanNA = reportType === 'Risk and Opportunity Action Plan' && submissionStatusMap.get('Risk and Opportunity Registry')?.riskRating === 'low';
     if (isActionPlanNA) return;
 
     setSelectedReport(reportType);
@@ -290,7 +290,7 @@ export default function NewSubmissionPage() {
                     submissionTypes.map((reportType) => {
                     const submission = submissionStatusMap.get(reportType);
                     const isActionPlan = reportType === 'Risk and Opportunity Action Plan';
-                    const registryFormSubmission = submissionStatusMap.get('Risk and Opportunity Registry Form');
+                    const registryFormSubmission = submissionStatusMap.get('Risk and Opportunity Registry');
                     const isActionPlanNA = isActionPlan && registryFormSubmission?.riskRating === 'low';
                     const isSelected = selectedReport === reportType;
                     return (

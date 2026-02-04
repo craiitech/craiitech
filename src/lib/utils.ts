@@ -6,11 +6,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 const REPORT_TYPE_CODES: Record<string, string> = {
-  'Operational Plans': 'OPE',
-  'Objectives Monitoring': 'OBM',
-  'Risk and Opportunity Registry Form': 'ROR',
+  'Operational Plan': 'OPE',
+  'Quality Objectives Monitoring': 'QOM',
+  'Risk and Opportunity Registry': 'ROR',
   'Risk and Opportunity Action Plan': 'ROA',
-  'Updated Needs and Expectation of Interested Parties': 'NEP',
+  'Needs and Expectation of Interested Parties': 'NEP',
   'SWOT Analysis': 'SWO',
 };
 

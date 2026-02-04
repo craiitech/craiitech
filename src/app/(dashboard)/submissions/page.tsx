@@ -66,11 +66,11 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 
 const submissionTypes = [
   'All Submissions',
-  'Operational Plans',
-  'Objectives Monitoring',
-  'Risk and Opportunity Registry Form',
+  'Operational Plan',
+  'Quality Objectives Monitoring',
+  'Risk and Opportunity Registry',
   'Risk and Opportunity Action Plan',
-  'Updated Needs and Expectation of Interested Parties',
+  'Needs and Expectation of Interested Parties',
   'SWOT Analysis',
 ];
 
