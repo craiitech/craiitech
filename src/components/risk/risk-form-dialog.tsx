@@ -34,7 +34,7 @@ import { doc, setDoc, serverTimestamp, addDoc, collection, query, where } from '
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { CalendarIcon, HelpCircle, ListChecks } from 'lucide-react';
 import { Calendar } from '../ui/calendar';
@@ -46,12 +46,14 @@ import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Separator } from '../ui/separator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { ScrollArea } from '../ui/scroll-area';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface RiskFormDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   risk: Risk | null;
   unitUsers: AppUser[];
+  isMandatory?: boolean;
 }
 
 const currentYear = new Date().getFullYear();
@@ -234,7 +236,7 @@ const GuideContent = () => (
 );
 
 
-export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFormDialogProps) {
+export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, isMandatory }: RiskFormDialogProps) {
   const { userProfile, isAdmin, isSupervisor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -406,13 +408,22 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl">
+    <Dialog open={isOpen} onOpenChange={isMandatory ? undefined : onOpenChange}>
+      <DialogContent 
+        className="max-w-5xl"
+        onInteractOutside={isMandatory ? (e) => e.preventDefault() : undefined}
+        onEscapeKeyDown={isMandatory ? (e) => e.preventDefault() : undefined}
+      >
         <DialogHeader>
-          <DialogTitle>{risk ? 'Edit' : 'Log New'} Risk or Opportunity</DialogTitle>
+          <div className="flex items-center gap-2">
+            <DialogTitle>{risk ? 'Edit' : 'Log New'} Risk or Opportunity</DialogTitle>
+            {isMandatory && <Badge variant="destructive">Required Action</Badge>}
+          </div>
           <div className="flex justify-between items-center">
             <DialogDescription>
-              Fill out the details below. Use the guide on the right for help.
+              {isMandatory 
+                ? "This entry is mandatory to complete your Risk and Opportunity Registry submission." 
+                : "Fill out the details below. Use the guide on the right for help."}
             </DialogDescription>
             <div className="flex items-center gap-4 text-sm">
                 <Button variant="link" size="sm" onClick={() => setSidePanelView('criteria')} className={cn("p-0 h-auto", {"font-bold text-primary": sidePanelView === 'criteria'})}>
@@ -426,11 +437,22 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
             </div>
           </div>
         </DialogHeader>
+
+        {isMandatory && (
+            <Alert variant="destructive" className="mb-4 bg-destructive/10 border-destructive/50">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Action Required</AlertTitle>
+                <AlertDescription>
+                    Your report indicated a <strong>Medium/High Risk</strong>. You must complete this database entry to establish your treatment plan and ensure ISO compliance.
+                </AlertDescription>
+            </Alert>
+        )}
+
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="md:col-span-2">
-                        <ScrollArea className="h-[70vh] pr-6">
+                        <ScrollArea className="h-[60vh] pr-6">
                             <div className="space-y-6">
                                 <Card>
                                     <CardHeader>
@@ -663,7 +685,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
                 </div>
 
                 <DialogFooter className="pt-6">
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    {!isMandatory && <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>}
                     <Button type="submit" disabled={isSubmitting}>
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {risk ? 'Save Changes' : 'Log Entry'}

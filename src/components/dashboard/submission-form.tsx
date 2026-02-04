@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -362,10 +361,8 @@ export function SubmissionForm({
 
     if (submissionSuccess) {
         if (isRorForm && riskRating === 'medium-high') {
-            // Show dialog and STOP. The dialog's button will handle the next redirect.
             setIsRiskDialogOpen(true);
         } else {
-            // Call onSuccess only if we aren't showing the dialog.
             if (onSuccess) onSuccess();
         }
     }
@@ -601,16 +598,18 @@ export function SubmissionForm({
         </Button>
       </form>
     </Form>
-    <AlertDialog open={isRiskDialogOpen} onOpenChange={setIsRiskDialogOpen}>
+    <AlertDialog open={isRiskDialogOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Next Step: Log Your Risk</AlertDialogTitle>
+                <AlertDialogTitle>Mandatory Step: Log Your Risk</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Because your unit has submitted a Medium or High-rated risk, you must now formally log it in the Risk Register to create an action plan.
+                    Because your unit has submitted a <strong>Medium or High-rated risk</strong>, you are now required to log this entry in the official Risk Register database to establish your action plan.
+                    <br /><br />
+                    This is a mandatory step for compliance. You will be redirected to the registry now.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogAction onClick={() => router.push('/risk-register?openForm=true')}>
+                <AlertDialogAction onClick={() => router.push('/risk-register?openForm=true&mandatory=true')}>
                     Continue to Risk Register
                 </AlertDialogAction>
             </AlertDialogFooter>

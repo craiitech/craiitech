@@ -16,10 +16,12 @@ export default function RiskRegisterPage() {
     const searchParams = useSearchParams();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
+    const [isMandatory, setIsMandatory] = useState(false);
 
     useEffect(() => {
         // Check for the query parameter to auto-open the form
         if (searchParams.get('openForm') === 'true') {
+            setIsMandatory(searchParams.get('mandatory') === 'true');
             handleNewRisk();
         }
     }, [searchParams]);
@@ -108,6 +110,7 @@ export default function RiskRegisterPage() {
     };
 
     const handleEditRisk = (risk: Risk) => {
+        setIsMandatory(false); // Manual edits are never mandatory in this context
         setEditingRisk(risk);
         setIsFormOpen(true);
     };
@@ -158,6 +161,7 @@ export default function RiskRegisterPage() {
         onOpenChange={setIsFormOpen}
         risk={editingRisk}
         unitUsers={unitUsers}
+        isMandatory={isMandatory}
     />
     </>
   );
