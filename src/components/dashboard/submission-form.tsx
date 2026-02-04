@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -109,19 +109,25 @@ export function SubmissionForm({
   }, [isRorForm, riskRating, reportType, year, cycleId]);
 
 
-  const [checkedState, setCheckedState] = useState<Record<string, boolean>>(
-    checklistItems.reduce((acc, item) => ({ ...acc, [item.id]: false }), {})
-  );
+  const [checkedState, setCheckedState] = useState<Record<string, boolean>>({});
 
+  // Only reset checkboxes if the list of required items changes (e.g. going from Low to Medium rating)
   useEffect(() => {
-    setCheckedState(checklistItems.reduce((acc, item) => ({...acc, [item.id]: false}), {}));
+    setCheckedState(prev => {
+        const newState: Record<string, boolean> = {};
+        checklistItems.forEach(item => {
+            newState[item.id] = prev[item.id] || false;
+        });
+        return newState;
+    });
   }, [checklistItems]);
 
 
   const isChecklistComplete = useMemo(() => {
     if (isRorForm && !riskRating) return false;
-    return Object.values(checkedState).every(Boolean);
-  }, [checkedState, isRorForm, riskRating]);
+    const currentKeys = checklistItems.map(i => i.id);
+    return currentKeys.every(id => checkedState[id] === true);
+  }, [checkedState, isRorForm, riskRating, checklistItems]);
 
   const handleCheckboxChange = (id: string) => {
     setCheckedState(prevState => ({
@@ -145,7 +151,7 @@ export function SubmissionForm({
   });
 
   const handleLinkValidation = async (link: string) => {
-    if (!link.startsWith('https://drive.google.com/') || !z.string().url().safeParse(link).success) {
+    if (!link || !link.startsWith('https://drive.google.com/') || !z.string().url().safeParse(link).success) {
       setValidationStatus('idle');
       return;
     }
@@ -198,15 +204,10 @@ export function SubmissionForm({
   }, [googleDriveLinkValue, debouncedValidation]);
 
 
+  // Critical: Fetch existing data only when the identity of the report changes (Year, Cycle, Type)
   useEffect(() => {
     const fetchExistingSubmission = async () => {
         if (!firestore || !userProfile?.unitId || !userProfile?.campusId) return;
-        setValidationStatus('idle');
-        setRiskRating(null);
-        setExistingSubmission(null);
-        setOriginalSubmitter(null);
-        form.reset({ googleDriveLink: '', comments: '' });
-        setCheckedState(checklistItems.reduce((acc, item) => ({ ...acc, [item.id]: false }), {}));
         
         // UNIT-CENTRIC: Query by BOTH unit and campus to prevent branch leakage
         const q = query(
@@ -222,7 +223,8 @@ export function SubmissionForm({
             const existingData = querySnapshot.docs[0].data() as Submission;
             setExistingSubmission({ ...existingData, id: querySnapshot.docs[0].id });
             
-            if (existingData.googleDriveLink) {
+            // Only update form if the fetched link is different to prevent flickering
+            if (existingData.googleDriveLink && form.getValues('googleDriveLink') !== existingData.googleDriveLink) {
               form.setValue('googleDriveLink', existingData.googleDriveLink);
             }
             if (existingData.riskRating) {
@@ -236,10 +238,16 @@ export function SubmissionForm({
                     setOriginalSubmitter(submitterSnap.data() as AppUser);
                 }
             }
+        } else {
+            // No existing submission, clear local states
+            setExistingSubmission(null);
+            setRiskRating(null);
+            setOriginalSubmitter(null);
+            form.reset({ googleDriveLink: '', comments: '' });
         }
     }
     fetchExistingSubmission();
-  }, [firestore, user, userProfile?.unitId, userProfile?.campusId, reportType, year, cycleId, checklistItems]);
+  }, [firestore, userProfile?.unitId, userProfile?.campusId, reportType, year, cycleId]); // Removed checklistItems and user from deps to prevent loop
 
   const canUpdateExisting = useMemo(() => {
     if (!existingSubmission || !user || !userRole) return true;
@@ -274,7 +282,6 @@ export function SubmissionForm({
     let submissionSuccess = false;
 
     if (existingSubmission) {
-        // Increment revision ONLY if it was previously rejected
         const newRevision = existingSubmission.statusId === 'rejected' 
           ? (existingSubmission.revision || 0) + 1 
           : (existingSubmission.revision || 0);
