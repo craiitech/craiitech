@@ -1,4 +1,3 @@
-
 'use client';
 
 export const faqs = [
@@ -33,7 +32,7 @@ export const faqs = [
       {
         question: 'How do I submit a report?',
         answer:
-          'Navigate to the "Submissions" page and click the "New Submission" button. On the next page, you can select a year and cycle, then click on any report in the checklist to open the submission form. You must fill in the Google Drive link and check all items in the "Final Check" list before the "Submit" button is enabled.',
+          'Navigate to the "Submissions" page and click the "New Submission / Resubmission" button. On the next page, you can select a year and cycle, then click on any report in the checklist to open the submission form. You must fill in the Google Drive link and check all items in the "Final Check" list before the "Submit" button is enabled.',
       },
       {
         question: 'How do I check the status of my submissions?',
@@ -107,7 +106,7 @@ export const faqs = [
       {
         question: 'What is the "Leaderboard" on my dashboard?',
         answer:
-          'The Leaderboard shows a ranked list of "Top Performing Units" across all campuses. It highlights units that have completed 50% or more of their total required submissions for the year and assigns them a star rating based on their completion percentage.',
+          'The Leaderboard shows a ranked list of "Top Performing Units" across all campuses. It highlights units that have completed 50% or more of their required submissions for the year and assigns them a star rating based on their completion percentage.',
       },
        {
         question: 'How do I delete a submission?',

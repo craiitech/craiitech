@@ -662,7 +662,7 @@ export default function SubmissionsPage() {
                     <AlertDialogTrigger asChild>
                     <Button>
                         <PlusCircle className="mr-2 h-4 w-4" />
-                        New Submission
+                        New Submission / Resubmission
                     </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>

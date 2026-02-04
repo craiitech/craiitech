@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -86,13 +85,13 @@ const manualSections = [
         {
             title: 'How to Submit a Report',
             content: `
-                <p>All submissions are managed through the "New Submission" page.</p>
+                <p>All submissions are managed through the "New Submission / Resubmission" page.</p>
                 <ol class="list-decimal space-y-2 pl-6">
-                    <li>Navigate to the <strong>"Submissions"</strong> page from the sidebar and click the <strong>"New Submission"</strong> button.</li>
+                    <li>Navigate to the <strong>"Submissions"</strong> page from the sidebar and click the <strong>"New Submission / Resubmission"</strong> button.</li>
                     <li>On the checklist page, select the correct <strong>Year</strong> and <strong>Submission Cycle</strong> (First or Final).</li>
                     <li>Find the report you wish to submit in the list and click on it to expand the submission form.</li>
                     <li>Paste the <strong>Google Drive Link</strong> for your document into the input field. The system will validate the link to ensure it's accessible. For instructions on getting the correct link, click the "How to get Google Drive link" helper button.</li>
-                    <li>Complete the <strong>"Final Check"</strong> checklist to confirm all details are correct. The "Submit Report" button will only become active once all boxes are checked.</li>
+                    <li>Complete the <strong>"Final Check"</strong> checklist to confirm all details rarae correct. The "Submit Report" button will only become active once all boxes are checked.</li>
                     <li>Click <strong>"Submit Report"</strong>. Your report status will update to "Submitted" and will be sent for review.</li>
                 </ol>
             `

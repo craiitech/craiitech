@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -33,7 +32,7 @@ const helpContent = `
 
   // Employee / Unit Coordinator / Unit ODIMO
   // Dashboard: Shows submission stats, charts, recent activity, a submission checklist, and a risk management overview.
-  // How to Submit: Go to "New Submission", select Year/Cycle, click a report, paste a valid Google Drive link, complete the final checklist, and submit.
+  // How to Submit: Go to "New Submission / Resubmission", select Year/Cycle, click a report, paste a valid Google Drive link, complete the final checklist, and submit.
   // Handling Rejection: Find the rejected report, view feedback on the detail page, get a new link for the corrected document, and use the "Resubmit Report" form. After resubmitting, you are redirected back to the submissions list.
   // Risk & Opportunity Register: A module for logging, tracking, and managing unit-specific risks and opportunities.
   // Logging a Risk: Go to the "Risk Register" page, click "Log New Entry". This opens a detailed form. You must fill out the Identification (Type, Objective, Description, Current Controls) and Analysis (Likelihood, Consequence) sections. An "Action Plan" section, which includes fields like "OAP No.", "Treatment Plan", "Accountable Person", and "Target Date", is only required for Medium and High rated entries.

@@ -235,7 +235,7 @@ export default function NewSubmissionPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">New Submission</h2>
+        <h2 className="text-2xl font-bold tracking-tight">New Submission / Resubmission</h2>
         <p className="text-muted-foreground">Select a report to submit for the chosen year and cycle.</p>
       </div>
       
