@@ -166,14 +166,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         lastSeen: serverTimestamp()
     });
 
-    // Heartbeat to keep status fresh every minute
+    // Heartbeat to keep status fresh every 5 minutes (reduced frequency to prevent re-render jumps)
     const interval = setInterval(() => {
         if (document.hasFocus()) { // Only update if tab is active
             updateDoc(userStatusRef, {
                 lastSeen: serverTimestamp()
             });
         }
-    }, 60000);
+    }, 300000); // 5 minutes
 
     // Cleanup on unmount
     return () => {
@@ -192,7 +192,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [router, toast]);
   
   // Conditionally enable the timer. It will not run for admins.
-  useIdleTimer(handleIdle, 2 * 60 * 1000, !isAdmin); // 2 minutes
+  // Increased from 2 minutes to 30 minutes for better user experience.
+  useIdleTimer(handleIdle, 30 * 60 * 1000, !isAdmin); // 30 minutes
 
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
