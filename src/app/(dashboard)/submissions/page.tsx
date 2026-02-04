@@ -397,6 +397,7 @@ export default function SubmissionsPage() {
   const isLoading = isLoadingSubmissions || isLoadingCampuses || isLoadingCycles || isLoadingUnits || isLoadingUsers;
 
   const [activeFilter, setActiveFilter] = useState<string>('All Submissions');
+  const [activeYearFilter, setActiveYearFilter] = useState<string>('All Years');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'submissionDate', direction: 'descending'});
   const [activeTab, setActiveTab] = useState('all-submissions');
 
@@ -434,6 +435,13 @@ export default function SubmissionsPage() {
         submissionDate: s.submissionDate instanceof Timestamp ? s.submissionDate.toDate() : new Date(s.submissionDate)
     }));
   }, [submissionsData]);
+
+  const yearsForFilter = useMemo(() => {
+    const yearsFromCycles = cycles?.map(c => c.year) || [];
+    const yearsFromSubmissions = submissionsData?.map(s => s.year) || [];
+    const uniqueYears = Array.from(new Set([...yearsFromCycles, ...yearsFromSubmissions])).sort((a, b) => b - a);
+    return ['All Years', ...uniqueYears.map(String)];
+  }, [cycles, submissionsData]);
 
   
   const handleEyeClick = (submissionId: string) => {
@@ -499,8 +507,13 @@ export default function SubmissionsPage() {
 
   const sortedSubmissions = useMemo(() => {
     let sortableItems = [...submissions];
+    
     if (activeFilter !== 'All Submissions') {
       sortableItems = sortableItems.filter(s => s.reportType === activeFilter);
+    }
+
+    if (activeYearFilter !== 'All Years') {
+      sortableItems = sortableItems.filter(s => String(s.year) === activeYearFilter);
     }
 
     if (sortConfig !== null) {
@@ -545,7 +558,7 @@ export default function SubmissionsPage() {
     }
 
     return sortableItems;
-  }, [submissions, activeFilter, sortConfig, usersMap, campusMap]);
+  }, [submissions, activeFilter, activeYearFilter, sortConfig, usersMap, campusMap]);
 
   const handlePrint = () => {
     if (!userProfile || !cycles) return;
@@ -734,7 +747,19 @@ export default function SubmissionsPage() {
                             {isSupervisor ? 'A history of all reports submitted by users in your campus/unit.' : `A history of all reports submitted for the ${unitName}.`}
                         </CardDescription>
                     </div>
-                    <div className="w-full md:w-auto">
+                    <div className="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
+                    <Select value={activeYearFilter} onValueChange={setActiveYearFilter}>
+                        <SelectTrigger className="w-full md:w-[150px]">
+                        <SelectValue placeholder="Year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                        {yearsForFilter.map((year) => (
+                            <SelectItem key={year} value={year}>
+                            {year}
+                            </SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
                     <Select value={activeFilter} onValueChange={setActiveFilter}>
                         <SelectTrigger className="w-full md:w-[280px]">
                         <SelectValue placeholder="Filter by report type..." />
