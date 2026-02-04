@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -676,7 +675,3 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers }: RiskFo
     </Dialog>
   );
 }
-
-    
-
-    
