@@ -1,13 +1,14 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, doc, arrayUnion } from 'firebase/firestore';
+import { collection, query, where, addDoc } from 'firebase/firestore';
 import type { Submission, Comment, Unit, Cycle } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
-import { CheckCircle, Circle, HelpCircle, Download, FileCheck, Scan, Link as LinkIcon, AlertCircle, XCircle, ChevronRight, Loader2 } from 'lucide-react';
+import { CheckCircle, Circle, Download, FileCheck, Scan, Link as LinkIcon, AlertCircle, XCircle, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -73,9 +74,32 @@ export default function NewSubmissionPage() {
 
   const years = useMemo(() => {
     if (!allCycles) return [];
-    const uniqueYears = [...new Set(allCycles.map(c => c.year))];
-    return uniqueYears.sort((a, b) => b - a);
+    const uniqueYears = [...new Set(allCycles.map(c => c.year))].sort((a, b) => b - a);
+    return uniqueYears;
   }, [allCycles]);
+
+  const availableCyclesForYear = useMemo(() => {
+    if (!allCycles || !selectedYear) return [];
+    return allCycles
+        .filter(c => c.year === selectedYear)
+        .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allCycles, selectedYear]);
+
+  // Handle year change: Clear cycle if no longer valid
+  useEffect(() => {
+    if (selectedYear) {
+        if (selectedCycle) {
+            const exists = availableCyclesForYear.some(c => c.name === selectedCycle);
+            if (!exists) {
+                setSelectedCycle(null);
+                setSelectedReport(null);
+            }
+        }
+    } else {
+        setSelectedCycle(null);
+        setSelectedReport(null);
+    }
+  }, [selectedYear, availableCyclesForYear, selectedCycle]);
 
 
   const submissionsQuery = useMemoFirebase(() => {
@@ -120,7 +144,10 @@ export default function NewSubmissionPage() {
 
   const handleSelectReport = (reportType: string) => {
     // Prevent selection if the report is N/A
-    const isActionPlanNA = reportType === 'Risk and Opportunity Action Plan' && submissionStatusMap.get('Risk and Opportunity Registry')?.riskRating === 'low';
+    const isActionPlan = reportType === 'Risk and Opportunity Action Plan';
+    const registryFormSubmission = submissionStatusMap.get('Risk and Opportunity Registry');
+    const isActionPlanNA = isActionPlan && registryFormSubmission?.riskRating === 'low';
+    
     if (isActionPlanNA) return;
 
     setSelectedReport(reportType);
@@ -177,6 +204,8 @@ export default function NewSubmissionPage() {
       statusId: 'submitted',
       submissionDate: new Date(),
       comments: [carryOverComment],
+      revision: originalSubmission.revision,
+      controlNumber: originalSubmission.controlNumber,
     };
 
     try {
@@ -200,15 +229,6 @@ export default function NewSubmissionPage() {
   const handleFormSuccess = () => {
     setShowFormForUpdate(false);
     router.push('/submissions');
-  };
-  
-  const handleViewFeedback = (comments: any) => {
-    if (Array.isArray(comments) && comments.length > 0) {
-      setFeedbackToShow(comments[comments.length - 1]?.text || 'No comment text found.');
-    } else {
-      setFeedbackToShow('No feedback provided.');
-    }
-    setIsFeedbackDialogOpen(true);
   };
   
   const getIconForStatus = (status?: string) => {
@@ -268,13 +288,19 @@ export default function NewSubmissionPage() {
                         ))}
                     </SelectContent>
                     </Select>
-                    <Select value={selectedCycle ?? undefined} onValueChange={(value: 'first' | 'final') => setSelectedCycle(value)}>
+                    <Select value={selectedCycle ?? undefined} onValueChange={(value: 'first' | 'final') => setSelectedCycle(value)} disabled={!selectedYear}>
                     <SelectTrigger>
                         <SelectValue placeholder="Select Cycle" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="first">First Submission</SelectItem>
-                        <SelectItem value="final">Final Submission</SelectItem>
+                        {availableCyclesForYear.map(cycle => (
+                            <SelectItem key={cycle.id} value={cycle.name as 'first' | 'final'}>
+                                {cycle.name === 'first' ? 'First Submission' : 'Final Submission'}
+                            </SelectItem>
+                        ))}
+                        {selectedYear && availableCyclesForYear.length === 0 && (
+                            <div className="p-4 text-sm text-muted-foreground">No cycles defined for this year.</div>
+                        )}
                     </SelectContent>
                     </Select>
                 </div>
@@ -324,7 +350,7 @@ export default function NewSubmissionPage() {
                     })
                 ) : (
                     <div className="text-center text-muted-foreground py-10">
-                        Please select a year and cycle to begin.
+                        {selectedYear && availableCyclesForYear.length > 0 ? "Please select a cycle to begin." : "Please select a year with defined cycles."}
                     </div>
                 )}
                 </CardContent>
