@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, Timestamp } from 'firebase/firestore';
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,6 +51,13 @@ export default function MonitoringPage() {
   const handleViewRecord = (record: UnitMonitoringRecord) => {
     setSelectedRecord(record);
     setIsFormOpen(true);
+  };
+
+  const safeFormatDate = (date: any) => {
+    if (!date) return 'N/A';
+    const d = date instanceof Timestamp ? date.toDate() : new Date(date);
+    if (isNaN(d.getTime())) return 'Invalid Date';
+    return format(d, 'PPP');
   };
 
   const isLoading = isUserLoading || isLoadingRecords || isLoadingCampuses || isLoadingUnits;
@@ -105,7 +112,7 @@ export default function MonitoringPage() {
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
-                            {format(record.visitDate.toDate(), 'PPP')}
+                            {safeFormatDate(record.visitDate)}
                           </div>
                         </TableCell>
                         <TableCell>

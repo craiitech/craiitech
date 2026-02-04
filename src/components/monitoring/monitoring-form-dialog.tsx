@@ -14,7 +14,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, addDoc, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
@@ -76,39 +76,50 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
   });
 
   const selectedCampusId = form.watch('campusId');
-  const unitsForCampus = useMemo(() => units.filter(u => u.campusIds?.includes(selectedCampusId)), [units, selectedCampusId]);
+  const unitsForCampus = useMemo(() => {
+    if (!units) return [];
+    return units.filter(u => u.campusIds?.includes(selectedCampusId));
+  }, [units, selectedCampusId]);
 
   useEffect(() => {
-    if (record) {
-      form.reset({
-        ...record,
-        visitDate: record.visitDate.toDate(),
-        observations: monitoringChecklistItems.map(item => {
-          const existing = record.observations.find(obs => obs.item === item);
-          return {
-            item,
-            status: existing?.status || 'Available',
-            remarks: existing?.remarks || '',
-          };
-        }),
-      });
-    } else {
-      form.reset({
-        visitDate: new Date(),
-        campusId: '',
-        unitId: '',
-        roomNumber: '',
-        generalRemarks: '',
-        observations: monitoringChecklistItems.map(item => ({ item, status: 'Available', remarks: '' })),
-      });
+    if (isOpen) {
+      if (record) {
+        const visitDate = record.visitDate instanceof Timestamp ? record.visitDate.toDate() : new Date(record.visitDate);
+        form.reset({
+          ...record,
+          visitDate,
+          observations: monitoringChecklistItems.map(item => {
+            const existing = record.observations?.find(obs => obs.item === item);
+            return {
+              item,
+              status: existing?.status || 'Available',
+              remarks: existing?.remarks || '',
+            };
+          }),
+        });
+      } else {
+        form.reset({
+          visitDate: new Date(),
+          campusId: '',
+          unitId: '',
+          roomNumber: '',
+          generalRemarks: '',
+          observations: monitoringChecklistItems.map(item => ({ item, status: 'Available', remarks: '' })),
+        });
+      }
     }
   }, [record, isOpen, form]);
 
   useEffect(() => {
-    if(!record) {
-        form.setValue('unitId', '');
+    if(!record && isOpen) {
+        // Only clear unitId if campus changes and we are NOT editing an existing record
+        // Or if we are in a fresh 'New Visit' state.
+        const currentUnitId = form.getValues('unitId');
+        if (currentUnitId && !unitsForCampus.some(u => u.id === currentUnitId)) {
+            form.setValue('unitId', '');
+        }
     }
-  }, [selectedCampusId, form, record]);
+  }, [selectedCampusId, form, record, isOpen, unitsForCampus]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!firestore || !userProfile) {
@@ -144,7 +155,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{record ? 'Edit' : 'New'} Unit Monitoring Record</DialogTitle>
           <DialogDescription>
@@ -152,8 +163,8 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <ScrollArea className="h-[70vh] p-1">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden space-y-4">
+            <ScrollArea className="flex-1 p-1">
               <div className="space-y-4 p-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <FormField control={form.control} name="visitDate" render={({ field }) => (
@@ -188,17 +199,17 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                     <FormItem><FormLabel>Room #</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                 </div>
-                <div className="border rounded-lg">
+                <div className="border rounded-lg overflow-hidden">
                   <Table>
                     <TableBody>
                       {fields.map((field, index) => (
                         <TableRow key={field.id}>
-                          <TableCell className="font-medium w-[30%]">{field.item}</TableCell>
-                          <TableCell>
+                          <TableCell className="font-medium w-[30%] text-sm">{field.item}</TableCell>
+                          <TableCell className="w-[30%]">
                             <FormField control={form.control} name={`observations.${index}.status`} render={({ field }) => (
                               <FormItem><FormControl>
                                 <Select onValueChange={field.onChange} value={field.value}>
-                                  <SelectTrigger><SelectValue /></SelectTrigger>
+                                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="Available">Available</SelectItem>
                                     <SelectItem value="Not Available">Not Available</SelectItem>
@@ -210,7 +221,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                           </TableCell>
                           <TableCell className="w-[40%]">
                             <FormField control={form.control} name={`observations.${index}.remarks`} render={({ field }) => (
-                              <FormItem><FormControl><Input placeholder="Remarks..." {...field} /></FormControl><FormMessage /></FormItem>
+                              <FormItem><FormControl><Input placeholder="Remarks..." {...field} className="h-8 text-xs" /></FormControl><FormMessage /></FormItem>
                             )} />
                           </TableCell>
                         </TableRow>
@@ -223,7 +234,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                 )} />
               </div>
             </ScrollArea>
-            <DialogFooter>
+            <DialogFooter className="px-4 pb-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
