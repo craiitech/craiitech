@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -28,6 +29,7 @@ import { Label } from '../ui/label';
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -111,7 +113,6 @@ export function SubmissionForm({
 
   const [checkedState, setCheckedState] = useState<Record<string, boolean>>({});
 
-  // Only reset checkboxes if the list of required items changes (e.g. going from Low to Medium rating)
   useEffect(() => {
     setCheckedState(prev => {
         const newState: Record<string, boolean> = {};
@@ -204,12 +205,10 @@ export function SubmissionForm({
   }, [googleDriveLinkValue, debouncedValidation]);
 
 
-  // Critical: Fetch existing data only when the identity of the report changes (Year, Cycle, Type)
   useEffect(() => {
     const fetchExistingSubmission = async () => {
         if (!firestore || !userProfile?.unitId || !userProfile?.campusId) return;
         
-        // UNIT-CENTRIC: Query by BOTH unit and campus to prevent branch leakage
         const q = query(
             collection(firestore, 'submissions'),
             where('unitId', '==', userProfile.unitId),
@@ -223,7 +222,6 @@ export function SubmissionForm({
             const existingData = querySnapshot.docs[0].data() as Submission;
             setExistingSubmission({ ...existingData, id: querySnapshot.docs[0].id });
             
-            // Only update form if the fetched link is different to prevent flickering
             if (existingData.googleDriveLink && form.getValues('googleDriveLink') !== existingData.googleDriveLink) {
               form.setValue('googleDriveLink', existingData.googleDriveLink);
             }
@@ -239,7 +237,6 @@ export function SubmissionForm({
                 }
             }
         } else {
-            // No existing submission, clear local states
             setExistingSubmission(null);
             setRiskRating(null);
             setOriginalSubmitter(null);
@@ -247,7 +244,7 @@ export function SubmissionForm({
         }
     }
     fetchExistingSubmission();
-  }, [firestore, userProfile?.unitId, userProfile?.campusId, reportType, year, cycleId]); // Removed checklistItems and user from deps to prevent loop
+  }, [firestore, userProfile?.unitId, userProfile?.campusId, reportType, year, cycleId]); 
 
   const canUpdateExisting = useMemo(() => {
     if (!existingSubmission || !user || !userRole) return true;
@@ -281,34 +278,34 @@ export function SubmissionForm({
 
     let submissionSuccess = false;
 
-    if (existingSubmission) {
-        const newRevision = existingSubmission.statusId === 'rejected' 
-          ? (existingSubmission.revision || 0) + 1 
-          : (existingSubmission.revision || 0);
-        
-        const now = new Date();
-        const newControlNumber = generateControlNumber(unit.name, newRevision, reportType, now);
+    try {
+        if (existingSubmission) {
+            const newRevision = existingSubmission.statusId === 'rejected' 
+              ? (existingSubmission.revision || 0) + 1 
+              : (existingSubmission.revision || 0);
+            
+            const now = new Date();
+            const newControlNumber = generateControlNumber(unit.name, newRevision, reportType, now);
 
-        const existingDocRef = doc(firestore, 'submissions', existingSubmission.id);
-        const updateData: any = {
-          googleDriveLink: values.googleDriveLink,
-          statusId: 'submitted',
-          submissionDate: now,
-          unitName: unit.name,
-          userId: user.uid,
-          revision: newRevision,
-          controlNumber: newControlNumber,
-        };
+            const existingDocRef = doc(firestore, 'submissions', existingSubmission.id);
+            const updateData: any = {
+              googleDriveLink: values.googleDriveLink,
+              statusId: 'submitted',
+              submissionDate: now,
+              unitName: unit.name,
+              userId: user.uid,
+              revision: newRevision,
+              controlNumber: newControlNumber,
+            };
 
-        if (isRorForm) {
-            updateData.riskRating = riskRating;
-        }
+            if (isRorForm) {
+                updateData.riskRating = riskRating;
+            }
 
-        if (newComment) {
-            updateData.comments = arrayUnion(newComment);
-        }
-        
-        try {
+            if (newComment) {
+                updateData.comments = arrayUnion(newComment);
+            }
+            
             await updateDoc(existingDocRef, updateData)
             logSessionActivity(`Updated unit submission (Rev ${newRevision}): ${reportType}`, {
                 action: 'update_submission',
@@ -319,40 +316,32 @@ export function SubmissionForm({
                 description: `Revision ${newRevision} submitted for '${reportType}'.`,
             });
             submissionSuccess = true;
-            if (onSuccess) onSuccess();
-        } catch (error) {
-            console.error('Error updating submission:', error);
-            toast({ title: 'Error', description: 'Could not update submission.', variant: 'destructive'});
-        } finally {
-            setIsSubmitting(false);
-        }
 
-    } else {
-        const initialRevision = 0;
-        const now = new Date();
-        const initialControlNumber = generateControlNumber(unit.name, initialRevision, reportType, now);
+        } else {
+            const initialRevision = 0;
+            const now = new Date();
+            const initialControlNumber = generateControlNumber(unit.name, initialRevision, reportType, now);
 
-        const newSubmissionData: any = {
-            googleDriveLink: values.googleDriveLink,
-            reportType,
-            year,
-            cycleId,
-            userId: user.uid,
-            campusId: userProfile.campusId,
-            unitId: userProfile.unitId,
-            unitName: unit.name,
-            statusId: 'submitted',
-            submissionDate: now,
-            comments: newComment ? [newComment] : [],
-            revision: initialRevision,
-            controlNumber: initialControlNumber,
-        };
-        
-        if (isRorForm) {
-            newSubmissionData.riskRating = riskRating;
-        }
+            const newSubmissionData: any = {
+                googleDriveLink: values.googleDriveLink,
+                reportType,
+                year,
+                cycleId,
+                userId: user.uid,
+                campusId: userProfile.campusId,
+                unitId: userProfile.unitId,
+                unitName: unit.name,
+                statusId: 'submitted',
+                submissionDate: now,
+                comments: newComment ? [newComment] : [],
+                revision: initialRevision,
+                controlNumber: initialControlNumber,
+            };
+            
+            if (isRorForm) {
+                newSubmissionData.riskRating = riskRating;
+            }
 
-        try {
             const docRef = await addDoc(collection(firestore, 'submissions'), newSubmissionData);
             logSessionActivity(`Created new unit submission (Rev 0): ${reportType}`, {
                 action: 'create_submission',
@@ -363,17 +352,22 @@ export function SubmissionForm({
                 description: `New report '${reportType}' submitted under Revision 0.`,
             });
             submissionSuccess = true;
-            if (onSuccess) onSuccess();
-        } catch(error) {
-            console.error('Error creating submission:', error);
-            toast({ title: 'Error', description: 'Could not create submission.', variant: 'destructive'});
-        } finally {
-            setIsSubmitting(false);
         }
+    } catch (error) {
+        console.error('Error during submission:', error);
+        toast({ title: 'Error', description: 'Could not complete submission.', variant: 'destructive'});
+    } finally {
+        setIsSubmitting(false);
     }
 
-    if (submissionSuccess && isRorForm && riskRating === 'medium-high') {
-        setIsRiskDialogOpen(true);
+    if (submissionSuccess) {
+        if (isRorForm && riskRating === 'medium-high') {
+            // Show dialog and STOP. The dialog's button will handle the next redirect.
+            setIsRiskDialogOpen(true);
+        } else {
+            // Call onSuccess only if we aren't showing the dialog.
+            if (onSuccess) onSuccess();
+        }
     }
   };
 
