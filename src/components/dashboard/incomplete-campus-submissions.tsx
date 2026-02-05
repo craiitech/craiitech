@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -49,7 +48,7 @@ export function IncompleteCampusSubmissions({
         // --- FIRST CYCLE ---
         const firstCycleSubmissions = submissionsForUnitAndYear.filter(s => s.cycleId === 'first');
         const firstCycleSubmittedTypes = new Set(firstCycleSubmissions.map(s => s.reportType));
-        const firstRegistry = firstCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry Form');
+        const firstRegistry = firstCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry');
         const firstIsActionPlanNA = firstRegistry?.riskRating === 'low';
         
         let requiredInFirst = TOTAL_REPORTS_PER_CYCLE;
@@ -67,7 +66,7 @@ export function IncompleteCampusSubmissions({
         // --- FINAL CYCLE ---
         const finalCycleSubmissions = submissionsForUnitAndYear.filter(s => s.cycleId === 'final');
         const finalCycleSubmittedTypes = new Set(finalCycleSubmissions.map(s => s.reportType));
-        const finalRegistry = finalCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry Form');
+        const finalRegistry = finalCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry');
         const finalIsActionPlanNA = finalRegistry?.riskRating === 'low';
 
         let requiredInFinal = TOTAL_REPORTS_PER_CYCLE;

@@ -380,11 +380,11 @@ export default function HomePage() {
       };
     } else {
         const firstCycleSubmissions = yearSubmissions.filter(s => s.cycleId === 'first');
-        const firstCycleRegistry = firstCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry Form');
+        const firstCycleRegistry = firstCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry');
         const requiredFirstCycle = firstCycleRegistry?.riskRating === 'low' ? (TOTAL_REPORTS_PER_CYCLE - 1) : TOTAL_REPORTS_PER_CYCLE;
 
         const finalCycleSubmissions = yearSubmissions.filter(s => s.cycleId === 'final');
-        const finalCycleRegistry = finalCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry Form');
+        const finalCycleRegistry = finalCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry');
         const requiredFinalCycle = finalCycleRegistry?.riskRating === 'low' ? (TOTAL_REPORTS_PER_CYCLE - 1) : TOTAL_REPORTS_PER_CYCLE;
 
         const firstCycleCount = new Set(firstCycleSubmissions.map(s => s.reportType)).size;
@@ -515,7 +515,7 @@ export default function HomePage() {
   };
   
   const renderSubmissionChecklist = (cycle: 'first' | 'final', statusMap: Map<string, Submission>) => {
-    const registryFormSubmission = statusMap.get('Risk and Opportunity Registry Form');
+    const registryFormSubmission = statusMap.get('Risk and Opportunity Registry');
     const isActionPlanNA = registryFormSubmission?.riskRating === 'low';
 
     const requiredReports = isActionPlanNA

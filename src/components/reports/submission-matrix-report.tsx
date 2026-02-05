@@ -50,7 +50,7 @@ export function SubmissionMatrixReport({
       case 'missing':
         return <X className="h-4 w-4 text-red-500 mx-auto" />;
       case 'not-applicable':
-        return <span className="text-xs font-semibold text-muted-foreground">N/A</span>;
+        return <span className="text-xs font-semibold text-muted-foreground mx-auto">N/A</span>;
       default:
         return <X className="h-4 w-4 text-red-500 mx-auto" />;
     }

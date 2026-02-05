@@ -31,6 +31,8 @@ const getIconForStatus = (status?: string) => {
       return <AlertCircle className="h-4 w-4 text-destructive" />;
     case 'submitted':
       return <Circle className="h-4 w-4 text-yellow-500" />;
+    case 'n/a':
+      return <CheckCircle className="h-4 w-4 text-muted-foreground" />;
     default:
       return <Circle className="h-4 w-4 text-muted-foreground" />;
   }
@@ -53,6 +55,12 @@ export function UnitSubmissionDetailCard({
       s => s.unitId === unitId && s.year === selectedYear
     );
 
+    const firstCycleRegistry = submissionsForUnit.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
+    const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
+
+    const finalCycleRegistry = submissionsForUnit.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
+    const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
+
     const firstCycle = new Map(
       submissionsForUnit
         .filter(s => s.cycleId === 'first')
@@ -64,24 +72,27 @@ export function UnitSubmissionDetailCard({
         .map(s => [s.reportType, s.statusId])
     );
 
-    return { firstCycle, finalCycle };
+    return { firstCycle, finalCycle, isFirstActionPlanNA, isFinalActionPlanNA };
   }, [allSubmissions, unitId, selectedYear]);
   
   if (!unit) return null;
 
-  const renderSubmissionList = (cycleName: string, statusMap: Map<string, string>) => (
+  const renderSubmissionList = (cycleName: 'First' | 'Final', statusMap: Map<string, string>, isActionPlanNA: boolean) => (
     <div>
         <h4 className="font-semibold mb-2 capitalize">{cycleName} Cycle</h4>
         <div className="space-y-2">
             {submissionTypes.map(reportType => {
                 const status = statusMap.get(reportType);
+                const isNA = reportType === 'Risk and Opportunity Action Plan' && isActionPlanNA;
                 return (
-                    <div key={reportType} className="flex items-center justify-between rounded-md border p-2">
+                    <div key={reportType} className={cn("flex items-center justify-between rounded-md border p-2", isNA && "opacity-50 bg-muted/50")}>
                         <div className="flex items-center gap-2">
-                            {getIconForStatus(status)}
+                            {getIconForStatus(isNA ? 'n/a' : status)}
                             <span className="text-sm">{reportType}</span>
                         </div>
-                        {status ? (
+                        {isNA ? (
+                            <Badge variant="secondary" className="text-xs">N/A</Badge>
+                        ) : status ? (
                              <Badge variant={statusVariant[status] ?? 'secondary'} className="capitalize text-xs">
                                 {status}
                             </Badge>
@@ -109,11 +120,15 @@ export function UnitSubmissionDetailCard({
       <CardContent>
         <ScrollArea className="h-[45vh] pr-4">
             <div className="space-y-4">
-                {renderSubmissionList('First', unitSubmissions.firstCycle)}
-                {renderSubmissionList('Final', unitSubmissions.finalCycle)}
+                {renderSubmissionList('First', unitSubmissions.firstCycle, unitSubmissions.isFirstActionPlanNA)}
+                {renderSubmissionList('Final', unitSubmissions.finalCycle, unitSubmissions.isFinalActionPlanNA)}
             </div>
         </ScrollArea>
       </CardContent>
     </Card>
   );
+}
+
+function cn(...classes: any[]) {
+  return classes.filter(Boolean).join(' ');
 }

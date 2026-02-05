@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -195,7 +194,7 @@ export default function ReportsPage() {
         const statuses: Record<string, 'submitted' | 'missing' | 'not-applicable'> = {};
         
         cycles.forEach(cycleId => {
-            const rorKey = `${campus.id}-${unit.id}-Risk and Opportunity Registry Form-${cycleId}`;
+            const rorKey = `${campus.id}-${unit.id}-Risk and Opportunity Registry-${cycleId}`;
             const rorSubmission = submissionMap.get(rorKey);
             const isActionPlanNA = rorSubmission?.riskRating === 'low';
 
