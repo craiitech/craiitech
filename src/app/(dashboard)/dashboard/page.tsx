@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -151,6 +150,10 @@ export default function HomePage() {
       const date = s.submissionDate;
       return {
         ...s,
+        // Global Normalization: Ensure all registry records are grouped correctly
+        reportType: (s.reportType === 'Risk and Opportunity Registry Form' || s.reportType === 'Risk and Opportunity Registry') 
+            ? 'Risk and Opportunity Registry' 
+            : s.reportType,
         submissionDate: date instanceof Timestamp ? date.toDate() : new Date(date)
       }
     });
@@ -260,16 +263,12 @@ export default function HomePage() {
   const globalAnnouncement = globalSetting?.announcement;
   
   useEffect(() => {
-    // This effect runs when announcement data changes.
-    // If there is an announcement, we set a timer to hide it.
     if (announcement || globalAnnouncement) {
       const timer = setTimeout(() => {
         setIsAnnouncementVisible(false);
         setIsGlobalAnnouncementVisible(false);
-      }, 80000); // 80 seconds
+      }, 80000); 
 
-      // Cleanup function to clear the timer if the component unmounts
-      // or if the announcements change before the timer finishes.
       return () => clearTimeout(timer);
     }
   }, [announcement, globalAnnouncement]);
@@ -1045,7 +1044,6 @@ export default function HomePage() {
     }
     if (isAdmin) return renderAdminHome();
     if (isSupervisor) return renderSupervisorHome();
-    // Both Unit ODIMO and Unit Coordinator will now use the same home view
     return renderUnitUserHome();
   };
   

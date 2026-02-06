@@ -80,30 +80,30 @@ export function SubmissionMatrixReport({
         <Accordion type="multiple" className="w-full" defaultValue={matrixData.map(d => d.campusId)}>
           {matrixData.map(({ campusId, campusName, units }) => (
             <AccordionItem value={campusId} key={campusId}>
-              <AccordionTrigger>{campusName.toUpperCase()}</AccordionTrigger>
+              <AccordionTrigger className="hover:no-underline font-bold uppercase tracking-wider">{campusName}</AccordionTrigger>
               <AccordionContent>
-                <div className="relative overflow-x-auto">
+                <div className="relative overflow-x-auto rounded-md border">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead rowSpan={2} className="sticky left-0 bg-background border-r z-10">Unit</TableHead>
+                      <TableRow className="bg-muted/50">
+                        <TableHead rowSpan={2} className="sticky left-0 bg-muted border-r z-10 font-bold min-w-[200px]">UNIT NAME</TableHead>
                         {submissionTypes.map(type => (
-                          <TableHead key={type} colSpan={2} className="text-center border-l">{type}</TableHead>
+                          <TableHead key={type} colSpan={2} className="text-center border-l font-bold text-[10px] uppercase">{type}</TableHead>
                         ))}
                       </TableRow>
-                      <TableRow>
+                      <TableRow className="bg-muted/30">
                         {submissionTypes.map(type => (
                           <React.Fragment key={type}>
-                            <TableHead className="text-center border-l">First</TableHead>
-                            <TableHead className="text-center border-r">Final</TableHead>
+                            <TableHead className="text-center border-l text-[9px] font-semibold py-1">FIRST</TableHead>
+                            <TableHead className="text-center border-r text-[9px] font-semibold py-1">FINAL</TableHead>
                           </React.Fragment>
                         ))}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {units.map(({ unitId, unitName, statuses }) => (
-                        <TableRow key={unitId}>
-                          <TableCell className="font-medium sticky left-0 bg-background border-r z-10">{unitName}</TableCell>
+                        <TableRow key={unitId} className="hover:bg-muted/20">
+                          <TableCell className="font-medium sticky left-0 bg-background border-r z-10 text-xs">{unitName}</TableCell>
                           {submissionTypes.map(type => (
                             <React.Fragment key={type}>
                               <TableCell className="text-center border-l">
@@ -118,8 +118,8 @@ export function SubmissionMatrixReport({
                       ))}
                        {units.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={submissionTypes.length * 2 + 1} className="text-center h-24">
-                            No units with submissions found for this campus.
+                          <TableCell colSpan={submissionTypes.length * 2 + 1} className="text-center h-24 text-muted-foreground">
+                            No units with submissions found for this campus in {selectedYear}.
                           </TableCell>
                         </TableRow>
                       )}
@@ -131,7 +131,7 @@ export function SubmissionMatrixReport({
           ))}
             {matrixData.length === 0 && (
                 <div className="text-center py-10 text-muted-foreground">
-                    No data to display for the selected year.
+                    No compliance data found for the selected year.
                 </div>
             )}
         </Accordion>

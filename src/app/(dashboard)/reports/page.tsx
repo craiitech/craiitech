@@ -91,7 +91,18 @@ export default function ReportsPage() {
     },
     [firestore, canViewReports, isAdmin, userProfile]
   );
-  const { data: allSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
+  const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
+
+  // Normalize submissions to handle legacy names
+  const allSubmissions = useMemo(() => {
+    if (!rawSubmissions) return [];
+    return rawSubmissions.map(s => ({
+        ...s,
+        reportType: (s.reportType === 'Risk and Opportunity Registry Form' || s.reportType === 'Risk and Opportunity Registry') 
+            ? 'Risk and Opportunity Registry' 
+            : s.reportType
+    }));
+  }, [rawSubmissions]);
 
   const usersQuery = useMemoFirebase(
     () => {
@@ -123,7 +134,6 @@ export default function ReportsPage() {
 
     const campusMap = new Map(allCampuses.map(c => [c.id, c.name]));
     
-    // Create a map where each entry is a campus ID, and the value is a Set of unit names that have submitted under that campus
     const grouped = allSubmissions.reduce((acc, submission) => {
         const campusId = submission.campusId;
         const unitId = submission.unitId;
@@ -139,7 +149,6 @@ export default function ReportsPage() {
 
     const unitMap = new Map(allUnits.map(u => [u.id, u.name]));
     
-    // Convert to a sorted array structure for rendering
     return Object.entries(grouped)
         .map(([campusId, unitIdSet]) => {
             const campusName = campusMap.get(campusId);
@@ -171,7 +180,7 @@ export default function ReportsPage() {
 
     const submissionsForYear = allSubmissions.filter(s => s.year === selectedMatrixYear);
 
-    // Create a map for quick lookup of submissions and their risk ratings
+    // Create a map for quick lookup
     const submissionMap = new Map<string, Submission>(
       submissionsForYear.map(s => {
         const key = `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`;

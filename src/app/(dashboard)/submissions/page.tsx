@@ -374,6 +374,10 @@ export default function SubmissionsPage() {
             const data = await response.json();
             const parsedData = data.map((s: any) => ({
                 ...s,
+                // Normalize legacy names
+                reportType: (s.reportType === 'Risk and Opportunity Registry Form' || s.reportType === 'Risk and Opportunity Registry') 
+                    ? 'Risk and Opportunity Registry' 
+                    : s.reportType,
                 submissionDate: new Date(s.submissionDate),
                  ...(s.createdAt && { createdAt: new Date(s.createdAt) }),
                 ...(s.updatedAt && { updatedAt: new Date(s.updatedAt) }),
@@ -432,6 +436,10 @@ export default function SubmissionsPage() {
     if (!submissionsData) return [];
     return submissionsData.map(s => ({
         ...s,
+        // Normalize names for correct grouping/filtering
+        reportType: (s.reportType === 'Risk and Opportunity Registry Form' || s.reportType === 'Risk and Opportunity Registry') 
+            ? 'Risk and Opportunity Registry' 
+            : s.reportType,
         submissionDate: s.submissionDate instanceof Timestamp ? s.submissionDate.toDate() : new Date(s.submissionDate)
     }));
   }, [submissionsData]);
