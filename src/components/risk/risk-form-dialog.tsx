@@ -132,7 +132,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const { logSessionActivity } = useSessionActivity();
-  const [sidePanelView, setSidePanelView] = useState<'criteria' | 'guide'>('criteria');
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -190,7 +189,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
   const rating = getRating(magnitude);
   
   const showActionPlan = rating === 'Medium' || rating === 'High';
-  const showPostTreatment = status === 'Closed';
   
   const postTreatmentLikelihood = form.watch('postTreatmentLikelihood');
   const postTreatmentConsequence = form.watch('postTreatmentConsequence');
@@ -259,11 +257,9 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
 
     try {
         if (isAdmin) {
-            // Use Server Action to bypass security rules
             await saveRiskAdmin(riskData, risk?.id);
             logSessionActivity(`Admin ${risk ? 'updated' : 'created'} risk entry`, { action: 'admin_save_risk', details: { riskId: risk?.id }});
         } else {
-            // Standard client-side save
             if (risk) {
                 const riskRef = doc(firestore, 'risks', risk.id);
                 await setDoc(riskRef, { ...riskData, createdAt: risk.createdAt, updatedAt: serverTimestamp() }, { merge: true });
@@ -286,22 +282,22 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
 
   return (
     <Dialog open={isOpen} onOpenChange={isMandatory ? undefined : onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <div className="flex items-center gap-2">
-            <DialogTitle>{risk ? 'Edit' : 'Log New'} Risk or Opportunity</DialogTitle>
-            {isMandatory && <Badge variant="destructive">Required Action</Badge>}
-            {isAdmin && <Badge variant="secondary">Admin Overdrive Mode</Badge>}
-          </div>
-          <DialogDescription>
-            {isAdmin ? "As an administrator, you can encode risk information for any unit." : "Fill out your unit's risk or opportunity details."}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden flex flex-col p-0">
+        <div className="p-6 border-b shrink-0">
+            <div className="flex items-center gap-2">
+                <DialogTitle className="text-xl">{risk ? 'Edit' : 'Log New'} Risk or Opportunity</DialogTitle>
+                {isMandatory && <Badge variant="destructive">Required Action</Badge>}
+                {isAdmin && <Badge variant="secondary">Admin Overdrive Mode</Badge>}
+            </div>
+            <DialogDescription className="mt-1">
+                {isAdmin ? "As an administrator, you can encode risk information for any unit." : "Fill out your unit's risk or opportunity details."}
+            </DialogDescription>
+        </div>
 
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-hidden flex flex-col">
-                <ScrollArea className="flex-1 pr-6">
-                    <div className="space-y-6 pb-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-hidden flex flex-col min-h-0">
+                <ScrollArea className="flex-1">
+                    <div className="p-6 space-y-6">
                         {previewUrl && (
                             <Card className="border-primary/20 bg-muted/30">
                                 <CardHeader className="py-3"><CardTitle className="text-sm flex items-center gap-2"><FileText className="h-4 w-4 text-primary" />Reference Document</CardTitle></CardHeader>
@@ -427,13 +423,15 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                     </div>
                 </ScrollArea>
 
-                <DialogFooter className="pt-6 mt-auto border-t">
-                    {!isMandatory && <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>}
-                    <Button type="submit" disabled={isSubmitting || (isAdmin && !selectedAdminUnitId)}>
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {risk ? 'Save Changes' : 'Log Entry'}
-                    </Button>
-                </DialogFooter>
+                <div className="p-6 border-t shrink-0">
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        {!isMandatory && <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>}
+                        <Button type="submit" disabled={isSubmitting || (isAdmin && !selectedAdminUnitId)}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {risk ? 'Save Changes' : 'Log Entry'}
+                        </Button>
+                    </DialogFooter>
+                </div>
             </form>
         </Form>
       </DialogContent>
