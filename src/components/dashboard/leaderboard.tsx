@@ -8,6 +8,7 @@ import { Trophy, Star, Building, TrendingUp } from 'lucide-react';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Progress } from '../ui/progress';
+import { cn } from '@/lib/utils';
 
 interface LeaderboardProps {
   allSubmissions: Submission[] | null;
@@ -85,7 +86,7 @@ export function Leaderboard({
             );
             
             // Per-cycle calculation
-            const firstCycleRegistry = campusUnitSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
+            const firstCycleRegistry = campusUnitSubmissions.find(s => s.cycleId === 'first' && (s.reportType === 'Risk and Opportunity Registry' || s.reportType === 'Risk and Opportunity Registry Form'));
             const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
             const requiredFirst = isFirstActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
             const firstCycleSubmissions = new Set(campusUnitSubmissions.filter(s => s.cycleId === 'first').map(s => s.reportType));
@@ -94,7 +95,7 @@ export function Leaderboard({
             }
             const firstCycleCount = firstCycleSubmissions.size;
 
-            const finalCycleRegistry = campusUnitSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
+            const finalCycleRegistry = campusUnitSubmissions.find(s => s.cycleId === 'final' && (s.reportType === 'Risk and Opportunity Registry' || s.reportType === 'Risk and Opportunity Registry Form'));
             const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
             const requiredFinal = isFinalActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
             const finalCycleSubmissions = new Set(campusUnitSubmissions.filter(s => s.cycleId === 'final').map(s => s.reportType));
