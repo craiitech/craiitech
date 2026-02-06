@@ -26,15 +26,15 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, setDoc, serverTimestamp, addDoc, collection, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser } from '@/lib/types';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Sparkles } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { CalendarIcon, HelpCircle, ListChecks } from 'lucide-react';
 import { Calendar } from '../ui/calendar';
@@ -43,10 +43,11 @@ import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { useSessionActivity } from '@/lib/activity-log-provider';
-import { Separator } from '../ui/separator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { ScrollArea } from '../ui/scroll-area';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { suggestRiskTreatment } from '@/ai/flows/suggest-treatment-flow';
+import { Badge } from '../ui/badge';
 
 interface RiskFormDialogProps {
   isOpen: boolean;
@@ -241,29 +242,10 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, isMandat
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
   const { logSessionActivity } = useSessionActivity();
   const [sidePanelView, setSidePanelView] = useState<'criteria' | 'guide'>('criteria');
   
-  const usersQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile) return null;
-
-    if (isAdmin) {
-      return collection(firestore, 'users');
-    }
-    if (isSupervisor) {
-      if (!userProfile.campusId) return null; // Wait for profile
-      return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
-    }
-    // Default for regular user
-    if (userProfile.unitId) {
-      return query(collection(firestore, 'users'), where('unitId', '==', userProfile.unitId));
-    }
-    return null;
-  }, [firestore, userProfile, isAdmin, isSupervisor]);
-
-  const { data: users, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
-
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -333,6 +315,9 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, isMandat
 
   const likelihood = form.watch('likelihood');
   const consequence = form.watch('consequence');
+  const riskType = form.watch('type');
+  const description = form.watch('description');
+  const objective = form.watch('objective');
   const status = form.watch('status');
   const magnitude = likelihood && consequence ? likelihood * consequence : 0;
   const rating = getRating(magnitude);
@@ -344,6 +329,28 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, isMandat
   const postTreatmentConsequence = form.watch('postTreatmentConsequence');
   const postTreatmentMagnitude = postTreatmentLikelihood && postTreatmentConsequence ? postTreatmentLikelihood * postTreatmentConsequence : 0;
   const postTreatmentRating = getRating(postTreatmentMagnitude);
+
+  const handleAISuggest = async () => {
+    if (!description || !objective) {
+        toast({ title: "Insufficient Data", description: "Please fill in the Objective and Description first.", variant: "destructive" });
+        return;
+    }
+    setIsSuggesting(true);
+    try {
+        const result = await suggestRiskTreatment({
+            type: riskType,
+            description,
+            objective
+        });
+        const currentAction = form.getValues('treatmentAction') || '';
+        form.setValue('treatmentAction', currentAction + (currentAction ? '\n\n' : '') + "**AI Suggestions:**\n" + result.suggestions);
+        toast({ title: "Suggestions Ready", description: "AI recommendations added to the treatment plan." });
+    } catch(e) {
+        toast({ title: "AI Error", description: "Could not generate suggestions at this time.", variant: "destructive" });
+    } finally {
+        setIsSuggesting(false);
+    }
+  }
 
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -524,9 +531,19 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, isMandat
 
                                 {showActionPlan && (
                                     <Card>
-                                        <CardHeader>
+                                        <CardHeader className="flex flex-row items-center justify-between space-y-0">
                                             <CardTitle className="text-lg">Step 3: Risk Treatment / Action Plan</CardTitle>
-                                            <CardDescription>An action plan is required for Medium and High ratings.</CardDescription>
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                size="sm" 
+                                                onClick={handleAISuggest}
+                                                disabled={isSuggesting}
+                                                className="h-8"
+                                            >
+                                                {isSuggesting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Sparkles className="h-3 w-3 mr-2" />}
+                                                AI Suggest Actions
+                                            </Button>
                                         </CardHeader>
                                         <CardContent className="space-y-4">
                                             <FormField control={form.control} name="oapNo" render={({ field }) => (
@@ -534,7 +551,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, isMandat
                                             )} />
 
                                             <FormField control={form.control} name="treatmentAction" render={({ field }) => (
-                                                <FormItem><FormLabel>Action Plan / Treatment</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                                                <FormItem><FormLabel>Action Plan / Treatment</FormLabel><FormControl><Textarea {...field} rows={6} /></FormControl><FormMessage /></FormItem>
                                             )} />
                                             
                                             <FormField control={form.control} name="resourcesNeeded" render={({ field }) => (
