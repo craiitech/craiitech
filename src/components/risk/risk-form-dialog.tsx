@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -34,7 +35,7 @@ import { doc, setDoc, serverTimestamp, addDoc, collection, query, where } from '
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser } from '@/lib/types';
-import { Loader2, AlertCircle, Sparkles } from 'lucide-react';
+import { Loader2, AlertCircle, Sparkles, FileText } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { CalendarIcon, HelpCircle, ListChecks } from 'lucide-react';
 import { Calendar } from '../ui/calendar';
@@ -55,6 +56,7 @@ interface RiskFormDialogProps {
   risk: Risk | null;
   unitUsers: AppUser[];
   isMandatory?: boolean;
+  registryLink?: string | null;
 }
 
 const currentYear = new Date().getFullYear();
@@ -237,7 +239,7 @@ const GuideContent = () => (
 );
 
 
-export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, isMandatory }: RiskFormDialogProps) {
+export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, isMandatory, registryLink }: RiskFormDialogProps) {
   const { userProfile, isAdmin, isSupervisor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -414,10 +416,15 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, isMandat
     }
   };
 
+  const previewUrl = useMemo(() => {
+    if (!registryLink) return null;
+    return registryLink.replace('/view', '/preview').replace('?usp=sharing', '');
+  }, [registryLink]);
+
   return (
     <Dialog open={isOpen} onOpenChange={isMandatory ? undefined : onOpenChange}>
       <DialogContent 
-        className="max-w-5xl"
+        className="max-w-6xl max-h-[95vh] overflow-hidden flex flex-col"
         onInteractOutside={isMandatory ? (e) => e.preventDefault() : undefined}
         onEscapeKeyDown={isMandatory ? (e) => e.preventDefault() : undefined}
       >
@@ -456,11 +463,29 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, isMandat
         )}
 
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="md:col-span-2">
-                        <ScrollArea className="h-[60vh] pr-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-hidden flex flex-col">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 flex-1 overflow-hidden">
+                    {/* Left Column: Form Fields */}
+                    <div className="md:col-span-3 flex flex-col overflow-hidden">
+                        <ScrollArea className="flex-1 pr-6">
                             <div className="space-y-6">
+                                {previewUrl && (
+                                    <Card className="border-primary/20">
+                                        <CardHeader className="py-3 bg-muted/30">
+                                            <CardTitle className="text-sm flex items-center gap-2">
+                                                <FileText className="h-4 w-4 text-primary" />
+                                                Reference Document: Risk and Opportunity Registry
+                                            </CardTitle>
+                                            <CardDescription className="text-[10px]">Use this preview to copy information directly into the form below.</CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="p-0">
+                                            <div className="aspect-[16/9] w-full">
+                                                <iframe src={previewUrl} className="h-full w-full border-none" allow="autoplay"></iframe>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
                                 <Card>
                                     <CardHeader>
                                         <CardTitle className="text-lg">Step 1: Identification</CardTitle>
@@ -678,22 +703,26 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, isMandat
                             </div>
                         </ScrollArea>
                     </div>
-                    <div className="md:col-span-1">
-                        <Card className="sticky top-0">
-                             <CardHeader>
+
+                    {/* Right Column: Guide/Criteria */}
+                    <div className="md:col-span-1 hidden md:block">
+                        <Card className="h-full">
+                             <CardHeader className="py-3">
                                 <CardTitle className="text-base">
                                      {sidePanelView === 'criteria' ? 'Rating Criteria' : 'Field Guide'}
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent>
-                                <ScrollArea className="h-[65vh] pr-2">
+                            <CardContent className="p-0 overflow-hidden h-[calc(100%-3rem)]">
+                                <ScrollArea className="h-full px-4">
                                      {sidePanelView === 'criteria' ? (
-                                        <>
+                                        <div className="py-2">
                                             <CriteriaTable title="Likelihood" criteria={likelihoodCriteria} />
                                             <CriteriaTable title="Consequence" criteria={consequenceCriteria} />
-                                        </>
+                                        </div>
                                      ) : (
-                                        <GuideContent />
+                                        <div className="py-2">
+                                            <GuideContent />
+                                        </div>
                                      )}
                                 </ScrollArea>
                             </CardContent>
@@ -701,7 +730,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, isMandat
                     </div>
                 </div>
 
-                <DialogFooter className="pt-6">
+                <DialogFooter className="pt-6 mt-auto border-t">
                     {!isMandatory && <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>}
                     <Button type="submit" disabled={isSubmitting}>
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

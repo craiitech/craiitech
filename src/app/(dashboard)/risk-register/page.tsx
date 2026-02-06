@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,11 +18,13 @@ export default function RiskRegisterPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
     const [isMandatory, setIsMandatory] = useState(false);
+    const [registryLink, setRegistryLink] = useState<string | null>(null);
 
     useEffect(() => {
         // Check for the query parameter to auto-open the form
         if (searchParams.get('openForm') === 'true') {
             setIsMandatory(searchParams.get('mandatory') === 'true');
+            setRegistryLink(searchParams.get('link'));
             handleNewRisk();
         }
     }, [searchParams]);
@@ -162,6 +165,7 @@ export default function RiskRegisterPage() {
         risk={editingRisk}
         unitUsers={unitUsers}
         isMandatory={isMandatory}
+        registryLink={registryLink}
     />
     </>
   );

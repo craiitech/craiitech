@@ -91,6 +91,7 @@ export function SubmissionForm({
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [riskRating, setRiskRating] = useState<RiskRating>(null);
   const [isRiskDialogOpen, setIsRiskDialogOpen] = useState(false);
+  const [lastSubmittedLink, setLastSubmittedLink] = useState<string>('');
   const [existingSubmission, setExistingSubmission] = useState<Submission | null>(null);
   const [originalSubmitter, setOriginalSubmitter] = useState<AppUser | null>(null);
 
@@ -357,6 +358,10 @@ export function SubmissionForm({
             });
             submissionSuccess = true;
         }
+        
+        // Track the link for the redirect dialog
+        setLastSubmittedLink(values.googleDriveLink);
+
     } catch (error) {
         console.error('Error during submission:', error);
         toast({ title: 'Error', description: 'Could not complete submission.', variant: 'destructive'});
@@ -615,7 +620,7 @@ export function SubmissionForm({
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogAction onClick={() => router.push('/risk-register?openForm=true&mandatory=true')}>
+                <AlertDialogAction onClick={() => router.push(`/risk-register?openForm=true&mandatory=true&link=${encodeURIComponent(lastSubmittedLink)}`)}>
                     Continue to Risk Register
                 </AlertDialogAction>
             </AlertDialogFooter>
