@@ -43,7 +43,6 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { ScrollArea } from '../ui/scroll-area';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { suggestRiskTreatment } from '@/ai/flows/suggest-treatment-flow';
 import { Badge } from '../ui/badge';
@@ -93,7 +92,6 @@ const formSchema = z.object({
   updates: z.string().optional(),
   preparedBy: z.string().optional(),
   approvedBy: z.string().optional(),
-  // Admin-only fields
   adminCampusId: z.string().optional(),
   adminUnitId: z.string().optional(),
 }).superRefine((data, ctx) => {
@@ -190,10 +188,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
   
   const showActionPlan = rating === 'Medium' || rating === 'High';
   
-  const postTreatmentLikelihood = form.watch('postTreatmentLikelihood');
-  const postTreatmentConsequence = form.watch('postTreatmentConsequence');
-  const postTreatmentMagnitude = postTreatmentLikelihood && postTreatmentConsequence ? postTreatmentLikelihood * postTreatmentConsequence : 0;
-  const postTreatmentRating = getRating(postTreatmentMagnitude);
+  const isStepDisabled = isAdmin && !selectedAdminUnitId;
 
   const filteredUnits = useMemo(() => {
     if (!isAdmin || !selectedAdminCampusId) return allUnits;
@@ -278,11 +273,16 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
     }
   };
 
+  const postTreatmentLikelihood = form.watch('postTreatmentLikelihood');
+  const postTreatmentConsequence = form.watch('postTreatmentConsequence');
+  const postTreatmentMagnitude = postTreatmentLikelihood && postTreatmentConsequence ? postTreatmentLikelihood * postTreatmentConsequence : 0;
+  const postTreatmentRating = getRating(postTreatmentMagnitude);
+
   const previewUrl = registryLink ? registryLink.replace('/view', '/preview').replace('?usp=sharing', '') : null;
 
   return (
     <Dialog open={isOpen} onOpenChange={isMandatory ? undefined : onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden flex flex-col p-0">
+      <DialogContent className="max-w-6xl h-[95vh] flex flex-col p-0 overflow-hidden">
         <div className="p-6 border-b shrink-0">
             <div className="flex items-center gap-2">
                 <DialogTitle className="text-xl">{risk ? 'Edit' : 'Log New'} Risk or Opportunity</DialogTitle>
@@ -295,54 +295,54 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         </div>
 
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-hidden flex flex-col min-h-0">
-                <ScrollArea className="flex-1">
-                    <div className="p-6 space-y-6">
-                        {previewUrl && (
-                            <Card className="border-primary/20 bg-muted/30">
-                                <CardHeader className="py-3"><CardTitle className="text-sm flex items-center gap-2"><FileText className="h-4 w-4 text-primary" />Reference Document</CardTitle></CardHeader>
-                                <CardContent className="p-0 aspect-video"><iframe src={previewUrl} className="h-full w-full border-none" allow="autoplay"></iframe></CardContent>
-                            </Card>
-                        )}
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 min-h-0 flex flex-col">
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    {previewUrl && (
+                        <Card className="border-primary/20 bg-muted/30">
+                            <CardHeader className="py-3"><CardTitle className="text-sm flex items-center gap-2"><FileText className="h-4 w-4 text-primary" />Reference Document</CardTitle></CardHeader>
+                            <CardContent className="p-0 aspect-video"><iframe src={previewUrl} className="h-full w-full border-none" allow="autoplay"></iframe></CardContent>
+                        </Card>
+                    )}
 
-                        {isAdmin && (
-                            <Card className="border-orange-500/50 bg-orange-50/5">
-                                <CardHeader className="py-3"><CardTitle className="text-base flex items-center gap-2 text-orange-600"><ShieldCheck className="h-5 w-5" />Administration: Assign to Unit</CardTitle></CardHeader>
-                                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <FormField control={form.control} name="adminCampusId" render={({ field }) => (
-                                        <FormItem><FormLabel>Campus</FormLabel>
-                                            <Select onValueChange={(v) => { field.onChange(v); form.setValue('adminUnitId', ''); }} value={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
-                                                <SelectContent>{allCampuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="adminUnitId" render={({ field }) => (
-                                        <FormItem><FormLabel>Unit</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value} disabled={!selectedAdminCampusId}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl>
-                                                <SelectContent>{filteredUnits.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )} />
-                                </CardContent>
-                            </Card>
-                        )}
+                    {isAdmin && (
+                        <Card className="border-orange-500/50 bg-orange-50/5">
+                            <CardHeader className="py-3"><CardTitle className="text-base flex items-center gap-2 text-orange-600"><ShieldCheck className="h-5 w-5" />Administration: Assign to Unit</CardTitle></CardHeader>
+                            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField control={form.control} name="adminCampusId" render={({ field }) => (
+                                    <FormItem><FormLabel>Campus</FormLabel>
+                                        <Select onValueChange={(v) => { field.onChange(v); form.setValue('adminUnitId', ''); }} value={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
+                                            <SelectContent>{allCampuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="adminUnitId" render={({ field }) => (
+                                    <FormItem><FormLabel>Unit</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedAdminCampusId}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl>
+                                            <SelectContent>{filteredUnits.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </FormItem>
+                                )} />
+                            </CardContent>
+                        </Card>
+                    )}
 
+                    <div className={cn("space-y-6 transition-opacity duration-300", isStepDisabled && "opacity-40 pointer-events-none")}>
                         <Card>
                             <CardHeader><CardTitle className="text-lg">Step 1: Identification</CardTitle></CardHeader>
                             <CardContent className="space-y-4">
                                 <FormField control={form.control} name="type" render={({ field }) => (
                                     <FormItem className="space-y-3"><FormLabel>Type</FormLabel>
-                                        <FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center space-x-4">
+                                        <FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center space-x-4" disabled={isStepDisabled}>
                                             <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Risk" /></FormControl><Label className="font-normal">Risk</Label></FormItem>
                                             <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Opportunity" /></FormControl><Label className="font-normal">Opportunity</Label></FormItem>
                                         </RadioGroup></FormControl>
                                     </FormItem>
                                 )} />
-                                <FormField control={form.control} name="objective" render={({ field }) => (<FormItem><FormLabel>Process Objective</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="currentControls" render={({ field }) => (<FormItem><FormLabel>Current Controls</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="objective" render={({ field }) => (<FormItem><FormLabel>Process Objective</FormLabel><FormControl><Input {...field} disabled={isStepDisabled} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} disabled={isStepDisabled} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="currentControls" render={({ field }) => (<FormItem><FormLabel>Current Controls</FormLabel><FormControl><Textarea {...field} disabled={isStepDisabled} /></FormControl><FormMessage /></FormItem>)} />
                             </CardContent>
                         </Card>
 
@@ -352,7 +352,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <FormField control={form.control} name="likelihood" render={({ field }) => (
                                         <FormItem><FormLabel>Likelihood</FormLabel>
-                                            <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                            <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)} disabled={isStepDisabled}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
                                                 <SelectContent>{likelihoodOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
                                             </Select>
@@ -360,7 +360,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                     )} />
                                     <FormField control={form.control} name="consequence" render={({ field }) => (
                                         <FormItem><FormLabel>Consequence</FormLabel>
-                                            <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                            <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)} disabled={isStepDisabled}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
                                                 <SelectContent>{consequenceOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
                                             </Select>
@@ -378,17 +378,17 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0">
                                     <CardTitle className="text-lg">Step 3: Action Plan</CardTitle>
-                                    <Button type="button" variant="outline" size="sm" onClick={handleAISuggest} disabled={isSuggesting} className="h-8">
+                                    <Button type="button" variant="outline" size="sm" onClick={handleAISuggest} disabled={isSuggesting || isStepDisabled} className="h-8">
                                         {isSuggesting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Sparkles className="h-3 w-3 mr-2" />}
                                         AI Suggest
                                     </Button>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    <FormField control={form.control} name="treatmentAction" render={({ field }) => (<FormItem><FormLabel>Treatment Plan</FormLabel><FormControl><Textarea {...field} rows={6} /></FormControl><FormMessage /></FormItem>)} />
+                                    <FormField control={form.control} name="treatmentAction" render={({ field }) => (<FormItem><FormLabel>Treatment Plan</FormLabel><FormControl><Textarea {...field} rows={6} disabled={isStepDisabled} /></FormControl><FormMessage /></FormItem>)} />
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FormField control={form.control} name="responsiblePersonId" render={({ field }) => (
                                             <FormItem><FormLabel>Accountable Person</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value} disabled={filteredUsers.length === 0}>
+                                                <Select onValueChange={field.onChange} value={field.value} disabled={isStepDisabled || filteredUsers.length === 0}>
                                                     <FormControl><SelectTrigger><SelectValue placeholder={isAdmin && !selectedAdminUnitId ? "Select Unit First" : "Select Person"} /></SelectTrigger></FormControl>
                                                     <SelectContent>{filteredUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)}</SelectContent>
                                                 </Select>
@@ -397,9 +397,9 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                         <div className="space-y-2">
                                             <FormLabel>Target Date</FormLabel>
                                             <div className="grid grid-cols-3 gap-2">
-                                                <FormField control={form.control} name="targetMonth" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Month" /></SelectTrigger></FormControl><SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent></Select></FormItem>)} />
-                                                <FormField control={form.control} name="targetDay" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Day" /></SelectTrigger></FormControl><SelectContent>{days.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select></FormItem>)} />
-                                                <FormField control={form.control} name="targetYear" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger></FormControl><SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                                                <FormField control={form.control} name="targetMonth" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value} disabled={isStepDisabled}><FormControl><SelectTrigger><SelectValue placeholder="Month" /></SelectTrigger></FormControl><SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                                                <FormField control={form.control} name="targetDay" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value} disabled={isStepDisabled}><FormControl><SelectTrigger><SelectValue placeholder="Day" /></SelectTrigger></FormControl><SelectContent>{days.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                                                <FormField control={form.control} name="targetYear" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value} disabled={isStepDisabled}><FormControl><SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger></FormControl><SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select></FormItem>)} />
                                             </div>
                                         </div>
                                     </div>
@@ -412,7 +412,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                             <CardContent>
                                  <FormField control={form.control} name="status" render={({ field }) => (
                                     <FormItem><FormLabel>Overall Status</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={isStepDisabled}>
                                             <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
                                             <SelectContent><SelectItem value="Open">Open</SelectItem><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Closed">Closed</SelectItem></SelectContent>
                                         </Select>
@@ -421,7 +421,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                             </CardContent>
                         </Card>
                     </div>
-                </ScrollArea>
+                </div>
 
                 <div className="p-6 border-t shrink-0">
                     <DialogFooter className="gap-2 sm:gap-0">
