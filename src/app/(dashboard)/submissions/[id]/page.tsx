@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
@@ -18,7 +19,7 @@ import { format } from 'date-fns';
 import { Loader2, ArrowLeft, Check, X, Send, ShieldCheck, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
@@ -98,16 +99,30 @@ export default function SubmissionDetailPage() {
   const [newLink, setNewLink] = useState('');
   const [newComment, setNewComment] = useState('');
   
-  const [approverChecklist, setApproverChecklist] = useState<Record<string, boolean>>(
-    approverChecklistItems.reduce((acc, item) => ({ ...acc, [item.id]: false }), {})
-  );
+  const [approverChecklist, setApproverChecklist] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    // Initialize checklist with false for all items
+    const initialState: Record<string, boolean> = {};
+    approverChecklistItems.forEach(item => {
+        initialState[item.id] = false;
+    });
+    setApproverChecklist(initialState);
+  }, []);
 
   const handleChecklistChange = (id: string) => {
     setApproverChecklist(prev => ({ ...prev, [id]: !prev[id] }));
   };
   
-  const isChecklistComplete = useMemo(() => Object.values(approverChecklist).every(Boolean), [approverChecklist]);
-  const canReject = useMemo(() => !isChecklistComplete || feedback.trim() !== '', [isChecklistComplete, feedback]);
+  const isChecklistComplete = useMemo(() => {
+    if (Object.keys(approverChecklist).length === 0) return false;
+    return approverChecklistItems.every(item => approverChecklist[item.id] === true);
+  }, [approverChecklist]);
+
+  const canReject = useMemo(() => {
+    // Can reject if checklist is incomplete OR feedback is provided
+    return !isChecklistComplete || feedback.trim() !== '';
+  }, [isChecklistComplete, feedback]);
 
 
   const submissionId = Array.isArray(id) ? id[0] : id;
@@ -135,7 +150,6 @@ export default function SubmissionDetailPage() {
     if (date instanceof Timestamp) {
       return format(date.toDate(), 'MMMM d, yyyy, h:mm a');
     }
-    // Fallback for string or other date representations
     const d = new Date(date);
     if (!isNaN(d.getTime())) {
       return format(d, 'MMMM d, yyyy, h:mm a');
@@ -152,7 +166,7 @@ export default function SubmissionDetailPage() {
   const isSubmitter = user && submission && user.uid === submission.userId;
 
   const handleApprove = async () => {
-    if (!submissionDocRef) return;
+    if (!submissionDocRef || !user || !userProfile) return;
     setIsSubmitting(true);
 
     const updateData: any = { statusId: 'approved' };
@@ -160,8 +174,8 @@ export default function SubmissionDetailPage() {
     if (feedback) {
         const newComment: Comment = {
             text: `(Approval Comment) ${feedback}`,
-            authorId: user!.uid,
-            authorName: userProfile!.firstName + ' ' + userProfile!.lastName,
+            authorId: user.uid,
+            authorName: userProfile.firstName + ' ' + userProfile.lastName,
             createdAt: new Date(),
             authorRole: userRole || 'User'
         }
@@ -191,7 +205,7 @@ export default function SubmissionDetailPage() {
   }
 
   const handleReject = async () => {
-      if (!submissionDocRef) return;
+      if (!submissionDocRef || !user || !userProfile) return;
       
       const uncheckedReasons = approverChecklistItems
         .filter(item => !approverChecklist[item.id])
@@ -219,8 +233,8 @@ export default function SubmissionDetailPage() {
       
       const newComment: Comment = {
           text: rejectionComment,
-          authorId: user!.uid,
-          authorName: userProfile!.firstName + ' ' + userProfile!.lastName,
+          authorId: user.uid,
+          authorName: userProfile.firstName + ' ' + userProfile.lastName,
           createdAt: new Date(),
           authorRole: userRole || 'User'
       }
@@ -250,14 +264,13 @@ export default function SubmissionDetailPage() {
   }
   
   const handleResubmit = async () => {
-    if (!submissionDocRef || !submission || !newLink) {
+    if (!submissionDocRef || !submission || !newLink || !user || !userProfile) {
         toast({ title: 'Error', description: 'Missing required data to resubmit.', variant: 'destructive' });
         return;
     }
     setIsSubmitting(true);
 
     const now = new Date();
-    // Increment revision because we are resubmitting after a rejection
     const nextRevision = (submission.revision || 0) + 1;
     const nextControlNumber = generateControlNumber(submission.unitName, nextRevision, submission.reportType, now);
 
@@ -266,7 +279,7 @@ export default function SubmissionDetailPage() {
             googleDriveLink: newLink,
             statusId: 'submitted',
             submissionDate: now,
-            userId: user!.uid,
+            userId: user.uid,
             revision: nextRevision,
             controlNumber: nextControlNumber,
         };
@@ -274,8 +287,8 @@ export default function SubmissionDetailPage() {
         if (newComment) {
             const comment: Comment = {
                 text: newComment,
-                authorId: user!.uid,
-                authorName: userProfile!.firstName + ' ' + userProfile!.lastName,
+                authorId: user.uid,
+                authorName: userProfile.firstName + ' ' + userProfile.lastName,
                 createdAt: new Date(),
                 authorRole: userRole || 'User'
             };
@@ -399,14 +412,14 @@ export default function SubmissionDetailPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Approver's Final Check</CardTitle>
-                        <CardDescription>Please confirm the following before taking action.</CardDescription>
+                        <CardDescription>Please confirm the following before taking action. All items must be checked to enable approval.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
                         {approverChecklistItems.map(item => (
                             <div key={item.id} className="flex items-center space-x-3">
                                 <Checkbox
                                     id={`approver-${item.id}`}
-                                    checked={approverChecklist[item.id]}
+                                    checked={approverChecklist[item.id] || false}
                                     onCheckedChange={() => handleChecklistChange(item.id)}
                                     disabled={isSubmitting}
                                 />
