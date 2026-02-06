@@ -27,12 +27,12 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const REPORT_TYPE_COLORS: Record<string, string> = {
-    'Operational Plans': 'hsl(var(--chart-1))',
-    'Objectives Monitoring': 'hsl(var(--chart-2))',
-    'Risk and Opportunity Registry Form': 'hsl(var(--chart-3))',
+    'Operational Plan': 'hsl(var(--chart-1))',
+    'Quality Objectives Monitoring': 'hsl(var(--chart-2))',
+    'Risk and Opportunity Registry': 'hsl(var(--chart-3))',
     'Risk and Opportunity Action Plan': 'hsl(var(--chart-4))',
-    'Updated Needs and Expectation of Interested Parties': 'hsl(var(--chart-5))',
-    'SWOT Analysis': 'hsl(var(--chart-1))', // repeating color
+    'Needs and Expectation of Interested Parties': 'hsl(var(--chart-5))',
+    'SWOT Analysis': 'hsl(var(--chart-1))',
 }
 
 
