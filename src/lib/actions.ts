@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getAdminFirestore } from '@/firebase/admin';
@@ -40,8 +39,6 @@ export async function logError(payload: ErrorReportPayload) {
         });
     } catch (error) {
         console.error('Failed to log error to Firestore:', error);
-        // Do not re-throw. The error reporting system should fail silently
-        // to avoid causing further errors. The console.error is sufficient for debugging.
     }
 }
 
@@ -51,7 +48,6 @@ export async function seedIsoClauses() {
         const firestore = getAdminFirestore();
         const clausesCollection = firestore.collection('isoClauses');
 
-        // Check if the collection is empty before seeding
         const snapshot = await clausesCollection.limit(1).get();
         if (!snapshot.empty) {
             console.log('ISO clauses collection already populated. Seeding skipped.');
@@ -77,11 +73,9 @@ export async function seedIsoClauses() {
 
 /**
  * Returns the current date and time adjusted to Philippine Time (UTC+8).
- * This runs on the server and cannot be altered by the user's local clock.
  */
 export async function getOfficialServerTime(): Promise<{ iso: string; year: number; dateString: string }> {
     const now = new Date();
-    // Offset for Philippines (UTC+8) in milliseconds
     const PH_OFFSET = 8 * 60 * 60 * 1000;
     const phTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + PH_OFFSET);
     
@@ -90,4 +84,34 @@ export async function getOfficialServerTime(): Promise<{ iso: string; year: numb
         year: phTime.getFullYear(),
         dateString: phTime.toISOString().split('T')[0]
     };
+}
+
+/**
+ * Saves a risk entry as an Administrator. 
+ * This uses the Admin SDK to bypass client-side security rules.
+ */
+export async function saveRiskAdmin(riskData: any, riskId?: string) {
+    try {
+        const firestore = getAdminFirestore();
+        const risksCollection = firestore.collection('risks');
+        
+        const dataToSave = {
+            ...riskData,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+
+        if (riskId) {
+            await risksCollection.doc(riskId).set(dataToSave, { merge: true });
+            return { success: true, id: riskId };
+        } else {
+            const docRef = await risksCollection.add({
+                ...dataToSave,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+            return { success: true, id: docRef.id };
+        }
+    } catch (error: any) {
+        console.error("Admin Risk Save Error:", error);
+        throw new Error(error.message || "Failed to save risk data as admin.");
+    }
 }

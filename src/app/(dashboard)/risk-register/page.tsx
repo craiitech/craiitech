@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +20,6 @@ export default function RiskRegisterPage() {
     const [registryLink, setRegistryLink] = useState<string | null>(null);
 
     useEffect(() => {
-        // Check for the query parameter to auto-open the form
         if (searchParams.get('openForm') === 'true') {
             setIsMandatory(searchParams.get('mandatory') === 'true');
             setRegistryLink(searchParams.get('link'));
@@ -31,26 +29,18 @@ export default function RiskRegisterPage() {
     
     const risksQuery = useMemoFirebase(() => {
         if (!firestore || !userProfile) return null;
-
         const q = collection(firestore, 'risks');
-        
-        if (isAdmin) {
-             return q;
-        }
-
+        if (isAdmin) return q;
         if (isSupervisor) {
             if (userProfile.campusId) {
                 return query(q, where('campusId', '==', userProfile.campusId));
             }
             return null; 
         }
-
         if (userProfile.unitId) {
             return query(q, where('unitId', '==', userProfile.unitId));
         }
-        
         return null; 
-
     }, [firestore, userProfile, isSupervisor, isAdmin]);
 
     const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
@@ -63,17 +53,11 @@ export default function RiskRegisterPage() {
         return new Map(allCampuses.map(c => [c.id, c.name]));
     }, [allCampuses]);
 
-
     const usersQuery = useMemoFirebase(() => {
         if (!firestore || !userProfile) return null;
-        if (isAdmin) {
+        if (isAdmin || isSupervisor) {
             return collection(firestore, 'users');
         }
-        if (isSupervisor) {
-            if (!userProfile.campusId) return null;
-            return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
-        }
-        // Unit coordinators only need to see users in their own unit for the form
         if (userProfile.unitId) {
             return query(collection(firestore, 'users'), where('unitId', '==', userProfile.unitId));
         }
@@ -84,41 +68,30 @@ export default function RiskRegisterPage() {
 
     const unitsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
-        if (isAdmin) {
-            return collection(firestore, 'units');
-        }
-        if (userProfile?.campusId) {
-             return query(collection(firestore, 'units'), where('campusIds', 'array-contains', userProfile.campusId));
-        }
-        return null;
-    }, [firestore, isAdmin, userProfile?.campusId]);
-    const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+        return collection(firestore, 'units');
+    }, [firestore]);
+    const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
     const usersMap = useMemo(() => {
         if (!users) return new Map();
         return new Map(users.map(u => [u.id, u]));
     }, [users]);
     
-    const unitUsers = useMemo(() => {
-        if (!users || !userProfile) return [];
-        // For Admins, unitUsers could be all users, or filtered differently if needed.
-        // For now, let's keep it scoped to the editing user's unit, or all for admin.
-        if (isAdmin) return users;
-        return users.filter(u => u.unitId === userProfile.unitId);
-    }, [users, userProfile, isAdmin]);
-
     const handleNewRisk = () => {
         setEditingRisk(null);
         setIsFormOpen(true);
     };
 
     const handleEditRisk = (risk: Risk) => {
-        setIsMandatory(false); // Manual edits are never mandatory in this context
+        setIsMandatory(false);
         setEditingRisk(risk);
         setIsFormOpen(true);
     };
     
     const isLoading = isUserLoading || isLoadingRisks || isLoadingUsers || isLoadingUnits || isLoadingCampuses;
+
+    // Admins and regular users can log risks. Supervisors (Directors/ODIMOs) stay read-only unless they are Admin.
+    const canLogRisk = isAdmin || !isSupervisor;
 
   return (
     <>
@@ -130,7 +103,7 @@ export default function RiskRegisterPage() {
               A centralized module for logging, tracking, and monitoring risks and opportunities for your unit.
             </p>
           </div>
-          {!isSupervisor && (
+          {canLogRisk && (
             <Button onClick={handleNewRisk}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Log New Entry
@@ -163,7 +136,9 @@ export default function RiskRegisterPage() {
         isOpen={isFormOpen}
         onOpenChange={setIsFormOpen}
         risk={editingRisk}
-        unitUsers={unitUsers}
+        unitUsers={users || []}
+        allUnits={allUnits || []}
+        allCampuses={allCampuses || []}
         isMandatory={isMandatory}
         registryLink={registryLink}
     />
