@@ -93,16 +93,26 @@ export default function ReportsPage() {
   );
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
-  // Normalize submissions to handle legacy names and ensure year is a number
+  // Normalize submissions to handle legacy names, ensure year is a number, and trim IDs
   const allSubmissions = useMemo(() => {
     if (!rawSubmissions) return [];
-    return rawSubmissions.map(s => ({
-        ...s,
-        year: Number(s.year), // Force year to number for consistent filtering
-        reportType: (s.reportType === 'Risk and Opportunity Registry Form' || s.reportType === 'Risk and Opportunity Registry') 
-            ? 'Risk and Opportunity Registry' 
-            : s.reportType
-    }));
+    return rawSubmissions.map(s => {
+        // Aggressive normalization of report types
+        let rType = String(s.reportType || '').trim();
+        const lowerType = rType.toLowerCase();
+        if (lowerType.includes('risk and opportunity registry')) {
+            rType = 'Risk and Opportunity Registry';
+        }
+
+        return {
+            ...s,
+            year: s.year ? Number(s.year) : 0, 
+            reportType: rType,
+            campusId: String(s.campusId || '').trim(),
+            unitId: String(s.unitId || '').trim(),
+            cycleId: String(s.cycleId || '').trim().toLowerCase()
+        }
+    });
   }, [rawSubmissions]);
 
   const usersQuery = useMemoFirebase(
@@ -127,17 +137,19 @@ export default function ReportsPage() {
 
   const unitsInSelectedCampus = useMemo(() => {
     if (!selectedCampusId || !allUnits) return [];
-    return allUnits.filter(unit => unit.campusIds?.includes(selectedCampusId));
+    const targetCid = String(selectedCampusId).trim();
+    return allUnits.filter(unit => unit.campusIds?.some(cid => String(cid).trim() === targetCid));
   }, [selectedCampusId, allUnits]);
 
   const submittedUnitsByCampus = useMemo(() => {
     if (!allSubmissions || !allUnits || !allCampuses) return [];
 
-    const campusMap = new Map(allCampuses.map(c => [c.id, c.name]));
+    const campusMap = new Map(allCampuses.map(c => [String(c.id).trim(), c.name]));
+    const unitMap = new Map(allUnits.map(u => [String(u.id).trim(), u.name]));
     
     const grouped = allSubmissions.reduce((acc, submission) => {
-        const campusId = submission.campusId;
-        const unitId = submission.unitId;
+        const campusId = String(submission.campusId || '').trim();
+        const unitId = String(submission.unitId || '').trim();
 
         if (campusId && unitId) {
             if (!acc[campusId]) {
@@ -148,8 +160,6 @@ export default function ReportsPage() {
         return acc;
     }, {} as Record<string, Set<string>>);
 
-    const unitMap = new Map(allUnits.map(u => [u.id, u.name]));
-    
     return Object.entries(grouped)
         .map(([campusId, unitIdSet]) => {
             const campusName = campusMap.get(campusId);
@@ -169,11 +179,6 @@ export default function ReportsPage() {
 
   }, [allSubmissions, allUnits, allCampuses]);
 
-  const campusMap = useMemo(() => {
-    if (!allCampuses) return new Map();
-    return new Map(allCampuses.map(c => [c.id, c.name]));
-  }, [allCampuses]);
-
   const matrixData = useMemo(() => {
     if (!allSubmissions || !allCampuses || !allUnits) {
       return [];
@@ -181,7 +186,7 @@ export default function ReportsPage() {
 
     const submissionsForYear = allSubmissions.filter(s => s.year === selectedMatrixYear);
 
-    // Create a map for quick lookup with robust keys
+    // Create a map for quick lookup with normalized keys
     const submissionMap = new Map<string, Submission>(
       submissionsForYear.map(s => {
         const key = `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`.toLowerCase();
@@ -190,27 +195,29 @@ export default function ReportsPage() {
     );
     
     const relevantCampuses = isSupervisor && !isAdmin && userProfile?.campusId
-      ? allCampuses.filter(c => c.id === userProfile.campusId)
+      ? allCampuses.filter(c => String(c.id).trim() === String(userProfile.campusId).trim())
       : allCampuses;
 
     return relevantCampuses.map(campus => {
-      const campusUnits = allUnits.filter(unit => unit.campusIds?.includes(campus.id));
+      const cId = String(campus.id).trim();
+      const campusUnits = allUnits.filter(unit => unit.campusIds?.some(id => String(id).trim() === cId));
       
       if (campusUnits.length === 0) {
         return null;
       }
       
       const unitStatuses = campusUnits.map(unit => {
+        const uId = String(unit.id).trim();
         const statuses: Record<string, 'submitted' | 'missing' | 'not-applicable'> = {};
         
         cycles.forEach(cycleId => {
-            const rorKey = `${campus.id}-${unit.id}-Risk and Opportunity Registry-${cycleId}`.toLowerCase();
+            const rorKey = `${cId}-${uId}-Risk and Opportunity Registry-${cycleId}`.toLowerCase();
             const rorSubmission = submissionMap.get(rorKey);
-            const riskRating = rorSubmission?.riskRating?.toLowerCase() || '';
+            const riskRating = String(rorSubmission?.riskRating || '').toLowerCase();
             const isActionPlanNA = riskRating === 'low';
 
             submissionTypes.forEach(reportType => {
-                const submissionKey = `${campus.id}-${unit.id}-${reportType}-${cycleId}`.toLowerCase();
+                const submissionKey = `${cId}-${uId}-${reportType}-${cycleId}`.toLowerCase();
                 if (reportType === 'Risk and Opportunity Action Plan' && isActionPlanNA) {
                     statuses[submissionKey] = 'not-applicable';
                 } else if (submissionMap.has(submissionKey)) {
@@ -222,14 +229,14 @@ export default function ReportsPage() {
         });
   
         return {
-          unitId: unit.id,
+          unitId: uId,
           unitName: unit.name,
           statuses,
         };
       }).sort((a,b) => a.unitName.localeCompare(b.unitName));
 
       return {
-        campusId: campus.id,
+        campusId: cId,
         campusName: campus.name,
         units: unitStatuses,
       };
@@ -303,6 +310,8 @@ export default function ReportsPage() {
     );
   }
 
+  const campusMap = new Map(allCampuses?.map(c => [String(c.id).trim(), c.name]));
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between print:hidden">
@@ -321,7 +330,7 @@ export default function ReportsPage() {
       <div className="printable-area space-y-8">
         <div className="hidden print:block text-center mb-8">
             <h1 className="text-3xl font-bold">RSU EOMS - System Report</h1>
-            <p className="text-muted-foreground">Generated on: ${new Date().toLocaleDateString()}</p>
+            <p className="text-muted-foreground">Generated on: {new Date().toLocaleDateString()}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:grid-cols-1 print:space-y-8">
@@ -349,12 +358,12 @@ export default function ReportsPage() {
               </Select>
               <ScrollArea className="h-72 rounded-md border print:h-auto print:border-none">
                 <div className="hidden print:block mb-2">
-                    <p className="font-semibold">Viewing Units for: {selectedCampusId ? campusMap.get(selectedCampusId) : 'All Campuses'}</p>
+                    <p className="font-semibold">Viewing Units for: {selectedCampusId ? campusMap.get(String(selectedCampusId).trim()) : 'All Campuses'}</p>
                 </div>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Units in {campusMap.get(selectedCampusId!) || 'Selected Campus'}</TableHead>
+                      <TableHead>Units in {campusMap.get(String(selectedCampusId || '').trim()) || 'Selected Campus'}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -448,7 +457,7 @@ export default function ReportsPage() {
                           </TableCell>
                           <TableCell>{user.email}</TableCell>
                           <TableCell>
-                              <div className="text-sm">{campusMap.get(user.campusId) || 'N/A'}</div>
+                              <div className="text-sm">{campusMap.get(String(user.campusId).trim()) || 'N/A'}</div>
                               <div className="text-xs text-muted-foreground">{allUnits?.find(u => u.id === user.unitId)?.name || ''}</div>
                           </TableCell>
                         </TableRow>
