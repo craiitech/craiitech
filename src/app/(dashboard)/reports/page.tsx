@@ -93,11 +93,12 @@ export default function ReportsPage() {
   );
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
-  // Normalize submissions to handle legacy names
+  // Normalize submissions to handle legacy names and ensure year is a number
   const allSubmissions = useMemo(() => {
     if (!rawSubmissions) return [];
     return rawSubmissions.map(s => ({
         ...s,
+        year: Number(s.year), // Force year to number for consistent filtering
         reportType: (s.reportType === 'Risk and Opportunity Registry Form' || s.reportType === 'Risk and Opportunity Registry') 
             ? 'Risk and Opportunity Registry' 
             : s.reportType
@@ -180,10 +181,10 @@ export default function ReportsPage() {
 
     const submissionsForYear = allSubmissions.filter(s => s.year === selectedMatrixYear);
 
-    // Create a map for quick lookup
+    // Create a map for quick lookup with robust keys
     const submissionMap = new Map<string, Submission>(
       submissionsForYear.map(s => {
-        const key = `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`;
+        const key = `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`.toLowerCase();
         return [key, s];
       })
     );
@@ -203,12 +204,13 @@ export default function ReportsPage() {
         const statuses: Record<string, 'submitted' | 'missing' | 'not-applicable'> = {};
         
         cycles.forEach(cycleId => {
-            const rorKey = `${campus.id}-${unit.id}-Risk and Opportunity Registry-${cycleId}`;
+            const rorKey = `${campus.id}-${unit.id}-Risk and Opportunity Registry-${cycleId}`.toLowerCase();
             const rorSubmission = submissionMap.get(rorKey);
-            const isActionPlanNA = rorSubmission?.riskRating === 'low';
+            const riskRating = rorSubmission?.riskRating?.toLowerCase() || '';
+            const isActionPlanNA = riskRating === 'low';
 
             submissionTypes.forEach(reportType => {
-                const submissionKey = `${campus.id}-${unit.id}-${reportType}-${cycleId}`;
+                const submissionKey = `${campus.id}-${unit.id}-${reportType}-${cycleId}`.toLowerCase();
                 if (reportType === 'Risk and Opportunity Action Plan' && isActionPlanNA) {
                     statuses[submissionKey] = 'not-applicable';
                 } else if (submissionMap.has(submissionKey)) {
@@ -433,7 +435,7 @@ export default function ReportsPage() {
                       {allUsers?.map(user => (
                         <TableRow key={user.id}>
                           <TableCell>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                               <Avatar className="h-8 w-8">
                                 <AvatarImage src={user.avatar} />
                                 <AvatarFallback>

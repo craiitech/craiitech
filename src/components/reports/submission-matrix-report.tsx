@@ -47,10 +47,9 @@ export function SubmissionMatrixReport({
     switch (status) {
       case 'submitted':
         return <Check className="h-4 w-4 text-green-500 mx-auto" />;
-      case 'missing':
-        return <X className="h-4 w-4 text-red-500 mx-auto" />;
       case 'not-applicable':
-        return <span className="text-xs font-semibold text-muted-foreground mx-auto">N/A</span>;
+        return <span className="text-[10px] font-bold text-muted-foreground mx-auto block text-center">N/A</span>;
+      case 'missing':
       default:
         return <X className="h-4 w-4 text-red-500 mx-auto" />;
     }
@@ -62,7 +61,7 @@ export function SubmissionMatrixReport({
         <div>
           <CardTitle>Detailed Submission Matrix</CardTitle>
           <CardDescription>
-            An overview of submitted documents for each unit, per cycle. <Check className="inline h-4 w-4 text-green-500" /> indicates submitted, <X className="inline h-4 w-4 text-red-500" /> indicates not submitted, and "N/A" indicates Not Applicable.
+            An overview of submitted documents for each unit, per cycle for the selected year. <Check className="inline h-4 w-4 text-green-500" /> indicates submitted, <X className="inline h-4 w-4 text-red-500" /> indicates missing, and "N/A" indicates Not Applicable.
           </CardDescription>
         </div>
         <div className="w-[120px]">
@@ -104,16 +103,22 @@ export function SubmissionMatrixReport({
                       {units.map(({ unitId, unitName, statuses }) => (
                         <TableRow key={unitId} className="hover:bg-muted/20">
                           <TableCell className="font-medium sticky left-0 bg-background border-r z-10 text-xs">{unitName}</TableCell>
-                          {submissionTypes.map(type => (
-                            <React.Fragment key={type}>
-                              <TableCell className="text-center border-l">
-                                {renderCell(statuses[`${campusId}-${unitId}-${type}-first`])}
-                              </TableCell>
-                              <TableCell className="text-center border-r">
-                                {renderCell(statuses[`${campusId}-${unitId}-${type}-final`])}
-                              </TableCell>
-                            </React.Fragment>
-                          ))}
+                          {submissionTypes.map(type => {
+                            // Ensure lookup keys match the lowercase normalization in the parent
+                            const firstKey = `${campusId}-${unitId}-${type}-first`.toLowerCase();
+                            const finalKey = `${campusId}-${unitId}-${type}-final`.toLowerCase();
+                            
+                            return (
+                                <React.Fragment key={type}>
+                                <TableCell className="text-center border-l">
+                                    {renderCell(statuses[firstKey])}
+                                </TableCell>
+                                <TableCell className="text-center border-r">
+                                    {renderCell(statuses[finalKey])}
+                                </TableCell>
+                                </React.Fragment>
+                            );
+                          })}
                         </TableRow>
                       ))}
                        {units.length === 0 && (
