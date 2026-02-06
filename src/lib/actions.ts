@@ -74,3 +74,20 @@ export async function seedIsoClauses() {
         throw new Error("Could not seed ISO clauses to the database.");
     }
 }
+
+/**
+ * Returns the current date and time adjusted to Philippine Time (UTC+8).
+ * This runs on the server and cannot be altered by the user's local clock.
+ */
+export async function getOfficialServerTime(): Promise<{ iso: string; year: number; dateString: string }> {
+    const now = new Date();
+    // Offset for Philippines (UTC+8) in milliseconds
+    const PH_OFFSET = 8 * 60 * 60 * 1000;
+    const phTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + PH_OFFSET);
+    
+    return {
+        iso: phTime.toISOString(),
+        year: phTime.getFullYear(),
+        dateString: phTime.toISOString().split('T')[0]
+    };
+}

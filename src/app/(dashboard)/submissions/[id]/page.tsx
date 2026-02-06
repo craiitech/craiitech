@@ -2,7 +2,7 @@
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
-import { doc, Timestamp, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, Timestamp, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
 import type { Submission, User as AppUser, Campus, Unit, Comment } from '@/lib/types';
 import {
@@ -30,6 +30,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { generateControlNumber } from '@/lib/utils';
+import { getOfficialServerTime } from '@/lib/actions';
 
 
 const statusVariant: Record<
@@ -270,15 +271,18 @@ export default function SubmissionDetailPage() {
     }
     setIsSubmitting(true);
 
-    const now = new Date();
-    const nextRevision = (submission.revision || 0) + 1;
-    const nextControlNumber = generateControlNumber(submission.unitName, nextRevision, submission.reportType, now);
-
     try {
+        // Fetch official Philippine time from server
+        const officialTime = await getOfficialServerTime();
+        const phDate = new Date(officialTime.iso);
+
+        const nextRevision = (submission.revision || 0) + 1;
+        const nextControlNumber = generateControlNumber(submission.unitName, nextRevision, submission.reportType, phDate);
+
          const updateData: any = {
             googleDriveLink: newLink,
             statusId: 'submitted',
-            submissionDate: now,
+            submissionDate: serverTimestamp(), // Atomic server time
             userId: user.uid,
             revision: nextRevision,
             controlNumber: nextControlNumber,

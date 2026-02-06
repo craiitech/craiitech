@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -28,7 +29,6 @@ import { Label } from '../ui/label';
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -43,6 +43,7 @@ import { debounce } from 'lodash';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { generateControlNumber } from '@/lib/utils';
 import { Badge } from '../ui/badge';
+import { getOfficialServerTime } from '@/lib/actions';
 
 
 const submissionSchema = z.object({
@@ -267,6 +268,10 @@ export function SubmissionForm({
 
     setIsSubmitting(true);
     
+    // Fetch official Philippine time from server to generate control number
+    const officialTime = await getOfficialServerTime();
+    const phDate = new Date(officialTime.iso);
+
     const newComment: Comment | null = values.comments ? {
         text: values.comments,
         authorId: user.uid,
@@ -283,14 +288,15 @@ export function SubmissionForm({
               ? (existingSubmission.revision || 0) + 1 
               : (existingSubmission.revision || 0);
             
-            const now = new Date();
-            const newControlNumber = generateControlNumber(unit.name, newRevision, reportType, now);
+            // Use server timestamp for the database field (unalterable)
+            // Use official phDate for the string representation in control number
+            const newControlNumber = generateControlNumber(unit.name, newRevision, reportType, phDate);
 
             const existingDocRef = doc(firestore, 'submissions', existingSubmission.id);
             const updateData: any = {
               googleDriveLink: values.googleDriveLink,
               statusId: 'submitted',
-              submissionDate: now,
+              submissionDate: serverTimestamp(), // Atomic server time
               unitName: unit.name,
               userId: user.uid,
               revision: newRevision,
@@ -318,8 +324,7 @@ export function SubmissionForm({
 
         } else {
             const initialRevision = 0;
-            const now = new Date();
-            const initialControlNumber = generateControlNumber(unit.name, initialRevision, reportType, now);
+            const initialControlNumber = generateControlNumber(unit.name, initialRevision, reportType, phDate);
 
             const newSubmissionData: any = {
                 googleDriveLink: values.googleDriveLink,
@@ -331,7 +336,7 @@ export function SubmissionForm({
                 unitId: userProfile.unitId,
                 unitName: unit.name,
                 statusId: 'submitted',
-                submissionDate: now,
+                submissionDate: serverTimestamp(), // Atomic server time
                 comments: newComment ? [newComment] : [],
                 revision: initialRevision,
                 controlNumber: initialControlNumber,
@@ -388,6 +393,7 @@ export function SubmissionForm({
 
   const previewControlNumber = useMemo(() => {
     const rev = existingSubmission?.statusId === 'rejected' ? (existingSubmission.revision || 0) + 1 : (existingSubmission?.revision || 0);
+    // Note: For live preview, we use local time, but final submission uses server time
     return generateControlNumber(currentUnitName, rev, reportType, new Date());
   }, [currentUnitName, existingSubmission, reportType]);
 
