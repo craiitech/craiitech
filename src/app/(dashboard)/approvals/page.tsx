@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -33,7 +32,7 @@ import {
 import { useState, useEffect } from 'react';
 import type { Submission, User as AppUser } from '@/lib/types';
 import { format } from 'date-fns';
-import { Loader2, Eye } from 'lucide-react';
+import { Loader2, ClipboardCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
@@ -171,7 +170,7 @@ export default function ApprovalsPage() {
           <CardHeader>
             <CardTitle>Approval Queue</CardTitle>
             <CardDescription>
-              You have {submissions.length} submissions to review. Please click "View" to check the document and take action.
+              You have {submissions.length} submissions to evaluate. Please click "Evaluate Submission" to check the document and complete the verification checklist.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -206,7 +205,7 @@ export default function ApprovalsPage() {
                         size="sm"
                         onClick={() => router.push(`/submissions/${submission.id}`)}
                       >
-                        <Eye className="mr-2 h-4 w-4" /> View & Review
+                        <ClipboardCheck className="mr-2 h-4 w-4" /> Evaluate Submission
                       </Button>
                     </TableCell>
                   </TableRow>
