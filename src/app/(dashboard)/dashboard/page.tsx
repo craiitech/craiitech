@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -341,12 +342,12 @@ export default function HomePage() {
       return {
         stat1: {
           title: 'Pending Approvals',
-          value: submissions.filter((s) => s.statusId === 'submitted').length,
+          value: submissions.filter((s) => s.statusId === 'submitted' && s.year === selectedYear).length,
           icon: <Clock className="h-6 w-6 text-primary" />,
         },
         stat2: {
           title: 'Total Submissions',
-          value: submissions.length,
+          value: yearSubmissions.length,
           icon: <FileText className="h-6 w-6 text-primary" />,
         },
         stat3: {
@@ -406,8 +407,8 @@ export default function HomePage() {
             },
             stat3: {
               title: 'Total Approved',
-              value: submissions.filter((s) => s.statusId === 'approved').length,
-              description: 'All your approved submissions',
+              value: yearSubmissions.filter((s) => s.statusId === 'approved').length,
+              description: `Approved in ${selectedYear}`,
               icon: <CheckCircle className="h-6 w-6 text-primary" />,
             },
         };
@@ -445,17 +446,17 @@ export default function HomePage() {
 
   const approvalQueue = useMemo(() => {
     if (!submissions) return [];
-    return submissions.filter((s) => s.statusId === 'submitted');
-  }, [submissions]);
+    return submissions.filter((s) => s.statusId === 'submitted' && s.year === selectedYear);
+  }, [submissions, selectedYear]);
   
   const sortedSubmissions = useMemo(() => {
     if (!submissions) return [];
-    return [...submissions].sort((a,b) => {
+    return [...submissions].filter(s => s.year === selectedYear).sort((a,b) => {
         const dateA = a.submissionDate instanceof Date ? a.submissionDate.getTime() : 0;
         const dateB = b.submissionDate instanceof Date ? b.submissionDate.getTime() : 0;
         return dateB - dateA;
     });
-  }, [submissions]);
+  }, [submissions, selectedYear]);
   
   const campusMap = useMemo(() => {
     if (!allCampuses) return new Map<string, string>();
@@ -655,7 +656,7 @@ export default function HomePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {submissions?.filter(s => s.statusId === 'submitted' && s.userId !== userProfile?.id).map((submission) => (
+                  {submissions?.filter(s => s.statusId === 'submitted' && s.userId !== userProfile?.id && s.year === selectedYear).map((submission) => (
                     <TableRow key={submission.id}>
                       <TableCell>{allUsersMap.get(submission.userId)?.firstName} {allUsersMap.get(submission.userId)?.lastName}</TableCell>
                       <TableCell>{submission.reportType}</TableCell>
@@ -667,9 +668,9 @@ export default function HomePage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {submissions?.filter(s => s.statusId === 'submitted' && s.userId !== userProfile?.id).length === 0 && (
+                  {submissions?.filter(s => s.statusId === 'submitted' && s.userId !== userProfile?.id && s.year === selectedYear).length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center">No submissions pending evaluation.</TableCell>
+                      <TableCell colSpan={4} className="h-24 text-center">No submissions pending evaluation for {selectedYear}.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -714,7 +715,7 @@ export default function HomePage() {
         <Card>
           <CardHeader>
             <CardTitle>Submission History</CardTitle>
-            <CardDescription>A log of all your past submissions and their status.</CardDescription>
+            <CardDescription>A log of all your past submissions and their status for {selectedYear}.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -751,7 +752,7 @@ export default function HomePage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">No submissions yet.</TableCell>
+                    <TableCell colSpan={4} className="h-24 text-center">No submissions yet for {selectedYear}.</TableCell>
                   </TableRow>
                 )}
               </TableBody>
