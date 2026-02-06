@@ -34,7 +34,7 @@ import { doc, setDoc, serverTimestamp, addDoc, collection } from 'firebase/fires
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
-import { Loader2, AlertCircle, Sparkles, FileText, HelpCircle, ListChecks, CalendarIcon, ShieldCheck } from 'lucide-react';
+import { Loader2, AlertCircle, Sparkles, FileText, HelpCircle, ListChecks, CalendarIcon, ShieldCheck, Info } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
@@ -47,6 +47,7 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { suggestRiskTreatment } from '@/ai/flows/suggest-treatment-flow';
 import { Badge } from '../ui/badge';
 import { saveRiskAdmin } from '@/lib/actions';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface RiskFormDialogProps {
   isOpen: boolean;
@@ -182,12 +183,10 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
   const riskType = form.watch('type');
   const description = form.watch('description');
   const objective = form.watch('objective');
-  const status = form.watch('status');
   const magnitude = likelihood && consequence ? likelihood * consequence : 0;
   const rating = getRating(magnitude);
   
   const showActionPlan = rating === 'Medium' || rating === 'High';
-  
   const isStepDisabled = isAdmin && !selectedAdminUnitId;
 
   const filteredUnits = useMemo(() => {
@@ -240,8 +239,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
       postTreatment: values.status === 'Closed' && values.postTreatmentLikelihood && values.postTreatmentConsequence ? {
         likelihood: values.postTreatmentLikelihood,
         consequence: values.postTreatmentConsequence,
-        magnitude: postTreatmentMagnitude,
-        rating: postTreatmentRating,
+        magnitude: postTreatmentLikelihood && values.postTreatmentConsequence ? values.postTreatmentLikelihood * values.postTreatmentConsequence : 0,
+        rating: getRating(values.postTreatmentLikelihood * (values.postTreatmentConsequence || 0)),
         evidence: values.postTreatmentEvidence || '',
         dateImplemented: values.postTreatmentDateImplemented || null,
       } : risk?.postTreatment || null,
@@ -273,17 +272,12 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
     }
   };
 
-  const postTreatmentLikelihood = form.watch('postTreatmentLikelihood');
-  const postTreatmentConsequence = form.watch('postTreatmentConsequence');
-  const postTreatmentMagnitude = postTreatmentLikelihood && postTreatmentConsequence ? postTreatmentLikelihood * postTreatmentConsequence : 0;
-  const postTreatmentRating = getRating(postTreatmentMagnitude);
-
-  const previewUrl = registryLink ? registryLink.replace('/view', '/preview').replace('?usp=sharing', '') : null;
+  const previewEmbedUrl = registryLink ? registryLink.replace('/view', '/preview').replace('?usp=sharing', '') : null;
 
   return (
     <Dialog open={isOpen} onOpenChange={isMandatory ? undefined : onOpenChange}>
-      <DialogContent className="max-w-6xl h-[95vh] flex flex-col p-0 overflow-hidden">
-        <div className="p-6 border-b shrink-0">
+      <DialogContent className="max-w-[95vw] lg:max-w-7xl h-[95vh] flex flex-col p-0 overflow-hidden">
+        <div className="p-6 border-b shrink-0 bg-card">
             <div className="flex items-center gap-2">
                 <DialogTitle className="text-xl">{risk ? 'Edit' : 'Log New'} Risk or Opportunity</DialogTitle>
                 {isMandatory && <Badge variant="destructive">Required Action</Badge>}
@@ -294,146 +288,217 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
             </DialogDescription>
         </div>
 
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 min-h-0 flex flex-col">
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    {previewUrl && (
-                        <Card className="border-primary/20 bg-muted/30">
-                            <CardHeader className="py-3"><CardTitle className="text-sm flex items-center gap-2"><FileText className="h-4 w-4 text-primary" />Reference Document</CardTitle></CardHeader>
-                            <CardContent className="p-0 aspect-video"><iframe src={previewUrl} className="h-full w-full border-none" allow="autoplay"></iframe></CardContent>
-                        </Card>
-                    )}
+        <div className="flex-1 flex overflow-hidden">
+            {/* Left Panel: The Form */}
+            <div className="flex-1 flex flex-col min-w-0 border-r">
+                <ScrollArea className="flex-1">
+                    <Form {...form}>
+                        <form id="risk-form" onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-6">
+                            {isAdmin && (
+                                <Card className="border-orange-500/50 bg-orange-50/5">
+                                    <CardHeader className="py-3">
+                                        <CardTitle className="text-base flex items-center gap-2 text-orange-600">
+                                            <ShieldCheck className="h-5 w-5" />
+                                            Administration: Assign to Unit
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField control={form.control} name="adminCampusId" render={({ field }) => (
+                                            <FormItem><FormLabel>Campus</FormLabel>
+                                                <Select onValueChange={(v) => { field.onChange(v); form.setValue('adminUnitId', ''); }} value={field.value}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
+                                                    <SelectContent>{allCampuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                                </Select>
+                                            </FormItem>
+                                        )} />
+                                        <FormField control={form.control} name="adminUnitId" render={({ field }) => (
+                                            <FormItem><FormLabel>Unit</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value} disabled={!selectedAdminCampusId}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl>
+                                                    <SelectContent>{filteredUnits.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
+                                                </Select>
+                                            </FormItem>
+                                        )} />
+                                    </CardContent>
+                                </Card>
+                            )}
 
-                    {isAdmin && (
-                        <Card className="border-orange-500/50 bg-orange-50/5">
-                            <CardHeader className="py-3"><CardTitle className="text-base flex items-center gap-2 text-orange-600"><ShieldCheck className="h-5 w-5" />Administration: Assign to Unit</CardTitle></CardHeader>
-                            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <FormField control={form.control} name="adminCampusId" render={({ field }) => (
-                                    <FormItem><FormLabel>Campus</FormLabel>
-                                        <Select onValueChange={(v) => { field.onChange(v); form.setValue('adminUnitId', ''); }} value={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
-                                            <SelectContent>{allCampuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                                        </Select>
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="adminUnitId" render={({ field }) => (
-                                    <FormItem><FormLabel>Unit</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedAdminCampusId}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl>
-                                            <SelectContent>{filteredUnits.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
-                                        </Select>
-                                    </FormItem>
-                                )} />
-                            </CardContent>
-                        </Card>
-                    )}
+                            <div className={cn("space-y-6 transition-opacity duration-300", isStepDisabled && "opacity-40 pointer-events-none")}>
+                                <Card>
+                                    <CardHeader><CardTitle className="text-lg">Step 1: Identification</CardTitle></CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <FormField control={form.control} name="type" render={({ field }) => (
+                                            <FormItem className="space-y-3"><FormLabel>Type</FormLabel>
+                                                <FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center space-x-4" disabled={isStepDisabled}>
+                                                    <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Risk" /></FormControl><Label className="font-normal">Risk</Label></FormItem>
+                                                    <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Opportunity" /></FormControl><Label className="font-normal">Opportunity</Label></FormItem>
+                                                </RadioGroup></FormControl>
+                                            </FormItem>
+                                        )} />
+                                        <FormField control={form.control} name="objective" render={({ field }) => (<FormItem><FormLabel>Process Objective</FormLabel><FormControl><Input {...field} disabled={isStepDisabled} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} disabled={isStepDisabled} /></FormControl><FormMessage /></FormItem>)} />
+                                        <FormField control={form.control} name="currentControls" render={({ field }) => (<FormItem><FormLabel>Current Controls</FormLabel><FormControl><Textarea {...field} disabled={isStepDisabled} /></FormControl><FormMessage /></FormItem>)} />
+                                    </CardContent>
+                                </Card>
 
-                    <div className={cn("space-y-6 transition-opacity duration-300", isStepDisabled && "opacity-40 pointer-events-none")}>
-                        <Card>
-                            <CardHeader><CardTitle className="text-lg">Step 1: Identification</CardTitle></CardHeader>
-                            <CardContent className="space-y-4">
-                                <FormField control={form.control} name="type" render={({ field }) => (
-                                    <FormItem className="space-y-3"><FormLabel>Type</FormLabel>
-                                        <FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center space-x-4" disabled={isStepDisabled}>
-                                            <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Risk" /></FormControl><Label className="font-normal">Risk</Label></FormItem>
-                                            <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Opportunity" /></FormControl><Label className="font-normal">Opportunity</Label></FormItem>
-                                        </RadioGroup></FormControl>
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="objective" render={({ field }) => (<FormItem><FormLabel>Process Objective</FormLabel><FormControl><Input {...field} disabled={isStepDisabled} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} disabled={isStepDisabled} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="currentControls" render={({ field }) => (<FormItem><FormLabel>Current Controls</FormLabel><FormControl><Textarea {...field} disabled={isStepDisabled} /></FormControl><FormMessage /></FormItem>)} />
-                            </CardContent>
-                        </Card>
+                                <Card>
+                                    <CardHeader><CardTitle className="text-lg">Step 2: Analysis</CardTitle></CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField control={form.control} name="likelihood" render={({ field }) => (
+                                                <FormItem><FormLabel>Likelihood (1-5)</FormLabel>
+                                                    <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)} disabled={isStepDisabled}>
+                                                        <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
+                                                        <SelectContent>{likelihoodOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
+                                                    </Select>
+                                                </FormItem>
+                                            )} />
+                                            <FormField control={form.control} name="consequence" render={({ field }) => (
+                                                <FormItem><FormLabel>Consequence (1-5)</FormLabel>
+                                                    <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)} disabled={isStepDisabled}>
+                                                        <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
+                                                        <SelectContent>{consequenceOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
+                                                    </Select>
+                                                </FormItem>
+                                            )} />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 rounded-md border p-4 bg-muted/50">
+                                            <div><span className="font-medium">Magnitude:</span> {magnitude}</div>
+                                            <div><span className="font-medium">Rating:</span> {rating}</div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
 
-                        <Card>
-                            <CardHeader><CardTitle className="text-lg">Step 2: Analysis</CardTitle></CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <FormField control={form.control} name="likelihood" render={({ field }) => (
-                                        <FormItem><FormLabel>Likelihood</FormLabel>
-                                            <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)} disabled={isStepDisabled}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
-                                                <SelectContent>{likelihoodOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="consequence" render={({ field }) => (
-                                        <FormItem><FormLabel>Consequence</FormLabel>
-                                            <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)} disabled={isStepDisabled}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
-                                                <SelectContent>{consequenceOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )} />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4 rounded-md border p-4 bg-muted/50">
-                                    <div><span className="font-medium">Magnitude:</span> {magnitude}</div>
-                                    <div><span className="font-medium">Rating:</span> {rating}</div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                {showActionPlan && (
+                                    <Card>
+                                        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                                            <CardTitle className="text-lg">Step 3: Action Plan</CardTitle>
+                                            <Button type="button" variant="outline" size="sm" onClick={handleAISuggest} disabled={isSuggesting || isStepDisabled} className="h-8">
+                                                {isSuggesting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Sparkles className="h-3 w-3 mr-2" />}
+                                                AI Suggest
+                                            </Button>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4">
+                                            <FormField control={form.control} name="treatmentAction" render={({ field }) => (<FormItem><FormLabel>Treatment Plan</FormLabel><FormControl><Textarea {...field} rows={6} disabled={isStepDisabled} /></FormControl><FormMessage /></FormItem>)} />
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <FormField control={form.control} name="responsiblePersonId" render={({ field }) => (
+                                                    <FormItem><FormLabel>Accountable Person</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value} disabled={isStepDisabled || filteredUsers.length === 0}>
+                                                            <FormControl><SelectTrigger><SelectValue placeholder={isAdmin && !selectedAdminUnitId ? "Select Unit First" : "Select Person"} /></SelectTrigger></FormControl>
+                                                            <SelectContent>{filteredUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)}</SelectContent>
+                                                        </Select>
+                                                    <FormMessage /></FormItem>
+                                                )} />
+                                                <div className="space-y-2">
+                                                    <FormLabel>Target Date</FormLabel>
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        <FormField control={form.control} name="targetMonth" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value} disabled={isStepDisabled}><FormControl><SelectTrigger><SelectValue placeholder="Month" /></SelectTrigger></FormControl><SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                                                        <FormField control={form.control} name="targetDay" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value} disabled={isStepDisabled}><FormControl><SelectTrigger><SelectValue placeholder="Day" /></SelectTrigger></FormControl><SelectContent>{days.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                                                        <FormField control={form.control} name="targetYear" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value} disabled={isStepDisabled}><FormControl><SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger></FormControl><SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
 
-                        {showActionPlan && (
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                                    <CardTitle className="text-lg">Step 3: Action Plan</CardTitle>
-                                    <Button type="button" variant="outline" size="sm" onClick={handleAISuggest} disabled={isSuggesting || isStepDisabled} className="h-8">
-                                        {isSuggesting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Sparkles className="h-3 w-3 mr-2" />}
-                                        AI Suggest
-                                    </Button>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <FormField control={form.control} name="treatmentAction" render={({ field }) => (<FormItem><FormLabel>Treatment Plan</FormLabel><FormControl><Textarea {...field} rows={6} disabled={isStepDisabled} /></FormControl><FormMessage /></FormItem>)} />
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField control={form.control} name="responsiblePersonId" render={({ field }) => (
-                                            <FormItem><FormLabel>Accountable Person</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value} disabled={isStepDisabled || filteredUsers.length === 0}>
-                                                    <FormControl><SelectTrigger><SelectValue placeholder={isAdmin && !selectedAdminUnitId ? "Select Unit First" : "Select Person"} /></SelectTrigger></FormControl>
-                                                    <SelectContent>{filteredUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)}</SelectContent>
+                                <Card>
+                                    <CardHeader><CardTitle className="text-lg">Step 4: Status</CardTitle></CardHeader>
+                                    <CardContent>
+                                         <FormField control={form.control} name="status" render={({ field }) => (
+                                            <FormItem><FormLabel>Overall Status</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value} disabled={isStepDisabled}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
+                                                    <SelectContent><SelectItem value="Open">Open</SelectItem><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Closed">Closed</SelectItem></SelectContent>
                                                 </Select>
                                             <FormMessage /></FormItem>
                                         )} />
-                                        <div className="space-y-2">
-                                            <FormLabel>Target Date</FormLabel>
-                                            <div className="grid grid-cols-3 gap-2">
-                                                <FormField control={form.control} name="targetMonth" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value} disabled={isStepDisabled}><FormControl><SelectTrigger><SelectValue placeholder="Month" /></SelectTrigger></FormControl><SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent></Select></FormItem>)} />
-                                                <FormField control={form.control} name="targetDay" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value} disabled={isStepDisabled}><FormControl><SelectTrigger><SelectValue placeholder="Day" /></SelectTrigger></FormControl><SelectContent>{days.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select></FormItem>)} />
-                                                <FormField control={form.control} name="targetYear" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value} disabled={isStepDisabled}><FormControl><SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger></FormControl><SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select></FormItem>)} />
-                                            </div>
-                                        </div>
-                                    </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </form>
+                    </Form>
+                </ScrollArea>
+            </div>
+
+            {/* Right Panel: Reference Sidebar */}
+            <div className="hidden lg:flex w-96 flex-col bg-muted/20">
+                <ScrollArea className="flex-1">
+                    <div className="p-6 space-y-6">
+                        {previewEmbedUrl && (
+                            <Card className="border-primary/20 bg-muted/30">
+                                <CardHeader className="py-3 px-4">
+                                    <CardTitle className="text-xs flex items-center gap-2">
+                                        <FileText className="h-3 w-3 text-primary" />
+                                        Reference Document
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-0 aspect-[3/4]">
+                                    <iframe src={previewEmbedUrl} className="h-full w-full border-none" allow="autoplay"></iframe>
                                 </CardContent>
                             </Card>
                         )}
 
                         <Card>
-                            <CardHeader><CardTitle className="text-lg">Step 4: Status</CardTitle></CardHeader>
-                            <CardContent>
-                                 <FormField control={form.control} name="status" render={({ field }) => (
-                                    <FormItem><FormLabel>Overall Status</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value} disabled={isStepDisabled}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
-                                            <SelectContent><SelectItem value="Open">Open</SelectItem><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Closed">Closed</SelectItem></SelectContent>
-                                        </Select>
-                                    <FormMessage /></FormItem>
-                                )} />
+                            <CardHeader className="py-3 px-4">
+                                <CardTitle className="text-xs flex items-center gap-2">
+                                    <Info className="h-3 w-3" />
+                                    Risk Assessment Criteria
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-0 text-[11px] space-y-4">
+                                <div>
+                                    <p className="font-bold text-primary mb-1 uppercase tracking-tighter">Likelihood Scale</p>
+                                    <ul className="space-y-1">
+                                        <li><strong>5 - Almost Certain:</strong> Expected to occur in most circumstances (monthly).</li>
+                                        <li><strong>4 - Likely:</strong> Will probably occur in most circumstances (6 months).</li>
+                                        <li><strong>3 - Possible:</strong> Might occur at some time (annually).</li>
+                                        <li><strong>2 - Unlikely:</strong> Could occur at some time (every 2-5 years).</li>
+                                        <li><strong>1 - Rare:</strong> May occur only in exceptional circumstances (+5 years).</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <p className="font-bold text-primary mb-1 uppercase tracking-tighter">Consequence Scale</p>
+                                    <ul className="space-y-1">
+                                        <li><strong>5 - Catastrophic:</strong> Disaster; Threatens survival of unit.</li>
+                                        <li><strong>4 - Major:</strong> Serious impact on objectives; significant rework.</li>
+                                        <li><strong>3 - Moderate:</strong> Noticeable impact; extra effort to recover.</li>
+                                        <li><strong>2 - Minor:</strong> Slight impact; easily managed locally.</li>
+                                        <li><strong>1 - Insignificant:</strong> No discernible impact on quality.</li>
+                                    </ul>
+                                </div>
+                                <div className="pt-2 border-t">
+                                    <p className="font-bold mb-1 uppercase tracking-tighter">Rating Matrix (Key)</p>
+                                    <div className="grid grid-cols-3 gap-1">
+                                        <div className="bg-green-100 text-green-800 p-1 text-center rounded font-bold">1-4 Low</div>
+                                        <div className="bg-orange-100 text-orange-800 p-1 text-center rounded font-bold">5-14 Med</div>
+                                        <div className="bg-red-100 text-red-800 p-1 text-center rounded font-bold">15-25 High</div>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
-                </div>
+                </ScrollArea>
+            </div>
+        </div>
 
-                <div className="p-6 border-t shrink-0">
-                    <DialogFooter className="gap-2 sm:gap-0">
-                        {!isMandatory && <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>}
-                        <Button type="submit" disabled={isSubmitting || (isAdmin && !selectedAdminUnitId)}>
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {risk ? 'Save Changes' : 'Log Entry'}
-                        </Button>
-                    </DialogFooter>
-                </div>
-            </form>
-        </Form>
+        <div className="p-6 border-t shrink-0 bg-card">
+            <DialogFooter className="gap-2 sm:gap-0">
+                {!isMandatory && (
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                        Cancel
+                    </Button>
+                )}
+                <Button 
+                    form="risk-form"
+                    type="submit" 
+                    disabled={isSubmitting || (isAdmin && !selectedAdminUnitId)}
+                >
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {risk ? 'Save Changes' : 'Log Risk Entry'}
+                </Button>
+            </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
