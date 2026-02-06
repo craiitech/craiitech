@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -31,24 +30,22 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, setDoc, serverTimestamp, addDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, addDoc, collection, query, where, getDocs, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
-import { Loader2, AlertCircle, Sparkles, FileText, HelpCircle, ListChecks, CalendarIcon, ShieldCheck, Info, BookOpen, Calculator, FileSearch } from 'lucide-react';
+import { Loader2, AlertCircle, Sparkles, FileText, HelpCircle, ListChecks, CalendarIcon, ShieldCheck, Info, BookOpen, Calculator, FileSearch, Calendar } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { suggestRiskTreatment } from '@/ai/flows/suggest-treatment-flow';
 import { Badge } from '../ui/badge';
-import { saveRiskAdmin } from '@/lib/actions';
+import { saveRiskAdmin, getOfficialServerTime } from '@/lib/actions';
 import { ScrollArea } from '../ui/scroll-area';
+import { suggestRiskTreatment } from '@/ai/flows/suggest-treatment-flow';
 
 interface RiskFormDialogProps {
   isOpen: boolean;
@@ -59,6 +56,7 @@ interface RiskFormDialogProps {
   allCampuses: Campus[];
   isMandatory?: boolean;
   registryLink?: string | null;
+  defaultYear?: number;
 }
 
 const months = [
@@ -68,8 +66,8 @@ const months = [
   { value: '9', label: 'October' }, { value: '10', label: 'November' }, { value: '11', label: 'December' },
 ];
 const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
-const days = Array.from({ length: 31 }, (_, i) => String(i + 1));
+const yearsList = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
+const daysList = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
 const formSchema = z.object({
   year: z.number().int(),
@@ -125,7 +123,7 @@ const getRating = (magnitude: number): string => {
   return 'Low';
 };
 
-export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits, allCampuses, isMandatory, registryLink }: RiskFormDialogProps) {
+export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits, allCampuses, isMandatory, registryLink, defaultYear }: RiskFormDialogProps) {
   const { userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -138,7 +136,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      year: new Date().getFullYear(),
+      year: defaultYear || new Date().getFullYear(),
       objective: '',
       type: 'Risk',
       description: '',
@@ -172,7 +170,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
       });
     } else {
       form.reset({
-        year: new Date().getFullYear(),
+        year: defaultYear || new Date().getFullYear(),
         objective: '',
         type: 'Risk',
         status: 'Open',
@@ -180,7 +178,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         adminUnitId: userProfile?.unitId || '',
       });
     }
-  }, [risk, isOpen, form, userProfile]);
+  }, [risk, isOpen, form, userProfile, defaultYear]);
 
   // Effect to auto-fetch ROR link when Admin selects a unit
   useEffect(() => {
@@ -200,7 +198,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
             );
             const snap = await getDocs(q);
             if (!snap.empty) {
-                // If there's a final cycle submission, prefer it, otherwise take the first found
                 const docs = snap.docs.map(d => d.data());
                 const preferred = docs.find(d => d.cycleId === 'final') || docs[0];
                 setAutoRegistryLink(preferred.googleDriveLink);
@@ -319,14 +316,15 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
     <Dialog open={isOpen} onOpenChange={isMandatory ? undefined : onOpenChange}>
       <DialogContent className="max-w-[95vw] lg:max-w-7xl h-[95vh] flex flex-col p-0 overflow-hidden">
         <div className="p-6 border-b shrink-0 bg-card">
+            <div className="flex items-center gap-2 text-primary mb-1">
+                <ShieldCheck className="h-5 w-5" />
+                <span className="text-xs font-bold uppercase tracking-widest">EOMS Compliance Register</span>
+            </div>
             <div className="flex items-center gap-2">
                 <DialogTitle className="text-xl">{risk ? 'Edit' : 'Log New'} Risk or Opportunity</DialogTitle>
                 {isMandatory && <Badge variant="destructive">Required Action</Badge>}
                 {isAdmin && <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200">Admin Overdrive Mode</Badge>}
             </div>
-            <DialogDescription className="mt-1">
-                {isAdmin ? "Admin encoding mode enabled. Please assign a Campus and Unit before entering data." : "Fill out your unit's risk or opportunity details for EOMS compliance."}
-            </DialogDescription>
         </div>
 
         <div className="flex-1 flex overflow-hidden">
@@ -339,13 +337,14 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                 <Card className="border-orange-500/50 bg-orange-50/5 shadow-sm">
                                     <CardHeader className="py-3">
                                         <CardTitle className="text-sm flex items-center gap-2 text-orange-700">
-                                            <ShieldCheck className="h-4 w-4" />
-                                            Administration: Select Unit Gating
+                                            <Calculator className="h-4 w-4" />
+                                            Admin: Set Gating Parameters
                                         </CardTitle>
+                                        <CardDescription className="text-[10px]">Verify Campus, Unit, and Year before encoding.</CardDescription>
                                     </CardHeader>
-                                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <FormField control={form.control} name="adminCampusId" render={({ field }) => (
-                                            <FormItem><FormLabel className="text-xs">Select Campus</FormLabel>
+                                            <FormItem><FormLabel className="text-xs">1. Select Campus</FormLabel>
                                                 <Select onValueChange={(v) => { field.onChange(v); form.setValue('adminUnitId', ''); }} value={field.value}>
                                                     <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Pick Campus" /></SelectTrigger></FormControl>
                                                     <SelectContent>{allCampuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
@@ -353,10 +352,18 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                             </FormItem>
                                         )} />
                                         <FormField control={form.control} name="adminUnitId" render={({ field }) => (
-                                            <FormItem><FormLabel className="text-xs">Select Unit</FormLabel>
+                                            <FormItem><FormLabel className="text-xs">2. Select Unit</FormLabel>
                                                 <Select onValueChange={field.onChange} value={field.value} disabled={!selectedAdminCampusId}>
                                                     <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Pick Unit" /></SelectTrigger></FormControl>
                                                     <SelectContent>{filteredUnits.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
+                                                </Select>
+                                            </FormItem>
+                                        )} />
+                                        <FormField control={form.control} name="year" render={({ field }) => (
+                                            <FormItem><FormLabel className="text-xs">3. Confirm Year</FormLabel>
+                                                <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)} disabled={!selectedAdminUnitId}>
+                                                    <FormControl><SelectTrigger className="h-9"><SelectValue /></SelectTrigger></FormControl>
+                                                    <SelectContent>{yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
                                                 </Select>
                                             </FormItem>
                                         )} />
@@ -369,6 +376,17 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                     <h3 className="text-lg font-bold flex items-center gap-2"><div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">1</div> Identification</h3>
                                     <Card>
                                         <CardContent className="space-y-4 pt-6">
+                                            {!isAdmin && (
+                                                <FormField control={form.control} name="year" render={({ field }) => (
+                                                    <FormItem className="mb-4"><FormLabel>Target Year</FormLabel>
+                                                        <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                                            <SelectContent>{yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+                                                        </Select>
+                                                        <FormDescription className="text-[10px]">Ensure the year matches your current registry cycle.</FormDescription>
+                                                    </FormItem>
+                                                )} />
+                                            )}
                                             <FormField control={form.control} name="type" render={({ field }) => (
                                                 <FormItem className="space-y-3"><FormLabel>Entry Type</FormLabel>
                                                     <FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center space-x-4">
@@ -451,8 +469,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                                         <FormLabel>Target Date</FormLabel>
                                                         <div className="grid grid-cols-3 gap-2">
                                                             <FormField control={form.control} name="targetMonth" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="px-2"><SelectValue placeholder="Mo" /></SelectTrigger></FormControl><SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent></Select></FormItem>)} />
-                                                            <FormField control={form.control} name="targetDay" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="px-2"><SelectValue placeholder="Day" /></SelectTrigger></FormControl><SelectContent>{days.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select></FormItem>)} />
-                                                            <FormField control={form.control} name="targetYear" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="px-2"><SelectValue placeholder="Yr" /></SelectTrigger></FormControl><SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                                                            <FormField control={form.control} name="targetDay" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="px-2"><SelectValue placeholder="Day" /></SelectTrigger></FormControl><SelectContent>{daysList.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                                                            <FormField control={form.control} name="targetYear" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="px-2"><SelectValue placeholder="Yr" /></SelectTrigger></FormControl><SelectContent>{yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select></FormItem>)} />
                                                         </div>
                                                     </div>
                                                 </div>
@@ -496,10 +514,16 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                         <Card className="border-primary/30 shadow-md">
                             <CardHeader className="py-3 px-4 bg-primary/5">
                                 <div className="flex items-center justify-between">
-                                    <CardTitle className="text-xs flex items-center gap-2">
-                                        <FileText className="h-3 w-3 text-primary" />
-                                        Registry Document Reference
-                                    </CardTitle>
+                                    <div className="space-y-1">
+                                        <CardTitle className="text-xs flex items-center gap-2">
+                                            <FileText className="h-3 w-3 text-primary" />
+                                            Registry Document
+                                        </CardTitle>
+                                        <Badge variant="outline" className="text-[9px] h-4 py-0 flex items-center gap-1 font-mono">
+                                            <Calendar className="h-2 w-2" />
+                                            Year: {currentFormYear}
+                                        </Badge>
+                                    </div>
                                     {isFetchingLink && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
                                 </div>
                             </CardHeader>
@@ -511,18 +535,18 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                 ) : (
                                     <div className="flex flex-col items-center justify-center py-12 px-4 text-center text-muted-foreground border-t bg-muted/5">
                                         <FileSearch className="h-10 w-10 mb-2 opacity-20" />
-                                        <p className="text-xs font-semibold">No Document Loaded</p>
+                                        <p className="text-xs font-semibold">No Document Found</p>
                                         <p className="text-[10px] mt-1">
                                             {isAdmin && !selectedAdminUnitId 
-                                                ? "Select a unit to auto-load their ROR submission." 
-                                                : "The selected unit has not uploaded their Registry for this year."}
+                                                ? "Assign Unit & Year to fetch ROR document." 
+                                                : `The unit has not submitted a Registry for ${currentFormYear}.`}
                                         </p>
                                     </div>
                                 )}
                             </CardContent>
                         </Card>
 
-                        {/* 2. Rating Criteria (Always Visible) */}
+                        {/* 2. Rating Criteria */}
                         <Card className="border-blue-200 shadow-sm">
                             <CardHeader className="py-3 px-4 bg-blue-50">
                                 <CardTitle className="text-xs flex items-center gap-2 text-blue-800">
@@ -545,8 +569,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                     <p className="font-bold text-primary mb-1 uppercase tracking-tighter">Consequence (C)</p>
                                     <ul className="space-y-1.5 list-disc pl-3">
                                         <li><strong>5:</strong> Catastrophic; unit survival at risk.</li>
-                                        <li><strong>4:</strong> Major; serious impact on EOMS objectives.</li>
-                                        <li><strong>3:</strong> Moderate; noticeable impact; extra effort to fix.</li>
+                                        <li><strong>4:</strong> Major; serious impact on objectives.</li>
+                                        <li><strong>3:</strong> Moderate; noticeable impact.</li>
                                         <li><strong>2:</strong> Minor; easily managed locally.</li>
                                         <li><strong>1:</strong> Insignificant; no discernible impact.</li>
                                     </ul>
@@ -567,14 +591,14 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                             <CardHeader className="py-3 px-4 bg-gray-50">
                                 <CardTitle className="text-xs flex items-center gap-2">
                                     <ListChecks className="h-3 w-3" />
-                                    Field Guide (Encoding Instructions)
+                                    Field Guide
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-4 pt-3 text-[11px] space-y-3">
-                                <p><strong>Objective:</strong> State the specific target of the process (e.g., "Ensure 100% student enrollment accuracy").</p>
-                                <p><strong>Description:</strong> Explain the event that could hinder or help the objective.</p>
-                                <p><strong>Current Controls:</strong> List existing SOPs or systems already in place.</p>
-                                <p><strong>Action Plan:</strong> Required for Med/High risks. Use AI Suggest if needed for phrasing.</p>
+                                <p><strong>Objective:</strong> State the specific target (e.g., "Ensure 100% data privacy").</p>
+                                <p><strong>Description:</strong> Explain the event that could hinder or help.</p>
+                                <p><strong>Current Controls:</strong> List existing SOPs or systems in place.</p>
+                                <p><strong>Action Plan:</strong> Required for Med/High ratings.</p>
                             </CardContent>
                         </Card>
                     </div>

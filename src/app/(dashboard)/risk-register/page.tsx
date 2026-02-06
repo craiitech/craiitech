@@ -1,15 +1,19 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Loader2 } from 'lucide-react';
+import { PlusCircle, Loader2, CalendarSearch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
+import type { Risk, User as AppUser, Unit, Campus, Cycle } from '@/lib/types';
 import { useState, useMemo, useEffect } from 'react';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
 import { RiskTable } from '@/components/risk/risk-table';
 import { useSearchParams } from 'next/navigation';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
 export default function RiskRegisterPage() {
     const { userProfile, isAdmin, userRole, isUserLoading, firestore, isSupervisor } = useUser();
@@ -18,6 +22,7 @@ export default function RiskRegisterPage() {
     const [editingRisk, setEditingRisk] = useState<Risk | null>(null);
     const [isMandatory, setIsMandatory] = useState(false);
     const [registryLink, setRegistryLink] = useState<string | null>(null);
+    const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
     useEffect(() => {
         if (searchParams.get('openForm') === 'true') {
@@ -30,18 +35,23 @@ export default function RiskRegisterPage() {
     const risksQuery = useMemoFirebase(() => {
         if (!firestore || !userProfile) return null;
         const q = collection(firestore, 'risks');
-        if (isAdmin) return q;
+        
+        // We filter by year in memory or in query. 
+        // For performance and to help "identify" the correct risks, query by year is best.
+        const yearQuery = query(q, where('year', '==', selectedYear));
+
+        if (isAdmin) return yearQuery;
         if (isSupervisor) {
             if (userProfile.campusId) {
-                return query(q, where('campusId', '==', userProfile.campusId));
+                return query(yearQuery, where('campusId', '==', userProfile.campusId));
             }
             return null; 
         }
         if (userProfile.unitId) {
-            return query(q, where('unitId', '==', userProfile.unitId));
+            return query(yearQuery, where('unitId', '==', userProfile.unitId));
         }
         return null; 
-    }, [firestore, userProfile, isSupervisor, isAdmin]);
+    }, [firestore, userProfile, isSupervisor, isAdmin, selectedYear]);
 
     const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
     
@@ -103,18 +113,31 @@ export default function RiskRegisterPage() {
               A centralized module for logging, tracking, and monitoring risks and opportunities for your unit.
             </p>
           </div>
-          {canLogRisk && (
-            <Button onClick={handleNewRisk}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Log New Entry
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            <div className="w-[120px]">
+                <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                    <SelectTrigger>
+                        <CalendarSearch className="h-4 w-4 mr-2 opacity-50" />
+                        <SelectValue placeholder="Year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+            {canLogRisk && (
+                <Button onClick={handleNewRisk}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Log New Entry
+                </Button>
+            )}
+          </div>
       </div>
       <Card>
         <CardHeader>
-            <CardTitle>Register</CardTitle>
+            <CardTitle>Register for {selectedYear}</CardTitle>
             <CardDescription>
-                Below is a list of all risks and opportunities for {isSupervisor && !isAdmin && userProfile?.campusId ? `the ${campusMap.get(userProfile.campusId) || 'campus'}` : (isAdmin ? 'all units' : 'your unit')}.
+                Below is a list of all risks and opportunities for {isSupervisor && !isAdmin && userProfile?.campusId ? `the ${campusMap.get(userProfile.campusId) || 'campus'}` : (isAdmin ? 'all units' : 'your unit')} in {selectedYear}.
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -141,6 +164,7 @@ export default function RiskRegisterPage() {
         allCampuses={allCampuses || []}
         isMandatory={isMandatory}
         registryLink={registryLink}
+        defaultYear={selectedYear}
     />
     </>
   );
