@@ -1,4 +1,3 @@
-
 @import "react-day-picker/dist/style.css";
 
 @tailwind base;
@@ -81,10 +80,36 @@
 @layer base {
   * {
     @apply border-border;
+    /* Firefox Support */
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--sidebar-background)) transparent;
   }
+  
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* WebKit Support (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--sidebar-background) / 0.6);
+    border-radius: 20px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--sidebar-background));
+    background-clip: content-box;
   }
 }
 
