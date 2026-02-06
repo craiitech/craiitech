@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -30,11 +31,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, addDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
-import { Loader2, AlertCircle, Sparkles, FileText, HelpCircle, ListChecks, CalendarIcon, ShieldCheck, Info, BookOpen, Calculator } from 'lucide-react';
+import { Loader2, AlertCircle, Sparkles, FileText, HelpCircle, ListChecks, CalendarIcon, ShieldCheck, Info, BookOpen, Calculator, FileSearch } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
@@ -130,6 +131,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
+  const [isFetchingLink, setIsFetchingLink] = useState(false);
+  const [autoRegistryLink, setAutoRegistryLink] = useState<string | null>(null);
   const { logSessionActivity } = useSessionActivity();
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -147,6 +150,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
 
   const selectedAdminCampusId = form.watch('adminCampusId');
   const selectedAdminUnitId = form.watch('adminUnitId');
+  const currentFormYear = form.watch('year');
 
   useEffect(() => {
     if (risk) {
@@ -177,6 +181,42 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
       });
     }
   }, [risk, isOpen, form, userProfile]);
+
+  // Effect to auto-fetch ROR link when Admin selects a unit
+  useEffect(() => {
+    if (!isAdmin || !selectedAdminUnitId || !firestore || !isOpen) {
+        setAutoRegistryLink(null);
+        return;
+    }
+
+    const fetchRORLink = async () => {
+        setIsFetchingLink(true);
+        try {
+            const q = query(
+                collection(firestore, 'submissions'),
+                where('unitId', '==', selectedAdminUnitId),
+                where('reportType', '==', 'Risk and Opportunity Registry'),
+                where('year', '==', currentFormYear)
+            );
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+                // If there's a final cycle submission, prefer it, otherwise take the first found
+                const docs = snap.docs.map(d => d.data());
+                const preferred = docs.find(d => d.cycleId === 'final') || docs[0];
+                setAutoRegistryLink(preferred.googleDriveLink);
+            } else {
+                setAutoRegistryLink(null);
+            }
+        } catch (error) {
+            console.error("Error fetching auto-registry link:", error);
+            setAutoRegistryLink(null);
+        } finally {
+            setIsFetchingLink(false);
+        }
+    };
+
+    fetchRORLink();
+  }, [isAdmin, selectedAdminUnitId, currentFormYear, firestore, isOpen]);
 
   const likelihood = form.watch('likelihood');
   const consequence = form.watch('consequence');
@@ -272,7 +312,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
     }
   };
 
-  const previewEmbedUrl = registryLink ? registryLink.replace('/view', '/preview').replace('?usp=sharing', '') : null;
+  const activeLink = registryLink || autoRegistryLink;
+  const previewEmbedUrl = activeLink ? activeLink.replace('/view', '/preview').replace('?usp=sharing', '') : null;
 
   return (
     <Dialog open={isOpen} onOpenChange={isMandatory ? undefined : onOpenChange}>
@@ -442,7 +483,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
             </div>
 
             {/* Right Panel: Official Reference & Criteria Workspace */}
-            <div className="hidden lg:flex w-[400px] flex-col bg-muted/10 border-l overflow-hidden">
+            <div className="hidden lg:flex w-[450px] flex-col bg-muted/10 border-l overflow-hidden">
                 <div className="p-4 border-b bg-card shrink-0">
                     <h3 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wider text-muted-foreground">
                         <BookOpen className="h-4 w-4" />
@@ -452,19 +493,34 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                 <ScrollArea className="flex-1">
                     <div className="p-6 space-y-6">
                         {/* 1. Official Document Reference */}
-                        {previewEmbedUrl && (
-                            <Card className="border-primary/30 shadow-md">
-                                <CardHeader className="py-3 px-4 bg-primary/5">
+                        <Card className="border-primary/30 shadow-md">
+                            <CardHeader className="py-3 px-4 bg-primary/5">
+                                <div className="flex items-center justify-between">
                                     <CardTitle className="text-xs flex items-center gap-2">
                                         <FileText className="h-3 w-3 text-primary" />
-                                        Registry Upload Preview
+                                        Registry Document Reference
                                     </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-0 aspect-[3/4]">
-                                    <iframe src={previewEmbedUrl} className="h-full w-full border-none" allow="autoplay"></iframe>
-                                </CardContent>
-                            </Card>
-                        )}
+                                    {isFetchingLink && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {previewEmbedUrl ? (
+                                    <div className="aspect-[3/4]">
+                                        <iframe src={previewEmbedUrl} className="h-full w-full border-none" allow="autoplay"></iframe>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-12 px-4 text-center text-muted-foreground border-t bg-muted/5">
+                                        <FileSearch className="h-10 w-10 mb-2 opacity-20" />
+                                        <p className="text-xs font-semibold">No Document Loaded</p>
+                                        <p className="text-[10px] mt-1">
+                                            {isAdmin && !selectedAdminUnitId 
+                                                ? "Select a unit to auto-load their ROR submission." 
+                                                : "The selected unit has not uploaded their Registry for this year."}
+                                        </p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
 
                         {/* 2. Rating Criteria (Always Visible) */}
                         <Card className="border-blue-200 shadow-sm">
