@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -113,28 +112,50 @@ export default function NewSubmissionPage() {
     );
   }, [firestore, userProfile?.unitId, userProfile?.campusId, selectedYear]);
 
-  const { data: submissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
+  const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
   
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
-    if (!submissions) {
+    if (!rawSubmissions) {
       return { firstCycleStatusMap: new Map(), finalCycleStatusMap: new Map() };
     }
+
+    const normalizedSubmissions = rawSubmissions.map(s => {
+        // Aggressive fuzzy normalization of report types
+        let rType = String(s.reportType || '').trim();
+        const lowerType = rType.toLowerCase();
+        
+        if (lowerType.includes('risk and opportunity registry')) {
+            rType = 'Risk and Opportunity Registry';
+        } else if (lowerType.includes('operational plan')) {
+            rType = 'Operational Plan';
+        } else if (lowerType.includes('objectives monitoring')) {
+            rType = 'Quality Objectives Monitoring';
+        } else if (lowerType.includes('needs and expectation')) {
+            rType = 'Needs and Expectation of Interested Parties';
+        } else if (lowerType.includes('swot')) {
+            rType = 'SWOT Analysis';
+        } else if (lowerType.includes('action plan') && lowerType.includes('risk')) {
+            rType = 'Risk and Opportunity Action Plan';
+        }
+        return { ...s, reportType: rType };
+    });
+
     const firstMap = new Map(
-      submissions
+      normalizedSubmissions
         .filter(s => s.cycleId === 'first')
         .map((s) => [s.reportType, s])
     );
      const finalMap = new Map(
-      submissions
+      normalizedSubmissions
         .filter(s => s.cycleId === 'final')
         .map((s) => [s.reportType, s])
     );
 
     return { firstCycleStatusMap: firstMap, finalCycleStatusMap: finalMap };
-  }, [submissions]);
+  }, [rawSubmissions]);
 
   const submissionStatusMap = selectedCycle === 'first' ? firstCycleStatusMap : finalCycleStatusMap;
   

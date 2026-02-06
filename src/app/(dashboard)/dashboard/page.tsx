@@ -148,12 +148,27 @@ export default function HomePage() {
     if (!rawSubmissions) return null;
     return rawSubmissions.map(s => {
       const date = s.submissionDate;
+      // Aggressive fuzzy normalization of report types
+      let rType = String(s.reportType || '').trim();
+      const lowerType = rType.toLowerCase();
+      
+      if (lowerType.includes('risk and opportunity registry')) {
+          rType = 'Risk and Opportunity Registry';
+      } else if (lowerType.includes('operational plan')) {
+          rType = 'Operational Plan';
+      } else if (lowerType.includes('objectives monitoring')) {
+          rType = 'Quality Objectives Monitoring';
+      } else if (lowerType.includes('needs and expectation')) {
+          rType = 'Needs and Expectation of Interested Parties';
+      } else if (lowerType.includes('swot')) {
+          rType = 'SWOT Analysis';
+      } else if (lowerType.includes('action plan') && lowerType.includes('risk')) {
+          rType = 'Risk and Opportunity Action Plan';
+      }
+
       return {
         ...s,
-        // Global Normalization: Ensure all registry records are grouped correctly
-        reportType: (s.reportType === 'Risk and Opportunity Registry Form' || s.reportType === 'Risk and Opportunity Registry') 
-            ? 'Risk and Opportunity Registry' 
-            : s.reportType,
+        reportType: rType,
         submissionDate: date instanceof Timestamp ? date.toDate() : new Date(date)
       }
     });

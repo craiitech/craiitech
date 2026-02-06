@@ -372,16 +372,33 @@ export default function SubmissionsPage() {
             }
 
             const data = await response.json();
-            const parsedData = data.map((s: any) => ({
-                ...s,
-                // Normalize legacy names
-                reportType: (s.reportType === 'Risk and Opportunity Registry Form' || s.reportType === 'Risk and Opportunity Registry') 
-                    ? 'Risk and Opportunity Registry' 
-                    : s.reportType,
-                submissionDate: new Date(s.submissionDate),
-                 ...(s.createdAt && { createdAt: new Date(s.createdAt) }),
-                ...(s.updatedAt && { updatedAt: new Date(s.updatedAt) }),
-            }));
+            const parsedData = data.map((s: any) => {
+                // Aggressive fuzzy normalization of report types
+                let rType = String(s.reportType || '').trim();
+                const lowerType = rType.toLowerCase();
+                
+                if (lowerType.includes('risk and opportunity registry')) {
+                    rType = 'Risk and Opportunity Registry';
+                } else if (lowerType.includes('operational plan')) {
+                    rType = 'Operational Plan';
+                } else if (lowerType.includes('objectives monitoring')) {
+                    rType = 'Quality Objectives Monitoring';
+                } else if (lowerType.includes('needs and expectation')) {
+                    rType = 'Needs and Expectation of Interested Parties';
+                } else if (lowerType.includes('swot')) {
+                    rType = 'SWOT Analysis';
+                } else if (lowerType.includes('action plan') && lowerType.includes('risk')) {
+                    rType = 'Risk and Opportunity Action Plan';
+                }
+
+                return {
+                    ...s,
+                    reportType: rType,
+                    submissionDate: new Date(s.submissionDate),
+                    ...(s.createdAt && { createdAt: new Date(s.createdAt) }),
+                    ...(s.updatedAt && { updatedAt: new Date(s.updatedAt) }),
+                };
+            });
             setCrossCampusSubmissions(parsedData);
         } catch (error) {
             console.error(error);
@@ -434,14 +451,31 @@ export default function SubmissionsPage() {
 
   const submissions = useMemo(() => {
     if (!submissionsData) return [];
-    return submissionsData.map(s => ({
-        ...s,
-        // Normalize names for correct grouping/filtering
-        reportType: (s.reportType === 'Risk and Opportunity Registry Form' || s.reportType === 'Risk and Opportunity Registry') 
-            ? 'Risk and Opportunity Registry' 
-            : s.reportType,
-        submissionDate: s.submissionDate instanceof Timestamp ? s.submissionDate.toDate() : new Date(s.submissionDate)
-    }));
+    return submissionsData.map(s => {
+        // Aggressive fuzzy normalization of report types
+        let rType = String(s.reportType || '').trim();
+        const lowerType = rType.toLowerCase();
+        
+        if (lowerType.includes('risk and opportunity registry')) {
+            rType = 'Risk and Opportunity Registry';
+        } else if (lowerType.includes('operational plan')) {
+            rType = 'Operational Plan';
+        } else if (lowerType.includes('objectives monitoring')) {
+            rType = 'Quality Objectives Monitoring';
+        } else if (lowerType.includes('needs and expectation')) {
+            rType = 'Needs and Expectation of Interested Parties';
+        } else if (lowerType.includes('swot')) {
+            rType = 'SWOT Analysis';
+        } else if (lowerType.includes('action plan') && lowerType.includes('risk')) {
+            rType = 'Risk and Opportunity Action Plan';
+        }
+
+        return {
+            ...s,
+            reportType: rType,
+            submissionDate: s.submissionDate instanceof Timestamp ? s.submissionDate.toDate() : new Date(s.submissionDate)
+        };
+    });
   }, [submissionsData]);
 
   const yearsForFilter = useMemo(() => {

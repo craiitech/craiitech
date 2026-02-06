@@ -97,11 +97,22 @@ export default function ReportsPage() {
   const allSubmissions = useMemo(() => {
     if (!rawSubmissions) return [];
     return rawSubmissions.map(s => {
-        // Aggressive normalization of report types
+        // Aggressive fuzzy normalization of report types to handle pluralization and alternative naming
         let rType = String(s.reportType || '').trim();
         const lowerType = rType.toLowerCase();
+        
         if (lowerType.includes('risk and opportunity registry')) {
             rType = 'Risk and Opportunity Registry';
+        } else if (lowerType.includes('operational plan')) {
+            rType = 'Operational Plan';
+        } else if (lowerType.includes('objectives monitoring')) {
+            rType = 'Quality Objectives Monitoring';
+        } else if (lowerType.includes('needs and expectation')) {
+            rType = 'Needs and Expectation of Interested Parties';
+        } else if (lowerType.includes('swot')) {
+            rType = 'SWOT Analysis';
+        } else if (lowerType.includes('action plan') && lowerType.includes('risk')) {
+            rType = 'Risk and Opportunity Action Plan';
         }
 
         return {
