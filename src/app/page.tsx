@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -17,27 +16,30 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { PublicSubmissionMatrix } from '@/components/public-submission-matrix';
-import { ShieldCheck, ArrowRight, Info } from 'lucide-react';
+import { ShieldCheck, ArrowRight } from 'lucide-react';
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero-landing');
   
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col">
-        {/* Hero Section */}
-        <div className="relative min-h-[70vh] flex flex-col items-center justify-center text-center text-white overflow-hidden shrink-0 py-20">
-            {heroImage && (
+    <div className="relative min-h-screen bg-slate-950 flex flex-col overflow-x-hidden">
+        {/* Global Page Background */}
+        {heroImage && (
+            <div className="fixed inset-0 -z-20">
                 <Image
                     src={heroImage.imageUrl}
                     alt={heroImage.description}
                     fill
                     priority
-                    className="-z-20 object-cover opacity-30"
+                    className="object-cover opacity-20"
                     data-ai-hint={heroImage.imageHint}
                 />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-950/50 to-slate-950 -z-10" />
+                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-950/40 to-slate-950" />
+            </div>
+        )}
 
+        {/* Hero Section */}
+        <section className="relative min-h-[70vh] flex flex-col items-center justify-center text-center text-white shrink-0 py-20">
             <div className="flex flex-col items-center justify-center space-y-8 p-4 max-w-5xl">
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white/80 backdrop-blur-md">
                     <ShieldCheck className="h-4 w-4 text-primary" />
@@ -69,17 +71,17 @@ export default function Home() {
                     </Button>
                 </div>
             </div>
-        </div>
+        </section>
 
         {/* Matrix Section */}
-        <section className="flex-1 container mx-auto px-4 pb-24 relative z-10">
+        <section className="relative flex-1 container mx-auto px-4 pb-24 z-10">
             <div className="max-w-6xl mx-auto">
                 <PublicSubmissionMatrix />
             </div>
         </section>
 
         {/* Footer */}
-        <footer className="border-t border-white/5 py-12 bg-slate-950">
+        <footer className="relative border-t border-white/5 py-12 bg-slate-950/80 backdrop-blur-sm mt-auto">
             <div className="container mx-auto px-4 text-center space-y-6">
                 <div className="flex justify-center gap-6">
                     <Button variant="link" asChild className="text-white/40 hover:text-white">
