@@ -4,22 +4,34 @@ import { firebaseConfig } from './config';
 
 /**
  * Robustly initializes the Firebase Admin SDK.
- * It uses the project ID from the configuration to ensure the SDK identifies
- * the correct project even when explicit credentials are not provided.
+ * Supports initialization via environment-level Service Account credentials.
  */
 function initializeAdmin() {
   if (admin.apps.length > 0) {
     return admin.apps[0]!;
   }
 
-  // Attempt to initialize with the projectId. 
-  // We use try-catch to handle environments where multiple initializations might collide.
+  // 1. Check for Service Account Key in environment variables
+  // This is the "Master Key" required to fix the 500 Connection Error
+  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT;
+
   try {
-    return admin.initializeApp({
-      projectId: firebaseConfig.projectId,
-    });
+    if (serviceAccountKey) {
+      // If the key is provided, parse it and initialize with full privileges
+      const serviceAccount = JSON.parse(serviceAccountKey);
+      return admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        projectId: firebaseConfig.projectId,
+      });
+    } else {
+      // Fallback to Project ID only (requires environment-level auth like Google Cloud)
+      return admin.initializeApp({
+        projectId: firebaseConfig.projectId,
+      });
+    }
   } catch (error) {
     console.error("Firebase Admin initialization warning:", error);
+    // If all else fails, return the default app instance
     return admin.app();
   }
 }

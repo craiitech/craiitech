@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -15,11 +16,9 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ShieldCheck, ArrowRight } from 'lucide-react';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { PublicSubmissionMatrix } from '@/components/public-submission-matrix';
 
 export default function Home() {
-  const isoLogo = PlaceHolderImages.find(p => p.id === 'iso-certification');
-
   return (
     <div className="relative min-h-screen flex flex-col overflow-x-hidden">
         {/* Full-Page Fixed Background */}
@@ -36,21 +35,18 @@ export default function Home() {
         </div>
 
         {/* Hero Section */}
-        <section className="relative flex-1 flex flex-col items-center justify-center text-center text-white py-20 px-4">
+        <section className="relative flex flex-col items-center justify-center text-center text-white pt-20 pb-10 px-4">
             <div className="flex flex-col items-center justify-center space-y-8 max-w-5xl">
                 <div className="flex flex-col items-center gap-6">
-                    {isoLogo && (
-                        <div className="relative h-64 w-64 transition-transform hover:scale-105">
-                            <Image
-                                src={isoLogo.imageUrl}
-                                alt={isoLogo.description}
-                                width={256}
-                                height={256}
-                                className="rounded-lg object-contain h-full w-full"
-                                data-ai-hint={isoLogo.imageHint}
-                            />
-                        </div>
-                    )}
+                    <div className="relative h-48 w-auto transition-transform hover:scale-105">
+                        <Image
+                            src="/ISOlogo.jpg"
+                            alt="ISO Certification"
+                            width={400}
+                            height={200}
+                            className="object-contain h-full w-full"
+                        />
+                    </div>
                     <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white/80 backdrop-blur-md">
                         <ShieldCheck className="h-4 w-4 text-primary" />
                         <span>ISO 21001:2018 Certified Management System</span>
@@ -81,6 +77,13 @@ export default function Home() {
                         </Link>
                     </Button>
                 </div>
+            </div>
+        </section>
+
+        {/* Informative Transparency Board */}
+        <section className="relative container mx-auto px-4 py-12">
+            <div className="max-w-6xl mx-auto">
+                <PublicSubmissionMatrix />
             </div>
         </section>
 

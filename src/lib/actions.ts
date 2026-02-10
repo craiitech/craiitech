@@ -128,7 +128,7 @@ const submissionTypes = [
 
 /**
  * Robust Normalization for Report Types.
- * Handles pluralization and missing prefixes (e.g., "Operational Plans" -> "Operational Plan").
+ * Handles pluralization and missing prefixes.
  */
 function normalizeReportType(type: string): string {
     const lower = String(type || '').trim().toLowerCase();
@@ -144,12 +144,20 @@ function normalizeReportType(type: string): string {
 /**
  * Fetches compliance matrix data for the public landing page.
  * Bypasses firestore.rules by using the Admin SDK.
- * Implements robust normalization for years, titles, and IDs.
  */
 export async function getPublicSubmissionMatrixData(year: number) {
     try {
         const firestore = getAdminFirestore();
         
+        // Safety check: Detect if Admin SDK is configured
+        if (!process.env.FIREBASE_SERVICE_ACCOUNT && process.env.NODE_ENV === 'production') {
+             return { 
+                matrix: [], 
+                availableYears: [new Date().getFullYear()], 
+                error: "Compliance Board Restricted: Server administrator keys are required for public viewing." 
+            };
+        }
+
         // 1. Fetch Foundation Collections
         const [campusesSnap, unitsSnap, cyclesSnap, submissionsSnap] = await Promise.all([
             firestore.collection('campuses').get(),
@@ -162,11 +170,10 @@ export async function getPublicSubmissionMatrixData(year: number) {
         const units = unitsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const allCycles = cyclesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // 2. Build Submission Lookup Map with strict normalization
+        // 2. Build Submission Lookup Map
         const submissionMap = new Map<string, any>();
         submissionsSnap.forEach(doc => {
             const s = doc.data();
-            // YEAR TYPE COERCION: Handle string vs number
             const sYear = s.year ? Number(s.year) : 0;
             
             if (sYear === year) {
@@ -175,7 +182,6 @@ export async function getPublicSubmissionMatrixData(year: number) {
                 const cycle = String(s.cycleId || '').trim().toLowerCase();
                 const normalizedType = normalizeReportType(s.reportType).toLowerCase();
 
-                // ID Normalization is critical for matrix lookups
                 const key = `${cId}-${uId}-${normalizedType}-${cycle}`;
                 submissionMap.set(key, s);
             }
@@ -193,7 +199,6 @@ export async function getPublicSubmissionMatrixData(year: number) {
                 const statuses: Record<string, string> = {};
                 
                 ['first', 'final'].forEach(cycleId => {
-                    // Check ROR for Action Plan Applicability
                     const rorKey = `${cId}-${uId}-risk and opportunity registry-${cycleId}`;
                     const ror = submissionMap.get(rorKey);
                     const riskRating = String(ror?.riskRating || '').toLowerCase();
@@ -229,7 +234,6 @@ export async function getPublicSubmissionMatrixData(year: number) {
         .filter(Boolean)
         .sort((a: any, b: any) => (a.campusName || '').localeCompare(b.campusName || ''));
 
-        // Extract years for UI selector
         let availableYears = [...new Set(allCycles.map((c: any) => Number(c.year)))].sort((a, b) => b - a);
         if (availableYears.length === 0) availableYears = [new Date().getFullYear()];
 
@@ -237,11 +241,10 @@ export async function getPublicSubmissionMatrixData(year: number) {
 
     } catch (error: any) {
         console.error("Public Matrix Action Error:", error);
-        // Return a safe state instead of throwing to prevent crashing the landing page
         return { 
             matrix: [], 
             availableYears: [new Date().getFullYear()], 
-            error: "The university transparency board is currently restricted. Please sign in to the portal to view the live compliance matrix." 
+            error: "The transparency board is currently offline. Please log in to view detailed compliance." 
         };
     }
 }
