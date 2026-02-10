@@ -19,7 +19,7 @@ import { ShieldCheck, ArrowRight } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function Home() {
-  const qrImage = PlaceHolderImages.find(p => p.id === 'iso-qr');
+  const isoLogo = PlaceHolderImages.find(p => p.id === 'iso-certification');
 
   return (
     <div className="relative min-h-screen flex flex-col overflow-x-hidden">
@@ -40,15 +40,15 @@ export default function Home() {
         <section className="relative flex-1 flex flex-col items-center justify-center text-center text-white py-20 px-4">
             <div className="flex flex-col items-center justify-center space-y-8 max-w-5xl">
                 <div className="flex flex-col items-center gap-4">
-                    {qrImage && (
-                        <div className="relative h-24 w-24 rounded-xl border border-white/20 bg-white/5 p-2 backdrop-blur-md shadow-2xl transition-transform hover:scale-105">
+                    {isoLogo && (
+                        <div className="relative h-28 w-28 rounded-xl border border-white/20 bg-white/5 p-2 backdrop-blur-md shadow-2xl transition-transform hover:scale-105">
                             <Image
-                                src={qrImage.imageUrl}
-                                alt={qrImage.description}
-                                width={80}
-                                height={80}
-                                className="rounded-lg object-contain"
-                                data-ai-hint={qrImage.imageHint}
+                                src={isoLogo.imageUrl}
+                                alt={isoLogo.description}
+                                width={100}
+                                height={100}
+                                className="rounded-lg object-contain h-full w-full"
+                                data-ai-hint={isoLogo.imageHint}
                             />
                         </div>
                     )}
