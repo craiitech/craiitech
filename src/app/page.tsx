@@ -16,23 +16,22 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { PublicSubmissionMatrix } from '@/components/public-submission-matrix';
-import { ShieldCheck, ArrowRight, Activity, Globe } from 'lucide-react';
+import { ShieldCheck, ArrowRight } from 'lucide-react';
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero-landing');
-  const isoImage = PlaceHolderImages.find(p => p.id === 'iso-certification');
   
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col">
         {/* Hero Section */}
-        <div className="relative h-screen flex flex-col items-center justify-center text-center text-white overflow-hidden shrink-0">
+        <div className="relative min-h-[80vh] flex flex-col items-center justify-center text-center text-white overflow-hidden shrink-0 py-20">
             {heroImage && (
                 <Image
                     src={heroImage.imageUrl}
                     alt={heroImage.description}
                     fill
                     priority
-                    className="-z-20 object-cover opacity-40"
+                    className="-z-20 object-cover opacity-30"
                     data-ai-hint={heroImage.imageHint}
                 />
             )}
@@ -52,7 +51,7 @@ export default function Home() {
                         </h1>
                     </div>
                     <p className="text-xl sm:text-2xl text-white/70 max-w-2xl mx-auto">
-                        A centralized platform for monitoring Educational Organizations Management System compliance and document control.
+                        Educational Organizations Management System Submission and Monitoring Portal.
                     </p>
                 </div>
 
@@ -68,56 +67,12 @@ export default function Home() {
                         </Link>
                     </Button>
                 </div>
-
-                <div className="flex gap-8 pt-8">
-                    <div className="text-center">
-                        <p className="text-3xl font-bold">100%</p>
-                        <p className="text-xs text-white/40 uppercase tracking-widest">Transparency</p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-3xl font-bold">LIVE</p>
-                        <p className="text-xs text-white/40 uppercase tracking-widest">Monitoring</p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-3xl font-bold">QA</p>
-                        <p className="text-xs text-white/40 uppercase tracking-widest">Verification</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce opacity-50">
-                <p className="text-[10px] uppercase tracking-[0.3em] font-bold mb-2">Transparency Board</p>
-                <div className="h-10 w-[1px] bg-gradient-to-b from-white to-transparent mx-auto" />
             </div>
         </div>
 
         {/* Matrix Section */}
-        <section className="flex-1 container mx-auto px-4 py-24">
+        <section className="flex-1 container mx-auto px-4 pb-24 -mt-10 relative z-10">
             <div className="max-w-6xl mx-auto">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mb-16">
-                    <div className="space-y-4">
-                        <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center">
-                            <Activity className="h-6 w-6 text-primary" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-white">Live Compliance</h3>
-                        <p className="text-white/60">Every unit across our campuses is tracked in real-time. This matrix ensures accountability and continuous improvement.</p>
-                    </div>
-                    <div className="space-y-4">
-                        <div className="h-12 w-12 rounded-2xl bg-accent/20 flex items-center justify-center">
-                            <Globe className="h-6 w-6 text-accent" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-white">One University</h3>
-                        <p className="text-white/60">Bridging all sites—from Main to satellite campuses—under a unified quality management framework.</p>
-                    </div>
-                    <div className="space-y-4">
-                        <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center">
-                            <ShieldCheck className="h-6 w-6 text-white" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-white">QA Validated</h3>
-                        <p className="text-white/60">Submissions are rigorously checked by the Quality Assurance Office to maintain ISO 21001:2018 standards.</p>
-                    </div>
-                </div>
-
                 <PublicSubmissionMatrix />
             </div>
         </section>
