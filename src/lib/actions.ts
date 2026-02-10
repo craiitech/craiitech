@@ -115,3 +115,95 @@ export async function saveRiskAdmin(riskData: any, riskId?: string) {
         throw new Error(error.message || "Failed to save risk data as admin.");
     }
 }
+
+const submissionTypes = [
+  'Operational Plan',
+  'Quality Objectives Monitoring',
+  'Risk and Opportunity Registry',
+  'Risk and Opportunity Action Plan',
+  'Needs and Expectation of Interested Parties',
+  'SWOT Analysis',
+];
+
+/**
+ * Fetches compliance matrix data for the public landing page.
+ * Bypasses firestore.rules by using the Admin SDK.
+ */
+export async function getPublicSubmissionMatrixData(year: number) {
+    try {
+        const firestore = getAdminFirestore();
+        
+        // 1. Fetch Foundations
+        const campusesSnap = await firestore.collection('campuses').get();
+        const unitsSnap = await firestore.collection('units').get();
+        const cyclesSnap = await firestore.collection('cycles').where('year', '==', year).get();
+        
+        // 2. Fetch all submissions for the year
+        const submissionsSnap = await firestore.collection('submissions').where('year', '==', year).get();
+
+        const campuses = campusesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const units = unitsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const cycles = cyclesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // 3. Normalize Submissions (Fuzzy Matching)
+        const submissionMap = new Map<string, any>();
+        submissionsSnap.forEach(doc => {
+            const s = doc.data();
+            const cId = String(s.campusId || '').trim().toLowerCase();
+            const uId = String(s.unitId || '').trim().toLowerCase();
+            const cycle = String(s.cycleId || '').trim().toLowerCase();
+            
+            let rType = String(s.reportType || '').trim();
+            const lowerType = rType.toLowerCase();
+            
+            if (lowerType.includes('risk and opportunity registry')) rType = 'Risk and Opportunity Registry';
+            else if (lowerType.includes('operational plan')) rType = 'Operational Plan';
+            else if (lowerType.includes('objectives monitoring')) rType = 'Quality Objectives Monitoring';
+            else if (lowerType.includes('needs and expectation')) rType = 'Needs and Expectation of Interested Parties';
+            else if (lowerType.includes('swot')) rType = 'SWOT Analysis';
+            else if (lowerType.includes('action plan') && lowerType.includes('risk')) rType = 'Risk and Opportunity Action Plan';
+
+            const key = `${cId}-${uId}-${rType.toLowerCase()}-${cycle}`;
+            submissionMap.set(key, s);
+        });
+
+        // 4. Build Matrix
+        const matrix = campuses.map(campus => {
+            const campusUnits = units.filter((u: any) => u.campusIds?.includes(campus.id));
+            if (campusUnits.length === 0) return null;
+
+            const unitStatuses = campusUnits.map((unit: any) => {
+                const statuses: Record<string, 'submitted' | 'missing' | 'not-applicable'> = {};
+                
+                ['first', 'final'].forEach(cycleId => {
+                    const rorKey = `${campus.id.toLowerCase()}-${unit.id.toLowerCase()}-risk and opportunity registry-${cycleId}`;
+                    const ror = submissionMap.get(rorKey);
+                    const isActionPlanNA = String(ror?.riskRating || '').toLowerCase() === 'low';
+
+                    submissionTypes.forEach(type => {
+                        const key = `${campus.id.toLowerCase()}-${unit.id.toLowerCase()}-${type.toLowerCase()}-${cycleId}`;
+                        if (type === 'Risk and Opportunity Action Plan' && isActionPlanNA) {
+                            statuses[key] = 'not-applicable';
+                        } else if (submissionMap.has(key)) {
+                            statuses[key] = 'submitted';
+                        } else {
+                            statuses[key] = 'missing';
+                        }
+                    });
+                });
+
+                return { unitId: unit.id, unitName: unit.name, statuses };
+            }).sort((a, b) => a.unitName.localeCompare(b.unitName));
+
+            return { campusId: campus.id, campusName: campus.name, units: unitStatuses };
+        }).filter(Boolean).sort((a: any, b: any) => a.campusName.localeCompare(b.campusName));
+
+        const availableYears = [2024, 2025, 2026]; // Simplified or fetch from cycles collection
+
+        return { matrix, availableYears };
+
+    } catch (error) {
+        console.error("Public Matrix Error:", error);
+        throw new Error("Failed to fetch public compliance data.");
+    }
+}
