@@ -14,14 +14,23 @@ function getAdminApp(): admin.app.App {
   }
 
   try {
-    // Initialize the app with a service account credential from the file path.
+    // Attempt to initialize with a service account file if provided.
+    // In many environments, the file might not be present, so we'll wrap this.
     return admin.initializeApp({
       credential: admin.credential.cert(SERVICE_ACCOUNT_FILE_PATH),
     }, ADMIN_APP_NAME);
   } catch (error: any) {
-    console.error('CRITICAL: Firebase Admin Initialization Error from file path.', error);
-    // Throw a clear error to indicate the root cause.
-    throw new Error('Could not initialize Firebase Admin SDK. Please check service account credentials.');
+    // If the file is missing, try Application Default Credentials (ADC)
+    // which works automatically in many Cloud environments (like Firebase App Hosting).
+    try {
+        return admin.initializeApp({
+            credential: admin.credential.applicationDefault(),
+        }, ADMIN_APP_NAME);
+    } catch (adcError) {
+        console.error('CRITICAL: Firebase Admin Initialization Error.', error);
+        // Throw a clear error to indicate the root cause.
+        throw new Error('Could not initialize Firebase Admin SDK. Please ensure service account credentials are configured.');
+    }
   }
 }
 

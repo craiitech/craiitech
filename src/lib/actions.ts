@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getAdminFirestore } from '@/firebase/admin';
@@ -136,14 +137,14 @@ export async function getPublicSubmissionMatrixData(year: number) {
         // 1. Fetch Foundations
         const campusesSnap = await firestore.collection('campuses').get();
         const unitsSnap = await firestore.collection('units').get();
-        const cyclesSnap = await firestore.collection('cycles').where('year', '==', year).get();
+        const cyclesSnap = await firestore.collection('cycles').get(); // Fetch all to find years
         
-        // 2. Fetch all submissions for the year
+        // 2. Fetch all submissions for the target year
         const submissionsSnap = await firestore.collection('submissions').where('year', '==', year).get();
 
         const campuses = campusesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const units = unitsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const cycles = cyclesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const allCycles = cyclesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         // 3. Normalize Submissions (Fuzzy Matching)
         const submissionMap = new Map<string, any>();
@@ -167,8 +168,8 @@ export async function getPublicSubmissionMatrixData(year: number) {
             submissionMap.set(key, s);
         });
 
-        // 4. Build Matrix
-        const matrix = campuses.map(campus => {
+        // 4. Build Matrix with defensive checks
+        const matrix = campuses.map((campus: any) => {
             const campusUnits = units.filter((u: any) => u.campusIds?.includes(campus.id));
             if (campusUnits.length === 0) return null;
 
@@ -176,12 +177,12 @@ export async function getPublicSubmissionMatrixData(year: number) {
                 const statuses: Record<string, 'submitted' | 'missing' | 'not-applicable'> = {};
                 
                 ['first', 'final'].forEach(cycleId => {
-                    const rorKey = `${campus.id.toLowerCase()}-${unit.id.toLowerCase()}-risk and opportunity registry-${cycleId}`;
+                    const rorKey = `${String(campus.id).toLowerCase()}-${String(unit.id).toLowerCase()}-risk and opportunity registry-${cycleId}`;
                     const ror = submissionMap.get(rorKey);
                     const isActionPlanNA = String(ror?.riskRating || '').toLowerCase() === 'low';
 
                     submissionTypes.forEach(type => {
-                        const key = `${campus.id.toLowerCase()}-${unit.id.toLowerCase()}-${type.toLowerCase()}-${cycleId}`;
+                        const key = `${String(campus.id).toLowerCase()}-${String(unit.id).toLowerCase()}-${type.toLowerCase()}-${cycleId}`;
                         if (type === 'Risk and Opportunity Action Plan' && isActionPlanNA) {
                             statuses[key] = 'not-applicable';
                         } else if (submissionMap.has(key)) {
@@ -192,18 +193,22 @@ export async function getPublicSubmissionMatrixData(year: number) {
                     });
                 });
 
-                return { unitId: unit.id, unitName: unit.name, statuses };
-            }).sort((a, b) => a.unitName.localeCompare(b.unitName));
+                return { unitId: unit.id, unitName: unit.name || 'Unknown Unit', statuses };
+            }).sort((a, b) => (a.unitName || '').localeCompare(b.unitName || ''));
 
-            return { campusId: campus.id, campusName: campus.name, units: unitStatuses };
-        }).filter(Boolean).sort((a: any, b: any) => a.campusName.localeCompare(b.campusName));
+            return { campusId: campus.id, campusName: campus.name || 'Unknown Campus', units: unitStatuses };
+        })
+        .filter(Boolean)
+        .sort((a: any, b: any) => (a.campusName || '').localeCompare(b.campusName || ''));
 
-        const availableYears = [2024, 2025, 2026]; // Simplified or fetch from cycles collection
+        // Dynamic years from cycles
+        let availableYears = [...new Set(allCycles.map((c: any) => Number(c.year)))].sort((a, b) => b - a);
+        if (availableYears.length === 0) availableYears = [new Date().getFullYear()];
 
         return { matrix, availableYears };
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Public Matrix Error:", error);
-        throw new Error("Failed to fetch public compliance data.");
+        throw new Error(error.message || "Failed to fetch public compliance data.");
     }
 }
