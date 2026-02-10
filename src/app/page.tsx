@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ShieldCheck, ArrowRight } from 'lucide-react';
-import { PublicSubmissionMatrix } from '@/components/public-submission-matrix';
 
 export default function Home() {
   return (
@@ -35,16 +33,16 @@ export default function Home() {
         </div>
 
         {/* Hero Section */}
-        <section className="relative flex flex-col items-center justify-center text-center text-white pt-20 pb-10 px-4">
+        <section className="relative flex flex-col items-center justify-center text-center text-white flex-1 pt-20 pb-10 px-4">
             <div className="flex flex-col items-center justify-center space-y-8 max-w-5xl">
                 <div className="flex flex-col items-center gap-6">
-                    <div className="relative h-48 w-auto transition-transform hover:scale-105">
+                    <div className="relative transition-transform hover:scale-105">
                         <Image
                             src="/ISOlogo.jpg"
                             alt="ISO Certification"
-                            width={400}
-                            height={200}
-                            className="object-contain h-full w-full"
+                            width={500}
+                            height={250}
+                            className="object-contain h-auto w-auto max-w-[300px] md:max-w-[400px]"
                         />
                     </div>
                     <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white/80 backdrop-blur-md">
@@ -77,13 +75,6 @@ export default function Home() {
                         </Link>
                     </Button>
                 </div>
-            </div>
-        </section>
-
-        {/* Informative Transparency Board */}
-        <section className="relative container mx-auto px-4 py-12">
-            <div className="max-w-6xl mx-auto">
-                <PublicSubmissionMatrix />
             </div>
         </section>
 
