@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -7,7 +6,7 @@ import { getPublicSubmissionMatrixData } from '@/lib/actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Check, X, Loader2, Lock } from 'lucide-react';
+import { Check, X, Loader2, Info } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from './ui/button';
@@ -37,9 +36,10 @@ export function PublicSubmissionMatrix() {
         const result = await getPublicSubmissionMatrixData(selectedYear);
         if (result.error) {
             setError(result.error);
+        } else {
+            setData(result.matrix || []);
+            setYears(result.availableYears || [new Date().getFullYear()]);
         }
-        setData(result.matrix || []);
-        setYears(result.availableYears || [new Date().getFullYear()]);
       } catch (err) {
         console.error(err);
         setError("Compliance data could not be loaded at this time.");
@@ -92,16 +92,21 @@ export function PublicSubmissionMatrix() {
           </div>
         ) : error ? (
             <div className="bg-slate-900/50 border border-white/10 rounded-xl p-12 text-center flex flex-col items-center gap-4">
-                <Lock className="h-12 w-12 text-white/20" />
+                <Info className="h-12 w-12 text-blue-400/40" />
                 <div className="space-y-2">
-                    <h3 className="text-white font-semibold text-lg">Access Restricted</h3>
-                    <p className="text-white/60 text-sm max-w-md mx-auto">
+                    <h3 className="text-white font-semibold text-lg">Compliance Summary Unavailable</h3>
+                    <p className="text-white/60 text-sm max-w-md mx-auto leading-relaxed">
                         {error}
                     </p>
                 </div>
-                <Button asChild variant="outline" className="bg-white/5 border-white/20 text-white hover:bg-white/10 mt-2">
-                    <Link href="/login">Sign In to View Detailed Report</Link>
-                </Button>
+                <div className="flex gap-3 mt-4">
+                    <Button asChild variant="default" className="shadow-lg shadow-primary/20">
+                        <Link href="/login">Portal Login</Link>
+                    </Button>
+                    <Button asChild variant="outline" className="bg-white/5 border-white/20 text-white hover:bg-white/10">
+                        <Link href="/help">Contact Support</Link>
+                    </Button>
+                </div>
             </div>
         ) : (
           <Accordion type="multiple" className="w-full space-y-4" defaultValue={data.length > 0 ? [data[0].campusId] : []}>

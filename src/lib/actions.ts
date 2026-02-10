@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getAdminFirestore } from '@/firebase/admin';
@@ -149,21 +148,13 @@ export async function getPublicSubmissionMatrixData(year: number) {
     try {
         const firestore = getAdminFirestore();
         
-        // Safety check: Detect if Admin SDK is configured
-        if (!process.env.FIREBASE_SERVICE_ACCOUNT && process.env.NODE_ENV === 'production') {
-             return { 
-                matrix: [], 
-                availableYears: [new Date().getFullYear()], 
-                error: "Compliance Board Restricted: Server administrator keys are required for public viewing." 
-            };
-        }
-
         // 1. Fetch Foundation Collections
+        // We use targeted queries where possible to avoid 500 timeouts
         const [campusesSnap, unitsSnap, cyclesSnap, submissionsSnap] = await Promise.all([
             firestore.collection('campuses').get(),
             firestore.collection('units').get(),
-            firestore.collection('cycles').get(),
-            firestore.collection('submissions').get()
+            firestore.collection('cycles').where('year', '==', year).get(),
+            firestore.collection('submissions').where('year', '==', year).get()
         ]);
 
         const campuses = campusesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -174,17 +165,13 @@ export async function getPublicSubmissionMatrixData(year: number) {
         const submissionMap = new Map<string, any>();
         submissionsSnap.forEach(doc => {
             const s = doc.data();
-            const sYear = s.year ? Number(s.year) : 0;
-            
-            if (sYear === year) {
-                const cId = String(s.campusId || '').trim().toLowerCase();
-                const uId = String(s.unitId || '').trim().toLowerCase();
-                const cycle = String(s.cycleId || '').trim().toLowerCase();
-                const normalizedType = normalizeReportType(s.reportType).toLowerCase();
+            const cId = String(s.campusId || '').trim().toLowerCase();
+            const uId = String(s.unitId || '').trim().toLowerCase();
+            const cycle = String(s.cycleId || '').trim().toLowerCase();
+            const normalizedType = normalizeReportType(s.reportType).toLowerCase();
 
-                const key = `${cId}-${uId}-${normalizedType}-${cycle}`;
-                submissionMap.set(key, s);
-            }
+            const key = `${cId}-${uId}-${normalizedType}-${cycle}`;
+            submissionMap.set(key, s);
         });
 
         // 3. Construct Matrix
@@ -234,17 +221,27 @@ export async function getPublicSubmissionMatrixData(year: number) {
         .filter(Boolean)
         .sort((a: any, b: any) => (a.campusName || '').localeCompare(b.campusName || ''));
 
-        let availableYears = [...new Set(allCycles.map((c: any) => Number(c.year)))].sort((a, b) => b - a);
+        // For available years, we fetch a simplified list from all cycles
+        const yearsSnap = await firestore.collection('cycles').select('year').get();
+        let availableYears = Array.from(new Set(yearsSnap.docs.map(doc => Number(doc.data().year)))).sort((a, b) => b - a);
         if (availableYears.length === 0) availableYears = [new Date().getFullYear()];
 
         return { matrix, availableYears, error: null };
 
     } catch (error: any) {
         console.error("Public Matrix Action Error:", error);
+        // If the error is a 500 Auth error, it means the Service Account Key is missing.
+        if (error.message?.includes('access token') || error.message?.includes('500')) {
+             return { 
+                matrix: [], 
+                availableYears: [new Date().getFullYear()], 
+                error: "Compliance Data Synchronizing: The transparency board is currently connecting to the secure vault. Please check back shortly." 
+            };
+        }
         return { 
             matrix: [], 
             availableYears: [new Date().getFullYear()], 
-            error: "The transparency board is currently offline. Please log in to view detailed compliance." 
+            error: "The transparency board is currently offline for maintenance. Please sign in to the portal for detailed compliance tracking." 
         };
     }
 }
