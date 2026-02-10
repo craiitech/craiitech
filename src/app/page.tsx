@@ -1,10 +1,10 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
 import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +25,7 @@ export default function Home() {
         <div className="fixed inset-0 -z-20 h-full w-full">
             <Image
                 src="/rsupage.png"
-                alt="University Background"
+                alt="Romblon State University Background"
                 fill
                 priority
                 className="object-cover"

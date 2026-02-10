@@ -1,44 +1,23 @@
 
 import * as admin from 'firebase-admin';
 import { firebaseConfig } from './config';
-import fs from 'fs';
-
-// This is the path to the service account key file that might be provisioned
-const SERVICE_ACCOUNT_FILE_PATH = './firebase-admin-service-account.json';
 
 /**
  * Robustly initializes the Firebase Admin SDK.
- * It checks for a local service account file first, then falls back to Application Default Credentials.
- * Providing the projectId explicitly helps resolve token refresh errors in some environments.
+ * It uses the project ID from the configuration to ensure the SDK identifies
+ * the correct project even when explicit credentials are not provided.
  */
 function initializeAdmin() {
   if (admin.apps.length > 0) {
     return admin.apps[0]!;
   }
 
-  const options: admin.AppOptions = {
+  // Attempt to initialize with the projectId. In many cloud environments, 
+  // credentials are provided automatically. If not, the Firestore calls 
+  // will be caught by the error handler in the server action.
+  return admin.initializeApp({
     projectId: firebaseConfig.projectId,
-  };
-
-  try {
-    // Check if service account file exists locally
-    if (fs.existsSync(SERVICE_ACCOUNT_FILE_PATH)) {
-      options.credential = admin.credential.cert(SERVICE_ACCOUNT_FILE_PATH);
-    } else {
-      // Fallback to Application Default Credentials (ADC)
-      // Note: This may fail in local environments without GOOGLE_APPLICATION_CREDENTIALS
-      options.credential = admin.credential.applicationDefault();
-    }
-
-    return admin.initializeApp(options);
-  } catch (error) {
-    console.error('Firebase Admin Initialization Warning:', error);
-    // Final fallback attempt with no options if everything else fails
-    // This allows the SDK to at least initialize, though it may fail on secured requests
-    return admin.initializeApp({
-        projectId: firebaseConfig.projectId,
-    });
-  }
+  });
 }
 
 /**

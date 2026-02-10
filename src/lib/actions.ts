@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getAdminFirestore } from '@/firebase/admin';
@@ -209,11 +210,11 @@ export async function getPublicSubmissionMatrixData(year: number) {
 
     } catch (error: any) {
         console.error("Public Matrix Error:", error);
-        // Return a safe error state instead of throwing
+        // Return a safe error state instead of crashing
         return { 
             matrix: [], 
             availableYears: [new Date().getFullYear()], 
-            error: "The transparency board is temporarily offline due to a connection issue with the database. Authenticated users can still access records via the dashboard." 
+            error: "The public transparency board is temporarily restricted. Authenticated users can still access the live compliance matrix via the dashboard." 
         };
     }
 }

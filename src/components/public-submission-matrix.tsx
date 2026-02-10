@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -6,10 +7,12 @@ import { getPublicSubmissionMatrixData } from '@/lib/actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Check, X, Loader2, AlertCircle } from 'lucide-react';
+import { Check, X, Loader2, AlertCircle, Lock } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Button } from './ui/button';
+import Link from 'next/link';
 
 const submissionTypes = [
   'Operational Plan',
@@ -40,7 +43,7 @@ export function PublicSubmissionMatrix() {
         setYears(result.availableYears || [new Date().getFullYear()]);
       } catch (err) {
         console.error(err);
-        setError("An unexpected error occurred while loading the transparency data.");
+        setError("The transparency data could not be loaded at this time.");
       } finally {
         setIsLoading(false);
       }
@@ -64,12 +67,12 @@ export function PublicSubmissionMatrix() {
     <Card className="border-none shadow-none bg-transparent">
       <CardHeader className="px-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="text-left">
-          <CardTitle className="text-2xl text-white">Public Transparency Board</CardTitle>
+          <CardTitle className="text-2xl text-white">Transparency Board</CardTitle>
           <CardDescription className="text-white/60">
-            Real-time ISO 21001:2018 compliance tracking across all university units.
+            Unit compliance status for the ISO 21001:2018 Management System.
           </CardDescription>
         </div>
-        {!error && (
+        {!error && !isLoading && data.length > 0 && (
             <div className="flex items-center gap-2">
                 <span className="text-sm text-white/60">Reporting Year:</span>
                 <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
@@ -90,11 +93,19 @@ export function PublicSubmissionMatrix() {
             <p>Aggregating compliance data...</p>
           </div>
         ) : error ? (
-            <Alert variant="destructive" className="bg-red-950/20 border-red-900/50 text-red-200">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Connection Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-            </Alert>
+            <div className="bg-slate-900/50 border border-white/10 rounded-xl p-12 text-center flex flex-col items-center gap-4">
+                <Lock className="h-12 w-12 text-white/20" />
+                <div className="space-y-2">
+                    <h3 className="text-white font-semibold text-lg">Restricted Access</h3>
+                    <p className="text-white/60 text-sm max-w-md mx-auto">
+                        The live compliance matrix is currently restricted to authenticated RSU employees. 
+                        Please log in to view the real-time submission status for all units.
+                    </p>
+                </div>
+                <Button asChild variant="outline" className="bg-white/5 border-white/20 text-white hover:bg-white/10 mt-2">
+                    <Link href="/login">Sign In to View Board</Link>
+                </Button>
+            </div>
         ) : (
           <Accordion type="multiple" className="w-full space-y-4" defaultValue={data.length > 0 ? [data[0].campusId] : []}>
             {data.map((campus) => (
@@ -155,7 +166,7 @@ export function PublicSubmissionMatrix() {
           </Accordion>
         )}
         
-        {!isLoading && !error && (
+        {!isLoading && !error && data.length > 0 && (
             <div className="mt-6 flex flex-wrap gap-4 text-xs text-white/40">
                 <div className="flex items-center gap-1.5">
                     <div className="bg-green-500/20 p-0.5 rounded"><Check className="h-3 w-3 text-green-500" /></div>
@@ -166,7 +177,7 @@ export function PublicSubmissionMatrix() {
                     <span>Pending Submission</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <Badge variant="secondary" className="h-4 py-0 text-[9px] bg-white/10">N/A</Badge>
+                    <Badge variant="secondary" className="h-4 py-0 text-[9px] bg-white/10 text-white/60">N/A</Badge>
                     <span>Not Applicable</span>
                 </div>
             </div>
