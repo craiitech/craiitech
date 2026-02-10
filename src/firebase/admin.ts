@@ -1,36 +1,41 @@
 
 import * as admin from 'firebase-admin';
+import { firebaseConfig } from './config';
+import fs from 'fs';
 
-// This is the path to the service account key file that has been securely 
-// provisioned in the server environment.
+// This is the path to the service account key file that might be provisioned
 const SERVICE_ACCOUNT_FILE_PATH = './firebase-admin-service-account.json';
-const ADMIN_APP_NAME = 'firebase-admin-app';
 
-
-function getAdminApp(): admin.app.App {
-  // Check if the app is already initialized to prevent errors.
-  if (admin.apps.some(app => app?.name === ADMIN_APP_NAME)) {
-    return admin.app(ADMIN_APP_NAME);
+/**
+ * Robustly initializes the Firebase Admin SDK.
+ * It checks for a local service account file first, then falls back to Application Default Credentials.
+ * Providing the projectId explicitly helps resolve token refresh errors in some environments.
+ */
+function initializeAdmin() {
+  if (admin.apps.length > 0) {
+    return admin.apps[0]!;
   }
 
+  const options: admin.AppOptions = {
+    projectId: firebaseConfig.projectId,
+  };
+
   try {
-    // Attempt to initialize with a service account file if provided.
-    // In many environments, the file might not be present, so we'll wrap this.
-    return admin.initializeApp({
-      credential: admin.credential.cert(SERVICE_ACCOUNT_FILE_PATH),
-    }, ADMIN_APP_NAME);
-  } catch (error: any) {
-    // If the file is missing, try Application Default Credentials (ADC)
-    // which works automatically in many Cloud environments (like Firebase App Hosting).
-    try {
-        return admin.initializeApp({
-            credential: admin.credential.applicationDefault(),
-        }, ADMIN_APP_NAME);
-    } catch (adcError) {
-        console.error('CRITICAL: Firebase Admin Initialization Error.', error);
-        // Throw a clear error to indicate the root cause.
-        throw new Error('Could not initialize Firebase Admin SDK. Please ensure service account credentials are configured.');
+    // Check if service account file exists locally
+    if (fs.existsSync(SERVICE_ACCOUNT_FILE_PATH)) {
+      options.credential = admin.credential.cert(SERVICE_ACCOUNT_FILE_PATH);
+    } else {
+      // Fallback to Application Default Credentials (ADC)
+      options.credential = admin.credential.applicationDefault();
     }
+
+    return admin.initializeApp(options);
+  } catch (error) {
+    console.error('Firebase Admin Initialization Warning:', error);
+    // Final fallback attempt with no options if everything else fails
+    return admin.initializeApp({
+        projectId: firebaseConfig.projectId,
+    });
   }
 }
 
@@ -38,14 +43,17 @@ function getAdminApp(): admin.app.App {
  * Returns an initialized Firestore admin instance.
  */
 export function getAdminFirestore() {
-  const app = getAdminApp();
-  return admin.firestore(app);
+  initializeAdmin();
+  const db = admin.firestore();
+  // Ensure settings are optimal for server-side use
+  db.settings({ ignoreUndefinedProperties: true });
+  return db;
 }
 
 /**
  * Returns an initialized Auth admin instance.
  */
 export function getAdminAuth() {
-  const app = getAdminApp();
-  return admin.auth(app);
+  initializeAdmin();
+  return admin.auth();
 }

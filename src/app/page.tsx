@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { PublicSubmissionMatrix } from '@/components/public-submission-matrix';
-import { ShieldCheck, ArrowRight } from 'lucide-react';
+import { ShieldCheck, ArrowRight, Info } from 'lucide-react';
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero-landing');
@@ -24,7 +25,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col">
         {/* Hero Section */}
-        <div className="relative min-h-[80vh] flex flex-col items-center justify-center text-center text-white overflow-hidden shrink-0 py-20">
+        <div className="relative min-h-[70vh] flex flex-col items-center justify-center text-center text-white overflow-hidden shrink-0 py-20">
             {heroImage && (
                 <Image
                     src={heroImage.imageUrl}
@@ -45,12 +46,12 @@ export default function Home() {
                 
                 <div className="space-y-4">
                     <div className="flex items-center justify-center gap-4">
-                        <Logo className="h-16 w-16 text-white" />
-                        <h1 className="text-5xl font-bold tracking-tighter sm:text-7xl xl:text-8xl/none">
+                        <Logo className="h-12 w-12 text-white" />
+                        <h1 className="text-4xl font-bold tracking-tighter sm:text-6xl xl:text-7xl/none">
                             RSU EOMS
                         </h1>
                     </div>
-                    <p className="text-xl sm:text-2xl text-white/70 max-w-2xl mx-auto">
+                    <p className="text-lg sm:text-xl text-white/70 max-w-2xl mx-auto">
                         Educational Organizations Management System Submission and Monitoring Portal.
                     </p>
                 </div>
@@ -71,7 +72,7 @@ export default function Home() {
         </div>
 
         {/* Matrix Section */}
-        <section className="flex-1 container mx-auto px-4 pb-24 -mt-10 relative z-10">
+        <section className="flex-1 container mx-auto px-4 pb-24 relative z-10">
             <div className="max-w-6xl mx-auto">
                 <PublicSubmissionMatrix />
             </div>
@@ -100,12 +101,12 @@ export default function Home() {
                             </AlertDialogHeader>
                             <div className="text-sm space-y-4 py-4">
                                 <div className="p-4 rounded-lg bg-white/5 border border-white/5">
-                                    <p className="font-bold text-primary mb-1">PROJECT LEADER & DEVELOPER</p>
+                                    <p className="font-bold text-primary mb-1 text-[10px] uppercase tracking-widest">Project Lead</p>
                                     <p className="text-lg">Dr. Marvin Rick G. Forcado</p>
                                 </div>
                                 <div className="space-y-2">
-                                    <p className="font-semibold text-white/80 px-1">Project Members:</p>
-                                    <ul className="grid grid-cols-2 gap-2 text-white/60 text-xs px-1">
+                                    <p className="font-semibold text-white/80 px-1 text-xs">Project Members:</p>
+                                    <ul className="grid grid-cols-2 gap-2 text-white/60 text-[10px] px-1">
                                         <li>Ms. Sarah Jane F. Fallaria</li>
                                         <li>Ms. Zachary F. Fetalco</li>
                                         <li>Ms. Aimelyn D. Rufon</li>

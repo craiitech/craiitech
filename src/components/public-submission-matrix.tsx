@@ -1,14 +1,16 @@
+
 'use client';
 
 import * as React from 'react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { getPublicSubmissionMatrixData } from '@/lib/actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Check, X, Loader2, Info } from 'lucide-react';
+import { Check, X, Loader2, AlertCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 const submissionTypes = [
   'Operational Plan',
@@ -24,16 +26,22 @@ export function PublicSubmissionMatrix() {
   const [years, setYears] = useState<number[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
+      setError(null);
       try {
         const result = await getPublicSubmissionMatrixData(selectedYear);
-        setData(result.matrix);
-        setYears(result.availableYears);
-      } catch (error) {
-        console.error(error);
+        if (result.error) {
+            setError(result.error);
+        }
+        setData(result.matrix || []);
+        setYears(result.availableYears || [new Date().getFullYear()]);
+      } catch (err) {
+        console.error(err);
+        setError("An unexpected error occurred while loading the transparency data.");
       } finally {
         setIsLoading(false);
       }
@@ -62,17 +70,19 @@ export function PublicSubmissionMatrix() {
             Real-time ISO 21001:2018 compliance tracking across all university units.
           </CardDescription>
         </div>
-        <div className="flex items-center gap-2">
-            <span className="text-sm text-white/60">Reporting Year:</span>
-            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                <SelectTrigger className="w-[120px] bg-white/10 border-white/20 text-white">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                    {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                </SelectContent>
-            </Select>
-        </div>
+        {!error && (
+            <div className="flex items-center gap-2">
+                <span className="text-sm text-white/60">Reporting Year:</span>
+                <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                    <SelectTrigger className="w-[120px] bg-white/10 border-white/20 text-white">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+        )}
       </CardHeader>
       <CardContent className="px-0">
         {isLoading ? (
@@ -80,6 +90,12 @@ export function PublicSubmissionMatrix() {
             <Loader2 className="h-8 w-8 animate-spin mb-2" />
             <p>Aggregating compliance data...</p>
           </div>
+        ) : error ? (
+            <Alert variant="destructive" className="bg-red-950/20 border-red-900/50 text-red-200">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Connection Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
         ) : (
           <Accordion type="multiple" className="w-full space-y-4" defaultValue={data.length > 0 ? [data[0].campusId] : []}>
             {data.map((campus) => (
@@ -115,8 +131,8 @@ export function PublicSubmissionMatrix() {
                           <TableRow key={unit.unitId} className="border-white/5 hover:bg-white/10 transition-colors">
                             <TableCell className="font-medium text-white text-xs bg-slate-900 md:bg-transparent border-r border-white/10 sticky left-0 z-10">{unit.unitName}</TableCell>
                             {submissionTypes.map(type => {
-                                const cId = campus.campusId.toLowerCase();
-                                const uId = unit.unitId.toLowerCase();
+                                const cId = String(campus.campusId).toLowerCase();
+                                const uId = String(unit.unitId).toLowerCase();
                                 const t = type.toLowerCase();
                                 return (
                                     <React.Fragment key={type}>
@@ -139,20 +155,23 @@ export function PublicSubmissionMatrix() {
             ))}
           </Accordion>
         )}
-        <div className="mt-6 flex flex-wrap gap-4 text-xs text-white/40">
-            <div className="flex items-center gap-1.5">
-                <div className="bg-green-500/20 p-0.5 rounded"><Check className="h-3 w-3 text-green-500" /></div>
-                <span>Submitted & Validated</span>
+        
+        {!isLoading && !error && (
+            <div className="mt-6 flex flex-wrap gap-4 text-xs text-white/40">
+                <div className="flex items-center gap-1.5">
+                    <div className="bg-green-500/20 p-0.5 rounded"><Check className="h-3 w-3 text-green-500" /></div>
+                    <span>Submitted & Validated</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <div className="bg-red-500/20 p-0.5 rounded"><X className="h-3 w-3 text-red-500" /></div>
+                    <span>Pending Submission</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <Badge variant="secondary" className="h-4 py-0 text-[9px] bg-white/10">N/A</Badge>
+                    <span>Not Applicable</span>
+                </div>
             </div>
-            <div className="flex items-center gap-1.5">
-                <div className="bg-red-500/20 p-0.5 rounded"><X className="h-3 w-3 text-red-500" /></div>
-                <span>Pending Submission</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-                <Badge variant="secondary" className="h-4 py-0 text-[9px] bg-white/10">N/A</Badge>
-                <span>Not Applicable (Based on Risk Rating)</span>
-            </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
