@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -39,14 +38,14 @@ export default function Home() {
         {/* Hero Section */}
         <section className="relative flex-1 flex flex-col items-center justify-center text-center text-white py-20 px-4">
             <div className="flex flex-col items-center justify-center space-y-8 max-w-5xl">
-                <div className="flex flex-col items-center gap-4">
+                <div className="flex flex-col items-center gap-6">
                     {isoLogo && (
-                        <div className="relative h-28 w-28 rounded-xl border border-white/20 bg-white/5 p-2 backdrop-blur-md shadow-2xl transition-transform hover:scale-105">
+                        <div className="relative h-64 w-64 transition-transform hover:scale-105">
                             <Image
                                 src={isoLogo.imageUrl}
                                 alt={isoLogo.description}
-                                width={100}
-                                height={100}
+                                width={256}
+                                height={256}
                                 className="rounded-lg object-contain h-full w-full"
                                 data-ai-hint={isoLogo.imageHint}
                             />
