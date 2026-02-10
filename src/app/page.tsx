@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -15,8 +16,11 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ShieldCheck, ArrowRight } from 'lucide-react';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function Home() {
+  const qrImage = PlaceHolderImages.find(p => p.id === 'iso-qr');
+
   return (
     <div className="relative min-h-screen flex flex-col overflow-x-hidden">
         {/* Full-Page Fixed Background */}
@@ -35,9 +39,23 @@ export default function Home() {
         {/* Hero Section */}
         <section className="relative flex-1 flex flex-col items-center justify-center text-center text-white py-20 px-4">
             <div className="flex flex-col items-center justify-center space-y-8 max-w-5xl">
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white/80 backdrop-blur-md">
-                    <ShieldCheck className="h-4 w-4 text-primary" />
-                    <span>ISO 21001:2018 Certified Management System</span>
+                <div className="flex flex-col items-center gap-4">
+                    {qrImage && (
+                        <div className="relative h-24 w-24 rounded-xl border border-white/20 bg-white/5 p-2 backdrop-blur-md shadow-2xl transition-transform hover:scale-105">
+                            <Image
+                                src={qrImage.imageUrl}
+                                alt={qrImage.description}
+                                width={80}
+                                height={80}
+                                className="rounded-lg object-contain"
+                                data-ai-hint={qrImage.imageHint}
+                            />
+                        </div>
+                    )}
+                    <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white/80 backdrop-blur-md">
+                        <ShieldCheck className="h-4 w-4 text-primary" />
+                        <span>ISO 21001:2018 Certified Management System</span>
+                    </div>
                 </div>
                 
                 <div className="space-y-4">
