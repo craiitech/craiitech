@@ -127,7 +127,8 @@ const submissionTypes = [
 ];
 
 /**
- * Normalizes a report type string to handle fuzzy matching and legacy names.
+ * Robust Normalization for Report Types.
+ * Handles pluralization and missing prefixes (e.g., "Operational Plans" -> "Operational Plan").
  */
 function normalizeReportType(type: string): string {
     const lower = String(type || '').trim().toLowerCase();
@@ -143,28 +144,30 @@ function normalizeReportType(type: string): string {
 /**
  * Fetches compliance matrix data for the public landing page.
  * Bypasses firestore.rules by using the Admin SDK.
+ * Implements robust normalization for years, titles, and IDs.
  */
 export async function getPublicSubmissionMatrixData(year: number) {
     try {
         const firestore = getAdminFirestore();
         
-        // 1. Fetch Foundations
-        const campusesSnap = await firestore.collection('campuses').get();
-        const unitsSnap = await firestore.collection('units').get();
-        const cyclesSnap = await firestore.collection('cycles').get(); 
-        
-        // 2. Fetch all submissions. We filter by year in memory to be safe about string vs number types.
-        const submissionsSnap = await firestore.collection('submissions').get();
+        // 1. Fetch Foundation Collections
+        const [campusesSnap, unitsSnap, cyclesSnap, submissionsSnap] = await Promise.all([
+            firestore.collection('campuses').get(),
+            firestore.collection('units').get(),
+            firestore.collection('cycles').get(),
+            firestore.collection('submissions').get()
+        ]);
 
         const campuses = campusesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const units = unitsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const allCycles = cyclesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // 3. Normalize Submissions into a robust lookup map
+        // 2. Build Submission Lookup Map with strict normalization
         const submissionMap = new Map<string, any>();
         submissionsSnap.forEach(doc => {
             const s = doc.data();
-            const sYear = Number(s.year);
+            // YEAR TYPE COERCION: Handle string vs number
+            const sYear = s.year ? Number(s.year) : 0;
             
             if (sYear === year) {
                 const cId = String(s.campusId || '').trim().toLowerCase();
@@ -172,23 +175,25 @@ export async function getPublicSubmissionMatrixData(year: number) {
                 const cycle = String(s.cycleId || '').trim().toLowerCase();
                 const normalizedType = normalizeReportType(s.reportType).toLowerCase();
 
+                // ID Normalization is critical for matrix lookups
                 const key = `${cId}-${uId}-${normalizedType}-${cycle}`;
                 submissionMap.set(key, s);
             }
         });
 
-        // 4. Build Matrix with strict key consistency
+        // 3. Construct Matrix
         const matrix = campuses.map((campus: any) => {
-            const cId = String(campus.id).trim().toLowerCase();
+            const cId = String(campus.id || '').trim().toLowerCase();
             const campusUnits = units.filter((u: any) => u.campusIds?.includes(campus.id));
             
             if (campusUnits.length === 0) return null;
 
             const unitStatuses = campusUnits.map((unit: any) => {
-                const uId = String(unit.id).trim().toLowerCase();
-                const statuses: Record<string, 'submitted' | 'missing' | 'not-applicable'> = {};
+                const uId = String(unit.id || '').trim().toLowerCase();
+                const statuses: Record<string, string> = {};
                 
                 ['first', 'final'].forEach(cycleId => {
+                    // Check ROR for Action Plan Applicability
                     const rorKey = `${cId}-${uId}-risk and opportunity registry-${cycleId}`;
                     const ror = submissionMap.get(rorKey);
                     const riskRating = String(ror?.riskRating || '').toLowerCase();
@@ -208,22 +213,31 @@ export async function getPublicSubmissionMatrixData(year: number) {
                     });
                 });
 
-                return { unitId: unit.id, unitName: unit.name || 'Unknown Unit', statuses };
+                return { 
+                    unitId: unit.id, 
+                    unitName: unit.name || 'Unknown Unit', 
+                    statuses 
+                };
             }).sort((a, b) => (a.unitName || '').localeCompare(b.unitName || ''));
 
-            return { campusId: campus.id, campusName: campus.name || 'Unknown Campus', units: unitStatuses };
+            return { 
+                campusId: campus.id, 
+                campusName: campus.name || 'Unknown Campus', 
+                units: unitStatuses 
+            };
         })
         .filter(Boolean)
         .sort((a: any, b: any) => (a.campusName || '').localeCompare(b.campusName || ''));
 
-        // Extract available years from cycles for the selector
+        // Extract years for UI selector
         let availableYears = [...new Set(allCycles.map((c: any) => Number(c.year)))].sort((a, b) => b - a);
         if (availableYears.length === 0) availableYears = [new Date().getFullYear()];
 
         return { matrix, availableYears, error: null };
 
     } catch (error: any) {
-        console.error("Public Matrix Data Action Error:", error);
+        console.error("Public Matrix Action Error:", error);
+        // Return a safe state instead of throwing to prevent crashing the landing page
         return { 
             matrix: [], 
             availableYears: [new Date().getFullYear()], 
