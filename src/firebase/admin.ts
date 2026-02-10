@@ -12,12 +12,16 @@ function initializeAdmin() {
     return admin.apps[0]!;
   }
 
-  // Attempt to initialize with the projectId. In many cloud environments, 
-  // credentials are provided automatically. If not, the Firestore calls 
-  // will be caught by the error handler in the server action.
-  return admin.initializeApp({
-    projectId: firebaseConfig.projectId,
-  });
+  // Attempt to initialize with the projectId. 
+  // We use try-catch to handle environments where multiple initializations might collide.
+  try {
+    return admin.initializeApp({
+      projectId: firebaseConfig.projectId,
+    });
+  } catch (error) {
+    console.error("Firebase Admin initialization warning:", error);
+    return admin.app();
+  }
 }
 
 /**

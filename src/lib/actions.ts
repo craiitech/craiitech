@@ -127,9 +127,22 @@ const submissionTypes = [
 ];
 
 /**
+ * Normalizes a report type string to handle fuzzy matching and legacy names.
+ */
+function normalizeReportType(type: string): string {
+    const lower = String(type || '').trim().toLowerCase();
+    if (lower.includes('risk and opportunity registry')) return 'Risk and Opportunity Registry';
+    if (lower.includes('operational plan')) return 'Operational Plan';
+    if (lower.includes('objectives monitoring')) return 'Quality Objectives Monitoring';
+    if (lower.includes('needs and expectation')) return 'Needs and Expectation of Interested Parties';
+    if (lower.includes('swot')) return 'SWOT Analysis';
+    if (lower.includes('action plan') && lower.includes('risk')) return 'Risk and Opportunity Action Plan';
+    return type;
+}
+
+/**
  * Fetches compliance matrix data for the public landing page.
  * Bypasses firestore.rules by using the Admin SDK.
- * Returns a fallback object instead of throwing to prevent landing page crashes.
  */
 export async function getPublicSubmissionMatrixData(year: number) {
     try {
@@ -140,50 +153,51 @@ export async function getPublicSubmissionMatrixData(year: number) {
         const unitsSnap = await firestore.collection('units').get();
         const cyclesSnap = await firestore.collection('cycles').get(); 
         
-        // 2. Fetch all submissions for the target year
-        const submissionsSnap = await firestore.collection('submissions').where('year', '==', year).get();
+        // 2. Fetch all submissions. We filter by year in memory to be safe about string vs number types.
+        const submissionsSnap = await firestore.collection('submissions').get();
 
         const campuses = campusesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const units = unitsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const allCycles = cyclesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // 3. Normalize Submissions (Fuzzy Matching)
+        // 3. Normalize Submissions into a robust lookup map
         const submissionMap = new Map<string, any>();
         submissionsSnap.forEach(doc => {
             const s = doc.data();
-            const cId = String(s.campusId || '').trim().toLowerCase();
-            const uId = String(s.unitId || '').trim().toLowerCase();
-            const cycle = String(s.cycleId || '').trim().toLowerCase();
+            const sYear = Number(s.year);
             
-            let rType = String(s.reportType || '').trim();
-            const lowerType = rType.toLowerCase();
-            
-            if (lowerType.includes('risk and opportunity registry')) rType = 'Risk and Opportunity Registry';
-            else if (lowerType.includes('operational plan')) rType = 'Operational Plan';
-            else if (lowerType.includes('objectives monitoring')) rType = 'Quality Objectives Monitoring';
-            else if (lowerType.includes('needs and expectation')) rType = 'Needs and Expectation of Interested Parties';
-            else if (lowerType.includes('swot')) rType = 'SWOT Analysis';
-            else if (lowerType.includes('action plan') && lowerType.includes('risk')) rType = 'Risk and Opportunity Action Plan';
+            if (sYear === year) {
+                const cId = String(s.campusId || '').trim().toLowerCase();
+                const uId = String(s.unitId || '').trim().toLowerCase();
+                const cycle = String(s.cycleId || '').trim().toLowerCase();
+                const normalizedType = normalizeReportType(s.reportType).toLowerCase();
 
-            const key = `${cId}-${uId}-${rType.toLowerCase()}-${cycle}`;
-            submissionMap.set(key, s);
+                const key = `${cId}-${uId}-${normalizedType}-${cycle}`;
+                submissionMap.set(key, s);
+            }
         });
 
-        // 4. Build Matrix
+        // 4. Build Matrix with strict key consistency
         const matrix = campuses.map((campus: any) => {
+            const cId = String(campus.id).trim().toLowerCase();
             const campusUnits = units.filter((u: any) => u.campusIds?.includes(campus.id));
+            
             if (campusUnits.length === 0) return null;
 
             const unitStatuses = campusUnits.map((unit: any) => {
+                const uId = String(unit.id).trim().toLowerCase();
                 const statuses: Record<string, 'submitted' | 'missing' | 'not-applicable'> = {};
                 
                 ['first', 'final'].forEach(cycleId => {
-                    const rorKey = `${String(campus.id).toLowerCase()}-${String(unit.id).toLowerCase()}-risk and opportunity registry-${cycleId}`;
+                    const rorKey = `${cId}-${uId}-risk and opportunity registry-${cycleId}`;
                     const ror = submissionMap.get(rorKey);
-                    const isActionPlanNA = String(ror?.riskRating || '').toLowerCase() === 'low';
+                    const riskRating = String(ror?.riskRating || '').toLowerCase();
+                    const isActionPlanNA = riskRating === 'low';
 
                     submissionTypes.forEach(type => {
-                        const key = `${String(campus.id).toLowerCase()}-${String(unit.id).toLowerCase()}-${type.toLowerCase()}-${cycleId}`;
+                        const normalizedType = type.toLowerCase();
+                        const key = `${cId}-${uId}-${normalizedType}-${cycleId}`;
+                        
                         if (type === 'Risk and Opportunity Action Plan' && isActionPlanNA) {
                             statuses[key] = 'not-applicable';
                         } else if (submissionMap.has(key)) {
@@ -202,19 +216,18 @@ export async function getPublicSubmissionMatrixData(year: number) {
         .filter(Boolean)
         .sort((a: any, b: any) => (a.campusName || '').localeCompare(b.campusName || ''));
 
-        // Dynamic years from cycles
+        // Extract available years from cycles for the selector
         let availableYears = [...new Set(allCycles.map((c: any) => Number(c.year)))].sort((a, b) => b - a);
         if (availableYears.length === 0) availableYears = [new Date().getFullYear()];
 
         return { matrix, availableYears, error: null };
 
     } catch (error: any) {
-        console.error("Public Matrix Error:", error);
-        // Return a safe error state instead of crashing
+        console.error("Public Matrix Data Action Error:", error);
         return { 
             matrix: [], 
             availableYears: [new Date().getFullYear()], 
-            error: "The public transparency board is temporarily restricted. Authenticated users can still access the live compliance matrix via the dashboard." 
+            error: "The university transparency board is currently restricted. Please sign in to the portal to view the live compliance matrix." 
         };
     }
 }

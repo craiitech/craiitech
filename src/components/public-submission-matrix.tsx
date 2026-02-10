@@ -7,10 +7,9 @@ import { getPublicSubmissionMatrixData } from '@/lib/actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Check, X, Loader2, AlertCircle, Lock } from 'lucide-react';
+import { Check, X, Loader2, Lock } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Button } from './ui/button';
 import Link from 'next/link';
 
@@ -43,7 +42,7 @@ export function PublicSubmissionMatrix() {
         setYears(result.availableYears || [new Date().getFullYear()]);
       } catch (err) {
         console.error(err);
-        setError("The transparency data could not be loaded at this time.");
+        setError("Compliance data could not be loaded at this time.");
       } finally {
         setIsLoading(false);
       }
@@ -54,12 +53,11 @@ export function PublicSubmissionMatrix() {
   const renderCell = (status: string | undefined) => {
     switch (status) {
       case 'submitted':
-        return <Check className="h-4 w-4 text-green-500 mx-auto" />;
+        return <div className="bg-green-500/20 p-1 rounded-full w-fit mx-auto"><Check className="h-3 w-3 text-green-500" /></div>;
       case 'not-applicable':
-        return <span className="text-[10px] font-bold text-muted-foreground mx-auto block text-center">N/A</span>;
-      case 'missing':
+        return <span className="text-[9px] font-bold text-white/30 mx-auto block text-center">N/A</span>;
       default:
-        return <X className="h-4 w-4 text-red-500 mx-auto opacity-30" />;
+        return <div className="bg-red-500/10 p-1 rounded-full w-fit mx-auto"><X className="h-3 w-3 text-red-500/40" /></div>;
     }
   };
 
@@ -69,14 +67,14 @@ export function PublicSubmissionMatrix() {
         <div className="text-left">
           <CardTitle className="text-2xl text-white">Transparency Board</CardTitle>
           <CardDescription className="text-white/60">
-            Unit compliance status for the ISO 21001:2018 Management System.
+            Real-time compliance status for the ISO 21001:2018 Management System.
           </CardDescription>
         </div>
         {!error && !isLoading && data.length > 0 && (
-            <div className="flex items-center gap-2">
-                <span className="text-sm text-white/60">Reporting Year:</span>
+            <div className="flex items-center gap-3">
+                <span className="text-xs text-white/40 font-semibold uppercase tracking-widest">Year:</span>
                 <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                    <SelectTrigger className="w-[120px] bg-white/10 border-white/20 text-white">
+                    <SelectTrigger className="w-[100px] h-8 bg-white/5 border-white/10 text-white text-xs">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -90,20 +88,19 @@ export function PublicSubmissionMatrix() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-64 text-white/60">
             <Loader2 className="h-8 w-8 animate-spin mb-2" />
-            <p>Aggregating compliance data...</p>
+            <p className="text-sm">Fetching compliance data...</p>
           </div>
         ) : error ? (
             <div className="bg-slate-900/50 border border-white/10 rounded-xl p-12 text-center flex flex-col items-center gap-4">
                 <Lock className="h-12 w-12 text-white/20" />
                 <div className="space-y-2">
-                    <h3 className="text-white font-semibold text-lg">Restricted Access</h3>
+                    <h3 className="text-white font-semibold text-lg">Access Restricted</h3>
                     <p className="text-white/60 text-sm max-w-md mx-auto">
-                        The live compliance matrix is currently restricted to authenticated RSU employees. 
-                        Please log in to view the real-time submission status for all units.
+                        {error}
                     </p>
                 </div>
                 <Button asChild variant="outline" className="bg-white/5 border-white/20 text-white hover:bg-white/10 mt-2">
-                    <Link href="/login">Sign In to View Board</Link>
+                    <Link href="/login">Sign In to View Detailed Report</Link>
                 </Button>
             </div>
         ) : (
@@ -112,22 +109,22 @@ export function PublicSubmissionMatrix() {
               <AccordionItem 
                 value={campus.campusId} 
                 key={campus.campusId}
-                className="border border-white/10 rounded-lg overflow-hidden bg-white/5"
+                className="border border-white/10 rounded-lg overflow-hidden bg-black/20 backdrop-blur-sm"
               >
-                <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-white/5 text-white font-bold uppercase tracking-wider">
+                <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-white/5 text-white font-bold uppercase tracking-wider text-sm">
                   {campus.campusName}
                 </AccordionTrigger>
-                <AccordionContent className="bg-white/5">
+                <AccordionContent className="bg-white/5 p-0">
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow className="border-white/10 hover:bg-transparent">
-                          <TableHead rowSpan={2} className="bg-slate-900 text-white font-bold min-w-[200px] border-r border-white/10 sticky left-0 z-20">UNIT</TableHead>
+                        <TableRow className="border-white/10 hover:bg-transparent bg-white/5">
+                          <TableHead rowSpan={2} className="text-white font-bold min-w-[220px] border-r border-white/10 sticky left-0 z-20 bg-slate-950">UNIT NAME</TableHead>
                           {submissionTypes.map(type => (
                             <TableHead key={type} colSpan={2} className="text-center text-[9px] text-white/80 font-bold uppercase border-l border-white/10">{type}</TableHead>
                           ))}
                         </TableRow>
-                        <TableRow className="border-white/10 hover:bg-transparent">
+                        <TableRow className="border-white/10 hover:bg-transparent bg-white/5">
                           {submissionTypes.map(type => (
                             <React.Fragment key={type}>
                               <TableHead className="text-center border-l border-white/10 text-[8px] py-1 text-white/40">1ST</TableHead>
@@ -137,26 +134,28 @@ export function PublicSubmissionMatrix() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {campus.units.map((unit: any) => (
-                          <TableRow key={unit.unitId} className="border-white/5 hover:bg-white/10 transition-colors">
-                            <TableCell className="font-medium text-white text-xs bg-slate-900 md:bg-transparent border-r border-white/10 sticky left-0 z-10">{unit.unitName}</TableCell>
-                            {submissionTypes.map(type => {
-                                const cId = String(campus.campusId).toLowerCase();
-                                const uId = String(unit.unitId).toLowerCase();
-                                const t = type.toLowerCase();
-                                return (
-                                    <React.Fragment key={type}>
-                                        <TableCell className="text-center border-l border-white/5">
-                                            {renderCell(unit.statuses[`${cId}-${uId}-${t}-first`])}
-                                        </TableCell>
-                                        <TableCell className="text-center border-r border-white/5">
-                                            {renderCell(unit.statuses[`${cId}-${uId}-${t}-final`])}
-                                        </TableCell>
-                                    </React.Fragment>
-                                );
-                            })}
-                          </TableRow>
-                        ))}
+                        {campus.units.map((unit: any) => {
+                            const cId = String(campus.campusId).toLowerCase();
+                            const uId = String(unit.unitId).toLowerCase();
+                            return (
+                                <TableRow key={unit.unitId} className="border-white/5 hover:bg-white/5 transition-colors">
+                                    <TableCell className="font-medium text-white text-[11px] border-r border-white/10 sticky left-0 z-10 bg-slate-950 md:bg-transparent">{unit.unitName}</TableCell>
+                                    {submissionTypes.map(type => {
+                                        const normalizedType = type.toLowerCase();
+                                        return (
+                                            <React.Fragment key={type}>
+                                                <TableCell className="text-center border-l border-white/5">
+                                                    {renderCell(unit.statuses[`${cId}-${uId}-${normalizedType}-first`])}
+                                                </TableCell>
+                                                <TableCell className="text-center border-r border-white/5">
+                                                    {renderCell(unit.statuses[`${cId}-${uId}-${normalizedType}-final`])}
+                                                </TableCell>
+                                            </React.Fragment>
+                                        );
+                                    })}
+                                </TableRow>
+                            );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
@@ -167,18 +166,18 @@ export function PublicSubmissionMatrix() {
         )}
         
         {!isLoading && !error && data.length > 0 && (
-            <div className="mt-6 flex flex-wrap gap-4 text-xs text-white/40">
-                <div className="flex items-center gap-1.5">
-                    <div className="bg-green-500/20 p-0.5 rounded"><Check className="h-3 w-3 text-green-500" /></div>
-                    <span>Submitted & Validated</span>
+            <div className="mt-8 flex flex-wrap gap-6 text-[10px] text-white/40 font-medium uppercase tracking-widest justify-center md:justify-start">
+                <div className="flex items-center gap-2">
+                    <div className="bg-green-500/20 p-1 rounded-full"><Check className="h-3 w-3 text-green-500" /></div>
+                    <span>Submitted</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                    <div className="bg-red-500/20 p-0.5 rounded"><X className="h-3 w-3 text-red-500" /></div>
-                    <span>Pending Submission</span>
+                <div className="flex items-center gap-2">
+                    <div className="bg-red-500/20 p-1 rounded-full"><X className="h-3 w-3 text-red-500" /></div>
+                    <span>Pending</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                    <Badge variant="secondary" className="h-4 py-0 text-[9px] bg-white/10 text-white/60">N/A</Badge>
-                    <span>Not Applicable</span>
+                <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="h-4 py-0 text-[8px] bg-white/10 text-white/60 border-none">N/A</Badge>
+                    <span>Not Required</span>
                 </div>
             </div>
         )}
