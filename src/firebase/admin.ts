@@ -26,6 +26,7 @@ function initializeAdmin() {
       options.credential = admin.credential.cert(SERVICE_ACCOUNT_FILE_PATH);
     } else {
       // Fallback to Application Default Credentials (ADC)
+      // Note: This may fail in local environments without GOOGLE_APPLICATION_CREDENTIALS
       options.credential = admin.credential.applicationDefault();
     }
 
@@ -33,6 +34,7 @@ function initializeAdmin() {
   } catch (error) {
     console.error('Firebase Admin Initialization Warning:', error);
     // Final fallback attempt with no options if everything else fails
+    // This allows the SDK to at least initialize, though it may fail on secured requests
     return admin.initializeApp({
         projectId: firebaseConfig.projectId,
     });
