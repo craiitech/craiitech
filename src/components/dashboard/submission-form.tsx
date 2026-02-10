@@ -285,12 +285,8 @@ export function SubmissionForm({
 
     try {
         if (existingSubmission) {
-            const newRevision = existingSubmission.statusId === 'rejected' 
-              ? (existingSubmission.revision || 0) + 1 
-              : (existingSubmission.revision || 0);
-            
-            // Use server timestamp for the database field (unalterable)
-            // Use official phDate for the string representation in control number
+            // ISO Compliance: Any update to an existing record increments the revision
+            const newRevision = (existingSubmission.revision || 0) + 1;
             const newControlNumber = generateControlNumber(unit.name, newRevision, reportType, phDate);
 
             const existingDocRef = doc(firestore, 'submissions', existingSubmission.id);
@@ -396,10 +392,11 @@ export function SubmissionForm({
     return units.find(u => u.id === userProfile.unitId)?.name || '...';
   }, [units, userProfile]);
 
-  const previewControlNumber = useMemo(() => {
-    const rev = existingSubmission?.statusId === 'rejected' ? (existingSubmission.revision || 0) + 1 : (existingSubmission?.revision || 0);
+  const previewControlData = useMemo(() => {
+    const rev = existingSubmission ? (existingSubmission.revision || 0) + 1 : 0;
     // Note: For live preview, we use local time, but final submission uses server time
-    return generateControlNumber(currentUnitName, rev, reportType, new Date());
+    const controlNum = generateControlNumber(currentUnitName, rev, reportType, new Date());
+    return { rev, controlNum };
   }, [currentUnitName, existingSubmission, reportType]);
 
   return (
@@ -424,16 +421,16 @@ export function SubmissionForm({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                 <div>
-                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Official Code</p>
-                    <p className="font-mono text-xs mt-1 bg-background/50 p-2 rounded border">{previewControlNumber}</p>
+                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Upcoming Control No.</p>
+                    <p className="font-mono text-xs mt-1 bg-background/50 p-2 rounded border">{previewControlData.controlNum}</p>
                 </div>
                 <div>
-                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Revision Tracking</p>
+                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Upcoming Revision</p>
                     <div className="flex items-center gap-2 mt-1">
                         <Badge variant="secondary" className="text-xs">
-                            Rev {String(existingSubmission?.statusId === 'rejected' ? (existingSubmission.revision || 0) + 1 : (existingSubmission?.revision || 0)).padStart(2, '0')}
+                            Rev {String(previewControlData.rev).padStart(2, '0')}
                         </Badge>
-                        {existingSubmission?.statusId === 'rejected' && (
+                        {existingSubmission && (
                             <span className="text-[10px] text-destructive font-medium animate-pulse">(Auto-Incremented)</span>
                         )}
                     </div>
@@ -603,7 +600,7 @@ export function SubmissionForm({
             </>
           ) : (
             existingSubmission 
-              ? (existingSubmission.statusId === 'rejected' ? `Submit Revision ${String((existingSubmission.revision || 0) + 1).padStart(2, '0')}` : 'Update Unit Submission')
+              ? `Submit Revision ${String((existingSubmission.revision || 0) + 1).padStart(2, '0')}`
               : 'Submit Revision 00'
           )}
         </Button>

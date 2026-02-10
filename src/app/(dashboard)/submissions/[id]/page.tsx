@@ -276,6 +276,7 @@ export default function SubmissionDetailPage() {
         const officialTime = await getOfficialServerTime();
         const phDate = new Date(officialTime.iso);
 
+        // ISO Compliance: Resubmission always increments the revision
         const nextRevision = (submission.revision || 0) + 1;
         const nextControlNumber = generateControlNumber(submission.unitName, nextRevision, submission.reportType, phDate);
 
