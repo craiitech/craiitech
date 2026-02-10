@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -20,28 +19,24 @@ import { PublicSubmissionMatrix } from '@/components/public-submission-matrix';
 import { ShieldCheck, ArrowRight } from 'lucide-react';
 
 export default function Home() {
-  const heroImage = PlaceHolderImages.find(p => p.id === 'hero-landing');
-  
   return (
-    <div className="relative min-h-screen bg-slate-950 flex flex-col overflow-x-hidden">
-        {/* Global Page Background */}
-        {heroImage && (
-            <div className="fixed inset-0 -z-20">
-                <Image
-                    src={heroImage.imageUrl}
-                    alt={heroImage.description}
-                    fill
-                    priority
-                    className="object-cover opacity-20"
-                    data-ai-hint={heroImage.imageHint}
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-950/40 to-slate-950" />
-            </div>
-        )}
+    <div className="relative min-h-screen flex flex-col overflow-x-hidden">
+        {/* Full-Page Fixed Background */}
+        <div className="fixed inset-0 -z-20 h-full w-full">
+            <Image
+                src="/rsupage.png"
+                alt="University Background"
+                fill
+                priority
+                className="object-cover"
+            />
+            {/* Dark overlay to ensure readability */}
+            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px]" />
+        </div>
 
         {/* Hero Section */}
-        <section className="relative min-h-[70vh] flex flex-col items-center justify-center text-center text-white shrink-0 py-20">
-            <div className="flex flex-col items-center justify-center space-y-8 p-4 max-w-5xl">
+        <section className="relative min-h-[60vh] flex flex-col items-center justify-center text-center text-white shrink-0 py-20 px-4">
+            <div className="flex flex-col items-center justify-center space-y-8 max-w-5xl">
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white/80 backdrop-blur-md">
                     <ShieldCheck className="h-4 w-4 text-primary" />
                     <span>ISO 21001:2018 Certified Management System</span>
@@ -81,8 +76,8 @@ export default function Home() {
             </div>
         </section>
 
-        {/* Footer */}
-        <footer className="relative border-t border-white/5 py-12 bg-slate-950/80 backdrop-blur-sm mt-auto">
+        {/* Simple Footer */}
+        <footer className="relative border-t border-white/10 py-12 bg-black/40 backdrop-blur-md mt-auto">
             <div className="container mx-auto px-4 text-center space-y-6">
                 <div className="flex justify-center gap-6">
                     <Button variant="link" asChild className="text-white/40 hover:text-white">

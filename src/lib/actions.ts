@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getAdminFirestore } from '@/firebase/admin';
