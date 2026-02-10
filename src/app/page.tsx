@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { PublicSubmissionMatrix } from '@/components/public-submission-matrix';
 import { ShieldCheck, ArrowRight } from 'lucide-react';
 
 export default function Home() {
@@ -35,7 +33,7 @@ export default function Home() {
         </div>
 
         {/* Hero Section */}
-        <section className="relative min-h-[60vh] flex flex-col items-center justify-center text-center text-white shrink-0 py-20 px-4">
+        <section className="relative flex-1 flex flex-col items-center justify-center text-center text-white py-20 px-4">
             <div className="flex flex-col items-center justify-center space-y-8 max-w-5xl">
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white/80 backdrop-blur-md">
                     <ShieldCheck className="h-4 w-4 text-primary" />
@@ -66,13 +64,6 @@ export default function Home() {
                         </Link>
                     </Button>
                 </div>
-            </div>
-        </section>
-
-        {/* Matrix Section */}
-        <section className="relative flex-1 container mx-auto px-4 pb-24 z-10">
-            <div className="max-w-6xl mx-auto">
-                <PublicSubmissionMatrix />
             </div>
         </section>
 
