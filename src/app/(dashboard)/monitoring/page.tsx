@@ -7,7 +7,7 @@ import { collection, query, orderBy, Timestamp, where } from 'firebase/firestore
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, Calendar, Building, School } from 'lucide-react';
+import { PlusCircle, Loader2, Calendar, Building, School, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
 import { MonitoringFormDialog } from '@/components/monitoring/monitoring-form-dialog';
 import {
@@ -21,16 +21,18 @@ import {
 import { useRouter } from 'next/navigation';
 
 export default function MonitoringPage() {
-  const { isAdmin, isUserLoading, user, userProfile, isSupervisor } = useUser();
+  const { isAdmin, isUserLoading, user, userProfile, isSupervisor, userRole } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<UnitMonitoringRecord | null>(null);
 
+  const canViewMonitoring = isAdmin || isSupervisor || userRole === 'Auditor';
+
   const monitoringRecordsQuery = useMemoFirebase(
     () => {
-        if (!firestore || !user || !userProfile) return null;
+        if (!firestore || !user || !userProfile || !canViewMonitoring) return null;
         const colRef = collection(firestore, 'unitMonitoringRecords');
         
         if (isAdmin) {
@@ -44,13 +46,10 @@ export default function MonitoringPage() {
              return null;
         }
 
-        if (userProfile.unitId) {
-             return query(colRef, where('unitId', '==', userProfile.unitId), orderBy('visitDate', 'desc'));
-        }
-        
-        return null;
+        // Auditors might need special query logic later, but for now we gate by role
+        return query(colRef, orderBy('visitDate', 'desc'));
     },
-    [firestore, user, userProfile, isAdmin, isSupervisor]
+    [firestore, user, userProfile, isAdmin, isSupervisor, canViewMonitoring]
   );
   
   const { data: records, isLoading: isLoadingRecords } = useCollection<UnitMonitoringRecord>(monitoringRecordsQuery);
@@ -82,6 +81,19 @@ export default function MonitoringPage() {
   };
 
   const isLoading = isUserLoading || isLoadingRecords || isLoadingCampuses || isLoadingUnits;
+
+  if (!isUserLoading && !canViewMonitoring) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
+        <ShieldAlert className="h-16 w-16 text-destructive opacity-50" />
+        <div className="text-center">
+          <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
+          <p className="text-muted-foreground">You do not have permission to access the field monitoring module.</p>
+        </div>
+        <Button onClick={() => router.push('/dashboard')}>Return to Home</Button>
+      </div>
+    );
+  }
 
   return (
     <>
