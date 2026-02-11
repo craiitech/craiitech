@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -8,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { FileWarning, School, CheckCircle, Building } from 'lucide-react';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Button } from '../ui/button';
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
@@ -19,6 +21,7 @@ interface IncompleteCampusSubmissionsProps {
   isLoading: boolean;
   selectedYear: number;
   onYearChange: (year: number) => void;
+  onUnitClick?: (unitId: string, campusId: string) => void; // FIX: Added optional click handler
 }
 
 export function IncompleteCampusSubmissions({
@@ -28,6 +31,7 @@ export function IncompleteCampusSubmissions({
   isLoading,
   selectedYear,
   onYearChange,
+  onUnitClick
 }: IncompleteCampusSubmissionsProps) {
 
   const incompleteSubmissionsByCampus = useMemo(() => {
@@ -43,7 +47,7 @@ export function IncompleteCampusSubmissions({
       }
       
       const incompleteUnits = unitsInThisCampus.map(unit => {
-        const submissionsForUnitAndYear = allSubmissions.filter(s => s.unitId === unit.id && s.year === selectedYear);
+        const submissionsForUnitAndYear = allSubmissions.filter(s => s.unitId === unit.id && s.campusId === campus.id && s.year === selectedYear);
 
         // --- FIRST CYCLE ---
         const firstCycleSubmissions = submissionsForUnitAndYear.filter(s => s.cycleId === 'first');
@@ -159,12 +163,18 @@ export function IncompleteCampusSubmissions({
                     </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                    <ul className="list-disc space-y-2 pl-6 text-sm text-muted-foreground">
+                    <ul className="space-y-2 pl-6 text-sm text-muted-foreground">
                         {campus.incompleteUnits.map(unit => (
-                            <li key={unit.unitId} className="flex items-center gap-2">
-                              <Building className="h-4 w-4" />
-                              <span className="font-semibold text-card-foreground">{unit.unitName}</span> - 
-                              <span className="text-destructive">{unit.missingCount} report(s) missing</span>
+                            <li key={unit.unitId}>
+                              <Button
+                                variant="ghost"
+                                className="flex h-auto w-full items-center justify-start gap-2 p-0 hover:bg-transparent text-left"
+                                onClick={() => onUnitClick?.(unit.unitId, campus.campusId)}
+                              >
+                                <Building className="h-4 w-4 shrink-0" />
+                                <span className="font-semibold text-card-foreground flex-1">{unit.unitName}</span>
+                                <span className="text-destructive whitespace-nowrap">{unit.missingCount} report(s) missing</span>
+                              </Button>
                             </li>
                         ))}
                     </ul>

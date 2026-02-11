@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -26,7 +27,7 @@ interface UnitsWithoutSubmissionsProps {
   userProfile: AppUser | null;
   isAdmin: boolean;
   isCampusSupervisor: boolean;
-  onUnitClick: (unitId: string) => void;
+  onUnitClick: (unitId: string, campusId: string) => void; // FIX: Added campusId
   selectedYear: number;
 }
 
@@ -70,7 +71,7 @@ export function UnitsWithoutSubmissions({
     return relevantCampuses.map(campus => {
         const campusUnits = unitsByCampus[campus.id] || [];
         const incompleteUnits = campusUnits.map(unit => {
-            const unitSubmissions = allSubmissions.filter(s => s.unitId === unit.id && s.year === selectedYear);
+            const unitSubmissions = allSubmissions.filter(s => s.unitId === unit.id && s.campusId === campus.id && s.year === selectedYear);
             
             const firstCycleRegistry = unitSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
             const requiredFirst = firstCycleRegistry?.riskRating === 'low' ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
@@ -187,7 +188,7 @@ export function UnitsWithoutSubmissions({
                               <Button
                                 variant="ghost"
                                 className="flex h-auto w-full cursor-pointer items-center justify-between p-0 hover:bg-transparent"
-                                onClick={() => onUnitClick(unit.id)}
+                                onClick={() => onUnitClick(unit.id, campus.campusId)}
                               >
                                   <div className="flex items-center gap-3">
                                     <Building className="h-4 w-4 text-muted-foreground" />

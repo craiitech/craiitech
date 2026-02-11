@@ -56,15 +56,18 @@ export function UnitSubmissionsView({
   }, [allUnits, allSubmissions, userProfile]);
 
   const selectedUnitSubmissions = useMemo(() => {
-    if (!selectedUnitId || !allSubmissions) {
+    if (!selectedUnitId || !allSubmissions || !userProfile?.campusId) {
       return { firstCycle: [], finalCycle: [] };
     }
-    const unitSubmissions = allSubmissions.filter(s => s.unitId === selectedUnitId);
+    // FIX: Scope by user's campus to avoid site leakage for shared unit names
+    const unitSubmissions = allSubmissions.filter(s => 
+        s.unitId === selectedUnitId && s.campusId === userProfile.campusId
+    );
     return {
         firstCycle: unitSubmissions.filter(s => s.cycleId === 'first'),
         finalCycle: unitSubmissions.filter(s => s.cycleId === 'final'),
     }
-  }, [selectedUnitId, allSubmissions]);
+  }, [selectedUnitId, allSubmissions, userProfile]);
   
   const handleUnitSelect = (unitId: string) => {
     setSelectedUnitId(unitId);
@@ -83,7 +86,7 @@ export function UnitSubmissionsView({
       <CardHeader>
         <CardTitle>Submissions by Unit</CardTitle>
         <CardDescription>
-          Select a unit from the list to view all of their submissions for the current year.
+          Select a unit from the list to view all of their submissions for the current year in your campus.
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -74,15 +74,18 @@ export function CampusSubmissionsView({
 
 
   const selectedUnitSubmissions = useMemo(() => {
-    if (!selectedUnitId || !allSubmissions) {
+    if (!selectedUnitId || !selectedCampusId || !allSubmissions) {
       return { firstCycle: [], finalCycle: [] };
     }
-    const unitSubmissions = allSubmissions.filter(s => s.unitId === selectedUnitId);
+    // FIX: Scope by both unit AND campus to prevent site leakage
+    const unitSubmissions = allSubmissions.filter(s => 
+        s.unitId === selectedUnitId && s.campusId === selectedCampusId
+    );
     return {
         firstCycle: unitSubmissions.filter(s => s.cycleId === 'first'),
         finalCycle: unitSubmissions.filter(s => s.cycleId === 'final'),
     }
-  }, [selectedUnitId, allSubmissions]);
+  }, [selectedUnitId, selectedCampusId, allSubmissions]);
   
   const handleCampusSelect = (campusId: string) => {
     setSelectedCampusId(prev => (prev === campusId ? null : campusId));

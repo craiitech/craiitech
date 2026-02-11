@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -8,9 +9,11 @@ import { X, CheckCircle, Circle, AlertCircle } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
+import { cn } from '@/lib/utils';
 
 interface UnitSubmissionDetailCardProps {
   unitId: string;
+  campusId: string; // FIX: Added campusId to ensure correct site data
   allUnits: Unit[] | null;
   allSubmissions: Submission[] | null;
   onClose: () => void;
@@ -40,6 +43,7 @@ const getIconForStatus = (status?: string) => {
 
 export function UnitSubmissionDetailCard({
   unitId,
+  campusId,
   allUnits,
   allSubmissions,
   onClose,
@@ -48,11 +52,12 @@ export function UnitSubmissionDetailCard({
   const unit = useMemo(() => allUnits?.find(u => u.id === unitId), [allUnits, unitId]);
 
   const unitSubmissions = useMemo(() => {
-    if (!allSubmissions || !unitId) {
+    if (!allSubmissions || !unitId || !campusId) {
       return { firstCycle: new Map(), finalCycle: new Map() };
     }
+    // FIX: Scope by both unit AND campus
     const submissionsForUnit = allSubmissions.filter(
-      s => s.unitId === unitId && s.year === selectedYear
+      s => s.unitId === unitId && s.campusId === campusId && s.year === selectedYear
     );
 
     const firstCycleRegistry = submissionsForUnit.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
@@ -73,7 +78,7 @@ export function UnitSubmissionDetailCard({
     );
 
     return { firstCycle, finalCycle, isFirstActionPlanNA, isFinalActionPlanNA };
-  }, [allSubmissions, unitId, selectedYear]);
+  }, [allSubmissions, unitId, campusId, selectedYear]);
   
   if (!unit) return null;
 
@@ -107,19 +112,19 @@ export function UnitSubmissionDetailCard({
   );
 
   return (
-    <Card className="sticky top-4">
-      <CardHeader className="flex flex-row items-start justify-between">
+    <Card className="sticky top-4 border-primary/20 shadow-md">
+      <CardHeader className="flex flex-row items-start justify-between bg-muted/30 pb-4 rounded-t-lg">
         <div>
-          <CardTitle>{unit.name}</CardTitle>
-          <CardDescription>Submission Status for {selectedYear}</CardDescription>
+          <CardTitle className="text-lg">{unit.name}</CardTitle>
+          <CardDescription className="text-xs">Audit Compliance Tracker &bull; {selectedYear}</CardDescription>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose}>
+        <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
           <X className="h-4 w-4" />
         </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <ScrollArea className="h-[45vh] pr-4">
-            <div className="space-y-4">
+            <div className="space-y-6">
                 {renderSubmissionList('First', unitSubmissions.firstCycle, unitSubmissions.isFirstActionPlanNA)}
                 {renderSubmissionList('Final', unitSubmissions.finalCycle, unitSubmissions.isFinalActionPlanNA)}
             </div>
@@ -127,8 +132,4 @@ export function UnitSubmissionDetailCard({
       </CardContent>
     </Card>
   );
-}
-
-function cn(...classes: any[]) {
-  return classes.filter(Boolean).join(' ');
 }

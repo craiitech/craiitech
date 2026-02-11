@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -116,7 +117,7 @@ export default function HomePage() {
   const [isAnnouncementVisible, setIsAnnouncementVisible] = useState(true);
   const [isGlobalAnnouncementVisible, setIsGlobalAnnouncementVisible] = useState(true);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<{ unitId: string, campusId: string } | null>(null);
 
   const canViewCampusAnnouncements = userProfile?.campusId;
 
@@ -842,7 +843,7 @@ export default function HomePage() {
                         userProfile={userProfile}
                         isAdmin={isAdmin}
                         isCampusSupervisor={isSupervisor}
-                        onUnitClick={setSelectedUnitId}
+                        onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })}
                         selectedYear={selectedYear}
                     />
                 </div>
@@ -881,12 +882,13 @@ export default function HomePage() {
                         <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
                     </CardContent>
                 </Card>
-                {selectedUnitId && (
+                {selectedDetail && (
                     <UnitSubmissionDetailCard
-                        unitId={selectedUnitId}
+                        unitId={selectedDetail.unitId}
+                        campusId={selectedDetail.campusId}
                         allUnits={allUnits}
                         allSubmissions={submissions}
-                        onClose={() => setSelectedUnitId(null)}
+                        onClose={() => setSelectedDetail(null)}
                         selectedYear={selectedYear}
                     />
                 )}
@@ -971,7 +973,30 @@ export default function HomePage() {
                     isLoading={isLoading}
                     selectedYear={selectedYear}
                     onYearChange={setSelectedYear}
+                    onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })}
                 />
+                <div className="grid gap-4 md:grid-cols-2">
+                    <CompletedSubmissions 
+                        allUnits={allUnits}
+                        allCampuses={allCampuses}
+                        allSubmissions={submissions}
+                        isLoading={isLoading}
+                        userProfile={userProfile}
+                        isCampusSupervisor={isCampusSupervisor}
+                        selectedYear={selectedYear}
+                    />
+                    <UnitsWithoutSubmissions
+                        allUnits={allUnits}
+                        allCampuses={allCampuses}
+                        allSubmissions={submissions}
+                        isLoading={isLoading}
+                        userProfile={userProfile}
+                        isAdmin={isAdmin}
+                        isCampusSupervisor={isCampusSupervisor}
+                        onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })}
+                        selectedYear={selectedYear}
+                    />
+                </div>
             </div>
              <div className="lg:col-span-1 space-y-4">
                 <Leaderboard 
@@ -1009,12 +1034,13 @@ export default function HomePage() {
                 </Card>
             </div>
         </div>
-        {selectedUnitId && (
+        {selectedDetail && (
             <UnitSubmissionDetailCard
-                unitId={selectedUnitId}
+                unitId={selectedDetail.unitId}
+                campusId={selectedDetail.campusId}
                 allUnits={allUnits}
                 allSubmissions={submissions}
-                onClose={() => setSelectedUnitId(null)}
+                onClose={() => setSelectedDetail(null)}
                 selectedYear={selectedYear}
             />
         )}
