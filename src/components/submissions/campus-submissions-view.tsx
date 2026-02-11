@@ -57,15 +57,12 @@ export function CampusSubmissionsView({
   const unitsInSelectedCampus = useMemo(() => {
     if (!selectedCampusId || !allUnits || !allSubmissions) return [];
 
-    // 1. Get all units that are officially part of the selected campus.
     const unitsForCampus = allUnits.filter(unit =>
         unit.campusIds?.includes(selectedCampusId)
     );
 
-    // 2. Get the set of unit IDs that have made submissions.
     const submittedUnitIds = new Set(allSubmissions.map(s => s.unitId));
 
-    // 3. Return units that are in the campus AND have submitted something.
     return unitsForCampus
         .filter(unit => submittedUnitIds.has(unit.id))
         .sort((a, b) => a.name.localeCompare(b.name));
@@ -77,7 +74,6 @@ export function CampusSubmissionsView({
     if (!selectedUnitId || !selectedCampusId || !allSubmissions) {
       return { firstCycle: [], finalCycle: [] };
     }
-    // FIX: Scope by both unit AND campus to prevent site leakage
     const unitSubmissions = allSubmissions.filter(s => 
         s.unitId === selectedUnitId && s.campusId === selectedCampusId
     );
@@ -89,7 +85,7 @@ export function CampusSubmissionsView({
   
   const handleCampusSelect = (campusId: string) => {
     setSelectedCampusId(prev => (prev === campusId ? null : campusId));
-    setSelectedUnitId(null); // Reset unit when campus changes
+    setSelectedUnitId(null);
   }
   
   const handleUnitSelect = (unitId: string) => {
@@ -114,7 +110,6 @@ export function CampusSubmissionsView({
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Left Column: Campus & Units List */}
           <div className="md:col-span-1">
             <ScrollArea className="h-[60vh] rounded-md border">
                  {campusesWithSubmissions.length > 0 ? (
@@ -161,7 +156,6 @@ export function CampusSubmissionsView({
             </ScrollArea>
           </div>
 
-          {/* Right Column: Submissions from Selected Unit */}
           <div className="md:col-span-2">
             <ScrollArea className="h-[60vh]">
                 {selectedUnitId ? (
@@ -215,8 +209,8 @@ function SubmissionTableForCycle({ submissions, onEyeClick }: { submissions: Sub
                             <Badge variant={statusVariant[sub.statusId]}>{sub.statusId}</Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                             <Button variant="ghost" size="icon" onClick={() => onEyeClick(sub.id)}>
-                                <Eye className="h-4 w-4" />
+                             <Button variant="outline" size="sm" onClick={() => onEyeClick(sub.id)}>
+                                <Eye className="mr-2 h-4 w-4" /> View Submission
                             </Button>
                         </TableCell>
                     </TableRow>

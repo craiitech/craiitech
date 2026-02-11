@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import type { Submission, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X, CheckCircle, Circle, AlertCircle } from 'lucide-react';
+import { X, CheckCircle, Circle, AlertCircle, Eye } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
@@ -13,10 +13,11 @@ import { cn } from '@/lib/utils';
 
 interface UnitSubmissionDetailCardProps {
   unitId: string;
-  campusId: string; // FIX: Added campusId to ensure correct site data
+  campusId: string;
   allUnits: Unit[] | null;
   allSubmissions: Submission[] | null;
   onClose: () => void;
+  onViewSubmission: (id: string) => void; // Added for navigation
   selectedYear: number;
 }
 
@@ -47,6 +48,7 @@ export function UnitSubmissionDetailCard({
   allUnits,
   allSubmissions,
   onClose,
+  onViewSubmission,
   selectedYear,
 }: UnitSubmissionDetailCardProps) {
   const unit = useMemo(() => allUnits?.find(u => u.id === unitId), [allUnits, unitId]);
@@ -55,7 +57,6 @@ export function UnitSubmissionDetailCard({
     if (!allSubmissions || !unitId || !campusId) {
       return { firstCycle: new Map(), finalCycle: new Map() };
     }
-    // FIX: Scope by both unit AND campus
     const submissionsForUnit = allSubmissions.filter(
       s => s.unitId === unitId && s.campusId === campusId && s.year === selectedYear
     );
@@ -69,12 +70,12 @@ export function UnitSubmissionDetailCard({
     const firstCycle = new Map(
       submissionsForUnit
         .filter(s => s.cycleId === 'first')
-        .map(s => [s.reportType, s.statusId])
+        .map(s => [s.reportType, s])
     );
     const finalCycle = new Map(
       submissionsForUnit
         .filter(s => s.cycleId === 'final')
-        .map(s => [s.reportType, s.statusId])
+        .map(s => [s.reportType, s])
     );
 
     return { firstCycle, finalCycle, isFirstActionPlanNA, isFinalActionPlanNA };
@@ -82,28 +83,43 @@ export function UnitSubmissionDetailCard({
   
   if (!unit) return null;
 
-  const renderSubmissionList = (cycleName: 'First' | 'Final', statusMap: Map<string, string>, isActionPlanNA: boolean) => (
+  const renderSubmissionList = (cycleName: 'First' | 'Final', statusMap: Map<string, Submission>, isActionPlanNA: boolean) => (
     <div>
         <h4 className="font-semibold mb-2 capitalize">{cycleName} Cycle</h4>
         <div className="space-y-2">
             {submissionTypes.map(reportType => {
-                const status = statusMap.get(reportType);
+                const submission = statusMap.get(reportType);
+                const status = submission?.statusId;
+                const submissionId = submission?.id;
                 const isNA = reportType === 'Risk and Opportunity Action Plan' && isActionPlanNA;
                 return (
                     <div key={reportType} className={cn("flex items-center justify-between rounded-md border p-2", isNA && "opacity-50 bg-muted/50")}>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
                             {getIconForStatus(isNA ? 'n/a' : status)}
-                            <span className="text-sm">{reportType}</span>
+                            <span className="text-sm truncate">{reportType}</span>
                         </div>
-                        {isNA ? (
-                            <Badge variant="secondary" className="text-xs">N/A</Badge>
-                        ) : status ? (
-                             <Badge variant={statusVariant[status] ?? 'secondary'} className="capitalize text-xs">
-                                {status}
-                            </Badge>
-                        ) : (
-                            <Badge variant="outline" className="text-xs">Not Submitted</Badge>
-                        )}
+                        <div className="flex items-center gap-2 ml-2">
+                            {isNA ? (
+                                <Badge variant="secondary" className="text-xs">N/A</Badge>
+                            ) : status ? (
+                                <>
+                                    <Badge variant={statusVariant[status] ?? 'secondary'} className="capitalize text-xs">
+                                        {status}
+                                    </Badge>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-7 w-7" 
+                                        onClick={() => onViewSubmission(submissionId!)}
+                                        title="View Submission"
+                                    >
+                                        <Eye className="h-3.5 w-3.5" />
+                                    </Button>
+                                </>
+                            ) : (
+                                <Badge variant="outline" className="text-xs">Not Submitted</Badge>
+                            )}
+                        </div>
                     </div>
                 )
             })}

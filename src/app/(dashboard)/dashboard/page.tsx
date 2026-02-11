@@ -889,6 +889,7 @@ export default function HomePage() {
                         allUnits={allUnits}
                         allSubmissions={submissions}
                         onClose={() => setSelectedDetail(null)}
+                        onViewSubmission={(id) => router.push(`/submissions/${id}`)}
                         selectedYear={selectedYear}
                     />
                 )}
@@ -1041,6 +1042,7 @@ export default function HomePage() {
                 allUnits={allUnits}
                 allSubmissions={submissions}
                 onClose={() => setSelectedDetail(null)}
+                onViewSubmission={(id) => router.push(`/submissions/${id}`)}
                 selectedYear={selectedYear}
             />
         )}
