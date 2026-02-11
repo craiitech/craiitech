@@ -16,26 +16,39 @@ service cloud.firestore {
     }
 
     /**
-     * Checks if the currently authenticated user has global Admin privileges
-     * by checking for the existence of a document in the /roles_admin collection.
-     * This is more robust than checking the user profile field.
+     * Robust Admin check that doesn't depend on the user profile existing.
+     * This checks for the existence of a document in the /roles_admin collection.
      */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
     
     /**
-     * Safely retrieves the user's profile data.
+     * Safely checks if a user belongs to a specific unit.
+     * Uses exists() to prevent evaluation failure if the profile doc is missing.
      */
-    function getUserProfile() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    function isMemberOfUnit(unitId) {
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.unitId == unitId;
     }
 
     /**
-     * Helper to check user roles from their profile document.
+     * Safely checks if a user belongs to a specific campus.
+     */
+    function isMemberOfCampus(campusId) {
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.campusId == campusId;
+    }
+
+    /**
+     * Helper to check specific roles from the user profile document.
      */
     function hasRole(roleName) {
-      return isSignedIn() && getUserProfile().role == roleName;
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == roleName;
     }
 
     // --------------------------------------------------------------------------
@@ -55,39 +68,37 @@ service cloud.firestore {
     }
 
     match /submissions/{submissionId} {
-      // Allow access if Admin, Owner, or member of the SAME UNIT/CAMPUS
+      // Allow access if Admin, Owner, or member of the SAME UNIT or SAME CAMPUS (if Supervisor)
       allow get: if isAdmin()
                     || isOwner(resource.data.userId) 
-                    || (getUserProfile().campusId == resource.data.campusId && (hasRole('Campus ODIMO') || hasRole('Campus Director')))
-                    || (getUserProfile().unitId == resource.data.unitId);
+                    || isMemberOfUnit(resource.data.unitId)
+                    || (isMemberOfCampus(resource.data.campusId) && (hasRole('Campus ODIMO') || hasRole('Campus Director')))
+                    || (isMemberOfUnit(resource.data.unitId));
       
       allow list: if isSignedIn();
 
       allow create: if isSignedIn() 
-                    && request.resource.data.userId == request.auth.uid
-                    && request.resource.data.campusId == getUserProfile().campusId
-                    && request.resource.data.unitId == getUserProfile().unitId;
+                    && request.resource.data.userId == request.auth.uid;
 
       allow update: if isAdmin()
                     || isOwner(resource.data.userId) 
-                    || (getUserProfile().campusId == resource.data.campusId && (hasRole('Campus ODIMO') || hasRole('Campus Director')))
-                    || (getUserProfile().unitId == resource.data.unitId && hasRole('Unit ODIMO'));
+                    || (isMemberOfCampus(resource.data.campusId) && (hasRole('Campus ODIMO') || hasRole('Campus Director')))
+                    || (isMemberOfUnit(resource.data.unitId) && hasRole('Unit ODIMO'));
 
       allow delete: if isAdmin();
     }
 
     match /risks/{riskId} {
       allow get: if isAdmin()
-                    || (getUserProfile().unitId == resource.data.unitId)
-                    || (getUserProfile().campusId == resource.data.campusId && (hasRole('Campus ODIMO') || hasRole('Campus Director')));
+                    || isMemberOfUnit(resource.data.unitId)
+                    || (isMemberOfCampus(resource.data.campusId) && (hasRole('Campus ODIMO') || hasRole('Campus Director')));
       
       allow list: if isSignedIn();
 
       allow create: if isSignedIn() 
-                    && request.resource.data.unitId == getUserProfile().unitId
-                    && request.resource.data.campusId == getUserProfile().campusId;
+                    && request.resource.data.userId == request.auth.uid;
       
-      allow update: if isAdmin() || (getUserProfile().unitId == resource.data.unitId);
+      allow update: if isAdmin() || isMemberOfUnit(resource.data.unitId);
       allow delete: if isAdmin();
     }
 
@@ -108,7 +119,7 @@ service cloud.firestore {
     
     match /campusSettings/{campusId} {
       allow get: if isSignedIn();
-      allow write: if isAdmin() || (getUserProfile().campusId == campusId && (hasRole('Campus Director') || hasRole('Campus ODIMO')));
+      allow write: if isAdmin() || (isMemberOfCampus(campusId) && (hasRole('Campus Director') || hasRole('Campus ODIMO')));
       allow list: if isAdmin();
     }
     
@@ -153,7 +164,7 @@ service cloud.firestore {
     match /auditSchedules/{scheduleId} {
         allow get: if isAdmin() 
                     || hasRole('Auditor')
-                    || (resource.data.targetType == 'Unit' && getUserProfile().unitId == resource.data.targetId)
+                    || (resource.data.targetType == 'Unit' && isMemberOfUnit(resource.data.targetId))
                     || (resource.data.targetType == 'User' && isOwner(resource.data.targetId));
         allow list: if isSignedIn();
         allow create: if isAdmin();
@@ -161,7 +172,7 @@ service cloud.firestore {
     }
 
     match /auditFindings/{findingId} {
-        allow get: if isSignedIn(); // Basic read allowed, UI filters visibility
+        allow get: if isSignedIn();
         allow list: if isSignedIn();
         allow create: if hasRole('Auditor');
         allow update: if isAdmin() || (hasRole('Auditor') && isOwner(resource.data.authorId));
