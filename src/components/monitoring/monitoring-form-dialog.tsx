@@ -25,11 +25,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Loader2, CalendarIcon } from 'lucide-react';
+import { Loader2, CalendarIcon, ClipboardCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
-import { Table, TableBody, TableCell, TableRow } from '../ui/table';
+import { Table, TableBody, TableCell, TableRow, TableHeader, TableHead } from '../ui/table';
 
 interface MonitoringFormDialogProps {
   isOpen: boolean;
@@ -112,8 +112,6 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
 
   useEffect(() => {
     if(!record && isOpen) {
-        // Only clear unitId if campus changes and we are NOT editing an existing record
-        // Or if we are in a fresh 'New Visit' state.
         const currentUnitId = form.getValues('unitId');
         if (currentUnitId && !unitsForCampus.some(u => u.id === currentUnitId)) {
             form.setValue('unitId', '');
@@ -155,92 +153,163 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>{record ? 'Edit' : 'New'} Unit Monitoring Record</DialogTitle>
-          <DialogDescription>
-            Fill out the form to log the findings from a unit visit.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden">
+        <div className="p-6 border-b bg-card shrink-0">
+            <div className="flex items-center gap-2 text-primary mb-1">
+                <ClipboardCheck className="h-5 w-5" />
+                <span className="text-xs font-bold uppercase tracking-widest">IQA & Field Monitoring</span>
+            </div>
+            <DialogHeader>
+                <DialogTitle className="text-xl">{record ? 'Edit' : 'New'} Unit Monitoring Record</DialogTitle>
+                <DialogDescription>
+                    Record objective observations and findings from on-site unit monitoring visits.
+                </DialogDescription>
+            </DialogHeader>
+        </div>
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden space-y-4">
-            <ScrollArea className="flex-1 p-1">
-              <div className="space-y-4 p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <ScrollArea className="flex-1">
+              <div className="p-6 space-y-8">
+                {/* Visit Metadata */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <FormField control={form.control} name="visitDate" render={({ field }) => (
-                    <FormItem className="flex flex-col"><FormLabel>Date of Visit</FormLabel>
-                      <Popover><PopoverTrigger asChild>
-                        <FormControl><Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                          {field.value ? format(field.value, "PPP") : (<span>Pick a date</span>)}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button></FormControl>
-                      </PopoverTrigger><PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                      </PopoverContent></Popover><FormMessage />
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Date of Visit</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                              {field.value ? format(field.value, "PPP") : (<span>Pick a date</span>)}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="campusId" render={({ field }) => (
-                    <FormItem><FormLabel>Campus</FormLabel>
+                    <FormItem>
+                      <FormLabel>Campus</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Select Campus" /></SelectTrigger>
+                        </FormControl>
                         <SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                      </Select><FormMessage />
+                      </Select>
+                      <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="unitId" render={({ field }) => (
-                    <FormItem><FormLabel>Unit</FormLabel>
+                    <FormItem>
+                      <FormLabel>Unit</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCampusId}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Select Unit" /></SelectTrigger>
+                        </FormControl>
                         <SelectContent>{unitsForCampus.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
-                      </Select><FormMessage />
+                      </Select>
+                      <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="roomNumber" render={({ field }) => (
-                    <FormItem><FormLabel>Room #</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem>
+                      <FormLabel>Office / Room #</FormLabel>
+                      <FormControl><Input {...field} placeholder="e.g., Room 101" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )} />
                 </div>
-                <div className="border rounded-lg overflow-hidden">
-                  <Table>
-                    <TableBody>
-                      {fields.map((field, index) => (
-                        <TableRow key={field.id}>
-                          <TableCell className="font-medium w-[30%] text-sm">{field.item}</TableCell>
-                          <TableCell className="w-[30%]">
-                            <FormField control={form.control} name={`observations.${index}.status`} render={({ field }) => (
-                              <FormItem><FormControl>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Available">Available</SelectItem>
-                                    <SelectItem value="Not Available">Not Available</SelectItem>
-                                    <SelectItem value="For Improvement">For Improvement</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </FormControl><FormMessage /></FormItem>
-                            )} />
-                          </TableCell>
-                          <TableCell className="w-[40%]">
-                            <FormField control={form.control} name={`observations.${index}.remarks`} render={({ field }) => (
-                              <FormItem><FormControl><Input placeholder="Remarks..." {...field} className="h-8 text-xs" /></FormControl><FormMessage /></FormItem>
-                            )} />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+
+                {/* Checklist Table */}
+                <div className="space-y-4">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                        <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">1</div>
+                        Verification Checklist
+                    </h3>
+                    <div className="border rounded-lg overflow-hidden shadow-sm">
+                        <Table>
+                            <TableHeader className="bg-muted/50">
+                                <TableRow>
+                                    <TableHead className="w-[40%]">Monitoring Item / Document</TableHead>
+                                    <TableHead className="w-[20%]">Status</TableHead>
+                                    <TableHead className="w-[40%]">Remarks / Findings</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                            {fields.map((field, index) => (
+                                <TableRow key={field.id} className="hover:bg-muted/20">
+                                <TableCell className="font-medium text-sm py-3">{field.item}</TableCell>
+                                <TableCell>
+                                    <FormField control={form.control} name={`observations.${index}.status`} render={({ field }) => (
+                                    <FormItem>
+                                        <FormControl>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger className="h-8 text-xs bg-background">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Available">Available</SelectItem>
+                                                <SelectItem value="Not Available">Not Available</SelectItem>
+                                                <SelectItem value="For Improvement">For Improvement</SelectItem>
+                                            </SelectContent>
+                                            </Select>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )} />
+                                </TableCell>
+                                <TableCell>
+                                    <FormField control={form.control} name={`observations.${index}.remarks`} render={({ field }) => (
+                                    <FormItem>
+                                        <FormControl>
+                                            <Input placeholder="Add findings..." {...field} className="h-8 text-xs bg-background" />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )} />
+                                </TableCell>
+                                </TableRow>
+                            ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
-                <FormField control={form.control} name="generalRemarks" render={({ field }) => (
-                  <FormItem><FormLabel>General Remarks</FormLabel><FormControl><Textarea {...field} placeholder="Add any overall comments or summaries here..."/></FormControl><FormMessage /></FormItem>
-                )} />
+
+                {/* General Remarks */}
+                <div className="space-y-4">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                        <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">2</div>
+                        Final Assessment
+                    </h3>
+                    <FormField control={form.control} name="generalRemarks" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>General Remarks / Summary of Visit</FormLabel>
+                        <FormControl>
+                            <Textarea {...field} rows={5} placeholder="Provide an overall summary of the unit's compliance and readiness based on the visit..." />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )} />
+                </div>
               </div>
             </ScrollArea>
-            <DialogFooter className="px-4 pb-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Record
-              </Button>
-            </DialogFooter>
+
+            <div className="p-6 border-t bg-card shrink-0">
+                <DialogFooter className="gap-2 sm:gap-0">
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+                        Cancel
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting} className="min-w-[150px]">
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {record ? 'Update Record' : 'Save Monitoring Record'}
+                    </Button>
+                </DialogFooter>
+            </div>
           </form>
         </Form>
       </DialogContent>
