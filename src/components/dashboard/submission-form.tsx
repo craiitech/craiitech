@@ -245,7 +245,7 @@ export function SubmissionForm({
         }
     }
     fetchExistingSubmission();
-  }, [firestore, userProfile?.unitId, userProfile?.campusId, reportType, year, cycleId]); 
+  }, [firestore, userProfile?.unitId, userProfile?.campusId, reportType, year, cycleId, user]); 
 
   const canUpdateExisting = useMemo(() => {
     if (!existingSubmission || !user || !userRole) return true;
@@ -298,6 +298,8 @@ export function SubmissionForm({
               userId: user.uid,
               revision: newRevision,
               controlNumber: newControlNumber,
+              campusId: userProfile.campusId, // Ensure scoping is explicitly reinforced on update
+              unitId: userProfile.unitId,
             };
 
             if (isRorForm) {

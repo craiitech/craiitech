@@ -24,8 +24,16 @@ service cloud.firestore {
     }
     
     /**
+     * Helper to check specific roles from the user profile document.
+     */
+    function hasRole(roleName) {
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == roleName;
+    }
+
+    /**
      * Safely checks if a user belongs to a specific unit.
-     * Uses exists() to prevent evaluation failure if the profile doc is missing.
      */
     function isMemberOfUnit(unitId) {
       return isSignedIn() && 
@@ -40,15 +48,6 @@ service cloud.firestore {
       return isSignedIn() && 
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.campusId == campusId;
-    }
-
-    /**
-     * Helper to check specific roles from the user profile document.
-     */
-    function hasRole(roleName) {
-      return isSignedIn() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == roleName;
     }
 
     // --------------------------------------------------------------------------
