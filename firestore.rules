@@ -23,17 +23,28 @@ service cloud.firestore {
     }
     
     /**
-     * Safely fetches user profile data once per request.
+     * Checks if the user is a member of a specific unit.
      */
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    function isMemberOfUnit(unitId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.unitId == unitId;
     }
 
     /**
-     * Checks if the user profile document exists.
+     * Checks if the user is a member of a specific campus.
      */
-    function userExists() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    function isMemberOfCampus(campusId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.campusId == campusId;
+    }
+
+    /**
+     * Checks if the user has a supervisor role for a specific campus.
+     */
+    function isCampusSupervisor(campusId) {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return isSignedIn() && userData.campusId == campusId && 
+             (userData.role == 'Campus Director' || userData.role == 'Campus ODIMO' || userData.role == 'Vice President');
     }
 
     // --------------------------------------------------------------------------
@@ -42,8 +53,8 @@ service cloud.firestore {
     
     match /users/{userId} {
       allow get, list: if isSignedIn();
-      allow update: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
     }
     
@@ -53,23 +64,19 @@ service cloud.firestore {
     }
 
     match /submissions/{submissionId} {
-      // List is allowed for all signed in users so the client can perform filtered queries.
+      // List is allowed for all signed in users. Client-side queries enforce isolation.
       allow list: if isSignedIn();
 
       // Read is allowed for Admin, Owner, or members of the same Unit/Campus.
       allow get: if isAdmin() || isOwner(resource.data.userId) || 
-                   (userExists() && (
-                     getUserData().unitId == resource.data.unitId ||
-                     (getUserData().campusId == resource.data.campusId && (getUserData().role == 'Campus Director' || getUserData().role == 'Campus ODIMO' || getUserData().role == 'Vice President'))
-                   ));
+                   isMemberOfUnit(resource.data.unitId) || 
+                   isCampusSupervisor(resource.data.campusId);
 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 
       allow update: if isAdmin() || isOwner(resource.data.userId) || 
-                      (userExists() && (
-                        (getUserData().campusId == resource.data.campusId && (getUserData().role == 'Campus Director' || getUserData().role == 'Campus ODIMO')) ||
-                        (getUserData().unitId == resource.data.unitId && getUserData().role == 'Unit ODIMO')
-                      ));
+                      isMemberOfUnit(resource.data.unitId) ||
+                      isCampusSupervisor(resource.data.campusId);
 
       allow delete: if isAdmin();
     }
@@ -77,15 +84,13 @@ service cloud.firestore {
     match /risks/{riskId} {
       allow list: if isSignedIn();
       
-      allow get: if isAdmin() || 
-                   (userExists() && (
-                     getUserData().unitId == resource.data.unitId ||
-                     (getUserData().campusId == resource.data.campusId && (getUserData().role == 'Campus Director' || getUserData().role == 'Campus ODIMO'))
-                   ));
+      allow get: if isAdmin() || isOwner(resource.data.userId) || 
+                   isMemberOfUnit(resource.data.unitId) ||
+                   isCampusSupervisor(resource.data.campusId);
 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       
-      allow update: if isAdmin() || (userExists() && getUserData().unitId == resource.data.unitId);
+      allow update: if isAdmin() || isOwner(resource.data.userId) || isMemberOfUnit(resource.data.unitId);
       allow delete: if isAdmin();
     }
 
@@ -106,14 +111,14 @@ service cloud.firestore {
     
     match /campusSettings/{campusId} {
       allow get: if isSignedIn();
-      allow write: if isAdmin() || (userExists() && getUserData().campusId == campusId && (getUserData().role == 'Campus Director' || getUserData().role == 'Campus ODIMO'));
       allow list: if isAdmin();
+      allow write: if isAdmin() || isCampusSupervisor(campusId);
     }
     
     match /units/{unitId} {
       allow read: if isSignedIn();
-      allow create: if isAdmin() || (userExists() && getUserData().role == 'Campus Director');
-      allow update: if isAdmin() || (userExists() && (getUserData().role == 'Campus Director' || getUserData().role == 'Vice President'));
+      allow create: if isAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Campus Director');
+      allow update: if isAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Campus Director' || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Vice President'));
       allow delete: if isAdmin();
     }
 
@@ -149,20 +154,15 @@ service cloud.firestore {
 
     match /auditSchedules/{scheduleId} {
         allow list: if isSignedIn();
-        allow get: if isAdmin() || 
-                    (userExists() && (
-                      getUserData().role == 'Auditor' ||
-                      (resource.data.targetType == 'Unit' && getUserData().unitId == resource.data.targetId) ||
-                      (resource.data.targetType == 'User' && request.auth.uid == resource.data.targetId)
-                    ));
+        allow get: if isAdmin() || isMemberOfUnit(resource.data.targetId) || isOwner(resource.data.targetId) || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Auditor');
         allow create: if isAdmin();
-        allow update: if isAdmin() || (userExists() && getUserData().role == 'Auditor' && (resource.data.auditorId == null || resource.data.auditorId == request.auth.uid));
+        allow update: if isAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Auditor' && (resource.data.auditorId == null || resource.data.auditorId == request.auth.uid));
     }
 
     match /auditFindings/{findingId} {
         allow get, list: if isSignedIn();
-        allow create: if userExists() && getUserData().role == 'Auditor';
-        allow update: if isAdmin() || (userExists() && getUserData().role == 'Auditor' && isOwner(resource.data.authorId));
+        allow create: if exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Auditor';
+        allow update: if isAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Auditor' && isOwner(resource.data.authorId));
         allow delete: if isAdmin();
     }
 
@@ -175,7 +175,7 @@ service cloud.firestore {
 
     match /unitMonitoringRecords/{recordId} {
         allow list: if isSignedIn();
-        allow get: if isAdmin() || (userExists() && (getUserData().unitId == resource.data.unitId || getUserData().campusId == resource.data.campusId));
+        allow get: if isAdmin() || isMemberOfUnit(resource.data.unitId) || isMemberOfCampus(resource.data.campusId);
         allow write: if isAdmin();
     }
   }
