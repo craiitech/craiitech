@@ -53,7 +53,7 @@ const formSchema = z.object({
 });
 
 export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, units }: MonitoringFormDialogProps) {
-  const { userProfile } = useUser();
+  const { userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -151,6 +151,8 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
     }
   };
 
+  const isReadOnly = !isAdmin;
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden">
@@ -160,9 +162,11 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                 <span className="text-xs font-bold uppercase tracking-widest">IQA & Field Monitoring</span>
             </div>
             <DialogHeader>
-                <DialogTitle className="text-xl">{record ? 'Edit' : 'New'} Unit Monitoring Record</DialogTitle>
+                <DialogTitle className="text-xl">
+                    {isReadOnly ? 'Viewing' : (record ? 'Edit' : 'New')} Unit Monitoring Record
+                </DialogTitle>
                 <DialogDescription>
-                    Record objective observations and findings from on-site unit monitoring visits.
+                    {isReadOnly ? 'Findings from the on-site monitoring visit.' : 'Record objective observations and findings from on-site unit monitoring visits.'}
                 </DialogDescription>
             </DialogHeader>
         </div>
@@ -177,9 +181,9 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                     <FormItem className="flex flex-col">
                       <FormLabel>Date of Visit</FormLabel>
                       <Popover>
-                        <PopoverTrigger asChild>
+                        <PopoverTrigger asChild disabled={isReadOnly}>
                           <FormControl>
-                            <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                            <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={isReadOnly}>
                               {field.value ? format(field.value, "PPP") : (<span>Pick a date</span>)}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
@@ -195,7 +199,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                   <FormField control={form.control} name="campusId" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Campus</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
                         <FormControl>
                           <SelectTrigger><SelectValue placeholder="Select Campus" /></SelectTrigger>
                         </FormControl>
@@ -207,7 +211,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                   <FormField control={form.control} name="unitId" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Unit</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCampusId}>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly || !selectedCampusId}>
                         <FormControl>
                           <SelectTrigger><SelectValue placeholder="Select Unit" /></SelectTrigger>
                         </FormControl>
@@ -219,7 +223,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                   <FormField control={form.control} name="roomNumber" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Office / Room #</FormLabel>
-                      <FormControl><Input {...field} placeholder="e.g., Room 101" /></FormControl>
+                      <FormControl><Input {...field} placeholder="e.g., Room 101" disabled={isReadOnly} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -248,7 +252,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                     <FormField control={form.control} name={`observations.${index}.status`} render={({ field }) => (
                                     <FormItem>
                                         <FormControl>
-                                            <Select onValueChange={field.onChange} value={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
                                             <SelectTrigger className="h-8 text-xs bg-background">
                                                 <SelectValue />
                                             </SelectTrigger>
@@ -267,7 +271,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                     <FormField control={form.control} name={`observations.${index}.remarks`} render={({ field }) => (
                                     <FormItem>
                                         <FormControl>
-                                            <Input placeholder="Add findings..." {...field} className="h-8 text-xs bg-background" />
+                                            <Input placeholder={isReadOnly ? "" : "Add findings..."} {...field} className="h-8 text-xs bg-background" disabled={isReadOnly} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -290,7 +294,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                     <FormItem>
                         <FormLabel>General Remarks / Summary of Visit</FormLabel>
                         <FormControl>
-                            <Textarea {...field} rows={5} placeholder="Provide an overall summary of the unit's compliance and readiness based on the visit..." />
+                            <Textarea {...field} rows={5} placeholder={isReadOnly ? "" : "Provide an overall summary..."} disabled={isReadOnly} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -302,12 +306,14 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
             <div className="p-6 border-t bg-card shrink-0">
                 <DialogFooter className="gap-2 sm:gap-0">
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-                        Cancel
+                        {isReadOnly ? 'Close' : 'Cancel'}
                     </Button>
-                    <Button type="submit" disabled={isSubmitting} className="min-w-[150px]">
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {record ? 'Update Record' : 'Save Monitoring Record'}
-                    </Button>
+                    {!isReadOnly && (
+                        <Button type="submit" disabled={isSubmitting} className="min-w-[150px]">
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {record ? 'Update Record' : 'Save Monitoring Record'}
+                        </Button>
+                    )}
                 </DialogFooter>
             </div>
           </form>

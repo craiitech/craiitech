@@ -83,7 +83,6 @@ export function SidebarNav({
       href: '/monitoring',
       label: 'Monitoring',
       active: pathname.startsWith('/monitoring'),
-      roles: ['Admin'],
       icon: <ClipboardCheck />,
     },
     {

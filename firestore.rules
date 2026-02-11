@@ -188,7 +188,8 @@ service cloud.firestore {
     }
 
     match /unitMonitoringRecords/{recordId} {
-        allow read, list, write: if isAdmin();
+        allow read, list: if isSignedIn() && (isAdmin() || isMemberOfUnit(resource.data.unitId) || isMemberOfCampus(resource.data.campusId));
+        allow write: if isAdmin();
     }
   }
 }

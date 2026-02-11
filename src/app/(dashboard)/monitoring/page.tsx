@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, Timestamp, where } from 'firebase/firestore';
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ import {
 import { useRouter } from 'next/navigation';
 
 export default function MonitoringPage() {
-  const { isAdmin, isUserLoading, user } = useUser();
+  const { isAdmin, isUserLoading, user, userProfile, isSupervisor } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
 
@@ -29,9 +29,30 @@ export default function MonitoringPage() {
   const [selectedRecord, setSelectedRecord] = useState<UnitMonitoringRecord | null>(null);
 
   const monitoringRecordsQuery = useMemoFirebase(
-    () => (firestore && user ? query(collection(firestore, 'unitMonitoringRecords'), orderBy('visitDate', 'desc')) : null),
-    [firestore, user]
+    () => {
+        if (!firestore || !user || !userProfile) return null;
+        const colRef = collection(firestore, 'unitMonitoringRecords');
+        
+        if (isAdmin) {
+            return query(colRef, orderBy('visitDate', 'desc'));
+        }
+        
+        if (isSupervisor) {
+             if (userProfile.campusId) {
+                 return query(colRef, where('campusId', '==', userProfile.campusId), orderBy('visitDate', 'desc'));
+             }
+             return null;
+        }
+
+        if (userProfile.unitId) {
+             return query(colRef, where('unitId', '==', userProfile.unitId), orderBy('visitDate', 'desc'));
+        }
+        
+        return null;
+    },
+    [firestore, user, userProfile, isAdmin, isSupervisor]
   );
+  
   const { data: records, isLoading: isLoadingRecords } = useCollection<UnitMonitoringRecord>(monitoringRecordsQuery);
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
@@ -62,15 +83,6 @@ export default function MonitoringPage() {
 
   const isLoading = isUserLoading || isLoadingRecords || isLoadingCampuses || isLoadingUnits;
 
-  if (!isUserLoading && !isAdmin) {
-    return (
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
-        <p className="text-muted-foreground">You do not have permission to view this page.</p>
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="space-y-4">
@@ -79,15 +91,19 @@ export default function MonitoringPage() {
             <h2 className="text-2xl font-bold tracking-tight">Unit Monitoring</h2>
             <p className="text-muted-foreground">Record and review on-site monitoring visit findings.</p>
           </div>
-          <Button onClick={handleNewVisit}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            New Visit Record
-          </Button>
+          {isAdmin && (
+            <Button onClick={handleNewVisit}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                New Visit Record
+            </Button>
+          )}
         </div>
         <Card>
           <CardHeader>
             <CardTitle>Monitoring History</CardTitle>
-            <CardDescription>A log of all past unit monitoring visits.</CardDescription>
+            <CardDescription>
+                {isAdmin ? 'A log of all past unit monitoring visits across all sites.' : 'Findings from on-site monitoring visits for your unit.'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -130,7 +146,7 @@ export default function MonitoringPage() {
                         <TableCell>{record.monitorName}</TableCell>
                         <TableCell>
                           <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleViewRecord(record); }}>
-                            View / Edit
+                            {isAdmin ? 'View / Edit' : 'View Details'}
                           </Button>
                         </TableCell>
                       </TableRow>
