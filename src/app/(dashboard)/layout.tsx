@@ -160,14 +160,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { data: notifications } = useCollection<Submission>(notificationQuery);
 
   const notificationCount = useMemo(() => {
-    let count = 0;
-    if (notifications) count += notifications.length;
+    if (!notifications) return 0;
     
-    if (isSupervisor && notifications && userProfile) {
+    if (isAdmin) {
+        return notifications.length;
+    }
+
+    if (isSupervisor && userProfile) {
         return notifications.filter(s => s.userId !== userProfile.id).length;
     }
     
-    return count;
+    return notifications.length;
   }, [notifications, userProfile, isAdmin, isSupervisor]);
 
 

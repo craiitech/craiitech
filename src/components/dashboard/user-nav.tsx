@@ -1,4 +1,3 @@
-
 'use client';
 
 import { LogOut, Bell, User as UserIcon, Settings } from 'lucide-react';
@@ -61,12 +60,19 @@ export function UserNav({ user, userProfile, notificationCount }: UserNavProps) 
 
   return (
     <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-full" onClick={handleNotificationClick}>
+        <Button 
+            variant="ghost" 
+            size="icon" 
+            className="relative h-9 w-9 rounded-full" 
+            onClick={handleNotificationClick}
+        >
             <Bell className="h-5 w-5"/>
             {notificationCount > 0 && (
-                <span className="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                    {notificationCount}
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-[10px] font-bold text-white items-center justify-center">
+                        {notificationCount}
+                    </span>
                 </span>
             )}
         </Button>
