@@ -36,7 +36,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading }: Mon
         };
     });
 
-    const averageCompliance = visitCompliance.reduce((acc, v) => acc + v.score, 0) / visitCompliance.length;
+    const averageCompliance = visitCompliance.reduce((acc, v) => acc + v.score, 0) / (visitCompliance.length || 1);
 
     // 2. Common Issues (Items marked "Not Available" or "For Improvement")
     const issueCounts: Record<string, number> = {};
@@ -156,7 +156,13 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading }: Mon
                 <CardTitle className="text-xs uppercase tracking-wider text-blue-700 font-bold">Top Performer</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="text-lg font-bold text-blue-600 truncate">{analytics.unitLeaderboard[0]?.name}</div>
+                <div className="text-lg font-bold text-blue-600 truncate" title={analytics.unitLeaderboard[0]?.name}>
+                    {analytics.unitLeaderboard[0]?.name}
+                </div>
+                <div className="text-[10px] font-semibold text-blue-800/60 uppercase tracking-tight flex items-center gap-1 mt-0.5">
+                    <School className="h-3 w-3" />
+                    {analytics.unitLeaderboard[0]?.campus}
+                </div>
                 <p className="text-[10px] text-blue-600/70 mt-1">{analytics.unitLeaderboard[0]?.rate}% Compliance Score</p>
             </CardContent>
         </Card>
