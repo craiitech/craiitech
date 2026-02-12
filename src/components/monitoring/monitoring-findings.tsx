@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -9,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Building, School, AlertTriangle, ListFilter, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 interface MonitoringFindingsProps {
   records: UnitMonitoringRecord[];
