@@ -32,11 +32,9 @@ export const monitoringGroups = [
   {
     category: "Logbooks & Compliance Records",
     items: [
-      "Incoming Logbook",
-      "Outgoing Logbook",
+      "Incoming Communication Logbook",
+      "Outgoing Communication Logbook",
       "Visitor Logbook",
-      "Communication Logbooks",
-      "CSM Form",
       "CSM DropBox / Online Platform",
       "CSC ID's of Employees"
     ]
