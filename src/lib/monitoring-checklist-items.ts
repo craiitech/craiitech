@@ -30,5 +30,9 @@ export const monitoringChecklistItems = [
   "Clean Tables of Employees",
   "Fire Exit Stairs Free from Obstructions",
   "Files Documents Based on Pocess",
-  "Medicine Cabinet"
+  "Medicine Cabinet",
+  "Sockets",
+  "Electric Fans",
+  "Aircons",
+  "Student chairs"
 ];
