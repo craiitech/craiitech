@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -6,7 +7,7 @@ import { collection, query, orderBy, Timestamp, where } from 'firebase/firestore
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, Calendar, School, ShieldAlert, DoorOpen, History, LayoutDashboard, User, ClipboardCheck, Building, AlertTriangle, FileDown } from 'lucide-react';
+import { PlusCircle, Loader2, Calendar, School, ShieldAlert, DoorOpen, History, LayoutDashboard, User, ClipboardCheck, Building, AlertTriangle, FileDown, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { MonitoringFormDialog } from '@/components/monitoring/monitoring-form-dialog';
 import { MonitoringAnalytics } from '@/components/monitoring/monitoring-analytics';
@@ -25,6 +26,8 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 import { monitoringGroups } from '@/lib/monitoring-checklist-items';
+import ReactDOMServer from 'react-dom/server';
+import { MonitoringPrintTemplate } from '@/components/monitoring/monitoring-print-template';
 
 export default function MonitoringPage() {
   const { isAdmin, isUserLoading, user, userProfile, isSupervisor, userRole } = useUser();
@@ -95,6 +98,52 @@ export default function MonitoringPage() {
   const handleViewRecord = (record: UnitMonitoringRecord) => {
     setSelectedRecord(record);
     setIsFormOpen(true);
+  };
+
+  const handlePrintRecord = (record: UnitMonitoringRecord) => {
+    const cName = campusMap.get(record.campusId) || 'Unknown Campus';
+    const uName = unitMap.get(record.unitId) || 'Unknown Unit';
+
+    const reportHtml = ReactDOMServer.renderToStaticMarkup(
+      <MonitoringPrintTemplate 
+        record={record} 
+        campusName={cName} 
+        unitName={uName} 
+      />
+    );
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Monitoring Report - ${uName}</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <style>
+              @media print {
+                body { margin: 0; padding: 0; }
+                .no-print { display: none; }
+              }
+              body { font-family: sans-serif; }
+              table { width: 100%; border-collapse: collapse; }
+              th, td { border: 1px solid black; padding: 8px; }
+            </style>
+          </head>
+          <body class="p-4">
+            ${reportHtml}
+            <script>
+              window.onload = function() {
+                setTimeout(() => {
+                  window.print();
+                  window.onafterprint = function() { window.close(); }
+                }, 500);
+              }
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
   };
 
   const calculateCompliance = (record: UnitMonitoringRecord) => {
@@ -251,7 +300,6 @@ export default function MonitoringPage() {
                                     {!isUnitOnlyView && <TableHead>Unit</TableHead>}
                                     <TableHead>Room</TableHead>
                                     <TableHead>Officer in Charge</TableHead>
-                                    <TableHead>Monitor</TableHead>
                                     <TableHead>Compliance %</TableHead>
                                     <TableHead className="text-right">Action</TableHead>
                                 </TableRow>
@@ -262,14 +310,14 @@ export default function MonitoringPage() {
                                       const score = calculateCompliance(record);
                                       return (
                                         <TableRow key={record.id} className="cursor-pointer" onClick={() => handleViewRecord(record)}>
-                                            <TableCell className="font-medium">
+                                            <TableCell className="font-medium text-xs">
                                             <div className="flex items-center gap-2">
                                                 <Calendar className="h-4 w-4 text-muted-foreground" />
                                                 {safeFormatDate(record.visitDate)}
                                             </div>
                                             </TableCell>
                                             {!isUnitOnlyView && (
-                                                <TableCell>
+                                                <TableCell className="text-xs">
                                                 <div className="flex items-center gap-2">
                                                     <School className="h-4 w-4 text-muted-foreground" />
                                                     {campusMap.get(record.campusId) || '...'}
@@ -277,30 +325,30 @@ export default function MonitoringPage() {
                                                 </TableCell>
                                             )}
                                             {!isUnitOnlyView && (
-                                                <TableCell>
+                                                <TableCell className="text-xs">
                                                 <div className="flex items-center gap-2">
                                                     <Building className="h-4 w-4 text-muted-foreground" />
                                                     {unitMap.get(record.unitId) || '...'}
                                                 </div>
                                                 </TableCell>
                                             )}
-                                            <TableCell>
-                                            <div className="flex items-center gap-2 text-xs">
+                                            <TableCell className="text-xs">
+                                            <div className="flex items-center gap-2">
                                                 <DoorOpen className="h-3 w-3 text-muted-foreground" />
                                                 {record.roomNumber || 'N/A'}
                                             </div>
                                             </TableCell>
-                                            <TableCell>
-                                            <div className="flex items-center gap-2 text-xs">
+                                            <TableCell className="text-xs">
+                                            <div className="flex items-center gap-2">
                                                 <User className="h-3 w-3 text-muted-foreground" />
                                                 {record.officerInCharge || 'N/A'}
                                             </div>
                                             </TableCell>
-                                            <TableCell className="text-xs">{record.monitorName}</TableCell>
                                             <TableCell>
                                               <Badge 
                                                 variant={getComplianceVariant(score)}
                                                 className={cn(
+                                                  "text-[10px]",
                                                   score >= 80 && "bg-green-500 hover:bg-green-600 text-white",
                                                   (score < 80 && score >= 50) && "bg-amber-500 hover:bg-amber-600 text-white"
                                                 )}
@@ -308,7 +356,10 @@ export default function MonitoringPage() {
                                                 {score}%
                                               </Badge>
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right space-x-1">
+                                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handlePrintRecord(record); }}>
+                                                <Printer className="h-4 w-4" />
+                                            </Button>
                                             <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleViewRecord(record); }}>
                                                 {isAdmin ? 'Edit' : 'View'}
                                             </Button>
@@ -357,6 +408,7 @@ export default function MonitoringPage() {
         record={selectedRecord}
         campuses={campuses || []}
         units={units || []}
+        onPrint={handlePrintRecord}
       />
     </>
   );

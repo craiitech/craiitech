@@ -33,7 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Loader2, CalendarIcon, ClipboardCheck, Circle, AlertCircle, FileWarning, CheckCircle2, Info, LayoutList } from 'lucide-react';
+import { Loader2, CalendarIcon, ClipboardCheck, Circle, AlertCircle, FileWarning, CheckCircle2, Info, LayoutList, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
@@ -46,6 +46,7 @@ interface MonitoringFormDialogProps {
   record: UnitMonitoringRecord | null;
   campuses: Campus[];
   units: Unit[];
+  onPrint?: (record: UnitMonitoringRecord) => void;
 }
 
 const formSchema = z.object({
@@ -78,7 +79,7 @@ const eomsReportMap: Record<string, string> = {
     "Risk and Opportunity Action Plan": "Risk and Opportunity Action Plan"
 };
 
-export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, units }: MonitoringFormDialogProps) {
+export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, units, onPrint }: MonitoringFormDialogProps) {
   const { userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -264,18 +265,26 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden">
         <div className="p-6 border-b bg-card shrink-0">
-            <div className="flex items-center gap-2 text-primary mb-1">
-                <ClipboardCheck className="h-5 w-5" />
-                <span className="text-xs font-bold uppercase tracking-widest">IQA & Field Monitoring</span>
+            <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-primary mb-1">
+                        <ClipboardCheck className="h-5 w-5" />
+                        <span className="text-xs font-bold uppercase tracking-widest">IQA & Field Monitoring</span>
+                    </div>
+                    <DialogTitle className="text-xl">
+                        {isReadOnly ? 'Viewing' : (record ? 'Edit' : 'New')} Unit Monitoring Record
+                    </DialogTitle>
+                    <DialogDescription className="text-muted-foreground text-sm font-normal">
+                        {isReadOnly ? 'Findings from the official on-site monitoring visit.' : 'Record objective observations and findings from on-site unit monitoring visits.'}
+                    </DialogDescription>
+                </div>
+                {record && onPrint && (
+                    <Button variant="outline" size="sm" onClick={() => onPrint(record)}>
+                        <Printer className="mr-2 h-4 w-4" />
+                        Print Report
+                    </Button>
+                )}
             </div>
-            <DialogHeader>
-                <DialogTitle className="text-xl">
-                    {isReadOnly ? 'Viewing' : (record ? 'Edit' : 'New')} Unit Monitoring Record
-                </DialogTitle>
-                <DialogDescription className="text-muted-foreground text-sm font-normal">
-                    {isReadOnly ? 'Findings from the official on-site monitoring visit.' : 'Record objective observations and findings from on-site unit monitoring visits.'}
-                </DialogDescription>
-            </DialogHeader>
         </div>
 
         <Form {...form}>
