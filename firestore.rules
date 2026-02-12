@@ -34,13 +34,13 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /unitMonitoringRecords/{recordId} {
-        // Use request.query validation for collection queries (list)
-        // Use resource.data validation for single document fetches (get)
+        // Consolidated read rule for both get and list.
+        // Firestore authorizes filtered queries by verifying that client filters 
+        // match the resource.data constraints here.
         allow read: if isSignedIn() && (
           isAdmin() ||
-          (request.query != null && request.query.where('unitId', '==', getUserData().unitId)) ||
-          (request.query != null && request.query.where('campusId', '==', getUserData().campusId)) ||
-          (request.query == null && (resource.data.unitId == getUserData().unitId || resource.data.campusId == getUserData().campusId))
+          resource.data.unitId == getUserData().unitId ||
+          resource.data.campusId == getUserData().campusId
         );
         
         allow write: if isAdmin();
@@ -61,10 +61,9 @@ service cloud.firestore {
     match /submissions/{submissionId} {
       allow read: if isSignedIn() && (
         isAdmin() ||
-        (request.query != null && request.query.where('userId', '==', request.auth.uid)) ||
-        (request.query != null && request.query.where('unitId', '==', getUserData().unitId)) ||
-        (request.query != null && request.query.where('campusId', '==', getUserData().campusId)) ||
-        (request.query == null && (resource.data.userId == request.auth.uid || resource.data.unitId == getUserData().unitId || resource.data.campusId == getUserData().campusId))
+        resource.data.userId == request.auth.uid || 
+        resource.data.unitId == getUserData().unitId || 
+        resource.data.campusId == getUserData().campusId
       );
 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
@@ -72,8 +71,8 @@ service cloud.firestore {
       allow update: if isSignedIn() && (
         isAdmin() || 
         resource.data.userId == request.auth.uid || 
-        getUserData().unitId == resource.data.unitId || 
-        getUserData().campusId == resource.data.campusId
+        resource.data.unitId == getUserData().unitId || 
+        resource.data.campusId == getUserData().campusId
       );
 
       allow delete: if isAdmin();
@@ -82,9 +81,9 @@ service cloud.firestore {
     match /risks/{riskId} {
       allow read: if isSignedIn() && (
         isAdmin() ||
-        (request.query != null && request.query.where('unitId', '==', getUserData().unitId)) ||
-        (request.query != null && request.query.where('userId', '==', request.auth.uid)) ||
-        (request.query == null && (resource.data.unitId == getUserData().unitId || resource.data.userId == request.auth.uid || resource.data.campusId == getUserData().campusId))
+        resource.data.unitId == getUserData().unitId ||
+        resource.data.userId == request.auth.uid ||
+        resource.data.campusId == getUserData().campusId
       );
 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
@@ -158,9 +157,9 @@ service cloud.firestore {
     match /auditSchedules/{scheduleId} {
         allow read: if isSignedIn() && (
           isAdmin() ||
-          (request.query != null && request.query.where('targetId', '==', getUserData().unitId)) ||
-          (request.query != null && request.query.where('targetId', '==', request.auth.uid)) ||
-          (request.query == null && (resource.data.targetId == getUserData().unitId || resource.data.targetId == request.auth.uid || getUserData().role == 'Auditor'))
+          resource.data.targetId == getUserData().unitId || 
+          resource.data.targetId == request.auth.uid || 
+          getUserData().role == 'Auditor'
         );
         
         allow create: if isAdmin();
