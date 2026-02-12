@@ -4,7 +4,7 @@
 import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
 import { doc, Timestamp, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
-import type { Submission, User as AppUser, Campus, Unit, Comment } from '@/lib/types';
+import type { Submission, User as AppUser, Campus, Comment } from '@/lib/types';
 import {
   Card,
   CardContent,
@@ -16,7 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Check, X, Send, ShieldCheck, History, School, Calendar, Building, User } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, X, Send, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useState, useMemo, useEffect } from 'react';
@@ -24,10 +24,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { generateControlNumber } from '@/lib/utils';
 import { getOfficialServerTime } from '@/lib/actions';
@@ -278,18 +277,16 @@ export default function SubmissionDetailPage() {
     setIsSubmitting(true);
 
     try {
-        // Fetch official Philippine time from server
         const officialTime = await getOfficialServerTime();
         const phDate = new Date(officialTime.iso);
 
-        // ISO Compliance: Resubmission always increments the revision
         const nextRevision = (submission.revision || 0) + 1;
         const nextControlNumber = generateControlNumber(submission.unitName, nextRevision, submission.reportType, phDate);
 
          const updateData: any = {
             googleDriveLink: newLink,
             statusId: 'submitted',
-            submissionDate: serverTimestamp(), // Atomic server time
+            submissionDate: serverTimestamp(),
             userId: user.uid,
             revision: nextRevision,
             controlNumber: nextControlNumber,
@@ -360,92 +357,59 @@ export default function SubmissionDetailPage() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* Left Column: Document Preview & Actions */}
-        <div className="lg:col-span-2 space-y-4">
-          <Card className="border-primary/20">
-            <CardHeader className="bg-muted/30">
-                <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle className="flex items-center gap-2">
-                            <ShieldCheck className="text-primary" />
-                            Document Control Information
-                        </CardTitle>
-                        <CardDescription>ISO 21001:2018 QA Standard</CardDescription>
-                    </div>
-                    <Badge variant="secondary" className="text-lg py-1 px-4">
-                        Revision {String(submission.revision || 0).padStart(2, '0')}
-                    </Badge>
+        <div className="lg:col-span-2 space-y-6">
+          
+          {/* Simple Text-Based Control & Metadata Section */}
+          <div className="rounded-lg border bg-muted/5 p-4 space-y-4">
+            {/* Document Control Information (Simplified) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-4 border-b">
+                <div>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Control Number</p>
+                    <p className="font-mono text-sm">{submission.controlNumber}</p>
                 </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Control Number</p>
-                        <p className="font-mono text-base bg-muted p-2 rounded border border-primary/10">{submission.controlNumber}</p>
-                    </div>
-                    <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Current Status</p>
-                        <div className="flex items-center gap-2 h-10">
-                            <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
-                                {getStatusText(submission.statusId)}
-                            </Badge>
-                        </div>
-                    </div>
+                <div>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Revision</p>
+                    <p className="text-sm font-medium">Rev {String(submission.revision || 0).padStart(2, '0')}</p>
                 </div>
-            </CardContent>
-          </Card>
+                <div>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Status</p>
+                    <p className="text-xs font-bold uppercase text-primary tracking-wider">{getStatusText(submission.statusId)}</p>
+                </div>
+            </div>
 
-          {/* Submission Metadata Moved Here */}
-          <Card>
-            <CardHeader className="py-3 px-6 bg-muted/10">
-                <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">Submission Metadata</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
-                <div className="space-y-1">
-                    <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest">Last Submitter</p>
-                    <div className="flex items-center gap-2">
-                        <User className="h-3 w-3 text-primary" />
-                        <span className="font-semibold">{submitter ? `${submitter.firstName} ${submitter.lastName}` : <Loader2 className="h-3 w-3 animate-spin"/>}</span>
-                    </div>
+            {/* Submission Metadata (Simplified) */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                <div>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Submitter</p>
+                    <p className="text-xs font-medium">{submitter ? `${submitter.firstName} ${submitter.lastName}` : '...'}</p>
                 </div>
-                <div className="space-y-1">
-                    <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest">Campus</p>
-                    <div className="flex items-center gap-2">
-                        <School className="h-3 w-3 text-primary" />
-                        <span className="font-semibold">{campus ? campus.name : <Loader2 className="h-3 w-3 animate-spin"/>}</span>
-                    </div>
+                <div>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Campus</p>
+                    <p className="text-xs font-medium">{campus ? campus.name : '...'}</p>
                 </div>
-                <div className="space-y-1">
-                    <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest">Unit</p>
-                    <div className="flex items-center gap-2">
-                        <Building className="h-3 w-3 text-primary" />
-                        <span className="font-semibold">{submission.unitName}</span>
-                    </div>
+                <div>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Unit</p>
+                    <p className="text-xs font-medium">{submission.unitName}</p>
                 </div>
-                <div className="space-y-1">
-                    <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest">Year</p>
-                    <div className="flex items-center gap-2">
-                        <Calendar className="h-3 w-3 text-primary" />
-                        <span className="font-semibold">{submission.year}</span>
-                    </div>
+                <div>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Year</p>
+                    <p className="text-xs font-medium">{submission.year}</p>
                 </div>
-                <div className="space-y-1">
-                    <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest">Cycle</p>
-                    <div className="flex items-center gap-2">
-                        <History className="h-3 w-3 text-primary" />
-                        <span className="font-semibold capitalize">{submission.cycleId} Cycle</span>
-                    </div>
+                <div>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Cycle</p>
+                    <p className="text-xs font-medium capitalize">{submission.cycleId} Cycle</p>
                 </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           <Card>
-            <CardHeader>
-                <CardTitle>{submission.reportType}</CardTitle>
-                 <CardDescription>
-                    Last updated on {getFormattedDate(submission.submissionDate)}
+            <CardHeader className="py-4 border-b">
+                <CardTitle className="text-lg">{submission.reportType}</CardTitle>
+                 <CardDescription className="text-xs">
+                    Last updated: {getFormattedDate(submission.submissionDate)}
                 </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
                 {previewUrl ? (
                     <div className="aspect-video w-full rounded-lg border bg-muted">
                         <iframe
@@ -467,7 +431,7 @@ export default function SubmissionDetailPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Approver's Final Check</CardTitle>
-                        <CardDescription>Please confirm the following before taking action. All items must be checked to enable approval.</CardDescription>
+                        <CardDescription>Please confirm the following before taking action.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
                         {approverChecklistItems.map(item => (
@@ -489,7 +453,7 @@ export default function SubmissionDetailPage() {
                     <CardHeader>
                         <CardTitle>Take Action</CardTitle>
                         <CardDescription>
-                            Provide additional comments below. Unchecked items from the list above will be automatically included in the rejection feedback.
+                            Provide additional comments below for the submitter.
                         </CardDescription>
                     </CardHeader>
                         <CardContent className="space-y-4">
