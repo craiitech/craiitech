@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -38,17 +39,16 @@ export default function MonitoringPage() {
     () => {
         if (!firestore || !user || !userProfile || !canViewMonitoring) return null;
         
-        if (isAdmin) {
-            return query(
-                collection(firestore, 'unitMonitoringRecords'), 
-                orderBy('visitDate', 'desc')
-            );
+        const baseRef = collection(firestore, 'unitMonitoringRecords');
+
+        if (isAdmin || userRole === 'Auditor') {
+            return query(baseRef, orderBy('visitDate', 'desc'));
         }
         
         if (isSupervisor) {
              if (userProfile.campusId) {
                  return query(
-                    collection(firestore, 'unitMonitoringRecords'), 
+                    baseRef, 
                     where('campusId', '==', userProfile.campusId), 
                     orderBy('visitDate', 'desc')
                 );
@@ -56,18 +56,19 @@ export default function MonitoringPage() {
              return null;
         }
 
-        // Unit User: Only their own unit
-        if (userProfile.unitId) {
+        // Unit User: Access shared within unit AND campus to ensure precision
+        if (userProfile.unitId && userProfile.campusId) {
             return query(
-                collection(firestore, 'unitMonitoringRecords'), 
+                baseRef, 
                 where('unitId', '==', userProfile.unitId), 
+                where('campusId', '==', userProfile.campusId),
                 orderBy('visitDate', 'desc')
             );
         }
 
         return null;
     },
-    [firestore, user, userProfile, isAdmin, isSupervisor, canViewMonitoring]
+    [firestore, user, userProfile, isAdmin, isSupervisor, userRole, canViewMonitoring]
   );
   
   const { data: records, isLoading: isLoadingRecords } = useCollection<UnitMonitoringRecord>(monitoringRecordsQuery);
