@@ -33,18 +33,23 @@ export default function MonitoringPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<UnitMonitoringRecord | null>(null);
 
-  const canViewMonitoring = !!userProfile;
+  // Admins can view monitoring even if they don't have a profile doc in /users
+  const canViewMonitoring = !!userProfile || isAdmin;
 
   const monitoringRecordsQuery = useMemoFirebase(
     () => {
-        if (!firestore || !user || !userProfile || !canViewMonitoring) return null;
+        if (!firestore || !user || !canViewMonitoring) return null;
         
         const baseRef = collection(firestore, 'unitMonitoringRecords');
 
+        // Oversight roles execute unfiltered queries (authorized by isAuditor/isAdmin in rules)
         if (isAdmin || userRole === 'Auditor') {
             return query(baseRef, orderBy('visitDate', 'desc'));
         }
         
+        if (!userProfile) return null;
+
+        // Supervisors filter by campus (authorized by resource.data.campusId in rules)
         if (isSupervisor) {
              if (userProfile.campusId) {
                  return query(
@@ -56,12 +61,11 @@ export default function MonitoringPage() {
              return null;
         }
 
-        // Unit User: Access shared within unit AND campus to ensure precision
-        if (userProfile.unitId && userProfile.campusId) {
+        // Unit Users filter by unit (authorized by resource.data.unitId in rules)
+        if (userProfile.unitId) {
             return query(
                 baseRef, 
                 where('unitId', '==', userProfile.unitId), 
-                where('campusId', '==', userProfile.campusId),
                 orderBy('visitDate', 'desc')
             );
         }

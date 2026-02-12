@@ -11,22 +11,23 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
     /**
-     * Robust Admin check using the roles_admin master collection.
+     * Robust Admin check.
+     * Prioritizes the roles_admin master collection, then falls back to profile role.
      */
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      let isAdminUser = exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      let profilePath = /databases/$(database)/documents/users/$(request.auth.uid);
+      let isProfileAdmin = exists(profilePath) && get(profilePath).data.role == 'Admin';
+      return isSignedIn() && (isAdminUser || isProfileAdmin);
     }
     
     /**
-     * Optimized user data fetch.
+     * Safe user profile fetch.
      */
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(path) ? get(path).data : {};
     }
 
     function isAuditor() {
@@ -38,19 +39,20 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /unitMonitoringRecords/{recordId} {
-        // Admins and Auditors have oversight. Users are restricted to their unit/campus.
-        allow read: if isAdmin() || isAuditor() || (isSignedIn() && (
-          resource.data.unitId == getUserData().unitId ||
-          resource.data.campusId == getUserData().campusId
-        ));
+        // Oversight roles can read everything
+        allow read: if isAdmin() || isAuditor();
+        
+        // Unit-level sharing: Split into discrete blocks for query optimizer compatibility
+        allow read: if isSignedIn() && resource.data.unitId == getUserData().unitId;
+        allow read: if isSignedIn() && resource.data.campusId == getUserData().campusId;
         
         allow write: if isAdmin();
     }
 
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
       allow delete: if isAdmin();
     }
     
@@ -60,12 +62,16 @@ service cloud.firestore {
     }
 
     match /submissions/{submissionId} {
-      allow read: if isAdmin() || isAuditor() || (isSignedIn() && (
+      // Oversight roles
+      allow read: if isAdmin() || isAuditor();
+      
+      // User-level/Scoped read
+      allow read: if isSignedIn() && (
         resource.data.userId == request.auth.uid || 
         resource.data.unitId == getUserData().unitId || 
         resource.data.campusId == getUserData().campusId ||
         getUserData().role.matches('(?i).*vice president.*')
-      ));
+      );
 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 
@@ -79,11 +85,13 @@ service cloud.firestore {
     }
 
     match /risks/{riskId} {
-      allow read: if isAdmin() || isAuditor() || (isSignedIn() && (
+      allow read: if isAdmin() || isAuditor();
+      
+      allow read: if isSignedIn() && (
         resource.data.unitId == getUserData().unitId ||
         resource.data.userId == request.auth.uid ||
         resource.data.campusId == getUserData().campusId
-      ));
+      );
 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       
@@ -153,10 +161,12 @@ service cloud.firestore {
     }
 
     match /auditSchedules/{scheduleId} {
-        allow read: if isAdmin() || isAuditor() || (isSignedIn() && (
+        allow read: if isAdmin() || isAuditor();
+        
+        allow read: if isSignedIn() && (
           resource.data.targetId == getUserData().unitId || 
           resource.data.targetId == request.auth.uid
-        ));
+        );
         
         allow create: if isAdmin();
         allow update: if isAdmin() || (isSignedIn() && getUserData().role == 'Auditor' && (resource.data.auditorId == null || resource.data.auditorId == request.auth.uid));
@@ -172,7 +182,7 @@ service cloud.firestore {
     match /correctiveActionPlans/{planId} {
         allow read: if isSignedIn();
         allow create: if isSignedIn();
-        allow update: if isOwner(resource.data.authorId) || isAdmin();
+        allow update: if (exists(resource.data) && resource.data.authorId == request.auth.uid) || isAdmin();
         allow delete: if isAdmin();
     }
   }
