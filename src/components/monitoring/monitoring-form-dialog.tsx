@@ -17,7 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,9 +31,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { Loader2, CalendarIcon, ClipboardCheck, Circle, AlertCircle, FileWarning, CheckCircle2, Info, LayoutList, Printer } from 'lucide-react';
+import { Loader2, ClipboardCheck, Circle, FileWarning, CheckCircle2, Info, LayoutList, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
@@ -49,8 +47,20 @@ interface MonitoringFormDialogProps {
   onPrint?: (record: UnitMonitoringRecord) => void;
 }
 
+const months = [
+  { value: '0', label: 'January' }, { value: '1', label: 'February' }, { value: '2', label: 'March' },
+  { value: '3', label: 'April' }, { value: '4', label: 'May' }, { value: '5', label: 'June' },
+  { value: '6', label: 'July' }, { value: '7', label: 'August' }, { value: '8', label: 'September' },
+  { value: '9', label: 'October' }, { value: '10', label: 'November' }, { value: '11', label: 'December' },
+];
+const currentYear = new Date().getFullYear();
+const yearsList = Array.from({ length: 10 }, (_, i) => String(currentYear - 5 + i));
+const daysList = Array.from({ length: 31 }, (_, i) => String(i + 1));
+
 const formSchema = z.object({
-  visitDate: z.date({ required_error: 'Date of visit is required.' }),
+  visitMonth: z.string().min(1, 'Month is required'),
+  visitDay: z.string().min(1, 'Day is required'),
+  visitYear: z.string().min(1, 'Year is required'),
   campusId: z.string().min(1, 'Please select a campus.'),
   unitId: z.string().min(1, 'Please select a unit.'),
   roomNumber: z.string().optional(),
@@ -88,7 +98,9 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      visitDate: new Date(),
+      visitMonth: String(new Date().getMonth()),
+      visitDay: String(new Date().getDate()),
+      visitYear: String(new Date().getFullYear()),
       campusId: '',
       unitId: '',
       roomNumber: '',
@@ -109,8 +121,8 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
 
   const selectedCampusId = form.watch('campusId');
   const selectedUnitId = form.watch('unitId');
-  const visitDateValue = form.watch('visitDate');
-  const selectedYear = visitDateValue ? visitDateValue.getFullYear() : new Date().getFullYear();
+  const visitYearValue = form.watch('visitYear');
+  const selectedYear = visitYearValue ? Number(visitYearValue) : new Date().getFullYear();
 
   const unitsForCampus = useMemo(() => {
     if (!units) return [];
@@ -188,10 +200,12 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
   useEffect(() => {
     if (isOpen) {
       if (record) {
-        const visitDate = record.visitDate instanceof Timestamp ? record.visitDate.toDate() : new Date(record.visitDate);
+        const vDate = record.visitDate instanceof Timestamp ? record.visitDate.toDate() : new Date(record.visitDate);
         form.reset({
           ...record,
-          visitDate,
+          visitMonth: String(vDate.getMonth()),
+          visitDay: String(vDate.getDate()),
+          visitYear: String(vDate.getFullYear()),
           roomNumber: record.roomNumber || '',
           officerInCharge: record.officerInCharge || '',
           generalRemarks: record.generalRemarks || '',
@@ -206,7 +220,9 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
         });
       } else {
         form.reset({
-          visitDate: new Date(),
+          visitMonth: String(new Date().getMonth()),
+          visitDay: String(new Date().getDate()),
+          visitYear: String(new Date().getFullYear()),
           campusId: '',
           unitId: '',
           roomNumber: '',
@@ -234,8 +250,11 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
     }
     setIsSubmitting(true);
 
+    const visitDate = new Date(Number(values.visitYear), Number(values.visitMonth), Number(values.visitDay));
+
     const recordData = {
       ...values,
+      visitDate,
       monitorId: userProfile.id,
       monitorName: `${userProfile.firstName} ${userProfile.lastName}`,
     };
@@ -293,31 +312,41 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
               <div className="p-6 space-y-8">
                 {/* Visit Metadata */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                  <FormField control={form.control} name="visitDate" render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Date of Visit</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild disabled={isReadOnly}>
-                          <FormControl>
-                            <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={isReadOnly}>
-                              {field.value ? format(field.value, "PPP") : (<span>Pick a date</span>)}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
+                  <div className="space-y-2">
+                    <FormLabel>Date of Visit</FormLabel>
+                    <div className="grid grid-cols-3 gap-2">
+                        <FormField control={form.control} name="visitMonth" render={({ field }) => (
+                            <FormItem>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
+                                    <FormControl><SelectTrigger className="px-2 h-9 text-xs"><SelectValue placeholder="Month" /></SelectTrigger></FormControl>
+                                    <SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+                                </Select>
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="visitDay" render={({ field }) => (
+                            <FormItem>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
+                                    <FormControl><SelectTrigger className="px-2 h-9 text-xs"><SelectValue placeholder="Day" /></SelectTrigger></FormControl>
+                                    <SelectContent>{daysList.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+                                </Select>
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="visitYear" render={({ field }) => (
+                            <FormItem>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
+                                    <FormControl><SelectTrigger className="px-2 h-9 text-xs"><SelectValue placeholder="Year" /></SelectTrigger></FormControl>
+                                    <SelectContent>{yearsList.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                                </Select>
+                            </FormItem>
+                        )} />
+                    </div>
+                  </div>
                   <FormField control={form.control} name="campusId" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Campus</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value || ''} disabled={isReadOnly}>
                         <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Select Campus" /></SelectTrigger>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select Campus" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                       </Select>
@@ -329,7 +358,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                       <FormLabel>Unit</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value || ''} disabled={isReadOnly || !selectedCampusId}>
                         <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Select Unit" /></SelectTrigger>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select Unit" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>{unitsForCampus.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
                       </Select>
@@ -339,14 +368,14 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                   <FormField control={form.control} name="roomNumber" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Office / Room #</FormLabel>
-                      <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Room 101" disabled={isReadOnly} /></FormControl>
+                      <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Room 101" className="h-9 text-xs" disabled={isReadOnly} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="officerInCharge" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Officer in Charge</FormLabel>
-                      <FormControl><Input {...field} value={field.value || ''} placeholder="Name of official" disabled={isReadOnly} /></FormControl>
+                      <FormControl><Input {...field} value={field.value || ''} placeholder="Name of official" className="h-9 text-xs" disabled={isReadOnly} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
