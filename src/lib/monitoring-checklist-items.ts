@@ -2,7 +2,7 @@
 export const monitoringChecklistItems = [
   "Organizational Structure (Updated / Signed)",
   "Document Control Center",
-  "Entrace / Exit Signages",
+  "Entrance / Exit Signages",
   "7S (Inside & Out)",
   "EOMS Submissions",
   "Operational Plan",
