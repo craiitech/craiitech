@@ -34,5 +34,6 @@ export const monitoringChecklistItems = [
   "Sockets",
   "Electric Fans",
   "Aircons",
-  "Student chairs"
+  "Student chairs",
+  "Switches"
 ];
