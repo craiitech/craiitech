@@ -13,11 +13,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useUser, useFirestore } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, addDoc, Timestamp } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, setDoc, serverTimestamp, collection, addDoc, Timestamp, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
-import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
+import type { UnitMonitoringRecord, Campus, Unit, Submission } from '@/lib/types';
 import { monitoringChecklistItems } from '@/lib/monitoring-checklist-items';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,11 +25,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Loader2, CalendarIcon, ClipboardCheck, Circle, User } from 'lucide-react';
+import { Loader2, CalendarIcon, ClipboardCheck, Circle, AlertCircle, FileWarning, CheckCircle2, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { Table, TableBody, TableCell, TableRow, TableHeader, TableHead } from '../ui/table';
+import { Badge } from '../ui/badge';
 
 interface MonitoringFormDialogProps {
   isOpen: boolean;
@@ -61,6 +62,13 @@ const statusColors: Record<string, string> = {
   'Need to revisit': 'text-blue-500 fill-blue-500',
 };
 
+const eomsReportMap: Record<string, string> = {
+    "Operational Plan": "Operational Plan",
+    "Objectives Monitoring": "Quality Objectives Monitoring",
+    "Risk and Opportunity Registry": "Risk and Opportunity Registry",
+    "Risk and Opportunity Action Plan": "Risk and Opportunity Action Plan"
+};
+
 export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, units }: MonitoringFormDialogProps) {
   const { userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
@@ -90,10 +98,67 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
   });
 
   const selectedCampusId = form.watch('campusId');
+  const selectedUnitId = form.watch('unitId');
+  const visitDateValue = form.watch('visitDate');
+  const selectedYear = visitDateValue ? visitDateValue.getFullYear() : new Date().getFullYear();
+
   const unitsForCampus = useMemo(() => {
     if (!units) return [];
     return units.filter(u => u.campusIds?.includes(selectedCampusId));
   }, [units, selectedCampusId]);
+
+  // Fetch submissions for the selected unit to show missing ones
+  const submissionsQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedUnitId || !selectedCampusId || !isOpen) return null;
+    return query(
+        collection(firestore, 'submissions'),
+        where('unitId', '==', selectedUnitId),
+        where('campusId', '==', selectedCampusId),
+        where('year', '==', selectedYear)
+    );
+  }, [firestore, selectedUnitId, selectedCampusId, selectedYear, isOpen]);
+
+  const { data: submissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
+
+  const missingReports = useMemo(() => {
+    if (!submissions || !selectedUnitId) return [];
+
+    const coreReports = [
+        "Operational Plan",
+        "Quality Objectives Monitoring",
+        "Risk and Opportunity Registry",
+        "Risk and Opportunity Action Plan"
+    ];
+
+    const results: { name: string; missing: string[]; isNA?: boolean }[] = [];
+
+    // Check Action Plan Requirement (Only required if Registry rating is medium-high)
+    const firstRegistry = submissions.find(s => s.reportType === 'Risk and Opportunity Registry' && s.cycleId === 'first');
+    const finalRegistry = submissions.find(s => s.reportType === 'Risk and Opportunity Registry' && s.cycleId === 'final');
+    
+    coreReports.forEach(reportName => {
+        const missingCycles: string[] = [];
+        const first = submissions.find(s => s.reportType === reportName && s.cycleId === 'first');
+        const final = submissions.find(s => s.reportType === reportName && s.cycleId === 'final');
+
+        let isFirstNA = false;
+        let isFinalNA = false;
+
+        if (reportName === "Risk and Opportunity Action Plan") {
+            if (firstRegistry && firstRegistry.riskRating === 'low') isFirstNA = true;
+            if (finalRegistry && finalRegistry.riskRating === 'low') isFinalNA = true;
+        }
+
+        if (!first && !isFirstNA) missingCycles.push('First');
+        if (!final && !isFinalNA) missingCycles.push('Final');
+
+        if (missingCycles.length > 0) {
+            results.push({ name: reportName, missing: missingCycles });
+        }
+    });
+
+    return results;
+  }, [submissions, selectedUnitId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -254,6 +319,41 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                   )} />
                 </div>
 
+                {/* EOMS Submission Reference Helper */}
+                {selectedUnitId && !isLoadingSubmissions && (
+                    <Card className="border-blue-200 bg-blue-50/30">
+                        <CardHeader className="py-3 bg-blue-50">
+                            <CardTitle className="text-sm flex items-center gap-2 text-blue-800">
+                                <Info className="h-4 w-4" />
+                                EOMS Submission Compliance Helper (Reference for Year {selectedYear})
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="py-4">
+                            {missingReports.length > 0 ? (
+                                <div className="space-y-3">
+                                    <p className="text-xs font-semibold text-blue-900 mb-2">The following core documents are MISSING from the submission portal:</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {missingReports.map((report, idx) => (
+                                            <div key={idx} className="flex items-start gap-2 bg-white p-2 rounded border border-blue-100 shadow-sm">
+                                                <FileWarning className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                                                <div>
+                                                    <p className="text-xs font-bold">{report.name}</p>
+                                                    <p className="text-[10px] text-muted-foreground">Missing Cycles: <span className="text-destructive font-semibold">{report.missing.join(' & ')}</span></p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-3 text-green-700">
+                                    <CheckCircle2 className="h-5 w-5" />
+                                    <p className="text-xs font-bold">Full Compliance: This unit has submitted all core EOMS documents for both First and Final cycles.</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
+
                 {/* Checklist Table */}
                 <div className="space-y-4">
                     <h3 className="font-bold text-lg flex items-center gap-2">
@@ -271,9 +371,27 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                             </TableHeader>
                             <TableBody>
                             {fields.map((field, index) => {
+                                const internalReportName = eomsReportMap[field.item];
+                                const missingReportInfo = missingReports.find(r => r.name === internalReportName);
+                                
                                 return (
                                 <TableRow key={field.id} className="hover:bg-muted/20">
-                                <TableCell className="font-medium text-sm py-3">{field.item}</TableCell>
+                                <TableCell className="font-medium text-sm py-3">
+                                    <div className="flex flex-col gap-1">
+                                        <span>{field.item}</span>
+                                        {internalReportName && !isLoadingSubmissions && (
+                                            missingReportInfo ? (
+                                                <Badge variant="destructive" className="w-fit text-[9px] h-4 py-0 font-bold uppercase tracking-tighter">
+                                                    Missing in Portal: {missingReportInfo.missing.join('/')}
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="secondary" className="w-fit text-[9px] h-4 py-0 bg-green-100 text-green-700 border-green-200">
+                                                    Submitted in Portal
+                                                </Badge>
+                                            )
+                                        )}
+                                    </div>
+                                </TableCell>
                                 <TableCell>
                                     <FormField control={form.control} name={`observations.${index}.status`} render={({ field }) => (
                                     <FormItem>
