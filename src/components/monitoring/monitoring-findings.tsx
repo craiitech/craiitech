@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -25,7 +26,7 @@ export function MonitoringFindings({ records, campuses, units, isLoading }: Moni
 
     return records.map(record => {
       const criticalItems = record.observations.filter(
-        o => o.status === 'Not Available' || o.status === 'For Improvement'
+        o => o.status === 'Not Available' || o.status === 'For Improvement' || o.status === 'Needs Updating'
       );
       
       if (criticalItems.length === 0) return null;
@@ -81,7 +82,7 @@ export function MonitoringFindings({ records, campuses, units, isLoading }: Moni
               <CardTitle>Non-Compliance Action List</CardTitle>
             </div>
             <CardDescription>
-              Detailed breakdown of units with findings requiring immediate attention or improvement.
+              Detailed breakdown of units with findings requiring immediate attention, updates, or improvement.
             </CardDescription>
           </div>
           <Badge variant="destructive" className="animate-pulse">
@@ -125,7 +126,10 @@ export function MonitoringFindings({ records, campuses, units, isLoading }: Moni
                         </span>
                         <Badge 
                           variant={finding.status === 'Not Available' ? 'destructive' : 'secondary'} 
-                          className="text-[9px] h-4 py-0 px-1.5 whitespace-nowrap"
+                          className={cn(
+                            "text-[9px] h-4 py-0 px-1.5 whitespace-nowrap",
+                            finding.status === 'Needs Updating' && "bg-indigo-100 text-indigo-700 border-indigo-200"
+                          )}
                         >
                           {finding.status}
                         </Badge>

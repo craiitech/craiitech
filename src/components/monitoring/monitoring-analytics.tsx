@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -41,11 +42,11 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading }: Mon
 
     const averageCompliance = visitCompliance.reduce((acc, v) => acc + v.score, 0) / (visitCompliance.length || 1);
 
-    // 2. Common Issues (Items marked "Not Available" or "For Improvement")
+    // 2. Common Issues (Items marked "Not Available", "For Improvement", or "Needs Updating")
     const issueCounts: Record<string, number> = {};
     records.forEach(record => {
         record.observations.forEach(obs => {
-            if (obs.status === 'Not Available' || obs.status === 'For Improvement') {
+            if (obs.status === 'Not Available' || obs.status === 'For Improvement' || obs.status === 'Needs Updating') {
                 issueCounts[obs.item] = (issueCounts[obs.item] || 0) + 1;
             }
         });
@@ -177,7 +178,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading }: Mon
                     <AlertCircle className="h-5 w-5 text-destructive" />
                     <CardTitle>Top Compliance Gaps</CardTitle>
                 </div>
-                <CardDescription>Most frequent items marked as "Not Available" or "For Improvement".</CardDescription>
+                <CardDescription>Most frequent items marked as "Not Available", "For Improvement", or "Needs Updating".</CardDescription>
             </CardHeader>
             <CardContent>
                 <ChartContainer config={{}} className="h-[350px] w-full">

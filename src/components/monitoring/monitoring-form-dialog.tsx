@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -54,7 +55,7 @@ const formSchema = z.object({
   officerInCharge: z.string().optional(),
   observations: z.array(z.object({
     item: z.string(),
-    status: z.enum(['Available', 'Not Available', 'For Improvement', 'Not Applicable', 'Need to revisit']),
+    status: z.enum(['Available', 'Not Available', 'For Improvement', 'Not Applicable', 'Need to revisit', 'Needs Updating']),
     remarks: z.string().optional(),
   })),
   generalRemarks: z.string().optional(),
@@ -66,6 +67,7 @@ const statusColors: Record<string, string> = {
   'For Improvement': 'text-amber-500 fill-amber-500',
   'Not Applicable': 'text-muted-foreground fill-muted-foreground',
   'Need to revisit': 'text-blue-500 fill-blue-500',
+  'Needs Updating': 'text-indigo-500 fill-indigo-500',
 };
 
 const eomsReportMap: Record<string, string> = {
@@ -426,6 +428,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                                 <SelectItem value="Available">Available</SelectItem>
                                                 <SelectItem value="Not Available">Not Available</SelectItem>
                                                 <SelectItem value="For Improvement">For Improvement</SelectItem>
+                                                <SelectItem value="Needs Updating">Needs Updating</SelectItem>
                                                 <SelectItem value="Not Applicable">Not Applicable</SelectItem>
                                                 <SelectItem value="Need to revisit">Need to revisit</SelectItem>
                                             </SelectContent>

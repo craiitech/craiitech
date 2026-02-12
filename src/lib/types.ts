@@ -213,7 +213,7 @@ export type EomsPolicyManual = {
 
 export type ObservationItem = {
   item: string;
-  status: 'Available' | 'Not Available' | 'For Improvement' | 'Not Applicable' | 'Need to revisit';
+  status: 'Available' | 'Not Available' | 'For Improvement' | 'Not Applicable' | 'Need to revisit' | 'Needs Updating';
   remarks?: string;
 };
 
