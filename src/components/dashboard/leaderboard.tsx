@@ -23,26 +23,19 @@ interface LeaderboardProps {
 }
 
 const StarRating = ({ percentage }: { percentage: number }) => {
+  // 1 star for every 20%
   const starCount = Math.floor(percentage / 20);
   const stars = [];
   for (let i = 0; i < 5; i++) {
     stars.push(
       <Star
         key={i}
-        className={`h-4 w-4 ${i < starCount ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
+        className={`h-3 w-3 ${i < starCount ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
       />
     );
   }
-  return <div className="flex">{stars}</div>;
+  return <div className="flex gap-0.5">{stars}</div>;
 };
-
-const getGrade = (percentage: number) => {
-    if (percentage >= 95) return { label: 'A+', color: 'text-green-600' };
-    if (percentage >= 85) return { label: 'A', color: 'text-green-500' };
-    if (percentage >= 75) return { label: 'B', color: 'text-blue-500' };
-    if (percentage >= 60) return { label: 'C', color: 'text-yellow-600' };
-    return { label: 'D', color: 'text-orange-500' };
-}
 
 export function Leaderboard({
   allSubmissions,
@@ -58,7 +51,7 @@ export function Leaderboard({
 
   const years = useMemo(() => {
     if (!allCycles) return [new Date().getFullYear()];
-    const uniqueYears = [...new Set(allCycles.map(c => c.year))];
+    const uniqueYears = [...new Set(allCycles.map(c => Number(c.year)))];
     if (uniqueYears.length === 0) return [new Date().getFullYear()];
     return uniqueYears.sort((a, b) => b - a);
   }, [allCycles]);
@@ -86,7 +79,7 @@ export function Leaderboard({
             );
             
             // Per-cycle calculation
-            const firstCycleRegistry = campusUnitSubmissions.find(s => s.cycleId === 'first' && (s.reportType === 'Risk and Opportunity Registry' || s.reportType === 'Risk and Opportunity Registry Form'));
+            const firstCycleRegistry = campusUnitSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
             const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
             const requiredFirst = isFirstActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
             const firstCycleSubmissions = new Set(campusUnitSubmissions.filter(s => s.cycleId === 'first').map(s => s.reportType));
@@ -95,7 +88,7 @@ export function Leaderboard({
             }
             const firstCycleCount = firstCycleSubmissions.size;
 
-            const finalCycleRegistry = campusUnitSubmissions.find(s => s.cycleId === 'final' && (s.reportType === 'Risk and Opportunity Registry' || s.reportType === 'Risk and Opportunity Registry Form'));
+            const finalCycleRegistry = campusUnitSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
             const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
             const requiredFinal = isFinalActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
             const finalCycleSubmissions = new Set(campusUnitSubmissions.filter(s => s.cycleId === 'final').map(s => s.reportType));
@@ -119,7 +112,7 @@ export function Leaderboard({
 
 
     return campusUnitProgress
-      .filter(item => item.percentage >= 10) // Show almost everyone making progress
+      .filter(item => item.percentage >= 5) 
       .sort((a, b) => b.percentage - a.percentage);
 
   }, [allSubmissions, allUnits, allCampuses, userProfile, isCampusSupervisor, selectedYear]);
@@ -141,20 +134,20 @@ export function Leaderboard({
   }
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader className="flex flex-row items-start justify-between">
         <div>
             <CardTitle className="flex items-center gap-2">
-            <Trophy className="text-yellow-500" />
+            <Trophy className="text-yellow-500 h-5 w-5" />
             Unit Compliance Scorecard
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs">
             Performance based on submission completion for {selectedYear}.
             </CardDescription>
         </div>
-        <div className="w-[120px]">
+        <div className="w-[100px]">
              <Select value={String(selectedYear)} onValueChange={(v) => onYearChange(Number(v))}>
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-xs">
                 <SelectValue placeholder="Year" />
                 </SelectTrigger>
                 <SelectContent>
@@ -165,30 +158,27 @@ export function Leaderboard({
       </CardHeader>
       <CardContent>
         {leaderboardData.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
             {leaderboardData.slice(0, 10).map((unit, index) => {
-                const grade = getGrade(unit.percentage);
                 return (
-                    <div key={unit.id} className="space-y-2 rounded-lg border p-3 hover:bg-muted/30 transition-colors">
-                        <div className="flex items-center gap-4">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted font-bold text-xs">
+                    <div key={unit.id} className="space-y-2 rounded-lg border p-3 hover:bg-muted/30 transition-colors overflow-hidden">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted font-bold text-[10px]">
                                 {index + 1}
                             </div>
-                            <div className="flex-1">
-                                <p className="text-sm font-semibold truncate">{unit.name}</p>
-                                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                    <Building className="h-3 w-3" />
-                                    {unit.campusName}
-                                </p>
-                            </div>
-                            <div className="text-right">
-                                <div className={cn("text-lg font-bold leading-none", grade.color)}>
-                                    {grade.label}
+                            <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold truncate leading-none mb-1">{unit.name}</p>
+                                <div className="flex items-center gap-1 text-[10px] text-muted-foreground uppercase tracking-tighter">
+                                    <Building className="h-2.5 w-2.5 shrink-0" />
+                                    <span className="truncate">{unit.campusName}</span>
                                 </div>
-                                <p className="text-[10px] font-medium text-muted-foreground">{unit.percentage}%</p>
+                            </div>
+                            <div className="text-right flex flex-col items-end shrink-0">
+                                <StarRating percentage={unit.percentage} />
+                                <p className="text-[9px] font-bold text-muted-foreground mt-1">{unit.percentage}%</p>
                             </div>
                         </div>
-                        <Progress value={unit.percentage} className="h-1.5" />
+                        <Progress value={unit.percentage} className="h-1" />
                     </div>
                 )
             })}
@@ -196,7 +186,7 @@ export function Leaderboard({
         ) : (
             <div className="h-40 flex flex-col items-center justify-center text-muted-foreground text-sm">
                 <TrendingUp className="h-8 w-8 mb-2 opacity-20" />
-                <p>Waiting for more unit activity...</p>
+                <p className="text-xs">Waiting for unit activity...</p>
             </div>
         )}
       </CardContent>
