@@ -16,14 +16,17 @@ service cloud.firestore {
     }
 
     /**
-     * Robust Admin check using a dedicated collection.
+     * Robust Admin check for write operations.
+     * Uses exists() for absolute security during data mutations.
      */
-    function isAdmin() {
+    function isAdminWrite() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
     
     /**
      * Optimized user data fetch.
+     * Firestore caches this result per request, allowing us to check roles 
+     * and units efficiently during collection queries.
      */
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
@@ -35,32 +38,31 @@ service cloud.firestore {
     
     match /unitMonitoringRecords/{recordId} {
         // Consolidated read rule for both get and list.
-        // Firestore authorizes filtered queries by verifying that client filters 
-        // match the resource.data constraints here.
+        // Uses getUserData().role for efficient query-time authorization.
         allow read: if isSignedIn() && (
-          isAdmin() ||
+          getUserData().role == 'Admin' ||
           resource.data.unitId == getUserData().unitId ||
           resource.data.campusId == getUserData().campusId
         );
         
-        allow write: if isAdmin();
+        allow write: if isAdminWrite();
     }
 
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isAdmin();
+      allow update: if isOwner(userId) || isAdminWrite();
+      allow delete: if isAdminWrite();
     }
     
     match /roles_admin/{userId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isAdminWrite();
     }
 
     match /submissions/{submissionId} {
       allow read: if isSignedIn() && (
-        isAdmin() ||
+        getUserData().role == 'Admin' ||
         resource.data.userId == request.auth.uid || 
         resource.data.unitId == getUserData().unitId || 
         resource.data.campusId == getUserData().campusId
@@ -69,18 +71,18 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 
       allow update: if isSignedIn() && (
-        isAdmin() || 
+        getUserData().role == 'Admin' || 
         resource.data.userId == request.auth.uid || 
         resource.data.unitId == getUserData().unitId || 
         resource.data.campusId == getUserData().campusId
       );
 
-      allow delete: if isAdmin();
+      allow delete: if isAdminWrite();
     }
 
     match /risks/{riskId} {
       allow read: if isSignedIn() && (
-        isAdmin() ||
+        getUserData().role == 'Admin' ||
         resource.data.unitId == getUserData().unitId ||
         resource.data.userId == request.auth.uid ||
         resource.data.campusId == getUserData().campusId
@@ -89,95 +91,95 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       
       allow update: if isSignedIn() && (
-        isAdmin() || 
+        getUserData().role == 'Admin' || 
         request.auth.uid == resource.data.userId || 
         getUserData().unitId == resource.data.unitId
       );
       
-      allow delete: if isAdmin();
+      allow delete: if isAdminWrite();
     }
 
     match /roles/{roleId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isAdminWrite();
     }
 
     match /cycles/{cycleId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isAdminWrite();
     }
     
     match /campuses/{campusId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isAdminWrite();
     }
     
     match /campusSettings/{campusId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSignedIn() && getUserData().campusId == campusId && (getUserData().role == 'Campus Director' || getUserData().role == 'Campus ODIMO'));
+      allow write: if isAdminWrite() || (isSignedIn() && getUserData().campusId == campusId && (getUserData().role == 'Campus Director' || getUserData().role == 'Campus ODIMO'));
     }
     
     match /units/{unitId} {
       allow read: if isSignedIn();
-      allow create: if isAdmin() || (isSignedIn() && getUserData().role == 'Campus Director');
-      allow update: if isAdmin() || (isSignedIn() && (getUserData().role == 'Campus Director' || getUserData().role == 'Vice President'));
-      allow delete: if isAdmin();
+      allow create: if isAdminWrite() || (isSignedIn() && getUserData().role == 'Campus Director');
+      allow update: if isAdminWrite() || (isSignedIn() && (getUserData().role == 'Campus Director' || getUserData().role == 'Vice President'));
+      allow delete: if isAdminWrite();
     }
 
     match /activityLogs/{logId} {
-      allow read: if isAdmin();
+      allow read: if getUserData().role == 'Admin';
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
     }
     
     match /errorReports/{errorId} {
         allow create: if isSignedIn();
-        allow read, update, delete: if isAdmin();
+        allow read, update, delete: if isAdminWrite();
     }
 
     match /procedureManuals/{unitId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isAdminWrite();
     }
     
     match /eomsPolicyManuals/{docId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isAdminWrite();
     }
 
     match /isoClauses/{clauseId} {
         allow read: if isSignedIn();
-        allow write: if isAdmin();
+        allow write: if isAdminWrite();
     }
 
     match /auditPlans/{planId} {
         allow read: if isSignedIn();
-        allow write: if isAdmin();
+        allow write: if isAdminWrite();
     }
 
     match /auditSchedules/{scheduleId} {
         allow read: if isSignedIn() && (
-          isAdmin() ||
+          getUserData().role == 'Admin' ||
           resource.data.targetId == getUserData().unitId || 
           resource.data.targetId == request.auth.uid || 
           getUserData().role == 'Auditor'
         );
         
-        allow create: if isAdmin();
-        allow update: if isAdmin() || (isSignedIn() && getUserData().role == 'Auditor' && (resource.data.auditorId == null || resource.data.auditorId == request.auth.uid));
+        allow create: if isAdminWrite();
+        allow update: if isAdminWrite() || (isSignedIn() && getUserData().role == 'Auditor' && (resource.data.auditorId == null || resource.data.auditorId == request.auth.uid));
     }
 
     match /auditFindings/{findingId} {
         allow read: if isSignedIn();
         allow create: if isSignedIn() && getUserData().role == 'Auditor';
-        allow update: if isAdmin() || (isSignedIn() && getUserData().role == 'Auditor' && request.auth.uid == resource.data.authorId);
-        allow delete: if isAdmin();
+        allow update: if isAdminWrite() || (isSignedIn() && getUserData().role == 'Auditor' && request.auth.uid == resource.data.authorId);
+        allow delete: if isAdminWrite();
     }
 
     match /correctiveActionPlans/{planId} {
         allow read: if isSignedIn();
         allow create: if isSignedIn();
-        allow update: if isOwner(resource.data.authorId) || isAdmin();
-        allow delete: if isAdmin();
+        allow update: if isOwner(resource.data.authorId) || isAdminWrite();
+        allow delete: if isAdminWrite();
     }
   }
 }
