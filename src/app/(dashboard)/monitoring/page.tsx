@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -7,7 +6,7 @@ import { collection, query, orderBy, Timestamp, where } from 'firebase/firestore
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, Calendar, School, ShieldAlert, DoorOpen, History, LayoutDashboard, User, ClipboardCheck, Building, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Loader2, Calendar, School, ShieldAlert, DoorOpen, History, LayoutDashboard, User, ClipboardCheck, Building, AlertTriangle, FileDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { MonitoringFormDialog } from '@/components/monitoring/monitoring-form-dialog';
 import { MonitoringAnalytics } from '@/components/monitoring/monitoring-analytics';
@@ -24,6 +23,8 @@ import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import * as XLSX from 'xlsx';
+import { monitoringGroups } from '@/lib/monitoring-checklist-items';
 
 export default function MonitoringPage() {
   const { isAdmin, isUserLoading, user, userProfile, isSupervisor, userRole } = useUser();
@@ -117,6 +118,41 @@ export default function MonitoringPage() {
     return format(d, 'PPP');
   };
 
+  const handleExportToExcel = () => {
+    if (!records || records.length === 0) return;
+
+    const exportData = records.flatMap(record => {
+        const vDate = record.visitDate instanceof Timestamp ? record.visitDate.toDate() : new Date(record.visitDate);
+        
+        return record.observations.map(obs => {
+            const category = monitoringGroups.find(group => group.items.includes(obs.item))?.category || 'General';
+            
+            return {
+                'Campus': campusMap.get(record.campusId) || 'Unknown',
+                'Unit': unitMap.get(record.unitId) || 'Unknown',
+                'Visit Date': format(vDate, 'yyyy-MM-dd'),
+                'Office/Room': record.roomNumber || 'N/A',
+                'Officer in Charge': record.officerInCharge || 'N/A',
+                'Monitor': record.monitorName || 'N/A',
+                'Category': category,
+                'Checklist Item': obs.item,
+                'Status': obs.status,
+                'Findings/Remarks': obs.remarks || ''
+            };
+        });
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Monitoring Findings');
+
+    // Auto-size columns for better readability
+    const max_width = exportData.reduce((w, r) => Math.max(w, String(r.Unit).length), 10);
+    worksheet['!cols'] = [{ wch: 20 }, { wch: max_width + 5 }, { wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 25 }, { wch: 30 }, { wch: 40 }, { wch: 15 }, { wch: 50 }];
+
+    XLSX.writeFile(workbook, `RSU-EOMS-Monitoring-Report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+  };
+
   const isLoading = isUserLoading || isLoadingRecords || isLoadingCampuses || isLoadingUnits;
 
   if (!isUserLoading && !canViewMonitoring) {
@@ -146,12 +182,20 @@ export default function MonitoringPage() {
                 {isUnitOnlyView ? 'View results from on-site QA monitoring visits.' : 'Record and review on-site monitoring visit findings.'}
             </p>
           </div>
-          {isAdmin && (
-            <Button onClick={handleNewVisit}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                New Visit Record
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {!isUnitOnlyView && (
+                <Button variant="outline" onClick={handleExportToExcel} disabled={isLoading || !records || records.length === 0}>
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Export to Excel
+                </Button>
+            )}
+            {isAdmin && (
+                <Button onClick={handleNewVisit}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    New Visit Record
+                </Button>
+            )}
+          </div>
         </div>
 
         {!isLoading && records?.length === 0 && isUnitOnlyView ? (
