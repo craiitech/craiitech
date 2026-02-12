@@ -14,7 +14,11 @@ interface MonitoringPrintTemplateProps {
 }
 
 export function MonitoringPrintTemplate({ record, campusName, unitName }: MonitoringPrintTemplateProps) {
-  const visitDate = record.visitDate instanceof Timestamp ? record.visitDate.toDate() : new Date(record.visitDate);
+  if (!record) return null;
+
+  const visitDate = record.visitDate instanceof Timestamp 
+    ? record.visitDate.toDate() 
+    : (record.visitDate ? new Date(record.visitDate) : new Date());
 
   return (
     <div className="p-8 text-black bg-white max-w-4xl mx-auto font-sans leading-tight">
@@ -54,7 +58,7 @@ export function MonitoringPrintTemplate({ record, campusName, unitName }: Monito
                 </td>
               </tr>
               {group.items.map((itemName) => {
-                const obs = record.observations.find((o) => o.item === itemName);
+                const obs = record.observations?.find((o) => o.item === itemName);
                 return (
                   <tr key={itemName}>
                     <td className="border border-black p-2">{itemName}</td>

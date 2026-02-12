@@ -104,45 +104,65 @@ export default function MonitoringPage() {
     const cName = campusMap.get(record.campusId) || 'Unknown Campus';
     const uName = unitMap.get(record.unitId) || 'Unknown Unit';
 
-    const reportHtml = ReactDOMServer.renderToStaticMarkup(
-      <MonitoringPrintTemplate 
-        record={record} 
-        campusName={cName} 
-        unitName={uName} 
-      />
-    );
+    try {
+        const reportHtml = ReactDOMServer.renderToStaticMarkup(
+          <MonitoringPrintTemplate 
+            record={record} 
+            campusName={cName} 
+            unitName={uName} 
+          />
+        );
 
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Monitoring Report - ${uName}</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-            <style>
-              @media print {
-                body { margin: 0; padding: 0; }
-                .no-print { display: none; }
-              }
-              body { font-family: sans-serif; }
-              table { width: 100%; border-collapse: collapse; }
-              th, td { border: 1px solid black; padding: 8px; }
-            </style>
-          </head>
-          <body class="p-4">
-            ${reportHtml}
-            <script>
-              window.onload = function() {
-                setTimeout(() => {
-                  window.print();
-                  window.onafterprint = function() { window.close(); }
-                }, 500);
-              }
-            </script>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            alert('Please allow popups to print the monitoring report.');
+            return;
+        }
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Monitoring Report - ${uName}</title>
+                <meta charset="utf-8">
+                <script src="https://cdn.tailwindcss.com"></script>
+                <style>
+                @media print {
+                    body { margin: 0; padding: 0; background: white; }
+                    .no-print { display: none; }
+                    @page { margin: 1cm; }
+                }
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border: 1px solid black !important; padding: 8px; }
+                </style>
+            </head>
+            <body class="bg-white">
+                <div id="print-content">
+                    ${reportHtml}
+                </div>
+                <script>
+                    window.onload = function() {
+                        setTimeout(() => {
+                            window.print();
+                            window.onafterprint = function() { window.close(); };
+                        }, 1000);
+                    };
+                    // Fallback for browsers where window.onload might not trigger correctly
+                    setTimeout(() => {
+                        if (!window.printDone) {
+                            window.print();
+                        }
+                    }, 3000);
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+    } catch (err) {
+        console.error("Print generation error:", err);
+        alert("Failed to generate the print report. Please check the browser console for details.");
     }
   };
 
