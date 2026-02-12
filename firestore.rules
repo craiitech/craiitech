@@ -34,10 +34,18 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /unitMonitoringRecords/{recordId} {
-        // Use 'read' to allow Firestore to evaluate per-document fields during queries.
-        allow read: if isSignedIn() && (isAdmin() 
-                   || getUserData().unitId == resource.data.unitId 
-                   || getUserData().campusId == resource.data.campusId);
+        // Authorization for queries (list) vs single doc (get)
+        allow read: if isSignedIn() && (
+          isAdmin() ||
+          (request.query != null && (
+            request.query.where('unitId', '==', getUserData().unitId) ||
+            request.query.where('campusId', '==', getUserData().campusId)
+          )) ||
+          (request.query == null && (
+            resource.data.unitId == getUserData().unitId || 
+            resource.data.campusId == getUserData().campusId
+          ))
+        );
         
         allow write: if isAdmin();
     }
@@ -55,30 +63,55 @@ service cloud.firestore {
     }
 
     match /submissions/{submissionId} {
-      allow read: if isSignedIn() && (isAdmin() 
-                 || request.auth.uid == resource.data.userId 
-                 || getUserData().unitId == resource.data.unitId 
-                 || getUserData().campusId == resource.data.campusId);
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        (request.query != null && (
+          request.query.where('userId', '==', request.auth.uid) ||
+          request.query.where('unitId', '==', getUserData().unitId) ||
+          request.query.where('campusId', '==', getUserData().campusId)
+        )) ||
+        (request.query == null && (
+          resource.data.userId == request.auth.uid ||
+          resource.data.unitId == getUserData().unitId ||
+          resource.data.campusId == getUserData().campusId
+        ))
+      );
 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 
-      allow update: if isSignedIn() && (isAdmin() 
-                    || request.auth.uid == resource.data.userId 
-                    || getUserData().unitId == resource.data.unitId 
-                    || getUserData().campusId == resource.data.campusId);
+      allow update: if isSignedIn() && (
+        isAdmin() || 
+        resource.data.userId == request.auth.uid || 
+        getUserData().unitId == resource.data.unitId || 
+        getUserData().campusId == resource.data.campusId
+      );
 
       allow delete: if isAdmin();
     }
 
     match /risks/{riskId} {
-      allow read: if isSignedIn() && (isAdmin() 
-                 || request.auth.uid == resource.data.userId 
-                 || getUserData().unitId == resource.data.unitId 
-                 || getUserData().campusId == resource.data.campusId);
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        (request.query != null && (
+          request.query.where('unitId', '==', getUserData().unitId) ||
+          request.query.where('campusId', '==', getUserData().campusId) ||
+          request.query.where('userId', '==', request.auth.uid)
+        )) ||
+        (request.query == null && (
+          resource.data.unitId == getUserData().unitId || 
+          resource.data.campusId == getUserData().campusId ||
+          resource.data.userId == request.auth.uid
+        ))
+      );
 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       
-      allow update: if isSignedIn() && (isAdmin() || request.auth.uid == resource.data.userId || getUserData().unitId == resource.data.unitId);
+      allow update: if isSignedIn() && (
+        isAdmin() || 
+        request.auth.uid == resource.data.userId || 
+        getUserData().unitId == resource.data.unitId
+      );
+      
       allow delete: if isAdmin();
     }
 
@@ -124,8 +157,8 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
+    allow read: if isSignedIn();
     match /eomsPolicyManuals/{docId} {
-      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
@@ -140,10 +173,18 @@ service cloud.firestore {
     }
 
     match /auditSchedules/{scheduleId} {
-        allow read: if isSignedIn() && (isAdmin() 
-                   || getUserData().unitId == resource.data.targetId 
-                   || request.auth.uid == resource.data.targetId 
-                   || getUserData().role == 'Auditor');
+        allow read: if isSignedIn() && (
+          isAdmin() ||
+          (request.query != null && (
+            request.query.where('targetId', '==', getUserData().unitId) ||
+            request.query.where('targetId', '==', request.auth.uid)
+          )) ||
+          (request.query == null && (
+            resource.data.targetId == getUserData().unitId || 
+            resource.data.targetId == request.auth.uid || 
+            getUserData().role == 'Auditor'
+          ))
+        );
         
         allow create: if isAdmin();
         allow update: if isAdmin() || (isSignedIn() && getUserData().role == 'Auditor' && (resource.data.auditorId == null || resource.data.auditorId == request.auth.uid));
