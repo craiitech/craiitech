@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -6,7 +7,7 @@ import { collection, query, orderBy, Timestamp, where } from 'firebase/firestore
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, Calendar, Building, School, ShieldAlert, DoorOpen, History, LayoutDashboard } from 'lucide-react';
+import { PlusCircle, Loader2, Calendar, Building, School, ShieldAlert, DoorOpen, History, LayoutDashboard, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { MonitoringFormDialog } from '@/components/monitoring/monitoring-form-dialog';
 import { MonitoringAnalytics } from '@/components/monitoring/monitoring-analytics';
@@ -144,6 +145,7 @@ export default function MonitoringPage() {
                                 <TableHead>Campus</TableHead>
                                 <TableHead>Unit</TableHead>
                                 <TableHead>Room</TableHead>
+                                <TableHead>Officer in Charge</TableHead>
                                 <TableHead>Monitor</TableHead>
                                 <TableHead>Action</TableHead>
                             </TableRow>
@@ -176,6 +178,12 @@ export default function MonitoringPage() {
                                         {record.roomNumber || 'N/A'}
                                     </div>
                                     </TableCell>
+                                    <TableCell>
+                                    <div className="flex items-center gap-2 text-xs">
+                                        <User className="h-3 w-3 text-muted-foreground" />
+                                        {record.officerInCharge || 'N/A'}
+                                    </div>
+                                    </TableCell>
                                     <TableCell>{record.monitorName}</TableCell>
                                     <TableCell>
                                     <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleViewRecord(record); }}>
@@ -186,7 +194,7 @@ export default function MonitoringPage() {
                                 ))
                             ) : (
                                 <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center">
+                                <TableCell colSpan={7} className="h-24 text-center">
                                     No monitoring records found.
                                 </TableCell>
                                 </TableRow>

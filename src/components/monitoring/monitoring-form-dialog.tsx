@@ -25,7 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Loader2, CalendarIcon, ClipboardCheck, Circle } from 'lucide-react';
+import { Loader2, CalendarIcon, ClipboardCheck, Circle, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
@@ -44,6 +44,7 @@ const formSchema = z.object({
   campusId: z.string().min(1, 'Please select a campus.'),
   unitId: z.string().min(1, 'Please select a unit.'),
   roomNumber: z.string().optional(),
+  officerInCharge: z.string().optional(),
   observations: z.array(z.object({
     item: z.string(),
     status: z.enum(['Available', 'Not Available', 'For Improvement', 'Not Applicable', 'Need to revisit']),
@@ -111,6 +112,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
           campusId: '',
           unitId: '',
           roomNumber: '',
+          officerInCharge: '',
           generalRemarks: '',
           observations: monitoringChecklistItems.map(item => ({ item, status: 'Available', remarks: '' })),
         });
@@ -184,7 +186,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
             <ScrollArea className="flex-1">
               <div className="p-6 space-y-8">
                 {/* Visit Metadata */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                   <FormField control={form.control} name="visitDate" render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Date of Visit</FormLabel>
@@ -232,6 +234,13 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                     <FormItem>
                       <FormLabel>Office / Room #</FormLabel>
                       <FormControl><Input {...field} placeholder="e.g., Room 101" disabled={isReadOnly} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="officerInCharge" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Officer in Charge</FormLabel>
+                      <FormControl><Input {...field} placeholder="Name of official" disabled={isReadOnly} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
