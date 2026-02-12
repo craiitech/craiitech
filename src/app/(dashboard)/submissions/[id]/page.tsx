@@ -16,7 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Check, X, Send, ShieldCheck, History } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, X, Send, ShieldCheck, History, School } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useState, useMemo, useEffect } from 'react';
@@ -140,7 +140,13 @@ export default function SubmissionDetailPage() {
   );
   const { data: submitter, isLoading: isLoadingSubmitter } = useDoc<AppUser>(submitterDocRef);
 
-  const isLoading = isUserLoading || isLoadingSubmission || isLoadingSubmitter;
+  const campusDocRef = useMemoFirebase(
+    () => (firestore && submission?.campusId ? doc(firestore, 'campuses', submission.campusId) : null),
+    [firestore, submission?.campusId]
+  );
+  const { data: campus, isLoading: isLoadingCampus } = useDoc<Campus>(campusDocRef);
+
+  const isLoading = isUserLoading || isLoadingSubmission || isLoadingSubmitter || isLoadingCampus;
   
   const previewUrl = newLink || (submission?.googleDriveLink
     ? submission.googleDriveLink.replace('/view', '/preview').replace('?usp=sharing', '')
@@ -526,6 +532,13 @@ export default function SubmissionDetailPage() {
                      <div className="flex justify-between">
                         <span className="text-muted-foreground">Last Submitter:</span>
                         <span>{submitter ? `${submitter.firstName} ${submitter.lastName}` : <Loader2 className="h-4 w-4 animate-spin"/>}</span>
+                    </div>
+                     <div className="flex justify-between">
+                        <span className="text-muted-foreground">Campus:</span>
+                        <span className="flex items-center gap-1">
+                            <School className="h-3 w-3 text-muted-foreground" />
+                            {campus ? campus.name : <Loader2 className="h-3 w-3 animate-spin"/>}
+                        </span>
                     </div>
                      <div className="flex justify-between">
                         <span className="text-muted-foreground">Unit:</span>
