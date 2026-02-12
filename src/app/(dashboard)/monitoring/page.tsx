@@ -7,7 +7,7 @@ import { collection, query, orderBy, Timestamp, where } from 'firebase/firestore
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, Calendar, School, ShieldAlert, DoorOpen, History, LayoutDashboard, User, ClipboardCheck, Building } from 'lucide-react';
+import { PlusCircle, Loader2, Calendar, School, ShieldAlert, DoorOpen, History, LayoutDashboard, User, ClipboardCheck, Building, Percent } from 'lucide-react';
 import { format } from 'date-fns';
 import { MonitoringFormDialog } from '@/components/monitoring/monitoring-form-dialog';
 import { MonitoringAnalytics } from '@/components/monitoring/monitoring-analytics';
@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/table';
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export default function MonitoringPage() {
   const { isAdmin, isUserLoading, user, userProfile, isSupervisor, userRole } = useUser();
@@ -87,6 +89,20 @@ export default function MonitoringPage() {
   const handleViewRecord = (record: UnitMonitoringRecord) => {
     setSelectedRecord(record);
     setIsFormOpen(true);
+  };
+
+  const calculateCompliance = (record: UnitMonitoringRecord) => {
+    if (!record.observations || record.observations.length === 0) return 0;
+    const applicable = record.observations.filter(o => o.status !== 'Not Applicable');
+    if (applicable.length === 0) return 0;
+    const available = applicable.filter(o => o.status === 'Available').length;
+    return Math.round((available / applicable.length) * 100);
+  };
+
+  const getComplianceVariant = (score: number) => {
+    if (score >= 80) return 'default'; // Greenish in theme
+    if (score >= 50) return 'secondary'; // Amber/Neutral
+    return 'destructive'; // Red
   };
 
   const safeFormatDate = (date: any) => {
@@ -183,58 +199,73 @@ export default function MonitoringPage() {
                                     <TableHead>Room</TableHead>
                                     <TableHead>Officer in Charge</TableHead>
                                     <TableHead>Monitor</TableHead>
-                                    <TableHead>Action</TableHead>
+                                    <TableHead>Compliance %</TableHead>
+                                    <TableHead className="text-right">Action</TableHead>
                                 </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                 {records && records.length > 0 ? (
-                                    records.map(record => (
-                                    <TableRow key={record.id} className="cursor-pointer" onClick={() => handleViewRecord(record)}>
-                                        <TableCell className="font-medium">
-                                        <div className="flex items-center gap-2">
-                                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                                            {safeFormatDate(record.visitDate)}
-                                        </div>
-                                        </TableCell>
-                                        {!isUnitOnlyView && (
-                                            <TableCell>
+                                    records.map(record => {
+                                      const score = calculateCompliance(record);
+                                      return (
+                                        <TableRow key={record.id} className="cursor-pointer" onClick={() => handleViewRecord(record)}>
+                                            <TableCell className="font-medium">
                                             <div className="flex items-center gap-2">
-                                                <School className="h-4 w-4 text-muted-foreground" />
-                                                {campusMap.get(record.campusId) || '...'}
+                                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                                                {safeFormatDate(record.visitDate)}
                                             </div>
                                             </TableCell>
-                                        )}
-                                        {!isUnitOnlyView && (
+                                            {!isUnitOnlyView && (
+                                                <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    <School className="h-4 w-4 text-muted-foreground" />
+                                                    {campusMap.get(record.campusId) || '...'}
+                                                </div>
+                                                </TableCell>
+                                            )}
+                                            {!isUnitOnlyView && (
+                                                <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    <Building className="h-4 w-4 text-muted-foreground" />
+                                                    {unitMap.get(record.unitId) || '...'}
+                                                </div>
+                                                </TableCell>
+                                            )}
                                             <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <Building className="h-4 w-4 text-muted-foreground" />
-                                                {unitMap.get(record.unitId) || '...'}
+                                            <div className="flex items-center gap-2 text-xs">
+                                                <DoorOpen className="h-3 w-3 text-muted-foreground" />
+                                                {record.roomNumber || 'N/A'}
                                             </div>
                                             </TableCell>
-                                        )}
-                                        <TableCell>
-                                        <div className="flex items-center gap-2 text-xs">
-                                            <DoorOpen className="h-3 w-3 text-muted-foreground" />
-                                            {record.roomNumber || 'N/A'}
-                                        </div>
-                                        </TableCell>
-                                        <TableCell>
-                                        <div className="flex items-center gap-2 text-xs">
-                                            <User className="h-3 w-3 text-muted-foreground" />
-                                            {record.officerInCharge || 'N/A'}
-                                        </div>
-                                        </TableCell>
-                                        <TableCell>{record.monitorName}</TableCell>
-                                        <TableCell>
-                                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleViewRecord(record); }}>
-                                            {isAdmin ? 'View / Edit' : 'View Details'}
-                                        </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                    ))
+                                            <TableCell>
+                                            <div className="flex items-center gap-2 text-xs">
+                                                <User className="h-3 w-3 text-muted-foreground" />
+                                                {record.officerInCharge || 'N/A'}
+                                            </div>
+                                            </TableCell>
+                                            <TableCell className="text-xs">{record.monitorName}</TableCell>
+                                            <TableCell>
+                                              <Badge 
+                                                variant={getComplianceVariant(score)}
+                                                className={cn(
+                                                  score >= 80 && "bg-green-500 hover:bg-green-600 text-white",
+                                                  (score < 80 && score >= 50) && "bg-amber-500 hover:bg-amber-600 text-white"
+                                                )}
+                                              >
+                                                {score}%
+                                              </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleViewRecord(record); }}>
+                                                {isAdmin ? 'Edit' : 'View'}
+                                            </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                      );
+                                    })
                                 ) : (
                                     <TableRow>
-                                    <TableCell colSpan={7} className="h-24 text-center">
+                                    <TableCell colSpan={8} className="h-24 text-center">
                                         No monitoring records found.
                                     </TableCell>
                                     </TableRow>
