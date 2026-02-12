@@ -1,39 +1,67 @@
 
-export const monitoringChecklistItems = [
-  "Organizational Structure (Updated / Signed)",
-  "Document Control Center",
-  "Entrance / Exit Signages",
-  "7S (Inside & Out)",
-  "EOMS Submissions",
-  "Operational Plan",
-  "Objectives Monitoring",
-  "Risk and Opportunity Registry",
-  "Risk and Opportunity Action Plan",
-  "Attachments / Evidences",
-  "ARTA Signages",
-  "Mission/ Vision / Core Values / Quality Policy",
-  "Warning Signs and Labels",
-  "DPO Seal",
-  "Certificate of Occupancy",
-  "Emergency Evacuation Posting",
-  "Communication Logbooks",
-  "Incoming Logbook",
-  "Outgoing Logbook",
-  "Visitor Logbook",
-  "Procedure Manual",
-  "Forms Utilized by Units",
-  "CSM Form",
-  "CSM DropBox / Online Platform",
-  "Citizen Charter",
-  "CSC ID's of Employees",
-  "Fire Extinguisher (With Labels)",
-  "Clean Tables of Employees",
-  "Fire Exit Stairs Free from Obstructions",
-  "Files Documents Based on Pocess",
-  "Medicine Cabinet",
-  "Sockets",
-  "Electric Fans",
-  "Aircons",
-  "Student chairs",
-  "Switches"
+/**
+ * Structured groupings for the Unit Monitoring Verification Checklist.
+ * This organization helps monitors navigate the on-site visit more efficiently.
+ */
+export const monitoringGroups = [
+  {
+    category: "Core EOMS Documentation",
+    items: [
+      "Operational Plan",
+      "Objectives Monitoring",
+      "Risk and Opportunity Registry",
+      "Risk and Opportunity Action Plan",
+      "EOMS Submissions",
+      "Procedure Manual",
+      "Forms Utilized by Units",
+      "Attachments / Evidences"
+    ]
+  },
+  {
+    category: "Official Postings & Transparency",
+    items: [
+      "ARTA Signages",
+      "Mission/ Vision / Core Values / Quality Policy",
+      "Citizen Charter",
+      "DPO Seal",
+      "Emergency Evacuation Posting",
+      "Entrance / Exit Signages",
+      "Warning Signs and Labels"
+    ]
+  },
+  {
+    category: "Logbooks & Compliance Records",
+    items: [
+      "Incoming Logbook",
+      "Outgoing Logbook",
+      "Visitor Logbook",
+      "Communication Logbooks",
+      "CSM Form",
+      "CSM DropBox / Online Platform",
+      "CSC ID's of Employees"
+    ]
+  },
+  {
+    category: "Facilities, Maintenance & Safety",
+    items: [
+      "7S (Inside & Out)",
+      "Document Control Center",
+      "Fire Extinguisher (With Labels)",
+      "Fire Exit Stairs Free from Obstructions",
+      "Medicine Cabinet",
+      "Clean Tables of Employees",
+      "Files Documents Based on Pocess",
+      "Certificate of Occupancy",
+      "Sockets",
+      "Switches",
+      "Electric Fans",
+      "Aircons",
+      "Student chairs"
+    ]
+  }
 ];
+
+/**
+ * A flat array version of all checklist items for initial form state and legacy compatibility.
+ */
+export const monitoringChecklistItems = monitoringGroups.flatMap(group => group.items);

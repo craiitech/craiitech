@@ -1,6 +1,7 @@
 
 'use client';
 
+import React from 'react';
 import {
   Dialog,
   DialogContent,
@@ -21,18 +22,18 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, addDoc, Timestamp, query, where } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, addDoc, Timestamp, query, where, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { UnitMonitoringRecord, Campus, Unit, Submission } from '@/lib/types';
-import { monitoringChecklistItems } from '@/lib/monitoring-checklist-items';
+import { monitoringChecklistItems, monitoringGroups } from '@/lib/monitoring-checklist-items';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Loader2, CalendarIcon, ClipboardCheck, Circle, AlertCircle, FileWarning, CheckCircle2, Info } from 'lucide-react';
+import { Loader2, CalendarIcon, ClipboardCheck, Circle, AlertCircle, FileWarning, CheckCircle2, Info, LayoutList } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
@@ -377,7 +378,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                     </Card>
                 )}
 
-                {/* Checklist Table */}
+                {/* Categorized Checklist Table */}
                 <div className="space-y-4">
                     <h3 className="font-bold text-lg flex items-center gap-2">
                         <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">1</div>
@@ -393,63 +394,80 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                            {fields.map((field, index) => {
-                                const internalReportName = eomsReportMap[field.item];
-                                const missingReportInfo = missingReports.find(r => r.name === field.item);
-                                
-                                return (
-                                <TableRow key={field.id} className="hover:bg-muted/20">
-                                <TableCell className="font-medium text-sm py-3">
-                                    <div className="flex flex-col gap-1">
-                                        <span>{field.item}</span>
-                                        {internalReportName && !isLoadingSubmissions && (
-                                            missingReportInfo ? (
-                                                <Badge variant="destructive" className="w-fit text-[9px] h-4 py-0 font-bold uppercase tracking-tighter">
-                                                    Missing in Portal: {missingReportInfo.missing.join('/')}
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="secondary" className="w-fit text-[9px] h-4 py-0 bg-green-100 text-green-700 border-green-200">
-                                                    Submitted in Portal
-                                                </Badge>
-                                            )
-                                        )}
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <FormField control={form.control} name={`observations.${index}.status`} render={({ field }) => (
-                                    <FormItem>
-                                        <FormControl>
-                                            <Select onValueChange={field.onChange} value={field.value || 'Available'} disabled={isReadOnly}>
-                                            <SelectTrigger className={cn("h-8 text-xs bg-background flex items-center gap-2", statusColors[field.value]?.split(' ')[0])}>
-                                                <Circle className={cn("h-2 w-2", statusColors[field.value])} />
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Available">Available</SelectItem>
-                                                <SelectItem value="Not Available">Not Available</SelectItem>
-                                                <SelectItem value="For Improvement">For Improvement</SelectItem>
-                                                <SelectItem value="Needs Updating">Needs Updating</SelectItem>
-                                                <SelectItem value="Not Applicable">Not Applicable</SelectItem>
-                                                <SelectItem value="Need to revisit">Need to revisit</SelectItem>
-                                            </SelectContent>
-                                            </Select>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )} />
-                                </TableCell>
-                                <TableCell>
-                                    <FormField control={form.control} name={`observations.${index}.remarks`} render={({ field }) => (
-                                    <FormItem>
-                                        <FormControl>
-                                            <Input placeholder={isReadOnly ? "" : "Add findings..."} {...field} value={field.value || ''} className="h-8 text-xs bg-background" disabled={isReadOnly} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )} />
-                                </TableCell>
-                                </TableRow>
-                            )})}
+                            {monitoringGroups.map((group) => (
+                                <React.Fragment key={group.category}>
+                                    <TableRow className="bg-muted/30 hover:bg-muted/30 border-y">
+                                        <TableCell colSpan={3} className="py-2 px-4">
+                                            <div className="flex items-center gap-2 font-bold text-primary text-[10px] uppercase tracking-wider">
+                                                <LayoutList className="h-3 w-3" />
+                                                {group.category}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                    {group.items.map((itemName) => {
+                                        const index = fields.findIndex(f => f.item === itemName);
+                                        if (index === -1) return null;
+                                        
+                                        const field = fields[index];
+                                        const internalReportName = eomsReportMap[field.item];
+                                        const missingReportInfo = missingReports.find(r => r.name === field.item);
+                                        
+                                        return (
+                                            <TableRow key={field.id} className="hover:bg-muted/20">
+                                                <TableCell className="font-medium text-sm py-3">
+                                                    <div className="flex flex-col gap-1">
+                                                        <span>{field.item}</span>
+                                                        {internalReportName && !isLoadingSubmissions && (
+                                                            missingReportInfo ? (
+                                                                <Badge variant="destructive" className="w-fit text-[9px] h-4 py-0 font-bold uppercase tracking-tighter">
+                                                                    Missing in Portal: {missingReportInfo.missing.join('/')}
+                                                                </Badge>
+                                                            ) : (
+                                                                <Badge variant="secondary" className="w-fit text-[9px] h-4 py-0 bg-green-100 text-green-700 border-green-200">
+                                                                    Submitted in Portal
+                                                                </Badge>
+                                                            )
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <FormField control={form.control} name={`observations.${index}.status`} render={({ field: statusField }) => (
+                                                    <FormItem>
+                                                        <FormControl>
+                                                            <Select onValueChange={statusField.onChange} value={statusField.value || 'Available'} disabled={isReadOnly}>
+                                                            <SelectTrigger className={cn("h-8 text-xs bg-background flex items-center gap-2", statusColors[statusField.value]?.split(' ')[0])}>
+                                                                <Circle className={cn("h-2 w-2", statusColors[statusField.value])} />
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="Available">Available</SelectItem>
+                                                                <SelectItem value="Not Available">Not Available</SelectItem>
+                                                                <SelectItem value="For Improvement">For Improvement</SelectItem>
+                                                                <SelectItem value="Needs Updating">Needs Updating</SelectItem>
+                                                                <SelectItem value="Not Applicable">Not Applicable</SelectItem>
+                                                                <SelectItem value="Need to revisit">Need to revisit</SelectItem>
+                                                            </SelectContent>
+                                                            </Select>
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                    )} />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <FormField control={form.control} name={`observations.${index}.remarks`} render={({ field: remarksField }) => (
+                                                    <FormItem>
+                                                        <FormControl>
+                                                            <Input placeholder={isReadOnly ? "" : "Add findings..."} {...remarksField} value={remarksField.value || ''} className="h-8 text-xs bg-background" disabled={isReadOnly} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                    )} />
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </React.Fragment>
+                            ))}
                             </TableBody>
                         </Table>
                     </div>
