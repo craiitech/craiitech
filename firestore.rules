@@ -23,29 +23,10 @@ service cloud.firestore {
     }
     
     /**
-     * Checks if the user is a member of a specific unit.
+     * Gets the current user's profile data from the users collection.
      */
-    function isMemberOfUnit(unitId) {
-      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.unitId == unitId;
-    }
-
-    /**
-     * Checks if the user is a member of a specific campus.
-     */
-    function isMemberOfCampus(campusId) {
-      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.campusId == campusId;
-    }
-
-    /**
-     * Checks if the user has a supervisor role for a specific campus.
-     */
-    function isCampusSupervisor(campusId) {
-      let userDocPath = /databases/$(database)/documents/users/$(request.auth.uid);
-      return isSignedIn() && exists(userDocPath) && 
-             get(userDocPath).data.campusId == campusId && 
-             (get(userDocPath).data.role == 'Campus Director' || get(userDocPath).data.role == 'Campus ODIMO' || get(userDocPath).data.role == 'Vice President');
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     // --------------------------------------------------------------------------
@@ -53,12 +34,15 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /unitMonitoringRecords/{recordId} {
-        // Use 'read' to allow Firestore to evaluate unit/campus filters in queries.
-        // NEVER use 'list' for scoped collections as it ignores per-document filters.
-        allow read: if isAdmin() 
-                   || isMemberOfUnit(resource.data.unitId) 
-                   || isMemberOfCampus(resource.data.campusId) 
-                   || isCampusSupervisor(resource.data.campusId);
+        // Individual document access
+        allow get: if isSignedIn() && (isAdmin() 
+                   || getUserData().unitId == resource.data.unitId 
+                   || getUserData().campusId == resource.data.campusId);
+        
+        // Collection query access - Must be explicitly filtered by unit or campus
+        allow list: if isSignedIn() && (isAdmin() 
+                   || request.query.where('unitId', '==', getUserData().unitId)
+                   || request.query.where('campusId', '==', getUserData().campusId));
         
         allow write: if isAdmin();
     }
@@ -76,31 +60,40 @@ service cloud.firestore {
     }
 
     match /submissions/{submissionId} {
-      // Combined 'read' allows for both detail view and scoped history queries.
-      allow read: if isAdmin() 
-                 || isOwner(resource.data.userId) 
-                 || isMemberOfUnit(resource.data.unitId) 
-                 || isCampusSupervisor(resource.data.campusId);
+      allow get: if isSignedIn() && (isAdmin() 
+                 || request.auth.uid == resource.data.userId 
+                 || getUserData().unitId == resource.data.unitId 
+                 || getUserData().campusId == resource.data.campusId);
+
+      allow list: if isSignedIn() && (isAdmin()
+                 || request.query.where('userId', '==', request.auth.uid)
+                 || request.query.where('unitId', '==', getUserData().unitId)
+                 || request.query.where('campusId', '==', getUserData().campusId));
 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 
-      allow update: if isAdmin() 
-                    || isOwner(resource.data.userId) 
-                    || isMemberOfUnit(resource.data.unitId) 
-                    || isCampusSupervisor(resource.data.campusId);
+      allow update: if isSignedIn() && (isAdmin() 
+                    || request.auth.uid == resource.data.userId 
+                    || getUserData().unitId == resource.data.unitId 
+                    || getUserData().campusId == resource.data.campusId);
 
       allow delete: if isAdmin();
     }
 
     match /risks/{riskId} {
-      allow read: if isAdmin() 
-                 || isOwner(resource.data.userId) 
-                 || isMemberOfUnit(resource.data.unitId) 
-                 || isCampusSupervisor(resource.data.campusId);
+      allow get: if isSignedIn() && (isAdmin() 
+                 || request.auth.uid == resource.data.userId 
+                 || getUserData().unitId == resource.data.unitId 
+                 || getUserData().campusId == resource.data.campusId);
+
+      allow list: if isSignedIn() && (isAdmin()
+                 || request.query.where('userId', '==', request.auth.uid)
+                 || request.query.where('unitId', '==', getUserData().unitId)
+                 || request.query.where('campusId', '==', getUserData().campusId));
 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       
-      allow update: if isAdmin() || isOwner(resource.data.userId) || isMemberOfUnit(resource.data.unitId);
+      allow update: if isSignedIn() && (isAdmin() || request.auth.uid == resource.data.userId || getUserData().unitId == resource.data.unitId);
       allow delete: if isAdmin();
     }
 
@@ -120,15 +113,14 @@ service cloud.firestore {
     }
     
     match /campusSettings/{campusId} {
-      // Simple read allowed for all authenticated users to fetch announcements.
       allow read: if isSignedIn();
-      allow write: if isAdmin() || isCampusSupervisor(campusId);
+      allow write: if isAdmin() || (isSignedIn() && getUserData().campusId == campusId && (getUserData().role == 'Campus Director' || getUserData().role == 'Campus ODIMO'));
     }
     
     match /units/{unitId} {
       allow read: if isSignedIn();
-      allow create: if isAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Campus Director');
-      allow update: if isAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Campus Director' || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Vice President'));
+      allow create: if isAdmin() || (isSignedIn() && getUserData().role == 'Campus Director');
+      allow update: if isAdmin() || (isSignedIn() && (getUserData().role == 'Campus Director' || getUserData().role == 'Vice President'));
       allow delete: if isAdmin();
     }
 
@@ -163,20 +155,24 @@ service cloud.firestore {
     }
 
     match /auditSchedules/{scheduleId} {
-        // Scoped read for audit schedules.
-        allow read: if isAdmin() 
-                   || isMemberOfUnit(resource.data.targetId) 
-                   || isOwner(resource.data.targetId) 
-                   || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Auditor');
+        allow get: if isSignedIn() && (isAdmin() 
+                   || getUserData().unitId == resource.data.targetId 
+                   || request.auth.uid == resource.data.targetId 
+                   || getUserData().role == 'Auditor');
+        
+        allow list: if isSignedIn() && (isAdmin() 
+                   || request.query.where('targetId', '==', getUserData().unitId)
+                   || request.query.where('targetId', '==', request.auth.uid)
+                   || getUserData().role == 'Auditor');
         
         allow create: if isAdmin();
-        allow update: if isAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Auditor' && (resource.data.auditorId == null || resource.data.auditorId == request.auth.uid));
+        allow update: if isAdmin() || (isSignedIn() && getUserData().role == 'Auditor' && (resource.data.auditorId == null || resource.data.auditorId == request.auth.uid));
     }
 
     match /auditFindings/{findingId} {
         allow read: if isSignedIn();
-        allow create: if exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Auditor';
-        allow update: if isAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Auditor' && isOwner(resource.data.authorId));
+        allow create: if isSignedIn() && getUserData().role == 'Auditor';
+        allow update: if isAdmin() || (isSignedIn() && getUserData().role == 'Auditor' && request.auth.uid == resource.data.authorId);
         allow delete: if isAdmin();
     }
 
