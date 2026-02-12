@@ -55,6 +55,7 @@ import { UnitSubmissionsView } from '@/components/submissions/unit-submissions-v
 import { CampusSubmissionsView } from '@/components/submissions/campus-submissions-view';
 import { SubmissionReport } from '@/components/submissions/submission-report';
 import ReactDOMServer from 'react-dom/server';
+import { cn } from '@/lib/utils';
 
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -79,6 +80,42 @@ type SortConfig = {
     key: keyof Submission | 'submitterName' | 'campusName' | 'comments';
     direction: 'ascending' | 'descending';
 } | null;
+
+/**
+ * Returns a Tailwind class string for row background based on the submission year and cycle.
+ */
+const getYearCycleRowColor = (year: number, cycle: string) => {
+  const isFinal = cycle.toLowerCase() === 'final';
+  const colors: Record<number, { first: string, final: string }> = {
+    2024: { 
+      first: 'bg-blue-50/20 hover:bg-blue-100/40 dark:bg-blue-900/5 dark:hover:bg-blue-900/10', 
+      final: 'bg-blue-100/40 hover:bg-blue-200/50 dark:bg-blue-900/20 dark:hover:bg-blue-900/30' 
+    },
+    2025: { 
+      first: 'bg-green-50/20 hover:bg-green-100/40 dark:bg-green-900/5 dark:hover:bg-green-900/10', 
+      final: 'bg-green-100/40 hover:bg-green-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
+    },
+    2026: { 
+      first: 'bg-amber-50/20 hover:bg-amber-100/40 dark:bg-amber-900/5 dark:hover:bg-amber-900/10', 
+      final: 'bg-amber-100/40 hover:bg-amber-200/50 dark:bg-amber-900/20 dark:hover:bg-amber-900/30' 
+    },
+    2027: { 
+      first: 'bg-purple-50/20 hover:bg-purple-100/40 dark:bg-purple-900/5 dark:hover:bg-purple-900/10', 
+      final: 'bg-purple-100/40 hover:bg-purple-200/50 dark:bg-purple-900/20 dark:hover:bg-purple-900/30' 
+    },
+    2028: { 
+      first: 'bg-rose-50/20 hover:bg-rose-100/40 dark:bg-rose-900/5 dark:hover:bg-rose-900/10', 
+      final: 'bg-rose-100/40 hover:bg-rose-200/50 dark:bg-rose-900/20 dark:hover:bg-rose-900/30' 
+    },
+  };
+  
+  const yearColor = colors[year] || { 
+    first: 'bg-slate-50/20 hover:bg-slate-100/40 dark:bg-slate-900/5 dark:hover:bg-slate-900/10', 
+    final: 'bg-slate-100/40 hover:bg-slate-200/50 dark:bg-slate-900/20 dark:hover:bg-slate-900/30' 
+  };
+  
+  return isFinal ? yearColor.final : yearColor.first;
+};
 
 const getGoogleDriveDownloadLink = (url: string) => {
     const fileId = url.match(/d\/([^/]+)/);
@@ -206,7 +243,10 @@ const SubmissionsTable = ({
                 const submitterName = submitter ? `${submitter.firstName} ${submitter.lastName}` : 'Unknown';
 
                 return (
-                <TableRow key={submission.id}>
+                <TableRow 
+                  key={submission.id}
+                  className={cn("transition-colors", getYearCycleRowColor(submission.year, submission.cycleId))}
+                >
                   {isAdmin && <TableCell>{campusMap.get(submission.campusId) ?? '...'}</TableCell>}
                   <TableCell>
                     <div className="flex items-center gap-1">
@@ -218,11 +258,15 @@ const SubmissionsTable = ({
                   </TableCell>
                   <TableCell className="font-medium">{submission.reportType}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="font-mono">R{submission.revision ?? 0}</Badge>
+                    <Badge variant="outline" className="font-mono bg-background/50">R{submission.revision ?? 0}</Badge>
                   </TableCell>
                   <TableCell>{submission.unitName}</TableCell>
-                  <TableCell>{submission.year}</TableCell>
-                  <TableCell className="capitalize">{submission.cycleId}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-bold bg-background/50">
+                      {submission.year}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="capitalize font-medium">{submission.cycleId}</TableCell>
                   <TableCell>
                     {submission.submissionDate instanceof Date ? format(submission.submissionDate, 'MM/dd/yy') : 'Invalid Date'}
                   </TableCell>

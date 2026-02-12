@@ -28,6 +28,39 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
     submitted: 'outline'
 };
 
+const getYearCycleRowColor = (year: number, cycle: string) => {
+  const isFinal = cycle.toLowerCase() === 'final';
+  const colors: Record<number, { first: string, final: string }> = {
+    2024: { 
+      first: 'bg-blue-50/20 hover:bg-blue-100/40 dark:bg-blue-900/5 dark:hover:bg-blue-900/10', 
+      final: 'bg-blue-100/40 hover:bg-blue-200/50 dark:bg-blue-900/20 dark:hover:bg-blue-900/30' 
+    },
+    2025: { 
+      first: 'bg-green-50/20 hover:bg-green-100/40 dark:bg-green-900/5 dark:hover:bg-green-900/10', 
+      final: 'bg-green-100/40 hover:bg-green-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
+    },
+    2026: { 
+      first: 'bg-amber-50/20 hover:bg-amber-100/40 dark:bg-amber-900/5 dark:hover:bg-amber-900/10', 
+      final: 'bg-amber-100/40 hover:bg-amber-200/50 dark:bg-amber-900/20 dark:hover:bg-amber-900/30' 
+    },
+    2027: { 
+      first: 'bg-purple-50/20 hover:bg-purple-100/40 dark:bg-purple-900/5 dark:hover:bg-purple-900/10', 
+      final: 'bg-purple-100/40 hover:bg-purple-200/50 dark:bg-purple-900/20 dark:hover:bg-purple-900/30' 
+    },
+    2028: { 
+      first: 'bg-rose-50/20 hover:bg-rose-100/40 dark:bg-rose-900/5 dark:hover:bg-rose-900/10', 
+      final: 'bg-rose-100/40 hover:bg-rose-200/50 dark:bg-rose-900/20 dark:hover:bg-rose-900/30' 
+    },
+  };
+  
+  const yearColor = colors[year] || { 
+    first: 'bg-slate-50/20 hover:bg-slate-100/40 dark:bg-slate-900/5 dark:hover:bg-slate-900/10', 
+    final: 'bg-slate-100/40 hover:bg-slate-200/50 dark:bg-slate-900/20 dark:hover:bg-slate-900/30' 
+  };
+  
+  return isFinal ? yearColor.final : yearColor.first;
+};
+
 
 interface CampusSubmissionsViewProps {
   allSubmissions: Submission[] | null;
@@ -202,14 +235,17 @@ function SubmissionTableForCycle({ submissions, onEyeClick }: { submissions: Sub
             </TableHeader>
             <TableBody>
                 {submissions.map(sub => (
-                    <TableRow key={sub.id}>
+                    <TableRow 
+                      key={sub.id}
+                      className={cn("transition-colors", getYearCycleRowColor(sub.year, sub.cycleId))}
+                    >
                         <TableCell className="font-medium">{sub.reportType}</TableCell>
                         <TableCell>{format(sub.submissionDate, 'PP')}</TableCell>
                         <TableCell>
-                            <Badge variant={statusVariant[sub.statusId]}>{sub.statusId}</Badge>
+                            <Badge variant={statusVariant[sub.statusId]} className="bg-background/50">{sub.statusId}</Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                             <Button variant="outline" size="sm" onClick={() => onEyeClick(sub.id)}>
+                             <Button variant="outline" size="sm" onClick={() => onEyeClick(sub.id)} className="bg-background/50">
                                 <Eye className="mr-2 h-4 w-4" /> View Submission
                             </Button>
                         </TableCell>
