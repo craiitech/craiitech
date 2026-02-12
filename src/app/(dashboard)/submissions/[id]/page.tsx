@@ -359,44 +359,42 @@ export default function SubmissionDetailPage() {
         {/* Left Column: Document Preview & Actions */}
         <div className="lg:col-span-2 space-y-6">
           
-          {/* Simple Text-Based Control & Metadata Section */}
-          <div className="rounded-lg border bg-muted/5 p-4 space-y-4">
-            {/* Document Control Information (Simplified) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-4 border-b">
+          {/* Unified Text-Based Metadata Header */}
+          <div className="rounded-lg border bg-muted/5 p-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4">
+                {/* Identification & Control */}
                 <div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Control Number</p>
-                    <p className="font-mono text-sm">{submission.controlNumber}</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1 leading-none">Control Number</p>
+                    <p className="font-mono text-[11px] truncate" title={submission.controlNumber}>{submission.controlNumber}</p>
                 </div>
                 <div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Revision</p>
-                    <p className="text-sm font-medium">Rev {String(submission.revision || 0).padStart(2, '0')}</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1 leading-none">Revision</p>
+                    <p className="text-xs font-semibold">Rev {String(submission.revision || 0).padStart(2, '0')}</p>
                 </div>
                 <div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Status</p>
-                    <p className="text-xs font-bold uppercase text-primary tracking-wider">{getStatusText(submission.statusId)}</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1 leading-none">Status</p>
+                    <p className="text-[10px] font-bold uppercase text-primary tracking-wider">{getStatusText(submission.statusId)}</p>
                 </div>
-            </div>
+                <div>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1 leading-none">Submitter</p>
+                    <p className="text-xs font-medium truncate">{submitter ? `${submitter.firstName} ${submitter.lastName}` : '...'}</p>
+                </div>
 
-            {/* Submission Metadata (Simplified) */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                {/* Scoping & Period */}
                 <div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Submitter</p>
-                    <p className="text-xs font-medium">{submitter ? `${submitter.firstName} ${submitter.lastName}` : '...'}</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1 leading-none">Campus</p>
+                    <p className="text-xs font-medium truncate" title={campus?.name}>{campus ? campus.name : '...'}</p>
                 </div>
                 <div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Campus</p>
-                    <p className="text-xs font-medium">{campus ? campus.name : '...'}</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1 leading-none">Unit</p>
+                    <p className="text-xs font-medium truncate" title={submission.unitName}>{submission.unitName}</p>
                 </div>
                 <div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Unit</p>
-                    <p className="text-xs font-medium">{submission.unitName}</p>
-                </div>
-                <div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Year</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1 leading-none">Year</p>
                     <p className="text-xs font-medium">{submission.year}</p>
                 </div>
                 <div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1">Cycle</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1 leading-none">Cycle</p>
                     <p className="text-xs font-medium capitalize">{submission.cycleId} Cycle</p>
                 </div>
             </div>
