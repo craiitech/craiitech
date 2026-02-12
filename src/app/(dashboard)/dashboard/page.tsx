@@ -52,8 +52,10 @@ import {
   doc,
   getDocs,
   Timestamp,
+  orderBy,
+  limit,
 } from 'firebase/firestore';
-import type { Submission, User as AppUser, Unit, Campus, Cycle, Risk } from '@/lib/types';
+import type { Submission, User as AppUser, Unit, Campus, Cycle, Risk, UnitMonitoringRecord } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle, AlertCloseButton } from '@/components/ui/alert';
@@ -135,7 +137,6 @@ export default function HomePage() {
       }
       return null;
     }
-    // Unit User: Must filter by BOTH unitId and campusId to prevent leakage between campus branches
     return query(
       collection(firestore, 'submissions'),
       where('unitId', '==', userProfile.unitId),
@@ -149,23 +150,15 @@ export default function HomePage() {
     if (!rawSubmissions) return null;
     return rawSubmissions.map(s => {
       const date = s.submissionDate;
-      // Aggressive fuzzy normalization of report types
       let rType = String(s.reportType || '').trim();
       const lowerType = rType.toLowerCase();
       
-      if (lowerType.includes('risk and opportunity registry')) {
-          rType = 'Risk and Opportunity Registry';
-      } else if (lowerType.includes('operational plan')) {
-          rType = 'Operational Plan';
-      } else if (lowerType.includes('objectives monitoring')) {
-          rType = 'Quality Objectives Monitoring';
-      } else if (lowerType.includes('needs and expectation')) {
-          rType = 'Needs and Expectation of Interested Parties';
-      } else if (lowerType.includes('swot')) {
-          rType = 'SWOT Analysis';
-      } else if (lowerType.includes('action plan') && lowerType.includes('risk')) {
-          rType = 'Risk and Opportunity Action Plan';
-      }
+      if (lowerType.includes('risk and opportunity registry')) rType = 'Risk and Opportunity Registry';
+      else if (lowerType.includes('operational plan')) rType = 'Operational Plan';
+      else if (lowerType.includes('objectives monitoring')) rType = 'Quality Objectives Monitoring';
+      else if (lowerType.includes('needs and expectation')) rType = 'Needs and Expectation of Interested Parties';
+      else if (lowerType.includes('swot')) rType = 'SWOT Analysis';
+      else if (lowerType.includes('action plan') && lowerType.includes('risk')) rType = 'Risk and Opportunity Action Plan';
 
       return {
         ...s,
@@ -178,44 +171,40 @@ export default function HomePage() {
    // Fetch risks based on role
   const risksQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
-
     const baseRisksQuery = collection(firestore, 'risks');
-    
-    if (isAdmin) {
-        return baseRisksQuery;
-    }
+    if (isAdmin) return baseRisksQuery;
     if (isSupervisor) {
-        if (userProfile.campusId) {
-            return query(baseRisksQuery, where('campusId', '==', userProfile.campusId));
-        }
+        if (userProfile.campusId) return query(baseRisksQuery, where('campusId', '==', userProfile.campusId));
         return null; 
     }
     if (userProfile.unitId && userProfile.campusId) {
-        return query(
-          baseRisksQuery, 
-          where('unitId', '==', userProfile.unitId),
-          where('campusId', '==', userProfile.campusId)
-        );
+        return query(baseRisksQuery, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
     }
-    
     return null; 
   }, [firestore, userProfile, isAdmin, isSupervisor]);
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
+  // MONITORING NOTIFICATION FOR UNIT USERS
+  const latestMonitoringQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile || isAdmin || isSupervisor) return null;
+    return query(
+        collection(firestore, 'unitMonitoringRecords'),
+        where('unitId', '==', userProfile.unitId),
+        orderBy('visitDate', 'desc'),
+        limit(1)
+    );
+  }, [firestore, userProfile, isAdmin, isSupervisor]);
+
+  const { data: latestMonitoring, isLoading: isLoadingMonitoring } = useCollection<UnitMonitoringRecord>(latestMonitoringQuery);
+
 
   // Fetch users based on role
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    if (isAdmin) {
-        return collection(firestore, 'users');
-    }
-    if (isSupervisor && userProfile?.campusId) {
-        return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
-    }
-    if (userProfile) {
-        return query(collection(firestore, 'users'), where('id', '==', userProfile.id));
-    }
+    if (isAdmin) return collection(firestore, 'users');
+    if (isSupervisor && userProfile?.campusId) return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
+    if (userProfile) return query(collection(firestore, 'users'), where('id', '==', userProfile.id));
     return null;
   }, [firestore, isAdmin, isSupervisor, userProfile]);
 
@@ -223,12 +212,8 @@ export default function HomePage() {
 
   const allUsersMap = useMemo(() => {
     const userMap = new Map<string, AppUser>();
-    if (allUsersData) {
-        allUsersData.forEach(u => userMap.set(u.id, u));
-    }
-    if (userProfile && !userMap.has(userProfile.id)) {
-        userMap.set(userProfile.id, userProfile);
-    }
+    if (allUsersData) allUsersData.forEach(u => userMap.set(u.id, u));
+    if (userProfile && !userMap.has(userProfile.id)) userMap.set(userProfile.id, userProfile);
     return userMap;
   }, [allUsersData, userProfile]);
 
@@ -246,26 +231,20 @@ export default function HomePage() {
     if (!allCycles) return [new Date().getFullYear()];
     const uniqueYears = [...new Set(allCycles.map(c => c.year))].sort((a, b) => b - a);
     if (uniqueYears.length === 0) return [new Date().getFullYear()];
-    if (!uniqueYears.includes(new Date().getFullYear())) {
-        uniqueYears.unshift(new Date().getFullYear());
-    }
+    if (!uniqueYears.includes(new Date().getFullYear())) uniqueYears.unshift(new Date().getFullYear());
     return uniqueYears;
   }, [allCycles]);
 
   useEffect(() => {
-    if (years.length > 0 && !years.includes(selectedYear)) {
-      setSelectedYear(years[0]);
-    }
+    if (years.length > 0 && !years.includes(selectedYear)) setSelectedYear(years[0]);
   }, [years, selectedYear]);
 
   const campusSettingsDocRef = useMemoFirebase(() => {
-    if (!firestore || !userProfile?.campusId || !canViewCampusAnnouncements)
-      return null;
+    if (!firestore || !userProfile?.campusId || !canViewCampusAnnouncements) return null;
     return doc(firestore, 'campusSettings', userProfile.campusId);
   }, [firestore, userProfile?.campusId, canViewCampusAnnouncements]);
 
-  const { data: campusSetting, isLoading: isLoadingSettings } =
-    useDoc(campusSettingsDocRef);
+  const { data: campusSetting, isLoading: isLoadingSettings } = useDoc(campusSettingsDocRef);
 
   const globalAnnouncementDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -273,7 +252,6 @@ export default function HomePage() {
   }, [firestore, user]);
   
   const { data: globalSetting, isLoading: isLoadingGlobalSettings } = useDoc(globalAnnouncementDocRef);
-
 
   const announcement = campusSetting?.announcement;
   const globalAnnouncement = globalSetting?.announcement;
@@ -284,7 +262,6 @@ export default function HomePage() {
         setIsAnnouncementVisible(false);
         setIsGlobalAnnouncementVisible(false);
       }, 80000); 
-
       return () => clearTimeout(timer);
     }
   }, [announcement, globalAnnouncement]);
@@ -297,36 +274,6 @@ export default function HomePage() {
 
     const isCampusSupervisor = isSupervisor && !isAdmin;
 
-    const overdueCycles = useMemo(() => {
-    if (!allCycles || !submissions || isCampusSupervisor || isAdmin) {
-      return [];
-    }
-
-    const now = new Date();
-    const passedDeadlines = allCycles.filter(cycle => {
-        const endDate = cycle.endDate instanceof Timestamp ? cycle.endDate.toDate() : new Date(cycle.endDate);
-        return isAfter(now, endDate);
-    });
-    
-    if (passedDeadlines.length === 0) return [];
-    
-    return passedDeadlines.map(cycle => {
-        const submittedForCycle = new Set(
-            submissions
-                .filter(s => s.cycleId === cycle.id && s.year === cycle.year)
-                .map(s => s.reportType)
-        );
-        const missingReports = submissionTypes.filter(type => !submittedForCycle.has(type));
-        
-        return {
-            ...cycle,
-            missingReports,
-        };
-    }).filter(cycle => cycle.missingReports.length > 0);
-
-  }, [allCycles, submissions, isCampusSupervisor, isAdmin]);
-
-
   const isLoading =
     isUserLoading ||
     isLoadingSubmissions ||
@@ -336,7 +283,8 @@ export default function HomePage() {
     isLoadingGlobalSettings ||
     isLoadingCycles ||
     isLoadingRisks ||
-    isLoadingUsers;
+    isLoadingUsers ||
+    isLoadingMonitoring;
 
 
   const stats = useMemo(() => {
@@ -349,9 +297,7 @@ export default function HomePage() {
     if (!submissions || !userProfile) return defaultStats;
     
     const userCount = allUsersMap.size;
-    const yearSubmissions = submissions.filter(
-      (s) => s.year === selectedYear
-    );
+    const yearSubmissions = submissions.filter((s) => s.year === selectedYear);
 
     if (isAdmin) {
       return {
@@ -431,39 +377,14 @@ export default function HomePage() {
   }, [submissions, isSupervisor, isAdmin, allUsersMap, userProfile, unitsInCampus, selectedYear]);
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
-    const emptyResult = {
-        firstCycleStatusMap: new Map<string, Submission>(),
-        finalCycleStatusMap: new Map<string, Submission>(),
-    };
-    if (!submissions) {
-      return emptyResult;
-    }
-    const yearSubmissions = submissions.filter(
-      (s) => s.year === selectedYear
-    );
-
-    const firstCycleMap = new Map(
-      yearSubmissions
-        .filter(s => s.cycleId === 'first')
-        .map((s) => [s.reportType, s])
-    );
-     const finalCycleMap = new Map(
-      yearSubmissions
-        .filter(s => s.cycleId === 'final')
-        .map((s) => [s.reportType, s])
-    );
-
-    return {
-      firstCycleStatusMap: firstCycleMap,
-      finalCycleStatusMap: finalCycleMap,
-    };
+    const emptyResult = { firstCycleStatusMap: new Map<string, Submission>(), finalCycleStatusMap: new Map<string, Submission>() };
+    if (!submissions) return emptyResult;
+    const yearSubmissions = submissions.filter((s) => s.year === selectedYear);
+    const firstCycleMap = new Map(yearSubmissions.filter(s => s.cycleId === 'first').map((s) => [s.reportType, s]));
+    const finalCycleMap = new Map(yearSubmissions.filter(s => s.cycleId === 'final').map((s) => [s.reportType, s]));
+    return { firstCycleStatusMap: firstCycleMap, finalCycleStatusMap: finalCycleMap };
   }, [submissions, selectedYear]);
 
-  const approvalQueue = useMemo(() => {
-    if (!submissions) return [];
-    return submissions.filter((s) => s.statusId === 'submitted' && s.year === selectedYear);
-  }, [submissions, selectedYear]);
-  
   const sortedSubmissions = useMemo(() => {
     if (!submissions) return [];
     return [...submissions].filter(s => s.year === selectedYear).sort((a,b) => {
@@ -473,11 +394,6 @@ export default function HomePage() {
     });
   }, [submissions, selectedYear]);
   
-  const campusMap = useMemo(() => {
-    if (!allCampuses) return new Map<string, string>();
-    return new Map(allCampuses.map(c => [c.id, c.name]));
-  }, [allCampuses]);
-
   const noRisksLogged = useMemo(() => {
     const isUnitUser = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
     if (!isUnitUser || !risks) return false;
@@ -504,14 +420,10 @@ export default function HomePage() {
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <Skeleton className="h-8 w-20" />
-        ) : (
+        {isLoading ? <Skeleton className="h-8 w-20" /> : (
           <>
             <div className="text-2xl font-bold">{value}</div>
-            {description && (
-              <p className="text-xs text-muted-foreground">{description}</p>
-            )}
+            {description && <p className="text-xs text-muted-foreground">{description}</p>}
           </>
         )}
       </CardContent>
@@ -520,25 +432,17 @@ export default function HomePage() {
 
   const getIconForStatus = (status?: string) => {
     switch (status) {
-      case 'approved':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'rejected':
-        return <AlertCircle className="h-5 w-5 text-destructive" />;
-      case 'submitted':
-        return <Clock className="h-5 w-5 text-yellow-500" />;
-      default:
-        return <XCircle className="h-5 w-5 text-muted-foreground" />;
+      case 'approved': return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'rejected': return <AlertCircle className="h-5 w-5 text-destructive" />;
+      case 'submitted': return <Clock className="h-5 w-5 text-yellow-500" />;
+      default: return <XCircle className="h-5 w-5 text-muted-foreground" />;
     }
   };
   
   const renderSubmissionChecklist = (cycle: 'first' | 'final', statusMap: Map<string, Submission>) => {
     const registryFormSubmission = statusMap.get('Risk and Opportunity Registry');
     const isActionPlanNA = registryFormSubmission?.riskRating === 'low';
-
-    const requiredReports = isActionPlanNA
-      ? submissionTypes.filter(t => t !== 'Risk and Opportunity Action Plan')
-      : submissionTypes;
-    
+    const requiredReports = isActionPlanNA ? submissionTypes.filter(t => t !== 'Risk and Opportunity Action Plan') : submissionTypes;
     const submittedCount = Array.from(statusMap.keys()).filter(type => requiredReports.includes(type)).length;
     const progress = (submittedCount / requiredReports.length) * 100;
     
@@ -560,18 +464,7 @@ export default function HomePage() {
                          {getIconForStatus(isNA ? 'n/a' : submission?.statusId)}
                         <span className="font-medium">{reportType}</span>
                       </div>
-                      {isNA ? (
-                         <Badge variant="secondary">N/A</Badge>
-                      ) : isSubmitted ? (
-                         <Badge
-                            variant={statusVariant[submission.statusId]}
-                            className="capitalize"
-                        >
-                            {getStatusText(submission.statusId)}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline">Not Submitted</Badge>
-                      )}
+                      {isNA ? <Badge variant="secondary">N/A</Badge> : isSubmitted ? <Badge variant={statusVariant[submission.statusId]} className="capitalize">{getStatusText(submission.statusId)}</Badge> : <Badge variant="outline">Not Submitted</Badge>}
                   </div>
                 );
               })}
@@ -580,7 +473,16 @@ export default function HomePage() {
     );
   }
 
-  const renderUnitUserHome = () => (
+  const renderUnitUserHome = () => {
+    const latestVisit = latestMonitoring?.[0];
+    let complianceScore = 0;
+    if (latestVisit) {
+        const applicable = latestVisit.observations.filter(o => o.status !== 'Not Applicable');
+        const available = applicable.filter(o => o.status === 'Available').length;
+        complianceScore = applicable.length > 0 ? Math.round((available / applicable.length) * 100) : 0;
+    }
+
+    return (
     <Tabs defaultValue="overview" className="space-y-4">
       <TabsList>
         <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -602,38 +504,41 @@ export default function HomePage() {
           </Alert>
         )}
         <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
-        <div className="grid gap-4 md:grid-cols-3">
-          {renderCard(
-            stats.stat1.title,
-            stats.stat1.value,
-            stats.stat1.icon,
-            isLoading,
-            (stats.stat1 as any).description
-          )}
-          {renderCard(
-            stats.stat2.title,
-            stats.stat2.value,
-            stats.stat2.icon,
-            isLoading,
-            (stats.stat2 as any).description
-          )}
-          {renderCard(
-            stats.stat3.title,
-            stats.stat3.value,
-            stats.stat3.icon,
-            isLoading,
-            (stats.stat3 as any).description
-          )}
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+                {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
+                {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
+                {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
+            </div>
+            <Card className="border-primary/20 bg-primary/5">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-xs font-bold uppercase tracking-wider text-primary/70">QA Monitoring Status</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {isLoadingMonitoring ? <Skeleton className="h-10 w-full" /> : latestVisit ? (
+                        <div className="space-y-1">
+                            <div className="text-2xl font-bold">{complianceScore}% Score</div>
+                            <p className="text-[10px] text-muted-foreground">Last Visit: {format(latestVisit.visitDate.toDate(), 'PPP')}</p>
+                            <Button variant="link" className="p-0 h-auto text-[10px]" onClick={() => router.push('/monitoring')}>View Findings</Button>
+                        </div>
+                    ) : (
+                        <div className="space-y-1">
+                            <div className="text-lg font-semibold text-muted-foreground">No records yet</div>
+                            <p className="text-[10px] leading-tight">Awaiting your first QA on-site monitoring visit.</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </div>
+
          <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
         <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
             <CardHeader>
               <CardTitle>Submissions Overview</CardTitle>
-              <CardDescription>
-                Your monthly submission trend for the last 12 months.
-              </CardDescription>
+              <CardDescription>Your monthly submission trend for the last 12 months.</CardDescription>
             </CardHeader>
             <CardContent className="pl-2">
               <Overview submissions={submissions} isLoading={isLoading} />
@@ -654,39 +559,21 @@ export default function HomePage() {
       {userRole === 'Unit ODIMO' && (
         <TabsContent value="approvals" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Unit Approvals</CardTitle>
-              <CardDescription>
-                Submissions from your unit awaiting your evaluation.
-              </CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle>Unit Approvals</CardTitle><CardDescription>Submissions from your unit awaiting your evaluation.</CardDescription></CardHeader>
             <CardContent>
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Submitter</TableHead>
-                    <TableHead>Report</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
+                <TableHeader><TableRow><TableHead>Submitter</TableHead><TableHead>Report</TableHead><TableHead>Date</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {submissions?.filter(s => s.statusId === 'submitted' && s.userId !== userProfile?.id && s.year === selectedYear).map((submission) => (
                     <TableRow key={submission.id}>
                       <TableCell>{allUsersMap.get(submission.userId)?.firstName} {allUsersMap.get(submission.userId)?.lastName}</TableCell>
                       <TableCell>{submission.reportType}</TableCell>
                       <TableCell>{format(submission.submissionDate, 'PP')}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => router.push(`/submissions/${submission.id}`)}>
-                          <ClipboardCheck className="mr-2 h-4 w-4" /> Evaluate Submission
-                        </Button>
-                      </TableCell>
+                      <TableCell className="text-right"><Button variant="outline" size="sm" onClick={() => router.push(`/submissions/${submission.id}`)}><ClipboardCheck className="mr-2 h-4 w-4" /> Evaluate Submission</Button></TableCell>
                     </TableRow>
                   ))}
                   {submissions?.filter(s => s.statusId === 'submitted' && s.userId !== userProfile?.id && s.year === selectedYear).length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center">No submissions pending evaluation for {selectedYear}.</TableCell>
-                    </TableRow>
+                    <TableRow><TableCell colSpan={4} className="h-24 text-center">No submissions pending evaluation for {selectedYear}.</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -697,86 +584,39 @@ export default function HomePage() {
 
       <TabsContent value="actions" className="space-y-4">
         <Card>
-          <CardHeader>
-            <CardTitle>Submission Status</CardTitle>
-            <CardDescription>
-              Checklist for all required submissions for{' '}
-              {selectedYear}.
-            </CardDescription>
-          </CardHeader>
+          <CardHeader><CardTitle>Submission Status</CardTitle><CardDescription>Checklist for all required submissions for {selectedYear}.</CardDescription></CardHeader>
           <CardContent>
               <Tabs defaultValue="first-cycle" className="space-y-4">
-                 <TabsList>
-                    <TabsTrigger value="first-cycle">First Cycle</TabsTrigger>
-                    <TabsTrigger value="final-cycle">Final Cycle</TabsTrigger>
-                </TabsList>
-                <TabsContent value="first-cycle">
-                    {renderSubmissionChecklist('first', firstCycleStatusMap)}
-                </TabsContent>
-                <TabsContent value="final-cycle">
-                    {renderSubmissionChecklist('final', finalCycleStatusMap)}
-                </TabsContent>
+                 <TabsList><TabsTrigger value="first-cycle">First Cycle</TabsTrigger><TabsTrigger value="final-cycle">Final Cycle</TabsTrigger></TabsList>
+                <TabsContent value="first-cycle">{renderSubmissionChecklist('first', firstCycleStatusMap)}</TabsContent>
+                <TabsContent value="final-cycle">{renderSubmissionChecklist('final', finalCycleStatusMap)}</TabsContent>
               </Tabs>
-             <Button asChild className="w-full mt-6">
-                <Link href="/submissions/new">
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Manage Submissions
-                </Link>
-            </Button>
+             <Button asChild className="w-full mt-6"><Link href="/submissions/new"><Pencil className="mr-2 h-4 w-4" />Manage Submissions</Link></Button>
           </CardContent>
         </Card>
       </TabsContent>
       <TabsContent value="history">
         <Card>
-          <CardHeader>
-            <CardTitle>Submission History</CardTitle>
-            <CardDescription>A log of all your past submissions and their status for {selectedYear}.</CardDescription>
-          </CardHeader>
+          <CardHeader><CardTitle>Submission History</CardTitle><CardDescription>A log of all your past submissions and their status for {selectedYear}.</CardDescription></CardHeader>
           <CardContent>
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Report</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+              <TableHeader><TableRow><TableHead>Report</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
               <TableBody>
-                {isLoading ? (
-                  [...Array(5)].map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell colSpan={4}><Skeleton className="h-5 w-full"/></TableCell>
-                    </TableRow>
-                  ))
-                ) : sortedSubmissions && sortedSubmissions.length > 0 ? (
-                  sortedSubmissions.map(s => (
+                {isLoading ? ([...Array(5)].map((_, i) => (<TableRow key={i}><TableCell colSpan={4}><Skeleton className="h-5 w-full"/></TableCell></TableRow>))) : sortedSubmissions && sortedSubmissions.length > 0 ? (sortedSubmissions.map(s => (
                     <TableRow key={s.id}>
-                      <TableCell>
-                        <div className="font-medium">{s.reportType}</div>
-                        <div className="text-xs text-muted-foreground capitalize">{s.cycleId} Cycle {s.year}</div>
-                      </TableCell>
+                      <TableCell><div className="font-medium">{s.reportType}</div><div className="text-xs text-muted-foreground capitalize">{s.cycleId} Cycle {s.year}</div></TableCell>
                       <TableCell>{s.submissionDate instanceof Date ? format(s.submissionDate, 'PPp') : 'Invalid Date'}</TableCell>
                       <TableCell><Badge variant={statusVariant[s.statusId]}>{getStatusText(s.statusId)}</Badge></TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${s.id}`)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+                      <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${s.id}`)}><Eye className="h-4 w-4" /></Button></TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">No submissions yet for {selectedYear}.</TableCell>
-                  </TableRow>
-                )}
+                  ))) : (<TableRow><TableCell colSpan={4} className="h-24 text-center">No submissions yet for {selectedYear}.</TableCell></TableRow>)}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
       </TabsContent>
     </Tabs>
-  );
+  );};
 
   const renderSupervisorHome = () => (
     <Tabs defaultValue="overview" className="space-y-4">
@@ -790,146 +630,37 @@ export default function HomePage() {
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
             <div className="lg:col-span-4 space-y-4">
                 {unitsInCampus.length === 0 && !isLoading && (
-                    <Alert>
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Campus Setup Required</AlertTitle>
-                        <AlertDescription className="flex items-center justify-between">
-                            <span>Your campus does not have any units assigned. Please set up units to begin tracking submissions.</span>
-                            <Button onClick={() => router.push('/settings')}>
-                                <Settings className="mr-2 h-4 w-4" />
-                                Setup Units
-                            </Button>
-                        </AlertDescription>
-                    </Alert>
+                    <Alert><AlertCircle className="h-4 w-4" /><AlertTitle>Campus Setup Required</AlertTitle><AlertDescription className="flex items-center justify-between"><span>Your campus does not have any units assigned. Please set up units to begin tracking submissions.</span><Button onClick={() => router.push('/settings')}><Settings className="mr-2 h-4 w-4" />Setup Units</Button></AlertDescription></Alert>
                 )}
                 <div className="grid gap-4 md:grid-cols-3">
-                    {renderCard(
-                        stats.stat1.title,
-                        stats.stat1.value,
-                        stats.stat1.icon,
-                        isLoading,
-                        (stats.stat1 as any).description
-                    )}
-                    {renderCard(
-                        stats.stat2.title,
-                        stats.stat2.value,
-                        stats.stat2.icon,
-                        isLoading,
-                        (stats.stat2 as any).description
-                    )}
-                    {renderCard(
-                        stats.stat3.title,
-                        stats.stat3.value,
-                        stats.stat3.icon,
-                        isLoading,
-                        (stats.stat3 as any).description
-                    )}
+                    {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
+                    {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
+                    {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
-                    <CompletedSubmissions 
-                        allUnits={allUnits}
-                        allCampuses={allCampuses}
-                        allSubmissions={submissions}
-                        isLoading={isLoading}
-                        userProfile={userProfile}
-                        isCampusSupervisor={isSupervisor}
-                        selectedYear={selectedYear}
-                    />
-                    <UnitsWithoutSubmissions
-                        allUnits={allUnits}
-                        allCampuses={allCampuses}
-                        allSubmissions={submissions}
-                        isLoading={isLoading}
-                        userProfile={userProfile}
-                        isAdmin={isAdmin}
-                        isCampusSupervisor={isSupervisor}
-                        onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })}
-                        selectedYear={selectedYear}
-                    />
+                    <CompletedSubmissions allUnits={allUnits} allCampuses={allCampuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isSupervisor} selectedYear={selectedYear} />
+                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={allCampuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
                 </div>
-                <Card className="col-span-4">
-                    <CardHeader>
-                        <CardTitle>Submissions Overview</CardTitle>
-                        <CardDescription>
-                        Monthly submissions from your campus.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                        <Overview submissions={submissions} isLoading={isLoading} />
-                    </CardContent>
-                </Card>
+                <Card className="col-span-4"><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from your campus.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
             </div>
             <div className="lg:col-span-3 space-y-4">
-                <Leaderboard
-                    allSubmissions={submissions}
-                    allUnits={allUnits}
-                    allCampuses={allCampuses}
-                    allCycles={allCycles}
-                    isLoading={isLoading}
-                    userProfile={userProfile}
-                    isCampusSupervisor={isCampusSupervisor}
-                    selectedYear={selectedYear}
-                    onYearChange={setSelectedYear}
-                />
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Recent Activity</CardTitle>
-                        <CardDescription>
-                            The latest submissions from your campus.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
-                    </CardContent>
-                </Card>
-                {selectedDetail && (
-                    <UnitSubmissionDetailCard
-                        unitId={selectedDetail.unitId}
-                        campusId={selectedDetail.campusId}
-                        allUnits={allUnits}
-                        allSubmissions={submissions}
-                        onClose={() => setSelectedDetail(null)}
-                        onViewSubmission={(id) => router.push(`/submissions/${id}`)}
-                        selectedYear={selectedYear}
-                    />
-                )}
+                <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={allCampuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
+                 <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from your campus.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent></Card>
+                {selectedDetail && (<UnitSubmissionDetailCard unitId={selectedDetail.unitId} campusId={selectedDetail.campusId} allUnits={allUnits} allSubmissions={submissions} onClose={() => setSelectedDetail(null)} onViewSubmission={(id) => router.push(`/submissions/${id}`)} selectedYear={selectedYear} />)}
             </div>
         </div>
       </TabsContent>
        <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
         <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin}/>
-        <CampusUnitOverview 
-            allUnits={allUnits}
-            allSubmissions={submissions}
-            isLoading={isLoading}
-            userProfile={userProfile}
-            selectedYear={selectedYear}
-        />
-        <SubmissionAnalytics
-          allSubmissions={submissions}
-          allUnits={allUnits}
-          isLoading={isLoading}
-          isAdmin={isAdmin}
-          userProfile={userProfile}
-          selectedYear={selectedYear}
-        />
+        <CampusUnitOverview allUnits={allUnits} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} selectedYear={selectedYear} />
+        <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
       </TabsContent>
        <TabsContent value="users" className="space-y-4">
-        {isSupervisor && (
-          <UnitUserOverview
-            allUsers={Array.from(allUsersMap.values())}
-            allUnits={allUnits}
-            isLoading={isLoading}
-            userProfile={userProfile}
-          />
-        )}
+        {isSupervisor && (<UnitUserOverview allUsers={Array.from(allUsersMap.values())} allUnits={allUnits} isLoading={isLoading} userProfile={userProfile} />)}
       </TabsContent>
        <TabsContent value="strategic" className="space-y-6">
-        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={unitsInCampus} />
-        <RiskMatrix allRisks={risks} />
-        <RiskFunnel allRisks={risks} />
-        <CycleSubmissionBreakdown allSubmissions={submissions} />
+        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={unitsInCampus} /><RiskMatrix allRisks={risks} /><RiskFunnel allRisks={risks} /><CycleSubmissionBreakdown allSubmissions={submissions} />
       </TabsContent>
     </Tabs>
   );
@@ -943,157 +674,46 @@ export default function HomePage() {
       </TabsList>
       <TabsContent value="overview" className="space-y-4">
         <div className="grid gap-4 md:grid-cols-3">
-          {renderCard(
-            stats.stat1.title,
-            stats.stat1.value,
-            stats.stat1.icon,
-            isLoading,
-            (stats.stat1 as any).description
-          )}
-          {renderCard(
-            stats.stat2.title,
-            stats.stat2.value,
-            stats.stat2.icon,
-            isLoading,
-            (stats.stat2 as any).description
-          )}
-          {renderCard(
-            stats.stat3.title,
-            stats.stat3.value,
-            stats.stat3.icon,
-            isLoading,
-            (stats.stat3 as any).description
-          )}
+          {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
+          {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
+          {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2 space-y-4">
-                 <IncompleteCampusSubmissions
-                    allSubmissions={submissions}
-                    allCampuses={allCampuses}
-                    allUnits={allUnits}
-                    isLoading={isLoading}
-                    selectedYear={selectedYear}
-                    onYearChange={setSelectedYear}
-                    onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })}
-                />
+                 <IncompleteCampusSubmissions allSubmissions={submissions} allCampuses={allCampuses} allUnits={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} />
                 <div className="grid gap-4 md:grid-cols-2">
-                    <CompletedSubmissions 
-                        allUnits={allUnits}
-                        allCampuses={allCampuses}
-                        allSubmissions={submissions}
-                        isLoading={isLoading}
-                        userProfile={userProfile}
-                        isCampusSupervisor={isCampusSupervisor}
-                        selectedYear={selectedYear}
-                    />
-                    <UnitsWithoutSubmissions
-                        allUnits={allUnits}
-                        allCampuses={allCampuses}
-                        allSubmissions={submissions}
-                        isLoading={isLoading}
-                        userProfile={userProfile}
-                        isAdmin={isAdmin}
-                        isCampusSupervisor={isCampusSupervisor}
-                        onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })}
-                        selectedYear={selectedYear}
-                    />
+                    <CompletedSubmissions allUnits={allUnits} allCampuses={allCampuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
+                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={allCampuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
                 </div>
             </div>
              <div className="lg:col-span-1 space-y-4">
-                <Leaderboard 
-                    allSubmissions={submissions}
-                    allUnits={allUnits}
-                    allCampuses={allCampuses}
-                    allCycles={allCycles}
-                    isLoading={isLoading}
-                    userProfile={userProfile}
-                    isCampusSupervisor={isCampusSupervisor}
-                    selectedYear={selectedYear}
-                    onYearChange={setSelectedYear}
-                />
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Submissions Overview</CardTitle>
-                        <CardDescription>
-                            Monthly submissions from all users.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                        <Overview submissions={submissions} isLoading={isLoading} />
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Recent Activity</CardTitle>
-                        <CardDescription>
-                            The latest submissions from all users.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
-                    </CardContent>
-                </Card>
+                <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={allCampuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
+                <Card><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from all users.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
+                 <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from all users.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent></Card>
             </div>
         </div>
-        {selectedDetail && (
-            <UnitSubmissionDetailCard
-                unitId={selectedDetail.unitId}
-                campusId={selectedDetail.campusId}
-                allUnits={allUnits}
-                allSubmissions={submissions}
-                onClose={() => setSelectedDetail(null)}
-                onViewSubmission={(id) => router.push(`/submissions/${id}`)}
-                selectedYear={selectedYear}
-            />
-        )}
+        {selectedDetail && (<UnitSubmissionDetailCard unitId={selectedDetail.unitId} campusId={selectedDetail.campusId} allUnits={allUnits} allSubmissions={submissions} onClose={() => setSelectedDetail(null)} onViewSubmission={(id) => router.push(`/submissions/${id}`)} selectedYear={selectedYear} />)}
       </TabsContent>
       <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
         <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
         <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading} selectedYear={selectedYear}/>
-        <SubmissionAnalytics
-            allSubmissions={submissions}
-            allUnits={allUnits}
-            isLoading={isLoading}
-            isAdmin={isAdmin}
-            userProfile={userProfile}
-            selectedYear={selectedYear}
-        />
+        <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
       </TabsContent>
       <TabsContent value="strategic" className="space-y-6">
-        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
-        <RiskMatrix allRisks={risks} />
-        <RiskFunnel allRisks={risks} />
-        <CycleSubmissionBreakdown allSubmissions={submissions} />
+        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} /><RiskMatrix allRisks={risks} /><RiskFunnel allRisks={risks} /><CycleSubmissionBreakdown allSubmissions={submissions} />
       </TabsContent>
     </Tabs>
   );
 
   const renderHomeContent = () => {
-    if (isLoading) {
-      return (
-        <div className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Skeleton className="h-28" />
-            <Skeleton className="h-28" />
-            <Skeleton className="h-28" />
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Skeleton className="col-span-4 h-80" />
-            <Skeleton className="col-span-3 h-80" />
-          </div>
-        </div>
-      );
-    }
+    if (isLoading) return (<div className="space-y-4"><div className="grid gap-4 md:grid-cols-3"><Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" /></div><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7"><Skeleton className="col-span-4 h-80" /><Skeleton className="col-span-3 h-80" /></div></div>);
     if (isAdmin) return renderAdminHome();
     if (isSupervisor) return renderSupervisorHome();
     return renderUnitUserHome();
   };
   
-  const showAnnouncements = !isLoading && (
-    (globalAnnouncement && isGlobalAnnouncementVisible) ||
-    (announcement && isAnnouncementVisible)
-  );
+  const showAnnouncements = !isLoading && ((globalAnnouncement && isGlobalAnnouncementVisible) || (announcement && isAnnouncementVisible));
 
   return (
     <div className="space-y-4">
@@ -1101,56 +721,21 @@ export default function HomePage() {
         <div className='flex justify-between items-start'>
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Home</h2>
-            <p className="text-muted-foreground">
-              Welcome back, {userProfile?.firstName}! Here's your overview for {selectedYear}.
-            </p>
+            <p className="text-muted-foreground">Welcome back, {userProfile?.firstName}! Here's your overview for {selectedYear}.</p>
           </div>
-           <div className="w-[150px]">
-            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select Year" />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+           <div className="w-[150px]"><Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}><SelectTrigger><SelectValue placeholder="Select Year" /></SelectTrigger><SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select></div>
         </div>
         
         {showAnnouncements && (
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare />
-                Communications Board
-              </CardTitle>
-              <CardDescription>
-                Important announcements from campus and system administrators.
-              </CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2"><MessageSquare />Communications Board</CardTitle><CardDescription>Important announcements from campus and system administrators.</CardDescription></CardHeader>
             <CardContent className="flex flex-col gap-4">
-              {globalAnnouncement && isGlobalAnnouncementVisible && (
-                <Alert>
-                  <Globe className="h-4 w-4" />
-                  <AlertTitle>Global Announcement</AlertTitle>
-                  <AlertDescription>{globalAnnouncement}</AlertDescription>
-                  <AlertCloseButton onClick={() => setIsGlobalAnnouncementVisible(false)} />
-                </Alert>
-              )}
-              {announcement && isAnnouncementVisible && (
-                <Alert>
-                  <Megaphone className="h-4 w-4" />
-                  <AlertTitle>Campus Announcement</AlertTitle>
-                  <AlertDescription>{announcement}</AlertDescription>
-                  <AlertCloseButton onClick={() => setIsAnnouncementVisible(false)} />
-                </Alert>
-              )}
+              {globalAnnouncement && isGlobalAnnouncementVisible && (<Alert><Globe className="h-4 w-4" /><AlertTitle>Global Announcement</AlertTitle><AlertDescription>{globalAnnouncement}</AlertDescription><AlertCloseButton onClick={() => setIsGlobalAnnouncementVisible(false)} /></Alert>)}
+              {announcement && isAnnouncementVisible && (<Alert><Megaphone className="h-4 w-4" /><AlertTitle>Campus Announcement</AlertTitle><AlertDescription>{announcement}</AlertDescription><AlertCloseButton onClick={() => setIsAnnouncementVisible(false)} /></Alert>)}
             </CardContent>
           </Card>
         )}
       </div>
-
-
       {renderHomeContent()}
     </div>
   );

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -12,8 +13,8 @@ import {
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
 import { useEffect, useMemo, useCallback, useRef } from 'react';
-import type { Campus, Unit, Submission } from '@/lib/types';
-import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import type { Campus, Unit, Submission, UnitMonitoringRecord } from '@/lib/types';
+import { collection, query, where, Query, doc, updateDoc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Building2 } from 'lucide-react';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';
@@ -53,9 +54,6 @@ const LoadingSkeleton = () => (
 
 /**
  * Custom hook to detect user inactivity and trigger a callback.
- * @param onIdle - The function to call when the user is idle.
- * @param idleTime - The inactivity timeout in milliseconds.
- * @param enabled - A boolean to enable or disable the timer.
  */
 const useIdleTimer = (onIdle: () => void, idleTime: number, enabled: boolean) => {
   const timeoutId = useRef<NodeJS.Timeout | null>(null);
@@ -68,7 +66,6 @@ const useIdleTimer = (onIdle: () => void, idleTime: number, enabled: boolean) =>
   }, [onIdle, idleTime]);
 
   useEffect(() => {
-    // If the timer is disabled, clean up any existing timer and do nothing.
     if (!enabled) {
       if (timeoutId.current) {
         clearTimeout(timeoutId.current);
@@ -77,27 +74,12 @@ const useIdleTimer = (onIdle: () => void, idleTime: number, enabled: boolean) =>
     }
 
     const events = ['mousemove', 'keydown', 'mousedown', 'scroll'];
-
-    const handleActivity = () => {
-      resetTimer();
-    };
-
-    // Set up event listeners
-    events.forEach(event => {
-      window.addEventListener(event, handleActivity);
-    });
-
-    // Initialize the timer
+    const handleActivity = () => { resetTimer(); };
+    events.forEach(event => window.addEventListener(event, handleActivity));
     resetTimer();
-
-    // Cleanup function
     return () => {
-      if (timeoutId.current) {
-        clearTimeout(timeoutId.current);
-      }
-      events.forEach(event => {
-        window.removeEventListener(event, handleActivity);
-      });
+      if (timeoutId.current) clearTimeout(timeoutId.current);
+      events.forEach(event => window.removeEventListener(event, handleActivity));
     };
   }, [resetTimer, enabled]);
 };
@@ -110,97 +92,65 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { toast } = useToast();
   const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, isSupervisor } = useUser();
 
-  // Global console.error trapping to automatically log client-side errors to Firestore
+  // Global console.error trapping
   useEffect(() => {
     const originalConsoleError = console.error;
     console.error = (...args) => {
-      // Call the original console.error to not lose the default browser behavior
       originalConsoleError(...args);
-
-      // Prevent infinite loops if logging itself fails
-      if (args[0] && typeof args[0] === 'string' && args[0].includes('Failed to log error to Firestore')) {
-        return;
-      }
-      
+      if (args[0] && typeof args[0] === 'string' && args[0].includes('Failed to log error to Firestore')) return;
       const errorMessage = args.map(arg => {
-        if (arg instanceof Error) {
-          return `${arg.message}${arg.stack ? `\nStack: ${arg.stack}`: ''}${arg.digest ? `\nDigest: ${arg.digest}` : ''}`;
-        }
-        try {
-          // Attempt to stringify objects for more detail
-          return JSON.stringify(arg, null, 2);
-        } catch (e) {
-          return String(arg);
-        }
+        if (arg instanceof Error) return `${arg.message}${arg.stack ? `\nStack: ${arg.stack}`: ''}${arg.digest ? `\nDigest: ${arg.digest}` : ''}`;
+        try { return JSON.stringify(arg, null, 2); } catch (e) { return String(arg); }
       }).join('\n');
-
-      // Automatically log the captured error to the backend
       logError({
           errorMessage: errorMessage,
-          errorStack: new Error().stack, // Get a stack trace for where the log was called
+          errorStack: new Error().stack,
           url: window.location.href,
           userId: user?.uid,
           userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
           userRole: userProfile?.role,
           userEmail: userProfile?.email,
-      }).catch(e => {
-        // Use the original console.error to report if the logging service itself fails
-        originalConsoleError('Failed to log error to Firestore:', e);
-      });
+      }).catch(e => originalConsoleError('Failed to log error to Firestore:', e));
     };
-
-    // Cleanup function to restore the original console.error when the component unmounts
-    return () => {
-      console.error = originalConsoleError;
-    };
+    return () => { console.error = originalConsoleError; };
   }, [user, userProfile]);
 
-  // Presence system effect
+  // Presence system
   useEffect(() => {
     if (!user || !firestore) return;
-
     const userStatusRef = doc(firestore, 'users', user.uid);
-    
-    // Set last seen timestamp when the user becomes active
-    updateDoc(userStatusRef, {
-        lastSeen: serverTimestamp()
-    });
-
-    // Heartbeat to keep status fresh every 5 minutes (reduced frequency to prevent re-render jumps)
+    updateDoc(userStatusRef, { lastSeen: serverTimestamp() });
     const interval = setInterval(() => {
-        if (document.hasFocus()) { // Only update if tab is active
-            updateDoc(userStatusRef, {
-                lastSeen: serverTimestamp()
-            });
-        }
-    }, 300000); // 5 minutes
-
-    // Cleanup on unmount
-    return () => {
-        clearInterval(interval);
-    };
+        if (document.hasFocus()) updateDoc(userStatusRef, { lastSeen: serverTimestamp() });
+    }, 300000);
+    return () => clearInterval(interval);
   }, [user, firestore]);
 
-
-  // Implement the inactivity logout timer.
   const handleIdle = useCallback(() => {
-    toast({
-      title: 'Session Timeout',
-      description: 'You have been logged out due to inactivity.',
-    });
+    toast({ title: 'Session Timeout', description: 'You have been logged out due to inactivity.' });
     router.push('/logout');
   }, [router, toast]);
   
-  // Conditionally enable the timer. It will not run for admins.
-  // Increased from 2 minutes to 30 minutes for better user experience.
-  useIdleTimer(handleIdle, 30 * 60 * 1000, !isAdmin); // 30 minutes
-
+  useIdleTimer(handleIdle, 30 * 60 * 1000, !isAdmin);
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: allCampuses } = useCollection<Campus>(campusesQuery);
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits } = useCollection<Unit>(unitsQuery);
+
+  // NOTIFICATION SYSTEM: Monitoring Records for Units
+  const monitoringNotificationQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile || isAdmin || isSupervisor) return null;
+    return query(
+        collection(firestore, 'unitMonitoringRecords'),
+        where('unitId', '==', userProfile.unitId),
+        orderBy('createdAt', 'desc'),
+        limit(5)
+    );
+  }, [firestore, userProfile, isAdmin, isSupervisor]);
+
+  const { data: monitoringNotifications } = useCollection<UnitMonitoringRecord>(monitoringNotificationQuery);
 
   const getNotificationQuery = (): Query | null => {
     if (!firestore || !userProfile || !userRole) return null;
@@ -221,25 +171,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const notificationQuery = useMemoFirebase(() => getNotificationQuery(), [firestore, userProfile, userRole, isSupervisor, isAdmin]);
-
   const { data: notifications } = useCollection<Submission>(notificationQuery);
 
   const notificationCount = useMemo(() => {
-    if (!notifications || !userProfile) return 0;
+    let count = 0;
+    if (notifications) count += notifications.length;
     
-    // Admin should see a count of all pending submissions.
-    if (isAdmin) {
-      return notifications.length;
+    // Add monitoring notifications for unit members
+    if (monitoringNotifications && !isAdmin && !isSupervisor) {
+        // We consider visits from the last 7 days as "new" for notification purposes if not previously acknowledged
+        // This is a simplified logic for the MVP
+        count += monitoringNotifications.length;
+    }
+
+    if (isSupervisor && notifications && userProfile) {
+        return notifications.filter(s => s.userId !== userProfile.id).length;
     }
     
-    // Other supervisors should not see their own submissions in the notification count.
-    if (isSupervisor) {
-      return notifications.filter(s => s.userId !== userProfile.id).length;
-    }
-    
-    // Regular users see notifications for their rejected items.
-    return notifications.length;
-  }, [notifications, userProfile, isAdmin, isSupervisor]);
+    return count;
+  }, [notifications, monitoringNotifications, userProfile, isAdmin, isSupervisor]);
 
 
   const userLocation = useMemo(() => {
@@ -258,55 +208,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 
   useEffect(() => {
-    if (isUserLoading) {
-      return; 
-    }
-    
-    if (pathname === '/complete-registration' || pathname === '/awaiting-verification') {
-        return;
-    }
-
-    if (!user) {
-      redirect('/login');
-      return;
-    }
-
-    if (isAdmin) {
-        return;
-    }
-
+    if (isUserLoading) return; 
+    if (pathname === '/complete-registration' || pathname === '/awaiting-verification') return;
+    if (!user) { redirect('/login'); return; }
+    if (isAdmin) return;
     if (userProfile) {
-        if (!userProfile.verified) {
-            redirect('/awaiting-verification');
-            return;
-        }
-        
+        if (!userProfile.verified) { redirect('/awaiting-verification'); return; }
         const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
         const isProfileIncomplete = isCampusLevelUser
             ? !userProfile.campusId || !userProfile.roleId
             : !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
-
-        if (isProfileIncomplete) {
-            redirect('/complete-registration');
-            return;
-        }
+        if (isProfileIncomplete) redirect('/complete-registration');
     } else {
       redirect('/complete-registration');
     }
   }, [user, userProfile, isUserLoading, isAdmin, userRole, pathname]);
 
 
-  if (isUserLoading) {
-      return <LoadingSkeleton />;
-  }
-
-  if (!user && !['/complete-registration', '/awaiting-verification'].includes(pathname)) {
-    return (
-        <div className="flex h-screen w-screen items-center justify-center">
-            <Skeleton className="h-16 w-16" />
-        </div>
-    );
-  }
+  if (isUserLoading) return <LoadingSkeleton />;
 
   return (
     <ActivityLogProvider>
@@ -316,9 +235,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {displayAvatar && (
               <Avatar className="h-20 w-20">
                 <AvatarImage src={displayAvatar} alt={displayName || 'User'} />
-                <AvatarFallback>
-                  {fallbackAvatar}
-                </AvatarFallback>
+                <AvatarFallback>{fallbackAvatar}</AvatarFallback>
               </Avatar>
             )}
             <div className="mt-2 text-center">

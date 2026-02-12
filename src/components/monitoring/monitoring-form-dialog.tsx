@@ -175,9 +175,9 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                 <DialogTitle className="text-xl">
                     {isReadOnly ? 'Viewing' : (record ? 'Edit' : 'New')} Unit Monitoring Record
                 </DialogTitle>
-                <DialogTitle className="text-xl text-muted-foreground text-sm font-normal">
-                    {isReadOnly ? 'Findings from the on-site monitoring visit.' : 'Record objective observations and findings from on-site unit monitoring visits.'}
-                </DialogTitle>
+                <DialogDescription className="text-muted-foreground text-sm font-normal">
+                    {isReadOnly ? 'Findings from the official on-site monitoring visit.' : 'Record objective observations and findings from on-site unit monitoring visits.'}
+                </DialogDescription>
             </DialogHeader>
         </div>
 
