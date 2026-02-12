@@ -131,7 +131,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
 
     const coreReports = [
         "Operational Plan",
-        "Quality Objectives Monitoring",
+        "Objectives Monitoring",
         "Risk and Opportunity Registry",
         "Risk and Opportunity Action Plan"
     ];
@@ -142,15 +142,16 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
     const firstRegistry = submissions.find(s => s.reportType === 'Risk and Opportunity Registry' && s.cycleId === 'first');
     const finalRegistry = submissions.find(s => s.reportType === 'Risk and Opportunity Registry' && s.cycleId === 'final');
     
-    coreReports.forEach(reportName => {
+    coreReports.forEach(checklistLabel => {
+        const portalReportName = eomsReportMap[checklistLabel];
         const missingCycles: string[] = [];
-        const first = submissions.find(s => s.reportType === reportName && s.cycleId === 'first');
-        const final = submissions.find(s => s.reportType === reportName && s.cycleId === 'final');
+        const first = submissions.find(s => s.reportType === portalReportName && s.cycleId === 'first');
+        const final = submissions.find(s => s.reportType === portalReportName && s.cycleId === 'final');
 
         let isFirstNA = false;
         let isFinalNA = false;
 
-        if (reportName === "Risk and Opportunity Action Plan") {
+        if (checklistLabel === "Risk and Opportunity Action Plan") {
             if (firstRegistry && firstRegistry.riskRating === 'low') isFirstNA = true;
             if (finalRegistry && finalRegistry.riskRating === 'low') isFinalNA = true;
         }
@@ -159,12 +160,26 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
         if (!final && !isFinalNA) missingCycles.push('Final');
 
         if (missingCycles.length > 0) {
-            results.push({ name: reportName, missing: missingCycles });
+            results.push({ name: checklistLabel, missing: missingCycles });
         }
     });
 
     return results;
   }, [submissions, selectedUnitId]);
+
+  // AUTOMATION: Automatically flag "Not Available" and add remarks for missing portal submissions
+  useEffect(() => {
+    if (!record && missingReports.length > 0 && isOpen) {
+        missingReports.forEach(missingInfo => {
+            const index = monitoringChecklistItems.findIndex(item => item === missingInfo.name);
+            if (index !== -1) {
+                const cyclesStr = missingInfo.missing.join(' & ');
+                form.setValue(`observations.${index}.status`, 'Not Available');
+                form.setValue(`observations.${index}.remarks`, `Need to submit the updated ${missingInfo.name} and the ${cyclesStr} cycle(s).`);
+            }
+        });
+    }
+  }, [missingReports, record, isOpen, form]);
 
   useEffect(() => {
     if (isOpen) {
@@ -378,7 +393,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                             <TableBody>
                             {fields.map((field, index) => {
                                 const internalReportName = eomsReportMap[field.item];
-                                const missingReportInfo = missingReports.find(r => r.name === internalReportName);
+                                const missingReportInfo = missingReports.find(r => r.name === field.item);
                                 
                                 return (
                                 <TableRow key={field.id} className="hover:bg-muted/20">
