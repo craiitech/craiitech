@@ -30,6 +30,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { Checkbox } from '@/components/ui/checkbox';
 import { generateControlNumber } from '@/lib/utils';
 import { getOfficialServerTime } from '@/lib/actions';
+import { cn } from '@/lib/utils';
 
 
 const statusVariant: Record<
@@ -317,7 +318,7 @@ export default function SubmissionDetailPage() {
   };
   
   const getStatusText = (status: string) => {
-    return status === 'submitted' ? 'Awaiting Approval' : status;
+    return status === 'submitted' ? 'AWAITING APPROVAL' : status.toUpperCase();
   }
 
   if (isLoading) {
@@ -359,43 +360,48 @@ export default function SubmissionDetailPage() {
         {/* Left Column: Document Preview & Actions */}
         <div className="lg:col-span-2 space-y-6">
           
-          {/* Unified Text-Based Metadata Header */}
-          <div className="rounded-lg border bg-muted/5 p-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4">
+          {/* Unified Metadata Header with Emphasized Values */}
+          <div className="rounded-lg border bg-muted/5 p-6 shadow-sm">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-8">
                 {/* Identification & Control */}
-                <div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1 leading-none">Control Number</p>
-                    <p className="font-mono text-[11px] truncate" title={submission.controlNumber}>{submission.controlNumber}</p>
+                <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Control Number</p>
+                    <p className="font-mono text-sm font-bold text-primary truncate" title={submission.controlNumber}>{submission.controlNumber}</p>
                 </div>
-                <div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1 leading-none">Revision</p>
-                    <p className="text-xs font-semibold">Rev {String(submission.revision || 0).padStart(2, '0')}</p>
+                <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Status</p>
+                    <p className={cn(
+                        "text-sm font-black uppercase tracking-tight",
+                        submission.statusId === 'submitted' ? "text-destructive animate-pulse" : "text-foreground"
+                    )}>
+                        {getStatusText(submission.statusId)}
+                    </p>
                 </div>
-                <div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1 leading-none">Status</p>
-                    <p className="text-[10px] font-bold uppercase text-primary tracking-wider">{getStatusText(submission.statusId)}</p>
+                <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Revision</p>
+                    <p className="text-sm font-bold text-foreground">Rev {String(submission.revision || 0).padStart(2, '0')}</p>
                 </div>
-                <div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1 leading-none">Submitter</p>
-                    <p className="text-xs font-medium truncate">{submitter ? `${submitter.firstName} ${submitter.lastName}` : '...'}</p>
+                <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Submitter</p>
+                    <p className="text-sm font-bold text-foreground truncate">{submitter ? `${submitter.firstName} ${submitter.lastName}` : '...'}</p>
                 </div>
 
                 {/* Scoping & Period */}
-                <div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1 leading-none">Campus</p>
-                    <p className="text-xs font-medium truncate" title={campus?.name}>{campus ? campus.name : '...'}</p>
+                <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Campus</p>
+                    <p className="text-sm font-bold text-foreground truncate" title={campus?.name}>{campus ? campus.name : '...'}</p>
                 </div>
-                <div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1 leading-none">Unit</p>
-                    <p className="text-xs font-medium truncate" title={submission.unitName}>{submission.unitName}</p>
+                <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Unit</p>
+                    <p className="text-sm font-bold text-foreground truncate" title={submission.unitName}>{submission.unitName}</p>
                 </div>
-                <div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1 leading-none">Year</p>
-                    <p className="text-xs font-medium">{submission.year}</p>
+                <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Year</p>
+                    <p className="text-sm font-bold text-foreground">{submission.year}</p>
                 </div>
-                <div>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-1 leading-none">Cycle</p>
-                    <p className="text-xs font-medium capitalize">{submission.cycleId} Cycle</p>
+                <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Cycle</p>
+                    <p className="text-sm font-bold text-foreground capitalize">{submission.cycleId} Cycle</p>
                 </div>
             </div>
           </div>
