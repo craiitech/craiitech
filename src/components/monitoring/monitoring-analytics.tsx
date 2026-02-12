@@ -7,7 +7,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle2, ClipboardCheck, TrendingUp } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ClipboardCheck, TrendingUp, School } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface MonitoringAnalyticsProps {
   records: UnitMonitoringRecord[];
