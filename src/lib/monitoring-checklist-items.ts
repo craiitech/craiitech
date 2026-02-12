@@ -15,7 +15,7 @@ export const monitoringChecklistItems = [
   "Warning Signs and Labels",
   "DPO Seal",
   "Certificate of Occupancy",
-  "Emergency Evaluation Postings",
+  "Emergency Evacuation Posting",
   "Communication Logbooks",
   "Incoming Logbook",
   "Outgoing Logbook",
