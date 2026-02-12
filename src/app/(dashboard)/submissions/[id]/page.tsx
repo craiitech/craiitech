@@ -16,7 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Check, X, Send, ShieldCheck, History, School } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, X, Send, ShieldCheck, History, School, Calendar, Building, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useState, useMemo, useEffect } from 'react';
@@ -394,6 +394,50 @@ export default function SubmissionDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Submission Metadata Moved Here */}
+          <Card>
+            <CardHeader className="py-3 px-6 bg-muted/10">
+                <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">Submission Metadata</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
+                <div className="space-y-1">
+                    <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest">Last Submitter</p>
+                    <div className="flex items-center gap-2">
+                        <User className="h-3 w-3 text-primary" />
+                        <span className="font-semibold">{submitter ? `${submitter.firstName} ${submitter.lastName}` : <Loader2 className="h-3 w-3 animate-spin"/>}</span>
+                    </div>
+                </div>
+                <div className="space-y-1">
+                    <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest">Campus</p>
+                    <div className="flex items-center gap-2">
+                        <School className="h-3 w-3 text-primary" />
+                        <span className="font-semibold">{campus ? campus.name : <Loader2 className="h-3 w-3 animate-spin"/>}</span>
+                    </div>
+                </div>
+                <div className="space-y-1">
+                    <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest">Unit</p>
+                    <div className="flex items-center gap-2">
+                        <Building className="h-3 w-3 text-primary" />
+                        <span className="font-semibold">{submission.unitName}</span>
+                    </div>
+                </div>
+                <div className="space-y-1">
+                    <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest">Year</p>
+                    <div className="flex items-center gap-2">
+                        <Calendar className="h-3 w-3 text-primary" />
+                        <span className="font-semibold">{submission.year}</span>
+                    </div>
+                </div>
+                <div className="space-y-1">
+                    <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest">Cycle</p>
+                    <div className="flex items-center gap-2">
+                        <History className="h-3 w-3 text-primary" />
+                        <span className="font-semibold capitalize">{submission.cycleId} Cycle</span>
+                    </div>
+                </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
                 <CardTitle>{submission.reportType}</CardTitle>
@@ -516,64 +560,37 @@ export default function SubmissionDetailPage() {
 
         </div>
 
-        {/* Right Column: Details & Comments */}
+        {/* Right Column: Comments & History */}
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle>Details</CardTitle>
+                    <CardTitle>Conversation History</CardTitle>
+                    <CardDescription>Official communication regarding this document.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground">Status:</span>
-                        <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
-                            {getStatusText(submission.statusId)}
-                        </Badge>
-                    </div>
-                     <div className="flex justify-between">
-                        <span className="text-muted-foreground">Last Submitter:</span>
-                        <span>{submitter ? `${submitter.firstName} ${submitter.lastName}` : <Loader2 className="h-4 w-4 animate-spin"/>}</span>
-                    </div>
-                     <div className="flex justify-between">
-                        <span className="text-muted-foreground">Campus:</span>
-                        <span className="flex items-center gap-1">
-                            <School className="h-3 w-3 text-muted-foreground" />
-                            {campus ? campus.name : <Loader2 className="h-3 w-3 animate-spin"/>}
-                        </span>
-                    </div>
-                     <div className="flex justify-between">
-                        <span className="text-muted-foreground">Unit:</span>
-                        <span>{submission.unitName}</span>
-                    </div>
-                     <div className="flex justify-between">
-                        <span className="text-muted-foreground">Year:</span>
-                        <span>{submission.year}</span>
-                    </div>
-                     <div className="flex justify-between">
-                        <span className="text-muted-foreground">Cycle:</span>
-                        <span className="capitalize">{submission.cycleId}</span>
-                    </div>
-
-                    {Array.isArray(submission.comments) && submission.comments.length > 0 && (
-                        <>
-                            <Separator className="my-4" />
-                            <h3 className="font-semibold text-base">Conversation History</h3>
-                            <div className="space-y-4">
-                                {submission.comments.slice().sort((a,b) => (a.createdAt as Timestamp)?.toMillis() - (b.createdAt as Timestamp)?.toMillis()).map((comment, index) => (
-                                <div key={index} className="flex gap-3">
-                                    <Avatar className="h-8 w-8">
-                                            <AvatarFallback>{comment.authorName.charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-center">
-                                                <p className="text-sm font-medium">{comment.authorName} <span className="text-xs text-muted-foreground">({comment.authorRole})</span></p>
-                                                <p className="text-xs text-muted-foreground">{getFormattedDate(comment.createdAt)}</p>
-                                            </div>
-                                            <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{comment.text}</p>
+                <CardContent className="space-y-4">
+                    {Array.isArray(submission.comments) && submission.comments.length > 0 ? (
+                        <div className="space-y-6">
+                            {submission.comments.slice().sort((a,b) => (a.createdAt as Timestamp)?.toMillis() - (b.createdAt as Timestamp)?.toMillis()).map((comment, index) => (
+                            <div key={index} className="flex gap-3">
+                                <Avatar className="h-8 w-8 shrink-0">
+                                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">{comment.authorName.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-center gap-2">
+                                            <p className="text-xs font-bold truncate">{comment.authorName}</p>
+                                            <p className="text-[10px] text-muted-foreground whitespace-nowrap">{getFormattedDate(comment.createdAt)}</p>
                                         </div>
-                                </div>
-                                ))}
+                                        <p className="text-[10px] text-muted-foreground italic mb-1">({comment.authorRole})</p>
+                                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed">{comment.text}</p>
+                                    </div>
                             </div>
-                        </>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="py-12 text-center text-muted-foreground flex flex-col items-center gap-2">
+                            <History className="h-8 w-8 opacity-10" />
+                            <p className="text-xs">No comments logged for this submission.</p>
+                        </div>
                     )}
                 </CardContent>
             </Card>
