@@ -12,26 +12,36 @@ service cloud.firestore {
     }
 
     /**
-     * Robust Admin check.
-     * Prioritizes the roles_admin master collection, then falls back to profile role.
+     * Returns the user's profile data.
+     * Firestore caches this single document fetch for the duration of the request.
      */
-    function isAdmin() {
-      let isAdminUser = exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-      let profilePath = /databases/$(database)/documents/users/$(request.auth.uid);
-      let isProfileAdmin = exists(profilePath) && get(profilePath).data.role == 'Admin';
-      return isSignedIn() && (isAdminUser || isProfileAdmin);
-    }
-    
-    /**
-     * Safe user profile fetch.
-     */
-    function getUserData() {
-      let path = /databases/$(database)/documents/users/$(request.auth.uid);
-      return exists(path) ? get(path).data : {};
+    function profile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
+    /**
+     * Checks if the user profile document exists.
+     */
+    function hasProfile() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    /**
+     * Master Admin Check.
+     * Uses the roles_admin master collection for high-security write operations.
+     */
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
+        (hasProfile() && profile().role == 'Admin')
+      );
+    }
+
+    /**
+     * Auditor Check.
+     */
     function isAuditor() {
-      return isSignedIn() && getUserData().role == 'Auditor';
+      return isSignedIn() && hasProfile() && profile().role == 'Auditor';
     }
 
     // --------------------------------------------------------------------------
@@ -39,12 +49,15 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /unitMonitoringRecords/{recordId} {
-        // Oversight roles can read everything
+        // Oversight roles and Admins
         allow read: if isAdmin() || isAuditor();
         
-        // Unit-level sharing: Split into discrete blocks for query optimizer compatibility
-        allow read: if isSignedIn() && resource.data.unitId == getUserData().unitId;
-        allow read: if isSignedIn() && resource.data.campusId == getUserData().campusId;
+        // Unit-level access for Coordinators and ODIMOs
+        allow read: if isSignedIn() && hasProfile() && (
+          resource.data.unitId == profile().unitId || 
+          resource.data.campusId == profile().campusId ||
+          profile().role.matches('(?i).*vice president.*')
+        );
         
         allow write: if isAdmin();
     }
@@ -62,23 +75,21 @@ service cloud.firestore {
     }
 
     match /submissions/{submissionId} {
-      // Oversight roles
       allow read: if isAdmin() || isAuditor();
       
-      // User-level/Scoped read
-      allow read: if isSignedIn() && (
+      allow read: if isSignedIn() && hasProfile() && (
         resource.data.userId == request.auth.uid || 
-        resource.data.unitId == getUserData().unitId || 
-        resource.data.campusId == getUserData().campusId ||
-        getUserData().role.matches('(?i).*vice president.*')
+        resource.data.unitId == profile().unitId || 
+        resource.data.campusId == profile().campusId ||
+        profile().role.matches('(?i).*vice president.*')
       );
 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 
-      allow update: if isAdmin() || (isSignedIn() && (
+      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
         resource.data.userId == request.auth.uid || 
-        resource.data.unitId == getUserData().unitId || 
-        resource.data.campusId == getUserData().campusId
+        resource.data.unitId == profile().unitId || 
+        resource.data.campusId == profile().campusId
       ));
 
       allow delete: if isAdmin();
@@ -87,17 +98,18 @@ service cloud.firestore {
     match /risks/{riskId} {
       allow read: if isAdmin() || isAuditor();
       
-      allow read: if isSignedIn() && (
-        resource.data.unitId == getUserData().unitId ||
+      allow read: if isSignedIn() && hasProfile() && (
+        resource.data.unitId == profile().unitId ||
         resource.data.userId == request.auth.uid ||
-        resource.data.campusId == getUserData().campusId
+        resource.data.campusId == profile().campusId ||
+        profile().role.matches('(?i).*vice president.*')
       );
 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       
-      allow update: if isAdmin() || (isSignedIn() && (
+      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
         request.auth.uid == resource.data.userId || 
-        getUserData().unitId == resource.data.unitId
+        profile().unitId == resource.data.unitId
       ));
       
       allow delete: if isAdmin();
@@ -120,13 +132,13 @@ service cloud.firestore {
     
     match /campusSettings/{campusId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSignedIn() && getUserData().campusId == campusId && (getUserData().role == 'Campus Director' || getUserData().role == 'Campus ODIMO'));
+      allow write: if isAdmin() || (isSignedIn() && hasProfile() && profile().campusId == campusId && (profile().role == 'Campus Director' || profile().role == 'Campus ODIMO'));
     }
     
     match /units/{unitId} {
       allow read: if isSignedIn();
-      allow create: if isAdmin() || (isSignedIn() && getUserData().role == 'Campus Director');
-      allow update: if isAdmin() || (isSignedIn() && (getUserData().role == 'Campus Director' || getUserData().role.matches('(?i).*vice president.*')));
+      allow create: if isAdmin() || (isSignedIn() && hasProfile() && profile().role == 'Campus Director');
+      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (profile().role == 'Campus Director' || profile().role.matches('(?i).*vice president.*')));
       allow delete: if isAdmin();
     }
 
@@ -163,26 +175,26 @@ service cloud.firestore {
     match /auditSchedules/{scheduleId} {
         allow read: if isAdmin() || isAuditor();
         
-        allow read: if isSignedIn() && (
-          resource.data.targetId == getUserData().unitId || 
+        allow read: if isSignedIn() && hasProfile() && (
+          resource.data.targetId == profile().unitId || 
           resource.data.targetId == request.auth.uid
         );
         
         allow create: if isAdmin();
-        allow update: if isAdmin() || (isSignedIn() && getUserData().role == 'Auditor' && (resource.data.auditorId == null || resource.data.auditorId == request.auth.uid));
+        allow update: if isAdmin() || (isSignedIn() && hasProfile() && profile().role == 'Auditor' && (resource.data.auditorId == null || resource.data.auditorId == request.auth.uid));
     }
 
     match /auditFindings/{findingId} {
         allow read: if isSignedIn();
-        allow create: if isSignedIn() && getUserData().role == 'Auditor';
-        allow update: if isAdmin() || (isSignedIn() && getUserData().role == 'Auditor' && request.auth.uid == resource.data.authorId);
+        allow create: if isSignedIn() && hasProfile() && profile().role == 'Auditor';
+        allow update: if isAdmin() || (isSignedIn() && hasProfile() && profile().role == 'Auditor' && request.auth.uid == resource.data.authorId);
         allow delete: if isAdmin();
     }
 
     match /correctiveActionPlans/{planId} {
         allow read: if isSignedIn();
         allow create: if isSignedIn();
-        allow update: if (exists(resource.data) && resource.data.authorId == request.auth.uid) || isAdmin();
+        allow update: if (isSignedIn() && hasProfile() && (resource.data.authorId == request.auth.uid)) || isAdmin();
         allow delete: if isAdmin();
     }
   }
