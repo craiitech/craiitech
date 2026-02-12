@@ -25,7 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Loader2, CalendarIcon, ClipboardCheck } from 'lucide-react';
+import { Loader2, CalendarIcon, ClipboardCheck, Circle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
@@ -46,11 +46,19 @@ const formSchema = z.object({
   roomNumber: z.string().optional(),
   observations: z.array(z.object({
     item: z.string(),
-    status: z.enum(['Available', 'Not Available', 'For Improvement']),
+    status: z.enum(['Available', 'Not Available', 'For Improvement', 'Not Applicable', 'Need to revisit']),
     remarks: z.string().optional(),
   })),
   generalRemarks: z.string().optional(),
 });
+
+const statusColors: Record<string, string> = {
+  'Available': 'text-green-500 fill-green-500',
+  'Not Available': 'text-red-500 fill-red-500',
+  'For Improvement': 'text-amber-500 fill-amber-500',
+  'Not Applicable': 'text-muted-foreground fill-muted-foreground',
+  'Need to revisit': 'text-blue-500 fill-blue-500',
+};
 
 export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, units }: MonitoringFormDialogProps) {
   const { userProfile, isAdmin } = useUser();
@@ -165,9 +173,9 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                 <DialogTitle className="text-xl">
                     {isReadOnly ? 'Viewing' : (record ? 'Edit' : 'New')} Unit Monitoring Record
                 </DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-xl text-muted-foreground text-sm font-normal">
                     {isReadOnly ? 'Findings from the on-site monitoring visit.' : 'Record objective observations and findings from on-site unit monitoring visits.'}
-                </DialogDescription>
+                </DialogTitle>
             </DialogHeader>
         </div>
 
@@ -245,7 +253,9 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                            {fields.map((field, index) => (
+                            {fields.map((field, index) => {
+                                const statusValue = form.watch(`observations.${index}.status`);
+                                return (
                                 <TableRow key={field.id} className="hover:bg-muted/20">
                                 <TableCell className="font-medium text-sm py-3">{field.item}</TableCell>
                                 <TableCell>
@@ -253,13 +263,16 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                     <FormItem>
                                         <FormControl>
                                             <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
-                                            <SelectTrigger className="h-8 text-xs bg-background">
+                                            <SelectTrigger className={cn("h-8 text-xs bg-background flex items-center gap-2", statusColors[field.value]?.split(' ')[0])}>
+                                                <Circle className={cn("h-2 w-2", statusColors[field.value])} />
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="Available">Available</SelectItem>
                                                 <SelectItem value="Not Available">Not Available</SelectItem>
                                                 <SelectItem value="For Improvement">For Improvement</SelectItem>
+                                                <SelectItem value="Not Applicable">Not Applicable</SelectItem>
+                                                <SelectItem value="Need to revisit">Need to revisit</SelectItem>
                                             </SelectContent>
                                             </Select>
                                         </FormControl>
@@ -278,7 +291,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                     )} />
                                 </TableCell>
                                 </TableRow>
-                            ))}
+                            )})}
                             </TableBody>
                         </Table>
                     </div>

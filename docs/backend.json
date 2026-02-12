@@ -514,7 +514,7 @@
             "type": "object",
             "properties": {
               "item": { "type": "string" },
-              "status": { "type": "string", "enum": ["Available", "Not Available", "For Improvement"] },
+              "status": { "type": "string", "enum": ["Available", "Not Available", "For Improvement", "Not Applicable", "Need to revisit"] },
               "remarks": { "type": "string" }
             }
           }
