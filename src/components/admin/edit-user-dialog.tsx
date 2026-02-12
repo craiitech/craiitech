@@ -80,11 +80,11 @@ export function EditUserDialog({
   useEffect(() => {
     if (user) {
       form.reset({
-        firstName: user.firstName,
-        lastName: user.lastName,
-        roleId: user.roleId,
-        campusId: user.campusId,
-        unitId: user.unitId,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        roleId: user.roleId || '',
+        campusId: user.campusId || '',
+        unitId: user.unitId || '',
       });
     }
   }, [user, form]);
@@ -100,7 +100,7 @@ export function EditUserDialog({
 
   useEffect(() => {
     if (!isUnitRequired) {
-      form.setValue('unitId', undefined);
+      form.setValue('unitId', '');
       form.clearErrors('unitId');
     }
   }, [isUnitRequired, form]);
@@ -163,7 +163,7 @@ export function EditUserDialog({
                 <FormItem>
                   <FormLabel>First Name</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} value={field.value || ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -176,7 +176,7 @@ export function EditUserDialog({
                 <FormItem>
                   <FormLabel>Last Name</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} value={field.value || ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -188,7 +188,7 @@ export function EditUserDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Role</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || ''}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a role" />
@@ -212,7 +212,7 @@ export function EditUserDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Campus</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || ''}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a campus" />
@@ -237,7 +237,7 @@ export function EditUserDialog({
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Unit</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || ''}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="Select a unit" />

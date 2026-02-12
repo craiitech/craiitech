@@ -71,6 +71,11 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
     resolver: zodResolver(formSchema),
     defaultValues: {
       visitDate: new Date(),
+      campusId: '',
+      unitId: '',
+      roomNumber: '',
+      officerInCharge: '',
+      generalRemarks: '',
       observations: monitoringChecklistItems.map(item => ({
         item,
         status: 'Available',
@@ -97,6 +102,9 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
         form.reset({
           ...record,
           visitDate,
+          roomNumber: record.roomNumber || '',
+          officerInCharge: record.officerInCharge || '',
+          generalRemarks: record.generalRemarks || '',
           observations: monitoringChecklistItems.map(item => {
             const existing = record.observations?.find(obs => obs.item === item);
             return {
@@ -209,7 +217,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                   <FormField control={form.control} name="campusId" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Campus</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
+                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={isReadOnly}>
                         <FormControl>
                           <SelectTrigger><SelectValue placeholder="Select Campus" /></SelectTrigger>
                         </FormControl>
@@ -221,7 +229,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                   <FormField control={form.control} name="unitId" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Unit</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly || !selectedCampusId}>
+                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={isReadOnly || !selectedCampusId}>
                         <FormControl>
                           <SelectTrigger><SelectValue placeholder="Select Unit" /></SelectTrigger>
                         </FormControl>
@@ -233,14 +241,14 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                   <FormField control={form.control} name="roomNumber" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Office / Room #</FormLabel>
-                      <FormControl><Input {...field} placeholder="e.g., Room 101" disabled={isReadOnly} /></FormControl>
+                      <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Room 101" disabled={isReadOnly} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="officerInCharge" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Officer in Charge</FormLabel>
-                      <FormControl><Input {...field} placeholder="Name of official" disabled={isReadOnly} /></FormControl>
+                      <FormControl><Input {...field} value={field.value || ''} placeholder="Name of official" disabled={isReadOnly} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -263,7 +271,6 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                             </TableHeader>
                             <TableBody>
                             {fields.map((field, index) => {
-                                const statusValue = form.watch(`observations.${index}.status`);
                                 return (
                                 <TableRow key={field.id} className="hover:bg-muted/20">
                                 <TableCell className="font-medium text-sm py-3">{field.item}</TableCell>
@@ -271,7 +278,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                     <FormField control={form.control} name={`observations.${index}.status`} render={({ field }) => (
                                     <FormItem>
                                         <FormControl>
-                                            <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
+                                            <Select onValueChange={field.onChange} value={field.value || 'Available'} disabled={isReadOnly}>
                                             <SelectTrigger className={cn("h-8 text-xs bg-background flex items-center gap-2", statusColors[field.value]?.split(' ')[0])}>
                                                 <Circle className={cn("h-2 w-2", statusColors[field.value])} />
                                                 <SelectValue />
@@ -293,7 +300,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                     <FormField control={form.control} name={`observations.${index}.remarks`} render={({ field }) => (
                                     <FormItem>
                                         <FormControl>
-                                            <Input placeholder={isReadOnly ? "" : "Add findings..."} {...field} className="h-8 text-xs bg-background" disabled={isReadOnly} />
+                                            <Input placeholder={isReadOnly ? "" : "Add findings..."} {...field} value={field.value || ''} className="h-8 text-xs bg-background" disabled={isReadOnly} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -316,7 +323,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                     <FormItem>
                         <FormLabel>General Remarks / Summary of Visit</FormLabel>
                         <FormControl>
-                            <Textarea {...field} rows={5} placeholder={isReadOnly ? "" : "Provide an overall summary..."} disabled={isReadOnly} />
+                            <Textarea {...field} value={field.value || ''} rows={5} placeholder={isReadOnly ? "" : "Provide an overall summary..."} disabled={isReadOnly} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -144,6 +145,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
       currentControls: '',
       treatmentAction: '',
       status: 'Open',
+      adminCampusId: '',
+      adminUnitId: '',
     },
   });
 
@@ -157,6 +160,10 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
       const dateImplemented = risk.postTreatment?.dateImplemented?.toDate();
       form.reset({
         ...risk,
+        objective: risk.objective || '',
+        description: risk.description || '',
+        currentControls: risk.currentControls || '',
+        treatmentAction: risk.treatmentAction || '',
         likelihood: risk.preTreatment.likelihood,
         consequence: risk.preTreatment.consequence,
         targetYear: targetDate ? String(targetDate.getFullYear()) : undefined,
@@ -166,14 +173,17 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         postTreatmentConsequence: risk.postTreatment?.consequence,
         postTreatmentEvidence: risk.postTreatment?.evidence || '',
         postTreatmentDateImplemented: dateImplemented,
-        adminCampusId: risk.campusId,
-        adminUnitId: risk.unitId,
+        adminCampusId: risk.campusId || '',
+        adminUnitId: risk.unitId || '',
       });
     } else {
       form.reset({
         year: defaultYear || new Date().getFullYear(),
         objective: '',
         type: 'Risk',
+        description: '',
+        currentControls: '',
+        treatmentAction: '',
         status: 'Open',
         adminCampusId: userProfile?.campusId || '',
         adminUnitId: userProfile?.unitId || '',
@@ -346,7 +356,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                     <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <FormField control={form.control} name="adminCampusId" render={({ field }) => (
                                             <FormItem><FormLabel className="text-xs">1. Select Campus</FormLabel>
-                                                <Select onValueChange={(v) => { field.onChange(v); form.setValue('adminUnitId', ''); }} value={field.value}>
+                                                <Select onValueChange={(v) => { field.onChange(v); form.setValue('adminUnitId', ''); }} value={field.value || ''}>
                                                     <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Pick Campus" /></SelectTrigger></FormControl>
                                                     <SelectContent>{allCampuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                                                 </Select>
@@ -354,7 +364,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                         )} />
                                         <FormField control={form.control} name="adminUnitId" render={({ field }) => (
                                             <FormItem><FormLabel className="text-xs">2. Select Unit</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value} disabled={!selectedAdminCampusId}>
+                                                <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedAdminCampusId}>
                                                     <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Pick Unit" /></SelectTrigger></FormControl>
                                                     <SelectContent>{filteredUnits.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
                                                 </Select>
@@ -390,15 +400,15 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                             )}
                                             <FormField control={form.control} name="type" render={({ field }) => (
                                                 <FormItem className="space-y-3"><FormLabel>Entry Type</FormLabel>
-                                                    <FormControl><RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center space-x-4">
+                                                    <FormControl><RadioGroup onValueChange={field.onChange} value={field.value || 'Risk'} className="flex items-center space-x-4">
                                                         <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Risk" /></FormControl><Label className="font-normal cursor-pointer">Risk</Label></FormItem>
                                                         <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><RadioGroupItem value="Opportunity" /></FormControl><Label className="font-normal cursor-pointer">Opportunity</Label></FormItem>
                                                     </RadioGroup></FormControl>
                                                 </FormItem>
                                             )} />
-                                            <FormField control={form.control} name="objective" render={({ field }) => (<FormItem><FormLabel>Process Objective</FormLabel><FormControl><Input {...field} placeholder="What is the unit trying to achieve?" /></FormControl><FormMessage /></FormItem>)} />
-                                            <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Detailed Description</FormLabel><FormControl><Textarea {...field} placeholder="Describe the risk or opportunity..." /></FormControl><FormMessage /></FormItem>)} />
-                                            <FormField control={form.control} name="currentControls" render={({ field }) => (<FormItem><FormLabel>Existing Controls</FormLabel><FormControl><Textarea {...field} placeholder="What are you currently doing to manage this?" /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={form.control} name="objective" render={({ field }) => (<FormItem><FormLabel>Process Objective</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="What is the unit trying to achieve?" /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Detailed Description</FormLabel><FormControl><Textarea {...field} value={field.value || ''} placeholder="Describe the risk or opportunity..." /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={form.control} name="currentControls" render={({ field }) => (<FormItem><FormLabel>Existing Controls</FormLabel><FormControl><Textarea {...field} value={field.value || ''} placeholder="What are you currently doing to manage this?" /></FormControl><FormMessage /></FormItem>)} />
                                         </CardContent>
                                     </Card>
                                 </div>
@@ -410,7 +420,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <FormField control={form.control} name="likelihood" render={({ field }) => (
                                                     <FormItem><FormLabel>Likelihood</FormLabel>
-                                                        <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                                        <Select onValueChange={(v) => field.onChange(Number(v))} value={field.value ? String(field.value) : ''}>
                                                             <FormControl><SelectTrigger><SelectValue placeholder="Score 1-5" /></SelectTrigger></FormControl>
                                                             <SelectContent>{likelihoodOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
                                                         </Select>
@@ -418,7 +428,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                                 )} />
                                                 <FormField control={form.control} name="consequence" render={({ field }) => (
                                                     <FormItem><FormLabel>Consequence</FormLabel>
-                                                        <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                                        <Select onValueChange={(v) => field.onChange(Number(v))} value={field.value ? String(field.value) : ''}>
                                                             <FormControl><SelectTrigger><SelectValue placeholder="Score 1-5" /></SelectTrigger></FormControl>
                                                             <SelectContent>{consequenceOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}</SelectContent>
                                                         </Select>
@@ -456,11 +466,11 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                                 </Button>
                                             </CardHeader>
                                             <CardContent className="space-y-4 pt-6">
-                                                <FormField control={form.control} name="treatmentAction" render={({ field }) => (<FormItem><FormLabel>Treatment Plan / Action</FormLabel><FormControl><Textarea {...field} rows={6} placeholder="Describe the specific actions to be taken..." /></FormControl><FormMessage /></FormItem>)} />
+                                                <FormField control={form.control} name="treatmentAction" render={({ field }) => (<FormItem><FormLabel>Treatment Plan / Action</FormLabel><FormControl><Textarea {...field} value={field.value || ''} rows={6} placeholder="Describe the specific actions to be taken..." /></FormControl><FormMessage /></FormItem>)} />
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <FormField control={form.control} name="responsiblePersonId" render={({ field }) => (
                                                         <FormItem><FormLabel>Accountable Person</FormLabel>
-                                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                            <Select onValueChange={field.onChange} value={field.value || ''}>
                                                                 <FormControl><SelectTrigger><SelectValue placeholder="Select from list" /></SelectTrigger></FormControl>
                                                                 <SelectContent>{filteredUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)}</SelectContent>
                                                             </Select>
@@ -469,9 +479,9 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                                     <div className="space-y-2">
                                                         <FormLabel>Target Date</FormLabel>
                                                         <div className="grid grid-cols-3 gap-2">
-                                                            <FormField control={form.control} name="targetMonth" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="px-2"><SelectValue placeholder="Mo" /></SelectTrigger></FormControl><SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent></Select></FormItem>)} />
-                                                            <FormField control={form.control} name="targetDay" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="px-2"><SelectValue placeholder="Day" /></SelectTrigger></FormControl><SelectContent>{daysList.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select></FormItem>)} />
-                                                            <FormField control={form.control} name="targetYear" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="px-2"><SelectValue placeholder="Yr" /></SelectTrigger></FormControl><SelectContent>{yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                                                            <FormField control={form.control} name="targetMonth" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger className="px-2"><SelectValue placeholder="Mo" /></SelectTrigger></FormControl><SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                                                            <FormField control={form.control} name="targetDay" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger className="px-2"><SelectValue placeholder="Day" /></SelectTrigger></FormControl><SelectContent>{daysList.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                                                            <FormField control={form.control} name="targetYear" render={({ field }) => (<FormItem><Select onValueChange={field.onChange} value={field.value || ''}><FormControl><SelectTrigger className="px-2"><SelectValue placeholder="Yr" /></SelectTrigger></FormControl><SelectContent>{yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select></FormItem>)} />
                                                         </div>
                                                     </div>
                                                 </div>
@@ -486,7 +496,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                         <CardContent className="pt-6">
                                              <FormField control={form.control} name="status" render={({ field }) => (
                                                 <FormItem><FormLabel>Overall Workflow Status</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                    <Select onValueChange={field.onChange} value={field.value || 'Open'}>
                                                         <FormControl><SelectTrigger><SelectValue placeholder="Select Status" /></SelectTrigger></FormControl>
                                                         <SelectContent><SelectItem value="Open">Open (Pending)</SelectItem><SelectItem value="In Progress">In Progress (Active Treatment)</SelectItem><SelectItem value="Closed">Closed (Resolved/Mitigated)</SelectItem></SelectContent>
                                                     </Select>
