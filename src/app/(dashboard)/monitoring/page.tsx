@@ -6,9 +6,10 @@ import { collection, query, orderBy, Timestamp, where } from 'firebase/firestore
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, Calendar, Building, School, ShieldAlert, DoorOpen } from 'lucide-react';
+import { PlusCircle, Loader2, Calendar, Building, School, ShieldAlert, DoorOpen, History, LayoutDashboard } from 'lucide-react';
 import { format } from 'date-fns';
 import { MonitoringFormDialog } from '@/components/monitoring/monitoring-form-dialog';
+import { MonitoringAnalytics } from '@/components/monitoring/monitoring-analytics';
 import {
   Table,
   TableBody,
@@ -18,6 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useRouter } from 'next/navigation';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function MonitoringPage() {
   const { isAdmin, isUserLoading, user, userProfile, isSupervisor, userRole } = useUser();
@@ -108,78 +110,103 @@ export default function MonitoringPage() {
             </Button>
           )}
         </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Monitoring History</CardTitle>
-            <CardDescription>
-                {isAdmin ? 'A log of all past unit monitoring visits across all sites.' : 'Findings from on-site monitoring visits for your unit.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex h-64 items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin" />
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date of Visit</TableHead>
-                    <TableHead>Campus</TableHead>
-                    <TableHead>Unit</TableHead>
-                    <TableHead>Room</TableHead>
-                    <TableHead>Monitor</TableHead>
-                    <TableHead>Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {records && records.length > 0 ? (
-                    records.map(record => (
-                      <TableRow key={record.id} className="cursor-pointer" onClick={() => handleViewRecord(record)}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            {safeFormatDate(record.visitDate)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                           <div className="flex items-center gap-2">
-                             <School className="h-4 w-4 text-muted-foreground" />
-                             {campusMap.get(record.campusId) || '...'}
-                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                             <Building className="h-4 w-4 text-muted-foreground" />
-                             {unitMap.get(record.unitId) || '...'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <DoorOpen className="h-4 w-4 text-muted-foreground" />
-                            {record.roomNumber || 'N/A'}
-                          </div>
-                        </TableCell>
-                        <TableCell>{record.monitorName}</TableCell>
-                        <TableCell>
-                          <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleViewRecord(record); }}>
-                            {isAdmin ? 'View / Edit' : 'View Details'}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
-                        No monitoring records found.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+
+        <Tabs defaultValue="history" className="space-y-4">
+            <TabsList>
+                <TabsTrigger value="history">
+                    <History className="mr-2 h-4 w-4" />
+                    Monitoring History
+                </TabsTrigger>
+                <TabsTrigger value="performance">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    Overall Performance
+                </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="history" className="space-y-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Visit Log</CardTitle>
+                        <CardDescription>
+                            {isAdmin ? 'A record of all past unit monitoring visits across all sites.' : 'Findings from on-site monitoring visits for your scope.'}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {isLoading ? (
+                        <div className="flex h-64 items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                        ) : (
+                        <Table>
+                            <TableHeader>
+                            <TableRow>
+                                <TableHead>Date of Visit</TableHead>
+                                <TableHead>Campus</TableHead>
+                                <TableHead>Unit</TableHead>
+                                <TableHead>Room</TableHead>
+                                <TableHead>Monitor</TableHead>
+                                <TableHead>Action</TableHead>
+                            </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                            {records && records.length > 0 ? (
+                                records.map(record => (
+                                <TableRow key={record.id} className="cursor-pointer" onClick={() => handleViewRecord(record)}>
+                                    <TableCell className="font-medium">
+                                    <div className="flex items-center gap-2">
+                                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                                        {safeFormatDate(record.visitDate)}
+                                    </div>
+                                    </TableCell>
+                                    <TableCell>
+                                    <div className="flex items-center gap-2">
+                                        <School className="h-4 w-4 text-muted-foreground" />
+                                        {campusMap.get(record.campusId) || '...'}
+                                    </div>
+                                    </TableCell>
+                                    <TableCell>
+                                    <div className="flex items-center gap-2">
+                                        <Building className="h-4 w-4 text-muted-foreground" />
+                                        {unitMap.get(record.unitId) || '...'}
+                                    </div>
+                                    </TableCell>
+                                    <TableCell>
+                                    <div className="flex items-center gap-2 text-xs">
+                                        <DoorOpen className="h-3 w-3 text-muted-foreground" />
+                                        {record.roomNumber || 'N/A'}
+                                    </div>
+                                    </TableCell>
+                                    <TableCell>{record.monitorName}</TableCell>
+                                    <TableCell>
+                                    <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleViewRecord(record); }}>
+                                        {isAdmin ? 'View / Edit' : 'View Details'}
+                                    </Button>
+                                    </TableCell>
+                                </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                <TableCell colSpan={6} className="h-24 text-center">
+                                    No monitoring records found.
+                                </TableCell>
+                                </TableRow>
+                            )}
+                            </TableBody>
+                        </Table>
+                        )}
+                    </CardContent>
+                </Card>
+            </TabsContent>
+
+            <TabsContent value="performance">
+                <MonitoringAnalytics 
+                    records={records || []} 
+                    campuses={campuses || []} 
+                    units={units || []} 
+                    isLoading={isLoading} 
+                />
+            </TabsContent>
+        </Tabs>
       </div>
 
       <MonitoringFormDialog
