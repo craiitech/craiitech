@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -7,10 +6,11 @@ import { collection, query, orderBy, Timestamp, where } from 'firebase/firestore
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, Calendar, School, ShieldAlert, DoorOpen, History, LayoutDashboard, User, ClipboardCheck, Building, Percent } from 'lucide-react';
+import { PlusCircle, Loader2, Calendar, School, ShieldAlert, DoorOpen, History, LayoutDashboard, User, ClipboardCheck, Building, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { MonitoringFormDialog } from '@/components/monitoring/monitoring-form-dialog';
 import { MonitoringAnalytics } from '@/components/monitoring/monitoring-analytics';
+import { MonitoringFindings } from '@/components/monitoring/monitoring-findings';
 import {
   Table,
   TableBody,
@@ -100,9 +100,9 @@ export default function MonitoringPage() {
   };
 
   const getComplianceVariant = (score: number) => {
-    if (score >= 80) return 'default'; // Greenish in theme
-    if (score >= 50) return 'secondary'; // Amber/Neutral
-    return 'destructive'; // Red
+    if (score >= 80) return 'default';
+    if (score >= 50) return 'secondary';
+    return 'destructive';
   };
 
   const safeFormatDate = (date: any) => {
@@ -173,6 +173,10 @@ export default function MonitoringPage() {
                     <TabsTrigger value="performance">
                         <LayoutDashboard className="mr-2 h-4 w-4" />
                         {isUnitOnlyView ? 'Our Performance' : 'Overall Performance'}
+                    </TabsTrigger>
+                    <TabsTrigger value="findings">
+                        <AlertTriangle className="mr-2 h-4 w-4" />
+                        Non-Compliance
                     </TabsTrigger>
                 </TabsList>
 
@@ -279,6 +283,15 @@ export default function MonitoringPage() {
 
                 <TabsContent value="performance">
                     <MonitoringAnalytics 
+                        records={records || []} 
+                        campuses={campuses || []} 
+                        units={units || []} 
+                        isLoading={isLoading} 
+                    />
+                </TabsContent>
+
+                <TabsContent value="findings">
+                    <MonitoringFindings 
                         records={records || []} 
                         campuses={campuses || []} 
                         units={units || []} 
