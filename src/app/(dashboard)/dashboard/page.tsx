@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -185,20 +184,6 @@ export default function HomePage() {
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
-  // MONITORING NOTIFICATION FOR UNIT USERS
-  const latestMonitoringQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile || isAdmin || isSupervisor) return null;
-    return query(
-        collection(firestore, 'unitMonitoringRecords'),
-        where('unitId', '==', userProfile.unitId),
-        orderBy('visitDate', 'desc'),
-        limit(1)
-    );
-  }, [firestore, userProfile, isAdmin, isSupervisor]);
-
-  const { data: latestMonitoring, isLoading: isLoadingMonitoring } = useCollection<UnitMonitoringRecord>(latestMonitoringQuery);
-
-
   // Fetch users based on role
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -283,8 +268,7 @@ export default function HomePage() {
     isLoadingGlobalSettings ||
     isLoadingCycles ||
     isLoadingRisks ||
-    isLoadingUsers ||
-    isLoadingMonitoring;
+    isLoadingUsers;
 
 
   const stats = useMemo(() => {
@@ -474,14 +458,6 @@ export default function HomePage() {
   }
 
   const renderUnitUserHome = () => {
-    const latestVisit = latestMonitoring?.[0];
-    let complianceScore = 0;
-    if (latestVisit) {
-        const applicable = latestVisit.observations.filter(o => o.status !== 'Not Applicable');
-        const available = applicable.filter(o => o.status === 'Available').length;
-        complianceScore = applicable.length > 0 ? Math.round((available / applicable.length) * 100) : 0;
-    }
-
     return (
     <Tabs defaultValue="overview" className="space-y-4">
       <TabsList>
@@ -505,31 +481,10 @@ export default function HomePage() {
         )}
         <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
-                {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
-                {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
-                {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
-            </div>
-            <Card className="border-primary/20 bg-primary/5">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-bold uppercase tracking-wider text-primary/70">QA Monitoring Status</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {isLoadingMonitoring ? <Skeleton className="h-10 w-full" /> : latestVisit ? (
-                        <div className="space-y-1">
-                            <div className="text-2xl font-bold">{complianceScore}% Score</div>
-                            <p className="text-[10px] text-muted-foreground">Last Visit: {format(latestVisit.visitDate.toDate(), 'PPP')}</p>
-                            <Button variant="link" className="p-0 h-auto text-[10px]" onClick={() => router.push('/monitoring')}>View Findings</Button>
-                        </div>
-                    ) : (
-                        <div className="space-y-1">
-                            <div className="text-lg font-semibold text-muted-foreground">No records yet</div>
-                            <p className="text-[10px] leading-tight">Awaiting your first QA on-site monitoring visit.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
+            {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
+            {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
         </div>
 
          <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />

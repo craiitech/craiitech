@@ -1,4 +1,3 @@
-
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -139,19 +138,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits } = useCollection<Unit>(unitsQuery);
 
-  // NOTIFICATION SYSTEM: Monitoring Records for Units
-  const monitoringNotificationQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile || !userProfile.unitId || isAdmin || isSupervisor) return null;
-    return query(
-        collection(firestore, 'unitMonitoringRecords'),
-        where('unitId', '==', userProfile.unitId),
-        orderBy('createdAt', 'desc'),
-        limit(5)
-    );
-  }, [firestore, userProfile, isAdmin, isSupervisor]);
-
-  const { data: monitoringNotifications } = useCollection<UnitMonitoringRecord>(monitoringNotificationQuery);
-
   const getNotificationQuery = (): Query | null => {
     if (!firestore || !userProfile || !userRole) return null;
     const submissionsCollection = collection(firestore, 'submissions');
@@ -177,19 +163,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     let count = 0;
     if (notifications) count += notifications.length;
     
-    // Add monitoring notifications for unit members
-    if (monitoringNotifications && !isAdmin && !isSupervisor) {
-        // We consider visits from the last 7 days as "new" for notification purposes if not previously acknowledged
-        // This is a simplified logic for the MVP
-        count += monitoringNotifications.length;
-    }
-
     if (isSupervisor && notifications && userProfile) {
         return notifications.filter(s => s.userId !== userProfile.id).length;
     }
     
     return count;
-  }, [notifications, monitoringNotifications, userProfile, isAdmin, isSupervisor]);
+  }, [notifications, userProfile, isAdmin, isSupervisor]);
 
 
   const userLocation = useMemo(() => {
