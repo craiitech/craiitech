@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -36,6 +35,21 @@ import { format } from 'date-fns';
 import { Loader2, ClipboardCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+
+/**
+ * Returns a Tailwind class string for row background based on the submission year.
+ */
+const getYearRowColor = (year: number) => {
+  const colors: Record<number, string> = {
+    2024: 'bg-blue-50/50 hover:bg-blue-100/50 dark:bg-blue-900/10 dark:hover:bg-blue-900/20',
+    2025: 'bg-green-50/50 hover:bg-green-100/50 dark:bg-green-900/10 dark:hover:bg-green-900/20',
+    2026: 'bg-amber-50/50 hover:bg-amber-100/50 dark:bg-amber-900/10 dark:hover:bg-amber-900/20',
+    2027: 'bg-purple-50/50 hover:bg-purple-100/50 dark:bg-purple-900/10 dark:hover:bg-purple-900/20',
+    2028: 'bg-rose-50/50 hover:bg-rose-100/50 dark:bg-rose-900/10 dark:hover:bg-rose-900/20',
+  };
+  return colors[year] || 'bg-slate-50/50 hover:bg-slate-100/50 dark:bg-slate-900/10 dark:hover:bg-slate-900/20';
+};
 
 export default function ApprovalsPage() {
   const { userProfile, isUserLoading, isAdmin, userRole } = useUser();
@@ -167,7 +181,7 @@ export default function ApprovalsPage() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Approvals</h2>
           <p className="text-muted-foreground">
-            Review and act on submissions awaiting your approval. Quick actions have been disabled to ensure full checklist verification.
+            Review and act on submissions awaiting your approval. Rows are color-coded by year for easier categorization.
           </p>
         </div>
         <Card>
@@ -191,7 +205,10 @@ export default function ApprovalsPage() {
               </TableHeader>
               <TableBody>
                 {submissions.map((submission) => (
-                  <TableRow key={submission.id}>
+                  <TableRow 
+                    key={submission.id}
+                    className={cn("transition-colors", getYearRowColor(submission.year))}
+                  >
                     <TableCell className="font-medium max-w-xs truncate">
                       {submission.reportType}
                     </TableCell>
@@ -202,7 +219,11 @@ export default function ApprovalsPage() {
                     <TableCell className="capitalize">
                       {submission.cycleId}
                     </TableCell>
-                    <TableCell>{submission.year}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="bg-background/50 font-bold">
+                        {submission.year}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="default"
