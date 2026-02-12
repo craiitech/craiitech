@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -57,15 +58,18 @@ export default function ApprovalsPage() {
     const fetchSubmissions = async () => {
         setIsLoading(true);
         let submissionsQuery: Query | null = null;
-        const baseQuery = query(collection(firestore, 'submissions'), where('statusId', '==', 'submitted'));
 
         if (isAdmin) {
-            submissionsQuery = baseQuery;
-        } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO') {
-            submissionsQuery = query(baseQuery, where('campusId', '==', userProfile.campusId));
-        } else if (userRole?.toLowerCase().includes('vice president')) {
-            // VPs see submissions from all campuses they are assigned to (simplified for MVP to just their campus if set)
-            submissionsQuery = query(baseQuery, where('campusId', '==', userProfile.campusId));
+            submissionsQuery = query(
+                collection(firestore, 'submissions'), 
+                where('statusId', '==', 'submitted')
+            );
+        } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president')) {
+            submissionsQuery = query(
+                collection(firestore, 'submissions'), 
+                where('statusId', '==', 'submitted'),
+                where('campusId', '==', userProfile.campusId)
+            );
         }
         
         if (submissionsQuery) {

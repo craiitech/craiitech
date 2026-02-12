@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2, Printer, FileDown, Download, AlertCircle, Library, Rows, Building2, Send, Edit, ShieldCheck } from 'lucide-react';
@@ -325,13 +326,16 @@ export default function SubmissionsPage() {
   const { data: users, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
 
   const submissionsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !userProfile) return null;
     if (isAdmin) return collection(firestore, 'submissions');
-    if (isSupervisor && userProfile?.campusId) {
-      return query(collection(firestore, 'submissions'), where('campusId', '==', userProfile.campusId));
+    if (isSupervisor && userProfile.campusId) {
+      return query(
+        collection(firestore, 'submissions'), 
+        where('campusId', '==', userProfile.campusId)
+      );
     }
     // Unit User: Isolated by both unit and campus
-    if (userProfile?.unitId && userProfile?.campusId) {
+    if (userProfile.unitId && userProfile.campusId) {
       return query(
         collection(firestore, 'submissions'), 
         where('unitId', '==', userProfile.unitId),

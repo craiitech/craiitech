@@ -34,15 +34,10 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /unitMonitoringRecords/{recordId} {
-        // Individual document access
-        allow get: if isSignedIn() && (isAdmin() 
+        // Use 'read' to allow Firestore to evaluate per-document fields during queries.
+        allow read: if isSignedIn() && (isAdmin() 
                    || getUserData().unitId == resource.data.unitId 
                    || getUserData().campusId == resource.data.campusId);
-        
-        // Collection query access - Must be explicitly filtered by unit or campus
-        allow list: if isSignedIn() && (isAdmin() 
-                   || request.query.where('unitId', '==', getUserData().unitId)
-                   || request.query.where('campusId', '==', getUserData().campusId));
         
         allow write: if isAdmin();
     }
@@ -60,15 +55,10 @@ service cloud.firestore {
     }
 
     match /submissions/{submissionId} {
-      allow get: if isSignedIn() && (isAdmin() 
+      allow read: if isSignedIn() && (isAdmin() 
                  || request.auth.uid == resource.data.userId 
                  || getUserData().unitId == resource.data.unitId 
                  || getUserData().campusId == resource.data.campusId);
-
-      allow list: if isSignedIn() && (isAdmin()
-                 || request.query.where('userId', '==', request.auth.uid)
-                 || request.query.where('unitId', '==', getUserData().unitId)
-                 || request.query.where('campusId', '==', getUserData().campusId));
 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 
@@ -81,15 +71,10 @@ service cloud.firestore {
     }
 
     match /risks/{riskId} {
-      allow get: if isSignedIn() && (isAdmin() 
+      allow read: if isSignedIn() && (isAdmin() 
                  || request.auth.uid == resource.data.userId 
                  || getUserData().unitId == resource.data.unitId 
                  || getUserData().campusId == resource.data.campusId);
-
-      allow list: if isSignedIn() && (isAdmin()
-                 || request.query.where('userId', '==', request.auth.uid)
-                 || request.query.where('unitId', '==', getUserData().unitId)
-                 || request.query.where('campusId', '==', getUserData().campusId));
 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       
@@ -155,14 +140,9 @@ service cloud.firestore {
     }
 
     match /auditSchedules/{scheduleId} {
-        allow get: if isSignedIn() && (isAdmin() 
+        allow read: if isSignedIn() && (isAdmin() 
                    || getUserData().unitId == resource.data.targetId 
                    || request.auth.uid == resource.data.targetId 
-                   || getUserData().role == 'Auditor');
-        
-        allow list: if isSignedIn() && (isAdmin() 
-                   || request.query.where('targetId', '==', getUserData().unitId)
-                   || request.query.where('targetId', '==', request.auth.uid)
                    || getUserData().role == 'Auditor');
         
         allow create: if isAdmin();

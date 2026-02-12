@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,21 +35,29 @@ export default function RiskRegisterPage() {
     
     const risksQuery = useMemoFirebase(() => {
         if (!firestore || !userProfile) return null;
-        const q = collection(firestore, 'risks');
         
-        // We filter by year in memory or in query. 
-        // For performance and to help "identify" the correct risks, query by year is best.
-        const yearQuery = query(q, where('year', '==', selectedYear));
-
-        if (isAdmin) return yearQuery;
+        if (isAdmin) {
+            return query(
+                collection(firestore, 'risks'), 
+                where('year', '==', selectedYear)
+            );
+        }
         if (isSupervisor) {
             if (userProfile.campusId) {
-                return query(yearQuery, where('campusId', '==', userProfile.campusId));
+                return query(
+                    collection(firestore, 'risks'), 
+                    where('year', '==', selectedYear),
+                    where('campusId', '==', userProfile.campusId)
+                );
             }
             return null; 
         }
         if (userProfile.unitId) {
-            return query(yearQuery, where('unitId', '==', userProfile.unitId));
+            return query(
+                collection(firestore, 'risks'), 
+                where('year', '==', selectedYear),
+                where('unitId', '==', userProfile.unitId)
+            );
         }
         return null; 
     }, [firestore, userProfile, isSupervisor, isAdmin, selectedYear]);
