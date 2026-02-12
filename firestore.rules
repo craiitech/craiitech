@@ -53,18 +53,17 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /unitMonitoringRecords/{recordId} {
-        // Allow listing for all signed in users. Client-side queries handle unit/campus isolation.
-        allow list: if isSignedIn();
+        // Correct read rule: allows filtered queries to evaluate per-document data
+        allow read: if isAdmin() 
+                   || isMemberOfUnit(resource.data.unitId) 
+                   || isMemberOfCampus(resource.data.campusId) 
+                   || isCampusSupervisor(resource.data.campusId);
         
-        // Detailed document access restricted to Admin, unit members, or campus supervisors.
-        allow get: if isAdmin() || isMemberOfUnit(resource.data.unitId) || isMemberOfCampus(resource.data.campusId) || isCampusSupervisor(resource.data.campusId);
-        
-        // Only Admin can record or modify monitoring visits.
         allow write: if isAdmin();
     }
 
     match /users/{userId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
@@ -76,29 +75,27 @@ service cloud.firestore {
     }
 
     match /submissions/{submissionId} {
-      // List is allowed for all signed in users. Client-side queries enforce isolation.
-      allow list: if isSignedIn();
-
-      // Read is allowed for Admin, Owner, or members of the same Unit/Campus.
-      allow get: if isAdmin() || isOwner(resource.data.userId) || 
-                   isMemberOfUnit(resource.data.unitId) || 
-                   isCampusSupervisor(resource.data.campusId);
+      // Use 'read' to allow Firestore to evaluate ownership/unit filters in queries
+      allow read: if isAdmin() 
+                 || isOwner(resource.data.userId) 
+                 || isMemberOfUnit(resource.data.unitId) 
+                 || isCampusSupervisor(resource.data.campusId);
 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 
-      allow update: if isAdmin() || isOwner(resource.data.userId) || 
-                      isMemberOfUnit(resource.data.unitId) ||
-                      isCampusSupervisor(resource.data.campusId);
+      allow update: if isAdmin() 
+                    || isOwner(resource.data.userId) 
+                    || isMemberOfUnit(resource.data.unitId) 
+                    || isCampusSupervisor(resource.data.campusId);
 
       allow delete: if isAdmin();
     }
 
     match /risks/{riskId} {
-      allow list: if isSignedIn();
-      
-      allow get: if isAdmin() || isOwner(resource.data.userId) || 
-                   isMemberOfUnit(resource.data.unitId) ||
-                   isCampusSupervisor(resource.data.campusId);
+      allow read: if isAdmin() 
+                 || isOwner(resource.data.userId) 
+                 || isMemberOfUnit(resource.data.unitId) 
+                 || isCampusSupervisor(resource.data.campusId);
 
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       
@@ -135,13 +132,13 @@ service cloud.firestore {
     }
 
     match /activityLogs/{logId} {
-      allow list, get: if isAdmin();
+      allow read: if isAdmin();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
     }
     
     match /errorReports/{errorId} {
         allow create: if isSignedIn();
-        allow read, list, update, delete: if isAdmin();
+        allow read, update, delete: if isAdmin();
     }
 
     match /procedureManuals/{unitId} {
@@ -165,21 +162,24 @@ service cloud.firestore {
     }
 
     match /auditSchedules/{scheduleId} {
-        allow list: if isSignedIn();
-        allow get: if isAdmin() || isMemberOfUnit(resource.data.targetId) || isOwner(resource.data.targetId) || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Auditor');
+        allow read: if isAdmin() 
+                   || isMemberOfUnit(resource.data.targetId) 
+                   || isOwner(resource.data.targetId) 
+                   || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Auditor');
+        
         allow create: if isAdmin();
         allow update: if isAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Auditor' && (resource.data.auditorId == null || resource.data.auditorId == request.auth.uid));
     }
 
     match /auditFindings/{findingId} {
-        allow get, list: if isSignedIn();
+        allow read: if isSignedIn();
         allow create: if exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Auditor';
         allow update: if isAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Auditor' && isOwner(resource.data.authorId));
         allow delete: if isAdmin();
     }
 
     match /correctiveActionPlans/{planId} {
-        allow read, list: if isSignedIn();
+        allow read: if isSignedIn();
         allow create: if isSignedIn();
         allow update: if isOwner(resource.data.authorId) || isAdmin();
         allow delete: if isAdmin();
