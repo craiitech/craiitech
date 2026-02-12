@@ -53,7 +53,8 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /unitMonitoringRecords/{recordId} {
-        // Correct read rule: allows filtered queries to evaluate per-document data
+        // Use 'read' to allow Firestore to evaluate unit/campus filters in queries.
+        // NEVER use 'list' for scoped collections as it ignores per-document filters.
         allow read: if isAdmin() 
                    || isMemberOfUnit(resource.data.unitId) 
                    || isMemberOfCampus(resource.data.campusId) 
@@ -75,7 +76,7 @@ service cloud.firestore {
     }
 
     match /submissions/{submissionId} {
-      // Use 'read' to allow Firestore to evaluate ownership/unit filters in queries
+      // Combined 'read' allows for both detail view and scoped history queries.
       allow read: if isAdmin() 
                  || isOwner(resource.data.userId) 
                  || isMemberOfUnit(resource.data.unitId) 
@@ -119,8 +120,8 @@ service cloud.firestore {
     }
     
     match /campusSettings/{campusId} {
-      allow get: if isSignedIn();
-      allow list: if isAdmin();
+      // Simple read allowed for all authenticated users to fetch announcements.
+      allow read: if isSignedIn();
       allow write: if isAdmin() || isCampusSupervisor(campusId);
     }
     
@@ -162,6 +163,7 @@ service cloud.firestore {
     }
 
     match /auditSchedules/{scheduleId} {
+        // Scoped read for audit schedules.
         allow read: if isAdmin() 
                    || isMemberOfUnit(resource.data.targetId) 
                    || isOwner(resource.data.targetId) 
