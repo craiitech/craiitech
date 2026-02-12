@@ -141,7 +141,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // NOTIFICATION SYSTEM: Monitoring Records for Units
   const monitoringNotificationQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile || isAdmin || isSupervisor) return null;
+    if (!firestore || !userProfile || !userProfile.unitId || isAdmin || isSupervisor) return null;
     return query(
         collection(firestore, 'unitMonitoringRecords'),
         where('unitId', '==', userProfile.unitId),
