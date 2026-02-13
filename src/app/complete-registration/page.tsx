@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, where, getDocs, writeBatch, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -129,6 +129,7 @@ export default function CompleteRegistrationPage() {
     setIsSubmitting(true);
     try {
       const selectedRoleObject = roles.find(r => r.id === values.roleId);
+      const isAdminEmail = user.email === 'admin@eoms.com';
       
       const batch = writeBatch(firestore);
       const userDocRef = doc(firestore, 'users', user.uid);
@@ -136,26 +137,29 @@ export default function CompleteRegistrationPage() {
       const updateData = {
         campusId: values.campusId,
         unitId: isUnitRequired ? values.unitId : '',
-        roleId: values.roleId,
-        role: selectedRoleObject ? selectedRoleObject.name : '',
-        verified: false, // User is not verified until admin approval
+        roleId: isAdminEmail ? 'admin' : values.roleId,
+        role: isAdminEmail ? 'Admin' : (selectedRoleObject ? selectedRoleObject.name : ''),
+        verified: isAdminEmail, // Admin email is auto-verified
+        ndaAccepted: isAdminEmail, // Admin email auto-accepts NDA for bootstrapping
       };
 
       batch.update(userDocRef, updateData);
 
-      // This logic can be removed if we are not using custom claims for roles anymore,
-      // but keeping it doesn't harm if the backend function is a no-op.
-      // Alternatively, we could create the role document here.
-      // For now, let's keep the responsibility on the admin during activation.
+      // Bootstrapping the Admin role document
+      if (isAdminEmail) {
+        const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
+        batch.set(adminRoleRef, { isAdmin: true, assignedAt: serverTimestamp() });
+      }
 
       await batch.commit();
 
-      toast({
-        title: 'Registration Details Submitted',
-        description: 'Your account is now pending administrator verification.',
-      });
-
-      router.push('/awaiting-verification');
+      if (isAdminEmail) {
+        toast({ title: 'Bootstrap Successful', description: 'Admin account verified. Redirecting to dashboard...' });
+        router.push('/dashboard');
+      } else {
+        toast({ title: 'Registration Details Submitted', description: 'Your account is now pending administrator verification.' });
+        router.push('/awaiting-verification');
+      }
     } catch (error) {
       console.error('Error completing registration:', error);
       toast({

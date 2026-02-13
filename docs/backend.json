@@ -26,23 +26,23 @@
         },
         "roleId": {
           "type": "string",
-          "description": "Reference to Role. (Relationship: User 1:1 Role)"
+          "description": "Reference to Role."
         },
         "role": {
           "type": "string",
-          "description": "The name of the user's role, denormalized for easy access."
+          "description": "The name of the user's role, denormalized."
         },
         "campusId": {
           "type": "string",
-          "description": "Reference to Campus. (Relationship: User 1:1 Campus).  The campus the user belongs to."
+          "description": "Reference to Campus."
         },
         "unitId": {
           "type": "string",
-          "description": "Reference to Unit. (Relationship: User 1:1 Unit). The unit the user belongs to."
+          "description": "Reference to Unit."
         },
         "verified": {
           "type": "boolean",
-          "description": "Indicates if the user's account has been verified by an admin."
+          "description": "Indicates if the user's account has been verified."
         },
         "ndaAccepted": {
           "type": "boolean",
@@ -100,480 +100,93 @@
       "required": ["id", "programId", "campusId", "academicYear"]
     },
     "Role": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Role",
       "type": "object",
-      "description": "Represents a user role within the system (e.g., Admin, Campus Director).",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Role entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the role (e.g., Admin, Campus Director)."
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the role and its permissions."
-        }
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" }
       },
-      "required": [
-        "id",
-        "name",
-        "description"
-      ]
+      "required": ["id", "name", "description"]
     },
     "Submission": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Submission",
       "type": "object",
-      "description": "Represents a report submission by a unit.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Submission entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "The UID of the user who performed the most recent upload/update."
-        },
-        "submissionDate": {
-          "type": "string",
-          "description": "Date and time of the submission.",
-          "format": "date-time"
-        },
-        "googleDriveLink": {
-          "type": "string",
-          "description": "Link to the report on Google Drive.",
-          "format": "uri"
-        },
-        "cycleId": {
-          "type": "string",
-          "description": "Reference to Cycle. Identifies the submission cycle (First or Final)."
-        },
-        "statusId": {
-          "type": "string",
-          "description": "Current status of the submission in the approval workflow."
-        },
-        "comments": {
-            "type": "array",
-            "description": "A list of comments forming a conversation thread about the submission.",
-            "items": { "$ref": "#/backend/entities/Comment" }
-        },
-        "reportType": {
-          "type": "string",
-          "description": "The type of report being submitted (e.g., Operational Plans)."
-        },
-        "year": {
-          "type": "number",
-          "description": "The year the report corresponds to."
-        },
-        "unitName": {
-          "type": "string",
-          "description": "The denormalized name of the unit for easier display."
-        },
-        "campusId": {
-          "type": "string",
-          "description": "The denormalized ID of the campus for easier querying."
-        },
-        "unitId": {
-            "type": "string",
-            "description": "The denormalized ID of the unit for easier querying."
-        },
-        "revision": {
-          "type": "number",
-          "description": "The revision number of the document (starts at 0, increments on resubmission after reject)."
-        },
-        "controlNumber": {
-          "type": "string",
-          "description": "The QA standardized control number for the document."
-        }
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "submissionDate": { "type": "string", "format": "date-time" },
+        "googleDriveLink": { "type": "string", "format": "uri" },
+        "cycleId": { "type": "string" },
+        "statusId": { "type": "string" },
+        "reportType": { "type": "string" },
+        "year": { "type": "number" },
+        "unitName": { "type": "string" },
+        "campusId": { "type": "string" },
+        "unitId": { "type": "string" },
+        "revision": { "type": "number" },
+        "controlNumber": { "type": "string" }
       },
-      "required": [
-        "id",
-        "userId",
-        "submissionDate",
-        "googleDriveLink",
-        "cycleId",
-        "statusId",
-        "reportType",
-        "year",
-        "unitName",
-        "campusId",
-        "unitId",
-        "revision",
-        "controlNumber"
-      ]
-    },
-     "Comment": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Comment",
-      "type": "object",
-      "description": "Represents a single comment in a submission's conversation thread.",
-      "properties": {
-        "text": {
-          "type": "string",
-          "description": "The content of the comment."
-        },
-        "authorId": {
-          "type": "string",
-          "description": "The UID of the user who wrote the comment."
-        },
-        "authorName": {
-            "type": "string",
-            "description": "The denormalized name of the author."
-        },
-         "authorRole": {
-            "type": "string",
-            "description": "The denormalized role of the author at the time of commenting."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "The timestamp when the comment was created.",
-          "format": "date-time"
-        }
-      },
-      "required": ["text", "authorId", "authorName", "authorRole", "createdAt"]
-    },
-    "SubmissionStatus": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "SubmissionStatus",
-      "type": "object",
-      "description": "Represents the status of a submission in the approval workflow.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the SubmissionStatus entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the submission status (e.g., Submitted, Approved, Rejected)."
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the status."
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "description"
-      ]
-    },
-    "Cycle": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Cycle",
-      "type": "object",
-      "description": "Represents a submission cycle (First or Final).",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Cycle entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the cycle (e.g., first, final)."
-        },
-        "year": {
-          "type": "number",
-          "description": "The year this cycle applies to."
-        },
-        "startDate": {
-          "type": "string",
-          "description": "Start date of the submission cycle.",
-          "format": "date-time"
-        },
-        "endDate": {
-          "type": "string",
-          "description": "End date of the submission cycle.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "year",
-        "startDate",
-        "endDate"
-      ]
-    },
-    "Campus": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Campus",
-      "type": "object",
-      "description": "Represents a campus within the RSU system.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Campus entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the campus."
-        },
-        "location": {
-          "type": "string",
-          "description": "Location of the campus."
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "location"
-      ]
-    },
-    "Unit": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Unit",
-      "type": "object",
-      "description": "Represents a unit within a campus.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Unit entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the unit."
-        },
-        "vicePresidentId": {
-          "type": "string",
-          "description": "The UID of the Vice President this unit reports to."
-        },
-        "campusIds": {
-            "type": "array",
-            "description": "A list of campus IDs this unit belongs to.",
-            "items": { "type": "string" }
-        }
-      },
-      "required": [
-        "id",
-        "name"
-      ]
+      "required": ["id", "userId", "submissionDate", "googleDriveLink", "cycleId", "statusId", "reportType", "year", "unitName", "campusId", "unitId", "revision", "controlNumber"]
     },
     "Risk": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Risk",
       "type": "object",
-      "description": "Represents a single risk or opportunity item in the register.",
       "properties": {
         "id": { "type": "string" },
         "unitId": { "type": "string" },
         "campusId": { "type": "string" },
         "year": { "type": "number" },
-        "objective": { "type": "string" },
         "type": { "type": "string", "enum": ["Risk", "Opportunity"] },
-        "description": { "type": "string" },
-        "currentControls": { "type": "string" },
-        "preTreatment": {
-          "type": "object",
-          "properties": {
-            "likelihood": { "type": "number" },
-            "consequence": { "type": "number" },
-            "magnitude": { "type": "number" },
-            "rating": { "type": "string" }
-          }
-        },
-        "treatmentAction": { "type": "string" },
-        "responsiblePersonId": { "type": "string" },
-        "responsiblePersonName": { "type": "string" },
-        "targetDate": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["Open", "In Progress", "Closed"] },
-        "postTreatment": {
-          "type": "object",
-          "properties": {
-            "likelihood": { "type": "number" },
-            "consequence": { "type": "number" },
-            "magnitude": { "type": "number" },
-            "rating": { "type": "string" },
-            "evidence": { "type": "string" },
-            "dateImplemented": { "type": "string", "format": "date-time" }
-          }
-        },
-        "oapNo": { "type": "string" },
-        "resourcesNeeded": { "type": "string" },
-        "updates": { "type": "string" },
-        "preparedBy": { "type": "string" },
-        "approvedBy": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "status": { "type": "string", "enum": ["Open", "In Progress", "Closed"] }
       }
     },
-    "CampusSetting": {
-      "title": "CampusSetting",
+    "Campus": {
+      "title": "Campus",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "announcement": { "type": "string" }
+        "name": { "type": "string" },
+        "location": { "type": "string" }
       },
-      "required": ["id"]
+      "required": ["id", "name", "location"]
     },
-    "ActivityLog": {
-      "title": "ActivityLog",
+    "Unit": {
+      "title": "Unit",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "userName": { "type": "string" },
-        "userRole": { "type": "string" },
-        "action": { "type": "string" },
-        "details": { "type": "object" },
-        "timestamp": { "type": "string", "format": "date-time" }
-      }
+        "name": { "type": "string" },
+        "campusIds": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["id", "name"]
     },
-    "ErrorReport": {
-      "title": "ErrorReport",
+    "UnitMonitoringRecord": {
+      "title": "UnitMonitoringRecord",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "errorMessage": { "type": "string" },
-        "errorStack": { "type": "string" },
-        "errorDigest": { "type": "string" },
-        "url": { "type": "string" },
-        "status": { "type": "string", "enum": ["new", "acknowledged", "resolved"] },
-        "userId": { "type": "string" },
-        "userName": { "type": "string" },
-        "userRole": { "type": "string" },
-        "userEmail": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "visitDate": { "type": "string", "format": "date-time" },
+        "campusId": { "type": "string" },
+        "unitId": { "type": "string" },
+        "monitorName": { "type": "string" }
       }
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "google"]
   },
   "firestore": {
     "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": { "$ref": "#/backend/entities/User" },
-          "description": "User profiles.",
-          "params": [{ "name": "userId" }]
-        }
-      },
-      {
-        "path": "/submissions/{submissionId}",
-        "definition": {
-            "entityName": "Submission",
-            "schema": { "$ref": "#/backend/entities/Submission" },
-            "description": "Report submissions by units.",
-            "params": [{ "name": "submissionId" }]
-        }
-      },
-       {
-        "path": "/risks/{riskId}",
-        "definition": {
-            "entityName": "Risk",
-            "schema": { "$ref": "#/backend/entities/Risk" },
-            "description": "Risk register items.",
-            "params": [{ "name": "riskId" }]
-        }
-      },
-      {
-        "path": "/academicPrograms/{programId}",
-        "definition": {
-            "entityName": "AcademicProgram",
-            "schema": { "$ref": "#/backend/entities/AcademicProgram" },
-            "description": "University academic programs.",
-            "params": [{ "name": "programId" }]
-        }
-      },
-      {
-        "path": "/programCompliances/{recordId}",
-        "definition": {
-            "entityName": "ProgramComplianceRecord",
-            "schema": { "$ref": "#/backend/entities/ProgramComplianceRecord" },
-            "description": "Compliance records for programs.",
-            "params": [{ "name": "recordId" }]
-        }
-      },
-      {
-        "path": "/roles/{roleId}",
-        "definition": {
-          "entityName": "Role",
-          "schema": { "$ref": "#/backend/entities/Role" },
-          "description": "User roles.",
-          "params": [{ "name": "roleId" }]
-        }
-      },
-      {
-        "path": "/submissionStatuses/{statusId}",
-        "definition": {
-          "entityName": "SubmissionStatus",
-          "schema": { "$ref": "#/backend/entities/SubmissionStatus" },
-          "description": "Submission statuses.",
-          "params": [{ "name": "statusId" }]
-        }
-      },
-      {
-        "path": "/cycles/{cycleId}",
-        "definition": {
-          "entityName": "Cycle",
-          "schema": { "$ref": "#/backend/entities/Cycle" },
-          "description": "Submission cycles.",
-          "params": [{ "name": "cycleId" }]
-        }
-      },
-      {
-        "path": "/campuses/{campusId}",
-        "definition": {
-          "entityName": "Campus",
-          "schema": { "$ref": "#/backend/entities/Campus" },
-          "description": "University campuses.",
-          "params": [{ "name": "campusId" }]
-        }
-      },
-       {
-        "path": "/campusSettings/{campusId}",
-        "definition": {
-          "entityName": "CampusSetting",
-          "schema": { "$ref": "#/backend/entities/CampusSetting" },
-          "description": "Campus-specific settings.",
-          "params": [{ "name": "campusId" }]
-        }
-      },
-      {
-        "path": "/units/{unitId}",
-        "definition": {
-          "entityName": "Unit",
-          "schema": { "$ref": "#/backend/entities/Unit" },
-          "description": "University units.",
-          "params": [{ "name": "unitId" }]
-        }
-      },
-      {
-        "path": "/activityLogs/{logId}",
-        "definition": {
-          "entityName": "ActivityLog",
-          "schema": { "$ref": "#/backend/entities/ActivityLog" },
-          "description": "User action logs.",
-          "params": [{ "name": "logId" }]
-        }
-      },
-      {
-        "path": "/errorReports/{errorId}",
-        "definition": {
-            "entityName": "ErrorReport",
-            "schema": { "$ref": "#/backend/entities/ErrorReport" },
-            "description": "User error reports.",
-            "params": [{ "name": "errorId" }]
-        }
-      },
-      {
-        "path": "/unitMonitoringRecords/{recordId}",
-        "definition": {
-            "entityName": "UnitMonitoringRecord",
-            "schema": { "$ref": "#/backend/entities/UnitMonitoringRecord" },
-            "description": "Field monitoring visit records.",
-            "params": [{ "name": "recordId" }]
-        }
-      }
+      { "path": "/users/{userId}", "definition": { "entityName": "User" } },
+      { "path": "/roles_admin/{userId}", "definition": { "description": "Admin privileges map." } },
+      { "path": "/academicPrograms/{programId}", "definition": { "entityName": "AcademicProgram" } },
+      { "path": "/programCompliances/{recordId}", "definition": { "entityName": "ProgramComplianceRecord" } },
+      { "path": "/submissions/{submissionId}", "definition": { "entityName": "Submission" } },
+      { "path": "/risks/{riskId}", "definition": { "entityName": "Risk" } },
+      { "path": "/campuses/{campusId}", "definition": { "entityName": "Campus" } },
+      { "path": "/units/{unitId}", "definition": { "entityName": "Unit" } },
+      { "path": "/unitMonitoringRecords/{recordId}", "definition": { "entityName": "UnitMonitoringRecord" } }
     ]
   }
 }

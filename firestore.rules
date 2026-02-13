@@ -12,27 +12,25 @@ service cloud.firestore {
     }
 
     /**
-     * Returns the user's profile data.
+     * Safely checks if the user has a profile and returns it.
+     * Prevents rules from crashing if document doesn't exist.
      */
-    function profile() {
+    function getProfile() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    /**
-     * Checks if the user profile document exists.
-     */
     function hasProfile() {
       return exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
     /**
      * Master Admin Check.
-     * Robustly checks for admin status via a dedicated collection or a profile flag.
+     * Robustly checks for admin status without crashing on missing documents.
      */
     function isAdmin() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
-        (hasProfile() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin')
+        (hasProfile() && getProfile().get('role', '') == 'Admin')
       );
     }
 
@@ -40,26 +38,26 @@ service cloud.firestore {
      * Auditor Check.
      */
     function isAuditor() {
-      return isSignedIn() && hasProfile() && profile().role == 'Auditor';
+      return isSignedIn() && hasProfile() && getProfile().get('role', '') == 'Auditor';
     }
 
     // --------------------------------------------------------------------------
-    // Academic Program Monitoring (Priority Rules)
+    // Academic Program Monitoring (Strategic Quality Data)
     // --------------------------------------------------------------------------
     
     match /academicPrograms/{programId} {
-        // Allow any signed-in user to see the program registry
+        // Essential: Allow all signed-in staff to see the university offerings registry
         allow get, list: if isSignedIn();
-        allow write: if isAdmin() || (isSignedIn() && hasProfile() && (profile().role == 'Campus Director' || profile().role == 'Campus ODIMO'));
+        allow write: if isAdmin() || (isSignedIn() && hasProfile() && (getProfile().get('role', '') == 'Campus Director' || getProfile().get('role', '') == 'Campus ODIMO'));
     }
 
     match /programCompliances/{recordId} {
-        // Allow any signed-in user to see compliance data
+        // Essential: Allow all signed-in staff to see compliance data
         allow get, list: if isSignedIn();
         allow write: if isAdmin() || (isSignedIn() && hasProfile() && (
-          profile().role == 'Campus Director' || 
-          profile().role == 'Campus ODIMO' ||
-          (profile().campusId == (request.resource.data.campusId || resource.data.campusId) && profile().role.matches('(?i).*coordinator.*'))
+          getProfile().get('role', '') == 'Campus Director' || 
+          getProfile().get('role', '') == 'Campus ODIMO' ||
+          (getProfile().get('campusId', '') == (request.resource.data.campusId || resource.data.campusId) && getProfile().get('role', '').matches('(?i).*coordinator.*'))
         ));
     }
 
@@ -70,9 +68,9 @@ service cloud.firestore {
     match /unitMonitoringRecords/{recordId} {
         allow get, list: if isAdmin() || isAuditor();
         allow get, list: if isSignedIn() && hasProfile() && (
-          resource.data.unitId == profile().unitId || 
-          resource.data.campusId == profile().campusId ||
-          profile().role.matches('(?i).*vice president.*')
+          resource.data.unitId == getProfile().get('unitId', '') || 
+          resource.data.campusId == getProfile().get('campusId', '') ||
+          getProfile().get('role', '').matches('(?i).*vice president.*')
         );
         allow write: if isAdmin();
     }
@@ -93,15 +91,15 @@ service cloud.firestore {
       allow read: if isAdmin() || isAuditor();
       allow read: if isSignedIn() && hasProfile() && (
         resource.data.userId == request.auth.uid || 
-        resource.data.unitId == profile().unitId || 
-        resource.data.campusId == profile().campusId ||
-        profile().role.matches('(?i).*vice president.*')
+        resource.data.unitId == getProfile().get('unitId', '') || 
+        resource.data.campusId == getProfile().get('campusId', '') ||
+        getProfile().get('role', '').matches('(?i).*vice president.*')
       );
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
         resource.data.userId == request.auth.uid || 
-        resource.data.unitId == profile().unitId || 
-        resource.data.campusId == profile().campusId
+        resource.data.unitId == getProfile().get('unitId', '') || 
+        resource.data.campusId == getProfile().get('campusId', '')
       ));
       allow delete: if isAdmin();
     }
@@ -109,15 +107,15 @@ service cloud.firestore {
     match /risks/{riskId} {
       allow read: if isAdmin() || isAuditor();
       allow read: if isSignedIn() && hasProfile() && (
-        resource.data.unitId == profile().unitId ||
+        resource.data.unitId == getProfile().get('unitId', '') ||
         resource.data.userId == request.auth.uid ||
-        resource.data.campusId == profile().campusId ||
-        profile().role.matches('(?i).*vice president.*')
+        resource.data.campusId == getProfile().get('campusId', '') ||
+        getProfile().get('role', '').matches('(?i).*vice president.*')
       );
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
         request.auth.uid == resource.data.userId || 
-        profile().unitId == resource.data.unitId
+        getProfile().get('unitId', '') == resource.data.unitId
       ));
       allow delete: if isAdmin();
     }
@@ -139,13 +137,13 @@ service cloud.firestore {
     
     match /campusSettings/{campusId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSignedIn() && hasProfile() && profile().campusId == campusId && (profile().role == 'Campus Director' || profile().role == 'Campus ODIMO'));
+      allow write: if isAdmin() || (isSignedIn() && hasProfile() && getProfile().get('campusId', '') == campusId && (getProfile().get('role', '') == 'Campus Director' || getProfile().get('role', '') == 'Campus ODIMO'));
     }
     
     match /units/{unitId} {
       allow read: if isSignedIn();
-      allow create: if isAdmin() || (isSignedIn() && hasProfile() && profile().role == 'Campus Director');
-      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (profile().role == 'Campus Director' || profile().role.matches('(?i).*vice president.*')));
+      allow create: if isAdmin() || (isSignedIn() && hasProfile() && getProfile().get('role', '') == 'Campus Director');
+      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (getProfile().get('role', '') == 'Campus Director' || getProfile().get('role', '').matches('(?i).*vice president.*')));
       allow delete: if isAdmin();
     }
 
@@ -182,17 +180,17 @@ service cloud.firestore {
     match /auditSchedules/{scheduleId} {
         allow read: if isAdmin() || isAuditor();
         allow read: if isSignedIn() && hasProfile() && (
-          resource.data.targetId == profile().unitId || 
+          resource.data.targetId == getProfile().get('unitId', '') || 
           resource.data.targetId == request.auth.uid
         );
         allow create: if isAdmin();
-        allow update: if isAdmin() || (isSignedIn() && hasProfile() && profile().role == 'Auditor' && (resource.data.auditorId == null || resource.data.auditorId == request.auth.uid));
+        allow update: if isAdmin() || (isSignedIn() && hasProfile() && getProfile().get('role', '') == 'Auditor' && (resource.data.auditorId == null || resource.data.auditorId == request.auth.uid));
     }
 
     match /auditFindings/{findingId} {
         allow read: if isSignedIn();
-        allow create: if isSignedIn() && hasProfile() && profile().role == 'Auditor';
-        allow update: if isAdmin() || (isSignedIn() && hasProfile() && profile().role == 'Auditor' && request.auth.uid == resource.data.authorId);
+        allow create: if isSignedIn() && hasProfile() && getProfile().get('role', '') == 'Auditor';
+        allow update: if isAdmin() || (isSignedIn() && hasProfile() && getProfile().get('role', '') == 'Auditor' && request.auth.uid == resource.data.authorId);
         allow delete: if isAdmin();
     }
 
