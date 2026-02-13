@@ -13,7 +13,6 @@ service cloud.firestore {
 
     /**
      * Returns the user's profile data.
-     * Firestore caches this single document fetch for the duration of the request.
      */
     function profile() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
@@ -28,7 +27,6 @@ service cloud.firestore {
 
     /**
      * Master Admin Check.
-     * Uses the roles_admin master collection for high-security write operations.
      */
     function isAdmin() {
       return isSignedIn() && (
@@ -48,13 +46,15 @@ service cloud.firestore {
     // Collection Rules
     // --------------------------------------------------------------------------
     
+    // Academic Program Registry - Open read for all signed-in staff
     match /academicPrograms/{programId} {
-        allow get, list: if isSignedIn();
+        allow read: if isSignedIn();
         allow write: if isAdmin() || (isSignedIn() && hasProfile() && (profile().role == 'Campus Director' || profile().role == 'Campus ODIMO'));
     }
 
+    // Program Compliance Records - Open read for all signed-in staff
     match /programCompliances/{recordId} {
-        allow get, list: if isSignedIn();
+        allow read: if isSignedIn();
         allow create: if isAdmin() || (isSignedIn() && hasProfile() && (
           profile().role == 'Campus Director' || 
           profile().role == 'Campus ODIMO' ||
