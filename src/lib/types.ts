@@ -50,6 +50,7 @@ export type Submission = {
 
 export type Risk = {
     id: string;
+    userId: string; // Added to track ownership for security rules
     unitId: string;
     campusId: string;
     year: number;

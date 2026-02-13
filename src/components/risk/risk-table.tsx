@@ -50,7 +50,7 @@ const ratingVariant: Record<string, 'default' | 'secondary' | 'destructive'> = {
 };
 
 export function RiskTable({ risks, usersMap, onEdit }: RiskTableProps) {
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'createdAt', direction: 'descending' });
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'descending' });
 
   const sortedRisks = useMemo(() => {
     let sortableItems = [...risks];
@@ -66,8 +66,17 @@ export function RiskTable({ risks, usersMap, onEdit }: RiskTableProps) {
             bValue = b[sortConfig.key as keyof Risk];
         }
 
-        if (aValue instanceof Timestamp && bValue instanceof Timestamp) {
-            return (aValue.toMillis() - bValue.toMillis()) * (sortConfig.direction === 'ascending' ? 1 : -1);
+        // Resilient Timestamp/Date comparison
+        const getTime = (val: any) => {
+            if (val instanceof Timestamp) return val.toMillis();
+            if (val instanceof Date) return val.getTime();
+            return 0;
+        };
+
+        if (sortConfig.key === 'createdAt' || sortConfig.key === 'updatedAt' || sortConfig.key === 'targetDate') {
+            const timeA = getTime(aValue);
+            const timeB = getTime(bValue);
+            return (timeA - timeB) * (sortConfig.direction === 'ascending' ? 1 : -1);
         }
 
         if (aValue < bValue) {
@@ -104,6 +113,12 @@ export function RiskTable({ risks, usersMap, onEdit }: RiskTableProps) {
         case 'Closed': return <CheckCircle className="h-4 w-4 mr-2" />;
         default: return null;
     }
+  }
+
+  const formatDate = (date: any) => {
+    if (!date) return 'N/A';
+    const d = date instanceof Timestamp ? date.toDate() : new Date(date);
+    return format(d, 'PP');
   }
 
   if (risks.length === 0) {
@@ -144,8 +159,8 @@ export function RiskTable({ risks, usersMap, onEdit }: RiskTableProps) {
             </Button>
           </TableHead>
           <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('targetDate')}>
-                Target Date {getSortIndicator('targetDate')}
+            <Button variant="ghost" onClick={() => requestSort('updatedAt')}>
+                Last Updated {getSortIndicator('updatedAt')}
             </Button>
           </TableHead>
           <TableHead><span className="sr-only">Actions</span></TableHead>
@@ -171,7 +186,7 @@ export function RiskTable({ risks, usersMap, onEdit }: RiskTableProps) {
                 </Badge>
             </TableCell>
             <TableCell>{risk.responsiblePersonName}</TableCell>
-            <TableCell>{risk.targetDate ? format(risk.targetDate.toDate(), 'PP') : 'N/A'}</TableCell>
+            <TableCell>{formatDate(risk.updatedAt)}</TableCell>
             <TableCell className="text-right">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -184,9 +199,6 @@ export function RiskTable({ risks, usersMap, onEdit }: RiskTableProps) {
                   <DropdownMenuItem onClick={() => onEdit(risk)}>
                     View / Edit
                   </DropdownMenuItem>
-                  {/* <DropdownMenuItem className="text-destructive">
-                    Delete
-                  </DropdownMenuItem> */}
                 </DropdownMenuContent>
               </DropdownMenu>
             </TableCell>

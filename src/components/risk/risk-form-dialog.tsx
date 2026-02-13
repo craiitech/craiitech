@@ -126,7 +126,7 @@ const getRating = (magnitude: number): string => {
 };
 
 export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits, allCampuses, isMandatory, registryLink, defaultYear }: RiskFormDialogProps) {
-  const { userProfile, isAdmin } = useUser();
+  const { user, userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -191,7 +191,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
     }
   }, [risk, isOpen, form, userProfile, defaultYear]);
 
-  // Effect to auto-fetch ROR link when Admin selects a unit
   useEffect(() => {
     if (!isAdmin || !selectedAdminUnitId || !firestore || !isOpen) {
         setAutoRegistryLink(null);
@@ -267,7 +266,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
   }
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!firestore || !userProfile) return;
+    if (!user || !firestore || !userProfile) return;
     setIsSubmitting(true);
     
     const responsiblePerson = filteredUsers.find(u => u.id === values.responsiblePersonId);
@@ -279,8 +278,12 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
     const targetUnitId = isAdmin ? values.adminUnitId : userProfile.unitId;
     const targetCampusId = isAdmin ? values.adminCampusId : userProfile.campusId;
 
+    // SANITIZE DATA: Remove internal UI fields before sending to database
+    const { adminCampusId, adminUnitId, ...cleanValues } = values;
+
     const riskData: any = {
-      ...values,
+      ...cleanValues,
+      userId: risk?.userId || user.uid, // Track creator for security rules
       unitId: targetUnitId,
       campusId: targetCampusId,
       preTreatment: { likelihood: values.likelihood, consequence: values.consequence, magnitude, rating },
