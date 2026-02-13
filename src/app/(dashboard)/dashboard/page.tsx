@@ -615,7 +615,10 @@ export default function HomePage() {
         {isSupervisor && (<UnitUserOverview allUsers={Array.from(allUsersMap.values())} allUnits={allUnits} isLoading={isLoading} userProfile={userProfile} />)}
       </TabsContent>
        <TabsContent value="strategic" className="space-y-6">
-        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={unitsInCampus} /><RiskMatrix allRisks={risks} /><RiskFunnel allRisks={risks} /><CycleSubmissionBreakdown allSubmissions={submissions} />
+        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={unitsInCampus} />
+        <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
+        <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
+        <CycleSubmissionBreakdown allSubmissions={submissions} selectedYear={selectedYear} />
       </TabsContent>
     </Tabs>
   );
@@ -656,7 +659,10 @@ export default function HomePage() {
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
       </TabsContent>
       <TabsContent value="strategic" className="space-y-6">
-        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} /><RiskMatrix allRisks={risks} /><RiskFunnel allRisks={risks} /><CycleSubmissionBreakdown allSubmissions={submissions} />
+        <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={allUnits} />
+        <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
+        <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
+        <CycleSubmissionBreakdown allSubmissions={submissions} selectedYear={selectedYear} />
       </TabsContent>
     </Tabs>
   );

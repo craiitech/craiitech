@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -10,14 +9,14 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 
 interface CycleSubmissionBreakdownProps {
   allSubmissions: Submission[] | null;
+  selectedYear: number;
 }
 
-export function CycleSubmissionBreakdown({ allSubmissions }: CycleSubmissionBreakdownProps) {
+export function CycleSubmissionBreakdown({ allSubmissions, selectedYear }: CycleSubmissionBreakdownProps) {
   const chartData = useMemo(() => {
     if (!allSubmissions) return [];
 
-    const currentYear = new Date().getFullYear();
-    const yearSubmissions = allSubmissions.filter(s => s.year === currentYear);
+    const yearSubmissions = allSubmissions.filter(s => s.year === selectedYear);
 
     const dataMap: Record<string, { name: string; 'First Cycle': number; 'Final Cycle': number }> = {};
 
@@ -36,14 +35,14 @@ export function CycleSubmissionBreakdown({ allSubmissions }: CycleSubmissionBrea
     }
     
     return Object.values(dataMap);
-  }, [allSubmissions]);
+  }, [allSubmissions, selectedYear]);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Submissions Breakdown by Cycle</CardTitle>
+        <CardTitle>Submissions Breakdown by Cycle - {selectedYear}</CardTitle>
         <CardDescription>
-          Count of submissions per document type for the First vs. Final cycle in {new Date().getFullYear()}.
+          Count of submissions per document type for the First vs. Final cycle.
         </CardDescription>
       </CardHeader>
       <CardContent>

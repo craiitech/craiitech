@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -9,6 +8,7 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 
 interface RiskMatrixProps {
   allRisks: Risk[] | null;
+  selectedYear: number;
 }
 
 const ratingColor: Record<string, string> = {
@@ -17,11 +17,11 @@ const ratingColor: Record<string, string> = {
     'Low': 'hsl(var(--chart-2))',
 }
 
-export function RiskMatrix({ allRisks }: RiskMatrixProps) {
+export function RiskMatrix({ allRisks, selectedYear }: RiskMatrixProps) {
   const riskData = useMemo(() => {
     if (!allRisks) return [];
     return allRisks
-        .filter(risk => risk.type === 'Risk' && risk.status !== 'Closed')
+        .filter(risk => risk.year === selectedYear && risk.type === 'Risk' && risk.status !== 'Closed')
         .map(risk => ({
             x: risk.preTreatment.consequence,
             y: risk.preTreatment.likelihood,
@@ -30,12 +30,12 @@ export function RiskMatrix({ allRisks }: RiskMatrixProps) {
             rating: risk.preTreatment.rating,
             fill: ratingColor[risk.preTreatment.rating] || '#ccc'
     }));
-  }, [allRisks]);
+  }, [allRisks, selectedYear]);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Risk Matrix (Pre-Treatment)</CardTitle>
+        <CardTitle>Risk Matrix (Pre-Treatment) - {selectedYear}</CardTitle>
         <CardDescription>Open risks plotted by likelihood vs. consequence. Bubble size indicates magnitude.</CardDescription>
       </CardHeader>
       <CardContent>

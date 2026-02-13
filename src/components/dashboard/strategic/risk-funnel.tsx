@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -9,16 +8,19 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 
 interface RiskFunnelProps {
   allRisks: Risk[] | null;
+  selectedYear: number;
 }
 
-export function RiskFunnel({ allRisks }: RiskFunnelProps) {
+export function RiskFunnel({ allRisks, selectedYear }: RiskFunnelProps) {
   const funnelData = useMemo(() => {
     if (!allRisks) return [];
 
-    const highRiskOpen = allRisks.filter(r => r.preTreatment.rating === 'High' && r.status === 'Open').length;
-    const mediumRiskOpen = allRisks.filter(r => r.preTreatment.rating === 'Medium' && r.status === 'Open').length;
-    const inProgress = allRisks.filter(r => r.status === 'In Progress').length;
-    const closed = allRisks.filter(r => r.status === 'Closed').length;
+    const yearRisks = allRisks.filter(r => r.year === selectedYear);
+
+    const highRiskOpen = yearRisks.filter(r => r.preTreatment.rating === 'High' && r.status === 'Open').length;
+    const mediumRiskOpen = yearRisks.filter(r => r.preTreatment.rating === 'Medium' && r.status === 'Open').length;
+    const inProgress = yearRisks.filter(r => r.status === 'In Progress').length;
+    const closed = yearRisks.filter(r => r.status === 'Closed').length;
 
     return [
       { value: highRiskOpen, name: 'High-Risk Open', fill: 'hsl(var(--destructive))' },
@@ -26,12 +28,12 @@ export function RiskFunnel({ allRisks }: RiskFunnelProps) {
       { value: inProgress, name: 'In Progress', fill: 'hsl(var(--chart-1))' },
       { value: closed, name: 'Closed', fill: 'hsl(var(--chart-2))' },
     ];
-  }, [allRisks]);
+  }, [allRisks, selectedYear]);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Risk Management Funnel</CardTitle>
+        <CardTitle>Risk Management Funnel - {selectedYear}</CardTitle>
         <CardDescription>A visualization of how risks are being processed through the system.</CardDescription>
       </CardHeader>
       <CardContent>
