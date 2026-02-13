@@ -43,30 +43,26 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // Collection Rules
+    // Academic Program Monitoring (Priority Rules)
     // --------------------------------------------------------------------------
     
-    // Academic Program Registry - Priority read for staff
     match /academicPrograms/{programId} {
-        allow get, list: if isSignedIn();
+        allow read: if isSignedIn();
         allow write: if isAdmin() || (isSignedIn() && hasProfile() && (profile().role == 'Campus Director' || profile().role == 'Campus ODIMO'));
     }
 
-    // Program Compliance Records - Priority read for staff
     match /programCompliances/{recordId} {
-        allow get, list: if isSignedIn();
-        allow create: if isAdmin() || (isSignedIn() && hasProfile() && (
+        allow read: if isSignedIn();
+        allow write: if isAdmin() || (isSignedIn() && hasProfile() && (
           profile().role == 'Campus Director' || 
           profile().role == 'Campus ODIMO' ||
-          (profile().campusId == request.resource.data.campusId && profile().role.matches('(?i).*coordinator.*'))
+          (profile().campusId == (request.resource.data.campusId || resource.data.campusId) && profile().role.matches('(?i).*coordinator.*'))
         ));
-        allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
-          profile().role == 'Campus Director' || 
-          profile().role == 'Campus ODIMO' ||
-          (profile().campusId == resource.data.campusId && profile().role.matches('(?i).*coordinator.*'))
-        ));
-        allow delete: if isAdmin();
     }
+
+    // --------------------------------------------------------------------------
+    // Core EOMS Collections
+    // --------------------------------------------------------------------------
 
     match /unitMonitoringRecords/{recordId} {
         allow get, list: if isAdmin() || isAuditor();
