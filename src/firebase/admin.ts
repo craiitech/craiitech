@@ -21,7 +21,8 @@ function initializeAdmin() {
         projectId: firebaseConfig.projectId,
       });
     } else {
-      // Fallback: This works if running in a Google Cloud environment with default credentials
+      // Fallback: Try initializing with just the project ID
+      // This may work in some GCP environments or with ADC
       return admin.initializeApp({
         projectId: firebaseConfig.projectId,
       });
@@ -38,11 +39,12 @@ function initializeAdmin() {
 
 /**
  * Returns an initialized Firestore admin instance.
+ * Returns null if initialization fails instead of throwing to prevent crash loops.
  */
 export function getAdminFirestore() {
   const app = initializeAdmin();
   if (!app) {
-    throw new Error("Firebase Admin SDK failed to initialize. Ensure FIREBASE_SERVICE_ACCOUNT is set in your environment variables for Admin operations.");
+    return null;
   }
   const db = admin.firestore();
   db.settings({ ignoreUndefinedProperties: true });
@@ -55,7 +57,7 @@ export function getAdminFirestore() {
 export function getAdminAuth() {
   const app = initializeAdmin();
   if (!app) {
-    throw new Error("Firebase Admin SDK failed to initialize. Ensure FIREBASE_SERVICE_ACCOUNT is set in your environment variables for Admin operations.");
+    return null;
   }
   return admin.auth();
 }

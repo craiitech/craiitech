@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getAdminFirestore } from '@/firebase/admin';
@@ -19,6 +20,8 @@ interface ErrorReportPayload {
 export async function logError(payload: ErrorReportPayload) {
     try {
         const firestore = getAdminFirestore();
+        if (!firestore) return { success: false, error: 'Admin SDK not initialized.' };
+        
         const reportCollection = firestore.collection('errorReports');
         
         const sanitizedPayload = {
@@ -48,6 +51,8 @@ export async function logError(payload: ErrorReportPayload) {
 export async function seedIsoClauses() {
     try {
         const firestore = getAdminFirestore();
+        if (!firestore) throw new Error("Firebase Admin SDK failed to initialize. Ensure FIREBASE_SERVICE_ACCOUNT is set.");
+        
         const clausesCollection = firestore.collection('isoClauses');
 
         const snapshot = await clausesCollection.limit(1).get();
@@ -93,12 +98,11 @@ export async function getOfficialServerTime(): Promise<{ iso: string; year: numb
 export async function saveRiskAdmin(riskData: any, riskId?: string): Promise<{ success: boolean; id?: string; error?: string }> {
     try {
         const firestore = getAdminFirestore();
-        if (!firestore) return { success: false, error: "Admin SDK not initialized." };
+        if (!firestore) return { success: false, error: "Firebase Admin SDK failed to initialize. Ensure FIREBASE_SERVICE_ACCOUNT is set in your environment variables for Admin operations." };
 
         const risksCollection = firestore.collection('risks');
         
-        // NextJS 15 Server Action Payload Hardening:
-        // Ensure everything is a plain JSON-compatible object.
+        // Deep sanitization to ensure 100% serializable payload
         const dataToSave = JSON.parse(JSON.stringify(riskData));
         
         // Re-hydrate dates for Firestore native storage
@@ -153,6 +157,7 @@ function normalizeReportType(type: string): string {
 export async function getPublicSubmissionMatrixData(year: number) {
     try {
         const firestore = getAdminFirestore();
+        if (!firestore) return { matrix: [], availableYears: [new Date().getFullYear()], error: "Admin services currently unavailable." };
         
         const [campusesSnap, unitsSnap, cyclesSnap, submissionsSnap] = await Promise.all([
             firestore.collection('campuses').get(),
