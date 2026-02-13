@@ -6,7 +6,7 @@ import type { Submission, Unit, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Loader2, Building, Eye, School } from 'lucide-react';
+import { Loader2, Building, Eye, School, Trash2, Download } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -20,6 +20,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import Link from 'next/link';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -61,12 +63,22 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
   return isFinal ? yearColor.final : yearColor.first;
 };
 
+const getGoogleDriveDownloadLink = (url: string) => {
+    const fileId = url.match(/d\/([^/]+)/);
+    if (fileId && fileId[1]) {
+        return `https://drive.google.com/uc?export=download&id=${fileId[1]}`;
+    }
+    return url;
+};
+
 
 interface CampusSubmissionsViewProps {
   allSubmissions: Submission[] | null;
   allCampuses: Campus[] | null;
   allUnits: Unit[] | null;
   isLoading: boolean;
+  isAdmin: boolean;
+  onDeleteClick: (submission: Submission) => void;
 }
 
 export function CampusSubmissionsView({
@@ -74,6 +86,8 @@ export function CampusSubmissionsView({
   allCampuses,
   allUnits,
   isLoading,
+  isAdmin,
+  onDeleteClick,
 }: CampusSubmissionsViewProps) {
   const router = useRouter();
   const [selectedCampusId, setSelectedCampusId] = useState<string | null>(null);
@@ -134,6 +148,7 @@ export function CampusSubmissionsView({
   }
 
   return (
+    <TooltipProvider>
     <Card>
       <CardHeader>
         <CardTitle>Submissions by Campus</CardTitle>
@@ -198,11 +213,21 @@ export function CampusSubmissionsView({
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold mb-2">First Cycle Submissions</h3>
-                             <SubmissionTableForCycle submissions={selectedUnitSubmissions.firstCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} />
+                             <SubmissionTableForCycle 
+                                submissions={selectedUnitSubmissions.firstCycle} 
+                                onEyeClick={(id) => router.push(`/submissions/${id}`)}
+                                isAdmin={isAdmin}
+                                onDeleteClick={onDeleteClick}
+                             />
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold mb-2">Final Cycle Submissions</h3>
-                             <SubmissionTableForCycle submissions={selectedUnitSubmissions.finalCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} />
+                             <SubmissionTableForCycle 
+                                submissions={selectedUnitSubmissions.finalCycle} 
+                                onEyeClick={(id) => router.push(`/submissions/${id}`)}
+                                isAdmin={isAdmin}
+                                onDeleteClick={onDeleteClick}
+                             />
                         </div>
                     </div>
                 ) : (
@@ -215,11 +240,22 @@ export function CampusSubmissionsView({
         </div>
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 }
 
 
-function SubmissionTableForCycle({ submissions, onEyeClick }: { submissions: Submission[], onEyeClick: (id: string) => void }) {
+function SubmissionTableForCycle({ 
+    submissions, 
+    onEyeClick, 
+    isAdmin, 
+    onDeleteClick 
+}: { 
+    submissions: Submission[], 
+    onEyeClick: (id: string) => void,
+    isAdmin: boolean,
+    onDeleteClick: (submission: Submission) => void
+}) {
     if (submissions.length === 0) {
         return <p className="text-sm text-muted-foreground">No submissions for this cycle.</p>;
     }
@@ -230,7 +266,7 @@ function SubmissionTableForCycle({ submissions, onEyeClick }: { submissions: Sub
                     <TableHead>Report</TableHead>
                     <TableHead>Submitted</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -244,10 +280,32 @@ function SubmissionTableForCycle({ submissions, onEyeClick }: { submissions: Sub
                         <TableCell>
                             <Badge variant={statusVariant[sub.statusId]} className="bg-background/50">{sub.statusId}</Badge>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right space-x-1 whitespace-nowrap">
                              <Button variant="outline" size="sm" onClick={() => onEyeClick(sub.id)} className="bg-background/50">
-                                <Eye className="mr-2 h-4 w-4" /> View Submission
+                                <Eye className="mr-2 h-4 w-4" /> View
                             </Button>
+                            {isAdmin && (
+                                <>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" asChild className="h-8 w-8">
+                                                <Link href={getGoogleDriveDownloadLink(sub.googleDriveLink)} target="_blank" rel="noopener noreferrer">
+                                                    <Download className="h-4 w-4" />
+                                                </Link>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Download File</p></TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => onDeleteClick(sub)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Delete Submission</p></TooltipContent>
+                                    </Tooltip>
+                                </>
+                            )}
                         </TableCell>
                     </TableRow>
                 ))}

@@ -794,7 +794,7 @@ export default function SubmissionsPage() {
                         Continue
                         </AlertDialogAction>
                     </AlertDialogFooter>
-                    </AlertDialogContent>
+                    </AlertDialog>
                 </AlertDialog>
               </>
             )}
@@ -905,6 +905,8 @@ export default function SubmissionsPage() {
                     allCampuses={campuses}
                     allUnits={units}
                     isLoading={isLoading}
+                    isAdmin={isAdmin}
+                    onDeleteClick={handleDeleteClick}
                 />
             </TabsContent>
         )}
