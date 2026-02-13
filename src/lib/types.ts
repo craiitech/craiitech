@@ -275,7 +275,7 @@ export type ProgramComplianceRecord = {
     };
   };
 
-  // Accreditation (New)
+  // Accreditation
   accreditation: {
     level: string; // Level 1, Level 2, etc.
     dateOfAward: any;

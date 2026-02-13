@@ -48,16 +48,6 @@ service cloud.firestore {
     // Collection Rules
     // --------------------------------------------------------------------------
     
-    match /unitMonitoringRecords/{recordId} {
-        allow read: if isAdmin() || isAuditor();
-        allow read: if isSignedIn() && hasProfile() && (
-          resource.data.unitId == profile().unitId || 
-          resource.data.campusId == profile().campusId ||
-          profile().role.matches('(?i).*vice president.*')
-        );
-        allow write: if isAdmin();
-    }
-
     match /academicPrograms/{programId} {
         allow read: if isSignedIn();
         allow write: if isAdmin() || (isSignedIn() && hasProfile() && (profile().role == 'Campus Director' || profile().role == 'Campus ODIMO'));
@@ -70,6 +60,16 @@ service cloud.firestore {
           profile().role == 'Campus ODIMO' ||
           (profile().campusId == resource.data.campusId && profile().role.matches('(?i).*coordinator.*'))
         ));
+    }
+
+    match /unitMonitoringRecords/{recordId} {
+        allow read: if isAdmin() || isAuditor();
+        allow read: if isSignedIn() && hasProfile() && (
+          resource.data.unitId == profile().unitId || 
+          resource.data.campusId == profile().campusId ||
+          profile().role.matches('(?i).*vice president.*')
+        );
+        allow write: if isAdmin();
     }
 
     match /users/{userId} {
