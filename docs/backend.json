@@ -362,6 +362,35 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       }
     },
+    "AcademicProgram": {
+      "title": "AcademicProgram",
+      "type": "object",
+      "description": "An academic degree program offered by the university.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "abbreviation": { "type": "string" },
+        "campusId": { "type": "string" },
+        "collegeId": { "type": "string" },
+        "level": { "type": "string", "enum": ["Undergraduate", "Graduate", "TVET"] },
+        "isActive": { "type": "boolean" }
+      }
+    },
+    "ProgramComplianceRecord": {
+      "title": "ProgramComplianceRecord",
+      "type": "object",
+      "description": "Annual compliance data for an academic program.",
+      "properties": {
+        "id": { "type": "string" },
+        "programId": { "type": "string" },
+        "academicYear": { "type": "number" },
+        "ched": { "type": "object" },
+        "accreditation": { "type": "object" },
+        "curriculum": { "type": "object" },
+        "faculty": { "type": "object" },
+        "stats": { "type": "object" }
+      }
+    },
     "CampusSetting": {
       "title": "CampusSetting",
       "type": "object",
@@ -400,128 +429,6 @@
         "userEmail": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" }
       }
-    },
-    "ISOClause": {
-      "title": "ISOClause",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "description": { "type": "string" }
-      }
-    },
-    "AuditPlan": {
-      "title": "AuditPlan",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "year": { "type": "number" },
-        "campusId": { "type": "string" },
-        "auditeeType": { "type": "string", "enum": ["Units", "Top Management"] },
-        "scope": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "AuditSchedule": {
-      "title": "AuditSchedule",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "auditPlanId": { "type": "string" },
-        "auditorId": { "type": "string" },
-        "auditorName": { "type": "string" },
-        "targetId": { "type": "string" },
-        "targetType": { "type": "string", "enum": ["Unit", "User"] },
-        "targetName": { "type": "string" },
-        "scheduledDate": { "type": "string", "format": "date-time" },
-        "isoClausesToAudit": { "type": "array", "items": { "type": "string" } },
-        "status": { "type": "string", "enum": ["Scheduled", "In Progress", "Completed"] },
-        "summaryCommendablePractices": { "type": "string" },
-        "summaryOFI": { "type": "string" },
-        "summaryNC": { "type": "string" }
-      }
-    },
-    "AuditFinding": {
-      "title": "AuditFinding",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "auditScheduleId": { "type": "string" },
-        "isoClause": { "type": "string" },
-        "type": { "type": "string", "enum": ["Non-Conformance", "Observation for Improvement", "Commendation"] },
-        "description": { "type": "string" },
-        "evidence": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "authorId": { "type": "string" }
-      }
-    },
-    "CorrectiveActionPlan": {
-      "title": "CorrectiveActionPlan",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "findingId": { "type": "string" },
-        "rootCauseAnalysis": { "type": "string" },
-        "correctionPlan": { "type": "string" },
-        "correctiveAction": { "type": "string" },
-        "responsiblePersonId": { "type": "string" },
-        "responsiblePersonName": { "type": "string" },
-        "targetDate": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["Submitted", "Accepted", "Rejected", "Completed"] },
-        "authorId": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "ProcedureManual": {
-      "title": "ProcedureManual",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "unitName": { "type": "string" },
-        "googleDriveLink": { "type": "string", "format": "uri" },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "EomsPolicyManual": {
-      "title": "EomsPolicyManual",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "sectionNumber": { "type": "number" },
-        "title": { "type": "string" },
-        "googleDriveLink": { "type": "string", "format": "uri" },
-        "revisionNumber": { "type": "string" },
-        "pageCount": { "type": "number" },
-        "executionDate": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "UnitMonitoringRecord": {
-      "title": "UnitMonitoringRecord",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "visitDate": { "type": "string", "format": "date-time" },
-        "campusId": { "type": "string" },
-        "unitId": { "type": "string" },
-        "roomNumber": { "type": "string" },
-        "monitorId": { "type": "string" },
-        "monitorName": { "type": "string" },
-        "observations": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "item": { "type": "string" },
-              "status": { "type": "string", "enum": ["Available", "Not Available", "For Improvement", "Not Applicable", "Need to revisit"] },
-              "remarks": { "type": "string" }
-            }
-          }
-        },
-        "generalRemarks": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      }
     }
   },
   "auth": {
@@ -557,6 +464,24 @@
             "schema": { "$ref": "#/backend/entities/Risk" },
             "description": "Risk register items.",
             "params": [{ "name": "riskId" }]
+        }
+      },
+      {
+        "path": "/academicPrograms/{programId}",
+        "definition": {
+            "entityName": "AcademicProgram",
+            "schema": { "$ref": "#/backend/entities/AcademicProgram" },
+            "description": "University academic programs.",
+            "params": [{ "name": "programId" }]
+        }
+      },
+      {
+        "path": "/programCompliances/{recordId}",
+        "definition": {
+            "entityName": "ProgramComplianceRecord",
+            "schema": { "$ref": "#/backend/entities/ProgramComplianceRecord" },
+            "description": "Compliance records for programs.",
+            "params": [{ "name": "recordId" }]
         }
       },
       {
@@ -629,87 +554,6 @@
             "schema": { "$ref": "#/backend/entities/ErrorReport" },
             "description": "User error reports.",
             "params": [{ "name": "errorId" }]
-        }
-      },
-      {
-        "path": "/isoClauses/{clauseId}",
-        "definition": {
-            "entityName": "ISOClause",
-            "schema": { "$ref": "#/backend/entities/ISOClause" },
-            "description": "ISO 21001 clauses.",
-            "params": [{ "name": "clauseId" }]
-        }
-      },
-      {
-        "path": "/auditPlans/{planId}",
-        "definition": {
-            "entityName": "AuditPlan",
-            "schema": { "$ref": "#/backend/entities/AuditPlan" },
-            "description": "Audit plans.",
-            "params": [{ "name": "planId" }]
-        }
-      },
-      {
-        "path": "/auditSchedules/{scheduleId}",
-        "definition": {
-            "entityName": "AuditSchedule",
-            "schema": { "$ref": "#/backend/entities/AuditSchedule" },
-            "description": "Audit schedules.",
-            "params": [{ "name": "scheduleId" }]
-        }
-      },
-      {
-        "path": "/auditFindings/{findingId}",
-        "definition": {
-            "entityName": "AuditFinding",
-            "schema": { "$ref": "#/backend/entities/AuditFinding" },
-            "description": "Audit findings.",
-            "params": [{ "name": "findingId" }]
-        }
-      },
-      {
-        "path": "/correctiveActionPlans/{planId}",
-        "definition": {
-            "entityName": "CorrectiveActionPlan",
-            "schema": { "$ref": "#/backend/entities/CorrectiveActionPlan" },
-            "description": "Corrective action plans.",
-            "params": [{ "name": "planId" }]
-        }
-      },
-      {
-        "path": "/procedureManuals/{unitId}",
-        "definition": {
-            "entityName": "ProcedureManual",
-            "schema": { "$ref": "#/backend/entities/ProcedureManual" },
-            "description": "Unit procedure manuals.",
-            "params": [{ "name": "unitId" }]
-        }
-      },
-      {
-        "path": "/eomsPolicyManuals/{sectionId}",
-        "definition": {
-            "entityName": "EomsPolicyManual",
-            "schema": { "$ref": "#/backend/entities/EomsPolicyManual" },
-            "description": "EOMS policy manual sections.",
-            "params": [{ "name": "sectionId" }]
-        }
-      },
-      {
-        "path": "/unitMonitoringRecords/{recordId}",
-        "definition": {
-            "entityName": "UnitMonitoringRecord",
-            "schema": { "$ref": "#/backend/entities/UnitMonitoringRecord" },
-            "description": "Unit monitoring records.",
-            "params": [{ "name": "recordId" }]
-        }
-      },
-      {
-        "path": "/roles_admin/{userId}",
-        "definition": {
-          "entityName": "adminRole",
-          "schema": { "$ref": "#/backend/entities/User" },
-          "description": "Admin privilegeDenoters.",
-          "params": [{ "name": "userId" }]
         }
       }
     ]
