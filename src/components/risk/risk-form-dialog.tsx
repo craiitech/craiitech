@@ -34,7 +34,7 @@ import { doc, serverTimestamp, collection, query, where, getDocs, setDoc, addDoc
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
-import { Loader2, Sparkles, FileText, ShieldCheck, Info, BookOpen, Calculator, FileSearch } from 'lucide-react';
+import { Loader2, Sparkles, ShieldCheck, Calculator, FileSearch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
@@ -126,6 +126,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
   const { user, userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { logSessionActivity } = useSessionActivity();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isFetchingLink, setIsFetchingLink] = useState(false);
@@ -157,13 +158,16 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
     if (risk) {
       const targetDate = risk.targetDate?.toDate?.() || risk.targetDate;
       form.reset({
-        ...risk,
+        year: risk.year,
         objective: risk.objective || '',
+        type: risk.type || 'Risk',
         description: risk.description || '',
         currentControls: risk.currentControls || '',
-        treatmentAction: risk.treatmentAction || '',
         likelihood: risk.preTreatment.likelihood,
         consequence: risk.preTreatment.consequence,
+        treatmentAction: risk.treatmentAction || '',
+        status: risk.status || 'Open',
+        responsiblePersonId: risk.responsiblePersonId || '',
         targetYear: targetDate instanceof Date ? String(targetDate.getFullYear()) : undefined,
         targetMonth: targetDate instanceof Date ? String(targetDate.getMonth()) : undefined,
         targetDay: targetDate instanceof Date ? String(targetDate.getDate()) : undefined,
@@ -171,6 +175,11 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         postTreatmentConsequence: risk.postTreatment?.consequence,
         postTreatmentEvidence: risk.postTreatment?.evidence || '',
         postTreatmentDateImplemented: risk.postTreatment?.dateImplemented || '',
+        oapNo: risk.oapNo || '',
+        resourcesNeeded: risk.resourcesNeeded || '',
+        updates: risk.updates || '',
+        preparedBy: risk.preparedBy || '',
+        approvedBy: risk.approvedBy || '',
         adminCampusId: risk.campusId || '',
         adminUnitId: risk.unitId || '',
       });
@@ -284,14 +293,14 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         const targetUnitId = (isAdmin ? values.adminUnitId : userProfile.unitId) || '';
         const targetCampusId = (isAdmin ? values.adminCampusId : userProfile.campusId) || '';
 
-        // Construct serializable data
+        // Construct STRICT SERIALIZABLE data for Server Actions
         const riskData: any = {
           objective: values.objective || '',
           type: values.type || 'Risk',
           description: values.description || '',
           currentControls: values.currentControls || '',
           status: values.status || 'Open',
-          year: values.year,
+          year: Number(values.year),
           unitId: targetUnitId,
           campusId: targetCampusId,
           userId: risk?.userId || user.uid,
@@ -341,12 +350,18 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
             if (risk) {
                 const riskRef = doc(firestore, 'risks', risk.id);
                 setDoc(riskRef, { ...finalData, createdAt: risk.createdAt }, { merge: true })
-                    .then(() => onOpenChange(false))
+                    .then(() => {
+                        logSessionActivity('Updated risk entry', { action: 'update_risk', riskId: risk.id });
+                        onOpenChange(false);
+                    })
                     .catch(e => errorEmitter.emit('permission-error', new FirestorePermissionError({ path: riskRef.path, operation: 'update', requestResourceData: finalData })));
             } else {
                 const riskColRef = collection(firestore, 'risks');
                 addDoc(riskColRef, { ...finalData, createdAt: serverTimestamp() })
-                    .then(() => onOpenChange(false))
+                    .then(() => {
+                        logSessionActivity('Created new risk entry', { action: 'create_risk' });
+                        onOpenChange(false);
+                    })
                     .catch(e => errorEmitter.emit('permission-error', new FirestorePermissionError({ path: riskColRef.path, operation: 'create', requestResourceData: finalData })));
             }
         }
@@ -371,7 +386,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
             </div>
             <div className="flex items-center gap-2">
                 <DialogTitle className="text-xl">{risk ? 'Edit' : 'Log New'} Risk or Opportunity</DialogTitle>
-                {isAdmin && <Badge variant="secondary" className="bg-orange-100 text-orange-800">Admin Overdrive</Badge>}
+                {isAdmin && <Badge variant="secondary" className="bg-orange-100 text-orange-800">Admin Overdrive Mode</Badge>}
             </div>
         </div>
 
@@ -381,29 +396,29 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                     <Form {...form}>
                         <form id="risk-form" onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-6">
                             {isAdmin && (
-                                <Card className="border-orange-500/50 bg-orange-50/5">
-                                    <CardHeader className="py-3"><CardTitle className="text-xs">Admin Scope Settings</CardTitle></CardHeader>
-                                    <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <Card className="border-orange-500/50 bg-orange-50/5 shadow-sm">
+                                    <CardHeader className="py-3 border-b"><CardTitle className="text-xs font-black uppercase tracking-widest text-orange-800">Scope Configuration</CardTitle></CardHeader>
+                                    <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
                                         <FormField control={form.control} name="adminCampusId" render={({ field }) => (
-                                            <FormItem><FormLabel className="text-xs">Campus</FormLabel>
+                                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Campus Site</FormLabel>
                                                 <Select onValueChange={(v) => { field.onChange(v); form.setValue('adminUnitId', ''); }} value={field.value || ''}>
-                                                    <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Pick Campus" /></SelectTrigger></FormControl>
+                                                    <FormControl><SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Pick Campus" /></SelectTrigger></FormControl>
                                                     <SelectContent>{allCampuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                                                 </Select>
                                             </FormItem>
                                         )} />
                                         <FormField control={form.control} name="adminUnitId" render={({ field }) => (
-                                            <FormItem><FormLabel className="text-xs">Unit</FormLabel>
+                                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Office / Unit</FormLabel>
                                                 <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedAdminCampusId}>
-                                                    <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Pick Unit" /></SelectTrigger></FormControl>
+                                                    <FormControl><SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Pick Unit" /></SelectTrigger></FormControl>
                                                     <SelectContent>{filteredUnits.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
                                                 </Select>
                                             </FormItem>
                                         )} />
                                         <FormField control={form.control} name="year" render={({ field }) => (
-                                            <FormItem><FormLabel className="text-xs">Year</FormLabel>
+                                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Registry Year</FormLabel>
                                                 <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
-                                                    <FormControl><SelectTrigger className="h-9"><SelectValue /></SelectTrigger></FormControl>
+                                                    <FormControl><SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger></FormControl>
                                                     <SelectContent>{yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
                                                 </Select>
                                             </FormItem>
@@ -490,11 +505,11 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                 )}
 
                                 <div className="space-y-4">
-                                    <h3 className="text-lg font-bold flex items-center gap-2"><div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">4</div> Monitoring</h3>
+                                    <h3 className="text-lg font-bold flex items-center gap-2"><div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">4</div> Monitoring Status</h3>
                                     <Card>
                                         <CardContent className="pt-6">
                                              <FormField control={form.control} name="status" render={({ field }) => (
-                                                <FormItem><FormLabel>Workflow Status</FormLabel>
+                                                <FormItem><FormLabel>Overall Workflow Status</FormLabel>
                                                     <Select onValueChange={field.onChange} value={field.value || 'Open'}>
                                                         <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                                         <SelectContent><SelectItem value="Open">Open</SelectItem><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Closed">Closed</SelectItem></SelectContent>
@@ -507,7 +522,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
 
                                 {workflowStatus === 'Closed' && (
                                     <div className="space-y-4">
-                                        <h3 className="text-lg font-bold flex items-center gap-2 text-green-600"><div className="bg-green-600 text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">5</div> Resolution</h3>
+                                        <h3 className="text-lg font-bold flex items-center gap-2 text-green-600"><div className="bg-green-600 text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">5</div> Post-Treatment Analysis</h3>
                                         <Card className="border-green-200 bg-green-50/10">
                                             <CardContent className="space-y-6 pt-6">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -528,8 +543,12 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                                         </FormItem>
                                                     )} />
                                                 </div>
-                                                <FormField control={form.control} name="postTreatmentEvidence" render={({ field }) => (<FormItem><FormLabel>Evidence of Resolution</FormLabel><FormControl><Textarea {...field} value={field.value || ''} placeholder="Describe results..." className="bg-white" /></FormControl></FormItem>)} />
-                                                <FormField control={form.control} name="postTreatmentDateImplemented" render={({ field }) => (<FormItem><FormLabel>Implementation Date</FormLabel><FormControl><Input {...field} type="text" placeholder="e.g., Oct 2025" className="bg-white" /></FormControl></FormItem>)} />
+                                                <div className="flex items-center justify-between rounded-md border p-4 bg-white/50">
+                                                    <div className="flex items-center gap-2"><Calculator className="h-4 w-4 text-green-600" /><span className="text-sm font-medium">Residual Magnitude: <span className="font-bold">{ptMagnitude}</span></span></div>
+                                                    <div className="flex items-center gap-2"><span className="text-sm font-medium">Residual Rating:</span><Badge variant={ptRating === 'High' ? 'destructive' : ptRating === 'Medium' ? 'secondary' : 'default'}>{ptRating}</Badge></div>
+                                                </div>
+                                                <FormField control={form.control} name="postTreatmentEvidence" render={({ field }) => (<FormItem><FormLabel>Evidence of Completion / Resolution</FormLabel><FormControl><Textarea {...field} value={field.value || ''} placeholder="Describe the results and proof of resolution..." className="bg-white" /></FormControl></FormItem>)} />
+                                                <FormField control={form.control} name="postTreatmentDateImplemented" render={({ field }) => (<FormItem><FormLabel>Actual Date Implemented</FormLabel><FormControl><Input {...field} type="text" placeholder="e.g., Oct 2025" className="bg-white" /></FormControl></FormItem>)} />
                                             </CardContent>
                                         </Card>
                                     </div>
@@ -540,25 +559,39 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                 </ScrollArea>
             </div>
 
-            <div className="hidden lg:flex w-[400px] flex-col bg-muted/10 border-l">
-                <div className="p-4 border-b font-bold text-sm uppercase tracking-wider">Reference Panel</div>
+            <div className="hidden lg:flex w-[400px] flex-col bg-muted/10 border-l shrink-0">
+                <div className="p-4 border-b font-bold text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white">
+                    <Info className="h-4 w-4" /> Reference Panel
+                </div>
                 <ScrollArea className="flex-1 p-6 space-y-6">
                     <Card className="border-primary/30 shadow-md">
-                        <CardHeader className="py-3 px-4 bg-primary/5"><CardTitle className="text-xs">Linked Document View</CardTitle></CardHeader>
+                        <CardHeader className="py-3 px-4 bg-primary/5 border-b"><CardTitle className="text-[10px] font-black uppercase tracking-widest">Registry File View</CardTitle></CardHeader>
                         <CardContent className="p-0">
                             {previewEmbedUrl ? (
                                 <div className="aspect-[3/4]"><iframe src={previewEmbedUrl} className="h-full w-full border-none" allow="autoplay"></iframe></div>
                             ) : (
-                                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground bg-muted/5"><FileSearch className="h-10 w-10 mb-2 opacity-20" /><p className="text-xs font-semibold">No Document Preview</p></div>
+                                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground bg-muted/5"><FileSearch className="h-10 w-10 mb-2 opacity-20" /><p className="text-[10px] font-bold uppercase">No Registry Preview</p></div>
                             )}
                         </CardContent>
                     </Card>
-                    <Card className="border-blue-200">
-                        <CardHeader className="py-3 px-4 bg-blue-50"><CardTitle className="text-xs text-blue-800">ISO Scoring Scale</CardTitle></CardHeader>
-                        <CardContent className="p-4 text-[11px] space-y-2">
-                            <p><strong>10-25:</strong> High Priority Action</p>
-                            <p><strong>5-9:</strong> Medium Priority Action</p>
-                            <p><strong>1-4:</strong> Low Priority Monitoring</p>
+                    <Card className="border-blue-200 shadow-sm">
+                        <CardHeader className="py-3 px-4 bg-blue-50 border-b"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-blue-800">ISO 21001:2018 Scoring Guide</CardTitle></CardHeader>
+                        <CardContent className="p-4 space-y-4">
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase">Management's Decision Matrix</p>
+                                <div className="grid grid-cols-1 gap-1.5">
+                                    <div className="flex items-center justify-between p-2 rounded bg-red-50 border border-red-100"><span className="text-[10px] font-bold text-red-700">HIGH (10-25)</span><span className="text-[9px] font-medium text-red-600">Immediate Action</span></div>
+                                    <div className="flex items-center justify-between p-2 rounded bg-amber-50 border border-amber-100"><span className="text-[10px] font-bold text-amber-700">MEDIUM (5-9)</span><span className="text-[9px] font-medium text-amber-600">Action Plan Needed</span></div>
+                                    <div className="flex items-center justify-between p-2 rounded bg-green-50 border border-green-100"><span className="text-[10px] font-bold text-green-700">LOW (1-4)</span><span className="text-[9px] font-medium text-green-600">Monitor Only</span></div>
+                                </div>
+                            </div>
+                            <div className="space-y-2 pt-2 border-t">
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase">Evaluation Procedure</p>
+                                <div className="flex gap-2 text-[10px] leading-relaxed">
+                                    <BookOpen className="h-3 w-3 shrink-0 mt-0.5 text-blue-600" />
+                                    <p>Select the LIKELIHOOD and CONSEQUENCE based on the criteria in the Procedure Manual. The rating is calculated as: <strong>L x C</strong>.</p>
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
                 </ScrollArea>

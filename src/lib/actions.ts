@@ -97,17 +97,18 @@ export async function saveRiskAdmin(riskData: any, riskId?: string): Promise<{ s
 
         const risksCollection = firestore.collection('risks');
         
-        // Strip non-serializable fields and ensure pure data
+        // NextJS 15 Server Action Payload Hardening:
+        // Ensure everything is a plain JSON-compatible object.
         const dataToSave = JSON.parse(JSON.stringify(riskData));
         
-        // Re-hydrate dates for Firestore Timestamp storage
+        // Re-hydrate dates for Firestore native storage
         if (dataToSave.targetDate && typeof dataToSave.targetDate === 'string') {
-            dataToSave.targetDate = new Date(dataToSave.targetDate);
+            dataToSave.targetDate = admin.firestore.Timestamp.fromDate(new Date(dataToSave.targetDate));
         }
         
         if (dataToSave.postTreatment?.dateImplemented && typeof dataToSave.postTreatment.dateImplemented === 'string') {
             if (dataToSave.postTreatment.dateImplemented.includes('T')) {
-                dataToSave.postTreatment.dateImplemented = new Date(dataToSave.postTreatment.dateImplemented);
+                dataToSave.postTreatment.dateImplemented = admin.firestore.Timestamp.fromDate(new Date(dataToSave.postTreatment.dateImplemented));
             }
         }
 
@@ -125,7 +126,7 @@ export async function saveRiskAdmin(riskData: any, riskId?: string): Promise<{ s
         }
     } catch (error: any) {
         console.error("Admin Risk Save Error:", error);
-        return { success: false, error: error.message || "Failed to save risk record." };
+        return { success: false, error: error.message || "An unexpected error occurred on the server." };
     }
 }
 
