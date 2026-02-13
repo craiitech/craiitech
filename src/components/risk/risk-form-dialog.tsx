@@ -31,7 +31,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, serverTimestamp, collection, query, where, getDocs, getDoc } from 'firebase/firestore';
+import { doc, serverTimestamp, collection, query, where, getDocs, getDoc, setDoc, addDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
@@ -46,6 +46,8 @@ import { Badge } from '../ui/badge';
 import { saveRiskAdmin } from '@/lib/actions';
 import { ScrollArea } from '../ui/scroll-area';
 import { suggestRiskTreatment } from '@/ai/flows/suggest-treatment-flow';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface RiskFormDialogProps {
   isOpen: boolean;
@@ -86,7 +88,7 @@ const formSchema = z.object({
   postTreatmentLikelihood: z.coerce.number().optional(),
   postTreatmentConsequence: z.coerce.number().optional(),
   postTreatmentEvidence: z.string().optional(),
-  postTreatmentDateImplemented: z.string().optional(), // Using string for simple date input
+  postTreatmentDateImplemented: z.string().optional(),
   oapNo: z.string().optional(),
   resourcesNeeded: z.string().optional(),
   updates: z.string().optional(),
@@ -286,7 +288,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
     const targetUnitId = isAdmin ? values.adminUnitId! : userProfile.unitId;
     const targetCampusId = isAdmin ? values.adminCampusId! : userProfile.campusId;
 
-    // ROBUST DATA CONSTRUCTION: Explicitly build the object to avoid "undefined" values which Firestore rejects
     const riskData: any = {
       objective: values.objective,
       type: values.type,
@@ -315,7 +316,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
       updatedAt: serverTimestamp(),
     };
 
-    // Handle post-treatment logic safely
     if (values.status === 'Closed' && values.postTreatmentLikelihood && values.postTreatmentConsequence) {
         riskData.postTreatment = {
             likelihood: values.postTreatmentLikelihood,
@@ -329,26 +329,58 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         riskData.postTreatment = risk.postTreatment;
     }
 
-    try {
-        if (isAdmin) {
-            await saveRiskAdmin(riskData, risk?.id);
-            logSessionActivity(`Admin ${risk ? 'updated' : 'created'} risk entry`, { action: 'admin_save_risk', details: { riskId: risk?.id }});
+    if (isAdmin) {
+        saveRiskAdmin(riskData, risk?.id)
+            .then(() => {
+                logSessionActivity(`Admin ${risk ? 'updated' : 'created'} risk entry`, { action: 'admin_save_risk', details: { riskId: risk?.id }});
+                toast({ title: 'Success', description: 'Risk/Opportunity has been saved.' });
+                onOpenChange(false);
+            })
+            .catch((error: any) => {
+                console.error("Admin Risk Save Error:", error);
+                toast({ title: 'Error', description: error.message || 'Could not save the entry.', variant: 'destructive'});
+            })
+            .finally(() => {
+                setIsSubmitting(false);
+            });
+    } else {
+        if (risk) {
+            const riskRef = doc(firestore, 'risks', risk.id);
+            setDoc(riskRef, { ...riskData, createdAt: risk.createdAt }, { merge: true })
+                .then(() => {
+                    toast({ title: 'Success', description: 'Risk/Opportunity has been saved.' });
+                    onOpenChange(false);
+                })
+                .catch(async (serverError) => {
+                    const permissionError = new FirestorePermissionError({
+                        path: riskRef.path,
+                        operation: 'update',
+                        requestResourceData: riskData,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                })
+                .finally(() => {
+                    setIsSubmitting(false);
+                });
         } else {
-            if (risk) {
-                const riskRef = doc(firestore, 'risks', risk.id);
-                await setDoc(riskRef, { ...riskData, createdAt: risk.createdAt }, { merge: true });
-            } else {
-                const riskRef = collection(firestore, 'risks');
-                await addDoc(riskRef, { ...riskData, createdAt: serverTimestamp() });
-            }
+            const riskColRef = collection(firestore, 'risks');
+            addDoc(riskColRef, { ...riskData, createdAt: serverTimestamp() })
+                .then(() => {
+                    toast({ title: 'Success', description: 'Risk/Opportunity has been saved.' });
+                    onOpenChange(false);
+                })
+                .catch(async (serverError) => {
+                    const permissionError = new FirestorePermissionError({
+                        path: riskColRef.path,
+                        operation: 'create',
+                        requestResourceData: riskData,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                })
+                .finally(() => {
+                    setIsSubmitting(false);
+                });
         }
-        toast({ title: 'Success', description: 'Risk/Opportunity has been saved.' });
-        onOpenChange(false);
-    } catch (error: any) {
-        console.error("Error saving risk:", error);
-        toast({ title: 'Error', description: error.message || 'Could not save the entry.', variant: 'destructive'});
-    } finally {
-        setIsSubmitting(false);
     }
   };
 
@@ -403,7 +435,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                         <FormField control={form.control} name="year" render={({ field }) => (
                                             <FormItem><FormLabel className="text-xs">Academic Year</FormLabel>
                                                 <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)} disabled={!selectedAdminUnitId}>
-                                                    <FormControl><SelectTrigger className="h-9"><SelectValue /></SelectTrigger></FormControl>
+                                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                                     <SelectContent>{yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
                                                 </Select>
                                             </FormItem>
