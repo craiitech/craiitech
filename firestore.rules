@@ -27,11 +27,12 @@ service cloud.firestore {
 
     /**
      * Master Admin Check.
+     * Robustly checks for admin status via a dedicated collection or a profile flag.
      */
     function isAdmin() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
-        (hasProfile() && profile().role == 'Admin')
+        (hasProfile() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin')
       );
     }
 
@@ -47,12 +48,14 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /academicPrograms/{programId} {
-        allow get, list: if isAdmin() || isAuditor() || isSignedIn();
+        // Allow any signed-in user to see the program registry
+        allow get, list: if isSignedIn();
         allow write: if isAdmin() || (isSignedIn() && hasProfile() && (profile().role == 'Campus Director' || profile().role == 'Campus ODIMO'));
     }
 
     match /programCompliances/{recordId} {
-        allow get, list: if isAdmin() || isAuditor() || isSignedIn();
+        // Allow any signed-in user to see compliance data
+        allow get, list: if isSignedIn();
         allow write: if isAdmin() || (isSignedIn() && hasProfile() && (
           profile().role == 'Campus Director' || 
           profile().role == 'Campus ODIMO' ||
