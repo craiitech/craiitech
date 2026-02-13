@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -43,7 +44,7 @@ import { Label } from '../ui/label';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { saveRiskAdmin } from '@/lib/actions';
+import { saveRiskAdmin, getOfficialServerTime } from '@/lib/actions';
 import { ScrollArea } from '../ui/scroll-area';
 import { suggestRiskTreatment } from '@/ai/flows/suggest-treatment-flow';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -288,8 +289,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
     const targetUnitId = isAdmin ? values.adminUnitId! : userProfile.unitId;
     const targetCampusId = isAdmin ? values.adminCampusId! : userProfile.campusId;
 
-    // Construct a clean, serializable data object for the database.
-    // Important: Do NOT include serverTimestamp() if sending to a Server Action.
     const riskData: any = {
       objective: values.objective,
       type: values.type,
@@ -331,7 +330,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
     }
 
     if (isAdmin) {
-        // Admin calls Server Action (requires plain JS objects only)
         saveRiskAdmin(riskData, risk?.id)
             .then(() => {
                 logSessionActivity(`Admin ${risk ? 'updated' : 'created'} risk entry`, { action: 'admin_save_risk', details: { riskId: risk?.id }});
@@ -346,7 +344,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                 setIsSubmitting(false);
             });
     } else {
-        // Client-side submission (can use Firestore sentinel objects)
         const finalData = {
             ...riskData,
             updatedAt: serverTimestamp(),
@@ -442,7 +439,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                         )} />
                                         <FormField control={form.control} name="year" render={({ field }) => (
                                             <FormItem><FormLabel className="text-xs">Academic Year</FormLabel>
-                                                <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)} disabled={!selectedAdminUnitId}>
+                                                <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
                                                     <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                                     <SelectContent>{yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
                                                 </Select>
