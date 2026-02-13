@@ -239,7 +239,6 @@ const SubmissionsTable = ({
                     : null;
                 
                 const submitter = usersMap.get(submission.userId);
-                const submitterName = submitter ? `${submitter.firstName} ${submitter.lastName}` : 'Unknown';
 
                 return (
                 <TableRow 
@@ -347,7 +346,7 @@ const SubmissionsTable = ({
 
 
 export default function SubmissionsPage() {
-  const { user, userProfile, isAdmin, isSupervisor, userRole, isMainCampusCoordinator } = useUser();
+  const { user, userProfile, isAdmin, isSupervisor, isMainCampusCoordinator } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -366,7 +365,7 @@ export default function SubmissionsPage() {
     return query(collection(firestore, 'users'), where('unitId', '==', userProfile.unitId));
   }, [firestore, isAdmin, isSupervisor, userProfile, isMainCampusCoordinator]);
   
-  const { data: users, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
+  const { data: users } = useCollection<AppUser>(usersQuery);
 
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
@@ -377,7 +376,6 @@ export default function SubmissionsPage() {
         where('campusId', '==', userProfile.campusId)
       );
     }
-    // Unit User: Isolated by both unit and campus
     if (userProfile.unitId && userProfile.campusId) {
       return query(
         collection(firestore, 'submissions'), 
@@ -391,13 +389,13 @@ export default function SubmissionsPage() {
   const { data: submissionsData, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
-  const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
+  const { data: campuses } = useCollection<Campus>(campusesQuery);
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
-  const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+  const { data: units } = useCollection<Unit>(unitsQuery);
 
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
-  const { data: cycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
+  const { data: cycles } = useCollection<Cycle>(cyclesQuery);
 
 
   useEffect(() => {
@@ -420,30 +418,20 @@ export default function SubmissionsPage() {
 
             const data = await response.json();
             const parsedData = data.map((s: any) => {
-                // Aggressive fuzzy normalization of report types
                 let rType = String(s.reportType || '').trim();
                 const lowerType = rType.toLowerCase();
                 
-                if (lowerType.includes('risk and opportunity registry')) {
-                    rType = 'Risk and Opportunity Registry';
-                } else if (lowerType.includes('operational plan')) {
-                    rType = 'Operational Plan';
-                } else if (lowerType.includes('objectives monitoring')) {
-                    rType = 'Quality Objectives Monitoring';
-                } else if (lowerType.includes('needs and expectation')) {
-                    rType = 'Needs and Expectation of Interested Parties';
-                } else if (lowerType.includes('swot')) {
-                    rType = 'SWOT Analysis';
-                } else if (lowerType.includes('action plan') && lowerType.includes('risk')) {
-                    rType = 'Risk and Opportunity Action Plan';
-                }
+                if (lowerType.includes('risk and opportunity registry')) rType = 'Risk and Opportunity Registry';
+                else if (lowerType.includes('operational plan')) rType = 'Operational Plan';
+                else if (lowerType.includes('objectives monitoring')) rType = 'Quality Objectives Monitoring';
+                else if (lowerType.includes('needs and expectation')) rType = 'Needs and Expectation of Interested Parties';
+                else if (lowerType.includes('swot')) rType = 'SWOT Analysis';
+                else if (lowerType.includes('action plan') && lowerType.includes('risk')) rType = 'Risk and Opportunity Action Plan';
 
                 return {
                     ...s,
                     reportType: rType,
                     submissionDate: new Date(s.submissionDate),
-                    ...(s.createdAt && { createdAt: new Date(s.createdAt) }),
-                    ...(s.updatedAt && { updatedAt: new Date(s.updatedAt) }),
                 };
             });
             setCrossCampusSubmissions(parsedData);
@@ -462,7 +450,7 @@ export default function SubmissionsPage() {
     fetchCrossCampusSubmissions();
   }, [isMainCampusCoordinator, user, toast]);
 
-  const isLoading = isLoadingSubmissions || isLoadingCampuses || isLoadingCycles || isLoadingUnits || isLoadingUsers;
+  const isLoading = isLoadingSubmissions;
 
   const [activeFilter, setActiveFilter] = useState<string>('All Submissions');
   const [activeYearFilter, setActiveYearFilter] = useState<string>('All Years');
@@ -476,17 +464,13 @@ export default function SubmissionsPage() {
 
   const usersMap = useMemo(() => {
       const map = new Map<string, AppUser>();
-      if (users) {
-          users.forEach(u => map.set(u.id, u));
-      }
+      if (users) users.forEach(u => map.set(u.id, u));
       return map;
   }, [users]);
   
   const campusMap = useMemo(() => {
       const map = new Map<string, string>();
-      if (campuses) {
-          campuses.forEach(c => map.set(c.id, c.name));
-      }
+      if (campuses) campuses.forEach(c => map.set(c.id, c.name));
       return map;
   }, [campuses]);
   
@@ -499,23 +483,15 @@ export default function SubmissionsPage() {
   const submissions = useMemo(() => {
     if (!submissionsData) return [];
     return submissionsData.map(s => {
-        // Aggressive fuzzy normalization of report types
         let rType = String(s.reportType || '').trim();
         const lowerType = rType.toLowerCase();
         
-        if (lowerType.includes('risk and opportunity registry')) {
-            rType = 'Risk and Opportunity Registry';
-        } else if (lowerType.includes('operational plan')) {
-            rType = 'Operational Plan';
-        } else if (lowerType.includes('objectives monitoring')) {
-            rType = 'Quality Objectives Monitoring';
-        } else if (lowerType.includes('needs and expectation')) {
-            rType = 'Needs and Expectation of Interested Parties';
-        } else if (lowerType.includes('swot')) {
-            rType = 'SWOT Analysis';
-        } else if (lowerType.includes('action plan') && lowerType.includes('risk')) {
-            rType = 'Risk and Opportunity Action Plan';
-        }
+        if (lowerType.includes('risk and opportunity registry')) rType = 'Risk and Opportunity Registry';
+        else if (lowerType.includes('operational plan')) rType = 'Operational Plan';
+        else if (lowerType.includes('objectives monitoring')) rType = 'Quality Objectives Monitoring';
+        else if (lowerType.includes('needs and expectation')) rType = 'Needs and Expectation of Interested Parties';
+        else if (lowerType.includes('swot')) rType = 'SWOT Analysis';
+        else if (lowerType.includes('action plan') && lowerType.includes('risk')) rType = 'Risk and Opportunity Action Plan';
 
         return {
             ...s,
@@ -526,13 +502,11 @@ export default function SubmissionsPage() {
   }, [submissionsData]);
 
   const yearsForFilter = useMemo(() => {
-    const yearsFromCycles = cycles?.map(c => c.year) || [];
     const yearsFromSubmissions = submissionsData?.map(s => s.year) || [];
-    const uniqueYears = Array.from(new Set([...yearsFromCycles, ...yearsFromSubmissions])).sort((a, b) => b - a);
+    const uniqueYears = Array.from(new Set(yearsFromSubmissions)).sort((a, b) => b - a);
     return ['All Years', ...uniqueYears.map(String)];
-  }, [cycles, submissionsData]);
+  }, [submissionsData]);
 
-  
   const handleEyeClick = (submissionId: string) => {
       router.push(`/submissions/${submissionId}`);
   }
@@ -552,28 +526,20 @@ export default function SubmissionsPage() {
         const submissionRef = doc(firestore, 'submissions', deletingSubmission.id);
         await deleteDoc(submissionRef);
         
-        logSessionActivity(`Deleted unit submission: ${deletingSubmission.reportType} (ID: ${deletingSubmission.id})`, {
+        logSessionActivity(`Deleted unit submission: ${deletingSubmission.reportType}`, {
           action: 'delete_submission',
           details: { submissionId: deletingSubmission.id },
         });
 
-        toast({
-            title: 'Submission Deleted',
-            description: 'The submission has been permanently removed.'
-        });
+        toast({ title: 'Submission Deleted', description: 'The submission has been permanently removed.' });
     } catch (error) {
          console.error('Error deleting submission:', error);
-         toast({
-            title: 'Error',
-            description: 'Could not delete the submission.',
-            variant: 'destructive'
-         });
+         toast({ title: 'Error', description: 'Could not delete the submission.', variant: 'destructive' });
     } finally {
         setIsDeleting(false);
         setDeletingSubmission(null);
     }
   }
-
 
   const requestSort = (key: keyof Submission | 'submitterName' | 'campusName' | 'comments') => {
     let direction: 'ascending' | 'descending' = 'ascending';
@@ -596,141 +562,67 @@ export default function SubmissionsPage() {
 
   const sortedSubmissions = useMemo(() => {
     let sortableItems = [...submissions];
-    
-    if (activeFilter !== 'All Submissions') {
-      sortableItems = sortableItems.filter(s => s.reportType === activeFilter);
-    }
-
-    if (activeYearFilter !== 'All Years') {
-      sortableItems = sortableItems.filter(s => String(s.year) === activeYearFilter);
-    }
+    if (activeFilter !== 'All Submissions') sortableItems = sortableItems.filter(s => s.reportType === activeFilter);
+    if (activeYearFilter !== 'All Years') sortableItems = sortableItems.filter(s => String(s.year) === activeYearFilter);
 
     if (sortConfig !== null) {
         sortableItems.sort((a, b) => {
             let aValue: any, bValue: any;
-
             if (sortConfig.key === 'submitterName') {
-                const userA = usersMap.get(a.userId);
-                aValue = userA ? `${userA.firstName} ${userA.lastName}` : '';
-                const userB = usersMap.get(b.userId);
-                bValue = userB ? `${userB.firstName} ${userB.lastName}` : '';
+                const userA = usersMap.get(a.userId); aValue = userA ? `${userA.firstName} ${userA.lastName}` : '';
+                const userB = usersMap.get(b.userId); bValue = userB ? `${userB.firstName} ${userB.lastName}` : '';
             } else if (sortConfig.key === 'campusName') {
-                aValue = campusMap.get(a.campusId) ?? '';
-                bValue = campusMap.get(b.campusId) ?? '';
+                aValue = campusMap.get(a.campusId) ?? ''; bValue = campusMap.get(b.campusId) ?? '';
             } else if (sortConfig.key === 'comments') {
                 aValue = a.comments && a.comments.length > 0 ? a.comments[a.comments.length - 1].text : '';
                 bValue = b.comments && b.comments.length > 0 ? b.comments[b.comments.length - 1].text : '';
+            } else {
+                aValue = a[sortConfig.key as keyof Submission]; bValue = b[sortConfig.key as keyof Submission];
             }
-             else {
-                aValue = a[sortConfig.key as keyof Submission];
-                bValue = b[sortConfig.key as keyof Submission];
-            }
-            
             if (aValue instanceof Date && bValue instanceof Date) {
-                 if (aValue.getTime() < bValue.getTime()) {
-                    return sortConfig.direction === 'ascending' ? -1 : 1;
-                }
-                if (aValue.getTime() > bValue.getTime()) {
-                    return sortConfig.direction === 'ascending' ? 1 : -1;
-                }
-                return 0;
+                 return (aValue.getTime() - bValue.getTime()) * (sortConfig.direction === 'ascending' ? 1 : -1);
             }
-
-            if (aValue < bValue) {
-                return sortConfig.direction === 'ascending' ? -1 : 1;
-            }
-            if (aValue > bValue) {
-                return sortConfig.direction === 'ascending' ? 1 : -1;
-            }
+            if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
+            if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
             return 0;
         });
     }
-
     return sortableItems;
   }, [submissions, activeFilter, activeYearFilter, sortConfig, usersMap, campusMap]);
 
   const handlePrint = () => {
-    if (!userProfile || !cycles) return;
-
-    const latestCycle = cycles
-        .filter(c => c.year === new Date().getFullYear())
-        .sort((a, b) => (a.name === 'final' ? 1 : -1))[0] || cycles[0];
-
+    if (!userProfile) return;
     const reportProps = {
         user: userProfile,
         submissions: sortedSubmissions,
         campusName: campusMap.get(userProfile.campusId) || 'All Campuses',
-        cycle: latestCycle?.name || '',
-        year: latestCycle?.year || new Date().getFullYear(),
+        cycle: 'Active',
+        year: new Date().getFullYear(),
     };
-
     const reportHtml = ReactDOMServer.renderToStaticMarkup(<SubmissionReport {...reportProps} />);
     const printWindow = window.open('', '_blank');
     if (printWindow) {
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Submission Report</title>
-                    <style>
-                        body { font-family: sans-serif; margin: 2rem; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
-                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 10px; }
-                        th { background-color: #f2f2f2; }
-                        h1, h2, h3 { margin: 0; }
-                        .header { text-align: center; margin-bottom: 2rem; }
-                        .footer { margin-top: 2rem; font-style: italic; color: #555; font-size: 10px; }
-                        .report-title { margin-top: 1rem; text-align: center; font-weight: bold; text-transform: uppercase; }
-                        .user-info { margin-top: 1rem; }
-                    </style>
-                </head>
-                <body>
-                    ${reportHtml}
-                    <script>
-                        window.onload = function() {
-                            window.print();
-                            window.onafterprint = function() { window.close(); }
-                        }
-                    </script>
-                </body>
-            </html>
-        `);
+        printWindow.document.write(`<html><head><title>Report</title><style>body { font-family: sans-serif; margin: 2rem; } table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 10px; } th { background-color: #f2f2f2; } h1, h2, h3 { margin: 0; } .header { text-align: center; margin-bottom: 2rem; } .footer { margin-top: 2rem; font-style: italic; color: #555; font-size: 10px; } .report-title { margin-top: 1rem; text-align: center; font-weight: bold; text-transform: uppercase; } .user-info { margin-top: 1rem; }</style></head><body>${reportHtml}<script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); } }</script></body></html>`);
         printWindow.document.close();
     }
   };
 
   const handleExportToExcel = () => {
-    const dataToExport = sortedSubmissions.map(s => {
-        const submitter = usersMap.get(s.userId);
-        const submitterName = submitter ? `${submitter.firstName} ${submitter.lastName}` : '';
-        const latestComment = (s.comments && s.comments.length > 0) ? s.comments[s.comments.length - 1].text : '';
-        const baseData: any = {
-            'Control Number': s.controlNumber,
-            'Revision': s.revision,
-            'Report Type': s.reportType,
-            'Submitter': submitterName,
-            'Unit': s.unitName,
-            'Year': s.year,
-            'Cycle': s.cycleId,
-            'Submitted At': format(s.submissionDate, 'yyyy-MM-dd HH:mm'),
-            'Status': s.statusId,
-            'Link': s.googleDriveLink,
-            'Comments': latestComment
-        };
-
-        if (isAdmin) {
-            baseData['Campus'] = campusMap.get(s.campusId);
-        }
-        return baseData;
-    });
-
+    const dataToExport = sortedSubmissions.map(s => ({
+        'Control Number': s.controlNumber,
+        'Revision': s.revision,
+        'Report Type': s.reportType,
+        'Unit': s.unitName,
+        'Year': s.year,
+        'Cycle': s.cycleId,
+        'Submitted At': format(s.submissionDate, 'yyyy-MM-dd HH:mm'),
+        'Status': s.statusId,
+    }));
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Submissions');
     XLSX.writeFile(workbook, 'submissions-export.xlsx');
   };
-
-  const canSubmit = !isSupervisor || userRole === 'Unit ODIMO';
-
 
   return (
     <>
@@ -739,59 +631,34 @@ export default function SubmissionsPage() {
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Submissions</h2>
-            <p className="text-muted-foreground">
-              {isSupervisor ? 'A list of all submissions in your scope.' : `Viewing all submissions for the ${unitName}.`}
-            </p>
+            <p className="text-muted-foreground">{isSupervisor ? 'A list of all submissions in your scope.' : `Viewing all submissions for the ${unitName}.`}</p>
           </div>
           <div className="flex items-center space-x-2">
-              <Button variant="outline" onClick={handlePrint}>
-                  <Printer className="mr-2 h-4 w-4" />
-                  Print Report
-              </Button>
-              <Button variant="outline" onClick={handleExportToExcel}>
-                  <FileDown className="mr-2 h-4 w-4" />
-                  Export to Excel
-              </Button>
-            {canSubmit && (
+              <Button variant="outline" onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Print</Button>
+              <Button variant="outline" onClick={handleExportToExcel}><FileDown className="mr-2 h-4 w-4" /> Export</Button>
+            {(!isSupervisor || userProfile?.role === 'Unit ODIMO') && (
               <>
                 <Button variant="outline" asChild>
-                    <Link href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank">
-                        <Download className="mr-2 h-4 w-4" />
-                        Download Templates
-                    </Link>
+                    <Link href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1" target="_blank"><Download className="mr-2 h-4 w-4" /> Templates</Link>
                 </Button>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
-                    <Button>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        New Submission / Resubmission
-                    </Button>
+                    <Button><PlusCircle className="mr-2 h-4 w-4" /> New Submission</Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Submission Instructions</AlertDialogTitle>
                         <AlertDialogDescription asChild>
                         <ul className="list-disc space-y-2 pl-5 text-sm">
-                            <li>
-                                Prepare all required EOMS documents (Updated SWOT, Updated Need and Expectation, Operational Plan, Objectives Monitoring, Risk and Opportunities and Risk and Opportunity Action Plans) in PDF Format (using Complete Staff Work) in your EOMS Folder on your RSU Google Drive or Official Unit Google Drive.
-                            </li>
-                            <li>
-                                Ensure the document is saved on your unit's Google Drive using your RSU email and that sharing is set to "anyone with the link can view."
-                            </li>
-                            <li>
-                                The submission must be verified and approved by the QA Office.
-                            </li>
-                            <li>
-                                Note: Submissions are unit-centric. Only one person needs to upload for the whole unit.
-                            </li>
+                            <li>Prepare reports in PDF Format using Complete Staff Work.</li>
+                            <li>Ensure sharing is set to "anyone with the link can view."</li>
+                            <li>Only one person needs to upload for the whole unit.</li>
                         </ul>
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => router.push('/submissions/new')}>
-                        Continue
-                        </AlertDialogAction>
+                        <AlertDialogAction onClick={() => router.push('/submissions/new')}>Continue</AlertDialogAction>
                     </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
@@ -803,180 +670,43 @@ export default function SubmissionsPage() {
       
        <Tabs defaultValue="all-submissions" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
-            <TabsTrigger value="all-submissions">
-              <Rows className="mr-2 h-4 w-4" />
-              All Submissions
-            </TabsTrigger>
-            {isSupervisor && !isAdmin && (
-              <TabsTrigger value="by-unit">
-                <Library className="mr-2 h-4 w-4" />
-                Unit Submissions
-              </TabsTrigger>
-            )}
-             {isAdmin && (
-              <TabsTrigger value="by-campus">
-                <Building2 className="mr-2 h-4 w-4" />
-                Campus Submissions
-              </TabsTrigger>
-            )}
-             {isMainCampusCoordinator && (
-                <TabsTrigger value="cross-campus">
-                    <Send className="mr-2 h-4 w-4" />
-                    Cross-Campus Monitoring
-                </TabsTrigger>
-            )}
+            <TabsTrigger value="all-submissions"><Rows className="mr-2 h-4 w-4" /> All Submissions</TabsTrigger>
+            {isSupervisor && !isAdmin && (<TabsTrigger value="by-unit"><Library className="mr-2 h-4 w-4" /> Unit Submissions</TabsTrigger>)}
+            {isAdmin && (<TabsTrigger value="by-campus"><Building2 className="mr-2 h-4 w-4" /> Campus Submissions</TabsTrigger>)}
+            {isMainCampusCoordinator && (<TabsTrigger value="cross-campus"><Send className="mr-2 h-4 w-4" /> Cross-Campus</TabsTrigger>)}
         </TabsList>
-        <TabsContent value="all-submissions" data-state={activeTab === 'all-submissions' ? 'active' : 'inactive'}>
+        <TabsContent value="all-submissions">
             <Card>
                 <CardHeader>
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                    <div className='mb-4 md:mb-0'>
+                    <div>
                         <CardTitle>{isSupervisor ? 'All Submissions' : 'Unit Submissions'}</CardTitle>
-                        <CardDescription>
-                            {isSupervisor ? 'A history of all reports submitted by users in your campus/unit.' : `A history of all reports submitted for the ${unitName}.`}
-                        </CardDescription>
+                        <CardDescription>{isSupervisor ? 'A history of all reports in your scope.' : `A history of all reports for the ${unitName}.`}</CardDescription>
                     </div>
-                    <div className="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
-                    <Select value={activeYearFilter} onValueChange={setActiveYearFilter}>
-                        <SelectTrigger className="w-full md:w-[150px]">
-                        <SelectValue placeholder="Year" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        {yearsForFilter.map((year) => (
-                            <SelectItem key={year} value={year}>
-                            {year}
-                            </SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
-                    <Select value={activeFilter} onValueChange={setActiveFilter}>
-                        <SelectTrigger className="w-full md:w-[280px]">
-                        <SelectValue placeholder="Filter by report type..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                        {submissionTypes.map((type) => (
-                            <SelectItem key={type} value={type}>
-                            {type}
-                            </SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                        <Select value={activeYearFilter} onValueChange={setActiveYearFilter}><SelectTrigger className="w-[150px]"><SelectValue placeholder="Year" /></SelectTrigger><SelectContent>{yearsForFilter.map(y=><SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent></Select>
+                        <Select value={activeFilter} onValueChange={setActiveFilter}><SelectTrigger className="w-[250px]"><SelectValue placeholder="Filter..." /></SelectTrigger><SelectContent>{submissionTypes.map(t=><SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select>
                     </div>
                 </div>
                 </CardHeader>
                 <CardContent>
-                {isLoading ? (
-                        <div className="flex justify-center items-center h-64">
-                            <Loader2 className="h-8 w-8 animate-spin" />
-                        </div>
-                    ) : (
-                        <SubmissionsTable 
-                            submissions={sortedSubmissions}
-                            isSupervisor={isSupervisor ?? false}
-                            isAdmin={isAdmin ?? false}
-                            usersMap={usersMap}
-                            campusMap={campusMap}
-                            onEyeClick={handleEyeClick}
-                            onDeleteClick={handleDeleteClick}
-                            onFeedbackClick={handleFeedbackClick}
-                            sortConfig={sortConfig}
-                            requestSort={requestSort}
-                            cycles={cycleMap}
-                        />
-                    )}
+                {isLoadingSubmissions ? (<div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin" /></div>) : (
+                    <SubmissionsTable submissions={sortedSubmissions} isSupervisor={isSupervisor} isAdmin={isAdmin} usersMap={usersMap} campusMap={campusMap} onEyeClick={handleEyeClick} onDeleteClick={handleDeleteClick} onFeedbackClick={handleFeedbackClick} sortConfig={sortConfig} requestSort={requestSort} cycles={cycleMap} />
+                )}
                 </CardContent>
             </Card>
         </TabsContent>
-        {isSupervisor && !isAdmin && (
-            <TabsContent value="by-unit" data-state={activeTab === 'by-unit' ? 'active' : 'inactive'}>
-                <UnitSubmissionsView
-                    allSubmissions={submissions}
-                    allUnits={units}
-                    userProfile={userProfile}
-                    isLoading={isLoading}
-                />
-            </TabsContent>
-        )}
-        {isAdmin && (
-            <TabsContent value="by-campus" data-state={activeTab === 'by-campus' ? 'active' : 'inactive'}>
-                <CampusSubmissionsView
-                    allSubmissions={submissions}
-                    allCampuses={campuses}
-                    allUnits={units}
-                    isLoading={isLoading}
-                    isAdmin={isAdmin}
-                    onDeleteClick={handleDeleteClick}
-                />
-            </TabsContent>
-        )}
-        {isMainCampusCoordinator && (
-            <TabsContent value="cross-campus" data-state={activeTab === 'cross-campus' ? 'active' : 'inactive'}>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Cross-Campus Unit Monitoring</CardTitle>
-                        <CardDescription>
-                            Viewing all submissions for "{unitName}" across all campuses. This is a read-only view.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {isLoadingCrossCampus ? (
-                            <div className="flex justify-center items-center h-64">
-                                <Loader2 className="h-8 w-8 animate-spin" />
-                            </div>
-                        ) : (
-                           <SubmissionsTable 
-                                submissions={crossCampusSubmissions}
-                                isSupervisor={true}
-                                isAdmin={true}
-                                usersMap={usersMap}
-                                campusMap={campusMap}
-                                onEyeClick={handleEyeClick}
-                                onDeleteClick={() => {}}
-                                onFeedbackClick={handleFeedbackClick}
-                                sortConfig={sortConfig}
-                                requestSort={requestSort}
-                                cycles={cycleMap}
-                           />
-                        )}
-                    </CardContent>
-                </Card>
-            </TabsContent>
-        )}
+        {isSupervisor && !isAdmin && (<TabsContent value="by-unit"><UnitSubmissionsView allSubmissions={submissions} allUnits={units} userProfile={userProfile} isLoading={isLoadingSubmissions} /></TabsContent>)}
+        {isAdmin && (<TabsContent value="by-campus"><CampusSubmissionsView allSubmissions={submissions} allCampuses={campuses} allUnits={units} isLoading={isLoadingSubmissions} isAdmin={isAdmin} onDeleteClick={handleDeleteClick} /></TabsContent>)}
+        {isMainCampusCoordinator && (<TabsContent value="cross-campus"><Card><CardHeader><CardTitle>Cross-Campus Monitoring</CardTitle></CardHeader><CardContent><SubmissionsTable submissions={crossCampusSubmissions} isSupervisor={true} isAdmin={true} usersMap={usersMap} campusMap={campusMap} onEyeClick={handleEyeClick} onDeleteClick={() => {}} onFeedbackClick={handleFeedbackClick} sortConfig={sortConfig} requestSort={requestSort} cycles={cycleMap} /></CardContent></Card></TabsContent>)}
       </Tabs>
-
       </TooltipProvider>
-      <FeedbackDialog
-        isOpen={isFeedbackDialogOpen}
-        onOpenChange={setIsFeedbackDialogOpen}
-        feedback={feedbackToShow}
-      />
+      <FeedbackDialog isOpen={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} feedback={feedbackToShow} />
       <AlertDialog open={!!deletingSubmission} onOpenChange={() => setDeletingSubmission(null)}>
         <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the submission for <strong>{deletingSubmission?.reportType}</strong> from <strong>{deletingSubmission?.unitName}</strong>.
-                    <br/><br/>
-                    Please type <strong className="text-destructive">{challengeText}</strong> to confirm.
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <Input 
-                value={confirmationText}
-                onChange={(e) => setConfirmationText(e.target.value)}
-                placeholder={`Type "${challengeText}" to confirm`}
-                className="bg-muted"
-            />
-            <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction 
-                    onClick={handleConfirmDelete} 
-                    disabled={isDeleting || confirmationText !== challengeText}
-                    className="bg-destructive hover:bg-destructive/90"
-                >
-                    {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                    Delete Submission
-                </AlertDialogAction>
-            </AlertDialogFooter>
+            <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>Delete <strong>{deletingSubmission?.reportType}</strong> from <strong>{deletingSubmission?.unitName}</strong>. Type <strong className="text-destructive">{challengeText}</strong> to confirm.</AlertDialogDescription></AlertDialogHeader>
+            <Input value={confirmationText} onChange={(e) => setConfirmationText(e.target.value)} placeholder={`Type "${challengeText}"`} />
+            <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleConfirmDelete} disabled={isDeleting || confirmationText !== challengeText} className="bg-destructive hover:bg-destructive/90">{isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />} Delete</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>

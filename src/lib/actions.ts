@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getAdminFirestore } from '@/firebase/admin';
@@ -40,7 +39,6 @@ export async function logError(payload: ErrorReportPayload) {
         });
         return { success: true };
     } catch (error) {
-        // We log to console but don't throw to avoid crashing the render boundary
         console.error('Failed to log error to Firestore:', error);
         return { success: false };
     }
@@ -90,22 +88,24 @@ export async function getOfficialServerTime(): Promise<{ iso: string; year: numb
 
 /**
  * Saves a risk entry as an Administrator. 
+ * Returns a serializable result object instead of throwing to prevent Next.js render crashes.
  */
-export async function saveRiskAdmin(riskData: any, riskId?: string) {
+export async function saveRiskAdmin(riskData: any, riskId?: string): Promise<{ success: boolean; id?: string; error?: string }> {
     try {
         const firestore = getAdminFirestore();
+        if (!firestore) return { success: false, error: "Admin SDK not initialized." };
+
         const risksCollection = firestore.collection('risks');
         
-        // Clean the data for Firestore Admin SDK
-        const dataToSave = { ...riskData };
+        // Strip non-serializable fields and ensure pure data
+        const dataToSave = JSON.parse(JSON.stringify(riskData));
         
-        // Convert ISO strings back to Date objects for proper Timestamp storage
+        // Re-hydrate dates for Firestore Timestamp storage
         if (dataToSave.targetDate && typeof dataToSave.targetDate === 'string') {
             dataToSave.targetDate = new Date(dataToSave.targetDate);
         }
         
         if (dataToSave.postTreatment?.dateImplemented && typeof dataToSave.postTreatment.dateImplemented === 'string') {
-            // Only convert if it looks like a full ISO string, otherwise keep as text
             if (dataToSave.postTreatment.dateImplemented.includes('T')) {
                 dataToSave.postTreatment.dateImplemented = new Date(dataToSave.postTreatment.dateImplemented);
             }
@@ -125,7 +125,7 @@ export async function saveRiskAdmin(riskData: any, riskId?: string) {
         }
     } catch (error: any) {
         console.error("Admin Risk Save Error:", error);
-        throw new Error(error.message || "Failed to save risk data as admin.");
+        return { success: false, error: error.message || "Failed to save risk record." };
     }
 }
 
