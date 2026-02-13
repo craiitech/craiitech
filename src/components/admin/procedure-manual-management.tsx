@@ -34,14 +34,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import { Loader2, Edit, Trash2 } from 'lucide-react';
+import { Loader2, Edit, Trash2, FileText, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
+import { Badge } from '../ui/badge';
 
 const manualSchema = z.object({
   googleDriveLink: z.string().url('Please enter a valid Google Drive link.'),
+  revisionNumber: z.string().min(1, 'Revision number is required.'),
+  dateImplemented: z.string().min(1, 'Implementation date is required.'),
 });
 
 export function ProcedureManualManagement() {
@@ -63,17 +65,26 @@ export function ProcedureManualManagement() {
 
   const form = useForm<z.infer<typeof manualSchema>>({
     resolver: zodResolver(manualSchema),
+    defaultValues: {
+        googleDriveLink: '',
+        revisionNumber: '00',
+        dateImplemented: '',
+    }
   });
   
   const handleOpenDialog = (unit: Unit) => {
     setSelectedUnit(unit);
     const existingManual = manualMap.get(unit.id);
-    form.reset({ googleDriveLink: existingManual?.googleDriveLink || '' });
+    form.reset({ 
+        googleDriveLink: existingManual?.googleDriveLink || '',
+        revisionNumber: existingManual?.revisionNumber || '00',
+        dateImplemented: existingManual?.dateImplemented || '',
+    });
   };
   
   const handleCloseDialog = () => {
     setSelectedUnit(null);
-    form.reset({ googleDriveLink: '' });
+    form.reset();
   };
 
   const onSubmit = async (values: z.infer<typeof manualSchema>) => {
@@ -85,6 +96,8 @@ export function ProcedureManualManagement() {
       id: selectedUnit.id,
       unitName: selectedUnit.name,
       googleDriveLink: values.googleDriveLink,
+      revisionNumber: values.revisionNumber,
+      dateImplemented: values.dateImplemented,
       updatedAt: serverTimestamp(),
     };
 
@@ -119,7 +132,7 @@ export function ProcedureManualManagement() {
       <CardHeader>
         <CardTitle>Procedure Manuals</CardTitle>
         <CardDescription>
-          Manage the official procedure manuals for each university unit. These manuals will be accessible to all users of that unit type.
+          Manage the official procedure manuals for each university unit. These manuals are used for verification during unit monitoring.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -133,32 +146,40 @@ export function ProcedureManualManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Unit Name</TableHead>
+                  <TableHead>Revision</TableHead>
+                  <TableHead>Implemented</TableHead>
                   <TableHead>Manual Link</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {units?.map((unit) => {
+                {units?.sort((a,b) => a.name.localeCompare(b.name)).map((unit) => {
                   const manual = manualMap.get(unit.id);
                   return (
                     <TableRow key={unit.id}>
                       <TableCell className="font-medium">{unit.name}</TableCell>
                       <TableCell>
+                        {manual ? <Badge variant="secondary">Rev {manual.revisionNumber || '00'}</Badge> : '--'}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {manual?.dateImplemented || '--'}
+                      </TableCell>
+                      <TableCell>
                         {manual ? (
-                          <a href={manual.googleDriveLink} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline truncate block max-w-xs">
+                          <a href={manual.googleDriveLink} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline truncate block max-w-[150px]">
                             {manual.googleDriveLink}
                           </a>
                         ) : (
-                          <span className="text-sm text-muted-foreground">Not set</span>
+                          <span className="text-xs text-muted-foreground italic">Not set</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right whitespace-nowrap">
                         <Button variant="outline" size="sm" onClick={() => handleOpenDialog(unit)}>
                           <Edit className="mr-2 h-4 w-4" /> {manual ? 'Edit' : 'Add'}
                         </Button>
                         {manual && (
                             <Button variant="ghost" size="sm" className="text-destructive ml-2" onClick={() => handleDelete(unit.id)}>
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                <Trash2 className="mr-2 h-4 w-4" />
                             </Button>
                         )}
                       </TableCell>
@@ -173,11 +194,15 @@ export function ProcedureManualManagement() {
     </Card>
 
     <Dialog open={!!selectedUnit} onOpenChange={(open) => !open && handleCloseDialog()}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Manage Manual for "{selectedUnit?.name}"</DialogTitle>
+          <div className="flex items-center gap-2 text-primary mb-1">
+            <FileText className="h-5 w-5" />
+            <span className="text-xs font-bold uppercase tracking-widest">Manual Configuration</span>
+          </div>
+          <DialogTitle>Manage Manual: "{selectedUnit?.name}"</DialogTitle>
           <DialogDescription>
-            Enter the public Google Drive link for this unit's procedure manual.
+            Configure the official procedure manual details for this unit.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -195,13 +220,41 @@ export function ProcedureManualManagement() {
                 </FormItem>
               )}
             />
-            <DialogFooter>
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="revisionNumber"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Revision No.</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g. 01" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="dateImplemented"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Date Implemented</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g. Oct 2024" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+            <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={handleCloseDialog}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Manual
+                Save Configuration
               </Button>
             </DialogFooter>
           </form>

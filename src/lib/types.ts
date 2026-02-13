@@ -197,6 +197,8 @@ export type ProcedureManual = {
     id: string; // Same as unitId
     unitName: string;
     googleDriveLink: string;
+    revisionNumber?: string;
+    dateImplemented?: string;
     updatedAt: any; // serverTimestamp()
 }
 

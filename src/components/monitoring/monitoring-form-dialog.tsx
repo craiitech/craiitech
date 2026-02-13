@@ -21,17 +21,17 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, addDoc, Timestamp, query, where, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
-import type { UnitMonitoringRecord, Campus, Unit, Submission } from '@/lib/types';
+import type { UnitMonitoringRecord, Campus, Unit, Submission, ProcedureManual } from '@/lib/types';
 import { monitoringChecklistItems, monitoringGroups } from '@/lib/monitoring-checklist-items';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, ClipboardCheck, Circle, FileWarning, CheckCircle2, Info, LayoutList, Printer } from 'lucide-react';
+import { Loader2, ClipboardCheck, Circle, FileWarning, CheckCircle2, Info, LayoutList, Printer, BookOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
@@ -142,6 +142,13 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
 
   const { data: submissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
+  const manualRef = useMemoFirebase(() => {
+    if (!firestore || !selectedUnitId || !isOpen) return null;
+    return doc(firestore, 'procedureManuals', selectedUnitId);
+  }, [firestore, selectedUnitId, isOpen]);
+
+  const { data: unitManual } = useDoc<ProcedureManual>(manualRef);
+
   const missingReports = useMemo(() => {
     if (!submissions || !selectedUnitId) return [];
 
@@ -185,17 +192,31 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
 
   // AUTOMATION: Automatically flag "Not Available" and add remarks for missing portal submissions
   useEffect(() => {
-    if (!record && missingReports.length > 0 && isOpen) {
-        missingReports.forEach(missingInfo => {
-            const index = monitoringChecklistItems.findIndex(item => item === missingInfo.name);
+    if (!record && isOpen && form) {
+        // Automation for core EOMS reports
+        if (missingReports.length > 0) {
+            missingReports.forEach(missingInfo => {
+                const index = monitoringChecklistItems.findIndex(item => item === missingInfo.name);
+                if (index !== -1) {
+                    const cyclesStr = missingInfo.missing.join(' & ');
+                    form.setValue(`observations.${index}.status`, 'Not Available');
+                    form.setValue(`observations.${index}.remarks`, `Need to submit the updated ${missingInfo.name} and the ${cyclesStr} cycle(s).`);
+                }
+            });
+        }
+
+        // Automation for Procedure Manual
+        if (unitManual) {
+            const index = monitoringChecklistItems.findIndex(item => item === "Procedure Manual");
             if (index !== -1) {
-                const cyclesStr = missingInfo.missing.join(' & ');
-                form.setValue(`observations.${index}.status`, 'Not Available');
-                form.setValue(`observations.${index}.remarks`, `Need to submit the updated ${missingInfo.name} and the ${cyclesStr} cycle(s).`);
+                form.setValue(`observations.${index}.status`, 'Available');
+                const rev = unitManual.revisionNumber || '00';
+                const date = unitManual.dateImplemented || 'TBA';
+                form.setValue(`observations.${index}.remarks`, `Uploaded the google drive file with revision ${rev} implemented on ${date}.`);
             }
-        });
+        }
     }
-  }, [missingReports, record, isOpen, form]);
+  }, [missingReports, unitManual, record, isOpen, form]);
 
   useEffect(() => {
     if (isOpen) {
@@ -387,31 +408,60 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                         <CardHeader className="py-3 bg-blue-50">
                             <CardTitle className="text-sm flex items-center gap-2 text-blue-800">
                                 <Info className="h-4 w-4" />
-                                EOMS Submission Compliance Helper (Reference for Year {selectedYear})
+                                EOMS Compliance Reference (Year {selectedYear})
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="py-4">
-                            {missingReports.length > 0 ? (
+                        <CardContent className="py-4 space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Portal Submissions Section */}
                                 <div className="space-y-3">
-                                    <p className="text-xs font-semibold text-blue-900 mb-2">The following core documents are MISSING from the submission portal:</p>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {missingReports.map((report, idx) => (
-                                            <div key={idx} className="flex items-start gap-2 bg-white p-2 rounded border border-blue-100 shadow-sm">
-                                                <FileWarning className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-                                                <div>
-                                                    <p className="text-xs font-bold">{report.name}</p>
-                                                    <p className="text-[10px] text-muted-foreground">Missing Cycles: <span className="text-destructive font-semibold">{report.missing.join(' & ')}</span></p>
-                                                </div>
-                                            </div>
-                                        ))}
+                                    <div className="flex items-center gap-2 font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
+                                        <ClipboardCheck className="h-3 w-3" /> Portal Submissions
                                     </div>
+                                    {missingReports.length > 0 ? (
+                                        <div className="space-y-2">
+                                            {missingReports.map((report, idx) => (
+                                                <div key={idx} className="flex items-start gap-2 bg-white p-2 rounded border border-blue-100 shadow-sm">
+                                                    <FileWarning className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                                                    <div>
+                                                        <p className="text-xs font-bold">{report.name}</p>
+                                                        <p className="text-[10px] text-muted-foreground">Missing Cycles: <span className="text-destructive font-semibold">{report.missing.join(' & ')}</span></p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-3 text-green-700 bg-white p-3 rounded border border-green-100">
+                                            <CheckCircle2 className="h-5 w-5" />
+                                            <p className="text-xs font-bold">Full Portal Compliance</p>
+                                        </div>
+                                    )}
                                 </div>
-                            ) : (
-                                <div className="flex items-center gap-3 text-green-700">
-                                    <CheckCircle2 className="h-5 w-5" />
-                                    <p className="text-xs font-bold">Full Compliance: This unit has submitted all core EOMS documents for both First and Final cycles.</p>
+
+                                {/* Procedure Manual Section */}
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2 font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
+                                        <BookOpen className="h-3 w-3" /> Registered Manual
+                                    </div>
+                                    {unitManual ? (
+                                        <div className="flex items-start gap-2 bg-white p-2 rounded border border-green-100 shadow-sm">
+                                            <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                                            <div>
+                                                <p className="text-xs font-bold">Procedure Manual Found</p>
+                                                <p className="text-[10px] text-muted-foreground">
+                                                    Revision: <span className="font-semibold">{unitManual.revisionNumber || '00'}</span> &bull; 
+                                                    Implemented: <span className="font-semibold">{unitManual.dateImplemented || 'TBA'}</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-start gap-2 bg-white p-3 rounded border border-amber-100 text-amber-700">
+                                            <FileWarning className="h-4 w-4 shrink-0 mt-0.5" />
+                                            <p className="text-xs font-bold">No registered manual found for this unit.</p>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                            </div>
                         </CardContent>
                     </Card>
                 )}
@@ -449,6 +499,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                         const field = fields[index];
                                         const internalReportName = eomsReportMap[field.item];
                                         const missingReportInfo = missingReports.find(r => r.name === field.item);
+                                        const isManualItem = field.item === "Procedure Manual";
                                         
                                         return (
                                             <TableRow key={field.id} className="hover:bg-muted/20">
@@ -465,6 +516,11 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                                                     Submitted in Portal
                                                                 </Badge>
                                                             )
+                                                        )}
+                                                        {isManualItem && unitManual && (
+                                                            <Badge variant="secondary" className="w-fit text-[9px] h-4 py-0 bg-blue-100 text-blue-700 border-blue-200">
+                                                                Registered: Rev {unitManual.revisionNumber}
+                                                            </Badge>
                                                         )}
                                                     </div>
                                                 </TableCell>
