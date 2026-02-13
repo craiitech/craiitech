@@ -71,6 +71,12 @@ const currentYear = new Date().getFullYear();
 const yearsList = Array.from({ length: 10 }, (_, i) => String(currentYear - 5 + i));
 const daysList = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
+const getRating = (magnitude: number): string => {
+  if (magnitude >= 10) return 'High';
+  if (magnitude >= 5) return 'Medium';
+  return 'Low';
+};
+
 const formSchema = z.object({
   year: z.number().int(),
   objective: z.string().min(1, 'Objective is required'),
@@ -117,12 +123,6 @@ const likelihoodOptions = [
 const consequenceOptions = [
   { value: 1, label: '1 - Insignificant' }, { value: 2, label: '2 - Minor' }, { value: 3, label: '3 - Moderate' }, { value: 4, label: '4 - Major' }, { value: 5, label: '5 - Catastrophic' },
 ];
-
-const getRating = (magnitude: number): string => {
-  if (magnitude >= 15) return 'High';
-  if (magnitude >= 5) return 'Medium';
-  return 'Low';
-};
 
 export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits, allCampuses, isMandatory, registryLink, defaultYear }: RiskFormDialogProps) {
   const { user, userProfile, isAdmin } = useUser();
@@ -690,6 +690,14 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                         <li><strong>3:</strong> Moderate; noticeable impact.</li>
                                         <li><strong>2:</strong> Minor; easily managed locally.</li>
                                         <li><strong>1:</strong> Insignificant; no discernible impact.</li>
+                                    </ul>
+                                </div>
+                                <div className="pt-2 border-t border-blue-100">
+                                    <p className="font-bold text-primary mb-1 uppercase tracking-tighter">Rating Scale (L x C)</p>
+                                    <ul className="space-y-1.5 list-disc pl-3">
+                                        <li><strong>10 - 25:</strong> High Priority</li>
+                                        <li><strong>5 - 9:</strong> Medium Priority</li>
+                                        <li><strong>1 - 4:</strong> Low Priority</li>
                                     </ul>
                                 </div>
                             </CardContent>
