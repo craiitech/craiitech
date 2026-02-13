@@ -31,11 +31,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, serverTimestamp, collection, query, where, getDocs, getDoc, setDoc, addDoc } from 'firebase/firestore';
+import { doc, serverTimestamp, collection, query, where, getDocs, setDoc, addDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
-import { Loader2, Sparkles, FileText, HelpCircle, ListChecks, ShieldCheck, Info, BookOpen, Calculator, FileSearch, Calendar, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Loader2, Sparkles, FileText, HelpCircle, ShieldCheck, Info, BookOpen, Calculator, FileSearch, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
@@ -288,6 +288,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
     const targetUnitId = isAdmin ? values.adminUnitId! : userProfile.unitId;
     const targetCampusId = isAdmin ? values.adminCampusId! : userProfile.campusId;
 
+    // Construct a clean, serializable data object for the database.
+    // Important: Do NOT include serverTimestamp() if sending to a Server Action.
     const riskData: any = {
       objective: values.objective,
       type: values.type,
@@ -313,7 +315,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
       updates: values.updates || '',
       preparedBy: values.preparedBy || '',
       approvedBy: values.approvedBy || '',
-      updatedAt: serverTimestamp(),
     };
 
     if (values.status === 'Closed' && values.postTreatmentLikelihood && values.postTreatmentConsequence) {
@@ -330,6 +331,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
     }
 
     if (isAdmin) {
+        // Admin calls Server Action (requires plain JS objects only)
         saveRiskAdmin(riskData, risk?.id)
             .then(() => {
                 logSessionActivity(`Admin ${risk ? 'updated' : 'created'} risk entry`, { action: 'admin_save_risk', details: { riskId: risk?.id }});
@@ -344,38 +346,44 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                 setIsSubmitting(false);
             });
     } else {
+        // Client-side submission (can use Firestore sentinel objects)
+        const finalData = {
+            ...riskData,
+            updatedAt: serverTimestamp(),
+        };
+
         if (risk) {
             const riskRef = doc(firestore, 'risks', risk.id);
-            setDoc(riskRef, { ...riskData, createdAt: risk.createdAt }, { merge: true })
+            setDoc(riskRef, { ...finalData, createdAt: risk.createdAt }, { merge: true })
                 .then(() => {
                     toast({ title: 'Success', description: 'Risk/Opportunity has been saved.' });
                     onOpenChange(false);
                 })
-                .catch(async (serverError) => {
-                    const permissionError = new FirestorePermissionError({
+                .catch((serverError) => {
+                    console.error("Firestore Save Error:", serverError);
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({
                         path: riskRef.path,
                         operation: 'update',
-                        requestResourceData: riskData,
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
+                        requestResourceData: finalData,
+                    }));
                 })
                 .finally(() => {
                     setIsSubmitting(false);
                 });
         } else {
             const riskColRef = collection(firestore, 'risks');
-            addDoc(riskColRef, { ...riskData, createdAt: serverTimestamp() })
+            addDoc(riskColRef, { ...finalData, createdAt: serverTimestamp() })
                 .then(() => {
                     toast({ title: 'Success', description: 'Risk/Opportunity has been saved.' });
                     onOpenChange(false);
                 })
-                .catch(async (serverError) => {
-                    const permissionError = new FirestorePermissionError({
+                .catch((serverError) => {
+                    console.error("Firestore Create Error:", serverError);
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({
                         path: riskColRef.path,
                         operation: 'create',
-                        requestResourceData: riskData,
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
+                        requestResourceData: finalData,
+                    }));
                 })
                 .finally(() => {
                     setIsSubmitting(false);
