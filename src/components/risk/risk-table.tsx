@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -16,7 +15,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
@@ -29,7 +27,6 @@ interface RiskTableProps {
   risks: Risk[];
   usersMap: Map<string, AppUser>;
   onEdit: (risk: Risk) => void;
-  // onDelete: (riskId: string) => void;
 }
 
 type SortConfig = {
@@ -66,10 +63,13 @@ export function RiskTable({ risks, usersMap, onEdit }: RiskTableProps) {
             bValue = b[sortConfig.key as keyof Risk];
         }
 
-        // Resilient Timestamp/Date comparison
         const getTime = (val: any) => {
             if (val instanceof Timestamp) return val.toMillis();
             if (val instanceof Date) return val.getTime();
+            if (typeof val === 'string') {
+                const d = new Date(val);
+                return isNaN(d.getTime()) ? 0 : d.getTime();
+            }
             return 0;
         };
 
@@ -118,6 +118,7 @@ export function RiskTable({ risks, usersMap, onEdit }: RiskTableProps) {
   const formatDate = (date: any) => {
     if (!date) return 'N/A';
     const d = date instanceof Timestamp ? date.toDate() : new Date(date);
+    if (isNaN(d.getTime())) return 'N/A';
     return format(d, 'PP');
   }
 
@@ -168,25 +169,27 @@ export function RiskTable({ risks, usersMap, onEdit }: RiskTableProps) {
       </TableHeader>
       <TableBody>
         {sortedRisks.map((risk) => (
-          <TableRow key={risk.id}>
+          <TableRow key={risk.id} className="hover:bg-muted/30 transition-colors">
             <TableCell>
                 <div className={`flex items-center gap-2 ${risk.type === 'Risk' ? 'text-destructive' : 'text-green-600'}`}>
                     {risk.type === 'Risk' ? <Shield className="h-4 w-4"/> : <TrendingUp className="h-4 w-4"/>}
-                    <span>{risk.type}</span>
+                    <span className="font-bold text-xs uppercase tracking-tight">{risk.type}</span>
                 </div>
             </TableCell>
-            <TableCell className="max-w-xs truncate">{risk.description}</TableCell>
+            <TableCell className="max-w-xs truncate font-medium">{risk.description}</TableCell>
             <TableCell>
-                <Badge variant={ratingVariant[risk.preTreatment.rating] ?? 'outline'}>{risk.preTreatment.rating}</Badge>
+                <Badge variant={ratingVariant[risk.preTreatment.rating] ?? 'outline'} className="text-[10px] h-5">
+                    {risk.preTreatment.rating} ({risk.preTreatment.magnitude})
+                </Badge>
             </TableCell>
             <TableCell>
-                <Badge variant={statusVariant[risk.status] ?? 'outline'} className="flex items-center w-fit">
+                <Badge variant={statusVariant[risk.status] ?? 'outline'} className="flex items-center w-fit text-[10px] h-5">
                     {getStatusIcon(risk.status)}
                     {risk.status}
                 </Badge>
             </TableCell>
-            <TableCell>{risk.responsiblePersonName}</TableCell>
-            <TableCell>{formatDate(risk.updatedAt)}</TableCell>
+            <TableCell className="text-xs">{risk.responsiblePersonName}</TableCell>
+            <TableCell className="text-xs text-muted-foreground">{formatDate(risk.updatedAt)}</TableCell>
             <TableCell className="text-right">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -194,10 +197,10 @@ export function RiskTable({ risks, usersMap, onEdit }: RiskTableProps) {
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent>
+                <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Actions</DropdownMenuLabel>
                   <DropdownMenuItem onClick={() => onEdit(risk)}>
-                    View / Edit
+                    View / Edit Entry
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
