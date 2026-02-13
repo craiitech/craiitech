@@ -373,7 +373,9 @@
         "campusId": { "type": "string" },
         "collegeId": { "type": "string" },
         "level": { "type": "string", "enum": ["Undergraduate", "Graduate", "TVET"] },
-        "isActive": { "type": "boolean" }
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       }
     },
     "ProgramComplianceRecord": {
@@ -383,12 +385,17 @@
       "properties": {
         "id": { "type": "string" },
         "programId": { "type": "string" },
+        "campusId": { "type": "string" },
         "academicYear": { "type": "number" },
         "ched": { "type": "object" },
         "accreditation": { "type": "object" },
         "curriculum": { "type": "object" },
         "faculty": { "type": "object" },
-        "stats": { "type": "object" }
+        "stats": { "type": "object" },
+        "boardPerformance": { "type": "object" },
+        "tracer": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "type": "string" }
       }
     },
     "CampusSetting": {
@@ -554,6 +561,15 @@
             "schema": { "$ref": "#/backend/entities/ErrorReport" },
             "description": "User error reports.",
             "params": [{ "name": "errorId" }]
+        }
+      },
+      {
+        "path": "/unitMonitoringRecords/{recordId}",
+        "definition": {
+            "entityName": "UnitMonitoringRecord",
+            "schema": { "$ref": "#/backend/entities/UnitMonitoringRecord" },
+            "description": "Field monitoring visit records.",
+            "params": [{ "name": "recordId" }]
         }
       }
     ]

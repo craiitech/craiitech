@@ -49,12 +49,12 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /academicPrograms/{programId} {
-        allow read: if isSignedIn();
+        allow get, list: if isSignedIn();
         allow write: if isAdmin() || (isSignedIn() && hasProfile() && (profile().role == 'Campus Director' || profile().role == 'Campus ODIMO'));
     }
 
     match /programCompliances/{recordId} {
-        allow read: if isSignedIn();
+        allow get, list: if isSignedIn();
         allow create: if isAdmin() || (isSignedIn() && hasProfile() && (
           profile().role == 'Campus Director' || 
           profile().role == 'Campus ODIMO' ||
