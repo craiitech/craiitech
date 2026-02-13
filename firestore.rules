@@ -46,15 +46,15 @@ service cloud.firestore {
     // Collection Rules
     // --------------------------------------------------------------------------
     
-    // Academic Program Registry - Open read for all signed-in staff
+    // Academic Program Registry - Priority read for staff
     match /academicPrograms/{programId} {
-        allow read: if isSignedIn();
+        allow get, list: if isSignedIn();
         allow write: if isAdmin() || (isSignedIn() && hasProfile() && (profile().role == 'Campus Director' || profile().role == 'Campus ODIMO'));
     }
 
-    // Program Compliance Records - Open read for all signed-in staff
+    // Program Compliance Records - Priority read for staff
     match /programCompliances/{recordId} {
-        allow read: if isSignedIn();
+        allow get, list: if isSignedIn();
         allow create: if isAdmin() || (isSignedIn() && hasProfile() && (
           profile().role == 'Campus Director' || 
           profile().role == 'Campus ODIMO' ||
@@ -69,8 +69,8 @@ service cloud.firestore {
     }
 
     match /unitMonitoringRecords/{recordId} {
-        allow read: if isAdmin() || isAuditor();
-        allow read: if isSignedIn() && hasProfile() && (
+        allow get, list: if isAdmin() || isAuditor();
+        allow get, list: if isSignedIn() && hasProfile() && (
           resource.data.unitId == profile().unitId || 
           resource.data.campusId == profile().campusId ||
           profile().role.matches('(?i).*vice president.*')
