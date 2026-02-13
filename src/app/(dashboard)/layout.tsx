@@ -1,3 +1,4 @@
+
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -12,8 +13,8 @@ import {
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
 import { useEffect, useMemo, useCallback, useRef } from 'react';
-import type { Campus, Unit, Submission, UnitMonitoringRecord } from '@/lib/types';
-import { collection, query, where, Query, doc, updateDoc, serverTimestamp, orderBy, limit } from 'firebase/firestore';
+import type { Campus, Unit, Submission } from '@/lib/types';
+import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Building2 } from 'lucide-react';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';
@@ -51,9 +52,6 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-/**
- * Custom hook to detect user inactivity and trigger a callback.
- */
 const useIdleTimer = (onIdle: () => void, idleTime: number, enabled: boolean) => {
   const timeoutId = useRef<NodeJS.Timeout | null>(null);
 
@@ -66,9 +64,7 @@ const useIdleTimer = (onIdle: () => void, idleTime: number, enabled: boolean) =>
 
   useEffect(() => {
     if (!enabled) {
-      if (timeoutId.current) {
-        clearTimeout(timeoutId.current);
-      }
+      if (timeoutId.current) clearTimeout(timeoutId.current);
       return;
     }
 
@@ -91,36 +87,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { toast } = useToast();
   const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, isSupervisor } = useUser();
 
-  // Global console.error trapping
+  // Global console.error trapping - Guarded to prevent recursive crashes
   useEffect(() => {
     const originalConsoleError = console.error;
     console.error = (...args) => {
       originalConsoleError(...args);
-      if (args[0] && typeof args[0] === 'string' && args[0].includes('Failed to log error to Firestore')) return;
+      
+      // Prevent recursion and infinite loops
+      const msg = String(args[0] || '');
+      if (msg.includes('Failed to log error') || msg.includes('Admin SDK failed')) return;
+      
       const errorMessage = args.map(arg => {
-        if (arg instanceof Error) return `${arg.message}${arg.stack ? `\nStack: ${arg.stack}`: ''}${arg.digest ? `\nDigest: ${arg.digest}` : ''}`;
+        if (arg instanceof Error) return `${arg.message}${arg.stack ? `\nStack: ${arg.stack}`: ''}`;
         try { return JSON.stringify(arg, null, 2); } catch (e) { return String(arg); }
       }).join('\n');
-      logError({
-          errorMessage: errorMessage,
-          errorStack: new Error().stack,
-          url: window.location.href,
-          userId: user?.uid,
-          userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
-          userRole: userProfile?.role,
-          userEmail: userProfile?.email,
-      }).catch(e => originalConsoleError('Failed to log error to Firestore:', e));
+
+      // Use fire-and-forget for error logging, catching its own failures
+      if (user?.uid) {
+          logError({
+              errorMessage: errorMessage,
+              url: window.location.href,
+              userId: user?.uid,
+              userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
+              userRole: userProfile?.role,
+              userEmail: userProfile?.email,
+          }).catch(() => {}); // Swallow errors from the logger itself
+      }
     };
     return () => { console.error = originalConsoleError; };
   }, [user, userProfile]);
 
-  // Presence system
   useEffect(() => {
     if (!user || !firestore) return;
     const userStatusRef = doc(firestore, 'users', user.uid);
-    updateDoc(userStatusRef, { lastSeen: serverTimestamp() });
+    updateDoc(userStatusRef, { lastSeen: serverTimestamp() }).catch(() => {});
     const interval = setInterval(() => {
-        if (document.hasFocus()) updateDoc(userStatusRef, { lastSeen: serverTimestamp() });
+        if (document.hasFocus()) updateDoc(userStatusRef, { lastSeen: serverTimestamp() }).catch(() => {});
     }, 300000);
     return () => clearInterval(interval);
   }, [user, firestore]);
@@ -161,15 +163,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const notificationCount = useMemo(() => {
     if (!notifications) return 0;
-    
-    if (isAdmin) {
-        return notifications.length;
-    }
-
-    if (isSupervisor && userProfile) {
-        return notifications.filter(s => s.userId !== userProfile.id).length;
-    }
-    
+    if (isAdmin) return notifications.length;
+    if (isSupervisor && userProfile) return notifications.filter(s => s.userId !== userProfile.id).length;
     return notifications.length;
   }, [notifications, userProfile, isAdmin, isSupervisor]);
 

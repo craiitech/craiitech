@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getAdminFirestore } from '@/firebase/admin';
@@ -37,8 +38,11 @@ export async function logError(payload: ErrorReportPayload) {
             status: 'new',
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
         });
+        return { success: true };
     } catch (error) {
+        // We log to console but don't throw to avoid crashing the render boundary
         console.error('Failed to log error to Firestore:', error);
+        return { success: false };
     }
 }
 
@@ -50,7 +54,6 @@ export async function seedIsoClauses() {
 
         const snapshot = await clausesCollection.limit(1).get();
         if (!snapshot.empty) {
-            console.log('ISO clauses collection already populated. Seeding skipped.');
             return { success: true, message: 'Clauses already exist.' };
         }
         
@@ -63,7 +66,6 @@ export async function seedIsoClauses() {
         });
 
         await batch.commit();
-        console.log('Successfully seeded ISO clauses collection.');
         return { success: true, message: `${clauses.length} ISO clauses have been seeded.` };
     } catch (error) {
         console.error('Failed to seed ISO clauses:', error);
@@ -88,17 +90,28 @@ export async function getOfficialServerTime(): Promise<{ iso: string; year: numb
 
 /**
  * Saves a risk entry as an Administrator. 
- * This uses the Admin SDK to bypass client-side security rules.
  */
 export async function saveRiskAdmin(riskData: any, riskId?: string) {
     try {
         const firestore = getAdminFirestore();
         const risksCollection = firestore.collection('risks');
         
-        const dataToSave = {
-            ...riskData,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        };
+        // Clean the data for Firestore Admin SDK
+        const dataToSave = { ...riskData };
+        
+        // Convert ISO strings back to Date objects for proper Timestamp storage
+        if (dataToSave.targetDate && typeof dataToSave.targetDate === 'string') {
+            dataToSave.targetDate = new Date(dataToSave.targetDate);
+        }
+        
+        if (dataToSave.postTreatment?.dateImplemented && typeof dataToSave.postTreatment.dateImplemented === 'string') {
+            // Only convert if it looks like a full ISO string, otherwise keep as text
+            if (dataToSave.postTreatment.dateImplemented.includes('T')) {
+                dataToSave.postTreatment.dateImplemented = new Date(dataToSave.postTreatment.dateImplemented);
+            }
+        }
+
+        dataToSave.updatedAt = admin.firestore.FieldValue.serverTimestamp();
 
         if (riskId) {
             await risksCollection.doc(riskId).set(dataToSave, { merge: true });
@@ -125,10 +138,6 @@ const submissionTypes = [
   'SWOT Analysis',
 ];
 
-/**
- * Robust Normalization for Report Types.
- * Handles pluralization and missing prefixes.
- */
 function normalizeReportType(type: string): string {
     const lower = String(type || '').trim().toLowerCase();
     if (lower.includes('risk and opportunity registry')) return 'Risk and Opportunity Registry';
@@ -140,16 +149,10 @@ function normalizeReportType(type: string): string {
     return type;
 }
 
-/**
- * Fetches compliance matrix data for the public landing page.
- * Bypasses firestore.rules by using the Admin SDK.
- */
 export async function getPublicSubmissionMatrixData(year: number) {
     try {
         const firestore = getAdminFirestore();
         
-        // 1. Fetch Foundation Collections
-        // We use targeted queries where possible to avoid 500 timeouts
         const [campusesSnap, unitsSnap, cyclesSnap, submissionsSnap] = await Promise.all([
             firestore.collection('campuses').get(),
             firestore.collection('units').get(),
@@ -159,9 +162,7 @@ export async function getPublicSubmissionMatrixData(year: number) {
 
         const campuses = campusesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const units = unitsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const allCycles = cyclesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // 2. Build Submission Lookup Map
         const submissionMap = new Map<string, any>();
         submissionsSnap.forEach(doc => {
             const s = doc.data();
@@ -169,32 +170,24 @@ export async function getPublicSubmissionMatrixData(year: number) {
             const uId = String(s.unitId || '').trim().toLowerCase();
             const cycle = String(s.cycleId || '').trim().toLowerCase();
             const normalizedType = normalizeReportType(s.reportType).toLowerCase();
-
             const key = `${cId}-${uId}-${normalizedType}-${cycle}`;
             submissionMap.set(key, s);
         });
 
-        // 3. Construct Matrix
         const matrix = campuses.map((campus: any) => {
             const cId = String(campus.id || '').trim().toLowerCase();
             const campusUnits = units.filter((u: any) => u.campusIds?.includes(campus.id));
-            
             if (campusUnits.length === 0) return null;
 
             const unitStatuses = campusUnits.map((unit: any) => {
                 const uId = String(unit.id || '').trim().toLowerCase();
                 const statuses: Record<string, string> = {};
-                
                 ['first', 'final'].forEach(cycleId => {
                     const rorKey = `${cId}-${uId}-risk and opportunity registry-${cycleId}`;
                     const ror = submissionMap.get(rorKey);
-                    const riskRating = String(ror?.riskRating || '').toLowerCase();
-                    const isActionPlanNA = riskRating === 'low';
-
+                    const isActionPlanNA = String(ror?.riskRating || '').toLowerCase() === 'low';
                     submissionTypes.forEach(type => {
-                        const normalizedType = type.toLowerCase();
-                        const key = `${cId}-${uId}-${normalizedType}-${cycleId}`;
-                        
+                        const key = `${cId}-${uId}-${type.toLowerCase()}-${cycleId}`;
                         if (type === 'Risk and Opportunity Action Plan' && isActionPlanNA) {
                             statuses[key] = 'not-applicable';
                         } else if (submissionMap.has(key)) {
@@ -204,44 +197,19 @@ export async function getPublicSubmissionMatrixData(year: number) {
                         }
                     });
                 });
-
-                return { 
-                    unitId: unit.id, 
-                    unitName: unit.name || 'Unknown Unit', 
-                    statuses 
-                };
+                return { unitId: unit.id, unitName: unit.name || 'Unknown Unit', statuses };
             }).sort((a, b) => (a.unitName || '').localeCompare(b.unitName || ''));
 
-            return { 
-                campusId: campus.id, 
-                campusName: campus.name || 'Unknown Campus', 
-                units: unitStatuses 
-            };
-        })
-        .filter(Boolean)
-        .sort((a: any, b: any) => (a.campusName || '').localeCompare(b.campusName || ''));
+            return { campusId: campus.id, campusName: campus.name || 'Unknown Campus', units: unitStatuses };
+        }).filter(Boolean).sort((a: any, b: any) => (a.campusName || '').localeCompare(b.campusName || ''));
 
-        // For available years, we fetch a simplified list from all cycles
         const yearsSnap = await firestore.collection('cycles').select('year').get();
         let availableYears = Array.from(new Set(yearsSnap.docs.map(doc => Number(doc.data().year)))).sort((a, b) => b - a);
         if (availableYears.length === 0) availableYears = [new Date().getFullYear()];
 
         return { matrix, availableYears, error: null };
-
     } catch (error: any) {
         console.error("Public Matrix Action Error:", error);
-        // If the error is a 500 Auth error, it means the Service Account Key is missing.
-        if (error.message?.includes('access token') || error.message?.includes('500')) {
-             return { 
-                matrix: [], 
-                availableYears: [new Date().getFullYear()], 
-                error: "Compliance Data Synchronizing: The transparency board is currently connecting to the secure vault. Please check back shortly." 
-            };
-        }
-        return { 
-            matrix: [], 
-            availableYears: [new Date().getFullYear()], 
-            error: "The transparency board is currently offline for maintenance. Please sign in to the portal for detailed compliance tracking." 
-        };
+        return { matrix: [], availableYears: [new Date().getFullYear()], error: "Transparency board is synchronizing. Please check back shortly." };
     }
 }

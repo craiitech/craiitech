@@ -12,27 +12,30 @@ function initializeAdmin() {
   }
 
   // 1. Check for Service Account Key in environment variables
-  // This is the "Master Key" required to fix the 500 Connection Error
   const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT;
 
   try {
     if (serviceAccountKey) {
-      // If the key is provided, parse it and initialize with full privileges
       const serviceAccount = JSON.parse(serviceAccountKey);
       return admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         projectId: firebaseConfig.projectId,
       });
     } else {
-      // Fallback to Project ID only (requires environment-level auth like Google Cloud)
+      // Fallback to Project ID only
       return admin.initializeApp({
         projectId: firebaseConfig.projectId,
       });
     }
   } catch (error) {
     console.error("Firebase Admin initialization warning:", error);
-    // If all else fails, return the default app instance
-    return admin.app();
+    // In production, we return the default app if already initialized, 
+    // otherwise this will fail gracefully during service calls.
+    try {
+        return admin.app();
+    } catch {
+        return null;
+    }
   }
 }
 
@@ -40,9 +43,9 @@ function initializeAdmin() {
  * Returns an initialized Firestore admin instance.
  */
 export function getAdminFirestore() {
-  initializeAdmin();
+  const app = initializeAdmin();
+  if (!app) throw new Error("Firebase Admin SDK failed to initialize. Check environment variables.");
   const db = admin.firestore();
-  // Ensure settings are optimal for server-side use
   db.settings({ ignoreUndefinedProperties: true });
   return db;
 }
@@ -51,6 +54,7 @@ export function getAdminFirestore() {
  * Returns an initialized Auth admin instance.
  */
 export function getAdminAuth() {
-  initializeAdmin();
+  const app = initializeAdmin();
+  if (!app) throw new Error("Firebase Admin SDK failed to initialize. Check environment variables.");
   return admin.auth();
 }
