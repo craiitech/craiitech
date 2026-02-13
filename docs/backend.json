@@ -61,6 +61,44 @@
         "verified"
       ]
     },
+    "AcademicProgram": {
+      "title": "AcademicProgram",
+      "type": "object",
+      "description": "An academic degree program offered by the university.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "abbreviation": { "type": "string" },
+        "campusId": { "type": "string" },
+        "collegeId": { "type": "string" },
+        "level": { "type": "string", "enum": ["Undergraduate", "Graduate", "TVET"] },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "campusId", "collegeId", "level", "isActive"]
+    },
+    "ProgramComplianceRecord": {
+      "title": "ProgramComplianceRecord",
+      "type": "object",
+      "description": "Annual compliance data for an academic program.",
+      "properties": {
+        "id": { "type": "string" },
+        "programId": { "type": "string" },
+        "campusId": { "type": "string" },
+        "academicYear": { "type": "number" },
+        "ched": { "type": "object" },
+        "accreditation": { "type": "object" },
+        "curriculum": { "type": "object" },
+        "faculty": { "type": "object" },
+        "stats": { "type": "object" },
+        "boardPerformance": { "type": "object" },
+        "tracer": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "type": "string" }
+      },
+      "required": ["id", "programId", "campusId", "academicYear"]
+    },
     "Role": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Role",
@@ -360,42 +398,6 @@
         "approvedBy": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "AcademicProgram": {
-      "title": "AcademicProgram",
-      "type": "object",
-      "description": "An academic degree program offered by the university.",
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "abbreviation": { "type": "string" },
-        "campusId": { "type": "string" },
-        "collegeId": { "type": "string" },
-        "level": { "type": "string", "enum": ["Undergraduate", "Graduate", "TVET"] },
-        "isActive": { "type": "boolean" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "ProgramComplianceRecord": {
-      "title": "ProgramComplianceRecord",
-      "type": "object",
-      "description": "Annual compliance data for an academic program.",
-      "properties": {
-        "id": { "type": "string" },
-        "programId": { "type": "string" },
-        "campusId": { "type": "string" },
-        "academicYear": { "type": "number" },
-        "ched": { "type": "object" },
-        "accreditation": { "type": "object" },
-        "curriculum": { "type": "object" },
-        "faculty": { "type": "object" },
-        "stats": { "type": "object" },
-        "boardPerformance": { "type": "object" },
-        "tracer": { "type": "object" },
-        "updatedAt": { "type": "string", "format": "date-time" },
-        "updatedBy": { "type": "string" }
       }
     },
     "CampusSetting": {
