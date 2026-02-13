@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -292,21 +291,26 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
             targetDateISO = date.toISOString();
         }
 
-        const targetUnitId = isAdmin ? values.adminUnitId! : userProfile.unitId;
-        const targetCampusId = isAdmin ? values.adminCampusId! : userProfile.campusId;
+        const targetUnitId = (isAdmin ? values.adminUnitId : userProfile.unitId) || '';
+        const targetCampusId = (isAdmin ? values.adminCampusId : userProfile.campusId) || '';
 
-        // Construct strictly serializable data for server action (Next.js 15 boundary)
+        // Construct strictly serializable data for server action
         const riskData: any = {
-          objective: values.objective,
-          type: values.type,
-          description: values.description,
-          currentControls: values.currentControls,
-          status: values.status,
+          objective: values.objective || '',
+          type: values.type || 'Risk',
+          description: values.description || '',
+          currentControls: values.currentControls || '',
+          status: values.status || 'Open',
           year: values.year,
           unitId: targetUnitId,
           campusId: targetCampusId,
           userId: risk?.userId || user.uid,
-          preTreatment: { likelihood: values.likelihood, consequence: values.consequence, magnitude, rating },
+          preTreatment: { 
+            likelihood: Number(values.likelihood), 
+            consequence: Number(values.consequence), 
+            magnitude: Number(magnitude), 
+            rating: String(rating) 
+          },
           treatmentAction: values.treatmentAction || '',
           responsiblePersonId: values.responsiblePersonId || '',
           responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : '',
@@ -320,17 +324,17 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
 
         if (values.status === 'Closed' && values.postTreatmentLikelihood && values.postTreatmentConsequence) {
             riskData.postTreatment = {
-                likelihood: values.postTreatmentLikelihood,
-                consequence: values.postTreatmentConsequence,
-                magnitude: ptMagnitude,
-                rating: ptRating,
+                likelihood: Number(values.postTreatmentLikelihood),
+                consequence: Number(values.postTreatmentConsequence),
+                magnitude: Number(ptMagnitude),
+                rating: String(ptRating),
                 evidence: values.postTreatmentEvidence || '',
                 dateImplemented: values.postTreatmentDateImplemented || '',
             };
         }
 
         if (isAdmin) {
-            // Server Action path
+            // Server Action path - No Firestore complex objects allowed here
             await saveRiskAdmin(riskData, risk?.id);
             toast({ title: 'Success', description: 'Risk/Opportunity has been saved.' });
             onOpenChange(false);
@@ -344,13 +348,25 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
             
             if (risk) {
                 const riskRef = doc(firestore, 'risks', risk.id);
-                await setDoc(riskRef, { ...finalData, createdAt: risk.createdAt }, { merge: true });
+                setDoc(riskRef, { ...finalData, createdAt: risk.createdAt }, { merge: true })
+                    .then(() => {
+                        toast({ title: 'Success', description: 'Risk/Opportunity updated.' });
+                        onOpenChange(false);
+                    })
+                    .catch(error => {
+                        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: riskRef.path, operation: 'update', requestResourceData: finalData }));
+                    });
             } else {
                 const riskColRef = collection(firestore, 'risks');
-                await addDoc(riskColRef, { ...finalData, createdAt: serverTimestamp() });
+                addDoc(riskColRef, { ...finalData, createdAt: serverTimestamp() })
+                    .then(() => {
+                        toast({ title: 'Success', description: 'Risk/Opportunity logged.' });
+                        onOpenChange(false);
+                    })
+                    .catch(error => {
+                        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: riskColRef.path, operation: 'create', requestResourceData: finalData }));
+                    });
             }
-            toast({ title: 'Success', description: 'Risk/Opportunity has been saved.' });
-            onOpenChange(false);
         }
     } catch (error: any) {
         console.error("Submission Failure:", error);

@@ -92,7 +92,7 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
     },
     2025: { 
       first: 'bg-green-50/20 hover:bg-green-100/40 dark:bg-green-900/5 dark:hover:bg-green-900/10', 
-      final: 'bg-green-100/40 hover:bg-green-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
+      final: 'bg-green-100/40 hover:bg-blue-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
     },
     2026: { 
       first: 'bg-amber-50/20 hover:bg-amber-100/40 dark:bg-amber-900/5 dark:hover:bg-amber-900/10', 
@@ -793,7 +793,7 @@ export default function SubmissionsPage() {
                         Continue
                         </AlertDialogAction>
                     </AlertDialogFooter>
-                    </AlertDialog>
+                    </AlertDialogContent>
                 </AlertDialog>
               </>
             )}
