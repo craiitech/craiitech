@@ -55,11 +55,17 @@ service cloud.firestore {
 
     match /programCompliances/{recordId} {
         allow read: if isSignedIn();
-        allow write: if isAdmin() || (isSignedIn() && hasProfile() && (
+        allow create: if isAdmin() || (isSignedIn() && hasProfile() && (
+          profile().role == 'Campus Director' || 
+          profile().role == 'Campus ODIMO' ||
+          (profile().campusId == request.resource.data.campusId && profile().role.matches('(?i).*coordinator.*'))
+        ));
+        allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
           profile().role == 'Campus Director' || 
           profile().role == 'Campus ODIMO' ||
           (profile().campusId == resource.data.campusId && profile().role.matches('(?i).*coordinator.*'))
         ));
+        allow delete: if isAdmin();
     }
 
     match /unitMonitoringRecords/{recordId} {
