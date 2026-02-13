@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,9 +67,20 @@ export default function RiskRegisterPage() {
     const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusDataQuery);
     
     const campusMap = useMemo(() => {
-        if (!allCampuses) return new Map();
+        if (!allCampuses) return new Map<string, string>();
         return new Map(allCampuses.map(c => [c.id, c.name]));
     }, [allCampuses]);
+
+    const unitsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'units');
+    }, [firestore]);
+    const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+
+    const unitMap = useMemo(() => {
+        if (!allUnits) return new Map<string, string>();
+        return new Map(allUnits.map(u => [u.id, u.name]));
+    }, [allUnits]);
 
     const usersQuery = useMemoFirebase(() => {
         if (!firestore || !userProfile) return null;
@@ -84,12 +94,6 @@ export default function RiskRegisterPage() {
     }, [firestore, isAdmin, isSupervisor, userProfile]);
 
     const { data: users, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
-
-    const unitsQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return collection(firestore, 'units');
-    }, [firestore]);
-    const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
     const usersMap = useMemo(() => {
         if (!users) return new Map();
@@ -159,6 +163,10 @@ export default function RiskRegisterPage() {
                     risks={risks ?? []}
                     usersMap={usersMap}
                     onEdit={handleEditRisk}
+                    isAdmin={isAdmin}
+                    isSupervisor={isSupervisor}
+                    campusMap={campusMap}
+                    unitMap={unitMap}
                 />
             )}
         </CardContent>

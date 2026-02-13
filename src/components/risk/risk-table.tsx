@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, ArrowUpDown, Shield, TrendingUp, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Shield, TrendingUp, AlertCircle, CheckCircle, Clock, School, Building } from 'lucide-react';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 
@@ -27,10 +27,14 @@ interface RiskTableProps {
   risks: Risk[];
   usersMap: Map<string, AppUser>;
   onEdit: (risk: Risk) => void;
+  isAdmin?: boolean;
+  isSupervisor?: boolean;
+  campusMap?: Map<string, string>;
+  unitMap?: Map<string, string>;
 }
 
 type SortConfig = {
-    key: keyof Risk | 'responsiblePersonName' | 'magnitude';
+    key: keyof Risk | 'responsiblePersonName' | 'magnitude' | 'campusName' | 'unitName';
     direction: 'ascending' | 'descending';
 } | null;
 
@@ -46,7 +50,7 @@ const ratingVariant: Record<string, 'default' | 'secondary' | 'destructive'> = {
   'Low': 'default',
 };
 
-export function RiskTable({ risks, usersMap, onEdit }: RiskTableProps) {
+export function RiskTable({ risks, usersMap, onEdit, isAdmin, isSupervisor, campusMap, unitMap }: RiskTableProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'updatedAt', direction: 'descending' });
 
   const sortedRisks = useMemo(() => {
@@ -58,6 +62,12 @@ export function RiskTable({ risks, usersMap, onEdit }: RiskTableProps) {
         if (sortConfig.key === 'magnitude') {
             aValue = a.preTreatment.magnitude;
             bValue = b.preTreatment.magnitude;
+        } else if (sortConfig.key === 'campusName') {
+            aValue = campusMap?.get(a.campusId) || '';
+            bValue = campusMap?.get(b.campusId) || '';
+        } else if (sortConfig.key === 'unitName') {
+            aValue = unitMap?.get(a.unitId) || '';
+            bValue = unitMap?.get(b.unitId) || '';
         } else {
             aValue = a[sortConfig.key as keyof Risk];
             bValue = b[sortConfig.key as keyof Risk];
@@ -89,9 +99,9 @@ export function RiskTable({ risks, usersMap, onEdit }: RiskTableProps) {
       });
     }
     return sortableItems;
-  }, [risks, sortConfig]);
+  }, [risks, sortConfig, campusMap, unitMap]);
 
-  const requestSort = (key: keyof Risk | 'responsiblePersonName' | 'magnitude') => {
+  const requestSort = (key: keyof Risk | 'responsiblePersonName' | 'magnitude' | 'campusName' | 'unitName') => {
     let direction: 'ascending' | 'descending' = 'ascending';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
       direction = 'descending';
@@ -99,7 +109,7 @@ export function RiskTable({ risks, usersMap, onEdit }: RiskTableProps) {
     setSortConfig({ key, direction });
   };
 
-  const getSortIndicator = (key: keyof Risk | 'responsiblePersonName' | 'magnitude') => {
+  const getSortIndicator = (key: keyof Risk | 'responsiblePersonName' | 'magnitude' | 'campusName' | 'unitName') => {
     if (!sortConfig || sortConfig.key !== key) {
       return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
     }
@@ -134,33 +144,47 @@ export function RiskTable({ risks, usersMap, onEdit }: RiskTableProps) {
     <Table>
       <TableHeader>
         <TableRow>
+          {isAdmin && (
+            <TableHead>
+              <Button variant="ghost" onClick={() => requestSort('campusName')} className="-ml-4">
+                Campus {getSortIndicator('campusName')}
+              </Button>
+            </TableHead>
+          )}
+          {(isAdmin || isSupervisor) && (
+            <TableHead>
+              <Button variant="ghost" onClick={() => requestSort('unitName')} className="-ml-4">
+                Unit {getSortIndicator('unitName')}
+              </Button>
+            </TableHead>
+          )}
           <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('type')}>
+            <Button variant="ghost" onClick={() => requestSort('type')} className="-ml-4">
               Type {getSortIndicator('type')}
             </Button>
           </TableHead>
           <TableHead>
-             <Button variant="ghost" onClick={() => requestSort('description')}>
+             <Button variant="ghost" onClick={() => requestSort('description')} className="-ml-4">
               Description {getSortIndicator('description')}
             </Button>
           </TableHead>
           <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('magnitude')}>
+            <Button variant="ghost" onClick={() => requestSort('magnitude')} className="-ml-4">
               Rating {getSortIndicator('magnitude')}
             </Button>
           </TableHead>
            <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('status')}>
+            <Button variant="ghost" onClick={() => requestSort('status')} className="-ml-4">
               Status {getSortIndicator('status')}
             </Button>
           </TableHead>
            <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('responsiblePersonName')}>
+            <Button variant="ghost" onClick={() => requestSort('responsiblePersonName')} className="-ml-4">
               Accountable {getSortIndicator('responsiblePersonName')}
             </Button>
           </TableHead>
           <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('updatedAt')}>
+            <Button variant="ghost" onClick={() => requestSort('updatedAt')} className="-ml-4">
                 Last Updated {getSortIndicator('updatedAt')}
             </Button>
           </TableHead>
@@ -170,6 +194,22 @@ export function RiskTable({ risks, usersMap, onEdit }: RiskTableProps) {
       <TableBody>
         {sortedRisks.map((risk) => (
           <TableRow key={risk.id} className="hover:bg-muted/30 transition-colors">
+            {isAdmin && (
+              <TableCell className="text-xs">
+                <div className="flex items-center gap-2">
+                  <School className="h-3.5 w-3.5 text-muted-foreground" />
+                  {campusMap?.get(risk.campusId) || '...'}
+                </div>
+              </TableCell>
+            )}
+            {(isAdmin || isSupervisor) && (
+              <TableCell className="text-xs">
+                <div className="flex items-center gap-2">
+                  <Building className="h-3.5 w-3.5 text-muted-foreground" />
+                  {unitMap?.get(risk.unitId) || '...'}
+                </div>
+              </TableCell>
+            )}
             <TableCell>
                 <div className={`flex items-center gap-2 ${risk.type === 'Risk' ? 'text-destructive' : 'text-green-600'}`}>
                     {risk.type === 'Risk' ? <Shield className="h-4 w-4"/> : <TrendingUp className="h-4 w-4"/>}
