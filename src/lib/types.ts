@@ -264,7 +264,9 @@ export type ProgramComplianceRecord = {
   // CHED Compliance
   ched: {
     copcStatus: 'With COPC' | 'No COPC' | 'In Progress';
+    copcLink?: string; // GDrive PDF
     contentNoted: boolean;
+    contentNotedLink?: string; // GDrive PDF
     rqatVisit?: {
       date: any;
       result: string;
@@ -273,11 +275,20 @@ export type ProgramComplianceRecord = {
     };
   };
 
+  // Accreditation (New)
+  accreditation: {
+    level: string; // Level 1, Level 2, etc.
+    dateOfAward: any;
+    nextSchedule: any;
+    certificateLink?: string; // GDrive PDF
+  };
+
   // Curriculum
   curriculum: {
     revisionNumber: string;
     dateImplemented: any;
     isNotedByChed: boolean;
+    cmoLink?: string; // GDrive PDF (Program CMO)
   };
 
   // Faculty/Staff

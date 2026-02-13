@@ -76,7 +76,7 @@ export function SidebarNav({
       href: '/academic-programs',
       label: 'Program Monitoring',
       active: pathname.startsWith('/academic-programs'),
-      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor'],
+      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <GraduationCap />,
     },
     {
