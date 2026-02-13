@@ -24,6 +24,7 @@ export const monitoringGroups = [
       "Mission/ Vision / Core Values / Quality Policy",
       "Citizen Charter",
       "DPO Seal",
+      "Updated Organizational Structure",
       "Emergency Evacuation Posting",
       "Entrance / Exit Signages",
       "Warning Signs and Labels"
