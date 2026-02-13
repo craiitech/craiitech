@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -338,7 +339,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                 toast({ title: 'Success', description: 'Risk/Opportunity saved successfully.' });
                 onOpenChange(false);
             } else {
-                toast({ title: 'Error', description: result.error, variant: 'destructive' });
+                toast({ title: 'Configuration Error', description: result.error || 'Server rejected request.', variant: 'destructive' });
             }
         } else {
             const finalData = { 
