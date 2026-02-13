@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -282,7 +281,7 @@ function SubmissionTableForCycle({
                         </TableCell>
                         <TableCell className="text-right space-x-1 whitespace-nowrap">
                              <Button variant="outline" size="sm" onClick={() => onEyeClick(sub.id)} className="bg-background/50">
-                                <Eye className="mr-2 h-4 w-4" /> View
+                                <Eye className="mr-2 h-4 w-4" /> View Submission
                             </Button>
                             {isAdmin && (
                                 <>
