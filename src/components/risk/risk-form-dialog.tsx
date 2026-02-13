@@ -275,6 +275,13 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!user || !firestore || !userProfile) return;
+    
+    // Strict validation for Admin Overdrive mode to prevent undefined payloads
+    if (isAdmin && (!values.adminCampusId || !values.adminUnitId)) {
+        toast({ title: "Configuration Required", description: "Please select both a Campus and a Unit in Admin mode.", variant: "destructive" });
+        return;
+    }
+
     setIsSubmitting(true);
     
     try {
@@ -288,7 +295,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         const targetUnitId = isAdmin ? values.adminUnitId! : userProfile.unitId;
         const targetCampusId = isAdmin ? values.adminCampusId! : userProfile.campusId;
 
-        // Construct serializable data for server action
+        // Construct strictly serializable data for server action (Next.js 15 boundary)
         const riskData: any = {
           objective: values.objective,
           type: values.type,
@@ -303,7 +310,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
           treatmentAction: values.treatmentAction || '',
           responsiblePersonId: values.responsiblePersonId || '',
           responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : '',
-          targetDate: targetDateISO, // Pass as string for serialization
+          targetDate: targetDateISO, 
           oapNo: values.oapNo || '',
           resourcesNeeded: values.resourcesNeeded || '',
           updates: values.updates || '',
@@ -323,12 +330,18 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         }
 
         if (isAdmin) {
+            // Server Action path
             await saveRiskAdmin(riskData, risk?.id);
-            logSessionActivity(`Admin ${risk ? 'updated' : 'created'} risk entry`, { action: 'admin_save_risk', details: { riskId: risk?.id }});
             toast({ title: 'Success', description: 'Risk/Opportunity has been saved.' });
             onOpenChange(false);
         } else {
-            const finalData = { ...riskData, updatedAt: serverTimestamp() };
+            // Client-side Firestore path
+            const finalData = { 
+                ...riskData, 
+                updatedAt: serverTimestamp(),
+                targetDate: targetDateISO ? Timestamp.fromDate(new Date(targetDateISO)) : null
+            };
+            
             if (risk) {
                 const riskRef = doc(firestore, 'risks', risk.id);
                 await setDoc(riskRef, { ...finalData, createdAt: risk.createdAt }, { merge: true });
@@ -340,8 +353,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
             onOpenChange(false);
         }
     } catch (error: any) {
-        console.error("Submission Error:", error);
-        toast({ title: 'Error', description: error.message || 'Could not save entry.', variant: 'destructive'});
+        console.error("Submission Failure:", error);
+        toast({ title: 'Error', description: error.message || 'Could not complete the operation.', variant: 'destructive'});
     } finally {
         setIsSubmitting(false);
     }
@@ -485,16 +498,16 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                 )}
 
                                 <div className="space-y-4">
-                                    <h3 className="text-lg font-bold flex items-center gap-2"><div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">4</div> Monitoring</h3>
+                                    <h3 className="text-lg font-bold flex items-center gap-2"><div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">4</div> Monitoring Status</h3>
                                     <Card>
                                         <CardContent className="pt-6">
                                              <FormField control={form.control} name="status" render={({ field }) => (
-                                                <FormItem><FormLabel>Workflow Status</FormLabel>
+                                                <FormItem><FormLabel>Overall Workflow Status</FormLabel>
                                                     <Select onValueChange={field.onChange} value={field.value || 'Open'}>
                                                         <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                                         <SelectContent><SelectItem value="Open">Open (Pending)</SelectItem><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Closed">Closed (Mitigated)</SelectItem></SelectContent>
                                                     </Select>
-                                                </FormMessage></FormItem>
+                                                </FormItem>
                                             )} />
                                         </CardContent>
                                     </Card>
@@ -567,7 +580,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         <div className="p-6 border-t shrink-0 bg-card">
             <DialogFooter className="gap-2 sm:gap-0">
                 {!isMandatory && (<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>)}
-                <Button form="risk-form" type="submit" disabled={isSubmitting || (isAdmin && !selectedAdminUnitId)} className="px-8">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{risk ? 'Update Entry' : 'Log Entry'}</Button>
+                <Button form="risk-form" type="submit" disabled={isSubmitting || (isAdmin && (!selectedAdminCampusId || !selectedAdminUnitId))} className="px-8">{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{risk ? 'Update Entry' : 'Log Entry'}</Button>
             </DialogFooter>
         </div>
       </DialogContent>

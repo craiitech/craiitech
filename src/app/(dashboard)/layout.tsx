@@ -21,7 +21,6 @@ import { ActivityLogProvider } from '@/lib/activity-log-provider';
 import { Header } from '@/components/dashboard/header';
 import { Chatbot } from '@/components/dashboard/chatbot';
 import { useToast } from '@/hooks/use-toast';
-import { logError } from '@/lib/actions';
 
 const LoadingSkeleton = () => (
   <div className="flex items-start">
@@ -81,41 +80,10 @@ const useIdleTimer = (onIdle: () => void, idleTime: number, enabled: boolean) =>
 
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const firebaseState = useFirebase();
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
   const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, isSupervisor } = useUser();
-
-  // Global console.error trapping - Guarded to prevent recursive crashes
-  useEffect(() => {
-    const originalConsoleError = console.error;
-    console.error = (...args) => {
-      originalConsoleError(...args);
-      
-      // Prevent recursion and infinite loops
-      const msg = String(args[0] || '');
-      if (msg.includes('Failed to log error') || msg.includes('Admin SDK failed')) return;
-      
-      const errorMessage = args.map(arg => {
-        if (arg instanceof Error) return `${arg.message}${arg.stack ? `\nStack: ${arg.stack}`: ''}`;
-        try { return JSON.stringify(arg, null, 2); } catch (e) { return String(arg); }
-      }).join('\n');
-
-      // Use fire-and-forget for error logging, catching its own failures
-      if (user?.uid) {
-          logError({
-              errorMessage: errorMessage,
-              url: window.location.href,
-              userId: user?.uid,
-              userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
-              userRole: userProfile?.role,
-              userEmail: userProfile?.email,
-          }).catch(() => {}); // Swallow errors from the logger itself
-      }
-    };
-    return () => { console.error = originalConsoleError; };
-  }, [user, userProfile]);
 
   useEffect(() => {
     if (!user || !firestore) return;

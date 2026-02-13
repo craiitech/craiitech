@@ -11,7 +11,6 @@ function initializeAdmin() {
     return admin.apps[0]!;
   }
 
-  // 1. Check for Service Account Key in environment variables
   const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT;
 
   try {
@@ -22,15 +21,14 @@ function initializeAdmin() {
         projectId: firebaseConfig.projectId,
       });
     } else {
-      // Fallback to Project ID only
+      // Fallback to Project ID only - prevents crash if SA is missing during build
       return admin.initializeApp({
         projectId: firebaseConfig.projectId,
       });
     }
   } catch (error) {
-    console.error("Firebase Admin initialization warning:", error);
-    // In production, we return the default app if already initialized, 
-    // otherwise this will fail gracefully during service calls.
+    // Avoid console.error here to prevent potential recursion if monkey-patched
+    process.stdout.write("Firebase Admin initialization warning: " + String(error) + "\n");
     try {
         return admin.app();
     } catch {
