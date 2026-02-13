@@ -49,17 +49,27 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /unitMonitoringRecords/{recordId} {
-        // Oversight roles and Admins
         allow read: if isAdmin() || isAuditor();
-        
-        // Unit-level access for Coordinators and ODIMOs
         allow read: if isSignedIn() && hasProfile() && (
           resource.data.unitId == profile().unitId || 
           resource.data.campusId == profile().campusId ||
           profile().role.matches('(?i).*vice president.*')
         );
-        
         allow write: if isAdmin();
+    }
+
+    match /academicPrograms/{programId} {
+        allow read: if isSignedIn();
+        allow write: if isAdmin() || (isSignedIn() && hasProfile() && (profile().role == 'Campus Director' || profile().role == 'Campus ODIMO'));
+    }
+
+    match /programCompliances/{recordId} {
+        allow read: if isSignedIn();
+        allow write: if isAdmin() || (isSignedIn() && hasProfile() && (
+          profile().role == 'Campus Director' || 
+          profile().role == 'Campus ODIMO' ||
+          (profile().campusId == resource.data.campusId && profile().role.matches('(?i).*coordinator.*'))
+        ));
     }
 
     match /users/{userId} {
@@ -76,42 +86,34 @@ service cloud.firestore {
 
     match /submissions/{submissionId} {
       allow read: if isAdmin() || isAuditor();
-      
       allow read: if isSignedIn() && hasProfile() && (
         resource.data.userId == request.auth.uid || 
         resource.data.unitId == profile().unitId || 
         resource.data.campusId == profile().campusId ||
         profile().role.matches('(?i).*vice president.*')
       );
-
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-
       allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
         resource.data.userId == request.auth.uid || 
         resource.data.unitId == profile().unitId || 
         resource.data.campusId == profile().campusId
       ));
-
       allow delete: if isAdmin();
     }
 
     match /risks/{riskId} {
       allow read: if isAdmin() || isAuditor();
-      
       allow read: if isSignedIn() && hasProfile() && (
         resource.data.unitId == profile().unitId ||
         resource.data.userId == request.auth.uid ||
         resource.data.campusId == profile().campusId ||
         profile().role.matches('(?i).*vice president.*')
       );
-
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      
       allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
         request.auth.uid == resource.data.userId || 
         profile().unitId == resource.data.unitId
       ));
-      
       allow delete: if isAdmin();
     }
 
@@ -174,12 +176,10 @@ service cloud.firestore {
 
     match /auditSchedules/{scheduleId} {
         allow read: if isAdmin() || isAuditor();
-        
         allow read: if isSignedIn() && hasProfile() && (
           resource.data.targetId == profile().unitId || 
           resource.data.targetId == request.auth.uid
         );
-        
         allow create: if isAdmin();
         allow update: if isAdmin() || (isSignedIn() && hasProfile() && profile().role == 'Auditor' && (resource.data.auditorId == null || resource.data.auditorId == request.auth.uid));
     }

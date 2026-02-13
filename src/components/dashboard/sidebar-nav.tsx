@@ -9,7 +9,7 @@ import {
   useCollection,
   useMemoFirebase,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, User as UserIcon, ClipboardList, BookOpen, BookMarked, ClipboardCheck } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, User as UserIcon, ClipboardList, BookOpen, BookMarked, ClipboardCheck, GraduationCap } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -71,6 +71,13 @@ export function SidebarNav({
       label: 'Risk Register',
       active: pathname.startsWith('/risk-register'),
       icon: <ShieldCheck />,
+    },
+    {
+      href: '/academic-programs',
+      label: 'Program Monitoring',
+      active: pathname.startsWith('/academic-programs'),
+      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor'],
+      icon: <GraduationCap />,
     },
     {
       href: '/audit',

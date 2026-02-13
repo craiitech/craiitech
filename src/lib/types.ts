@@ -230,3 +230,99 @@ export type UnitMonitoringRecord = {
   generalRemarks?: string;
   createdAt: any; // Timestamp
 };
+
+// --- ACADEMIC PROGRAM MONITORING TYPES ---
+
+export type AcademicProgram = {
+  id: string;
+  name: string;
+  abbreviation: string;
+  campusId: string;
+  collegeId: string; // e.g., 'CET', 'CAS'
+  level: 'Undergraduate' | 'Graduate' | 'TVET';
+  isActive: boolean;
+  createdAt: any;
+};
+
+export type FacultyAlignment = 'Aligned' | 'Not Aligned' | 'N/A';
+export type FacultyCategory = 'Core' | 'Professional Special' | 'General Education' | 'Staff';
+
+export type ProgramFacultyMember = {
+  id: string;
+  name: string;
+  highestEducation: string;
+  category: FacultyCategory;
+  isAlignedWithCMO: FacultyAlignment;
+};
+
+export type ProgramComplianceRecord = {
+  id: string;
+  programId: string;
+  campusId: string;
+  academicYear: number;
+  
+  // CHED Compliance
+  ched: {
+    copcStatus: 'With COPC' | 'No COPC' | 'In Progress';
+    contentNoted: boolean;
+    rqatVisit?: {
+      date: any;
+      result: string;
+      comments: string;
+      nonCompliances: string;
+    };
+  };
+
+  // Curriculum
+  curriculum: {
+    revisionNumber: string;
+    dateImplemented: any;
+    isNotedByChed: boolean;
+  };
+
+  // Faculty/Staff
+  faculty: {
+    dean: {
+      name: string;
+      highestEducation: string;
+      isAlignedWithCMO: FacultyAlignment;
+    };
+    programChair: {
+      name: string;
+      highestEducation: string;
+      isAlignedWithCMO: FacultyAlignment;
+    };
+    members: ProgramFacultyMember[];
+  };
+
+  // Student Stats
+  stats: {
+    enrollment: {
+      firstYear: number;
+      secondYear: number;
+      thirdYear: number;
+      fourthYear: number;
+      fifthYear?: number;
+    };
+    graduationCount: number;
+  };
+
+  // Board Performance
+  boardPerformance?: {
+    examDate: any;
+    firstTakersPassRate: number;
+    retakersPassRate: number;
+    overallPassRate: number;
+    nationalPassingRate: number;
+  };
+
+  // Tracer Data
+  tracer: {
+    totalGraduates: number;
+    tracedCount: number;
+    employmentRate: number; // calculated %
+  };
+
+  updatedAt: any;
+  updatedBy: string;
+};
