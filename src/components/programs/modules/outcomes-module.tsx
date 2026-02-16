@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFormContext, useFieldArray } from 'react-hook-form';
@@ -10,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { TrendingUp, Users, PlusCircle, Trash2, GraduationCap, BarChart3, Star, Calculator } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import { useEffect } from 'react';
 
 interface OutcomesModuleProps {
