@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { Loader2, Save, FileCheck, Users, BookOpen, BarChart3, ShieldCheck } from 'lucide-react';
+import { Loader2, Save, FileCheck, Users, BookOpen, BarChart3, ShieldCheck, Presentation } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,6 +18,7 @@ import { AccreditationModule } from './modules/accreditation-module';
 import { FacultyModule } from './modules/faculty-module';
 import { CurriculumModule } from './modules/curriculum-module';
 import { OutcomesModule } from './modules/outcomes-module';
+import { ProgramPerformanceView } from './program-performance-view';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
@@ -280,7 +281,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-muted/30 p-4 rounded-lg border border-primary/10">
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-5 w-5 text-primary" />
-            <span className="text-sm font-semibold uppercase tracking-wider">Compliance Workspace</span>
+            <span className="text-sm font-semibold uppercase tracking-wider">Academic Monitoring System</span>
             <Select value={String(selectedAY)} onValueChange={(v) => setSelectedAY(Number(v))}>
               <SelectTrigger className="w-[180px] h-9">
                 <SelectValue placeholder="Academic Year" />
@@ -312,8 +313,11 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
             <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
           </div>
         ) : (
-          <Tabs defaultValue="ched" className="w-full">
-            <TabsList className="grid h-auto w-full grid-cols-2 md:grid-cols-5">
+          <Tabs defaultValue="performance" className="w-full">
+            <TabsList className={cn(
+                "grid h-auto w-full grid-cols-2 md:grid-cols-6"
+            )}>
+              <TabsTrigger value="performance" className="py-2 bg-primary/5 data-[state=active]:bg-primary data-[state=active]:text-white"><Presentation className="mr-2 h-4 w-4" /> Performance View</TabsTrigger>
               <TabsTrigger value="ched" className="py-2"><FileCheck className="mr-2 h-4 w-4" /> CHED & RQAT</TabsTrigger>
               <TabsTrigger value="accreditation" className="py-2"><ShieldCheck className="mr-2 h-4 w-4" /> Accreditation</TabsTrigger>
               <TabsTrigger value="faculty" className="py-2"><Users className="mr-2 h-4 w-4" /> Faculty</TabsTrigger>
@@ -322,6 +326,13 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
             </TabsList>
 
             <div className="mt-6">
+              <TabsContent value="performance">
+                <ProgramPerformanceView 
+                    program={program} 
+                    record={activeRecord} 
+                    selectedYear={selectedAY} 
+                />
+              </TabsContent>
               <TabsContent value="ched"><ChedComplianceModule canEdit={canEdit} /></TabsContent>
               <TabsContent value="accreditation"><AccreditationModule canEdit={canEdit} /></TabsContent>
               <TabsContent value="faculty"><FacultyModule canEdit={canEdit} /></TabsContent>
