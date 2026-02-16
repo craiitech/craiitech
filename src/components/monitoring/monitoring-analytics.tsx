@@ -30,7 +30,8 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
 
     /**
      * Compliance Score calculation per visit.
-     * Score = Available / (Total - Not Applicable)
+     * Logic: Exclude "Not Applicable" from both numerator and denominator.
+     * Score = Available / (Total Applicable Items)
      */
     const visitCompliance = records.map(record => {
         const applicableItems = record.observations.filter(o => o.status !== 'Not Applicable');

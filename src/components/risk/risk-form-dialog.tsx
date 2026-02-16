@@ -16,7 +16,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form';
 import {
   Select,
@@ -147,7 +146,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
 
   const selectedAdminCampusId = form.watch('adminCampusId');
   const selectedAdminUnitId = form.watch('adminUnitId');
-  const workflowStatus = form.watch('status');
 
   useEffect(() => {
     if (risk) {
@@ -324,8 +322,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         setIsSubmitting(false);
     }
   };
-
-  const previewEmbedUrl = registryLink ? registryLink.replace('/view', '/preview').replace('?usp=sharing', '') : null;
 
   return (
     <Dialog open={isOpen} onOpenChange={isMandatory ? undefined : onOpenChange}>

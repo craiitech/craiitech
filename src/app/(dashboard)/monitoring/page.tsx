@@ -42,12 +42,12 @@ export default function MonitoringPage() {
   const [selectedRecord, setSelectedRecord] = useState<UnitMonitoringRecord | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-  // Admins can view monitoring even if they don't have a profile doc in /users
-  const canViewMonitoring = !!userProfile || isAdmin;
+  // Use a strictly gated flag to prevent early permission errors
+  const canInitiateQueries = !isUserLoading && !!user && (!!userProfile || isAdmin);
 
   const monitoringRecordsQuery = useMemoFirebase(
     () => {
-        if (!firestore || !user || !canViewMonitoring || isUserLoading) return null;
+        if (!firestore || !canInitiateQueries) return null;
         
         const baseRef = collection(firestore, 'unitMonitoringRecords');
 
@@ -81,7 +81,7 @@ export default function MonitoringPage() {
 
         return null;
     },
-    [firestore, user, userProfile, isAdmin, isSupervisor, userRole, canViewMonitoring, isUserLoading]
+    [firestore, canInitiateQueries, userProfile, isAdmin, isSupervisor, userRole]
   );
   
   const { data: allRecords, isLoading: isLoadingRecords } = useCollection<UnitMonitoringRecord>(monitoringRecordsQuery);
@@ -94,10 +94,10 @@ export default function MonitoringPage() {
     });
   }, [allRecords, selectedYear]);
 
-  const campusesQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'campuses') : null), [firestore, user]);
+  const campusesQuery = useMemoFirebase(() => (firestore && canInitiateQueries ? collection(firestore, 'campuses') : null), [firestore, canInitiateQueries]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
-  const unitsQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'units') : null), [firestore, user]);
+  const unitsQuery = useMemoFirebase(() => (firestore && canInitiateQueries ? collection(firestore, 'units') : null), [firestore, canInitiateQueries]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
@@ -174,9 +174,8 @@ export default function MonitoringPage() {
   };
 
   /**
-   * Robust Compliance Calculation
-   * Logic: Successful / Required. 
-   * Items marked "Not Applicable" are removed from both the numerator and denominator.
+   * Refined Compliance Calculation
+   * Items marked "Not Applicable" are removed from both numerator and denominator.
    */
   const calculateCompliance = (record: UnitMonitoringRecord) => {
     if (!record.observations || record.observations.length === 0) return 0;
@@ -236,7 +235,7 @@ export default function MonitoringPage() {
 
   const isLoading = isUserLoading || isLoadingRecords || isLoadingCampuses || isLoadingUnits;
 
-  if (!isUserLoading && !canViewMonitoring) {
+  if (!isUserLoading && !canInitiateQueries) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
         <ShieldAlert className="h-16 w-16 text-destructive opacity-50" />

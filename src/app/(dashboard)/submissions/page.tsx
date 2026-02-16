@@ -1,7 +1,7 @@
 
 'use client';
 
-import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2, Printer, FileDown, Download, AlertCircle, Library, Rows, Building2, Send, Edit, ShieldCheck } from 'lucide-react';
+import { PlusCircle, Eye, Trash2, Loader2, Download } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -15,23 +15,14 @@ import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, Timestamp, where, doc, deleteDoc } from 'firebase/firestore';
-import type { Submission, User as AppUser, Campus, Cycle, Unit } from '@/lib/types';
-import { format } from 'date-fns';
+import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
+import type { Submission, Campus, Unit } from '@/lib/types';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FeedbackDialog } from '@/components/dashboard/feedback-dialog';
 import {
   AlertDialog,
@@ -45,16 +36,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useSessionActivity } from '@/lib/activity-log-provider';
-import * as XLSX from 'xlsx';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import Link from 'next/link';
+import { Tooltip, TooltipProvider } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UnitSubmissionsView } from '@/components/submissions/unit-submissions-view';
 import { CampusSubmissionsView } from '@/components/submissions/campus-submissions-view';
-import { SubmissionReport } from '@/components/submissions/submission-report';
-import ReactDOMServer from 'react-dom/server';
-import { cn } from '@/lib/utils';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -63,36 +48,14 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
     submitted: 'outline',
 };
 
-const submissionTypesList = [
-  'All Submissions',
-  'Operational Plan',
-  'Quality Objectives Monitoring',
-  'Risk and Opportunity Registry',
-  'Risk and Opportunity Action Plan',
-  'Needs and Expectation of Interested Parties',
-  'SWOT Analysis',
-];
-
-type SortConfig = {
-    key: keyof Submission | 'submitterName' | 'campusName' | 'comments';
-    direction: 'ascending' | 'descending';
-} | null;
-
-const getGoogleDriveDownloadLink = (url: string) => {
-    const fileId = url.match(/d\/([^/]+)/);
-    return fileId ? `https://drive.google.com/uc?export=download&id=${fileId[1]}` : url;
-};
-
 export default function SubmissionsPage() {
-  const { user, userProfile, isAdmin, isSupervisor, isMainCampusCoordinator, isUserLoading } = useUser();
+  const { user, userProfile, isAdmin, isSupervisor, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
   
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [feedbackToShow, setFeedbackToShow] = useState('');
-  const [activeFilter, setActiveFilter] = useState('All Submissions');
-  const [activeYearFilter, setActiveYearFilter] = useState('All Years');
   const [deletingSubmission, setDeletingSubmission] = useState<Submission | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmationText, setConfirmationText] = useState('');

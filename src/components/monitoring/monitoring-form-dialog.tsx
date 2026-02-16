@@ -54,7 +54,6 @@ const months = [
   { value: '9', label: 'October' }, { value: '10', label: 'November' }, { value: '11', label: 'December' },
 ];
 const currentYear = new Date().getFullYear();
-// Expanded support for historical and future records: 10 years back, and up to 2076 (50 years from 2026)
 const yearsList = Array.from({ length: 2076 - (currentYear - 10) + 1 }, (_, i) => String(currentYear - 10 + i));
 const daysList = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
@@ -127,8 +126,18 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
   const selectedCampusId = form.watch('campusId');
   const selectedUnitId = form.watch('unitId');
   const visitYearValue = form.watch('visitYear');
+  const observationsValue = form.watch('observations');
   
   const selectedYear = useMemo(() => visitYearValue ? Number(visitYearValue) : new Date().getFullYear(), [visitYearValue]);
+
+  // Logic to handle "Not Applicable" status change
+  useEffect(() => {
+    observationsValue?.forEach((obs, index) => {
+      if (obs.status === 'Not Applicable' && obs.remarks !== 'Not Applicable to this Room') {
+        form.setValue(`observations.${index}.remarks`, 'Not Applicable to this Room');
+      }
+    });
+  }, [observationsValue, form]);
 
   const unitsForCampus = useMemo(() => {
     if (!units) return [];
