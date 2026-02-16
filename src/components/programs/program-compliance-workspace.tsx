@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -109,7 +108,7 @@ function sanitizeForFirestore(obj: any): any {
   }
   return Object.entries(obj).reduce((acc, [key, value]) => {
     if (value === undefined) return acc;
-    if (value !== null && typeof value === 'object' && !(value instanceof Date)) {
+    if (value !== null && typeof value === 'object' && !(v instanceof Date)) {
       return { ...acc, [key]: sanitizeForFirestore(value) };
     }
     return { ...acc, [key]: value };
@@ -313,15 +312,12 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
           </div>
         ) : (
           <Tabs defaultValue="ched" className="w-full">
-            <TabsList className={cn(
-                "grid h-auto w-full",
-                program.isBoardProgram ? "grid-cols-2 md:grid-cols-5" : "grid-cols-2 md:grid-cols-4"
-            )}>
+            <TabsList className="grid h-auto w-full grid-cols-2 md:grid-cols-5">
               <TabsTrigger value="ched" className="py-2"><FileCheck className="mr-2 h-4 w-4" /> CHED & RQAT</TabsTrigger>
               <TabsTrigger value="accreditation" className="py-2"><ShieldCheck className="mr-2 h-4 w-4" /> Accreditation</TabsTrigger>
               <TabsTrigger value="faculty" className="py-2"><Users className="mr-2 h-4 w-4" /> Faculty</TabsTrigger>
               <TabsTrigger value="curriculum" className="py-2"><BookOpen className="mr-2 h-4 w-4" /> Curriculum</TabsTrigger>
-              {program.isBoardProgram && <TabsTrigger value="outcomes" className="py-2"><BarChart3 className="mr-2 h-4 w-4" /> Outcomes</TabsTrigger>}
+              <TabsTrigger value="outcomes" className="py-2"><BarChart3 className="mr-2 h-4 w-4" /> Outcomes</TabsTrigger>
             </TabsList>
 
             <div className="mt-6">
@@ -329,7 +325,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
               <TabsContent value="accreditation"><AccreditationModule canEdit={canEdit} /></TabsContent>
               <TabsContent value="faculty"><FacultyModule canEdit={canEdit} /></TabsContent>
               <TabsContent value="curriculum"><CurriculumModule canEdit={canEdit} /></TabsContent>
-              {program.isBoardProgram && <TabsContent value="outcomes"><OutcomesModule canEdit={canEdit} isBoardProgram={program.isBoardProgram} /></TabsContent>}
+              <TabsContent value="outcomes"><OutcomesModule canEdit={canEdit} isBoardProgram={program.isBoardProgram} /></TabsContent>
             </div>
           </Tabs>
         )}
