@@ -52,41 +52,33 @@ export default function MonitoringPage() {
         
         const baseRef = collection(firestore, 'unitMonitoringRecords');
 
-        // Debug Log Group
-        console.log("=== FIRESTORE PERMISSION DEBUG ===");
-        console.log("User UID:", user?.uid);
-        console.log("User Profile Loaded:", userProfile ? "YES" : "NO");
-        console.log("Profile Role:", userProfile.role);
-        console.log("Profile CampusId:", userProfile.campusId);
-        console.log("Profile UnitId:", userProfile.unitId);
-        console.log("Is Admin (Frontend):", isAdmin);
-        console.log("====================================");
-
         // 1. Master Admin and Auditors can see everything (Global Scope)
-        const isAuditorRole = userRole?.toLowerCase().includes('auditor');
-        if (isAdmin || isAuditorRole) {
-            console.log("Query Mode: Global (Admin/Auditor)");
+        // Match the Rule logic: (?i).*admin.* or (?i).*auditor.*
+        const isGlobalAdmin = isAdmin || (userRole && /admin|auditor/i.test(userRole));
+        
+        if (isGlobalAdmin) {
+            console.log("Monitoring: Global Query Mode");
             return query(baseRef, orderBy('visitDate', 'desc'));
         }
 
         // 2. Campus Officials (Director, Odimos, VP) see their campus
+        // Match the Rule logic: (?i).*(director|odimo|vice president).*
         const isCampusOfficial = userRole && /director|odimo|vice president/i.test(userRole);
         if (isCampusOfficial) {
              if (userProfile.campusId) {
-                 console.log("Query Mode: Campus Scoped", userProfile.campusId);
+                 console.log("Monitoring: Scoped Query Mode (Campus)", userProfile.campusId);
                  return query(
                     baseRef, 
                     where('campusId', '==', userProfile.campusId), 
                     orderBy('visitDate', 'desc')
                 );
              }
-             console.warn("Permission Warning: User identified as Campus Official but missing campusId in profile.");
              return null; 
         }
 
         // 3. Unit Users see their unit
         if (userProfile.unitId) {
-            console.log("Query Mode: Unit Scoped", userProfile.unitId);
+            console.log("Monitoring: Scoped Query Mode (Unit)", userProfile.unitId);
             return query(
                 baseRef, 
                 where('unitId', '==', userProfile.unitId), 
@@ -94,7 +86,6 @@ export default function MonitoringPage() {
             );
         }
 
-        console.warn("Permission Warning: User role/id could not be determined for query scoping.");
         return null;
     },
     [firestore, isUserLoading, userProfile, isAdmin, userRole, user?.uid]
@@ -221,7 +212,7 @@ export default function MonitoringPage() {
 
   const isLoading = isUserLoading || isLoadingRecords || isLoadingCampuses || isLoadingUnits;
 
-  const isUnitOnlyView = !isAdmin && !isSupervisor && !userRole?.toLowerCase().includes('auditor');
+  const isUnitOnlyView = !isAdmin && !isSupervisor && !(userRole && /auditor/i.test(userRole));
 
   return (
     <>
