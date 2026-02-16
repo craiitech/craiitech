@@ -25,31 +25,32 @@ export type SupportChatOutput = z.infer<typeof SupportChatOutputSchema>;
 const helpContent = `
   // General (For All Users)
   // Account Registration: Users sign up with their RSU email and create an account after agreeing to the Data Privacy statement.
-  // Completing Profile: After signup, users select their Campus, Role, and Unit.
-  // Account Verification: After completing their profile and accepting an NDA, an admin must verify the account. Users are notified by email upon approval.
-  // Logging Out: Click the avatar, then "Log out".
-  // Profile Updates: Users can update their first and last name on the "Profile" page. After saving, they are redirected to the dashboard.
+  // Account Verification: After completing their profile and accepting an NDA, an admin must verify the account.
+  // Profile Updates: Users can update their first and last name on the "Profile" page.
+
+  // Risk Management Lifecycle (IMPORTANT)
+  // 1. Identification (First Cycle): Log risks/opportunities, set initial Likelihood/Consequence, and propose a Treatment Plan. Status: "Open".
+  // 2. Monitoring (Ongoing): Units should update the "Monitoring Notes / Updates" field as mitigation activities occur. Status: "In Progress".
+  // 3. Evaluation (Final Cycle): Units must close the risk, perform "Post-Treatment Analysis" (Residual Risk), and provide evidence of completion. Status: "Closed".
+
+  // Risk Rating Scale (Magnitude = Likelihood x Consequence)
+  // High Priority: 10 - 25 (Requires mandatory Action Plan)
+  // Medium Priority: 5 - 9 (Requires mandatory Action Plan)
+  // Low Priority: 1 - 4 (Monitor only)
 
   // Employee / Unit Coordinator / Unit ODIMO
-  // Dashboard: Shows submission stats, charts, recent activity, a submission checklist, and a risk management overview.
-  // How to Submit: Go to "New Submission / Resubmission", select Year/Cycle, click a report, paste a valid Google Drive link, complete the final checklist, and submit.
-  // Handling Rejection: Find the rejected report, view feedback on the detail page, get a new link for the corrected document, and use the "Resubmit Report" form. After resubmitting, you are redirected back to the submissions list.
-  // Risk & Opportunity Register: A module for logging, tracking, and managing unit-specific risks and opportunities.
-  // Logging a Risk: Go to the "Risk Register" page, click "Log New Entry". This opens a detailed form. You must fill out the Identification (Type, Objective, Description, Current Controls) and Analysis (Likelihood, Consequence) sections. An "Action Plan" section, which includes fields like "OAP No.", "Treatment Plan", "Accountable Person", and "Target Date", is only required for Medium and High rated entries.
-  // Closing a Risk: To close a risk, edit the entry, change its status to "Closed", and complete the "Post-Treatment Analysis" section. This requires you to re-evaluate the risk's likelihood and consequence, provide written evidence of implementation, and specify the date it was completed.
+  // Dashboard: Shows submission stats, checklist, and risk overview.
+  // How to Submit: Go to "New Submission / Resubmission", select Year/Cycle, paste GDrive link, complete checklist, and submit.
+  // Handling Rejection: Find the rejected report, view feedback, correct the doc, and use the "Resubmit Report" form on the detail page.
 
-  // Campus Director, VP & Campus ODIMO (Approvers)
-  // Approvals Page: The "Approvals" sidebar link lists all "Submitted" status reports from their campus. Users cannot approve their own submissions. Unit ODIMOs perform their reviews via their dashboard or submissions page, not the main approvals page.
-  // Approving/Rejecting: Approve with the green checkmark. Reject with the red 'X' and provide mandatory feedback. When approving from the submission detail page, you are redirected back to the approvals list.
-  // Campus Dashboard & Settings: The dashboard shows campus-wide analytics, including a risk overview and an "Incomplete Submissions" card. Clicking on a unit in this card will display its submission status on the right. Campus Directors can manage units. Campus ODIMOs can post announcements.
-  // Monitoring Risks: Supervisors have read-only access to the Risk Register for all units in their scope to monitor status and progress. The dashboard provides a yearly overview of risk stats.
+  // Approvers (Campus Director, VP, ODIMO)
+  // Approvals Page: Lists "Submitted" reports from their campus. Users cannot self-approve.
+  // Approving/Rejecting: Provide feedback for rejections. Approving redirects back to the list.
 
   // Administrator
-  // System Administration: Manage Users, Campuses, Units, Roles, Cycles, and Announcements from the "Settings" page.
-  // Admin Dashboard: The admin dashboard includes a "Leaderboard" of top-performing units and an "Incomplete Submissions" card. Clicking a unit on this card displays its submission status on the right.
-  // Account Activation: Activate or deactivate user accounts.
-  // Secure Deletion: Admins can permanently delete submissions via a safety confirmation dialog on the Submissions page.
-  // Audit Log: A read-only log of all significant user and system actions.
+  // System Admin: Manage Users, Campuses, Units, Roles, Cycles, and Manuals from "Settings".
+  // Secure Deletion: Admins can delete submissions using a random challenge phrase confirmation.
+  // Audit Log: A read-only log of all system actions.
 `;
 
 export async function supportChat(input: SupportChatInput): Promise<SupportChatOutput> {
@@ -60,7 +61,7 @@ const supportChatPrompt = ai.definePrompt({
   name: 'supportChatPrompt',
   input: { schema: SupportChatInputSchema },
   output: { schema: SupportChatOutputSchema },
-  prompt: `You are an expert AI support agent for the "RSU EOMS Submission Portal". Your purpose is to answer user questions about how to use the portal.
+  prompt: `You are an expert AI support agent for the "RSU EOMS Submission Portal". Your purpose is to answer user questions about how to use the portal and its compliance workflows.
 
   Your knowledge is based on the following official user manual content:
   ---
@@ -69,7 +70,8 @@ const supportChatPrompt = ai.definePrompt({
 
   RULES:
   - Answer ONLY based on the provided user manual content.
-  - If the user asks a question not covered by the manual, politely state that you can only answer questions about the EOMS Portal's features and usage. DO NOT invent answers.
+  - For Risk Management queries, emphasize the lifecycle: Identification (Cycle 1), Monitoring (Ongoing), and Evaluation (Final Cycle).
+  - If the user asks a question not covered by the manual, politely state that you can only answer questions about the EOMS Portal's features and usage.
   - Be concise and clear. Use bullet points or numbered lists if it helps with clarity.
   - Your persona is helpful, professional, and friendly.
 

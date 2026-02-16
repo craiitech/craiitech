@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -35,7 +34,7 @@ import { doc, serverTimestamp, collection, query, where, getDocs, setDoc, addDoc
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
-import { Loader2, Sparkles, ShieldCheck, Calculator, FileSearch, Info, BookOpen } from 'lucide-react';
+import { Loader2, Sparkles, ShieldCheck, Calculator, FileSearch, Info, BookOpen, ListTodo, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
@@ -294,7 +293,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         const targetUnitId = (isAdmin ? values.adminUnitId : userProfile.unitId) || '';
         const targetCampusId = (isAdmin ? values.adminCampusId : userProfile.campusId) || '';
 
-        // Construct STRICT SERIALIZABLE data for Server Actions
         const riskData: any = {
           objective: values.objective || '',
           type: values.type || 'Risk',
@@ -385,9 +383,17 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                 <ShieldCheck className="h-5 w-5" />
                 <span className="text-xs font-bold uppercase tracking-widest">EOMS Compliance Register</span>
             </div>
-            <div className="flex items-center gap-2">
-                <DialogTitle className="text-xl">{risk ? 'Edit' : 'Log New'} Risk or Opportunity</DialogTitle>
-                {isAdmin && <Badge variant="secondary" className="bg-orange-100 text-orange-800">Admin Overdrive Mode</Badge>}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <DialogTitle className="text-xl">{risk ? 'Edit' : 'Log New'} Risk or Opportunity</DialogTitle>
+                    {isAdmin && <Badge variant="secondary" className="bg-orange-100 text-orange-800">Admin Overdrive Mode</Badge>}
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase">Overall Status:</span>
+                    <Badge variant={workflowStatus === 'Closed' ? 'default' : 'secondary'} className={cn(workflowStatus === 'Open' && "bg-destructive text-white", workflowStatus === 'In Progress' && "bg-blue-500 text-white")}>
+                        {workflowStatus}
+                    </Badge>
+                </div>
             </div>
         </div>
 
@@ -395,7 +401,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
             <div className="flex-1 flex flex-col min-w-0 border-r bg-background">
                 <ScrollArea className="flex-1">
                     <Form {...form}>
-                        <form id="risk-form" onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-6">
+                        <form id="risk-form" onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-8">
                             {isAdmin && (
                                 <Card className="border-orange-500/50 bg-orange-50/5 shadow-sm">
                                     <CardHeader className="py-3 border-b"><CardTitle className="text-xs font-black uppercase tracking-widest text-orange-800">Scope Configuration</CardTitle></CardHeader>
@@ -428,9 +434,10 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                 </Card>
                             )}
 
-                            <div className={cn("space-y-6", isStepDisabled && "opacity-20 pointer-events-none")}>
+                            <div className={cn("space-y-8", isStepDisabled && "opacity-20 pointer-events-none")}>
+                                {/* SECTION 1: IDENTIFICATION */}
                                 <div className="space-y-4">
-                                    <h3 className="text-lg font-bold flex items-center gap-2"><div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">1</div> Identification</h3>
+                                    <h3 className="text-lg font-bold flex items-center gap-2"><div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">1</div> Identification (First Cycle)</h3>
                                     <Card>
                                         <CardContent className="space-y-4 pt-6">
                                             <FormField control={form.control} name="type" render={({ field }) => (
@@ -443,13 +450,14 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                             )} />
                                             <FormField control={form.control} name="objective" render={({ field }) => (<FormItem><FormLabel>Process Objective</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="What is the unit trying to achieve?" /></FormControl><FormMessage /></FormItem>)} />
                                             <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} value={field.value || ''} placeholder="Describe the risk or opportunity..." /></FormControl><FormMessage /></FormItem>)} />
-                                            <FormField control={form.control} name="currentControls" render={({ field }) => (<FormItem><FormLabel>Existing Controls</FormLabel><FormControl><Textarea {...field} value={field.value || ''} placeholder="Current mitigation strategies..." /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={form.control} name="currentControls" render={({ field }) => (<FormItem><FormLabel>Existing Controls</FormLabel><FormControl><Textarea {...field} value={field.value || ''} placeholder="Current mitigation strategies already in place..." /></FormControl><FormMessage /></FormItem>)} />
                                         </CardContent>
                                     </Card>
                                 </div>
 
+                                {/* SECTION 2: ANALYSIS */}
                                 <div className="space-y-4">
-                                    <h3 className="text-lg font-bold flex items-center gap-2"><div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">2</div> Analysis</h3>
+                                    <h3 className="text-lg font-bold flex items-center gap-2"><div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">2</div> Analysis (Initial Scoring)</h3>
                                     <Card>
                                         <CardContent className="space-y-4 pt-6">
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -478,16 +486,17 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                     </Card>
                                 </div>
 
+                                {/* SECTION 3: ACTION PLAN */}
                                 {showActionPlan && (
                                     <div className="space-y-4">
-                                        <h3 className="text-lg font-bold flex items-center gap-2"><div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">3</div> Action Plan</h3>
+                                        <h3 className="text-lg font-bold flex items-center gap-2"><div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">3</div> Action Plan (Treatment)</h3>
                                         <Card className="border-primary/20">
                                             <CardHeader className="flex flex-row items-center justify-between py-4 bg-primary/5">
-                                                <CardTitle className="text-base">Treatment Strategy</CardTitle>
+                                                <CardTitle className="text-base flex items-center gap-2"><ListTodo className="h-4 w-4" /> Treatment Strategy</CardTitle>
                                                 <Button type="button" variant="secondary" size="sm" onClick={handleAISuggest} disabled={isSuggesting}>{isSuggesting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Sparkles className="h-3 w-3 mr-2" />}AI Suggest</Button>
                                             </CardHeader>
                                             <CardContent className="space-y-4 pt-6">
-                                                <FormField control={form.control} name="treatmentAction" render={({ field }) => (<FormItem><FormLabel>Treatment Plan</FormLabel><FormControl><Textarea {...field} value={field.value || ''} rows={6} /></FormControl><FormMessage /></FormItem>)} />
+                                                <FormField control={form.control} name="treatmentAction" render={({ field }) => (<FormItem><FormLabel>Treatment / Mitigation Plan</FormLabel><FormControl><Textarea {...field} value={field.value || ''} rows={6} placeholder="Detailed steps to mitigate the risk..." /></FormControl><FormMessage /></FormItem>)} />
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <FormField control={form.control} name="responsiblePersonId" render={({ field }) => (
                                                         <FormItem><FormLabel>Accountable Person</FormLabel>
@@ -505,15 +514,24 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                     </div>
                                 )}
 
+                                {/* SECTION 4: MONITORING UPDATES (ONGOING) */}
                                 <div className="space-y-4">
-                                    <h3 className="text-lg font-bold flex items-center gap-2"><div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">4</div> Monitoring Status</h3>
-                                    <Card>
-                                        <CardContent className="pt-6">
+                                    <h3 className="text-lg font-bold flex items-center gap-2"><div className="bg-blue-600 text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">4</div> Action Monitoring (Ongoing)</h3>
+                                    <Card className="border-blue-200">
+                                        <CardHeader className="py-3 bg-blue-50/50"><CardTitle className="text-sm flex items-center gap-2"><Activity className="h-4 w-4 text-blue-600" /> Implementation Progress</CardTitle></CardHeader>
+                                        <CardContent className="space-y-4 pt-6">
+                                            <FormField control={form.control} name="updates" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Monitoring Notes / Updates</FormLabel>
+                                                    <FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Input ongoing mitigation activities here to update the unit's progress..." /></FormControl>
+                                                    <FormDescription className="text-[10px]">Record evidence of implementation, status updates, or obstacles encountered during the cycle.</FormDescription>
+                                                </FormItem>
+                                            )} />
                                              <FormField control={form.control} name="status" render={({ field }) => (
-                                                <FormItem><FormLabel>Overall Workflow Status</FormLabel>
+                                                <FormItem><FormLabel>Workflow Status</FormLabel>
                                                     <Select onValueChange={field.onChange} value={field.value || 'Open'}>
                                                         <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                                        <SelectContent><SelectItem value="Open">Open</SelectItem><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Closed">Closed</SelectItem></SelectContent>
+                                                        <SelectContent><SelectItem value="Open">Open (Planned)</SelectItem><SelectItem value="In Progress">In Progress (Active Implementation)</SelectItem><SelectItem value="Closed">Closed (Completed & Evaluated)</SelectItem></SelectContent>
                                                     </Select>
                                                 </FormItem>
                                             )} />
@@ -521,9 +539,10 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                     </Card>
                                 </div>
 
+                                {/* SECTION 5: EVALUATION */}
                                 {workflowStatus === 'Closed' && (
                                     <div className="space-y-4">
-                                        <h3 className="text-lg font-bold flex items-center gap-2 text-green-600"><div className="bg-green-600 text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">5</div> Post-Treatment Analysis</h3>
+                                        <h3 className="text-lg font-bold flex items-center gap-2 text-green-600"><div className="bg-green-600 text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">5</div> Post-Treatment Analysis (Final Cycle)</h3>
                                         <Card className="border-green-200 bg-green-50/10">
                                             <CardContent className="space-y-6 pt-6">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -548,7 +567,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                                     <div className="flex items-center gap-2"><Calculator className="h-4 w-4 text-green-600" /><span className="text-sm font-medium">Residual Magnitude: <span className="font-bold">{ptMagnitude}</span></span></div>
                                                     <div className="flex items-center gap-2"><span className="text-sm font-medium">Residual Rating:</span><Badge variant={ptRating === 'High' ? 'destructive' : ptRating === 'Medium' ? 'secondary' : 'default'}>{ptRating}</Badge></div>
                                                 </div>
-                                                <FormField control={form.control} name="postTreatmentEvidence" render={({ field }) => (<FormItem><FormLabel>Evidence of Completion / Resolution</FormLabel><FormControl><Textarea {...field} value={field.value || ''} placeholder="Describe the results and proof of resolution..." className="bg-white" /></FormControl></FormItem>)} />
+                                                <FormField control={form.control} name="postTreatmentEvidence" render={({ field }) => (<FormItem><FormLabel>Evidence of Completion / Resolution</FormLabel><FormControl><Textarea {...field} value={field.value || ''} placeholder="Describe the results and proof of resolution (e.g., certificates, reports, photos)..." className="bg-white" /></FormControl></FormItem>)} />
                                                 <FormField control={form.control} name="postTreatmentDateImplemented" render={({ field }) => (<FormItem><FormLabel>Actual Date Implemented</FormLabel><FormControl><Input {...field} type="text" placeholder="e.g., Oct 2025" className="bg-white" /></FormControl></FormItem>)} />
                                             </CardContent>
                                         </Card>

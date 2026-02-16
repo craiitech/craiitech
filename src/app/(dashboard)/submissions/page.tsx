@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2, Printer, FileDown, Download, AlertCircle, Library, Rows, Building2, Send, Edit, ShieldCheck } from 'lucide-react';
@@ -475,7 +474,7 @@ export default function SubmissionsPage() {
       return map;
   }, [campuses]);
   
-  const unitName = useMemo(() => {
+  const unitNameForLabel = useMemo(() => {
     if (!userProfile?.unitId || !units) return '';
     return units.find(u => u.id === userProfile.unitId)?.name || '';
   }, [userProfile, units]);
@@ -632,7 +631,7 @@ export default function SubmissionsPage() {
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Submissions</h2>
-            <p className="text-muted-foreground">{isSupervisor ? 'A list of all submissions in your scope.' : `Viewing all submissions for the ${unitName}.`}</p>
+            <p className="text-muted-foreground">{isSupervisor ? 'A list of all submissions in your scope.' : `Viewing all submissions for the ${unitNameForLabel}.`}</p>
           </div>
           <div className="flex items-center space-x-2">
               <Button variant="outline" onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Print</Button>
@@ -682,7 +681,7 @@ export default function SubmissionsPage() {
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                     <div>
                         <CardTitle>{isSupervisor ? 'All Submissions' : 'Unit Submissions'}</CardTitle>
-                        <CardDescription>{isSupervisor ? 'A history of all reports in your scope.' : `A history of all reports for the ${unitName}.`}</CardDescription>
+                        <CardDescription>{isSupervisor ? 'A history of all reports in your scope.' : `A history of all reports for the ${unitNameForLabel}.`}</CardDescription>
                     </div>
                     <div className="flex gap-2">
                         <Select value={activeYearFilter} onValueChange={setActiveYearFilter}><SelectTrigger className="w-[150px]"><SelectValue placeholder="Year" /></SelectTrigger><SelectContent>{yearsForFilter.map(y=><SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent></Select>
