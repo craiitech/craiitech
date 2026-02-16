@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -35,37 +34,36 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // Core EOMS Collections
+    // CORE COLLECTION: unitMonitoringRecords
     // --------------------------------------------------------------------------
-
     match /unitMonitoringRecords/{recordId} {
+        
         // 1. Master Admin and Auditors can see everything (Global Scope)
         allow get, list: if isAdmin() || isAuditor();
         
         // 2. Campus Officials (Director, Odimos, VP) see their campus
-        // Filter: resource.data.campusId == user.campusId
         allow get, list: if isSignedIn() && hasProfile() && (
           resource.data.campusId == profile().get('campusId', '') && 
           profile().get('role', '').matches('(?i).*(director|odimo|vice president).*')
         );
 
         // 3. Unit Users see their unit
-        // Filter: resource.data.unitId == user.unitId
         allow get, list: if isSignedIn() && hasProfile() && (
           resource.data.unitId == profile().get('unitId', '') &&
           !profile().get('role', '').matches('(?i).*(director|odimo|vice president|admin|auditor).*')
         );
 
         // 4. Write Rules (ENFORCE DATA INTEGRITY)
-        // Admins can write, but MUST include unitId and campusId so site-level officials can read
+        // Admins can write, but MUST include unitId and campusId so others can read
         allow create: if isAdmin() && 
           request.resource.data.keys().hasAll(['unitId', 'campusId']);
         
-        allow update: if isAdmin() && 
-          (request.resource.data.unitId != null && request.resource.data.campusId != null);
-          
-        allow delete: if isAdmin();
+        allow update, delete: if isAdmin();
     }
+
+    // --------------------------------------------------------------------------
+    // EOMS COLLECTIONS
+    // --------------------------------------------------------------------------
 
     match /academicPrograms/{programId} {
         allow read: if isSignedIn();

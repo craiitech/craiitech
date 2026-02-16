@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, Timestamp, where } from 'firebase/firestore';
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
@@ -34,7 +33,7 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
 export default function MonitoringPage() {
-  const { isAdmin, isUserLoading, userProfile, isSupervisor, userRole } = useUser();
+  const { user, isAdmin, isUserLoading, userProfile, isSupervisor, userRole } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
 
@@ -53,26 +52,41 @@ export default function MonitoringPage() {
         
         const baseRef = collection(firestore, 'unitMonitoringRecords');
 
-        // 1. Admins and Auditors can see everything (global scope)
+        // Debug Log Group
+        console.log("=== FIRESTORE PERMISSION DEBUG ===");
+        console.log("User UID:", user?.uid);
+        console.log("User Profile Loaded:", userProfile ? "YES" : "NO");
+        console.log("Profile Role:", userProfile.role);
+        console.log("Profile CampusId:", userProfile.campusId);
+        console.log("Profile UnitId:", userProfile.unitId);
+        console.log("Is Admin (Frontend):", isAdmin);
+        console.log("====================================");
+
+        // 1. Master Admin and Auditors can see everything (Global Scope)
         const isAuditorRole = userRole?.toLowerCase().includes('auditor');
         if (isAdmin || isAuditorRole) {
+            console.log("Query Mode: Global (Admin/Auditor)");
             return query(baseRef, orderBy('visitDate', 'desc'));
         }
 
-        // 2. Campus Officials (Directors, ODIMOs, VPs) MUST filter by campusId to satisfy security rules
-        if (isSupervisor) {
+        // 2. Campus Officials (Director, Odimos, VP) see their campus
+        const isCampusOfficial = userRole && /director|odimo|vice president/i.test(userRole);
+        if (isCampusOfficial) {
              if (userProfile.campusId) {
+                 console.log("Query Mode: Campus Scoped", userProfile.campusId);
                  return query(
                     baseRef, 
                     where('campusId', '==', userProfile.campusId), 
                     orderBy('visitDate', 'desc')
                 );
              }
-             return null; // Waiting for campusId
+             console.warn("Permission Warning: User identified as Campus Official but missing campusId in profile.");
+             return null; 
         }
 
-        // 3. Unit Users MUST filter by unitId to satisfy security rules
+        // 3. Unit Users see their unit
         if (userProfile.unitId) {
+            console.log("Query Mode: Unit Scoped", userProfile.unitId);
             return query(
                 baseRef, 
                 where('unitId', '==', userProfile.unitId), 
@@ -80,9 +94,10 @@ export default function MonitoringPage() {
             );
         }
 
+        console.warn("Permission Warning: User role/id could not be determined for query scoping.");
         return null;
     },
-    [firestore, isUserLoading, userProfile, isAdmin, isSupervisor, userRole]
+    [firestore, isUserLoading, userProfile, isAdmin, userRole, user?.uid]
   );
   
   const { data: allRecords, isLoading: isLoadingRecords } = useCollection<UnitMonitoringRecord>(monitoringRecordsQuery);
