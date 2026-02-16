@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -6,7 +5,7 @@ import type { Submission, Unit, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Loader2, Building, Eye, School, Trash2, Download } from 'lucide-react';
+import { Loader2, Building, Eye, School, Trash2, Download, Filter } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -21,6 +20,7 @@ import {
 } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -92,14 +92,26 @@ export function CampusSubmissionsView({
   const router = useRouter();
   const [selectedCampusId, setSelectedCampusId] = useState<string | null>(null);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+
+  const availableYears = useMemo(() => {
+    if (!allSubmissions) return [new Date().getFullYear().toString()];
+    const years = Array.from(new Set(allSubmissions.map(s => s.year.toString())));
+    if (years.length === 0) return [new Date().getFullYear().toString()];
+    return years.sort((a,b) => b.localeCompare(a));
+  }, [allSubmissions]);
 
   const campusesWithSubmissions = useMemo(() => {
     if (!allCampuses || !allSubmissions) return [];
-    const submittedCampusIds = new Set(allSubmissions.map(s => s.campusId));
+    const submittedCampusIds = new Set(
+        allSubmissions
+            .filter(s => s.year.toString() === selectedYear)
+            .map(s => s.campusId)
+    );
     return allCampuses
         .filter(campus => submittedCampusIds.has(campus.id))
         .sort((a,b) => a.name.localeCompare(b.name));
-  }, [allCampuses, allSubmissions]);
+  }, [allCampuses, allSubmissions, selectedYear]);
   
   const unitsInSelectedCampus = useMemo(() => {
     if (!selectedCampusId || !allUnits || !allSubmissions) return [];
@@ -108,13 +120,17 @@ export function CampusSubmissionsView({
         unit.campusIds?.includes(selectedCampusId)
     );
 
-    const submittedUnitIds = new Set(allSubmissions.map(s => s.unitId));
+    const submittedUnitIds = new Set(
+        allSubmissions
+            .filter(s => s.year.toString() === selectedYear)
+            .map(s => s.unitId)
+    );
 
     return unitsForCampus
         .filter(unit => submittedUnitIds.has(unit.id))
         .sort((a, b) => a.name.localeCompare(b.name));
 
-  }, [selectedCampusId, allUnits, allSubmissions]);
+  }, [selectedCampusId, allUnits, allSubmissions, selectedYear]);
 
 
   const selectedUnitSubmissions = useMemo(() => {
@@ -122,13 +138,15 @@ export function CampusSubmissionsView({
       return { firstCycle: [], finalCycle: [] };
     }
     const unitSubmissions = allSubmissions.filter(s => 
-        s.unitId === selectedUnitId && s.campusId === selectedCampusId
+        s.unitId === selectedUnitId && 
+        s.campusId === selectedCampusId && 
+        s.year.toString() === selectedYear
     );
     return {
         firstCycle: unitSubmissions.filter(s => s.cycleId === 'first'),
         finalCycle: unitSubmissions.filter(s => s.cycleId === 'final'),
     }
-  }, [selectedUnitId, selectedCampusId, allSubmissions]);
+  }, [selectedUnitId, selectedCampusId, allSubmissions, selectedYear]);
   
   const handleCampusSelect = (campusId: string) => {
     setSelectedCampusId(prev => (prev === campusId ? null : campusId));
@@ -150,46 +168,63 @@ export function CampusSubmissionsView({
   return (
     <TooltipProvider>
     <Card>
-      <CardHeader>
-        <CardTitle>Submissions by Campus</CardTitle>
-        <CardDescription>
-          Select a campus, then a unit, to view their submissions for the current year.
-        </CardDescription>
+      <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <CardTitle>Campus Submissions</CardTitle>
+            <CardDescription>
+            Drill down into specific sites and units to manage their compliance history.
+            </CardDescription>
+        </div>
+        <div className="flex items-center gap-2">
+            <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-muted-foreground block">View Year</label>
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger className="w-[120px] h-8 text-xs">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-1">
-            <ScrollArea className="h-[60vh] rounded-md border">
+            <ScrollArea className="h-[60vh] rounded-md border bg-muted/5">
                  {campusesWithSubmissions.length > 0 ? (
                     <Accordion type="single" collapsible value={selectedCampusId || ''} onValueChange={handleCampusSelect}>
                         {campusesWithSubmissions.map(campus => (
-                            <AccordionItem value={campus.id} key={campus.id}>
+                            <AccordionItem value={campus.id} key={campus.id} className="border-b-0">
                                 <AccordionTrigger 
-                                    className="p-3 hover:no-underline hover:bg-muted/50"
+                                    className="px-4 py-3 hover:no-underline hover:bg-muted/50 data-[state=open]:bg-muted/20"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <School className="mr-3 h-4 w-4 flex-shrink-0" />
-                                        <span className="font-medium">{campus.name}</span>
+                                        <School className="h-4 w-4 text-primary shrink-0" />
+                                        <span className="font-bold text-xs uppercase tracking-tight">{campus.name}</span>
                                     </div>
                                 </AccordionTrigger>
-                                <AccordionContent className="pb-0">
-                                    <div className="pl-4">
+                                <AccordionContent className="pb-0 bg-background/50">
+                                    <div className="flex flex-col">
                                     {unitsInSelectedCampus.map(unit => (
                                         <Button
                                             key={unit.id}
                                             variant="ghost"
                                             onClick={() => handleUnitSelect(unit.id)}
                                             className={cn(
-                                                "w-full justify-start text-left h-auto p-3",
-                                                selectedUnitId === unit.id && "bg-muted font-semibold"
+                                                "w-full justify-start text-left h-auto py-2.5 px-8 text-xs rounded-none border-l-2",
+                                                selectedUnitId === unit.id 
+                                                    ? "bg-primary/5 text-primary border-primary font-bold" 
+                                                    : "border-transparent text-muted-foreground"
                                             )}
                                         >
-                                            <Building className="mr-3 h-4 w-4 flex-shrink-0" />
-                                            <span>{unit.name}</span>
+                                            <Building className="mr-3 h-3 w-3 flex-shrink-0" />
+                                            <span className="truncate">{unit.name}</span>
                                         </Button>
                                     ))}
                                     {selectedCampusId === campus.id && unitsInSelectedCampus.length === 0 && (
-                                        <div className="p-3 text-xs text-muted-foreground">No units with submissions in this campus.</div>
+                                        <div className="p-4 text-[10px] text-center text-muted-foreground italic">No submissions for this year.</div>
                                     )}
                                     </div>
                                 </AccordionContent>
@@ -197,42 +232,56 @@ export function CampusSubmissionsView({
                         ))}
                     </Accordion>
                  ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground p-4">
-                        No campuses have submitted documents yet.
+                    <div className="flex flex-col items-center justify-center h-full text-center p-8 gap-2">
+                        <Filter className="h-8 w-8 text-muted-foreground opacity-20" />
+                        <p className="text-xs text-muted-foreground font-medium">No activity recorded for {selectedYear}.</p>
                     </div>
                  )}
             </ScrollArea>
           </div>
 
           <div className="md:col-span-2">
-            <ScrollArea className="h-[60vh]">
+            <ScrollArea className="h-[60vh] rounded-md border p-4 bg-muted/5">
                 {selectedUnitId ? (
-                    <div className="space-y-6">
-                        <div className="font-semibold text-lg">
-                            Submissions for: {allUnits?.find(u => u.id === selectedUnitId)?.name}
+                    <div className="space-y-8">
+                        <div className="flex items-center justify-between border-b pb-4">
+                            <div className="space-y-1">
+                                <h3 className="font-black text-lg uppercase tracking-tight text-primary">
+                                    {allUnits?.find(u => u.id === selectedUnitId)?.name}
+                                </h3>
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase">
+                                    <CalendarIcon className="h-3 w-3" />
+                                    Reporting Year: {selectedYear}
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="text-lg font-semibold mb-2">First Cycle Submissions</h3>
-                             <SubmissionTableForCycle 
-                                submissions={selectedUnitSubmissions.firstCycle} 
-                                onEyeClick={(id) => router.push(`/submissions/${id}`)}
-                                isAdmin={isAdmin}
-                                onDeleteClick={onDeleteClick}
-                             />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-semibold mb-2">Final Cycle Submissions</h3>
-                             <SubmissionTableForCycle 
-                                submissions={selectedUnitSubmissions.finalCycle} 
-                                onEyeClick={(id) => router.push(`/submissions/${id}`)}
-                                isAdmin={isAdmin}
-                                onDeleteClick={onDeleteClick}
-                             />
+                        
+                        <div className="space-y-6">
+                            <div className="space-y-3">
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 uppercase text-[9px] font-black">First Submission Cycle</Badge>
+                                <SubmissionTableForCycle 
+                                    submissions={selectedUnitSubmissions.firstCycle} 
+                                    onEyeClick={(id) => router.push(`/submissions/${id}`)}
+                                    isAdmin={isAdmin}
+                                    onDeleteClick={onDeleteClick}
+                                />
+                            </div>
+                            
+                            <div className="space-y-3">
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 uppercase text-[9px] font-black">Final Submission Cycle</Badge>
+                                <SubmissionTableForCycle 
+                                    submissions={selectedUnitSubmissions.finalCycle} 
+                                    onEyeClick={(id) => router.push(`/submissions/${id}`)}
+                                    isAdmin={isAdmin}
+                                    onDeleteClick={onDeleteClick}
+                                />
+                            </div>
                         </div>
                     </div>
                 ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                        Select a campus and a unit from the left to see their submissions.
+                    <div className="flex flex-col items-center justify-center h-full text-center gap-2 text-muted-foreground">
+                        <Building className="h-12 w-12 opacity-10" />
+                        <p className="text-sm font-medium">Select a unit from the site tree to view report history.</p>
                     </div>
                 )}
             </ScrollArea>
@@ -257,16 +306,19 @@ function SubmissionTableForCycle({
     onDeleteClick: (submission: Submission) => void
 }) {
     if (submissions.length === 0) {
-        return <p className="text-sm text-muted-foreground">No submissions for this cycle.</p>;
+        return (
+            <div className="rounded-lg border border-dashed p-8 text-center bg-muted/10">
+                <p className="text-xs text-muted-foreground font-medium">No documents uploaded for this cycle.</p>
+            </div>
+        );
     }
     return (
          <Table>
             <TableHeader>
                 <TableRow>
-                    <TableHead>Report</TableHead>
-                    <TableHead>Submitted</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase">Report</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase text-center">Status</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase text-right">Actions</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -275,36 +327,47 @@ function SubmissionTableForCycle({
                       key={sub.id}
                       className={cn("transition-colors", getYearCycleRowColor(sub.year, sub.cycleId))}
                     >
-                        <TableCell className="font-medium">{sub.reportType}</TableCell>
-                        <TableCell>{format(sub.submissionDate, 'PP')}</TableCell>
                         <TableCell>
-                            <Badge variant={statusVariant[sub.statusId]} className="bg-background/50">{sub.statusId}</Badge>
+                            <div className="flex flex-col">
+                                <span className="font-bold text-xs">{sub.reportType}</span>
+                                <span className="text-[9px] text-muted-foreground font-mono truncate max-w-[200px]">{sub.controlNumber}</span>
+                            </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                            <Badge 
+                                className={cn(
+                                    "capitalize font-black text-[8px] px-2 py-0 border-none shadow-sm",
+                                    sub.statusId === 'approved' && "bg-emerald-600 text-white",
+                                    sub.statusId === 'rejected' && "bg-rose-600 text-white",
+                                    sub.statusId === 'submitted' && "bg-amber-500 text-amber-950",
+                                )}
+                            >
+                                {sub.statusId === 'submitted' ? 'AWAITING' : sub.statusId.toUpperCase()}
+                            </Badge>
                         </TableCell>
                         <TableCell className="text-right space-x-1 whitespace-nowrap">
-                             <Button variant="outline" size="sm" onClick={() => onEyeClick(sub.id)} className="bg-background/50">
-                                <Eye className="mr-2 h-4 w-4" /> View Submission
+                             <Button 
+                                variant="default" 
+                                size="sm" 
+                                onClick={() => onEyeClick(sub.id)} 
+                                className="h-7 text-[9px] font-bold bg-primary shadow-sm"
+                            >
+                                VIEW SUBMISSION
                             </Button>
                             {isAdmin && (
-                                <>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button variant="ghost" size="icon" asChild className="h-8 w-8">
-                                                <Link href={getGoogleDriveDownloadLink(sub.googleDriveLink)} target="_blank" rel="noopener noreferrer">
-                                                    <Download className="h-4 w-4" />
-                                                </Link>
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>Download File</p></TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => onDeleteClick(sub)}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>Delete Submission</p></TooltipContent>
-                                    </Tooltip>
-                                </>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button 
+                                            variant="destructive" 
+                                            size="sm" 
+                                            className="h-7 text-[9px] font-bold shadow-sm"
+                                            onClick={() => onDeleteClick(sub)}
+                                        >
+                                            DELETE SUBMISSION
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>Permanently remove record</p></TooltipContent>
+                                </Tooltip>
                             )}
                         </TableCell>
                     </TableRow>

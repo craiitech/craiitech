@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -6,7 +5,7 @@ import type { Submission, Unit, User as AppUser } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Loader2, Building, Eye } from 'lucide-react';
+import { Loader2, Building, Eye, Calendar as CalendarIcon, Filter } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -19,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -76,30 +76,44 @@ export function UnitSubmissionsView({
 }: UnitSubmissionsViewProps) {
   const router = useRouter();
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+
+  const availableYears = useMemo(() => {
+    if (!allSubmissions) return [new Date().getFullYear().toString()];
+    const years = Array.from(new Set(allSubmissions.map(s => s.year.toString())));
+    if (years.length === 0) return [new Date().getFullYear().toString()];
+    return years.sort((a,b) => b.localeCompare(a));
+  }, [allSubmissions]);
 
   const unitsWithSubmissions = useMemo(() => {
     if (!allUnits || !allSubmissions || !userProfile?.campusId) {
       return [];
     }
     const campusUnits = allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
-    const submittedUnitIds = new Set(allSubmissions.map(s => s.unitId));
+    const submittedUnitIds = new Set(
+        allSubmissions
+            .filter(s => s.year.toString() === selectedYear)
+            .map(s => s.unitId)
+    );
     return campusUnits
         .filter(unit => submittedUnitIds.has(unit.id))
         .sort((a, b) => a.name.localeCompare(b.name));
-  }, [allUnits, allSubmissions, userProfile]);
+  }, [allUnits, allSubmissions, userProfile, selectedYear]);
 
   const selectedUnitSubmissions = useMemo(() => {
     if (!selectedUnitId || !allSubmissions || !userProfile?.campusId) {
       return { firstCycle: [], finalCycle: [] };
     }
     const unitSubmissions = allSubmissions.filter(s => 
-        s.unitId === selectedUnitId && s.campusId === userProfile.campusId
+        s.unitId === selectedUnitId && 
+        s.campusId === userProfile.campusId && 
+        s.year.toString() === selectedYear
     );
     return {
         firstCycle: unitSubmissions.filter(s => s.cycleId === 'first'),
         finalCycle: unitSubmissions.filter(s => s.cycleId === 'final'),
     }
-  }, [selectedUnitId, allSubmissions, userProfile]);
+  }, [selectedUnitId, allSubmissions, userProfile, selectedYear]);
   
   const handleUnitSelect = (unitId: string) => {
     setSelectedUnitId(unitId);
@@ -115,57 +129,89 @@ export function UnitSubmissionsView({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Submissions by Unit</CardTitle>
-        <CardDescription>
-          Select a unit from the list to view all of their submissions for the current year in your campus.
-        </CardDescription>
+      <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <CardTitle>Unit Submissions Monitoring</CardTitle>
+            <CardDescription>
+            Select a unit to view their complete submission history for the selected year.
+            </CardDescription>
+        </div>
+        <div className="flex items-center gap-2">
+            <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-muted-foreground block">View Year</label>
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger className="w-[120px] h-8 text-xs">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-1">
-            <ScrollArea className="h-[60vh] rounded-md border">
+            <ScrollArea className="h-[60vh] rounded-md border bg-muted/5">
                  {unitsWithSubmissions.length > 0 ? (
-                    <div className="p-2">
+                    <div className="p-2 space-y-1">
                         {unitsWithSubmissions.map(unit => (
                         <Button
                             key={unit.id}
                             variant="ghost"
                             onClick={() => handleUnitSelect(unit.id)}
                             className={cn(
-                                "w-full justify-start text-left h-auto p-3",
-                                selectedUnitId === unit.id && "bg-muted"
+                                "w-full justify-start text-left h-auto py-2.5 px-4 text-xs",
+                                selectedUnitId === unit.id && "bg-primary/10 text-primary font-bold shadow-sm"
                             )}
                         >
-                            <Building className="mr-3 h-4 w-4 flex-shrink-0" />
-                            <span>{unit.name}</span>
+                            <Building className="mr-3 h-3.5 w-3.5 flex-shrink-0" />
+                            <span className="truncate">{unit.name}</span>
                         </Button>
                     ))}
                     </div>
                  ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground p-4">
-                        No units in your campus have submitted documents yet.
+                    <div className="flex flex-col items-center justify-center h-full text-center p-8 gap-2">
+                        <Filter className="h-8 w-8 text-muted-foreground opacity-20" />
+                        <p className="text-xs text-muted-foreground font-medium">No units found with activity in {selectedYear}.</p>
                     </div>
                  )}
             </ScrollArea>
           </div>
 
           <div className="md:col-span-2">
-            <ScrollArea className="h-[60vh]">
+            <ScrollArea className="h-[60vh] rounded-md border p-4 bg-muted/5">
                 {selectedUnitId ? (
-                    <div className="space-y-6">
-                        <div>
-                            <h3 className="text-lg font-semibold mb-2">First Cycle Submissions</h3>
-                             <SubmissionTableForCycle submissions={selectedUnitSubmissions.firstCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} />
+                    <div className="space-y-8">
+                        <div className="flex items-center justify-between border-b pb-4">
+                            <div className="space-y-1">
+                                <h3 className="font-black text-lg uppercase tracking-tight text-primary">
+                                    {allUnits?.find(u => u.id === selectedUnitId)?.name}
+                                </h3>
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase">
+                                    <CalendarIcon className="h-3 w-3" />
+                                    Reporting Year: {selectedYear}
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="text-lg font-semibold mb-2">Final Cycle Submissions</h3>
-                             <SubmissionTableForCycle submissions={selectedUnitSubmissions.finalCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} />
+
+                        <div className="space-y-6">
+                            <div className="space-y-3">
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 uppercase text-[9px] font-black">First Submission Cycle</Badge>
+                                <SubmissionTableForCycle submissions={selectedUnitSubmissions.firstCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} />
+                            </div>
+                            
+                            <div className="space-y-3">
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 uppercase text-[9px] font-black">Final Submission Cycle</Badge>
+                                <SubmissionTableForCycle submissions={selectedUnitSubmissions.finalCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} />
+                            </div>
                         </div>
                     </div>
                 ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                        Select a unit from the left to see their submissions.
+                    <div className="flex flex-col items-center justify-center h-full text-center gap-2 text-muted-foreground">
+                        <Building className="h-12 w-12 opacity-10" />
+                        <p className="text-sm font-medium">Select a unit from the list to see their submissions.</p>
                     </div>
                 )}
             </ScrollArea>
@@ -179,16 +225,19 @@ export function UnitSubmissionsView({
 
 function SubmissionTableForCycle({ submissions, onEyeClick }: { submissions: Submission[], onEyeClick: (id: string) => void }) {
     if (submissions.length === 0) {
-        return <p className="text-sm text-muted-foreground">No submissions for this cycle.</p>;
+        return (
+            <div className="rounded-lg border border-dashed p-8 text-center bg-muted/10">
+                <p className="text-xs text-muted-foreground font-medium">No documents uploaded for this cycle.</p>
+            </div>
+        );
     }
     return (
          <Table>
             <TableHeader>
                 <TableRow>
-                    <TableHead>Report</TableHead>
-                    <TableHead>Submitted</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase">Report</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase text-center">Status</TableHead>
+                    <TableHead className="text-[10px] font-bold uppercase text-right">Action</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -197,14 +246,32 @@ function SubmissionTableForCycle({ submissions, onEyeClick }: { submissions: Sub
                       key={sub.id}
                       className={cn("transition-colors", getYearCycleRowColor(sub.year, sub.cycleId))}
                     >
-                        <TableCell className="font-medium">{sub.reportType}</TableCell>
-                        <TableCell>{format(sub.submissionDate, 'PP')}</TableCell>
                         <TableCell>
-                            <Badge variant={statusVariant[sub.statusId]} className="bg-background/50">{sub.statusId}</Badge>
+                            <div className="flex flex-col">
+                                <span className="font-bold text-xs">{sub.reportType}</span>
+                                <span className="text-[9px] text-muted-foreground font-mono">{sub.controlNumber}</span>
+                            </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                            <Badge 
+                                className={cn(
+                                    "capitalize font-black text-[8px] px-2 py-0 border-none shadow-sm",
+                                    sub.statusId === 'approved' && "bg-emerald-600 text-white",
+                                    sub.statusId === 'rejected' && "bg-rose-600 text-white",
+                                    sub.statusId === 'submitted' && "bg-amber-500 text-amber-950",
+                                )}
+                            >
+                                {sub.statusId === 'submitted' ? 'AWAITING' : sub.statusId.toUpperCase()}
+                            </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                             <Button variant="outline" size="sm" onClick={() => onEyeClick(sub.id)} className="bg-background/50">
-                                <Eye className="mr-2 h-4 w-4" /> View Submission
+                             <Button 
+                                variant="default" 
+                                size="sm" 
+                                onClick={() => onEyeClick(sub.id)} 
+                                className="h-7 text-[9px] font-bold bg-primary shadow-sm"
+                            >
+                                VIEW SUBMISSION
                             </Button>
                         </TableCell>
                     </TableRow>

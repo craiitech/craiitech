@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search } from 'lucide-react';
@@ -140,6 +139,9 @@ export default function SubmissionsPage() {
   const campusesQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'campuses') : null), [firestore, user]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
 
+  const unitsQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'units') : null), [firestore, user]);
+  const { data: units } = useCollection<Unit>(unitsQuery);
+
   const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
 
   const availableYears = useMemo(() => {
@@ -186,8 +188,8 @@ export default function SubmissionsPage() {
         <Tabs defaultValue="all-submissions" className="space-y-4">
             <TabsList>
                 <TabsTrigger value="all-submissions">All Submissions</TabsTrigger>
-                {isSupervisor && !isAdmin && <TabsTrigger value="by-unit">Unit Records</TabsTrigger>}
-                {isAdmin && <TabsTrigger value="by-campus">Campus Records</TabsTrigger>}
+                {isSupervisor && !isAdmin && <TabsTrigger value="by-unit">Unit Submissions</TabsTrigger>}
+                {isAdmin && <TabsTrigger value="by-campus">Campus Submissions</TabsTrigger>}
             </TabsList>
             <TabsContent value="all-submissions">
                 <Card>
@@ -330,8 +332,8 @@ export default function SubmissionsPage() {
                     </CardContent>
                 </Card>
             </TabsContent>
-            {isSupervisor && !isAdmin && <TabsContent value="by-unit"><UnitSubmissionsView allSubmissions={rawSubmissions} allUnits={null} userProfile={userProfile} isLoading={isLoadingSubmissions} /></TabsContent>}
-            {isAdmin && <TabsContent value="by-campus"><CampusSubmissionsView allSubmissions={rawSubmissions} allCampuses={campuses} allUnits={null} isLoading={isLoadingSubmissions} isAdmin={isAdmin} onDeleteClick={handleDeleteClick} /></TabsContent>}
+            {isSupervisor && !isAdmin && <TabsContent value="by-unit"><UnitSubmissionsView allSubmissions={rawSubmissions} allUnits={units} userProfile={userProfile} isLoading={isLoadingSubmissions} /></TabsContent>}
+            {isAdmin && <TabsContent value="by-campus"><CampusSubmissionsView allSubmissions={rawSubmissions} allCampuses={campuses} allUnits={units} isLoading={isLoadingSubmissions} isAdmin={isAdmin} onDeleteClick={handleDeleteClick} /></TabsContent>}
         </Tabs>
       </div>
 
