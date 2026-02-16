@@ -99,8 +99,9 @@ export function CampusSubmissionsView({
   
   const unitsInSelectedCampus = useMemo(() => {
     if (!selectedCampusId || !allUnits) return [];
+    const targetCid = String(selectedCampusId).trim();
     return allUnits
-        .filter(unit => unit.campusIds?.includes(selectedCampusId))
+        .filter(unit => unit.campusIds?.some(cid => String(cid).trim() === targetCid))
         .sort((a, b) => a.name.localeCompare(b.name));
   }, [selectedCampusId, allUnits]);
 
