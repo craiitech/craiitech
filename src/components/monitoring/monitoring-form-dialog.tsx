@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -129,7 +130,6 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
   
   const selectedYear = useMemo(() => visitYearValue ? Number(visitYearValue) : new Date().getFullYear(), [visitYearValue]);
 
-  // AUTOMATION: Handle "Not Applicable" status change automatically populating remarks
   useEffect(() => {
     observationsValue?.forEach((obs, index) => {
       if (obs.status === 'Not Applicable' && obs.remarks !== 'Not Applicable to this Room') {
@@ -274,7 +274,10 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
 
     const visitDate = new Date(Number(values.visitYear), Number(values.visitMonth), Number(values.visitDay));
 
-    // CRITICAL: Ensure campusId and unitId are explicitly included in the document
+    /**
+     * CRITICAL: Reinforced Data Tagging
+     * Explicitly ensuring campusId and unitId are saved in the document to satisfy security rule constraints.
+     */
     const recordData = {
       ...values,
       visitDate,
