@@ -21,7 +21,7 @@ export function MonitoringPrintTemplate({ record, campusName, unitName }: Monito
     : (record.visitDate ? new Date(record.visitDate) : new Date());
 
   return (
-    <div className="p-8 text-black bg-white max-w-4xl mx-auto font-sans leading-tight">
+    <div className="p-8 text-black bg-white max-w-4xl mx-auto font-sans leading-tight shadow-none border-none">
       {/* Header */}
       <div className="text-center border-b-2 border-black pb-4 mb-6">
         <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
@@ -53,8 +53,8 @@ export function MonitoringPrintTemplate({ record, campusName, unitName }: Monito
         <tbody>
           {monitoringGroups.map((group) => (
             <React.Fragment key={group.category}>
-              <tr className="bg-gray-50 font-bold uppercase tracking-tighter">
-                <td colSpan={3} className="border border-black p-2 bg-gray-200">
+              <tr className="bg-gray-200 font-bold uppercase tracking-tighter">
+                <td colSpan={3} className="border border-black p-2">
                   {group.category}
                 </td>
               </tr>
@@ -87,7 +87,7 @@ export function MonitoringPrintTemplate({ record, campusName, unitName }: Monito
 
       {/* Legend Section */}
       <div className="mb-12 pt-4 border-t-2 border-black">
-        <h3 className="font-bold text-xs uppercase mb-2">Status Legend:</h3>
+        <h3 className="font-bold text-xs uppercase mb-2">Status Legend & Criteria:</h3>
         <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-[9px] leading-tight">
           {statusLegend.map((item) => (
             <div key={item.status} className="flex gap-2">
@@ -101,13 +101,13 @@ export function MonitoringPrintTemplate({ record, campusName, unitName }: Monito
       {/* Signatures */}
       <div className="grid grid-cols-2 gap-12 pt-8">
         <div className="text-center">
-          <div className="border-b border-black font-bold text-sm pb-1 mb-1">
+          <div className="border-b border-black font-bold text-sm pb-1 mb-1 min-h-[20px]">
             {record.monitorName}
           </div>
           <p className="text-[10px] uppercase font-semibold">IQA Monitor / QA Representative</p>
         </div>
         <div className="text-center">
-          <div className="border-b border-black font-bold text-sm pb-1 mb-1">
+          <div className="border-b border-black font-bold text-sm pb-1 mb-1 min-h-[20px]">
             {record.officerInCharge || '____________________________'}
           </div>
           <p className="text-[10px] uppercase font-semibold">Officer in Charge / Unit Head</p>

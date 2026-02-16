@@ -26,7 +26,7 @@ import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import * as XLSX from 'xlsx';
-import ReactDOMServer from 'react-dom/server';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { MonitoringPrintTemplate } from '@/components/monitoring/monitoring-print-template';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -110,7 +110,7 @@ export default function MonitoringPage() {
     const uName = unitMap.get(record.unitId) || 'Unknown Unit';
 
     try {
-        const reportHtml = ReactDOMServer.renderToStaticMarkup(
+        const reportHtml = renderToStaticMarkup(
           <MonitoringPrintTemplate 
             record={record} 
             campusName={cName} 
@@ -127,20 +127,24 @@ export default function MonitoringPage() {
                     <title>Monitoring Report - ${uName}</title>
                     <script src="https://cdn.tailwindcss.com"></script>
                     <style>
-                    @media print { body { margin: 0; padding: 0; background: white; } }
-                    body { font-family: sans-serif; }
+                    @media print { 
+                      body { margin: 0; padding: 0; background: white; } 
+                      .no-print { display: none !important; }
+                    }
+                    body { font-family: sans-serif; background: #f9fafb; padding: 20px; }
                     table { width: 100%; border-collapse: collapse; }
                     th, td { border: 1px solid black !important; padding: 8px; }
                     </style>
                 </head>
-                <body>${reportHtml}</body>
+                <body>
+                  <div class="no-print mb-4 flex justify-center">
+                    <button onclick="window.print()" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700">Print Report</button>
+                  </div>
+                  ${reportHtml}
+                </body>
                 </html>
             `);
             printWindow.document.close();
-            setTimeout(() => {
-                printWindow.print();
-                printWindow.close();
-            }, 1000);
         }
     } catch (err) {
         console.error("Print error:", err);
