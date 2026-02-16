@@ -54,7 +54,6 @@ const months = [
   { value: '9', label: 'October' }, { value: '10', label: 'November' }, { value: '11', label: 'December' },
 ];
 const currentYear = new Date().getFullYear();
-// Extended range: 50 years from 2026 = 2076
 const yearsList = Array.from({ length: 2076 - (currentYear - 10) + 1 }, (_, i) => String(currentYear - 10 + i));
 const daysList = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
