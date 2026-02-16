@@ -72,11 +72,12 @@
         "campusId": { "type": "string" },
         "collegeId": { "type": "string", "description": "Reference to a Unit categorized as Academic" },
         "level": { "type": "string", "enum": ["Undergraduate", "Graduate", "TVET"] },
+        "isBoardProgram": { "type": "boolean", "description": "Whether the program has a professional board exam." },
         "isActive": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "name", "campusId", "collegeId", "level", "isActive"]
+      "required": ["id", "name", "campusId", "collegeId", "level", "isActive", "isBoardProgram"]
     },
     "ProgramComplianceRecord": {
       "title": "ProgramComplianceRecord",

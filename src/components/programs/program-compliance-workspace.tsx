@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { Loader2, Save, FileCheck, Users, BookOpen, BarChart3, GraduationCap, ShieldCheck } from 'lucide-react';
+import { Loader2, Save, FileCheck, Users, BookOpen, BarChart3, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -279,12 +279,17 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
           </div>
         ) : (
           <Tabs defaultValue="ched" className="w-full">
-            <TabsList className="grid grid-cols-2 md:grid-cols-5 h-auto w-full">
+            <TabsList className={cn(
+                "grid h-auto w-full",
+                program.isBoardProgram ? "grid-cols-2 md:grid-cols-5" : "grid-cols-2 md:grid-cols-4"
+            )}>
               <TabsTrigger value="ched" className="py-2"><FileCheck className="mr-2 h-4 w-4" /> CHED & RQAT</TabsTrigger>
               <TabsTrigger value="accreditation" className="py-2"><ShieldCheck className="mr-2 h-4 w-4" /> Accreditation</TabsTrigger>
               <TabsTrigger value="faculty" className="py-2"><Users className="mr-2 h-4 w-4" /> Faculty</TabsTrigger>
               <TabsTrigger value="curriculum" className="py-2"><BookOpen className="mr-2 h-4 w-4" /> Curriculum</TabsTrigger>
-              <TabsTrigger value="outcomes" className="py-2"><BarChart3 className="mr-2 h-4 w-4" /> Outcomes</TabsTrigger>
+              {program.isBoardProgram && (
+                <TabsTrigger value="outcomes" className="py-2"><BarChart3 className="mr-2 h-4 w-4" /> Outcomes</TabsTrigger>
+              )}
             </TabsList>
 
             <div className="mt-6">
@@ -292,7 +297,9 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
               <TabsContent value="accreditation"><AccreditationModule canEdit={canEdit} /></TabsContent>
               <TabsContent value="faculty"><FacultyModule canEdit={canEdit} /></TabsContent>
               <TabsContent value="curriculum"><CurriculumModule canEdit={canEdit} /></TabsContent>
-              <TabsContent value="outcomes"><OutcomesModule canEdit={canEdit} /></TabsContent>
+              {program.isBoardProgram && (
+                <TabsContent value="outcomes"><OutcomesModule canEdit={canEdit} /></TabsContent>
+              )}
             </div>
           </Tabs>
         )}

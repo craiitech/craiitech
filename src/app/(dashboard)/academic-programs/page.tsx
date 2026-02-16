@@ -4,10 +4,10 @@
 import { useState } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, where } from 'firebase/firestore';
-import type { AcademicProgram, Campus, ProgramComplianceRecord } from '@/lib/types';
+import type { AcademicProgram, Campus, ProgramComplianceRecord, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, GraduationCap, Search, Filter, BarChart3, Layers } from 'lucide-react';
+import { PlusCircle, Loader2, GraduationCap, Filter, BarChart3, Layers } from 'lucide-react';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
 import { Input } from '@/components/ui/input';
@@ -26,11 +26,6 @@ export default function AcademicProgramsPage() {
 
   const canManage = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO';
 
-  /**
-   * Data Queries
-   * Strictly conditioned on !isUserLoading and presence of firestore and a loaded userProfile
-   * to ensure auth context is fully propagated to the Firestore driver.
-   */
   const programsQuery = useMemoFirebase(
     () => (firestore && !isUserLoading && userProfile ? query(collection(firestore, 'academicPrograms'), orderBy('name', 'asc')) : null),
     [firestore, isUserLoading, userProfile]
@@ -49,6 +44,12 @@ export default function AcademicProgramsPage() {
   );
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
+  const unitsQuery = useMemoFirebase(
+    () => (firestore && !isUserLoading && userProfile ? collection(firestore, 'units') : null),
+    [firestore, isUserLoading, userProfile]
+  );
+  const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+
   const handleNewProgram = () => {
     setEditingProgram(null);
     setIsDialogOpen(true);
@@ -66,7 +67,7 @@ export default function AcademicProgramsPage() {
     return matchesSearch && matchesCampus;
   });
 
-  const isLoading = isUserLoading || isLoadingPrograms || isLoadingCampuses || isLoadingCompliances;
+  const isLoading = isUserLoading || isLoadingPrograms || isLoadingCampuses || isLoadingCompliances || isLoadingUnits;
 
   const academicYears = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
@@ -147,6 +148,7 @@ export default function AcademicProgramsPage() {
                         <ProgramRegistry 
                             programs={filteredPrograms || []} 
                             campuses={campuses || []}
+                            units={units || []}
                             onEdit={handleEditProgram}
                             canManage={canManage}
                         />

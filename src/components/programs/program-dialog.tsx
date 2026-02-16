@@ -51,6 +51,7 @@ const formSchema = z.object({
   campusId: z.string().min(1, 'Please select a campus.'),
   collegeId: z.string().min(1, 'Please select the parent Academic Unit.'),
   level: z.enum(['Undergraduate', 'Graduate', 'TVET']),
+  isBoardProgram: z.boolean().default(false),
   isActive: z.boolean().default(true),
 });
 
@@ -70,6 +71,7 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: Progr
       campusId: '',
       collegeId: '',
       level: 'Undergraduate',
+      isBoardProgram: false,
       isActive: true,
     },
   });
@@ -86,7 +88,10 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: Progr
 
   useEffect(() => {
     if (program) {
-      form.reset(program);
+      form.reset({
+        ...program,
+        isBoardProgram: program.isBoardProgram ?? false,
+      });
     } else {
       form.reset({
         name: '',
@@ -94,6 +99,7 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: Progr
         campusId: '',
         collegeId: '',
         level: 'Undergraduate',
+        isBoardProgram: false,
         isActive: true,
       });
     }
@@ -103,7 +109,7 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: Progr
     if (!firestore) return;
     setIsSubmitting(true);
     
-    const id = program ? program.id : doc(collection(firestore, 'academicPrograms')).id;
+    const id = program ? program.id : doc(collection(firestore, 'dummy')).id;
     const programRef = doc(firestore, 'academicPrograms', id);
 
     const programData = {
@@ -196,6 +202,17 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: Progr
                 </FormItem>
               )} />
             </div>
+            
+            <FormField control={form.control} name="isBoardProgram" render={({ field }) => (
+              <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm bg-primary/5 border-primary/10">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-primary font-bold">Board Program</FormLabel>
+                  <FormDescription className="text-[10px]">Does this program have a professional board licensure exam?</FormDescription>
+                </div>
+                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+              </FormItem>
+            )} />
+
             <FormField control={form.control} name="isActive" render={({ field }) => (
               <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                 <div className="space-y-0.5">

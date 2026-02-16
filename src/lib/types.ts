@@ -247,6 +247,7 @@ export type AcademicProgram = {
   campusId: string;
   collegeId: string; // e.g., 'CET', 'CAS'
   level: 'Undergraduate' | 'Graduate' | 'TVET';
+  isBoardProgram: boolean;
   isActive: boolean;
   createdAt: any;
 };

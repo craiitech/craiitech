@@ -2,24 +2,26 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { AcademicProgram, Campus } from '@/lib/types';
+import type { AcademicProgram, Campus, Unit } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit, School, Layers, Activity, ArrowRight } from 'lucide-react';
+import { Edit, School, Layers, Activity, ArrowRight, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface ProgramRegistryProps {
   programs: AcademicProgram[];
   campuses: Campus[];
+  units: Unit[];
   onEdit: (program: AcademicProgram) => void;
   canManage: boolean;
 }
 
-export function ProgramRegistry({ programs, campuses, onEdit, canManage }: ProgramRegistryProps) {
+export function ProgramRegistry({ programs, campuses, units, onEdit, canManage }: ProgramRegistryProps) {
   const router = useRouter();
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
+  const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
 
   if (programs.length === 0) {
     return (
@@ -38,7 +40,8 @@ export function ProgramRegistry({ programs, campuses, onEdit, canManage }: Progr
             <TableRow>
               <TableHead>Program Name</TableHead>
               <TableHead>Campus</TableHead>
-              <TableHead>College</TableHead>
+              <TableHead>College / Unit</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -59,7 +62,21 @@ export function ProgramRegistry({ programs, campuses, onEdit, canManage }: Progr
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className="text-[10px] h-5">{program.collegeId}</Badge>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[11px] font-semibold leading-tight">{unitMap.get(program.collegeId) || 'Unknown Unit'}</span>
+                    <Badge variant="outline" className="text-[9px] h-4 w-fit py-0 uppercase tracking-tighter opacity-60">{program.collegeId}</Badge>
+                  </div>
+                </TableCell>
+                <TableCell>
+                    {program.isBoardProgram ? (
+                        <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 gap-1 h-5 text-[9px] uppercase font-bold">
+                            <ShieldCheck className="h-2 w-2" /> Board
+                        </Badge>
+                    ) : (
+                        <Badge variant="outline" className="text-muted-foreground gap-1 h-5 text-[9px] uppercase font-bold">
+                            <ShieldAlert className="h-2 w-2" /> Non-Board
+                        </Badge>
+                    )}
                 </TableCell>
                 <TableCell>
                   {program.isActive ? (
@@ -78,7 +95,6 @@ export function ProgramRegistry({ programs, campuses, onEdit, canManage }: Progr
                   )}
                   <Button size="sm" variant="outline" onClick={() => router.push(`/academic-programs/${program.id}`)}>
                     Compliance
-                    <ArrowRight className="ml-2 h-3 w-3" />
                   </Button>
                 </TableCell>
               </TableRow>
