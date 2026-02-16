@@ -15,7 +15,7 @@ export const monitoringGroups = [
       "Needs and Expectation of Interested Parties",
       "Procedure Manual",
       "Forms Utilized by Units",
-      "Attachments / Evidences"
+      "CSW Attachment / Evidences as per Process"
     ]
   },
   {
