@@ -54,8 +54,8 @@ const months = [
   { value: '9', label: 'October' }, { value: '10', label: 'November' }, { value: '11', label: 'December' },
 ];
 const currentYear = new Date().getFullYear();
-// Support for historical records: 10 years back, 2 years forward
-const yearsList = Array.from({ length: 13 }, (_, i) => String(currentYear - 10 + i));
+// Expanded support for historical and future records: 10 years back, and up to 2076 (50 years from 2026)
+const yearsList = Array.from({ length: 2076 - (currentYear - 10) + 1 }, (_, i) => String(currentYear - 10 + i));
 const daysList = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
 const formSchema = z.object({
@@ -124,7 +124,6 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
   const selectedUnitId = form.watch('unitId');
   const visitYearValue = form.watch('visitYear');
   
-  // CRITICAL: Construct the selectedYear from form state to support historical verification
   const selectedYear = useMemo(() => visitYearValue ? Number(visitYearValue) : new Date().getFullYear(), [visitYearValue]);
 
   const unitsForCampus = useMemo(() => {
@@ -132,7 +131,6 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
     return units.filter(u => u.campusIds?.includes(selectedCampusId));
   }, [units, selectedCampusId]);
 
-  // Fetch submissions for the specifically selected visit year
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !selectedUnitId || !selectedCampusId || !isOpen) return null;
     return query(
@@ -342,7 +340,9 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                             <FormItem>
                                 <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
                                     <FormControl><SelectTrigger className="px-2 h-9 text-xs"><SelectValue placeholder="Year" /></SelectTrigger></FormControl>
-                                    <SelectContent>{yearsList.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                                    <SelectContent>
+                                      {yearsList.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                    </SelectContent>
                                 </Select>
                             </FormItem>
                         )} />
