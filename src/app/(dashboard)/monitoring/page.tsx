@@ -47,18 +47,18 @@ export default function MonitoringPage() {
 
   const monitoringRecordsQuery = useMemoFirebase(
     () => {
-        if (!firestore || !user || !canViewMonitoring) return null;
+        if (!firestore || !user || !canViewMonitoring || isUserLoading) return null;
         
         const baseRef = collection(firestore, 'unitMonitoringRecords');
 
-        // Oversight roles execute unfiltered queries (authorized by isAuditor/isAdmin in rules)
+        // Oversight roles execute unfiltered queries
         if (isAdmin || userRole === 'Auditor') {
             return query(baseRef, orderBy('visitDate', 'desc'));
         }
         
         if (!userProfile) return null;
 
-        // Supervisors filter by campus (authorized by resource.data.campusId in rules)
+        // Supervisors filter by campus
         if (isSupervisor) {
              if (userProfile.campusId) {
                  return query(
@@ -70,7 +70,7 @@ export default function MonitoringPage() {
              return null;
         }
 
-        // Unit Users filter by unit (authorized by resource.data.unitId in rules)
+        // Unit Users filter by unit
         if (userProfile.unitId) {
             return query(
                 baseRef, 
@@ -81,7 +81,7 @@ export default function MonitoringPage() {
 
         return null;
     },
-    [firestore, user, userProfile, isAdmin, isSupervisor, userRole, canViewMonitoring]
+    [firestore, user, userProfile, isAdmin, isSupervisor, userRole, canViewMonitoring, isUserLoading]
   );
   
   const { data: allRecords, isLoading: isLoadingRecords } = useCollection<UnitMonitoringRecord>(monitoringRecordsQuery);
@@ -94,10 +94,10 @@ export default function MonitoringPage() {
     });
   }, [allRecords, selectedYear]);
 
-  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
+  const campusesQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'campuses') : null), [firestore, user]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
-  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
+  const unitsQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'units') : null), [firestore, user]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
@@ -161,12 +161,6 @@ export default function MonitoringPage() {
                             window.onafterprint = function() { window.close(); };
                         }, 1000);
                     };
-                    // Fallback for browsers where window.onload might not trigger correctly
-                    setTimeout(() => {
-                        if (!window.printDone) {
-                            window.print();
-                        }
-                    }, 3000);
                 </script>
             </body>
             </html>
@@ -175,15 +169,25 @@ export default function MonitoringPage() {
         printWindow.focus();
     } catch (err) {
         console.error("Print generation error:", err);
-        alert("Failed to generate the print report. Please check the browser console for details.");
+        alert("Failed to generate the print report.");
     }
   };
 
+  /**
+   * Robust Compliance Calculation
+   * Logic: Successful / Required. 
+   * Items marked "Not Applicable" are removed from both the numerator and denominator.
+   */
   const calculateCompliance = (record: UnitMonitoringRecord) => {
     if (!record.observations || record.observations.length === 0) return 0;
+    
+    // Denominator: All items EXCEPT those marked "Not Applicable"
     const applicable = record.observations.filter(o => o.status !== 'Not Applicable');
     if (applicable.length === 0) return 0;
+    
+    // Numerator: Only items marked "Available"
     const available = applicable.filter(o => o.status === 'Available').length;
+    
     return Math.round((available / applicable.length) * 100);
   };
 
@@ -227,11 +231,7 @@ export default function MonitoringPage() {
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Monitoring Findings');
-
-    const max_width = exportData.reduce((w, r) => Math.max(w, String(r.Unit).length), 10);
-    worksheet['!cols'] = [{ wch: 20 }, { wch: max_width + 5 }, { wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 25 }, { wch: 30 }, { wch: 40 }, { wch: 15 }, { wch: 50 }];
-
-    XLSX.writeFile(workbook, `RSU-EOMS-Monitoring-Report-${selectedYear}-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    XLSX.writeFile(workbook, `RSU-EOMS-Monitoring-Report-${selectedYear}.xlsx`);
   };
 
   const isLoading = isUserLoading || isLoadingRecords || isLoadingCampuses || isLoadingUnits;
@@ -242,7 +242,7 @@ export default function MonitoringPage() {
         <ShieldAlert className="h-16 w-16 text-destructive opacity-50" />
         <div className="text-center">
           <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
-          <p className="text-muted-foreground">You do not have permission to access the field monitoring module.</p>
+          <p className="text-muted-foreground">You do not have permission to access the monitoring module.</p>
         </div>
         <Button onClick={() => router.push('/dashboard')}>Return to Home</Button>
       </div>
@@ -298,7 +298,6 @@ export default function MonitoringPage() {
                 <CardTitle className="text-xl">Not Yet Monitored in {selectedYear}</CardTitle>
                 <CardDescription className="max-w-md mx-auto mt-2">
                     Your unit has no monitoring records logged for the year {selectedYear}. 
-                    Change the year above to view previous results or contact the QA office for scheduling.
                 </CardDescription>
             </Card>
         ) : (
@@ -306,7 +305,7 @@ export default function MonitoringPage() {
                 <TabsList>
                     <TabsTrigger value="performance">
                         <LayoutDashboard className="mr-2 h-4 w-4" />
-                        {isUnitOnlyView ? 'Performance' : 'Overall Performance'}
+                        Performance
                     </TabsTrigger>
                     <TabsTrigger value="history">
                         <History className="mr-2 h-4 w-4" />
@@ -333,7 +332,7 @@ export default function MonitoringPage() {
                         <CardHeader>
                             <CardTitle>Monitoring History - {selectedYear}</CardTitle>
                             <CardDescription>
-                                {isAdmin ? 'A record of all past unit monitoring visits across all sites.' : 'Findings from on-site monitoring visits for your scope.'}
+                                Results from on-site monitoring visits for your scope.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -399,8 +398,7 @@ export default function MonitoringPage() {
                                                 variant={getComplianceVariant(score)}
                                                 className={cn(
                                                   "text-[10px]",
-                                                  score >= 80 && "bg-green-500 hover:bg-green-600 text-white",
-                                                  (score < 80 && score >= 50) && "bg-amber-500 hover:bg-amber-600 text-white"
+                                                  score >= 80 && "bg-green-500 hover:bg-green-600 text-white"
                                                 )}
                                               >
                                                 {score}%

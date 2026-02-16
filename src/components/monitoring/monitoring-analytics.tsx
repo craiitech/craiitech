@@ -8,8 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle2, ClipboardCheck, TrendingUp, School, Building, User, Trophy } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { AlertCircle, ClipboardCheck, TrendingUp, School, Building, User, Trophy } from 'lucide-react';
 
 interface MonitoringAnalyticsProps {
   records: UnitMonitoringRecord[];
@@ -29,7 +28,10 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
     const campusMap = new Map(campuses.map(c => [c.id, c.name]));
     const unitMap = new Map(units.map(u => [u.id, u.name]));
 
-    // 1. Compliance Score calculation (Average % of "Available" items)
+    /**
+     * Compliance Score calculation per visit.
+     * Score = Available / (Total - Not Applicable)
+     */
     const visitCompliance = records.map(record => {
         const applicableItems = record.observations.filter(o => o.status !== 'Not Applicable');
         const availableItems = applicableItems.filter(o => o.status === 'Available');
@@ -45,7 +47,6 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
 
     const averageCompliance = visitCompliance.reduce((acc, v) => acc + v.score, 0) / (visitCompliance.length || 1);
 
-    // 2. Common Issues
     const issueCounts: Record<string, number> = {};
     records.forEach(record => {
         record.observations.forEach(obs => {
@@ -60,9 +61,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
         .sort((a, b) => b.count - a.count)
         .slice(0, 8);
 
-    // 3. Performance by Campus
     const campusPerformance: Record<string, { total: number, sum: number }> = {};
-    
     visitCompliance.forEach(v => {
         if (!campusPerformance[v.campusId]) {
             campusPerformance[v.campusId] = { total: 0, sum: 0 };
@@ -76,10 +75,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
         rate: Math.round(data.sum / data.total)
     })).sort((a, b) => b.rate - a.rate);
 
-    // 4. Unit Leaderboard (Adding OIC and Campus)
     const unitPerformance: Record<string, { total: number, sum: number, campusId: string, oic: string }> = {};
-
-    // Sort by date so we get the most recent OIC
     const sortedVisits = [...visitCompliance].sort((a, b) => b.visitDate.toMillis() - a.visitDate.toMillis());
 
     sortedVisits.forEach(v => {
@@ -113,8 +109,6 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Skeleton className="h-[400px] w-full" />
             <Skeleton className="h-[400px] w-full" />
-            <Skeleton className="h-[400px] w-full" />
-            <Skeleton className="h-[400px] w-full" />
         </div>
     );
   }
@@ -124,7 +118,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
         <div className="flex flex-col items-center justify-center h-64 text-center border rounded-lg border-dashed">
             <ClipboardCheck className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
             <h3 className="text-lg font-medium">Insufficient Data for {selectedYear}</h3>
-            <p className="text-sm text-muted-foreground max-w-sm">Analytics will appear here once monitoring records for {selectedYear} are logged.</p>
+            <p className="text-sm text-muted-foreground">Analytics will appear here once monitoring records are logged.</p>
         </div>
     );
   }
@@ -138,7 +132,6 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
             </CardHeader>
             <CardContent>
                 <div className="text-3xl font-bold">{analytics.totalVisits}</div>
-                <p className="text-[10px] text-muted-foreground mt-1">Monitored units recorded</p>
             </CardContent>
         </Card>
         <Card className="bg-green-50 border-green-100">
@@ -147,7 +140,6 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
             </CardHeader>
             <CardContent>
                 <div className="text-3xl font-bold text-green-600">{Math.round(analytics.averageCompliance)}%</div>
-                <p className="text-[10px] text-green-600/70 mt-1">Average score across sites</p>
             </CardContent>
         </Card>
         <Card className="bg-amber-50 border-amber-100">
@@ -156,23 +148,19 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
             </CardHeader>
             <CardContent>
                 <div className="text-3xl font-bold text-amber-600">{analytics.criticalCount}</div>
-                <p className="text-[10px] text-amber-600/70 mt-1">Issues requiring improvement</p>
             </CardContent>
         </Card>
         <Card className="bg-blue-50 border-blue-100">
             <CardHeader className="pb-2">
-                <CardTitle className="text-xs uppercase tracking-wider text-blue-700 font-bold">Top Unit ({selectedYear})</CardTitle>
+                <CardTitle className="text-xs uppercase tracking-wider text-blue-700 font-bold">Top Unit</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="text-lg font-bold text-blue-600 truncate leading-tight">
+                <div className="text-lg font-bold text-blue-600 truncate">
                     {analytics.unitLeaderboard[0]?.name}
                 </div>
-                <p className="text-[10px] text-blue-800/60 font-semibold uppercase tracking-wider mt-1">
+                <p className="text-[10px] text-blue-800/60 font-semibold uppercase mt-1">
                     {analytics.unitLeaderboard[0]?.campus}
                 </p>
-                <div className="flex items-center gap-1.5 mt-2">
-                    <Badge className="bg-blue-600 text-white text-[10px] h-5">{analytics.unitLeaderboard[0]?.rate}% Score</Badge>
-                </div>
             </CardContent>
         </Card>
       </div>
@@ -184,7 +172,6 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
                     <AlertCircle className="h-5 w-5 text-destructive" />
                     <CardTitle>Top Findings & Gaps</CardTitle>
                 </div>
-                <CardDescription>Frequent checklist items requiring improvement in {selectedYear}.</CardDescription>
             </CardHeader>
             <CardContent>
                 <ChartContainer config={{}} className="h-[350px] w-full">
@@ -192,12 +179,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
                         <BarChart data={analytics.commonIssuesData} layout="vertical" margin={{ left: 40 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis type="number" hide />
-                            <YAxis 
-                                type="category" 
-                                dataKey="name" 
-                                tick={{ fontSize: 10 }} 
-                                width={120} 
-                            />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={120} />
                             <Tooltip content={<ChartTooltipContent />} />
                             <Bar dataKey="count" fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} />
                         </BarChart>
@@ -210,9 +192,8 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
             <CardHeader>
                 <div className="flex items-center gap-2">
                     <School className="h-5 w-5 text-primary" />
-                    <CardTitle>Campus Comparison ({selectedYear})</CardTitle>
+                    <CardTitle>Campus Comparison</CardTitle>
                 </div>
-                <CardDescription>Average compliance score (%) per campus site.</CardDescription>
             </CardHeader>
             <CardContent>
                 <ChartContainer config={{}} className="h-[350px] w-full">
@@ -234,14 +215,12 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
         </Card>
       </div>
 
-      {/* Unit Performance Leaderboard */}
       <Card>
         <CardHeader>
             <div className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-yellow-500" />
-                <CardTitle>Unit Performance Leaderboard</CardTitle>
+                <CardTitle>Performance Leaderboard</CardTitle>
             </div>
-            <CardDescription>Detailed mapping of top performing units, their campus sites, and Officers in Charge for {selectedYear}.</CardDescription>
         </CardHeader>
         <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -253,17 +232,11 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
                         <div className="flex-1 min-w-0 space-y-1">
                             <div className="flex items-center justify-between gap-2">
                                 <p className="font-bold text-sm truncate">{unit.name}</p>
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 h-5 text-[10px]">{unit.rate}%</Badge>
+                                <Badge variant="outline" className="bg-green-50 text-green-700 h-5 text-[10px]">{unit.rate}% Score</Badge>
                             </div>
                             <div className="flex items-center gap-4 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                                <span className="flex items-center gap-1">
-                                    <School className="h-3 w-3" />
-                                    {unit.campus}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                    <User className="h-3 w-3" />
-                                    OIC: {unit.oic}
-                                </span>
+                                <span className="flex items-center gap-1"><School className="h-3 w-3" /> {unit.campus}</span>
+                                <span className="flex items-center gap-1"><User className="h-3 w-3" /> OIC: {unit.oic}</span>
                             </div>
                         </div>
                     </div>

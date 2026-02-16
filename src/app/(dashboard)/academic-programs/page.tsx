@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProgramAnalytics } from '@/components/programs/program-analytics';
 
 export default function AcademicProgramsPage() {
-  const { user, userProfile, isAdmin, userRole, isUserLoading } = useUser();
+  const { user, isAdmin, userRole, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<AcademicProgram | null>(null);
@@ -26,21 +26,26 @@ export default function AcademicProgramsPage() {
 
   const canManage = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO';
 
+  /**
+   * Data Queries
+   * Strictly conditioned on !isUserLoading and presence of firestore/user
+   * to prevent permission errors during auth transitions.
+   */
   const programsQuery = useMemoFirebase(
-    () => (firestore && user ? query(collection(firestore, 'academicPrograms'), orderBy('name', 'asc')) : null),
-    [firestore, user]
+    () => (firestore && user && !isUserLoading ? query(collection(firestore, 'academicPrograms'), orderBy('name', 'asc')) : null),
+    [firestore, user, isUserLoading]
   );
   const { data: programs, isLoading: isLoadingPrograms } = useCollection<AcademicProgram>(programsQuery);
 
   const compliancesQuery = useMemoFirebase(
-    () => (firestore && user ? query(collection(firestore, 'programCompliances'), where('academicYear', '==', selectedYear)) : null),
-    [firestore, user, selectedYear]
+    () => (firestore && user && !isUserLoading ? query(collection(firestore, 'programCompliances'), where('academicYear', '==', selectedYear)) : null),
+    [firestore, user, selectedYear, isUserLoading]
   );
   const { data: compliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
   const campusesQuery = useMemoFirebase(
-    () => (firestore && user ? collection(firestore, 'campuses') : null),
-    [firestore, user]
+    () => (firestore && user && !isUserLoading ? collection(firestore, 'campuses') : null),
+    [firestore, user, isUserLoading]
   );
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
@@ -74,12 +79,12 @@ export default function AcademicProgramsPage() {
             Academic Program Monitoring
           </h2>
           <p className="text-muted-foreground">
-            Monitor CHED, RQAT, and Professional Board Exam compliance for all university offerings.
+            Monitor CHED, RQAT, and Professional Board Exam compliance.
           </p>
         </div>
         <div className="flex items-center gap-2">
             <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                <SelectTrigger className="w-[140px] h-10 bg-background shadow-sm">
+                <SelectTrigger className="w-[140px] h-10">
                     <SelectValue placeholder="Year" />
                 </SelectTrigger>
                 <SelectContent>
@@ -96,40 +101,32 @@ export default function AcademicProgramsPage() {
       </div>
 
       <Tabs defaultValue="registry" className="space-y-6">
-        <TabsList className="bg-muted/50 p-1 border">
-            <TabsTrigger value="registry" className="gap-2">
-                <Layers className="h-4 w-4" /> Program Registry
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="gap-2">
-                <BarChart3 className="h-4 w-4" /> Decision Support
-            </TabsTrigger>
+        <TabsList>
+            <TabsTrigger value="registry" className="gap-2"><Layers className="h-4 w-4" /> Program Registry</TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-2"><BarChart3 className="h-4 w-4" /> Decision Support</TabsTrigger>
         </TabsList>
 
         <TabsContent value="registry">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="md:col-span-1 h-fit shadow-md">
-                    <CardHeader className="pb-3 border-b bg-muted/20">
+                <Card className="md:col-span-1 h-fit">
+                    <CardHeader className="pb-3 border-b">
                         <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
                             <Filter className="h-3 w-3" /> Filter Registry
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4 pt-4">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Search Program</label>
-                            <div className="relative">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="e.g. BSIT or Engineering"
-                                    className="pl-9 h-9 text-xs"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
+                            <label className="text-[10px] font-bold uppercase text-muted-foreground">Search Program</label>
+                            <Input
+                                placeholder="e.g. BSIT"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Campus Site</label>
+                            <label className="text-[10px] font-bold uppercase text-muted-foreground">Campus Site</label>
                             <Select value={campusFilter} onValueChange={setCampusFilter}>
-                                <SelectTrigger className="h-9 text-xs">
+                                <SelectTrigger>
                                     <SelectValue placeholder="All Campuses" />
                                 </SelectTrigger>
                                 <SelectContent>

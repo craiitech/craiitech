@@ -42,7 +42,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -57,13 +56,11 @@ import { SubmissionReport } from '@/components/submissions/submission-report';
 import ReactDOMServer from 'react-dom/server';
 import { cn } from '@/lib/utils';
 
-
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
     pending: 'secondary',
     rejected: 'destructive',
     submitted: 'outline',
-    'awaiting approval': 'outline',
 };
 
 const submissionTypesList = [
@@ -81,608 +78,116 @@ type SortConfig = {
     direction: 'ascending' | 'descending';
 } | null;
 
-const getYearCycleRowColor = (year: number, cycle: string) => {
-  const isFinal = cycle.toLowerCase() === 'final';
-  const colors: Record<number, { first: string, final: string }> = {
-    2024: { 
-      first: 'bg-blue-50/20 hover:bg-blue-100/40 dark:bg-blue-900/5 dark:hover:bg-blue-900/10', 
-      final: 'bg-blue-100/40 hover:bg-blue-200/50 dark:bg-blue-900/20 dark:hover:bg-blue-900/30' 
-    },
-    2025: { 
-      first: 'bg-green-50/20 hover:bg-green-100/40 dark:bg-green-900/5 dark:hover:bg-green-900/10', 
-      final: 'bg-green-100/40 hover:bg-blue-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
-    },
-    2026: { 
-      first: 'bg-amber-50/20 hover:bg-amber-100/40 dark:bg-amber-900/5 dark:hover:bg-amber-900/10', 
-      final: 'bg-amber-100/40 hover:bg-amber-200/50 dark:bg-amber-900/20 dark:hover:bg-amber-900/30' 
-    },
-    2027: { 
-      first: 'bg-purple-50/20 hover:bg-purple-100/40 dark:bg-purple-900/5 dark:hover:bg-purple-900/10', 
-      final: 'bg-purple-100/40 hover:bg-purple-200/50 dark:bg-purple-900/20 dark:hover:bg-purple-900/30' 
-    },
-    2028: { 
-      first: 'bg-rose-50/20 hover:bg-rose-100/40 dark:bg-rose-900/5 dark:hover:bg-rose-900/10', 
-      final: 'bg-rose-100/40 hover:bg-rose-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
-    },
-  };
-  
-  const yearColor = colors[year] || { 
-    first: 'bg-slate-50/20 hover:bg-slate-100/40 dark:bg-slate-900/5 dark:hover:bg-slate-900/10', 
-    final: 'bg-slate-100/40 hover:bg-slate-200/50 dark:bg-slate-900/20 dark:hover:bg-slate-900/30' 
-  };
-  
-  return isFinal ? yearColor.final : yearColor.first;
-};
-
 const getGoogleDriveDownloadLink = (url: string) => {
     const fileId = url.match(/d\/([^/]+)/);
-    if (fileId && fileId[1]) {
-        return `https://drive.google.com/uc?export=download&id=${fileId[1]}`;
-    }
-    return url;
+    return fileId ? `https://drive.google.com/uc?export=download&id=${fileId[1]}` : url;
 };
 
-const SubmissionsTable = ({ 
-    submissions, 
-    isSupervisor,
-    isAdmin,
-    usersMap, 
-    campusMap,
-    onEyeClick, 
-    onDeleteClick,
-    onFeedbackClick,
-    sortConfig,
-    requestSort,
-    cycles,
-}: { 
-    submissions: Submission[], 
-    isSupervisor: boolean, 
-    isAdmin: boolean,
-    usersMap: Map<string, AppUser>, 
-    campusMap: Map<string, string>,
-    onEyeClick: (submissionId: string) => void, 
-    onDeleteClick: (submission: Submission) => void,
-    onFeedbackClick: (feedback: string) => void,
-    sortConfig: SortConfig,
-    requestSort: (key: keyof Submission | 'submitterName' | 'campusName' | 'comments') => void,
-    cycles: Map<string, Cycle>
- }) => {
-    if (submissions.length === 0) {
-        return (
-            <div className="text-center py-10 text-muted-foreground">
-                No submissions found for this category.
-            </div>
-        );
-    }
-
-    const getSortIndicator = (key: keyof Submission | 'submitterName' | 'campusName' | 'comments') => {
-      if (!sortConfig || sortConfig.key !== key) {
-        return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
-      }
-      return sortConfig.direction === 'ascending' ? ' ▲' : ' ▼';
-    };
-    
-    const isLate = (submission: Submission): boolean => {
-      const cycle = cycles.get(submission.cycleId);
-      if (!cycle || !cycle.endDate) {
-        return false;
-      }
-      const deadline = cycle.endDate instanceof Timestamp ? cycle.endDate.toDate() : new Date(cycle.endDate);
-      const submissionDate = submission.submissionDate instanceof Timestamp ? submission.submissionDate.toDate() : new Date(submission.submissionDate);
-      return submissionDate > deadline;
-    }
-
-    const getStatusText = (status: string) => {
-      return status === 'submitted' ? 'Awaiting Approval' : status;
-    }
-
-
-    return (
-        <Table>
-            <TableHeader>
-              <TableRow>
-                 {isAdmin && (
-                    <TableHead>
-                        <Button variant="ghost" onClick={() => requestSort('campusName')}>
-                            Campus
-                            {getSortIndicator('campusName')}
-                        </Button>
-                    </TableHead>
-                )}
-                <TableHead>Control Number</TableHead>
-                <TableHead>
-                   <Button variant="ghost" onClick={() => requestSort('reportType')}>
-                        Report Type
-                        {getSortIndicator('reportType')}
-                    </Button>
-                </TableHead>
-                <TableHead>Rev</TableHead>
-                <TableHead>
-                     <Button variant="ghost" onClick={() => requestSort('unitName')}>
-                        Unit
-                        {getSortIndicator('unitName')}
-                    </Button>
-                </TableHead>
-                <TableHead>
-                    <Button variant="ghost" onClick={() => requestSort('year')}>
-                        Year
-                        {getSortIndicator('year')}
-                    </Button>
-                </TableHead>
-                <TableHead>
-                    <Button variant="ghost" onClick={() => requestSort('cycleId')}>
-                        Cycle
-                        {getSortIndicator('cycleId')}
-                    </Button>
-                </TableHead>
-                <TableHead>
-                    <Button variant="ghost" onClick={() => requestSort('submissionDate')}>
-                        Submitted At
-                        {getSortIndicator('submissionDate')}
-                    </Button>
-                </TableHead>
-                <TableHead>
-                     <Button variant="ghost" onClick={() => requestSort('statusId')}>
-                        Status
-                        {getSortIndicator('statusId')}
-                    </Button>
-                </TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {submissions.map((submission) => {
-                const latestComment = (submission.comments && submission.comments.length > 0)
-                    ? submission.comments[submission.comments.length - 1].text
-                    : null;
-                
-                return (
-                <TableRow 
-                  key={submission.id}
-                  className={cn("transition-colors", getYearCycleRowColor(submission.year, submission.cycleId))}
-                >
-                  {isAdmin && <TableCell>{campusMap.get(submission.campusId) ?? '...'}</TableCell>}
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <ShieldCheck className="h-3 w-3 text-primary opacity-50" />
-                      <span className="font-mono text-[10px]" title={submission.controlNumber}>
-                        {submission.controlNumber || 'N/A'}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{submission.reportType}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-mono bg-background/50">R{submission.revision ?? 0}</Badge>
-                  </TableCell>
-                  <TableCell>{submission.unitName}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-bold bg-background/50">
-                      {submission.year}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="capitalize font-medium">{submission.cycleId}</TableCell>
-                  <TableCell>
-                    {submission.submissionDate instanceof Date ? format(submission.submissionDate, 'MM/dd/yy') : 'Invalid Date'}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                         <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
-                            {getStatusText(submission.statusId)}
-                        </Badge>
-                        {isLate(submission) && (
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <AlertCircle className="h-4 w-4 text-destructive" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Submitted after deadline</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        )}
-                        {latestComment && (
-                             <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onFeedbackClick(latestComment)}>
-                                        <MessageSquare className="h-4 w-4"/>
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>View Comment</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right space-x-1">
-                    {submission.statusId === 'rejected' && !isSupervisor && !isAdmin ? (
-                        <Button variant="destructive" size="sm" onClick={() => onEyeClick(submission.id)}>
-                            <Edit className="mr-2 h-4 w-4" /> Resubmit
-                        </Button>
-                    ) : (
-                         <Button variant="outline" size="sm" onClick={() => onEyeClick(submission.id)}>
-                            <Eye className="mr-2 h-4 w-4" /> View
-                        </Button>
-                    )}
-                    {isAdmin && (
-                        <>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" asChild>
-                                <Link href={getGoogleDriveDownloadLink(submission.googleDriveLink)} target="_blank" rel="noopener noreferrer">
-                                  <Download className="h-4 w-4" />
-                                  <span className="sr-only">Download File</span>
-                                </Link>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Download File</p>
-                            </TooltipContent>
-                          </Tooltip>
-
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => onDeleteClick(submission)}>
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Delete Submission</span>
-                              </Button>
-                            </TooltipTrigger>
-                             <TooltipContent>
-                              <p>Delete Submission</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </>
-                    )}
-                  </TableCell>
-                </TableRow>
-              )})}
-            </TableBody>
-          </Table>
-    );
-}
-
-
 export default function SubmissionsPage() {
-  const { user, userProfile, isAdmin, isSupervisor, isMainCampusCoordinator } = useUser();
+  const { user, userProfile, isAdmin, isSupervisor, isMainCampusCoordinator, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
-  const { logSessionActivity } = useSessionActivity();
   
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [feedbackToShow, setFeedbackToShow] = useState('');
-  const [crossCampusSubmissions, setCrossCampusSubmissions] = useState<Submission[]>([]);
-  const [isLoadingCrossCampus, setIsLoadingCrossCampus] = useState(false);
-
-  const usersQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile) return null;
-    if (isAdmin || isMainCampusCoordinator || isSupervisor) {
-        return collection(firestore, 'users');
-    }
-    return query(collection(firestore, 'users'), where('unitId', '==', userProfile.unitId));
-  }, [firestore, isAdmin, isSupervisor, userProfile, isMainCampusCoordinator]);
-  
-  const { data: users } = useCollection<AppUser>(usersQuery);
-
-  const submissionsQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile) return null;
-    if (isAdmin) return collection(firestore, 'submissions');
-    if (isSupervisor && userProfile.campusId) {
-      return query(
-        collection(firestore, 'submissions'), 
-        where('campusId', '==', userProfile.campusId)
-      );
-    }
-    if (userProfile.unitId && userProfile.campusId) {
-      return query(
-        collection(firestore, 'submissions'), 
-        where('unitId', '==', userProfile.unitId),
-        where('campusId', '==', userProfile.campusId)
-      );
-    }
-    return null;
-  }, [firestore, isAdmin, isSupervisor, userProfile]);
-
-  const { data: submissionsData, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
-
-  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
-  const { data: campuses } = useCollection<Campus>(campusesQuery);
-
-  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
-  const { data: units } = useCollection<Unit>(unitsQuery);
-
-  const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
-  const { data: cycles } = useCollection<Cycle>(cyclesQuery);
-
-
-  useEffect(() => {
-    if (!isMainCampusCoordinator || !user) return;
-
-    const fetchCrossCampusSubmissions = async () => {
-        setIsLoadingCrossCampus(true);
-        try {
-            const token = await user.getIdToken();
-            const response = await fetch('/api/get-unit-submissions', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to fetch cross-campus submissions');
-            }
-
-            const data = await response.json();
-            const parsedData = data.map((s: any) => {
-                return {
-                    ...s,
-                    submissionDate: new Date(s.submissionDate),
-                };
-            });
-            setCrossCampusSubmissions(parsedData);
-        } catch (error) {
-            console.error(error);
-            toast({
-                title: 'Error',
-                description: 'Could not load monitoring data.',
-                variant: 'destructive',
-            });
-        } finally {
-            setIsLoadingCrossCampus(false);
-        }
-    };
-
-    fetchCrossCampusSubmissions();
-  }, [isMainCampusCoordinator, user, toast]);
-
-  const isLoading = isLoadingSubmissions;
-
-  const [activeFilter, setActiveFilter] = useState<string>('All Submissions');
-  const [activeYearFilter, setActiveYearFilter] = useState<string>('All Years');
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'submissionDate', direction: 'descending'});
-  const [activeTab, setActiveTab] = useState('all-submissions');
-
+  const [activeFilter, setActiveFilter] = useState('All Submissions');
+  const [activeYearFilter, setActiveYearFilter] = useState('All Years');
   const [deletingSubmission, setDeletingSubmission] = useState<Submission | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmationText, setConfirmationText] = useState('');
   const [challengeText, setChallengeText] = useState('');
 
-  const usersMap = useMemo(() => {
-      const map = new Map<string, AppUser>();
-      if (users) users.forEach(u => map.set(u.id, u));
-      return map;
-  }, [users]);
-  
-  const campusMap = useMemo(() => {
-      const map = new Map<string, string>();
-      if (campuses) campuses.forEach(c => map.set(c.id, c.name));
-      return map;
-  }, [campuses]);
-  
-  const unitNameForLabel = useMemo(() => {
-    if (!userProfile?.unitId || !units) return '';
-    return units.find(u => u.id === userProfile.unitId)?.name || '';
-  }, [userProfile, units]);
+  const submissionsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile || isUserLoading) return null;
+    if (isAdmin) return collection(firestore, 'submissions');
+    if (isSupervisor && userProfile.campusId) {
+      return query(collection(firestore, 'submissions'), where('campusId', '==', userProfile.campusId));
+    }
+    return query(collection(firestore, 'submissions'), where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
+  }, [firestore, isAdmin, isSupervisor, userProfile, isUserLoading]);
 
+  const { data: submissionsData, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
-  const submissions = useMemo(() => {
-    if (!submissionsData) return [];
-    return submissionsData.map(s => {
-        return {
-            ...s,
-            submissionDate: s.submissionDate instanceof Timestamp ? s.submissionDate.toDate() : new Date(s.submissionDate)
-        };
-    });
-  }, [submissionsData]);
+  const campusesQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'campuses') : null), [firestore, user]);
+  const { data: campuses } = useCollection<Campus>(campusesQuery);
 
-  const yearsForFilter = useMemo(() => {
-    const yearsFromSubmissions = submissionsData?.map(s => s.year) || [];
-    const uniqueYears = Array.from(new Set(yearsFromSubmissions)).sort((a, b) => b - a);
-    return ['All Years', ...uniqueYears.map(String)];
-  }, [submissionsData]);
-
-  const handleEyeClick = (submissionId: string) => {
-      router.push(`/submissions/${submissionId}`);
-  }
+  const unitsQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'units') : null), [firestore, user]);
+  const { data: units } = useCollection<Unit>(unitsQuery);
 
   const handleDeleteClick = (submission: Submission) => {
     setDeletingSubmission(submission);
-    const randomId = Math.floor(1000 + Math.random() * 9000);
-    setChallengeText(`delete-${randomId}`);
+    setChallengeText(`delete-${Math.floor(1000 + Math.random() * 9000)}`);
     setConfirmationText('');
   }
 
   const handleConfirmDelete = async () => {
     if (!firestore || !deletingSubmission) return;
-
     setIsDeleting(true);
     try {
-        const submissionRef = doc(firestore, 'submissions', deletingSubmission.id);
-        await deleteDoc(submissionRef);
-        
-        logSessionActivity(`Deleted unit submission: ${deletingSubmission.reportType}`, {
-          action: 'delete_submission',
-          details: { submissionId: deletingSubmission.id },
-        });
-
-        toast({ title: 'Submission Deleted', description: 'The submission has been permanently removed.' });
+        await deleteDoc(doc(firestore, 'submissions', deletingSubmission.id));
+        toast({ title: 'Submission Deleted', description: 'Record removed permanently.' });
     } catch (error) {
-         console.error('Error deleting submission:', error);
-         toast({ title: 'Error', description: 'Could not delete the submission.', variant: 'destructive' });
+         toast({ title: 'Error', description: 'Could not delete submission.', variant: 'destructive' });
     } finally {
         setIsDeleting(false);
         setDeletingSubmission(null);
     }
   }
 
-  const requestSort = (key: keyof Submission | 'submitterName' | 'campusName' | 'comments') => {
-    let direction: 'ascending' | 'descending' = 'ascending';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
-        direction = 'descending';
-    }
-    setSortConfig({ key, direction });
-  };
-  
-  const cycleMap = useMemo(() => {
-    if (!cycles) return new Map<string, Cycle>();
-    return new Map(cycles.map(c => [c.id, c]));
-  }, [cycles]);
-
-  const handleFeedbackClick = (feedback: string) => {
-    setFeedbackToShow(feedback);
-    setIsFeedbackDialogOpen(true);
-  };
-
-
-  const sortedSubmissions = useMemo(() => {
-    let sortableItems = [...submissions];
-    if (activeFilter !== 'All Submissions') sortableItems = sortableItems.filter(s => s.reportType === activeFilter);
-    if (activeYearFilter !== 'All Years') sortableItems = sortableItems.filter(s => String(s.year) === activeYearFilter);
-
-    if (sortConfig !== null) {
-        sortableItems.sort((a, b) => {
-            let aValue: any, bValue: any;
-            if (sortConfig.key === 'submitterName') {
-                const userA = usersMap.get(a.userId); aValue = userA ? `${userA.firstName} ${userA.lastName}` : '';
-                const userB = usersMap.get(b.userId); bValue = userB ? `${userB.firstName} ${userB.lastName}` : '';
-            } else if (sortConfig.key === 'campusName') {
-                aValue = campusMap.get(a.campusId) ?? ''; bValue = campusMap.get(b.campusId) ?? '';
-            } else if (sortConfig.key === 'comments') {
-                aValue = a.comments && a.comments.length > 0 ? a.comments[a.comments.length - 1].text : '';
-                bValue = b.comments && b.comments.length > 0 ? b.comments[b.comments.length - 1].text : '';
-            } else {
-                aValue = a[sortConfig.key as keyof Submission]; bValue = b[sortConfig.key as keyof Submission];
-            }
-            if (aValue instanceof Date && bValue instanceof Date) {
-                 return (aValue.getTime() - bValue.getTime()) * (sortConfig.direction === 'ascending' ? 1 : -1);
-            }
-            if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
-            if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
-            return 0;
-        });
-    }
-    return sortableItems;
-  }, [submissions, activeFilter, activeYearFilter, sortConfig, usersMap, campusMap]);
-
-  const handlePrint = () => {
-    if (!userProfile) return;
-    const reportProps = {
-        user: userProfile,
-        submissions: sortedSubmissions,
-        campusName: campusMap.get(userProfile.campusId) || 'All Campuses',
-        cycle: 'Active',
-        year: new Date().getFullYear(),
-    };
-    const reportHtml = ReactDOMServer.renderToStaticMarkup(<SubmissionReport {...reportProps} />);
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-        printWindow.document.write(`<html><head><title>Report</title><style>body { font-family: sans-serif; margin: 2rem; } table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 10px; } th { background-color: #f2f2f2; } h1, h2, h3 { margin: 0; } .header { text-align: center; margin-bottom: 2rem; } .footer { margin-top: 2rem; font-style: italic; color: #555; font-size: 10px; } .report-title { margin-top: 1rem; text-align: center; font-weight: bold; text-transform: uppercase; } .user-info { margin-top: 1rem; }</style></head><body>${reportHtml}<script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); } }</script></body></html>`);
-        printWindow.document.close();
-    }
-  };
-
-  const handleExportToExcel = () => {
-    const dataToExport = sortedSubmissions.map(s => ({
-        'Control Number': s.controlNumber,
-        'Revision': s.revision,
-        'Report Type': s.reportType,
-        'Unit': s.unitName,
-        'Year': s.year,
-        'Cycle': s.cycleId,
-        'Submitted At': format(s.submissionDate, 'yyyy-MM-dd HH:mm'),
-        'Status': s.statusId,
-    }));
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Submissions');
-    XLSX.writeFile(workbook, 'submissions-export.xlsx');
-  };
-
   return (
-    <>
     <TooltipProvider>
-      <div className="space-y-2">
+      <div className="space-y-4">
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Submissions</h2>
-            <p className="text-muted-foreground">{isSupervisor ? 'A list of all submissions in your scope.' : `Viewing all submissions for the ${unitNameForLabel}.`}</p>
+            <p className="text-muted-foreground">Manage unit compliance documentation.</p>
           </div>
           <div className="flex items-center space-x-2">
-              <Button variant="outline" onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Print</Button>
-              <Button variant="outline" onClick={handleExportToExcel}><FileDown className="mr-2 h-4 w-4" /> Export</Button>
-            {(!isSupervisor || userProfile?.role === 'Unit ODIMO') && (
-              <>
-                <Button variant="outline" asChild>
-                    <Link href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1" target="_blank"><Download className="mr-2 h-4 w-4" /> Templates</Link>
-                </Button>
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                    <Button><PlusCircle className="mr-2 h-4 w-4" /> New Submission</Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Submission Instructions</AlertDialogTitle>
-                        <AlertDialogDescription asChild>
-                        <ul className="list-disc space-y-2 pl-5 text-sm">
-                            <li>Prepare reports in PDF Format using Complete Staff Work.</li>
-                            <li>Ensure sharing is set to "anyone with the link can view."</li>
-                            <li>Only one person needs to upload for the whole unit.</li>
-                        </ul>
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => router.push('/submissions/new')}>Continue</AlertDialogAction>
-                    </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-              </>
+            {!isSupervisor && (
+                <Button onClick={() => router.push('/submissions/new')}><PlusCircle className="mr-2 h-4 w-4" /> New Submission</Button>
             )}
           </div>
         </div>
+
+        <Tabs defaultValue="all-submissions" className="space-y-4">
+            <TabsList>
+                <TabsTrigger value="all-submissions">All Submissions</TabsTrigger>
+                {isSupervisor && !isAdmin && <TabsTrigger value="by-unit">Unit Submissions</TabsTrigger>}
+                {isAdmin && <TabsTrigger value="by-campus">Campus Submissions</TabsTrigger>}
+            </TabsList>
+            <TabsContent value="all-submissions">
+                <Card>
+                    <CardHeader><CardTitle>Unit Records</CardTitle></CardHeader>
+                    <CardContent>
+                        {isLoadingSubmissions ? <Loader2 className="animate-spin h-8 w-8 mx-auto" /> : (
+                            <p className="text-sm text-muted-foreground">Please use the tabs or drill-down components to manage specific unit records.</p>
+                        )}
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            {isSupervisor && !isAdmin && <TabsContent value="by-unit"><UnitSubmissionsView allSubmissions={submissionsData} allUnits={units} userProfile={userProfile} isLoading={isLoadingSubmissions} /></TabsContent>}
+            {isAdmin && <TabsContent value="by-campus"><CampusSubmissionsView allSubmissions={submissionsData} allCampuses={campuses} allUnits={units} isLoading={isLoadingSubmissions} isAdmin={isAdmin} onDeleteClick={handleDeleteClick} /></TabsContent>}
+        </Tabs>
       </div>
-      
-       <Tabs defaultValue="all-submissions" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-            <TabsTrigger value="all-submissions"><Rows className="mr-2 h-4 w-4" /> All Submissions</TabsTrigger>
-            {isSupervisor && !isAdmin && (<TabsTrigger value="by-unit"><Library className="mr-2 h-4 w-4" /> Unit Submissions</TabsTrigger>)}
-            {isAdmin && (<TabsTrigger value="by-campus"><Building2 className="mr-2 h-4 w-4" /> Campus Submissions</TabsTrigger>)}
-            {isMainCampusCoordinator && (<TabsTrigger value="cross-campus"><Send className="mr-2 h-4 w-4" /> Cross-Campus</TabsTrigger>)}
-        </TabsList>
-        <TabsContent value="all-submissions">
-            <Card>
-                <CardHeader>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <CardTitle>{isSupervisor ? 'All Submissions' : 'Unit Submissions'}</CardTitle>
-                        <CardDescription>{isSupervisor ? 'A history of all reports in your scope.' : `A history of all reports for the ${unitNameForLabel}.`}</CardDescription>
-                    </div>
-                    <div className="flex gap-2">
-                        <Select value={activeYearFilter} onValueChange={setActiveYearFilter}><SelectTrigger className="w-[150px]"><SelectValue placeholder="Year" /></SelectTrigger><SelectContent>{yearsForFilter.map(y=><SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent></Select>
-                        <Select value={activeFilter} onValueChange={setActiveFilter}><SelectTrigger className="w-[250px]"><SelectValue placeholder="Filter..." /></SelectTrigger><SelectContent>{submissionTypesList.map(t=><SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select>
-                    </div>
-                </div>
-                </CardHeader>
-                <CardContent>
-                {isLoadingSubmissions ? (<div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin" /></div>) : (
-                    <SubmissionsTable submissions={sortedSubmissions} isSupervisor={isSupervisor} isAdmin={isAdmin} usersMap={usersMap} campusMap={campusMap} onEyeClick={handleEyeClick} onDeleteClick={handleDeleteClick} onFeedbackClick={handleFeedbackClick} sortConfig={sortConfig} requestSort={requestSort} cycles={cycleMap} />
-                )}
-                </CardContent>
-            </Card>
-        </TabsContent>
-        {isSupervisor && !isAdmin && (<TabsContent value="by-unit"><UnitSubmissionsView allSubmissions={submissions} allUnits={units} userProfile={userProfile} isLoading={isLoadingSubmissions} /></TabsContent>)}
-        {isAdmin && (<TabsContent value="by-campus"><CampusSubmissionsView allSubmissions={submissions} allCampuses={campuses} allUnits={units} isLoading={isLoadingSubmissions} isAdmin={isAdmin} onDeleteClick={handleDeleteClick} /></TabsContent>)}
-        {isMainCampusCoordinator && (<TabsContent value="cross-campus"><Card><CardHeader><CardTitle>Cross-Campus Monitoring</CardTitle></CardHeader><CardContent><SubmissionsTable submissions={crossCampusSubmissions} isSupervisor={true} isAdmin={true} usersMap={usersMap} campusMap={campusMap} onEyeClick={handleEyeClick} onDeleteClick={() => {}} onFeedbackClick={handleFeedbackClick} sortConfig={sortConfig} requestSort={requestSort} cycles={cycleMap} /></CardContent></Card></TabsContent>)}
-      </Tabs>
-      </TooltipProvider>
+
       <FeedbackDialog isOpen={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} feedback={feedbackToShow} />
+      
       <AlertDialog open={!!deletingSubmission} onOpenChange={() => setDeletingSubmission(null)}>
         <AlertDialogContent>
-            <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>Delete <strong>{deletingSubmission?.reportType}</strong> from <strong>{deletingSubmission?.unitName}</strong>. Type <strong className="text-destructive">{challengeText}</strong> to confirm.</AlertDialogDescription></AlertDialogHeader>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>Delete <strong>{deletingSubmission?.reportType}</strong>. Type <strong className="text-destructive">{challengeText}</strong> to confirm.</AlertDialogDescription>
+            </AlertDialogHeader>
             <Input value={confirmationText} onChange={(e) => setConfirmationText(e.target.value)} placeholder={`Type "${challengeText}"`} />
-            <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleConfirmDelete} disabled={isDeleting || confirmationText !== challengeText} className="bg-destructive hover:bg-destructive/90">{isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />} Delete</AlertDialogAction></AlertDialogFooter>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmDelete} disabled={isDeleting || confirmationText !== challengeText} className="bg-destructive">
+                    {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete
+                </AlertDialogAction>
+            </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </TooltipProvider>
   );
 }
