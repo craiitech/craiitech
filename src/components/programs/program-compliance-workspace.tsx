@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { AcademicProgram, ProgramComplianceRecord } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -174,6 +174,24 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     },
   });
 
+  // Synchronize CHED content noted and Curriculum noted fields
+  useEffect(() => {
+    const subscription = methods.watch((value, { name }) => {
+      if (name === 'ched.contentNoted') {
+        const newValue = !!value.ched?.contentNoted;
+        if (methods.getValues('curriculum.isNotedByChed') !== newValue) {
+          methods.setValue('curriculum.isNotedByChed', newValue, { shouldDirty: true });
+        }
+      } else if (name === 'curriculum.isNotedByChed') {
+        const newValue = !!value.curriculum?.isNotedByChed;
+        if (methods.getValues('ched.contentNoted') !== newValue) {
+          methods.setValue('ched.contentNoted', newValue, { shouldDirty: true });
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [methods]);
+
   useMemo(() => {
     if (activeRecord) {
       methods.reset({
@@ -291,12 +309,15 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
           </div>
         ) : (
           <Tabs defaultValue="ched" className="w-full">
-            <TabsList className="grid h-auto w-full grid-cols-2 md:grid-cols-5">
+            <TabsList className={cn(
+                "grid h-auto w-full",
+                program.isBoardProgram ? "grid-cols-2 md:grid-cols-5" : "grid-cols-2 md:grid-cols-4"
+            )}>
               <TabsTrigger value="ched" className="py-2"><FileCheck className="mr-2 h-4 w-4" /> CHED & RQAT</TabsTrigger>
               <TabsTrigger value="accreditation" className="py-2"><ShieldCheck className="mr-2 h-4 w-4" /> Accreditation</TabsTrigger>
               <TabsTrigger value="faculty" className="py-2"><Users className="mr-2 h-4 w-4" /> Faculty</TabsTrigger>
               <TabsTrigger value="curriculum" className="py-2"><BookOpen className="mr-2 h-4 w-4" /> Curriculum</TabsTrigger>
-              <TabsTrigger value="outcomes" className="py-2"><BarChart3 className="mr-2 h-4 w-4" /> Outcomes</TabsTrigger>
+              {program.isBoardProgram && <TabsTrigger value="outcomes" className="py-2"><BarChart3 className="mr-2 h-4 w-4" /> Outcomes</TabsTrigger>}
             </TabsList>
 
             <div className="mt-6">
@@ -304,7 +325,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
               <TabsContent value="accreditation"><AccreditationModule canEdit={canEdit} /></TabsContent>
               <TabsContent value="faculty"><FacultyModule canEdit={canEdit} /></TabsContent>
               <TabsContent value="curriculum"><CurriculumModule canEdit={canEdit} /></TabsContent>
-              <TabsContent value="outcomes"><OutcomesModule canEdit={canEdit} isBoardProgram={program.isBoardProgram} /></TabsContent>
+              {program.isBoardProgram && <TabsContent value="outcomes"><OutcomesModule canEdit={canEdit} isBoardProgram={program.isBoardProgram} /></TabsContent>}
             </div>
           </Tabs>
         )}
