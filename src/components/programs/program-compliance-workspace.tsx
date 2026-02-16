@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { Loader2, Save, FileCheck, Users, BookOpen, BarChart3, ShieldCheck, Presentation } from 'lucide-react';
+import { Loader2, Save, FileCheck, Users, BookOpen, BarChart3, ShieldCheck, Presentation, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,9 +36,9 @@ const complianceSchema = z.object({
   academicYear: z.coerce.number(),
   ched: z.object({
     copcStatus: z.enum(['With COPC', 'No COPC', 'In Progress']),
-    copcLink: z.string().url().optional().or(z.literal('')),
+    copcLink: z.string().url('Invalid URL format').optional().or(z.literal('')),
     contentNoted: z.boolean(),
-    contentNotedLink: z.string().url().optional().or(z.literal('')),
+    contentNotedLink: z.string().url('Invalid URL format').optional().or(z.literal('')),
     rqatVisits: z.array(z.object({
       date: z.string().optional(),
       result: z.string().optional(),
@@ -50,14 +50,14 @@ const complianceSchema = z.object({
     level: z.string(),
     dateOfVisit: z.string().optional(),
     dateOfAward: z.string().optional(),
-    nextSchedule: z.string(),
-    certificateLink: z.string().url().optional().or(z.literal('')),
+    nextSchedule: z.string().optional(),
+    certificateLink: z.string().url('Invalid URL format').optional().or(z.literal('')),
     overallTaskForceHead: z.string().optional(),
     taskForce: z.string().optional(),
     areas: z.array(z.object({
       areaCode: z.string(),
       areaName: z.string(),
-      googleDriveLink: z.string().url().optional().or(z.literal('')),
+      googleDriveLink: z.string().url('Invalid URL format').optional().or(z.literal('')),
       taskForce: z.string().optional(),
     })).optional(),
   }),
@@ -65,7 +65,7 @@ const complianceSchema = z.object({
     revisionNumber: z.string(),
     dateImplemented: z.any().optional(),
     isNotedByChed: z.boolean(),
-    cmoLink: z.string().url().optional().or(z.literal('')),
+    cmoLink: z.string().url('Invalid URL format').optional().or(z.literal('')),
   }),
   faculty: z.object({
     dean: z.object({ name: z.string(), highestEducation: z.string(), isAlignedWithCMO: z.string() }),
@@ -114,20 +114,31 @@ const complianceSchema = z.object({
 });
 
 /**
- * Deeply removes all undefined values from an object or array.
- * Firestore setDoc fails if any field contains an 'undefined' value.
+ * Robustly sanitizes objects for Firestore.
+ * - Converts undefined to null (Firestore forbids undefined).
+ * - Avoids recursing into special non-plain objects like Date or Firestore Timestamps.
  */
 function sanitizeForFirestore(obj: any): any {
-  if (Array.isArray(obj)) {
-    return obj.map((value) => (value && typeof value === 'object' && !(value instanceof Date)) ? sanitizeForFirestore(value) : value);
+  if (obj === null || obj === undefined) return null;
+  
+  // If it's a Date or has a toDate method (Firestore Timestamp), return as is
+  if (obj instanceof Date || (typeof obj.toDate === 'function')) {
+    return obj;
   }
-  return Object.entries(obj).reduce((acc, [key, value]) => {
-    if (value === undefined) return acc;
-    if (value !== null && typeof value === 'object' && !(value instanceof Date)) {
-      return { ...acc, [key]: sanitizeForFirestore(value) };
+
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeForFirestore);
+  }
+
+  if (typeof obj === 'object') {
+    const sanitized: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      sanitized[key] = sanitizeForFirestore(value);
     }
-    return { ...acc, [key]: value };
-  }, {} as any);
+    return sanitized;
+  }
+
+  return obj;
 }
 
 export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplianceWorkspaceProps) {
@@ -268,7 +279,6 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     const recordId = activeRecord?.id || `${program.id}-${selectedAY}`;
     const docRef = doc(firestore, 'programCompliances', recordId);
 
-    // Sanitize values to remove undefined fields which Firestore strictly rejects
     const sanitizedData = sanitizeForFirestore(values);
 
     try {
@@ -284,15 +294,24 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       toast({ title: 'Compliance Updated', description: `Record for AY ${selectedAY} has been saved successfully.` });
     } catch (error) {
       console.error('Compliance save error:', error);
-      toast({ title: 'Save Failed', description: 'Could not update compliance record.', variant: 'destructive' });
+      toast({ title: 'Save Failed', description: 'Could not update compliance record. Please check your data format.', variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
   };
 
+  const onInvalid = (errors: any) => {
+    console.error("Compliance Validation Errors:", errors);
+    toast({ 
+        title: "Validation Error", 
+        description: "Please check the form for invalid fields (e.g. incorrect URL formats).", 
+        variant: 'destructive' 
+    });
+  };
+
   return (
     <FormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit(onSave)} className="space-y-6">
+      <form onSubmit={methods.handleSubmit(onSave, onInvalid)} className="space-y-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-muted/30 p-4 rounded-lg border border-primary/10">
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-5 w-5 text-primary" />

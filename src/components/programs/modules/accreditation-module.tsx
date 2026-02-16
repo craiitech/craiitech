@@ -52,6 +52,7 @@ const level34OptionalAreas = [
 export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
   const { control, watch, setValue } = useFormContext();
   const selectedLevel = watch('accreditation.level');
+  const existingAreas = watch('accreditation.areas');
 
   const isLevel3Or4 = useMemo(() => {
     return selectedLevel?.includes('Level III') || selectedLevel?.includes('Level IV');
@@ -63,34 +64,35 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
            selectedLevel === 'Level II Accredited';
   }, [selectedLevel]);
 
-  // Synchronize area fields when level changes
+  // Synchronize area fields when level changes, but ONLY if we don't already have area data.
+  // This prevents the system from wiping user-entered documentation links on load.
   useEffect(() => {
-    if (isPSVToLevel2) {
-      const currentAreas = standardAreas.map(area => ({
-        areaCode: area.code,
-        areaName: area.name,
-        googleDriveLink: '',
-        taskForce: ''
-      }));
-      setValue('accreditation.areas', currentAreas);
-    } else if (isLevel3Or4) {
-      const mandatory = level34MandatoryAreas.map(area => ({
-        areaCode: area.code,
-        areaName: area.name,
-        googleDriveLink: '',
-        taskForce: ''
-      }));
-      const optional = level34OptionalAreas.map(area => ({
-        areaCode: area.code,
-        areaName: area.name,
-        googleDriveLink: '',
-        taskForce: ''
-      }));
-      setValue('accreditation.areas', [...mandatory, ...optional]);
-    } else {
-      setValue('accreditation.areas', []);
+    if (!existingAreas || existingAreas.length === 0) {
+        if (isPSVToLevel2) {
+            const currentAreas = standardAreas.map(area => ({
+                areaCode: area.code,
+                areaName: area.name,
+                googleDriveLink: '',
+                taskForce: ''
+            }));
+            setValue('accreditation.areas', currentAreas);
+        } else if (isLevel3Or4) {
+            const mandatory = level34MandatoryAreas.map(area => ({
+                areaCode: area.code,
+                areaName: area.name,
+                googleDriveLink: '',
+                taskForce: ''
+            }));
+            const optional = level34OptionalAreas.map(area => ({
+                areaCode: area.code,
+                areaName: area.name,
+                googleDriveLink: '',
+                taskForce: ''
+            }));
+            setValue('accreditation.areas', [...mandatory, ...optional]);
+        }
     }
-  }, [isPSVToLevel2, isLevel3Or4, setValue]);
+  }, [isPSVToLevel2, isLevel3Or4, setValue, existingAreas]);
 
   return (
     <div className="space-y-6">
@@ -128,7 +130,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Date of Visit</FormLabel>
-                        <FormControl><Input {...field} placeholder="e.g., Oct 12-14, 2024" disabled={!canEdit} /></FormControl>
+                        <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Oct 12-14, 2024" disabled={!canEdit} /></FormControl>
                         </FormItem>
                     )}
                 />
@@ -138,7 +140,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Date of Award</FormLabel>
-                        <FormControl><Input {...field} placeholder="e.g., Dec 20, 2024" disabled={!canEdit} /></FormControl>
+                        <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Dec 20, 2024" disabled={!canEdit} /></FormControl>
                         </FormItem>
                     )}
                 />
@@ -153,7 +155,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                   <FormControl>
                     <div className="relative">
                       <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input {...field} placeholder="https://drive.google.com/..." className="pl-9" disabled={!canEdit} />
+                      <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9" disabled={!canEdit} />
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -179,7 +181,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Next Evaluation Schedule</FormLabel>
-                        <FormControl><Input {...field} placeholder="e.g., September 2028" disabled={!canEdit} /></FormControl>
+                        <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., September 2028" disabled={!canEdit} /></FormControl>
                         <FormDescription className="text-[10px]">Planned month/year for the upcoming survey visit.</FormDescription>
                         <FormMessage />
                         </FormItem>
@@ -194,7 +196,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                             <UserCircle className="h-4 w-4 text-primary" />
                             Overall Task Force Head
                         </FormLabel>
-                        <FormControl><Input {...field} placeholder="Name of Overall Head" disabled={!canEdit} /></FormControl>
+                        <FormControl><Input {...field} value={field.value || ''} placeholder="Name of Overall Head" disabled={!canEdit} /></FormControl>
                         <FormDescription className="text-[10px]">Primary lead for the accreditation preparations.</FormDescription>
                         <FormMessage />
                         </FormItem>
@@ -214,6 +216,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                   <FormControl>
                     <Textarea 
                         {...field} 
+                        value={field.value || ''}
                         placeholder="List other key members involved in the overall preparation..." 
                         rows={3}
                         disabled={!canEdit}
@@ -274,6 +277,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                                                 <FormControl>
                                                     <Input 
                                                         {...field} 
+                                                        value={field.value || ''}
                                                         placeholder="Assigned person(s) for this area" 
                                                         className="h-8 text-xs bg-background" 
                                                         disabled={!canEdit} 
@@ -293,6 +297,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                                                 <FormControl>
                                                     <Input 
                                                         {...field} 
+                                                        value={field.value || ''}
                                                         placeholder="GDrive Folder/File Link" 
                                                         className="h-8 text-xs bg-background" 
                                                         disabled={!canEdit} 
