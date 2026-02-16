@@ -41,18 +41,23 @@ export default function MonitoringPage() {
   const [selectedRecord, setSelectedRecord] = useState<UnitMonitoringRecord | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
+  /**
+   * CRITICAL: Monitoring Records Query Scoping
+   * Firestore Security Rules require client-side queries to match the security filters.
+   */
   const monitoringRecordsQuery = useMemoFirebase(
     () => {
         if (!firestore || isUserLoading || !userProfile) return null;
         
         const baseRef = collection(firestore, 'unitMonitoringRecords');
 
-        // Security Rules Requirement: Master Admin and Auditors can see everything without filters
-        if (isAdmin || userRole === 'Auditor') {
+        // 1. Admins and Auditors can see everything (global scope)
+        const isAuditorRole = userRole?.toLowerCase().includes('auditor');
+        if (isAdmin || isAuditorRole) {
             return query(baseRef, orderBy('visitDate', 'desc'));
         }
 
-        // Security Rules Requirement: Campus Officials must filter by campusId
+        // 2. Campus Officials (Directors, ODIMOs, VPs) MUST filter by campusId
         if (isSupervisor) {
              if (userProfile.campusId) {
                  return query(
@@ -61,10 +66,10 @@ export default function MonitoringPage() {
                     orderBy('visitDate', 'desc')
                 );
              }
-             return null;
+             return null; // Awaiting campusId
         }
 
-        // Security Rules Requirement: Unit Users must filter by unitId
+        // 3. Unit Users MUST filter by unitId
         if (userProfile.unitId) {
             return query(
                 baseRef, 
@@ -205,7 +210,7 @@ export default function MonitoringPage() {
 
   const isLoading = isUserLoading || isLoadingRecords || isLoadingCampuses || isLoadingUnits;
 
-  const isUnitOnlyView = !isAdmin && !isSupervisor && userRole !== 'Auditor';
+  const isUnitOnlyView = !isAdmin && !isSupervisor && !userRole?.toLowerCase().includes('auditor');
 
   return (
     <>

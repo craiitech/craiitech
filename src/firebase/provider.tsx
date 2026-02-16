@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect, useRef } from 'react';
@@ -166,9 +165,9 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     
     const isVp = !!userRole?.toLowerCase().includes('vice president');
     
-    // Campus-level oversight roles
-    const supervisorRoles = ['Admin', 'Campus Director', 'Campus ODIMO'];
-    const isSupervisor = isAdmin || (userRole ? supervisorRoles.some(role => userRole.toLowerCase().includes(role.toLowerCase())) : false) || isVp;
+    // CRITICAL: Aligned with Firestore Security Rules Regex: (?i).*(director|odimo|admin|vice president).*
+    const supervisorRolesRegex = /(director|odimo|admin|vice president)/i;
+    const isSupervisor = isAdmin || (userRole ? supervisorRolesRegex.test(userRole) : false) || isVp;
 
     const mainCampus = campuses?.find(c => c.name === 'Main Campus');
     const isMainCampusCoordinator = !!(

@@ -274,6 +274,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
 
     const visitDate = new Date(Number(values.visitYear), Number(values.visitMonth), Number(values.visitDay));
 
+    // CRITICAL: Ensure campusId and unitId are explicitly included in the document
     const recordData = {
       ...values,
       visitDate,
