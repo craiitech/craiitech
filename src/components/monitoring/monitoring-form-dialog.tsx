@@ -22,7 +22,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, addDoc, Timestamp, query, where, getDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, addDoc, Timestamp, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { UnitMonitoringRecord, Campus, Unit, Submission, ProcedureManual } from '@/lib/types';
@@ -31,7 +31,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, ClipboardCheck, Circle, FileWarning, CheckCircle2, Info, LayoutList, Printer, BookOpen, Building } from 'lucide-react';
+import { Loader2, ClipboardCheck, Circle, FileWarning, CheckCircle2, Info, LayoutList, Printer, BookOpen, BookMarked, HelpCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
@@ -83,6 +83,15 @@ const statusColors: Record<string, string> = {
   'Needs Updating': 'text-indigo-500 fill-indigo-500',
 };
 
+const statusLegend = [
+  { status: 'Available', desc: 'Items/documents are present, updated, and officially signed.' },
+  { status: 'Not Available', desc: 'Items/documents are missing, not yet submitted, or cannot be produced.' },
+  { status: 'For Improvement', desc: 'Items are present but require minor revisions, better filing, or layout updates.' },
+  { status: 'Needs Updating', desc: 'Documents are outdated (e.g., from a previous year) and require a fresh submission.' },
+  { status: 'Need to revisit', desc: 'Verification could not be completed during this visit; follow-up required.' },
+  { status: 'Not Applicable', desc: 'Item is not relevant to this specific room or office.' },
+];
+
 const eomsReportMap: Record<string, string> = {
     "Operational Plan": "Operational Plan",
     "Objectives Monitoring": "Quality Objectives Monitoring",
@@ -130,7 +139,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
   
   const selectedYear = useMemo(() => visitYearValue ? Number(visitYearValue) : new Date().getFullYear(), [visitYearValue]);
 
-  // Logic to handle "Not Applicable" status change
+  // Logic to handle "Not Applicable" status change automatically setting remarks
   useEffect(() => {
     observationsValue?.forEach((obs, index) => {
       if (obs.status === 'Not Applicable' && obs.remarks !== 'Not Applicable to this Room') {
@@ -305,8 +314,8 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden">
-        <div className="p-6 border-b bg-card shrink-0">
+      <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95vh] flex flex-col p-0 overflow-hidden">
+        <div className="p-6 border-b bg-card shrink-0 shadow-sm">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
                     <div className="flex items-center gap-2 text-primary mb-1">
@@ -317,7 +326,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                         {isReadOnly ? 'Viewing' : (record ? 'Edit' : 'New')} Unit Monitoring Record
                     </DialogTitle>
                     <DialogDescription className="text-muted-foreground text-sm font-normal">
-                        Use the date selector below to log historical records from paper copies.
+                        Record on-site visit findings and verify EOMS documentation compliance.
                     </DialogDescription>
                 </div>
                 {record && onPrint && (
@@ -329,256 +338,277 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
             </div>
         </div>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-            <ScrollArea className="flex-1">
-              <div className="p-6 space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-                  <div className="space-y-2 lg:col-span-1">
-                    <FormLabel>Date of Visit</FormLabel>
-                    <div className="grid grid-cols-3 gap-1">
-                        <FormField control={form.control} name="visitMonth" render={({ field }) => (
-                            <FormItem>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
-                                    <FormControl><SelectTrigger className="px-1 h-9 text-[10px]"><SelectValue placeholder="Mo" /></SelectTrigger></FormControl>
-                                    <SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
-                                </Select>
-                            </FormItem>
-                        )} />
-                        <FormField control={form.control} name="visitDay" render={({ field }) => (
-                            <FormItem>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
-                                    <FormControl><SelectTrigger className="px-1 h-9 text-[10px]"><SelectValue placeholder="Day" /></SelectTrigger></FormControl>
-                                    <SelectContent>{daysList.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
-                                </Select>
-                            </FormItem>
-                        )} />
-                        <FormField control={form.control} name="visitYear" render={({ field }) => (
-                            <FormItem>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
-                                    <FormControl><SelectTrigger className="px-1 h-9 text-[10px]"><SelectValue placeholder="Yr" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                      {yearsList.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </FormItem>
-                        )} />
-                    </div>
-                  </div>
-                  <FormField control={form.control} name="campusId" render={({ field }) => (
-                    <FormItem className="lg:col-span-1">
-                      <FormLabel>Campus</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={isReadOnly}>
-                        <FormControl>
-                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select Campus" /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="unitId" render={({ field }) => (
-                    <FormItem className="lg:col-span-1">
-                      <FormLabel>Unit</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={isReadOnly || !selectedCampusId}>
-                        <FormControl>
-                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select Unit" /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>{unitsForCampus.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="roomNumber" render={({ field }) => (
-                    <FormItem className="lg:col-span-1">
-                      <FormLabel>Office / Room #</FormLabel>
-                      <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Room 101" className="h-9 text-xs" disabled={isReadOnly} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="building" render={({ field }) => (
-                    <FormItem className="lg:col-span-1">
-                      <FormLabel>Building</FormLabel>
-                      <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., CET Building" className="h-9 text-xs" disabled={isReadOnly} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="officerInCharge" render={({ field }) => (
-                    <FormItem className="lg:col-span-1">
-                      <FormLabel>Officer in Charge</FormLabel>
-                      <FormControl><Input {...field} value={field.value || ''} placeholder="Name" className="h-9 text-xs" disabled={isReadOnly} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                </div>
+        <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col min-w-0 border-r bg-background">
+                <Form {...form}>
+                    <form id="monitoring-form" onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                        <ScrollArea className="flex-1">
+                            <div className="p-6 space-y-8">
+                                {/* Header Info Grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 bg-muted/20 p-4 rounded-lg border">
+                                    <div className="space-y-2 lg:col-span-1">
+                                        <FormLabel className="text-[10px] font-bold uppercase tracking-wider">Date of Visit</FormLabel>
+                                        <div className="grid grid-cols-3 gap-1">
+                                            <FormField control={form.control} name="visitMonth" render={({ field }) => (
+                                                <FormItem>
+                                                    <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
+                                                        <FormControl><SelectTrigger className="px-1 h-9 text-[10px]"><SelectValue placeholder="Mo" /></SelectTrigger></FormControl>
+                                                        <SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+                                                    </Select>
+                                                </FormItem>
+                                            )} />
+                                            <FormField control={form.control} name="visitDay" render={({ field }) => (
+                                                <FormItem>
+                                                    <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
+                                                        <FormControl><SelectTrigger className="px-1 h-9 text-[10px]"><SelectValue placeholder="Day" /></SelectTrigger></FormControl>
+                                                        <SelectContent>{daysList.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+                                                    </Select>
+                                                </FormItem>
+                                            )} />
+                                            <FormField control={form.control} name="visitYear" render={({ field }) => (
+                                                <FormItem>
+                                                    <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
+                                                        <FormControl><SelectTrigger className="px-1 h-9 text-[10px]"><SelectValue placeholder="Yr" /></SelectTrigger></FormControl>
+                                                        <SelectContent>
+                                                            {yearsList.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </FormItem>
+                                            )} />
+                                        </div>
+                                    </div>
+                                    <FormField control={form.control} name="campusId" render={({ field }) => (
+                                        <FormItem className="lg:col-span-1">
+                                            <FormLabel className="text-[10px] font-bold uppercase tracking-wider">Campus</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value || ''} disabled={isReadOnly}>
+                                                <FormControl>
+                                                    <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select Campus" /></SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="unitId" render={({ field }) => (
+                                        <FormItem className="lg:col-span-1">
+                                            <FormLabel className="text-[10px] font-bold uppercase tracking-wider">Unit</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value || ''} disabled={isReadOnly || !selectedCampusId}>
+                                                <FormControl>
+                                                    <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select Unit" /></SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>{unitsForCampus.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="roomNumber" render={({ field }) => (
+                                        <FormItem className="lg:col-span-1">
+                                            <FormLabel className="text-[10px] font-bold uppercase tracking-wider">Office / Room #</FormLabel>
+                                            <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Room 101" className="h-9 text-xs" disabled={isReadOnly} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="building" render={({ field }) => (
+                                        <FormItem className="lg:col-span-1">
+                                            <FormLabel className="text-[10px] font-bold uppercase tracking-wider">Building</FormLabel>
+                                            <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., CET Building" className="h-9 text-xs" disabled={isReadOnly} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="officerInCharge" render={({ field }) => (
+                                        <FormItem className="lg:col-span-1">
+                                            <FormLabel className="text-[10px] font-bold uppercase tracking-wider">Officer in Charge</FormLabel>
+                                            <FormControl><Input {...field} value={field.value || ''} placeholder="Name" className="h-9 text-xs" disabled={isReadOnly} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </div>
 
-                {selectedUnitId && !isLoadingSubmissions && (
-                    <Card className="border-blue-200 bg-blue-50/30">
-                        <CardHeader className="py-3 bg-blue-50">
-                            <CardTitle className="text-sm flex items-center gap-2 text-blue-800">
-                                <Info className="h-4 w-4" />
-                                EOMS Compliance Reference (Year {selectedYear})
+                                <div className="space-y-4">
+                                    <h3 className="font-bold text-lg flex items-center gap-2">
+                                        <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">1</div>
+                                        Verification Checklist
+                                    </h3>
+                                    <div className="border rounded-lg overflow-hidden shadow-sm">
+                                        <Table>
+                                            <TableHeader className="bg-muted/50">
+                                                <TableRow>
+                                                    <TableHead className="w-[40%]">Monitoring Item / Document</TableHead>
+                                                    <TableHead className="w-[20%]">Status</TableHead>
+                                                    <TableHead className="w-[40%]">Remarks / Findings</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                            {monitoringGroups.map((group) => (
+                                                <React.Fragment key={group.category}>
+                                                    <TableRow className="bg-muted/30 hover:bg-muted/30 border-y">
+                                                        <TableCell colSpan={3} className="py-2 px-4">
+                                                            <div className="flex items-center gap-2 font-bold text-primary text-[10px] uppercase tracking-wider">
+                                                                <LayoutList className="h-3 w-3" />
+                                                                {group.category}
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                    {group.items.map((itemName) => {
+                                                        const index = fields.findIndex(f => f.item === itemName);
+                                                        if (index === -1) return null;
+                                                        
+                                                        const field = fields[index];
+                                                        return (
+                                                            <TableRow key={field.id} className="hover:bg-muted/20">
+                                                                <TableCell className="font-medium text-sm py-3">{field.item}</TableCell>
+                                                                <TableCell>
+                                                                    <FormField control={form.control} name={`observations.${index}.status`} render={({ field: statusField }) => (
+                                                                    <FormItem>
+                                                                        <FormControl>
+                                                                            <Select onValueChange={statusField.onChange} value={statusField.value || 'Available'} disabled={isReadOnly}>
+                                                                            <SelectTrigger className={cn("h-8 text-xs bg-background flex items-center gap-2", statusColors[statusField.value]?.split(' ')[0])}>
+                                                                                <Circle className={cn("h-2 w-2", statusColors[statusField.value])} />
+                                                                                <SelectValue />
+                                                                            </SelectTrigger>
+                                                                            <SelectContent>
+                                                                                <SelectItem value="Available">Available</SelectItem>
+                                                                                <SelectItem value="Not Available">Not Available</SelectItem>
+                                                                                <SelectItem value="For Improvement">For Improvement</SelectItem>
+                                                                                <SelectItem value="Needs Updating">Needs Updating</SelectItem>
+                                                                                <SelectItem value="Not Applicable">Not Applicable</SelectItem>
+                                                                                <SelectItem value="Need to revisit">Need to revisit</SelectItem>
+                                                                            </SelectContent>
+                                                                            </Select>
+                                                                        </FormControl>
+                                                                    </FormItem>
+                                                                    )} />
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <FormField control={form.control} name={`observations.${index}.remarks`} render={({ field: remarksField }) => (
+                                                                    <FormItem>
+                                                                        <FormControl>
+                                                                            <Input placeholder={isReadOnly ? "" : "Add findings..."} {...remarksField} value={remarksField.value || ''} className="h-8 text-xs bg-background" disabled={isReadOnly} />
+                                                                        </FormControl>
+                                                                    </FormItem>
+                                                                    )} />
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        );
+                                                    })}
+                                                </React.Fragment>
+                                            ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h3 className="font-bold text-lg flex items-center gap-2">
+                                        <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">2</div>
+                                        Final Assessment
+                                    </h3>
+                                    <FormField control={form.control} name="generalRemarks" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>General Remarks / Summary of Visit</FormLabel>
+                                        <FormControl>
+                                            <Textarea {...field} value={field.value || ''} rows={5} placeholder={isReadOnly ? "" : "Provide an overall summary..."} disabled={isReadOnly} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )} />
+                                </div>
+                            </div>
+                        </ScrollArea>
+                    </form>
+                </Form>
+            </div>
+
+            {/* Right Panel: LEGEND and REFERENCE */}
+            <div className="hidden lg:flex w-[400px] flex-col bg-muted/10 border-l shrink-0">
+                <div className="p-4 border-b font-bold text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white">
+                    <Info className="h-4 w-4" /> Reference Panel
+                </div>
+                <ScrollArea className="flex-1 p-6 space-y-6">
+                    {/* Status Legend Section */}
+                    <Card className="border-primary/20 shadow-sm overflow-hidden">
+                        <CardHeader className="py-3 px-4 bg-primary/5 border-b">
+                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                                <HelpCircle className="h-3.5 w-3.5" /> Status Legend & Criteria
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="py-4 space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-2 font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
-                                        <ClipboardCheck className="h-3 w-3" /> Portal Submissions
+                        <CardContent className="p-0">
+                            <div className="divide-y text-[11px]">
+                                {statusLegend.map((item) => (
+                                    <div key={item.status} className="p-3 hover:bg-muted/30 transition-colors">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <Circle className={cn("h-2 w-2", statusColors[item.status])} />
+                                            <span className="font-bold uppercase tracking-tighter">{item.status}</span>
+                                        </div>
+                                        <p className="text-muted-foreground leading-relaxed italic">{item.desc}</p>
                                     </div>
-                                    {missingReports.length > 0 ? (
-                                        <div className="space-y-2">
-                                            {missingReports.map((report, idx) => (
-                                                <div key={idx} className="flex items-start gap-2 bg-white p-2 rounded border border-blue-100 shadow-sm">
-                                                    <FileWarning className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-                                                    <div>
-                                                        <p className="text-xs font-bold">{report.name}</p>
-                                                        <p className="text-[10px] text-muted-foreground">Missing Cycles: <span className="text-destructive font-semibold">{report.missing.join(' & ')}</span></p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-3 text-green-700 bg-white p-3 rounded border border-green-100">
-                                            <CheckCircle2 className="h-5 w-5" />
-                                            <p className="text-xs font-bold">Full Portal Compliance</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-2 font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
-                                        <BookOpen className="h-3 w-3" /> Registered Manual
-                                    </div>
-                                    {unitManual ? (
-                                        <div className="flex items-start gap-2 bg-white p-2 rounded border border-green-100 shadow-sm">
-                                            <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
-                                            <div>
-                                                <p className="text-xs font-bold">Procedure Manual Found</p>
-                                                <p className="text-[10px] text-muted-foreground">
-                                                    Revision: <span className="font-semibold">{unitManual.revisionNumber || '00'}</span>
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-start gap-2 bg-white p-3 rounded border border-amber-100 text-amber-700">
-                                            <FileWarning className="h-4 w-4 shrink-0 mt-0.5" />
-                                            <p className="text-xs font-bold">No registered manual found.</p>
-                                        </div>
-                                    )}
-                                </div>
+                                ))}
                             </div>
                         </CardContent>
                     </Card>
-                )}
 
-                <div className="space-y-4">
-                    <h3 className="font-bold text-lg flex items-center gap-2">
-                        <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">1</div>
-                        Verification Checklist
-                    </h3>
-                    <div className="border rounded-lg overflow-hidden shadow-sm">
-                        <Table>
-                            <TableHeader className="bg-muted/50">
-                                <TableRow>
-                                    <TableHead className="w-[40%]">Monitoring Item / Document</TableHead>
-                                    <TableHead className="w-[20%]">Status</TableHead>
-                                    <TableHead className="w-[40%]">Remarks / Findings</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                            {monitoringGroups.map((group) => (
-                                <React.Fragment key={group.category}>
-                                    <TableRow className="bg-muted/30 hover:bg-muted/30 border-y">
-                                        <TableCell colSpan={3} className="py-2 px-4">
-                                            <div className="flex items-center gap-2 font-bold text-primary text-[10px] uppercase tracking-wider">
-                                                <LayoutList className="h-3 w-3" />
-                                                {group.category}
+                    {/* EOMS Compliance Reference (Dynamic) */}
+                    {selectedUnitId && !isLoadingSubmissions && (
+                        <Card className="border-blue-200 shadow-sm bg-blue-50/20 overflow-hidden">
+                            <CardHeader className="py-3 px-4 bg-blue-50 border-b">
+                                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-blue-800 flex items-center gap-2">
+                                    <BookMarked className="h-3.5 w-3.5" /> Portal Submissions ({selectedYear})
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 space-y-4">
+                                {missingReports.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {missingReports.map((report, idx) => (
+                                            <div key={idx} className="flex items-start gap-2 bg-white p-2 rounded border border-blue-100">
+                                                <FileWarning className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] font-bold truncate">{report.name}</p>
+                                                    <p className="text-[9px] text-muted-foreground">Missing: <span className="text-destructive font-semibold">{report.missing.join(' & ')}</span></p>
+                                                </div>
                                             </div>
-                                        </TableCell>
-                                    </TableRow>
-                                    {group.items.map((itemName) => {
-                                        const index = fields.findIndex(f => f.item === itemName);
-                                        if (index === -1) return null;
-                                        
-                                        const field = fields[index];
-                                        return (
-                                            <TableRow key={field.id} className="hover:bg-muted/20">
-                                                <TableCell className="font-medium text-sm py-3">{field.item}</TableCell>
-                                                <TableCell>
-                                                    <FormField control={form.control} name={`observations.${index}.status`} render={({ field: statusField }) => (
-                                                    <FormItem>
-                                                        <FormControl>
-                                                            <Select onValueChange={statusField.onChange} value={statusField.value || 'Available'} disabled={isReadOnly}>
-                                                            <SelectTrigger className={cn("h-8 text-xs bg-background flex items-center gap-2", statusColors[statusField.value]?.split(' ')[0])}>
-                                                                <Circle className={cn("h-2 w-2", statusColors[statusField.value])} />
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="Available">Available</SelectItem>
-                                                                <SelectItem value="Not Available">Not Available</SelectItem>
-                                                                <SelectItem value="For Improvement">For Improvement</SelectItem>
-                                                                <SelectItem value="Needs Updating">Needs Updating</SelectItem>
-                                                                <SelectItem value="Not Applicable">Not Applicable</SelectItem>
-                                                                <SelectItem value="Need to revisit">Need to revisit</SelectItem>
-                                                            </SelectContent>
-                                                            </Select>
-                                                        </FormControl>
-                                                    </FormItem>
-                                                    )} />
-                                                </TableCell>
-                                                <TableCell>
-                                                    <FormField control={form.control} name={`observations.${index}.remarks`} render={({ field: remarksField }) => (
-                                                    <FormItem>
-                                                        <FormControl>
-                                                            <Input placeholder={isReadOnly ? "" : "Add findings..."} {...remarksField} value={remarksField.value || ''} className="h-8 text-xs bg-background" disabled={isReadOnly} />
-                                                        </FormControl>
-                                                    </FormItem>
-                                                    )} />
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </React.Fragment>
-                            ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 text-green-700 bg-white p-3 rounded border border-green-100">
+                                        <CheckCircle2 className="h-4 w-4" />
+                                        <p className="text-[10px] font-bold">All Required Reports Found</p>
+                                    </div>
+                                )}
 
-                <div className="space-y-4">
-                    <h3 className="font-bold text-lg flex items-center gap-2">
-                        <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">2</div>
-                        Final Assessment
-                    </h3>
-                    <FormField control={form.control} name="generalRemarks" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>General Remarks / Summary of Visit</FormLabel>
-                        <FormControl>
-                            <Textarea {...field} value={field.value || ''} rows={5} placeholder={isReadOnly ? "" : "Provide an overall summary..."} disabled={isReadOnly} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )} />
-                </div>
-              </div>
-            </ScrollArea>
-
-            <div className="p-6 border-t bg-card shrink-0">
-                <DialogFooter className="gap-2 sm:gap-0">
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-                        {isReadOnly ? 'Close' : 'Cancel'}
-                    </Button>
-                    {!isReadOnly && (
-                        <Button type="submit" disabled={isSubmitting} className="min-w-[150px]">
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {record ? 'Update Record' : 'Save Monitoring Record'}
-                        </Button>
+                                <div className="pt-2 border-t mt-2">
+                                    <p className="text-[9px] font-bold text-muted-foreground uppercase mb-2">Procedure Manual</p>
+                                    {unitManual ? (
+                                        <div className="flex items-center gap-2 bg-white p-2 rounded border border-green-100">
+                                            <BookOpen className="h-3.5 w-3.5 text-green-600" />
+                                            <p className="text-[10px] font-medium truncate">Registered Rev {unitManual.revisionNumber}</p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2 bg-white p-2 rounded border border-amber-100 text-amber-700">
+                                            <FileWarning className="h-3.5 w-3.5" />
+                                            <p className="text-[10px] font-medium">No manual found in portal.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
                     )}
-                </DialogFooter>
+                </ScrollArea>
             </div>
-          </form>
-        </Form>
+        </div>
+
+        <div className="p-6 border-t bg-card shrink-0 shadow-inner">
+            <DialogFooter className="gap-2 sm:gap-0">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+                    {isReadOnly ? 'Close' : 'Cancel'}
+                </Button>
+                {!isReadOnly && (
+                    <Button type="submit" form="monitoring-form" disabled={isSubmitting} className="min-w-[150px] shadow-lg shadow-primary/20">
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {record ? 'Update Record' : 'Save Monitoring Record'}
+                    </Button>
+                )}
+            </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
