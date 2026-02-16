@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -20,6 +19,7 @@ import { CurriculumModule } from './modules/curriculum-module';
 import { OutcomesModule } from './modules/outcomes-module';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { cn } from '@/lib/utils';
 
 interface ProgramComplianceWorkspaceProps {
   program: AcademicProgram;
