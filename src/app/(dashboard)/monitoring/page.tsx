@@ -120,6 +120,7 @@ export default function MonitoringPage() {
 
         const printWindow = window.open('', '_blank');
         if (printWindow) {
+            printWindow.document.open();
             printWindow.document.write(`
                 <!DOCTYPE html>
                 <html>
@@ -131,20 +132,27 @@ export default function MonitoringPage() {
                       body { margin: 0; padding: 0; background: white; } 
                       .no-print { display: none !important; }
                     }
-                    body { font-family: sans-serif; background: #f9fafb; padding: 20px; }
-                    table { width: 100%; border-collapse: collapse; }
-                    th, td { border: 1px solid black !important; padding: 8px; }
+                    body { font-family: sans-serif; background: #f9fafb; padding: 20px; color: black; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                    th, td { border: 1px solid black !important; padding: 8px; text-align: left; }
+                    .text-center { text-align: center; }
                     </style>
                 </head>
                 <body>
                   <div class="no-print mb-4 flex justify-center">
                     <button onclick="window.print()" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700">Print Report</button>
                   </div>
-                  ${reportHtml}
+                  <div id="print-content">
+                    ${reportHtml}
+                  </div>
                 </body>
                 </html>
             `);
             printWindow.document.close();
+            // Optional: Auto-trigger print after a short delay to allow Tailwind to process
+            setTimeout(() => {
+                // printWindow.print();
+            }, 500);
         }
     } catch (err) {
         console.error("Print error:", err);

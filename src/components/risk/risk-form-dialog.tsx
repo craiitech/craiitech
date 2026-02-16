@@ -547,13 +547,13 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                 <ScrollArea className="flex-1 p-6 space-y-6">
                     <Card className="border-blue-200 shadow-sm">
                         <CardHeader className="py-3 px-4 bg-blue-50 border-b">
-                          <CardTitle className="text-[10px] font-black uppercase tracking-widest text-blue-800">ISO 21001:2018 Scoring Guide</CardTitle>
+                          <CardTitle className="text-[10px] font-black uppercase tracking-widest text-blue-800">Scoring Guide</CardTitle>
                         </CardHeader>
                         <CardContent className="p-4 space-y-4">
                             <div className="grid grid-cols-1 gap-1.5 text-[10px] font-bold">
-                                <div className="p-2 rounded bg-red-50 border border-red-100 text-red-700">HIGH (10-25) - Mandatory Action Plan</div>
-                                <div className="p-2 rounded bg-amber-50 border border-amber-100 text-amber-700">MEDIUM (5-9) - Mandatory Action Plan</div>
-                                <div className="p-2 rounded bg-green-50 border border-green-100 text-green-700">LOW (1-4) - Monitor Only</div>
+                                <div className="p-2 rounded bg-red-50 border border-red-100 text-red-700 uppercase">High (10-25) - Action Required</div>
+                                <div className="p-2 rounded bg-amber-50 border border-amber-100 text-amber-700 uppercase">Medium (5-9) - Action Required</div>
+                                <div className="p-2 rounded bg-green-50 border border-green-100 text-green-700 uppercase">Low (1-4) - Monitor Only</div>
                             </div>
                             <div className="flex gap-2 text-[10px] pt-2 border-t">
                               <BookOpen className="h-3 w-3 shrink-0 text-blue-600" />
