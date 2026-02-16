@@ -45,6 +45,7 @@ export default function MonitoringPage() {
   /**
    * CRITICAL: Monitoring Records Query Scoping
    * Firestore Security Rules require client-side queries to match the security filters exactly.
+   * If a global list is attempted by a non-admin, Firestore denies access.
    */
   const monitoringRecordsQuery = useMemoFirebase(
     () => {
@@ -58,7 +59,7 @@ export default function MonitoringPage() {
             return query(baseRef, orderBy('visitDate', 'desc'));
         }
 
-        // 2. Campus Officials (Directors, ODIMOs, VPs) MUST filter by campusId
+        // 2. Campus Officials (Directors, ODIMOs, VPs) MUST filter by campusId to satisfy security rules
         if (isSupervisor) {
              if (userProfile.campusId) {
                  return query(
@@ -67,10 +68,10 @@ export default function MonitoringPage() {
                     orderBy('visitDate', 'desc')
                 );
              }
-             return null; // Awaiting campusId to satisfy security rules
+             return null; // Waiting for campusId
         }
 
-        // 3. Unit Users MUST filter by unitId
+        // 3. Unit Users MUST filter by unitId to satisfy security rules
         if (userProfile.unitId) {
             return query(
                 baseRef, 

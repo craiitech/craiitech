@@ -21,6 +21,7 @@ service cloud.firestore {
 
     /**
      * Master Admin Check
+     * Checks both the dedicated admin collection and the role string.
      */
     function isAdmin() {
       return isSignedIn() && (
@@ -38,29 +39,32 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
 
     match /unitMonitoringRecords/{recordId} {
-        // 1. Master Admin and Auditors can see everything
+        // 1. Master Admin and Auditors can see everything (Global Scope)
         allow get, list: if isAdmin() || isAuditor();
         
         // 2. Campus Officials (Director, Odimos, VP) see their campus
-        // FIXED: Removed "resource == null" check which is invalid for reads
+        // Filter: resource.data.campusId == user.campusId
         allow get, list: if isSignedIn() && hasProfile() && (
           resource.data.campusId == profile().get('campusId', '') && 
           profile().get('role', '').matches('(?i).*(director|odimo|vice president).*')
         );
 
         // 3. Unit Users see their unit
-        // FIXED: Removed "resource == null" check
+        // Filter: resource.data.unitId == user.unitId
         allow get, list: if isSignedIn() && hasProfile() && (
           resource.data.unitId == profile().get('unitId', '') &&
           !profile().get('role', '').matches('(?i).*(director|odimo|vice president|admin|auditor).*')
         );
 
         // 4. Write Rules (ENFORCE DATA INTEGRITY)
-        // Admins can write, but MUST include unitId and campusId so others can read
+        // Admins can write, but MUST include unitId and campusId so site-level officials can read
         allow create: if isAdmin() && 
           request.resource.data.keys().hasAll(['unitId', 'campusId']);
         
-        allow update, delete: if isAdmin();
+        allow update: if isAdmin() && 
+          (request.resource.data.unitId != null && request.resource.data.campusId != null);
+          
+        allow delete: if isAdmin();
     }
 
     match /academicPrograms/{programId} {
