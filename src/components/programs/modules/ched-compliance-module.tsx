@@ -1,18 +1,23 @@
 
 'use client';
 
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, useFieldArray } from 'react-hook-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { FileText, Calendar, Link as LinkIcon, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { FileText, Calendar, Link as LinkIcon, PlusCircle, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
   const { control } = useFormContext();
+  
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "ched.rqatVisits"
+  });
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -95,57 +100,96 @@ export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-primary" />
-            RQAT Monitoring
-          </CardTitle>
-          <CardDescription>Regional Quality Assessment Team (RQAT) visit details.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <FormField
-            control={control}
-            name="ched.rqatVisit.result"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>RQAT Visit Result</FormLabel>
-                <FormControl><Input {...field} placeholder="e.g., Highly Recommended" disabled={!canEdit} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={control}
-            name="ched.rqatVisit.nonCompliances"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Identified Non-Compliances</FormLabel>
-                <FormControl><Textarea {...field} rows={4} placeholder="List deficiencies noted during the visit..." disabled={!canEdit} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={control}
-            name="ched.rqatVisit.comments"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>General Comments / Feedback</FormLabel>
-                <FormControl><Textarea {...field} rows={4} placeholder="Summary of RQAT feedback..." disabled={!canEdit} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle className="text-xs font-bold">Audit Tip</AlertTitle>
-            <AlertDescription className="text-[10px]">
-              RQAT findings should be addressed within 30 days of the visit to ensure continuous compliance.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <Card className="border-primary/20">
+            <CardHeader className="flex flex-row items-center justify-between py-4 bg-primary/5 border-b">
+                <div className="space-y-1">
+                    <CardTitle className="flex items-center gap-2 text-primary">
+                        <Calendar className="h-5 w-5" />
+                        RQAT Monitoring History
+                    </CardTitle>
+                    <CardDescription>Records of Regional Quality Assessment Team visits.</CardDescription>
+                </div>
+                {canEdit && (
+                    <Button 
+                        type="button" 
+                        size="sm" 
+                        onClick={() => append({ date: '', result: '', nonCompliances: '', comments: '' })}
+                        className="h-8 gap-1"
+                    >
+                        <PlusCircle className="h-3.5 w-3.5" />
+                        Add Visit Result
+                    </Button>
+                )}
+            </CardHeader>
+            <CardContent className="pt-6">
+                <div className="space-y-6">
+                    {fields.map((field, index) => (
+                        <div key={field.id} className="relative p-4 rounded-lg border bg-muted/10 space-y-4">
+                            {canEdit && (
+                                <Button 
+                                    type="button" 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="absolute top-2 right-2 text-destructive h-7 w-7" 
+                                    onClick={() => remove(index)}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            )}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField
+                                    control={control}
+                                    name={`ched.rqatVisits.${index}.date`}
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Visit Date</FormLabel>
+                                            <FormControl><Input {...field} placeholder="e.g., Oct 2024" disabled={!canEdit} /></FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={control}
+                                    name={`ched.rqatVisits.${index}.result`}
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Visit Result</FormLabel>
+                                            <FormControl><Input {...field} placeholder="e.g., Highly Recommended" disabled={!canEdit} /></FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <FormField
+                                control={control}
+                                name={`ched.rqatVisits.${index}.nonCompliances`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Identified Non-Compliances</FormLabel>
+                                        <FormControl><Textarea {...field} rows={3} placeholder="List deficiencies noted..." disabled={!canEdit} /></FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={control}
+                                name={`ched.rqatVisits.${index}.comments`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>General Comments / Feedback</FormLabel>
+                                        <FormControl><Textarea {...field} rows={3} placeholder="Monitor's summary..." disabled={!canEdit} /></FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                    ))}
+                    {fields.length === 0 && (
+                        <div className="text-center py-12 border border-dashed rounded-lg text-muted-foreground text-sm">
+                            No RQAT visit history recorded for this year.
+                        </div>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

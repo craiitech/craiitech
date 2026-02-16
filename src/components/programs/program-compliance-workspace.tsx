@@ -38,12 +38,12 @@ const complianceSchema = z.object({
     copcLink: z.string().url().optional().or(z.literal('')),
     contentNoted: z.boolean(),
     contentNotedLink: z.string().url().optional().or(z.literal('')),
-    rqatVisit: z.object({
-      date: z.any().optional(),
+    rqatVisits: z.array(z.object({
+      date: z.string().optional(),
       result: z.string().optional(),
       comments: z.string().optional(),
       nonCompliances: z.string().optional(),
-    }).optional(),
+    })).optional(),
   }),
   accreditation: z.object({
     level: z.string(),
@@ -142,7 +142,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         contentNoted: false,
         copcLink: '',
         contentNotedLink: '',
-        rqatVisit: { result: '', comments: '', nonCompliances: '' }
+        rqatVisits: []
       },
       accreditation: { 
         level: 'Not Accredited',
@@ -199,6 +199,10 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         academicYear: selectedAY,
         graduationRecords: activeRecord.graduationRecords || [],
         tracerRecords: activeRecord.tracerRecords || [],
+        ched: {
+            ...activeRecord.ched,
+            rqatVisits: activeRecord.ched.rqatVisits || []
+        }
       });
     } else {
       methods.reset({
@@ -208,7 +212,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
           contentNoted: false, 
           copcLink: '',
           contentNotedLink: '',
-          rqatVisit: { result: '', comments: '', nonCompliances: '' } 
+          rqatVisits: [] 
         },
         accreditation: { 
           level: 'Not Accredited', 

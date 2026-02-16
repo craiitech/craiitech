@@ -277,6 +277,13 @@ export type TracerOutcome = {
   employmentRate: number;
 };
 
+export type RQATVisit = {
+  date: string;
+  result: string;
+  comments: string;
+  nonCompliances: string;
+};
+
 export type ProgramComplianceRecord = {
   id: string;
   programId: string;
@@ -289,12 +296,7 @@ export type ProgramComplianceRecord = {
     copcLink?: string; // GDrive PDF
     contentNoted: boolean;
     contentNotedLink?: string; // GDrive PDF
-    rqatVisit?: {
-      date: any;
-      result: string;
-      comments: string;
-      nonCompliances: string;
-    };
+    rqatVisits?: RQATVisit[];
   };
 
   // Accreditation
@@ -351,13 +353,6 @@ export type ProgramComplianceRecord = {
     retakersPassRate: number;
     overallPassRate: number;
     nationalPassingRate: number;
-  };
-
-  // Tracer Data (Deprecated - using tracerRecords)
-  tracer?: {
-    totalGraduates: number;
-    tracedCount: number;
-    employmentRate: number; // calculated %
   };
 
   updatedAt: any;
