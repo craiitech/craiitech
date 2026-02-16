@@ -7,7 +7,7 @@ import type { Submission, Comment, Unit, Cycle } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
-import { CheckCircle, Circle, Download, FileCheck, Scan, Link as LinkIcon, AlertCircle, XCircle, ChevronRight, Loader2 } from 'lucide-react';
+import { CheckCircle, Circle, Download, FileCheck, Scan, Link as LinkIcon, AlertCircle, XCircle, ChevronRight, Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -275,9 +275,15 @@ export default function NewSubmissionPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">New Submission / Resubmission</h2>
-        <p className="text-muted-foreground">Select a report to submit for the chosen year and cycle.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">New Submission / Resubmission</h2>
+          <p className="text-muted-foreground">Select a report to submit for the chosen year and cycle.</p>
+        </div>
+        <Button variant="outline" onClick={() => router.push('/submissions')}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Submissions
+        </Button>
       </div>
       
        {selectedCycle === 'final' && selectedReport && specialUpdateReports.includes(selectedReport) && !finalCycleStatusMap.has(selectedReport) && (
