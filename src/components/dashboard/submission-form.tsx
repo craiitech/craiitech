@@ -472,7 +472,7 @@ export function SubmissionForm({
                  <FormDescription className="flex items-center gap-1">
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button variant="link" className="p-0 h-auto text-xs">
+                            <Button variant="link" className="p-0 h-auto text-xs animate-pulse font-bold text-primary">
                                 <HelpCircle className="mr-1 h-3 w-3"/>
                                 How to get the correct link?
                             </Button>
