@@ -52,11 +52,13 @@ const complianceSchema = z.object({
     dateOfAward: z.string().optional(),
     nextSchedule: z.string(),
     certificateLink: z.string().url().optional().or(z.literal('')),
+    overallTaskForceHead: z.string().optional(),
     taskForce: z.string().optional(),
     areas: z.array(z.object({
       areaCode: z.string(),
       areaName: z.string(),
       googleDriveLink: z.string().url().optional().or(z.literal('')),
+      taskForce: z.string().optional(),
     })).optional(),
   }),
   curriculum: z.object({
@@ -162,6 +164,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         dateOfVisit: '',
         dateOfAward: '',
         nextSchedule: '',
+        overallTaskForceHead: '',
         taskForce: '',
         areas: []
       },
@@ -215,6 +218,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         },
         accreditation: {
             ...activeRecord.accreditation,
+            overallTaskForceHead: activeRecord.accreditation.overallTaskForceHead || '',
             areas: activeRecord.accreditation.areas || []
         }
       });
@@ -234,6 +238,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
           dateOfVisit: '',
           dateOfAward: '',
           nextSchedule: '',
+          overallTaskForceHead: '',
           taskForce: '',
           areas: []
         },

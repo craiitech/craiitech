@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useFormContext, useFieldArray } from 'react-hook-form';
+import { useFormContext } from 'react-hook-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShieldCheck, Calendar, Link as LinkIcon, Award, Users, FileText, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Calendar, Link as LinkIcon, Award, Users, FileText, CheckCircle2, UserCircle } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useEffect, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -69,19 +69,22 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
       const currentAreas = standardAreas.map(area => ({
         areaCode: area.code,
         areaName: area.name,
-        googleDriveLink: ''
+        googleDriveLink: '',
+        taskForce: ''
       }));
       setValue('accreditation.areas', currentAreas);
     } else if (isLevel3Or4) {
       const mandatory = level34MandatoryAreas.map(area => ({
         areaCode: area.code,
         areaName: area.name,
-        googleDriveLink: ''
+        googleDriveLink: '',
+        taskForce: ''
       }));
       const optional = level34OptionalAreas.map(area => ({
         areaCode: area.code,
         areaName: area.name,
-        googleDriveLink: ''
+        googleDriveLink: '',
+        taskForce: ''
       }));
       setValue('accreditation.areas', [...mandatory, ...optional]);
     } else {
@@ -164,23 +167,40 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
-              Evaluation Schedule & Task Force
+              Evaluation Schedule & Leadership
             </CardTitle>
-            <CardDescription>Preparedness for the next accreditation cycle.</CardDescription>
+            <CardDescription>Accreditation planning and overall task force management.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <FormField
-              control={control}
-              name="accreditation.nextSchedule"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Next Evaluation Schedule</FormLabel>
-                  <FormControl><Input {...field} placeholder="e.g., September 2028" disabled={!canEdit} /></FormControl>
-                  <FormDescription className="text-[10px]">Planned month/year for the upcoming survey visit.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                    control={control}
+                    name="accreditation.nextSchedule"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Next Evaluation Schedule</FormLabel>
+                        <FormControl><Input {...field} placeholder="e.g., September 2028" disabled={!canEdit} /></FormControl>
+                        <FormDescription className="text-[10px]">Planned month/year for the upcoming survey visit.</FormDescription>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={control}
+                    name="accreditation.overallTaskForceHead"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                            <UserCircle className="h-4 w-4 text-primary" />
+                            Overall Task Force Head
+                        </FormLabel>
+                        <FormControl><Input {...field} placeholder="Name of Overall Head" disabled={!canEdit} /></FormControl>
+                        <FormDescription className="text-[10px]">Primary lead for the accreditation preparations.</FormDescription>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
             
             <FormField
               control={control}
@@ -189,13 +209,13 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
-                    Accreditation Task Force
+                    General Task Force Members
                   </FormLabel>
                   <FormControl>
                     <Textarea 
                         {...field} 
-                        placeholder="List members of the Task Force or committees involved..." 
-                        rows={4}
+                        placeholder="List other key members involved in the overall preparation..." 
+                        rows={3}
                         disabled={!canEdit}
                     />
                   </FormControl>
@@ -215,7 +235,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                     <div className="space-y-1">
                         <CardTitle className="text-lg flex items-center gap-2">
                             <FileText className="h-5 w-5 text-primary" />
-                            Areas of Documentation
+                            Areas of Documentation & Responsibilities
                         </CardTitle>
                         <CardDescription>
                             {isPSVToLevel2 ? 'Standard 10 Areas for PSV to Level II' : 'Mandatory & Selected Areas for Level III / IV'}
@@ -227,51 +247,73 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                 </div>
             </CardHeader>
             <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8">
                     {watch('accreditation.areas')?.map((area: any, index: number) => {
                         const isMandatory = isLevel3Or4 && (area.areaName === 'Instruction' || area.areaName === 'Extension');
                         return (
-                            <div key={area.areaCode} className="space-y-2 p-4 rounded-lg border bg-muted/5 relative group transition-all hover:border-primary/30">
-                                <div className="flex items-center justify-between mb-1">
+                            <div key={area.areaCode} className="space-y-4 p-5 rounded-lg border bg-muted/5 relative group transition-all hover:border-primary/30 shadow-sm">
+                                <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <Badge variant="secondary" className="h-5 text-[10px] font-bold">{area.areaCode}</Badge>
-                                        <span className="text-xs font-black uppercase tracking-tight">{area.areaName}</span>
+                                        <span className="text-sm font-black uppercase tracking-tight">{area.areaName}</span>
                                     </div>
                                     {isMandatory && (
                                         <Badge variant="default" className="h-4 text-[8px] bg-green-600">MANDATORY</Badge>
                                     )}
                                 </div>
-                                <FormField
-                                    control={control}
-                                    name={`accreditation.areas.${index}.googleDriveLink`}
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormControl>
-                                                <div className="relative">
-                                                    <LinkIcon className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                                
+                                <div className="space-y-3">
+                                    <FormField
+                                        control={control}
+                                        name={`accreditation.areas.${index}.taskForce`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                                                    <Users className="h-3 w-3" /> Area Task Force / Head
+                                                </FormLabel>
+                                                <FormControl>
+                                                    <Input 
+                                                        {...field} 
+                                                        placeholder="Assigned person(s) for this area" 
+                                                        className="h-8 text-xs bg-background" 
+                                                        disabled={!canEdit} 
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={control}
+                                        name={`accreditation.areas.${index}.googleDriveLink`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                                                    <LinkIcon className="h-3 w-3" /> Documentation Link
+                                                </FormLabel>
+                                                <FormControl>
                                                     <Input 
                                                         {...field} 
                                                         placeholder="GDrive Folder/File Link" 
-                                                        className="h-9 text-xs pl-8 bg-background" 
+                                                        className="h-8 text-xs bg-background" 
                                                         disabled={!canEdit} 
                                                     />
-                                                </div>
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
                             </div>
                         );
                     })}
                 </div>
                 
                 {isLevel3Or4 && (
-                    <div className="mt-6 p-4 rounded-lg bg-blue-50 border border-blue-100 flex items-start gap-3">
+                    <div className="mt-8 p-4 rounded-lg bg-blue-50 border border-blue-100 flex items-start gap-3">
                         <CheckCircle2 className="h-5 w-5 text-blue-600 mt-0.5" />
                         <div className="space-y-1">
                             <p className="text-xs font-bold text-blue-900">Level III/IV Requirement Guide</p>
                             <p className="text-[10px] text-blue-800/70 leading-relaxed">
-                                Ensure links are provided for the Mandatory Areas (Instruction and Extension). Additionally, documentation for at least two (2) Other Areas (Research, Licensure, Faculty Dev, or Linkages) must be present.
+                                Ensure links and task force assignments are provided for the Mandatory Areas (Instruction and Extension). Additionally, documentation for at least two (2) Other Areas (Research, Licensure, Faculty Dev, or Linkages) must be present.
                             </p>
                         </div>
                     </div>

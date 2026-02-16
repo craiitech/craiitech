@@ -300,6 +300,7 @@ export type AccreditationArea = {
   areaCode: string;
   areaName: string;
   googleDriveLink: string;
+  taskForce?: string;
 };
 
 export type ProgramComplianceRecord = {
@@ -324,6 +325,7 @@ export type ProgramComplianceRecord = {
     dateOfAward?: string;
     nextSchedule: string;
     certificateLink?: string; // GDrive PDF
+    overallTaskForceHead?: string;
     taskForce?: string;
     areas?: AccreditationArea[];
   };
