@@ -7,7 +7,7 @@ import { collection, query, orderBy, Timestamp, where } from 'firebase/firestore
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, Calendar, School, ShieldAlert, DoorOpen, History, LayoutDashboard, User, ClipboardCheck, Building, AlertTriangle, FileDown, Printer } from 'lucide-react';
+import { PlusCircle, Loader2, Calendar, School, ShieldAlert, DoorOpen, History, LayoutDashboard, User, ClipboardCheck, Building, AlertTriangle, FileDown, Printer, CalendarSearch } from 'lucide-react';
 import { format } from 'date-fns';
 import { MonitoringFormDialog } from '@/components/monitoring/monitoring-form-dialog';
 import { MonitoringAnalytics } from '@/components/monitoring/monitoring-analytics';
@@ -28,6 +28,10 @@ import * as XLSX from 'xlsx';
 import { monitoringGroups } from '@/lib/monitoring-checklist-items';
 import ReactDOMServer from 'react-dom/server';
 import { MonitoringPrintTemplate } from '@/components/monitoring/monitoring-print-template';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
 export default function MonitoringPage() {
   const { isAdmin, isUserLoading, user, userProfile, isSupervisor, userRole } = useUser();
@@ -36,6 +40,7 @@ export default function MonitoringPage() {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<UnitMonitoringRecord | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   // Admins can view monitoring even if they don't have a profile doc in /users
   const canViewMonitoring = !!userProfile || isAdmin;
@@ -79,7 +84,15 @@ export default function MonitoringPage() {
     [firestore, user, userProfile, isAdmin, isSupervisor, userRole, canViewMonitoring]
   );
   
-  const { data: records, isLoading: isLoadingRecords } = useCollection<UnitMonitoringRecord>(monitoringRecordsQuery);
+  const { data: allRecords, isLoading: isLoadingRecords } = useCollection<UnitMonitoringRecord>(monitoringRecordsQuery);
+
+  const filteredRecords = useMemo(() => {
+    if (!allRecords) return [];
+    return allRecords.filter(record => {
+        const vDate = record.visitDate instanceof Timestamp ? record.visitDate.toDate() : new Date(record.visitDate);
+        return vDate.getFullYear() === selectedYear;
+    });
+  }, [allRecords, selectedYear]);
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
@@ -188,9 +201,9 @@ export default function MonitoringPage() {
   };
 
   const handleExportToExcel = () => {
-    if (!records || records.length === 0) return;
+    if (!filteredRecords || filteredRecords.length === 0) return;
 
-    const exportData = records.flatMap(record => {
+    const exportData = filteredRecords.flatMap(record => {
         const vDate = record.visitDate instanceof Timestamp ? record.visitDate.toDate() : new Date(record.visitDate);
         
         return record.observations.map(obs => {
@@ -215,11 +228,10 @@ export default function MonitoringPage() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Monitoring Findings');
 
-    // Auto-size columns for better readability
     const max_width = exportData.reduce((w, r) => Math.max(w, String(r.Unit).length), 10);
     worksheet['!cols'] = [{ wch: 20 }, { wch: max_width + 5 }, { wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 25 }, { wch: 30 }, { wch: 40 }, { wch: 15 }, { wch: 50 }];
 
-    XLSX.writeFile(workbook, `RSU-EOMS-Monitoring-Report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    XLSX.writeFile(workbook, `RSU-EOMS-Monitoring-Report-${selectedYear}-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 
   const isLoading = isUserLoading || isLoadingRecords || isLoadingCampuses || isLoadingUnits;
@@ -252,56 +264,74 @@ export default function MonitoringPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <div className="w-[120px]">
+                <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                    <SelectTrigger>
+                        <CalendarSearch className="h-4 w-4 mr-2 opacity-50" />
+                        <SelectValue placeholder="Year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
             {!isUnitOnlyView && (
-                <Button variant="outline" onClick={handleExportToExcel} disabled={isLoading || !records || records.length === 0}>
+                <Button variant="outline" onClick={handleExportToExcel} disabled={isLoading || !filteredRecords || filteredRecords.length === 0}>
                     <FileDown className="mr-2 h-4 w-4" />
-                    Export to Excel
+                    Export
                 </Button>
             )}
             {isAdmin && (
                 <Button onClick={handleNewVisit}>
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    New Visit Record
+                    New Visit
                 </Button>
             )}
           </div>
         </div>
 
-        {!isLoading && records?.length === 0 && isUnitOnlyView ? (
+        {!isLoading && filteredRecords?.length === 0 && isUnitOnlyView ? (
             <Card className="border-dashed py-12 flex flex-col items-center justify-center text-center">
                 <div className="bg-muted h-16 w-16 rounded-full flex items-center justify-center mb-4">
                     <ClipboardCheck className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <CardTitle className="text-xl">Not Yet Monitored</CardTitle>
+                <CardTitle className="text-xl">Not Yet Monitored in {selectedYear}</CardTitle>
                 <CardDescription className="max-w-md mx-auto mt-2">
-                    Your unit has not yet been monitored by the Quality Assurance Office. 
-                    Monitoring findings and compliance scores will appear here after your first scheduled on-site visit.
+                    Your unit has no monitoring records logged for the year {selectedYear}. 
+                    Change the year above to view previous results or contact the QA office for scheduling.
                 </CardDescription>
-                <Button variant="outline" className="mt-6" asChild>
-                    <a href="/help/manual" target="_blank">Learn about QA Monitoring</a>
-                </Button>
             </Card>
         ) : (
-            <Tabs defaultValue="history" className="space-y-4">
+            <Tabs defaultValue="performance" className="space-y-4">
                 <TabsList>
-                    <TabsTrigger value="history">
-                        <History className="mr-2 h-4 w-4" />
-                        Monitoring History
-                    </TabsTrigger>
                     <TabsTrigger value="performance">
                         <LayoutDashboard className="mr-2 h-4 w-4" />
-                        {isUnitOnlyView ? 'Our Performance' : 'Overall Performance'}
+                        {isUnitOnlyView ? 'Performance' : 'Overall Performance'}
+                    </TabsTrigger>
+                    <TabsTrigger value="history">
+                        <History className="mr-2 h-4 w-4" />
+                        Visit Log
                     </TabsTrigger>
                     <TabsTrigger value="findings">
                         <AlertTriangle className="mr-2 h-4 w-4" />
-                        Non-Compliance
+                        Gaps & Findings
                     </TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="performance">
+                    <MonitoringAnalytics 
+                        records={filteredRecords} 
+                        campuses={campuses || []} 
+                        units={units || []} 
+                        isLoading={isLoading}
+                        selectedYear={selectedYear}
+                    />
+                </TabsContent>
 
                 <TabsContent value="history" className="space-y-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Visit Log</CardTitle>
+                            <CardTitle>Monitoring History - {selectedYear}</CardTitle>
                             <CardDescription>
                                 {isAdmin ? 'A record of all past unit monitoring visits across all sites.' : 'Findings from on-site monitoring visits for your scope.'}
                             </CardDescription>
@@ -325,8 +355,8 @@ export default function MonitoringPage() {
                                 </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                {records && records.length > 0 ? (
-                                    records.map(record => {
+                                {filteredRecords && filteredRecords.length > 0 ? (
+                                    filteredRecords.map(record => {
                                       const score = calculateCompliance(record);
                                       return (
                                         <TableRow key={record.id} className="cursor-pointer" onClick={() => handleViewRecord(record)}>
@@ -390,7 +420,7 @@ export default function MonitoringPage() {
                                 ) : (
                                     <TableRow>
                                     <TableCell colSpan={8} className="h-24 text-center">
-                                        No monitoring records found.
+                                        No monitoring records found for {selectedYear}.
                                     </TableCell>
                                     </TableRow>
                                 )}
@@ -401,18 +431,9 @@ export default function MonitoringPage() {
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="performance">
-                    <MonitoringAnalytics 
-                        records={records || []} 
-                        campuses={campuses || []} 
-                        units={units || []} 
-                        isLoading={isLoading} 
-                    />
-                </TabsContent>
-
                 <TabsContent value="findings">
                     <MonitoringFindings 
-                        records={records || []} 
+                        records={filteredRecords} 
                         campuses={campuses || []} 
                         units={units || []} 
                         isLoading={isLoading} 

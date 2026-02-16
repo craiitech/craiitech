@@ -16,11 +16,12 @@ interface MonitoringAnalyticsProps {
   campuses: Campus[];
   units: Unit[];
   isLoading: boolean;
+  selectedYear: number;
 }
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
-export function MonitoringAnalytics({ records, campuses, units, isLoading }: MonitoringAnalyticsProps) {
+export function MonitoringAnalytics({ records, campuses, units, isLoading, selectedYear }: MonitoringAnalyticsProps) {
   
   const analytics = useMemo(() => {
     if (!records || records.length === 0) return null;
@@ -42,7 +43,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading }: Mon
 
     const averageCompliance = visitCompliance.reduce((acc, v) => acc + v.score, 0) / (visitCompliance.length || 1);
 
-    // 2. Common Issues (Items marked "Not Available", "For Improvement", or "Needs Updating")
+    // 2. Common Issues
     const issueCounts: Record<string, number> = {};
     records.forEach(record => {
         record.observations.forEach(obs => {
@@ -116,32 +117,31 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading }: Mon
     return (
         <div className="flex flex-col items-center justify-center h-64 text-center border rounded-lg border-dashed">
             <ClipboardCheck className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
-            <h3 className="text-lg font-medium">Insufficient Monitoring Data</h3>
-            <p className="text-sm text-muted-foreground max-w-sm">Analytics will be available once visit records have been logged in the system.</p>
+            <h3 className="text-lg font-medium">Insufficient Data for {selectedYear}</h3>
+            <p className="text-sm text-muted-foreground max-w-sm">Analytics will appear here once monitoring records for {selectedYear} are logged.</p>
         </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary/5 border-primary/10">
             <CardHeader className="pb-2">
-                <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Total Visits</CardTitle>
+                <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Visits in {selectedYear}</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="text-3xl font-bold">{analytics.totalVisits}</div>
-                <p className="text-[10px] text-muted-foreground mt-1">Official monitored sites recorded</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Monitored units recorded</p>
             </CardContent>
         </Card>
         <Card className="bg-green-50 border-green-100">
             <CardHeader className="pb-2">
-                <CardTitle className="text-xs uppercase tracking-wider text-green-700 font-bold">Compliance Rate</CardTitle>
+                <CardTitle className="text-xs uppercase tracking-wider text-green-700 font-bold">Avg. Compliance</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="text-3xl font-bold text-green-600">{Math.round(analytics.averageCompliance)}%</div>
-                <p className="text-[10px] text-green-600/70 mt-1">Average items "Available" across sites</p>
+                <p className="text-[10px] text-green-600/70 mt-1">Average score across sites</p>
             </CardContent>
         </Card>
         <Card className="bg-amber-50 border-amber-100">
@@ -150,35 +150,30 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading }: Mon
             </CardHeader>
             <CardContent>
                 <div className="text-3xl font-bold text-amber-600">{analytics.criticalCount}</div>
-                <p className="text-[10px] text-amber-600/70 mt-1">Items requiring improvement or missing</p>
+                <p className="text-[10px] text-amber-600/70 mt-1">Issues requiring improvement</p>
             </CardContent>
         </Card>
         <Card className="bg-blue-50 border-blue-100">
             <CardHeader className="pb-2">
-                <CardTitle className="text-xs uppercase tracking-wider text-blue-700 font-bold">Top Performer</CardTitle>
+                <CardTitle className="text-xs uppercase tracking-wider text-blue-700 font-bold">Top Unit ({selectedYear})</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="text-lg font-bold text-blue-600 truncate" title={analytics.unitLeaderboard[0]?.name}>
+                <div className="text-lg font-bold text-blue-600 truncate">
                     {analytics.unitLeaderboard[0]?.name}
                 </div>
-                <div className="text-[10px] font-semibold text-blue-800/60 uppercase tracking-tight flex items-center gap-1 mt-0.5">
-                    <School className="h-3 w-3" />
-                    {analytics.unitLeaderboard[0]?.campus}
-                </div>
-                <p className="text-[10px] text-blue-600/70 mt-1">{analytics.unitLeaderboard[0]?.rate}% Compliance Score</p>
+                <p className="text-[10px] text-blue-600/70 mt-1">{analytics.unitLeaderboard[0]?.rate}% Score</p>
             </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Common Issues Chart */}
         <Card>
             <CardHeader>
                 <div className="flex items-center gap-2">
                     <AlertCircle className="h-5 w-5 text-destructive" />
-                    <CardTitle>Top Compliance Gaps</CardTitle>
+                    <CardTitle>Top Findings & Gaps</CardTitle>
                 </div>
-                <CardDescription>Most frequent items marked as "Not Available", "For Improvement", or "Needs Updating".</CardDescription>
+                <CardDescription>Frequent checklist items requiring improvement in {selectedYear}.</CardDescription>
             </CardHeader>
             <CardContent>
                 <ChartContainer config={{}} className="h-[350px] w-full">
@@ -200,14 +195,13 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading }: Mon
             </CardContent>
         </Card>
 
-        {/* Campus Performance Chart */}
         <Card>
             <CardHeader>
                 <div className="flex items-center gap-2">
                     <School className="h-5 w-5 text-primary" />
-                    <CardTitle>Campus Compliance Comparison</CardTitle>
+                    <CardTitle>Campus Comparison ({selectedYear})</CardTitle>
                 </div>
-                <CardDescription>Average performance score (%) per campus site.</CardDescription>
+                <CardDescription>Average compliance score (%) per campus site.</CardDescription>
             </CardHeader>
             <CardContent>
                 <ChartContainer config={{}} className="h-[350px] w-full">
@@ -225,39 +219,6 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading }: Mon
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
-            </CardContent>
-        </Card>
-
-        {/* Performance Leaderboard */}
-        <Card className="lg:col-span-2">
-            <CardHeader>
-                <div className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                    <CardTitle>Unit Performance Leaderboard</CardTitle>
-                </div>
-                <CardDescription>Top 10 units based on their latest monitoring results.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {analytics.unitLeaderboard.map((unit, index) => (
-                        <div key={unit.id} className="flex items-center justify-between border p-3 rounded-lg bg-card hover:bg-muted/30 transition-colors">
-                            <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-                                    #{index + 1}
-                                </div>
-                                <div>
-                                    <p className="text-sm font-semibold truncate max-w-[180px]">{unit.name}</p>
-                                    <p className="text-[10px] text-muted-foreground">{unit.campus}</p>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <Badge variant={unit.rate >= 80 ? 'default' : 'secondary'} className={cn(unit.rate >= 80 && "bg-green-500 hover:bg-green-600")}>
-                                    {unit.rate}% Score
-                                </Badge>
-                            </div>
-                        </div>
-                    ))}
-                </div>
             </CardContent>
         </Card>
       </div>

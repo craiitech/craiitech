@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -332,7 +333,9 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         }
 
         if (isAdmin) {
-            const result = await saveRiskAdmin(riskData, risk?.id);
+            // DEEP SANITIZATION: Ensure only plain objects are passed to Server Action
+            const sanitizedData = JSON.parse(JSON.stringify(riskData));
+            const result = await saveRiskAdmin(sanitizedData, risk?.id);
             if (result.success) {
                 toast({ title: 'Success', description: 'Risk/Opportunity saved successfully.' });
                 onOpenChange(false);

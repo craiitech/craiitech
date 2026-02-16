@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PlusCircle, MessageSquare, Eye, ArrowUpDown, Trash2, Loader2, Printer, FileDown, Download, AlertCircle, Library, Rows, Building2, Send, Edit, ShieldCheck } from 'lucide-react';
@@ -80,9 +81,6 @@ type SortConfig = {
     direction: 'ascending' | 'descending';
 } | null;
 
-/**
- * Returns a Tailwind class string for row background based on the submission year and cycle.
- */
 const getYearCycleRowColor = (year: number, cycle: string) => {
   const isFinal = cycle.toLowerCase() === 'final';
   const colors: Record<number, { first: string, final: string }> = {
