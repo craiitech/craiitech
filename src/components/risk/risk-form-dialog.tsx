@@ -281,7 +281,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
             const finalData = { ...riskData, targetDate: targetDateISO ? Timestamp.fromDate(new Date(targetDateISO)) : null, updatedAt: serverTimestamp() };
             if (risk) {
                 const riskRef = doc(firestore, 'risks', risk.id);
-                setDoc(riskRef, { ...finalData, createdAt: risk.createdAt }, { merge: true }).then(() => onOpenChange(false));
+                setDoc(riskRef, finalData, { merge: true }).then(() => onOpenChange(false));
             } else {
                 const riskColRef = collection(firestore, 'risks');
                 addDoc(riskColRef, { ...finalData, createdAt: serverTimestamp() }).then(() => onOpenChange(false));
@@ -357,7 +357,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                 <Card className="border-blue-200">
                                     <CardContent className="space-y-4 pt-6">
                                         <FormField control={form.control} name="updates" render={({ field }) => (<FormItem><FormLabel>Updates</FormLabel><FormControl><Textarea {...field} value={field.value || ''} rows={4} /></FormControl></FormItem>)} />
-                                        <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Open">Open</SelectItem><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Closed">Closed</SelectItem></SelectContent></Select></FormItem>)} />
+                                        <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Open">Open</SelectItem><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Closed">Closed</SelectItem></Select></FormItem>)} />
                                     </CardContent>
                                 </Card>
                             </div>

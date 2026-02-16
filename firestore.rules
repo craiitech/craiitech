@@ -130,5 +130,13 @@ service cloud.firestore {
     match /auditSchedules/{scheduleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /auditFindings/{findingId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /correctiveActionPlans/{planId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    
+    match /campusSettings/{settingId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || (isSignedIn() && hasProfile() && (
+        profile().get('role', '').matches('(?i).*(director|odimo|admin|vice president).*') &&
+        (settingId == profile().get('campusId', '') || settingId == 'global')
+      ));
+    }
   }
 }
