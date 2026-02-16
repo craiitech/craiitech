@@ -7,7 +7,7 @@ import { collection, query, orderBy, Timestamp, where } from 'firebase/firestore
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, History, LayoutDashboard, ClipboardCheck, AlertTriangle, FileDown, Printer, CalendarSearch } from 'lucide-react';
+import { PlusCircle, Loader2, History, LayoutDashboard, ClipboardCheck, AlertTriangle, FileDown, Printer, CalendarSearch, SearchCode, ListChecks } from 'lucide-react';
 import { format } from 'date-fns';
 import { MonitoringFormDialog } from '@/components/monitoring/monitoring-form-dialog';
 import { MonitoringAnalytics } from '@/components/monitoring/monitoring-analytics';
