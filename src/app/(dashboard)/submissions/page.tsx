@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, Timestamp, where, doc, deleteDoc, getDocs } from 'firebase/firestore';
+import { collection, query, Timestamp, where, doc, deleteDoc } from 'firebase/firestore';
 import type { Submission, User as AppUser, Campus, Cycle, Unit } from '@/lib/types';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';

@@ -14,6 +14,9 @@ export const monitoringGroups = [
       "SWOT Analysis",
       "Needs and Expectation of Interested Parties",
       "Procedure Manual",
+      "MR Report on File",
+      "IQA / EQA Report on File",
+      "CSM Report on File",
       "Forms Utilized by Units",
       "CSW Attachment / Evidences as per Process"
     ]
