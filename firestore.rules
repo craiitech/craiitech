@@ -38,21 +38,29 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
 
     match /unitMonitoringRecords/{recordId} {
-        // Master Admin and Auditors can see everything
+        // 1. Master Admin and Auditors can see everything
         allow get, list: if isAdmin() || isAuditor();
         
-        // Campus Officials see their campus
+        // 2. Campus Officials (Director, Odimos, VP) see their campus
+        // FIXED: Removed "resource == null" check which is invalid for reads
         allow get, list: if isSignedIn() && hasProfile() && (
-          (resource == null || resource.data.campusId == profile().get('campusId', '')) && 
-          profile().get('role', '').matches('(?i).*(director|odimo|admin|vice president).*')
+          resource.data.campusId == profile().get('campusId', '') && 
+          profile().get('role', '').matches('(?i).*(director|odimo|vice president).*')
         );
 
-        // Unit Users see their unit
+        // 3. Unit Users see their unit
+        // FIXED: Removed "resource == null" check
         allow get, list: if isSignedIn() && hasProfile() && (
-          (resource == null || resource.data.unitId == profile().get('unitId', ''))
+          resource.data.unitId == profile().get('unitId', '') &&
+          !profile().get('role', '').matches('(?i).*(director|odimo|vice president|admin|auditor).*')
         );
 
-        allow write: if isAdmin();
+        // 4. Write Rules (ENFORCE DATA INTEGRITY)
+        // Admins can write, but MUST include unitId and campusId so others can read
+        allow create: if isAdmin() && 
+          request.resource.data.keys().hasAll(['unitId', 'campusId']);
+        
+        allow update, delete: if isAdmin();
     }
 
     match /academicPrograms/{programId} {

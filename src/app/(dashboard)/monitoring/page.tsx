@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -43,7 +44,7 @@ export default function MonitoringPage() {
 
   /**
    * CRITICAL: Monitoring Records Query Scoping
-   * Firestore Security Rules require client-side queries to match the security filters.
+   * Firestore Security Rules require client-side queries to match the security filters exactly.
    */
   const monitoringRecordsQuery = useMemoFirebase(
     () => {
@@ -66,7 +67,7 @@ export default function MonitoringPage() {
                     orderBy('visitDate', 'desc')
                 );
              }
-             return null; // Awaiting campusId
+             return null; // Awaiting campusId to satisfy security rules
         }
 
         // 3. Unit Users MUST filter by unitId
@@ -152,12 +153,6 @@ export default function MonitoringPage() {
                   <div id="print-content">
                     ${reportHtml}
                   </div>
-                  <script>
-                    window.onload = function() {
-                        // Optional: trigger print after small delay
-                        // window.print();
-                    }
-                  </script>
                 </body>
                 </html>
             `);
