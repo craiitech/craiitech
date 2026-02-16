@@ -32,11 +32,11 @@ const currentYear = new Date().getFullYear();
 const academicYears = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
 // Validation schema for the entire compliance record
-// We use .optional() and .or(z.literal('')) extensively to prevent validation blockages on empty fields.
+// Using .optional().or(z.literal('')) and strings instead of strict enums to prevent validation blockages.
 const complianceSchema = z.object({
   academicYear: z.coerce.number(),
   ched: z.object({
-    copcStatus: z.enum(['With COPC', 'No COPC', 'In Progress']).default('In Progress'),
+    copcStatus: z.string().default('In Progress'),
     copcLink: z.string().optional().or(z.literal('')),
     contentNoted: z.boolean().default(false),
     contentNotedLink: z.string().optional().or(z.literal('')),
@@ -83,7 +83,7 @@ const complianceSchema = z.object({
       id: z.string(),
       name: z.string().optional().default(''),
       highestEducation: z.string().optional().default(''),
-      category: z.enum(['Core', 'Professional Special', 'General Education', 'Staff']).default('Core'),
+      category: z.string().default('Core'),
       isAlignedWithCMO: z.string().optional().default('Aligned'),
     })).optional().default([]),
   }),
@@ -124,12 +124,13 @@ const complianceSchema = z.object({
 
 /**
  * Robustly sanitizes objects for Firestore.
- * - Converts undefined to null (Firestore forbids undefined).
- * - Avoids recursing into special non-plain objects like Date or Firestore Timestamps.
+ * - Converts undefined to null.
+ * - Preserves native Firestore types like Timestamps.
  */
 function sanitizeForFirestore(obj: any): any {
   if (obj === null || obj === undefined) return null;
   
+  // Preserve Timestamps or native Dates
   if (obj instanceof Date || (typeof obj.toDate === 'function')) {
     return obj;
   }
@@ -141,13 +142,7 @@ function sanitizeForFirestore(obj: any): any {
   if (typeof obj === 'object') {
     const sanitized: any = {};
     for (const [key, value] of Object.entries(obj)) {
-      if (value === undefined) {
-          sanitized[key] = null;
-      } else if (value !== null && typeof value === 'object' && !(value instanceof Date)) {
-          sanitized[key] = sanitizeForFirestore(value);
-      } else {
-          sanitized[key] = value;
-      }
+      sanitized[key] = sanitizeForFirestore(value);
     }
     return sanitized;
   }
@@ -176,34 +171,10 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     resolver: zodResolver(complianceSchema),
     defaultValues: {
       academicYear: selectedAY,
-      ched: { 
-        copcStatus: 'In Progress', 
-        contentNoted: false,
-        copcLink: '',
-        contentNotedLink: '',
-        rqatVisits: []
-      },
-      accreditation: { 
-        level: 'Not Accredited',
-        certificateLink: '',
-        dateOfVisit: '',
-        dateOfAward: '',
-        nextSchedule: '',
-        overallTaskForceHead: '',
-        taskForce: '',
-        areas: []
-      },
-      curriculum: { 
-        revisionNumber: '0', 
-        isNotedByChed: false, 
-        cmoLink: '',
-        dateImplemented: ''
-      },
-      faculty: { 
-        dean: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' },
-        programChair: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' },
-        members: [] 
-      },
+      ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', contentNotedLink: '', rqatVisits: [] },
+      accreditation: { level: 'Non Accredited', certificateLink: '', dateOfVisit: '', dateOfAward: '', nextSchedule: '', overallTaskForceHead: '', taskForce: '', areas: [] },
+      curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
+      faculty: { dean: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' }, programChair: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' }, members: [] },
       stats: { enrollment: { firstYear: 0, secondYear: 0, thirdYear: 0, fourthYear: 0 }, graduationCount: 0 },
       graduationRecords: [],
       tracerRecords: [],
@@ -211,7 +182,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     },
   });
 
-  // Synchronize CHED content noted and Curriculum noted fields
+  // Cross-module synchronization
   useEffect(() => {
     const subscription = methods.watch((value, { name }) => {
       if (name === 'ched.contentNoted') {
@@ -229,7 +200,8 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     return () => subscription.unsubscribe();
   }, [methods]);
 
-  useMemo(() => {
+  // Sync form with database record
+  useEffect(() => {
     if (activeRecord) {
       methods.reset({
         ...activeRecord,
@@ -250,34 +222,10 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     } else {
       methods.reset({
         academicYear: selectedAY,
-        ched: { 
-          copcStatus: 'In Progress', 
-          contentNoted: false, 
-          copcLink: '',
-          contentNotedLink: '',
-          rqatVisits: [] 
-        },
-        accreditation: { 
-          level: 'Not Accredited', 
-          certificateLink: '',
-          dateOfVisit: '',
-          dateOfAward: '',
-          nextSchedule: '',
-          overallTaskForceHead: '',
-          taskForce: '',
-          areas: []
-        },
-        curriculum: { 
-          revisionNumber: '0', 
-          isNotedByChed: false, 
-          cmoLink: '',
-          dateImplemented: ''
-        },
-        faculty: { 
-          dean: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' },
-          programChair: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' },
-          members: [] 
-        },
+        ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', contentNotedLink: '', rqatVisits: [] },
+        accreditation: { level: 'Non Accredited', certificateLink: '', dateOfVisit: '', dateOfAward: '', nextSchedule: '', overallTaskForceHead: '', taskForce: '', areas: [] },
+        curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
+        faculty: { dean: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' }, programChair: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' }, members: [] },
         stats: { enrollment: { firstYear: 0, secondYear: 0, thirdYear: 0, fourthYear: 0 }, graduationCount: 0 },
         graduationRecords: [],
         tracerRecords: [],
@@ -292,7 +240,6 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
 
     const recordId = activeRecord?.id || `${program.id}-${selectedAY}`;
     const docRef = doc(firestore, 'programCompliances', recordId);
-
     const sanitizedData = sanitizeForFirestore(values);
 
     try {
@@ -308,17 +255,17 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       toast({ title: 'Compliance Updated', description: `Record for AY ${selectedAY} has been saved successfully.` });
     } catch (error) {
       console.error('Compliance save error:', error);
-      toast({ title: 'Save Failed', description: 'Could not update compliance record. Please check your internet connection or data formats.', variant: 'destructive' });
+      toast({ title: 'Save Failed', description: 'Could not update record.', variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
   };
 
   const onInvalid = (errors: any) => {
-    console.error("Compliance Validation Errors:", errors);
+    console.error("Form Validation Failed:", errors);
     toast({ 
         title: "Validation Error", 
-        description: "Please check the form for invalid fields. Ensure all URLs are properly formatted if provided.", 
+        description: "Please check all modules for red highlights. Some required fields might be empty or invalid.", 
         variant: 'destructive' 
     });
   };
@@ -343,9 +290,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
           </div>
           <div className="flex items-center gap-2">
             {!canEdit && (
-              <Badge variant="outline" className="h-9 px-4 text-xs font-medium bg-background">
-                Read-Only Access
-              </Badge>
+              <Badge variant="outline" className="h-9 px-4 text-xs font-medium bg-background">Read-Only</Badge>
             )}
             {canEdit && (
               <Button type="submit" disabled={isSaving} className="shadow-lg shadow-primary/20">
@@ -362,10 +307,8 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
           </div>
         ) : (
           <Tabs defaultValue="performance" className="w-full">
-            <TabsList className={cn(
-                "grid h-auto w-full grid-cols-2 md:grid-cols-6"
-            )}>
-              <TabsTrigger value="performance" className="py-2 bg-primary/5 data-[state=active]:bg-primary data-[state=active]:text-white"><Presentation className="mr-2 h-4 w-4" /> Performance View</TabsTrigger>
+            <TabsList className={cn("grid h-auto w-full grid-cols-2 md:grid-cols-6")}>
+              <TabsTrigger value="performance" className="py-2 bg-primary/5 data-[state=active]:bg-primary data-[state=active]:text-white"><Presentation className="mr-2 h-4 w-4" /> Performance</TabsTrigger>
               <TabsTrigger value="ched" className="py-2"><FileCheck className="mr-2 h-4 w-4" /> CHED & RQAT</TabsTrigger>
               <TabsTrigger value="accreditation" className="py-2"><ShieldCheck className="mr-2 h-4 w-4" /> Accreditation</TabsTrigger>
               <TabsTrigger value="faculty" className="py-2"><Users className="mr-2 h-4 w-4" /> Faculty</TabsTrigger>
@@ -375,11 +318,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
 
             <div className="mt-6">
               <TabsContent value="performance">
-                <ProgramPerformanceView 
-                    program={program} 
-                    record={activeRecord} 
-                    selectedYear={selectedAY} 
-                />
+                <ProgramPerformanceView program={program} record={activeRecord} selectedYear={selectedAY} />
               </TabsContent>
               <TabsContent value="ched"><ChedComplianceModule canEdit={canEdit} /></TabsContent>
               <TabsContent value="accreditation"><AccreditationModule canEdit={canEdit} /></TabsContent>
