@@ -186,7 +186,12 @@ export default function SubmissionsPage() {
           </div>
           <div className="flex items-center space-x-2">
             {!isSupervisor && (
-                <Button onClick={() => router.push('/submissions/new')}><PlusCircle className="mr-2 h-4 w-4" /> New Submission</Button>
+                <Button 
+                  onClick={() => router.push('/submissions/new')}
+                  className="animate-pulse shadow-lg shadow-primary/20"
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" /> New Submission / Resubmission
+                </Button>
             )}
           </div>
         </div>
