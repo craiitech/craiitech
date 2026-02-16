@@ -16,6 +16,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import {
   Select,
@@ -333,7 +334,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         }
 
         if (isAdmin) {
-            // DEEP SANITIZATION: Ensure only plain objects are passed to Server Action
             const sanitizedData = JSON.parse(JSON.stringify(riskData));
             const result = await saveRiskAdmin(sanitizedData, risk?.id);
             if (result.success) {
@@ -438,7 +438,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                             )}
 
                             <div className={cn("space-y-8", isStepDisabled && "opacity-20 pointer-events-none")}>
-                                {/* SECTION 1: IDENTIFICATION */}
                                 <div className="space-y-4">
                                     <h3 className="text-lg font-bold flex items-center gap-2"><div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">1</div> Identification (First Cycle)</h3>
                                     <Card>
@@ -458,7 +457,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                     </Card>
                                 </div>
 
-                                {/* SECTION 2: ANALYSIS */}
                                 <div className="space-y-4">
                                     <h3 className="text-lg font-bold flex items-center gap-2"><div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">2</div> Analysis (Initial Scoring)</h3>
                                     <Card>
@@ -489,7 +487,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                     </Card>
                                 </div>
 
-                                {/* SECTION 3: ACTION PLAN */}
                                 {showActionPlan && (
                                     <div className="space-y-4">
                                         <h3 className="text-lg font-bold flex items-center gap-2"><div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">3</div> Action Plan (Treatment)</h3>
@@ -517,7 +514,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                     </div>
                                 )}
 
-                                {/* SECTION 4: MONITORING UPDATES (ONGOING) */}
                                 <div className="space-y-4">
                                     <h3 className="text-lg font-bold flex items-center gap-2"><div className="bg-blue-600 text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">4</div> Action Monitoring (Ongoing)</h3>
                                     <Card className="border-blue-200">
@@ -526,15 +522,15 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                             <FormField control={form.control} name="updates" render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Monitoring Notes / Updates</FormLabel>
-                                                    <FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Input ongoing mitigation activities here to update the unit's progress..." /></FormControl>
-                                                    <FormDescription className="text-[10px]">Record evidence of implementation, status updates, or obstacles encountered during the cycle.</FormDescription>
+                                                    <FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Input ongoing mitigation activities here..." /></FormControl>
+                                                    <FormDescription className="text-[10px]">Record evidence of implementation during the cycle.</FormDescription>
                                                 </FormItem>
                                             )} />
                                              <FormField control={form.control} name="status" render={({ field }) => (
                                                 <FormItem><FormLabel>Workflow Status</FormLabel>
                                                     <Select onValueChange={field.onChange} value={field.value || 'Open'}>
                                                         <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                                        <SelectContent><SelectItem value="Open">Open (Planned)</SelectItem><SelectItem value="In Progress">In Progress (Active Implementation)</SelectItem><SelectItem value="Closed">Closed (Completed & Evaluated)</SelectItem></SelectContent>
+                                                        <SelectContent><SelectItem value="Open">Open (Planned)</SelectItem><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Closed">Closed (Completed)</SelectItem></SelectContent>
                                                     </Select>
                                                 </FormItem>
                                             )} />
@@ -542,7 +538,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                     </Card>
                                 </div>
 
-                                {/* SECTION 5: EVALUATION */}
                                 {workflowStatus === 'Closed' && (
                                     <div className="space-y-4">
                                         <h3 className="text-lg font-bold flex items-center gap-2 text-green-600"><div className="bg-green-600 text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">5</div> Post-Treatment Analysis (Final Cycle)</h3>
@@ -570,7 +565,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                                     <div className="flex items-center gap-2"><Calculator className="h-4 w-4 text-green-600" /><span className="text-sm font-medium">Residual Magnitude: <span className="font-bold">{ptMagnitude}</span></span></div>
                                                     <div className="flex items-center gap-2"><span className="text-sm font-medium">Residual Rating:</span><Badge variant={ptRating === 'High' ? 'destructive' : ptRating === 'Medium' ? 'secondary' : 'default'}>{ptRating}</Badge></div>
                                                 </div>
-                                                <FormField control={form.control} name="postTreatmentEvidence" render={({ field }) => (<FormItem><FormLabel>Evidence of Completion / Resolution</FormLabel><FormControl><Textarea {...field} value={field.value || ''} placeholder="Describe the results and proof of resolution (e.g., certificates, reports, photos)..." className="bg-white" /></FormControl></FormItem>)} />
+                                                <FormField control={form.control} name="postTreatmentEvidence" render={({ field }) => (<FormItem><FormLabel>Evidence of Completion</FormLabel><FormControl><Textarea {...field} value={field.value || ''} placeholder="Describe proof of resolution..." className="bg-white" /></FormControl></FormItem>)} />
                                                 <FormField control={form.control} name="postTreatmentDateImplemented" render={({ field }) => (<FormItem><FormLabel>Actual Date Implemented</FormLabel><FormControl><Input {...field} type="text" placeholder="e.g., Oct 2025" className="bg-white" /></FormControl></FormItem>)} />
                                             </CardContent>
                                         </Card>

@@ -8,7 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle2, ClipboardCheck, TrendingUp, School, Building } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ClipboardCheck, TrendingUp, School, Building, User, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MonitoringAnalyticsProps {
@@ -37,6 +37,8 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
         return {
             unitId: record.unitId,
             campusId: record.campusId,
+            officerInCharge: record.officerInCharge,
+            visitDate: record.visitDate,
             score
         };
     });
@@ -74,12 +76,15 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
         rate: Math.round(data.sum / data.total)
     })).sort((a, b) => b.rate - a.rate);
 
-    // 4. Unit Leaderboard
-    const unitPerformance: Record<string, { total: number, sum: number, campusId: string }> = {};
+    // 4. Unit Leaderboard (Adding OIC and Campus)
+    const unitPerformance: Record<string, { total: number, sum: number, campusId: string, oic: string }> = {};
 
-    visitCompliance.forEach(v => {
+    // Sort by date so we get the most recent OIC
+    const sortedVisits = [...visitCompliance].sort((a, b) => b.visitDate.toMillis() - a.visitDate.toMillis());
+
+    sortedVisits.forEach(v => {
         if (!unitPerformance[v.unitId]) {
-            unitPerformance[v.unitId] = { total: 0, sum: 0, campusId: v.campusId };
+            unitPerformance[v.unitId] = { total: 0, sum: 0, campusId: v.campusId, oic: v.officerInCharge || 'N/A' };
         }
         unitPerformance[v.unitId].total += 1;
         unitPerformance[v.unitId].sum += v.score;
@@ -89,6 +94,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
         id,
         name: unitMap.get(id) || 'Unknown Unit',
         campus: campusMap.get(data.campusId) || '...',
+        oic: data.oic,
         rate: Math.round(data.sum / data.total)
     })).sort((a, b) => b.rate - a.rate).slice(0, 10);
 
@@ -158,10 +164,15 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
                 <CardTitle className="text-xs uppercase tracking-wider text-blue-700 font-bold">Top Unit ({selectedYear})</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="text-lg font-bold text-blue-600 truncate">
+                <div className="text-lg font-bold text-blue-600 truncate leading-tight">
                     {analytics.unitLeaderboard[0]?.name}
                 </div>
-                <p className="text-[10px] text-blue-600/70 mt-1">{analytics.unitLeaderboard[0]?.rate}% Score</p>
+                <p className="text-[10px] text-blue-800/60 font-semibold uppercase tracking-wider mt-1">
+                    {analytics.unitLeaderboard[0]?.campus}
+                </p>
+                <div className="flex items-center gap-1.5 mt-2">
+                    <Badge className="bg-blue-600 text-white text-[10px] h-5">{analytics.unitLeaderboard[0]?.rate}% Score</Badge>
+                </div>
             </CardContent>
         </Card>
       </div>
@@ -222,6 +233,44 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
             </CardContent>
         </Card>
       </div>
+
+      {/* Unit Performance Leaderboard */}
+      <Card>
+        <CardHeader>
+            <div className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-yellow-500" />
+                <CardTitle>Unit Performance Leaderboard</CardTitle>
+            </div>
+            <CardDescription>Detailed mapping of top performing units, their campus sites, and Officers in Charge for {selectedYear}.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {analytics.unitLeaderboard.map((unit, index) => (
+                    <div key={unit.id} className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors shadow-sm">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 font-black text-primary">
+                            {index + 1}
+                        </div>
+                        <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                                <p className="font-bold text-sm truncate">{unit.name}</p>
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 h-5 text-[10px]">{unit.rate}%</Badge>
+                            </div>
+                            <div className="flex items-center gap-4 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                                <span className="flex items-center gap-1">
+                                    <School className="h-3 w-3" />
+                                    {unit.campus}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                    <User className="h-3 w-3" />
+                                    OIC: {unit.oic}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
