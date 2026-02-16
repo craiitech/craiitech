@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -108,7 +109,7 @@ function sanitizeForFirestore(obj: any): any {
   }
   return Object.entries(obj).reduce((acc, [key, value]) => {
     if (value === undefined) return acc;
-    if (value !== null && typeof value === 'object' && !(v instanceof Date)) {
+    if (value !== null && typeof value === 'object' && !(value instanceof Date)) {
       return { ...acc, [key]: sanitizeForFirestore(value) };
     }
     return { ...acc, [key]: value };
