@@ -1,6 +1,7 @@
+
 'use client';
 
-import { PlusCircle, Eye, Trash2, Loader2, Download, FileText, Calendar as CalendarIcon, Building, School } from 'lucide-react';
+import { PlusCircle, Eye, Trash2, Loader2, Download, FileText, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Filter } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -18,9 +19,16 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, deleteDoc, Timestamp } from 'firebase/firestore';
-import type { Submission, Campus, Unit } from '@/lib/types';
+import type { Submission, Campus, Unit, User as AppUser } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useState, useMemo } from 'react';
 import { FeedbackDialog } from '@/components/dashboard/feedback-dialog';
@@ -42,6 +50,8 @@ import { UnitSubmissionsView } from '@/components/submissions/unit-submissions-v
 import { CampusSubmissionsView } from '@/components/submissions/campus-submissions-view';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
+import { submissionTypes } from './new/page';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -50,12 +60,18 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
     submitted: 'outline'
 };
 
-const getGoogleDriveDownloadLink = (url: string) => {
-    const fileId = url.match(/d\/([^/]+)/);
-    if (fileId && fileId[1]) {
-        return `https://drive.google.com/uc?export=download&id=${fileId[1]}`;
-    }
-    return url;
+/**
+ * Returns a Tailwind class string for row background based on the submission year.
+ */
+const getYearRowColor = (year: number) => {
+  const colors: Record<number, string> = {
+    2024: 'bg-blue-50/50 hover:bg-blue-100/50 dark:bg-blue-900/10 dark:hover:bg-blue-900/20',
+    2025: 'bg-green-50/50 hover:bg-green-100/50 dark:bg-green-900/10 dark:hover:bg-green-900/20',
+    2026: 'bg-amber-50/50 hover:bg-amber-100/50 dark:bg-amber-900/10 dark:hover:bg-amber-900/20',
+    2027: 'bg-purple-50/50 hover:bg-purple-100/50 dark:bg-purple-900/10 dark:hover:bg-purple-900/20',
+    2028: 'bg-rose-50/50 hover:bg-rose-100/50 dark:bg-rose-900/10 dark:hover:bg-rose-900/20',
+  };
+  return colors[year] || 'bg-slate-50/50 hover:bg-slate-100/50 dark:bg-slate-900/10 dark:hover:bg-slate-900/20';
 };
 
 const safeFormatDate = (date: any) => {
@@ -75,6 +91,10 @@ export default function SubmissionsPage() {
   const router = useRouter();
   const { toast } = useToast();
   
+  const [reportTypeFilter, setReportTypeFilter] = useState<string>('all');
+  const [yearFilter, setYearFilter] = useState<string>('all');
+  const [sortOrder, setSortOrder] = useState<'recent' | 'oldest'>('recent');
+
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [feedbackToShow, setFeedbackToShow] = useState('');
   const [deletingSubmission, setDeletingSubmission] = useState<Submission | null>(null);
@@ -93,14 +113,37 @@ export default function SubmissionsPage() {
 
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
+  const usersQuery = useMemoFirebase(
+    () => (firestore && isAdmin ? collection(firestore, 'users') : null),
+    [firestore, isAdmin]
+  );
+  const { data: allUsers } = useCollection<AppUser>(usersQuery);
+
+  const userMap = useMemo(() => {
+    const map = new Map<string, string>();
+    allUsers?.forEach(u => map.set(u.id, `${u.firstName} ${u.lastName}`));
+    return map;
+  }, [allUsers]);
+
   const submissionsData = useMemo(() => {
     if (!rawSubmissions) return [];
-    return [...rawSubmissions].sort((a, b) => {
+    
+    let filtered = [...rawSubmissions];
+
+    if (reportTypeFilter !== 'all') {
+        filtered = filtered.filter(s => s.reportType === reportTypeFilter);
+    }
+
+    if (yearFilter !== 'all') {
+        filtered = filtered.filter(s => String(s.year) === yearFilter);
+    }
+
+    return filtered.sort((a, b) => {
         const dateA = a.submissionDate instanceof Timestamp ? a.submissionDate.toMillis() : new Date(a.submissionDate).getTime();
         const dateB = b.submissionDate instanceof Timestamp ? b.submissionDate.toMillis() : new Date(b.submissionDate).getTime();
-        return dateB - dateA;
+        return sortOrder === 'recent' ? dateB - dateA : dateA - dateB;
     });
-  }, [rawSubmissions]);
+  }, [rawSubmissions, reportTypeFilter, yearFilter, sortOrder]);
 
   const campusesQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'campuses') : null), [firestore, user]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
@@ -109,6 +152,12 @@ export default function SubmissionsPage() {
   const { data: units } = useCollection<Unit>(unitsQuery);
 
   const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
+
+  const availableYears = useMemo(() => {
+    if (!rawSubmissions) return [];
+    const years = Array.from(new Set(rawSubmissions.map(s => String(s.year))));
+    return years.sort((a,b) => b.localeCompare(a));
+  }, [rawSubmissions]);
 
   const handleDeleteClick = (submission: Submission) => {
     setDeletingSubmission(submission);
@@ -153,9 +202,49 @@ export default function SubmissionsPage() {
             </TabsList>
             <TabsContent value="all-submissions">
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Recent Submissions</CardTitle>
-                        <CardDescription>A chronological list of all submitted reports.</CardDescription>
+                    <CardHeader className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                        <div className="space-y-1">
+                            <CardTitle>Recent Submissions</CardTitle>
+                            <CardDescription>A chronological list of all submitted reports.</CardDescription>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold uppercase text-muted-foreground">Report Type</label>
+                                <Select value={reportTypeFilter} onValueChange={setReportTypeFilter}>
+                                    <SelectTrigger className="w-[180px] h-8 text-xs">
+                                        <SelectValue placeholder="All Reports" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Reports</SelectItem>
+                                        {submissionTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold uppercase text-muted-foreground">Year</label>
+                                <Select value={yearFilter} onValueChange={setYearFilter}>
+                                    <SelectTrigger className="w-[100px] h-8 text-xs">
+                                        <SelectValue placeholder="All Years" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Years</SelectItem>
+                                        {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold uppercase text-muted-foreground">Order</label>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 text-xs gap-2"
+                                    onClick={() => setSortOrder(sortOrder === 'recent' ? 'oldest' : 'recent')}
+                                >
+                                    <ArrowUpDown className="h-3 w-3" />
+                                    {sortOrder === 'recent' ? 'Recent' : 'Oldest'}
+                                </Button>
+                            </div>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         {isLoadingSubmissions ? (
@@ -168,6 +257,7 @@ export default function SubmissionsPage() {
                                     <TableRow>
                                         <TableHead>Report Type</TableHead>
                                         <TableHead>Unit / Campus</TableHead>
+                                        <TableHead>Uploader</TableHead>
                                         <TableHead>Date</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
@@ -175,17 +265,28 @@ export default function SubmissionsPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {submissionsData.map((sub) => (
-                                        <TableRow key={sub.id}>
+                                        <TableRow 
+                                            key={sub.id} 
+                                            className={cn("transition-colors", getYearRowColor(sub.year))}
+                                        >
                                             <TableCell>
                                                 <div className="flex flex-col">
-                                                    <span className="font-medium">{sub.reportType}</span>
-                                                    <span className="text-[10px] text-muted-foreground uppercase">{sub.cycleId} Cycle {sub.year}</span>
+                                                    <span className="font-bold text-sm">{sub.reportType}</span>
+                                                    <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">
+                                                        {sub.cycleId} Cycle {sub.year} &bull; {sub.controlNumber}
+                                                    </span>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col text-xs">
-                                                    <span className="flex items-center gap-1"><Building className="h-3 w-3" /> {sub.unitName}</span>
+                                                    <span className="flex items-center gap-1 font-medium"><Building className="h-3 w-3" /> {sub.unitName}</span>
                                                     <span className="flex items-center gap-1 text-muted-foreground"><School className="h-3 w-3" /> {campusMap.get(sub.campusId) || '...'}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-xs">
+                                                <div className="flex items-center gap-2">
+                                                    <User className="h-3 w-3 text-muted-foreground" />
+                                                    <span className="font-medium">{userMap.get(sub.userId) || '...'}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-xs">
@@ -195,17 +296,27 @@ export default function SubmissionsPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant={statusVariant[sub.statusId] || 'secondary'} className="capitalize">
+                                                <Badge variant={statusVariant[sub.statusId] || 'secondary'} className="capitalize bg-background/50 border-primary/10">
                                                     {sub.statusId === 'submitted' ? 'Awaiting Approval' : sub.statusId}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="text-right space-x-1">
-                                                <Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${sub.id}`)}>
-                                                    <Eye className="h-4 w-4" />
+                                            <TableCell className="text-right space-x-2 whitespace-nowrap">
+                                                <Button 
+                                                    variant="default" 
+                                                    size="sm" 
+                                                    className="text-[10px] h-8 px-3 font-bold bg-primary shadow-sm"
+                                                    onClick={() => router.push(`/submissions/${sub.id}`)}
+                                                >
+                                                    VIEW SUBMISSION
                                                 </Button>
                                                 {isAdmin && (
-                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteClick(sub)}>
-                                                        <Trash2 className="h-4 w-4" />
+                                                    <Button 
+                                                        variant="destructive" 
+                                                        size="sm" 
+                                                        className="text-[10px] h-8 px-3 font-bold shadow-sm"
+                                                        onClick={() => handleDeleteClick(sub)}
+                                                    >
+                                                        DELETE SUBMISSION
                                                     </Button>
                                                 )}
                                             </TableCell>
@@ -216,14 +327,14 @@ export default function SubmissionsPage() {
                         ) : (
                             <div className="py-12 text-center text-muted-foreground flex flex-col items-center gap-2 border border-dashed rounded-lg">
                                 <FileText className="h-12 w-12 opacity-10" />
-                                <p>No submissions found.</p>
+                                <p>No submissions found matching your filters.</p>
                             </div>
                         )}
                     </CardContent>
                 </Card>
             </TabsContent>
-            {isSupervisor && !isAdmin && <TabsContent value="by-unit"><UnitSubmissionsView allSubmissions={submissionsData} allUnits={units} userProfile={userProfile} isLoading={isLoadingSubmissions} /></TabsContent>}
-            {isAdmin && <TabsContent value="by-campus"><CampusSubmissionsView allSubmissions={submissionsData} allCampuses={campuses} allUnits={units} isLoading={isLoadingSubmissions} isAdmin={isAdmin} onDeleteClick={handleDeleteClick} /></TabsContent>}
+            {isSupervisor && !isAdmin && <TabsContent value="by-unit"><UnitSubmissionsView allSubmissions={rawSubmissions} allUnits={units} userProfile={userProfile} isLoading={isLoadingSubmissions} /></TabsContent>}
+            {isAdmin && <TabsContent value="by-campus"><CampusSubmissionsView allSubmissions={rawSubmissions} allCampuses={campuses} allUnits={units} isLoading={isLoadingSubmissions} isAdmin={isAdmin} onDeleteClick={handleDeleteClick} /></TabsContent>}
         </Tabs>
       </div>
 

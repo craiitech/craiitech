@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -306,9 +307,13 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
   return (
     <Dialog open={isOpen} onOpenChange={isMandatory ? undefined : onOpenChange}>
       <DialogContent className="max-w-[95vw] lg:max-w-7xl h-[95vh] flex flex-col p-0 overflow-hidden">
-        <div className="p-6 border-b shrink-0 bg-card">
+        <div className="p-6 border-b shrink-0 bg-card shadow-sm">
+            <div className="flex items-center gap-2 text-primary mb-1">
+                <ShieldCheck className="h-5 w-5" />
+                <span className="text-xs font-bold uppercase tracking-widest">Risk & Opportunity Registry</span>
+            </div>
             <DialogTitle className="text-xl">
-              {risk ? 'Edit' : 'Log New'} Risk or Opportunity
+              {risk ? 'Edit' : 'Log New'} Assessment Record
             </DialogTitle>
         </div>
         <div className="flex-1 flex overflow-hidden">
@@ -316,13 +321,17 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                 <ScrollArea className="flex-1">
                     <Form {...form}>
                         <form id="risk-form" onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-8">
+                            {/* --- Identification Section --- */}
                             <div className="space-y-4">
-                                <h3 className="text-lg font-bold flex items-center gap-2">Identification</h3>
+                                <h3 className="text-lg font-bold flex items-center gap-2">
+                                    <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">1</div>
+                                    Identification
+                                </h3>
                                 <Card>
                                   <CardContent className="space-y-4 pt-6">
                                     <FormField control={form.control} name="type" render={({ field }) => (
                                         <FormItem className="space-y-3">
-                                          <FormLabel>Entry Type</FormLabel>
+                                          <FormLabel className="font-bold">Entry Type</FormLabel>
                                           <FormControl>
                                             <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center space-x-4">
                                               <div className="flex items-center space-x-2 space-y-0">
@@ -339,39 +348,44 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                     )} />
                                     <FormField control={form.control} name="objective" render={({ field }) => (
                                       <FormItem>
-                                        <FormLabel>Objective</FormLabel>
+                                        <FormLabel className="font-bold">Process Objective</FormLabel>
                                         <FormControl>
-                                          <Input {...field} value={field.value || ''} />
+                                          <Input {...field} value={field.value || ''} placeholder="What goal is being assessed?" />
                                         </FormControl>
                                       </FormItem>
                                     )} />
                                     <FormField control={form.control} name="description" render={({ field }) => (
                                       <FormItem>
-                                        <FormLabel>Description</FormLabel>
+                                        <FormLabel className="font-bold">Description of {riskTypeValue}</FormLabel>
                                         <FormControl>
-                                          <Textarea {...field} value={field.value || ''} />
+                                          <Textarea {...field} value={field.value || ''} placeholder="Explain the potential risk or opportunity in detail." />
                                         </FormControl>
                                       </FormItem>
                                     )} />
                                     <FormField control={form.control} name="currentControls" render={({ field }) => (
                                       <FormItem>
-                                        <FormLabel>Current Controls</FormLabel>
+                                        <FormLabel className="font-bold">Current Controls / Mechanisms</FormLabel>
                                         <FormControl>
-                                          <Textarea {...field} value={field.value || ''} />
+                                          <Textarea {...field} value={field.value || ''} placeholder="What is currently in place to manage this?" />
                                         </FormControl>
                                       </FormItem>
                                     )} />
                                 </CardContent>
                               </Card>
                             </div>
+
+                            {/* --- Analysis Section --- */}
                             <div className="space-y-4">
-                                <h3 className="text-lg font-bold flex items-center gap-2">Analysis</h3>
+                                <h3 className="text-lg font-bold flex items-center gap-2">
+                                    <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">2</div>
+                                    Risk Analysis
+                                </h3>
                                 <Card>
                                   <CardContent className="space-y-4 pt-6">
                                     <div className="grid grid-cols-2 gap-4">
                                         <FormField control={form.control} name="likelihood" render={({ field }) => (
                                           <FormItem>
-                                            <FormLabel>Likelihood</FormLabel>
+                                            <FormLabel className="font-bold">Likelihood (L)</FormLabel>
                                             <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
                                               <FormControl>
                                                 <SelectTrigger>
@@ -386,7 +400,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                         )} />
                                         <FormField control={form.control} name="consequence" render={({ field }) => (
                                           <FormItem>
-                                            <FormLabel>Consequence</FormLabel>
+                                            <FormLabel className="font-bold">Consequence (C)</FormLabel>
                                             <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
                                               <FormControl>
                                                 <SelectTrigger>
@@ -400,37 +414,54 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                           </FormItem>
                                         )} />
                                     </div>
-                                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-md">
-                                        <div className="text-sm font-medium">Magnitude: <span className="font-bold">{magnitude}</span></div>
-                                        <Badge variant={rating === 'High' ? 'destructive' : rating === 'Medium' ? 'secondary' : 'default'}>{rating}</Badge>
+                                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-md border">
+                                        <div className="text-sm font-medium">Magnitude (L x C): <span className="font-bold text-lg">{magnitude}</span></div>
+                                        <Badge 
+                                            variant={rating === 'High' ? 'destructive' : rating === 'Medium' ? 'secondary' : 'default'}
+                                            className="h-7 px-4 text-xs font-bold uppercase"
+                                        >
+                                            {rating} RATING
+                                        </Badge>
                                     </div>
                                 </CardContent>
                               </Card>
                             </div>
+
+                            {/* --- Action Plan Section --- */}
                             {showActionPlan && (
                                 <div className="space-y-4">
-                                    <h3 className="text-lg font-bold flex items-center gap-2">Action Plan</h3>
-                                    <Card className="border-primary/20">
-                                        <CardHeader className="flex flex-row items-center justify-between py-4 bg-primary/5">
+                                    <h3 className="text-lg font-bold flex items-center gap-2">
+                                        <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">3</div>
+                                        Action Plan
+                                    </h3>
+                                    <Card className="border-primary/20 shadow-md">
+                                        <CardHeader className="flex flex-row items-center justify-between py-4 bg-primary/5 border-b">
                                             <CardTitle className="text-base">Treatment Strategy</CardTitle>
-                                            <Button type="button" variant="secondary" size="sm" onClick={handleAISuggest} disabled={isSuggesting}>
+                                            <Button 
+                                                type="button" 
+                                                variant="secondary" 
+                                                size="sm" 
+                                                onClick={handleAISuggest} 
+                                                disabled={isSuggesting}
+                                                className="shadow-sm"
+                                            >
                                               {isSuggesting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Sparkles className="h-3 w-3 mr-2" />}
-                                              AI Suggest
+                                              AI Suggest Mitigation
                                             </Button>
                                         </CardHeader>
                                         <CardContent className="space-y-4 pt-6">
                                             <FormField control={form.control} name="treatmentAction" render={({ field }) => (
                                               <FormItem>
-                                                <FormLabel>Plan</FormLabel>
+                                                <FormLabel className="font-bold text-primary">Treatment Action Plan</FormLabel>
                                                 <FormControl>
-                                                  <Textarea {...field} value={field.value || ''} rows={6} />
+                                                  <Textarea {...field} value={field.value || ''} rows={6} placeholder="How will you mitigate this risk or enhance this opportunity?" />
                                                 </FormControl>
                                               </FormItem>
                                             )} />
                                             <div className="grid grid-cols-2 gap-4">
                                                 <FormField control={form.control} name="responsiblePersonId" render={({ field }) => (
                                                   <FormItem>
-                                                    <FormLabel>Accountable</FormLabel>
+                                                    <FormLabel className="font-bold">Accountable Person</FormLabel>
                                                     <Select onValueChange={field.onChange} value={field.value || ''}>
                                                       <FormControl>
                                                         <SelectTrigger>
@@ -444,7 +475,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                                   </FormItem>
                                                 )} />
                                                 <div className="space-y-2">
-                                                  <FormLabel>Target Date</FormLabel>
+                                                  <FormLabel className="font-bold">Target Date</FormLabel>
                                                   <div className="grid grid-cols-3 gap-2">
                                                     <FormField control={form.control} name="targetMonth" render={({ field }) => (
                                                       <FormItem>
@@ -495,8 +526,13 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                     </Card>
                                 </div>
                             )}
+
+                            {/* --- Monitoring Section --- */}
                             <div className="space-y-4">
-                                <h3 className="text-lg font-bold flex items-center gap-2">Monitoring</h3>
+                                <h3 className="text-lg font-bold flex items-center gap-2">
+                                    <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">4</div>
+                                    Monitoring & Updates
+                                </h3>
                                 <Card className="border-blue-200">
                                     <CardContent className="space-y-4 pt-6">
                                         <FormField
@@ -504,7 +540,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                             name="updates"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Monitoring Notes / Updates</FormLabel>
+                                                    <FormLabel className="font-bold">Monitoring Notes / Updates</FormLabel>
                                                     <FormControl>
                                                         <Textarea 
                                                             {...field} 
@@ -521,7 +557,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                             name="status"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Status</FormLabel>
+                                                    <FormLabel className="font-bold">Status</FormLabel>
                                                     <Select onValueChange={field.onChange} value={field.value}>
                                                         <FormControl>
                                                             <SelectTrigger>
@@ -544,24 +580,28 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                     </Form>
                 </ScrollArea>
             </div>
+            
+            {/* --- Right Reference Panel --- */}
             <div className="hidden lg:flex w-[400px] flex-col bg-muted/10 border-l shrink-0">
                 <div className="p-4 border-b font-bold text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white">
-                  <Info className="h-4 w-4" /> Reference Panel
+                  <Info className="h-4 w-4" /> Assessment Reference
                 </div>
                 <ScrollArea className="flex-1 p-6 space-y-6">
-                    <Card className="border-blue-200 shadow-sm">
+                    <Card className="border-blue-200 shadow-sm overflow-hidden">
                         <CardHeader className="py-3 px-4 bg-blue-50 border-b">
-                          <CardTitle className="text-[10px] font-black uppercase tracking-widest text-blue-800">Scoring Guide</CardTitle>
+                          <CardTitle className="text-[10px] font-black uppercase tracking-widest text-blue-800">Magnitude Guide</CardTitle>
                         </CardHeader>
                         <CardContent className="p-4 space-y-4">
                             <div className="grid grid-cols-1 gap-1.5 text-[10px] font-bold">
-                                <div className="p-2 rounded bg-red-50 border border-red-100 text-red-700 uppercase">High (10-25) - Action Required</div>
-                                <div className="p-2 rounded bg-amber-50 border border-amber-100 text-amber-700 uppercase">Medium (5-9) - Action Required</div>
+                                <div className="p-2 rounded bg-red-50 border border-red-100 text-red-700 uppercase">High (10-25) - Action Mandatory</div>
+                                <div className="p-2 rounded bg-amber-50 border border-amber-100 text-amber-700 uppercase">Medium (5-9) - Action Mandatory</div>
                                 <div className="p-2 rounded bg-green-50 border border-green-100 text-green-700 uppercase">Low (1-4) - Monitor Only</div>
                             </div>
-                            <div className="flex gap-2 text-[10px] pt-2 border-t">
-                              <BookOpen className="h-3 w-3 shrink-0 text-blue-600" />
-                              <p className="leading-tight text-muted-foreground">Select Likelihood and Consequence based on standard impact assessments. Magnitude is calculated automatically.</p>
+                            <div className="flex gap-2 text-[10px] pt-2 border-t mt-2">
+                              <BookOpen className="h-3.5 w-3.5 shrink-0 text-blue-600" />
+                              <p className="leading-tight text-muted-foreground italic">
+                                Magnitude is calculated as <strong>Likelihood x Consequence</strong>. High and Medium ratings automatically trigger the Action Plan requirement.
+                              </p>
                             </div>
                         </CardContent>
                     </Card>
@@ -570,10 +610,19 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         </div>
         <div className="p-6 border-t shrink-0 bg-card">
             <DialogFooter className="gap-2 sm:gap-0">
-                {!isMandatory && (<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>)}
-                <Button form="risk-form" type="submit" disabled={isSubmitting}>
+                {!isMandatory && (
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+                        Cancel
+                    </Button>
+                )}
+                <Button 
+                    form="risk-form" 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="min-w-[150px] shadow-lg shadow-primary/20"
+                >
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {risk ? 'Update Entry' : 'Log Entry'}
+                  {risk ? 'Save Updates' : 'Log Assessment'}
                 </Button>
             </DialogFooter>
         </div>
