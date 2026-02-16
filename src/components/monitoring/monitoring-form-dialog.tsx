@@ -168,7 +168,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
 
     const coreReports = [
         "Operational Plan",
-        "Objectives Monitoring",
+        "Quality Objectives Monitoring",
         "Risk and Opportunity Registry",
         "Risk and Opportunity Action Plan",
         "SWOT Analysis",

@@ -7,12 +7,13 @@ import { collection, query, orderBy, Timestamp, where } from 'firebase/firestore
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, History, LayoutDashboard, ClipboardCheck, AlertTriangle, FileDown, Printer, CalendarSearch, SearchCode } from 'lucide-react';
+import { PlusCircle, Loader2, History, LayoutDashboard, ClipboardCheck, AlertTriangle, FileDown, Printer, CalendarSearch, SearchCode, ListChecks } from 'lucide-react';
 import { format } from 'date-fns';
 import { MonitoringFormDialog } from '@/components/monitoring/monitoring-form-dialog';
 import { MonitoringAnalytics } from '@/components/monitoring/monitoring-analytics';
 import { MonitoringFindings } from '@/components/monitoring/monitoring-findings';
 import { MonitoringUnitExplorer } from '@/components/monitoring/monitoring-unit-explorer';
+import { MonitoringItemAnalysis } from '@/components/monitoring/monitoring-item-analysis';
 import {
   Table,
   TableBody,
@@ -172,6 +173,7 @@ export default function MonitoringPage() {
             'Campus': campusMap.get(record.campusId) || 'Unknown',
             'Unit': unitMap.get(record.unitId) || 'Unknown',
             'Visit Date': safeFormatDate(record.visitDate),
+            'Building': record.building || 'N/A',
             'Room': record.roomNumber || 'N/A',
             'OIC': record.officerInCharge || 'N/A',
             'Checklist Item': obs.item,
@@ -257,6 +259,12 @@ export default function MonitoringPage() {
                       <TabsTrigger value="explorer">
                           <SearchCode className="mr-2 h-4 w-4" />
                           Unit Explorer
+                      </TabsTrigger>
+                    )}
+                    {!isUnitOnlyView && (
+                      <TabsTrigger value="item-analysis">
+                          <ListChecks className="mr-2 h-4 w-4" />
+                          Item Analysis
                       </TabsTrigger>
                     )}
                 </TabsList>
@@ -366,6 +374,18 @@ export default function MonitoringPage() {
                           isLoading={isLoading}
                           onViewRecord={handleViewRecord}
                           onPrintRecord={handlePrintRecord}
+                      />
+                  </TabsContent>
+                )}
+
+                {!isUnitOnlyView && (
+                  <TabsContent value="item-analysis">
+                      <MonitoringItemAnalysis 
+                          records={filteredRecords}
+                          campuses={campuses || []}
+                          units={units || []}
+                          isLoading={isLoading}
+                          selectedYear={selectedYear}
                       />
                   </TabsContent>
                 )}
