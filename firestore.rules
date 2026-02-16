@@ -11,24 +11,16 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    /**
-     * Safely checks if the user has a profile.
-     */
     function hasProfile() {
       return exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    /**
-     * Safely retrieves the user's profile data.
-     */
     function profile() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     /**
-     * Master Admin Check.
-     * Checks for either a dedicated admin role document or the role field in the profile.
-     * Uses case-insensitive regex for the role string.
+     * Master Admin Check
      */
     function isAdmin() {
       return isSignedIn() && (
@@ -37,36 +29,8 @@ service cloud.firestore {
       );
     }
 
-    /**
-     * Auditor Check.
-     */
     function isAuditor() {
       return isSignedIn() && hasProfile() && profile().get('role', '').matches('(?i).*auditor.*');
-    }
-
-    // --------------------------------------------------------------------------
-    // Academic Program Monitoring (Strategic Quality Data)
-    // --------------------------------------------------------------------------
-    
-    match /academicPrograms/{programId} {
-        // Allow all signed-in staff to see the university offerings registry
-        allow read: if isSignedIn();
-        // Restrict management to Admins and Campus Directors
-        allow write: if isAdmin() || (isSignedIn() && hasProfile() && (
-          profile().get('role', '').matches('(?i).*director.*') || 
-          profile().get('role', '').matches('(?i).*odimo.*')
-        ));
-    }
-
-    match /programCompliances/{recordId} {
-        // Allow all signed-in staff to see compliance data
-        allow read: if isSignedIn();
-        // Restrict editing to oversight roles or assigned campus coordinators
-        allow write: if isAdmin() || (isSignedIn() && hasProfile() && (
-          profile().get('role', '').matches('(?i).*director.*') || 
-          profile().get('role', '').matches('(?i).*odimo.*') ||
-          (profile().get('campusId', '') == (request.resource.data.campusId || resource.data.campusId) && profile().get('role', '').matches('(?i).*coordinator.*'))
-        ));
     }
 
     // --------------------------------------------------------------------------
@@ -74,13 +38,38 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
 
     match /unitMonitoringRecords/{recordId} {
+        // Master Admin and Auditors can see everything
         allow get, list: if isAdmin() || isAuditor();
+        
+        // Campus Officials see their campus
         allow get, list: if isSignedIn() && hasProfile() && (
-          resource.data.unitId == profile().get('unitId', '') || 
-          resource.data.campusId == profile().get('campusId', '') ||
-          profile().get('role', '').matches('(?i).*(vice president|director|odimo|admin).*')
+          (resource == null || resource.data.campusId == profile().get('campusId', '')) && 
+          profile().get('role', '').matches('(?i).*(director|odimo|admin|vice president).*')
         );
+
+        // Unit Users see their unit
+        allow get, list: if isSignedIn() && hasProfile() && (
+          (resource == null || resource.data.unitId == profile().get('unitId', ''))
+        );
+
         allow write: if isAdmin();
+    }
+
+    match /academicPrograms/{programId} {
+        allow read: if isSignedIn();
+        allow write: if isAdmin() || (isSignedIn() && hasProfile() && (
+          profile().get('role', '').matches('(?i).*director.*') || 
+          profile().get('role', '').matches('(?i).*odimo.*')
+        ));
+    }
+
+    match /programCompliances/{recordId} {
+        allow read: if isSignedIn();
+        allow write: if isAdmin() || (isSignedIn() && hasProfile() && (
+          profile().get('role', '').matches('(?i).*director.*') || 
+          profile().get('role', '').matches('(?i).*odimo.*') ||
+          (profile().get('campusId', '') == (request.resource.data.campusId || resource.data.campusId) && profile().get('role', '').matches('(?i).*coordinator.*'))
+        ));
     }
 
     match /users/{userId} {
@@ -128,85 +117,18 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    match /roles/{roleId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    match /cycles/{cycleId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-    
-    match /campuses/{campusId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-    
-    match /campusSettings/{campusId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSignedIn() && hasProfile() && profile().get('campusId', '') == campusId && (profile().get('role', '').matches('(?i).*(director|odimo|admin).*')));
-    }
-    
-    match /units/{unitId} {
-      allow read: if isSignedIn();
-      allow create: if isAdmin() || (isSignedIn() && hasProfile() && profile().get('role', '').matches('(?i).*director.*'));
-      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (profile().get('role', '').matches('(?i).*(director|vice president|admin).*')));
-      allow delete: if isAdmin();
-    }
-
-    match /activityLogs/{logId} {
-      allow read: if isAdmin();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-    }
-    
-    match /errorReports/{errorId} {
-        allow create: if isSignedIn();
-        allow read, update, delete: if isAdmin();
-    }
-
-    match /procedureManuals/{unitId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-    
-    match /eomsPolicyManuals/{docId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    match /isoClauses/{clauseId} {
-        allow read: if isSignedIn();
-        allow write: if isAdmin();
-    }
-
-    match /auditPlans/{planId} {
-        allow read: if isSignedIn();
-        allow write: if isAdmin();
-    }
-
-    match /auditSchedules/{scheduleId} {
-        allow read: if isAdmin() || isAuditor();
-        allow read: if isSignedIn() && hasProfile() && (
-          resource.data.targetId == profile().get('unitId', '') || 
-          resource.data.targetId == request.auth.uid
-        );
-        allow create: if isAdmin();
-        allow update: if isAdmin() || (isSignedIn() && hasProfile() && profile().get('role', '').matches('(?i).*auditor.*') && (resource.data.auditorId == null || resource.data.auditorId == request.auth.uid));
-    }
-
-    match /auditFindings/{findingId} {
-        allow read: if isSignedIn();
-        allow create: if isSignedIn() && hasProfile() && profile().get('role', '').matches('(?i).*auditor.*');
-        allow update: if isAdmin() || (isSignedIn() && hasProfile() && profile().get('role', '').matches('(?i).*auditor.*') && request.auth.uid == resource.data.authorId);
-        allow delete: if isAdmin();
-    }
-
-    match /correctiveActionPlans/{planId} {
-        allow read: if isSignedIn();
-        allow create: if isSignedIn();
-        allow update: if (isSignedIn() && hasProfile() && (resource.data.authorId == request.auth.uid)) || isAdmin();
-        allow delete: if isAdmin();
-    }
+    match /roles/{roleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /cycles/{cycleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /campuses/{campusId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /units/{unitId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /activityLogs/{logId} { allow read: if isAdmin(); allow create: if isSignedIn(); }
+    match /errorReports/{errorId} { allow create: if isSignedIn(); allow read, update, delete: if isAdmin(); }
+    match /procedureManuals/{unitId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /eomsPolicyManuals/{docId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /isoClauses/{clauseId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /auditPlans/{planId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /auditSchedules/{scheduleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /auditFindings/{findingId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /correctiveActionPlans/{planId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
   }
 }

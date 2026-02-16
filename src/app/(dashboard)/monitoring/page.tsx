@@ -43,8 +43,8 @@ export default function MonitoringPage() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   /**
-   * Patterned query logic: Strictly gated by presence of firestore, userProfile, and completion of loading.
-   * This matches the stable logic used in the Submissions module to satisfy security rules.
+   * Strictly gated query logic.
+   * Prevents permission errors by only querying exactly what the security rules allow.
    */
   const monitoringRecordsQuery = useMemoFirebase(
     () => {
@@ -52,17 +52,12 @@ export default function MonitoringPage() {
         
         const baseRef = collection(firestore, 'unitMonitoringRecords');
 
-        // Oversight roles (Master Admins) execute unfiltered queries
-        if (isAdmin) {
+        // Master Admins and Auditors query everything
+        if (isAdmin || userRole === 'Auditor') {
             return query(baseRef, orderBy('visitDate', 'desc'));
         }
 
-        // Auditors also have oversight privileges
-        if (userRole === 'Auditor') {
-            return query(baseRef, orderBy('visitDate', 'desc'));
-        }
-
-        // Supervisors (Directors/ODIMOs) filter by campus
+        // Campus Officials MUST filter by campusId to satisfy security rules
         if (isSupervisor) {
              if (userProfile.campusId) {
                  return query(
@@ -74,7 +69,7 @@ export default function MonitoringPage() {
              return null;
         }
 
-        // Unit Users filter by unit
+        // Unit Users MUST filter by unitId to satisfy security rules
         if (userProfile.unitId) {
             return query(
                 baseRef, 
@@ -131,58 +126,39 @@ export default function MonitoringPage() {
         );
 
         const printWindow = window.open('', '_blank');
-        if (!printWindow) {
-            alert('Please allow popups to print the monitoring report.');
-            return;
+        if (printWindow) {
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Monitoring Report - ${uName}</title>
+                    <script src="https://cdn.tailwindcss.com"></script>
+                    <style>
+                    @media print { body { margin: 0; padding: 0; background: white; } }
+                    body { font-family: sans-serif; }
+                    table { width: 100%; border-collapse: collapse; }
+                    th, td { border: 1px solid black !important; padding: 8px; }
+                    </style>
+                </head>
+                <body>${reportHtml}</body>
+                </html>
+            `);
+            printWindow.document.close();
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 1000);
         }
-
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Monitoring Report - ${uName}</title>
-                <meta charset="utf-8">
-                <script src="https://cdn.tailwindcss.com"></script>
-                <style>
-                @media print {
-                    body { margin: 0; padding: 0; background: white; }
-                    .no-print { display: none; }
-                    @page { margin: 1cm; }
-                }
-                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-                table { width: 100%; border-collapse: collapse; }
-                th, td { border: 1px solid black !important; padding: 8px; }
-                </style>
-            </head>
-            <body class="bg-white">
-                <div id="print-content">
-                    ${reportHtml}
-                </div>
-                <script>
-                    window.onload = function() {
-                        setTimeout(() => {
-                            window.print();
-                            window.onafterprint = function() { window.close(); };
-                        }, 1000);
-                    };
-                </script>
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
     } catch (err) {
-        console.error("Print generation error:", err);
-        alert("Failed to generate the print report.");
+        console.error("Print error:", err);
     }
   };
 
   const calculateCompliance = (record: UnitMonitoringRecord) => {
-    if (!record.observations || record.observations.length === 0) return 0;
+    if (!record.observations) return 0;
     const applicable = record.observations.filter(o => o.status !== 'Not Applicable');
-    if (applicable.length === 0) return 0;
     const available = applicable.filter(o => o.status === 'Available').length;
-    return Math.round((available / applicable.length) * 100);
+    return applicable.length > 0 ? Math.round((available / applicable.length) * 100) : 0;
   };
 
   const getComplianceVariant = (score: number) => {
@@ -194,36 +170,27 @@ export default function MonitoringPage() {
   const safeFormatDate = (date: any) => {
     if (!date) return 'N/A';
     const d = date instanceof Timestamp ? date.toDate() : new Date(date);
-    if (isNaN(d.getTime())) return 'Invalid Date';
     return format(d, 'PPP');
   };
 
   const handleExportToExcel = () => {
-    if (!filteredRecords || filteredRecords.length === 0) return;
-
-    const exportData = filteredRecords.flatMap(record => {
-        const vDate = record.visitDate instanceof Timestamp ? record.visitDate.toDate() : new Date(record.visitDate);
-        return record.observations.map(obs => {
-            const category = monitoringGroups.find(group => group.items.includes(obs.item))?.category || 'General';
-            return {
-                'Campus': campusMap.get(record.campusId) || 'Unknown',
-                'Unit': unitMap.get(record.unitId) || 'Unknown',
-                'Visit Date': format(vDate, 'yyyy-MM-dd'),
-                'Office/Room': record.roomNumber || 'N/A',
-                'Officer in Charge': record.officerInCharge || 'N/A',
-                'Monitor': record.monitorName || 'N/A',
-                'Category': category,
-                'Checklist Item': obs.item,
-                'Status': obs.status,
-                'Findings/Remarks': obs.remarks || ''
-            };
-        });
-    });
-
+    if (!filteredRecords.length) return;
+    const exportData = filteredRecords.flatMap(record => 
+        record.observations.map(obs => ({
+            'Campus': campusMap.get(record.campusId) || 'Unknown',
+            'Unit': unitMap.get(record.unitId) || 'Unknown',
+            'Visit Date': safeFormatDate(record.visitDate),
+            'Room': record.roomNumber || 'N/A',
+            'OIC': record.officerInCharge || 'N/A',
+            'Checklist Item': obs.item,
+            'Status': obs.status,
+            'Findings': obs.remarks || ''
+        }))
+    );
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Monitoring Findings');
-    XLSX.writeFile(workbook, `RSU-EOMS-Monitoring-Report-${selectedYear}.xlsx`);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Monitoring');
+    XLSX.writeFile(workbook, `Monitoring-Report-${selectedYear}.xlsx`);
   };
 
   const isLoading = isUserLoading || isLoadingRecords || isLoadingCampuses || isLoadingUnits;
@@ -268,7 +235,7 @@ export default function MonitoringPage() {
                 </Select>
             </div>
             {!isUnitOnlyView && (
-                <Button variant="outline" onClick={handleExportToExcel} disabled={isLoading || !filteredRecords || filteredRecords.length === 0}>
+                <Button variant="outline" onClick={handleExportToExcel} disabled={isLoading || filteredRecords.length === 0}>
                     <FileDown className="mr-2 h-4 w-4" />
                     Export
                 </Button>
@@ -282,7 +249,7 @@ export default function MonitoringPage() {
           </div>
         </div>
 
-        {!isLoading && filteredRecords?.length === 0 && isUnitOnlyView ? (
+        {!isLoading && filteredRecords.length === 0 && isUnitOnlyView ? (
             <Card className="border-dashed py-12 flex flex-col items-center justify-center text-center">
                 <div className="bg-muted h-16 w-16 rounded-full flex items-center justify-center mb-4">
                     <ClipboardCheck className="h-8 w-8 text-muted-foreground" />
@@ -346,7 +313,7 @@ export default function MonitoringPage() {
                                 </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                {filteredRecords && filteredRecords.length > 0 ? (
+                                {filteredRecords.length > 0 ? (
                                     filteredRecords.map(record => {
                                       const score = calculateCompliance(record);
                                       return (
@@ -373,26 +340,10 @@ export default function MonitoringPage() {
                                                 </div>
                                                 </TableCell>
                                             )}
-                                            <TableCell className="text-xs">
-                                            <div className="flex items-center gap-2">
-                                                <DoorOpen className="h-3 w-3 text-muted-foreground" />
-                                                {record.roomNumber || 'N/A'}
-                                            </div>
-                                            </TableCell>
-                                            <TableCell className="text-xs">
-                                            <div className="flex items-center gap-2">
-                                                <User className="h-3 w-3 text-muted-foreground" />
-                                                {record.officerInCharge || 'N/A'}
-                                            </div>
-                                            </TableCell>
+                                            <TableCell className="text-xs">{record.roomNumber || 'N/A'}</TableCell>
+                                            <TableCell className="text-xs">{record.officerInCharge || 'N/A'}</TableCell>
                                             <TableCell>
-                                              <Badge 
-                                                variant={getComplianceVariant(score)}
-                                                className={cn(
-                                                  "text-[10px]",
-                                                  score >= 80 && "bg-green-500 hover:bg-green-600 text-white"
-                                                )}
-                                              >
+                                              <Badge variant={getComplianceVariant(score)} className="text-[10px]">
                                                 {score}%
                                               </Badge>
                                             </TableCell>
@@ -409,7 +360,7 @@ export default function MonitoringPage() {
                                     })
                                 ) : (
                                     <TableRow>
-                                    <TableCell colSpan={8} className="h-24 text-center">
+                                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                                         No monitoring records found for {selectedYear}.
                                     </TableCell>
                                     </TableRow>

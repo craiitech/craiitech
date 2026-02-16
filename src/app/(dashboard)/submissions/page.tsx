@@ -41,13 +41,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UnitSubmissionsView } from '@/components/submissions/unit-submissions-view';
 import { CampusSubmissionsView } from '@/components/submissions/campus-submissions-view';
 
-const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    approved: 'default',
-    pending: 'secondary',
-    rejected: 'destructive',
-    submitted: 'outline',
-};
-
 export default function SubmissionsPage() {
   const { user, userProfile, isAdmin, isSupervisor, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -142,7 +135,9 @@ export default function SubmissionsPage() {
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                 <AlertDialogDescription>Delete <strong>{deletingSubmission?.reportType}</strong>. Type <strong className="text-destructive">{challengeText}</strong> to confirm.</AlertDialogDescription>
             </AlertDialogHeader>
-            <Input value={confirmationText} onChange={(e) => setConfirmationText(e.target.value)} placeholder={`Type "${challengeText}"`} />
+            <div className="py-2">
+                <Input value={confirmationText} onChange={(e) => setConfirmationText(e.target.value)} placeholder={`Type "${challengeText}"`} />
+            </div>
             <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={handleConfirmDelete} disabled={isDeleting || confirmationText !== challengeText} className="bg-destructive">
