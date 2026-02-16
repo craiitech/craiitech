@@ -42,12 +42,10 @@ export default function MonitoringPage() {
   const [selectedRecord, setSelectedRecord] = useState<UnitMonitoringRecord | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-  // Use a strictly gated flag to prevent early permission errors
-  const canInitiateQueries = !isUserLoading && !!user && (!!userProfile || isAdmin);
-
+  // Patterned query initiation: Strict gating by presence of firestore, userProfile, and completion of loading.
   const monitoringRecordsQuery = useMemoFirebase(
     () => {
-        if (!firestore || !canInitiateQueries) return null;
+        if (!firestore || isUserLoading || !userProfile) return null;
         
         const baseRef = collection(firestore, 'unitMonitoringRecords');
 
@@ -55,10 +53,8 @@ export default function MonitoringPage() {
         if (isAdmin || userRole === 'Auditor') {
             return query(baseRef, orderBy('visitDate', 'desc'));
         }
-        
-        if (!userProfile) return null;
 
-        // Supervisors filter by campus
+        // Supervisors filter by campus (Patterned after Submissions)
         if (isSupervisor) {
              if (userProfile.campusId) {
                  return query(
@@ -81,7 +77,7 @@ export default function MonitoringPage() {
 
         return null;
     },
-    [firestore, canInitiateQueries, userProfile, isAdmin, isSupervisor, userRole]
+    [firestore, isUserLoading, userProfile, isAdmin, isSupervisor, userRole]
   );
   
   const { data: allRecords, isLoading: isLoadingRecords } = useCollection<UnitMonitoringRecord>(monitoringRecordsQuery);
@@ -94,10 +90,10 @@ export default function MonitoringPage() {
     });
   }, [allRecords, selectedYear]);
 
-  const campusesQuery = useMemoFirebase(() => (firestore && canInitiateQueries ? collection(firestore, 'campuses') : null), [firestore, canInitiateQueries]);
+  const campusesQuery = useMemoFirebase(() => (firestore && !isUserLoading && userProfile ? collection(firestore, 'campuses') : null), [firestore, isUserLoading, userProfile]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
-  const unitsQuery = useMemoFirebase(() => (firestore && canInitiateQueries ? collection(firestore, 'units') : null), [firestore, canInitiateQueries]);
+  const unitsQuery = useMemoFirebase(() => (firestore && !isUserLoading && userProfile ? collection(firestore, 'units') : null), [firestore, isUserLoading, userProfile]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
@@ -173,20 +169,11 @@ export default function MonitoringPage() {
     }
   };
 
-  /**
-   * Refined Compliance Calculation
-   * Items marked "Not Applicable" are removed from both numerator and denominator.
-   */
   const calculateCompliance = (record: UnitMonitoringRecord) => {
     if (!record.observations || record.observations.length === 0) return 0;
-    
-    // Denominator: All items EXCEPT those marked "Not Applicable"
     const applicable = record.observations.filter(o => o.status !== 'Not Applicable');
     if (applicable.length === 0) return 0;
-    
-    // Numerator: Only items marked "Available"
     const available = applicable.filter(o => o.status === 'Available').length;
-    
     return Math.round((available / applicable.length) * 100);
   };
 
@@ -208,10 +195,8 @@ export default function MonitoringPage() {
 
     const exportData = filteredRecords.flatMap(record => {
         const vDate = record.visitDate instanceof Timestamp ? record.visitDate.toDate() : new Date(record.visitDate);
-        
         return record.observations.map(obs => {
             const category = monitoringGroups.find(group => group.items.includes(obs.item))?.category || 'General';
-            
             return {
                 'Campus': campusMap.get(record.campusId) || 'Unknown',
                 'Unit': unitMap.get(record.unitId) || 'Unknown',
@@ -235,7 +220,7 @@ export default function MonitoringPage() {
 
   const isLoading = isUserLoading || isLoadingRecords || isLoadingCampuses || isLoadingUnits;
 
-  if (!isUserLoading && !canInitiateQueries) {
+  if (!isUserLoading && !userProfile && !isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
         <ShieldAlert className="h-16 w-16 text-destructive opacity-50" />

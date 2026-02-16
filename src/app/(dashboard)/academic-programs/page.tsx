@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProgramAnalytics } from '@/components/programs/program-analytics';
 
 export default function AcademicProgramsPage() {
-  const { user, isAdmin, userRole, isUserLoading } = useUser();
+  const { user, userProfile, isAdmin, userRole, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<AcademicProgram | null>(null);
@@ -28,24 +28,24 @@ export default function AcademicProgramsPage() {
 
   /**
    * Data Queries
-   * Strictly conditioned on !isUserLoading and presence of firestore/user
-   * to prevent permission errors during auth transitions.
+   * Strictly conditioned on !isUserLoading and presence of firestore and a loaded userProfile
+   * to ensure auth context is fully propagated to the Firestore driver.
    */
   const programsQuery = useMemoFirebase(
-    () => (firestore && user && !isUserLoading ? query(collection(firestore, 'academicPrograms'), orderBy('name', 'asc')) : null),
-    [firestore, user, isUserLoading]
+    () => (firestore && !isUserLoading && userProfile ? query(collection(firestore, 'academicPrograms'), orderBy('name', 'asc')) : null),
+    [firestore, isUserLoading, userProfile]
   );
   const { data: programs, isLoading: isLoadingPrograms } = useCollection<AcademicProgram>(programsQuery);
 
   const compliancesQuery = useMemoFirebase(
-    () => (firestore && user && !isUserLoading ? query(collection(firestore, 'programCompliances'), where('academicYear', '==', selectedYear)) : null),
-    [firestore, user, selectedYear, isUserLoading]
+    () => (firestore && !isUserLoading && userProfile ? query(collection(firestore, 'programCompliances'), where('academicYear', '==', selectedYear)) : null),
+    [firestore, isUserLoading, userProfile, selectedYear]
   );
   const { data: compliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
   const campusesQuery = useMemoFirebase(
-    () => (firestore && user && !isUserLoading ? collection(firestore, 'campuses') : null),
-    [firestore, user, isUserLoading]
+    () => (firestore && !isUserLoading && userProfile ? collection(firestore, 'campuses') : null),
+    [firestore, isUserLoading, userProfile]
   );
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
