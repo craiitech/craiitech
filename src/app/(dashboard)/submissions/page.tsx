@@ -1,7 +1,6 @@
-
 'use client';
 
-import { PlusCircle, Eye, Trash2, Loader2, Download, FileText, Calendar, Building, School } from 'lucide-react';
+import { PlusCircle, Eye, Trash2, Loader2, Download, FileText, Calendar as CalendarIcon, Building, School } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -20,7 +19,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, doc, deleteDoc, Timestamp } from 'firebase/firestore';
 import type { Submission, Campus, Unit } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useState, useMemo } from 'react';
@@ -59,6 +58,17 @@ const getGoogleDriveDownloadLink = (url: string) => {
     return url;
 };
 
+const safeFormatDate = (date: any) => {
+    if (!date) return 'N/A';
+    try {
+        const d = date instanceof Timestamp ? date.toDate() : new Date(date);
+        if (isNaN(d.getTime())) return 'Invalid Date';
+        return format(d, 'PP');
+    } catch (e) {
+        return 'Invalid Date';
+    }
+};
+
 export default function SubmissionsPage() {
   const { user, userProfile, isAdmin, isSupervisor, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -81,7 +91,16 @@ export default function SubmissionsPage() {
     return query(collection(firestore, 'submissions'), where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
   }, [firestore, isAdmin, isSupervisor, userProfile, isUserLoading]);
 
-  const { data: submissionsData, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
+  const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
+
+  const submissionsData = useMemo(() => {
+    if (!rawSubmissions) return [];
+    return [...rawSubmissions].sort((a, b) => {
+        const dateA = a.submissionDate instanceof Timestamp ? a.submissionDate.toMillis() : new Date(a.submissionDate).getTime();
+        const dateB = b.submissionDate instanceof Timestamp ? b.submissionDate.toMillis() : new Date(b.submissionDate).getTime();
+        return dateB - dateA;
+    });
+  }, [rawSubmissions]);
 
   const campusesQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'campuses') : null), [firestore, user]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
@@ -143,7 +162,7 @@ export default function SubmissionsPage() {
                             <div className="flex justify-center items-center h-48">
                                 <Loader2 className="animate-spin h-8 w-8" />
                             </div>
-                        ) : submissionsData && submissionsData.length > 0 ? (
+                        ) : submissionsData.length > 0 ? (
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -155,7 +174,7 @@ export default function SubmissionsPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {submissionsData.sort((a,b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime()).map((sub) => (
+                                    {submissionsData.map((sub) => (
                                         <TableRow key={sub.id}>
                                             <TableCell>
                                                 <div className="flex flex-col">
@@ -170,7 +189,10 @@ export default function SubmissionsPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-xs">
-                                                <div className="flex items-center gap-1"><Calendar className="h-3 w-3 text-muted-foreground" /> {format(sub.submissionDate, 'PP')}</div>
+                                                <div className="flex items-center gap-1">
+                                                    <CalendarIcon className="h-3 w-3 text-muted-foreground" /> 
+                                                    {safeFormatDate(sub.submissionDate)}
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant={statusVariant[sub.statusId] || 'secondary'} className="capitalize">

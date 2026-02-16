@@ -1,4 +1,3 @@
-
 /**
  * Structured groupings for the Unit Monitoring Verification Checklist.
  * This organization helps monitors navigate the on-site visit more efficiently.

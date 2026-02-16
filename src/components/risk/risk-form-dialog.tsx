@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -326,14 +325,14 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                           <FormLabel>Entry Type</FormLabel>
                                           <FormControl>
                                             <RadioGroup onValueChange={field.onChange} value={field.value} className="flex items-center space-x-4">
-                                              <FormItem className="flex items-center space-x-2 space-y-0">
-                                                <FormControl><RadioGroupItem value="Risk" /></FormControl>
-                                                <Label className="font-normal cursor-pointer">Risk</Label>
-                                              </FormItem>
-                                              <FormItem className="flex items-center space-x-2 space-y-0">
-                                                <FormControl><RadioGroupItem value="Opportunity" /></FormControl>
-                                                <Label className="font-normal cursor-pointer">Opportunity</Label>
-                                              </FormItem>
+                                              <div className="flex items-center space-x-2 space-y-0">
+                                                <RadioGroupItem value="Risk" id="type-risk" />
+                                                <Label htmlFor="type-risk" className="font-normal cursor-pointer">Risk</Label>
+                                              </div>
+                                              <div className="flex items-center space-x-2 space-y-0">
+                                                <RadioGroupItem value="Opportunity" id="type-opportunity" />
+                                                <Label htmlFor="type-opportunity" className="font-normal cursor-pointer">Opportunity</Label>
+                                              </div>
                                             </RadioGroup>
                                           </FormControl>
                                         </FormItem>
@@ -507,7 +506,12 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                                 <FormItem>
                                                     <FormLabel>Monitoring Notes / Updates</FormLabel>
                                                     <FormControl>
-                                                        <Textarea {...field} value={field.value || ''} rows={4} placeholder="Record progress or evidence of actions taken..." />
+                                                        <Textarea 
+                                                            {...field} 
+                                                            value={field.value || ''} 
+                                                            rows={4} 
+                                                            placeholder="Record progress or evidence of actions taken..." 
+                                                        />
                                                     </FormControl>
                                                 </FormItem>
                                             )}

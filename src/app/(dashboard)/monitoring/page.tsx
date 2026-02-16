@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -126,7 +125,7 @@ export default function MonitoringPage() {
                 <html>
                 <head>
                     <title>Monitoring Report - ${uName}</title>
-                    <script src="https://cdn.tailwindcss.com"></script>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
                     @media print { 
                       body { margin: 0; padding: 0; background: white; } 
@@ -140,19 +139,21 @@ export default function MonitoringPage() {
                 </head>
                 <body>
                   <div class="no-print mb-4 flex justify-center">
-                    <button onclick="window.print()" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700">Print Report</button>
+                    <button onclick="window.print()" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 font-bold">Print Record</button>
                   </div>
                   <div id="print-content">
                     ${reportHtml}
                   </div>
+                  <script>
+                    window.onload = function() {
+                        // Optional: trigger print after small delay
+                        // window.print();
+                    }
+                  </script>
                 </body>
                 </html>
             `);
             printWindow.document.close();
-            // Optional: Auto-trigger print after a short delay to allow Tailwind to process
-            setTimeout(() => {
-                // printWindow.print();
-            }, 500);
         }
     } catch (err) {
         console.error("Print error:", err);
@@ -172,7 +173,7 @@ export default function MonitoringPage() {
     return 'destructive';
   };
 
-  const safeFormatDate = (date: any) => {
+  const safeFormatDateLocal = (date: any) => {
     if (!date) return 'N/A';
     const d = date instanceof Timestamp ? date.toDate() : new Date(date);
     return format(d, 'PP');
@@ -184,7 +185,7 @@ export default function MonitoringPage() {
         record.observations.map(obs => ({
             'Campus': campusMap.get(record.campusId) || 'Unknown',
             'Unit': unitMap.get(record.unitId) || 'Unknown',
-            'Visit Date': safeFormatDate(record.visitDate),
+            'Visit Date': safeFormatDateLocal(record.visitDate),
             'Building': record.building || 'N/A',
             'Room': record.roomNumber || 'N/A',
             'OIC': record.officerInCharge || 'N/A',
@@ -324,7 +325,7 @@ export default function MonitoringPage() {
                                       return (
                                         <TableRow key={record.id} className="cursor-pointer" onClick={() => handleViewRecord(record)}>
                                             <TableCell className="font-medium text-xs">
-                                                {safeFormatDate(record.visitDate)}
+                                                {safeFormatDateLocal(record.visitDate)}
                                             </TableCell>
                                             {!isUnitOnlyView && (
                                                 <TableCell className="text-xs">
