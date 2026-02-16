@@ -19,6 +19,7 @@ import { FacultyModule } from './modules/faculty-module';
 import { CurriculumModule } from './modules/curriculum-module';
 import { OutcomesModule } from './modules/outcomes-module';
 import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 
 interface ProgramComplianceWorkspaceProps {
   program: AcademicProgram;
@@ -90,14 +91,31 @@ const complianceSchema = z.object({
   }),
 });
 
+/**
+ * Deeply removes all undefined values from an object or array.
+ * Firestore setDoc fails if any field contains an 'undefined' value.
+ */
+function sanitizeForFirestore(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map((v) => (v && typeof v === 'object' && !(v instanceof Date)) ? sanitizeForFirestore(v) : v);
+  }
+  return Object.entries(obj).reduce((acc, [key, value]) => {
+    if (value === undefined) return acc;
+    if (value !== null && typeof value === 'object' && !(value instanceof Date)) {
+      return { ...acc, [key]: sanitizeForFirestore(value) };
+    }
+    return { ...acc, [key]: value };
+  }, {});
+}
+
 export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplianceWorkspaceProps) {
   const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [selectedAY, setSelectedAY] = useState<number>(currentYear);
-  const [isSaving, setIsSubmitting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const canEdit = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || (userProfile?.campusId === campusId && userRole?.toLowerCase().includes('coordinator'));
+  const canEdit = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || (userProfile?.campusId === campusId && (userRole?.toLowerCase().includes('coordinator') || userRole?.toLowerCase().includes('odimo')));
 
   const compliancesQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'programCompliances'), where('programId', '==', program.id), where('academicYear', '==', selectedAY)) : null),
@@ -111,16 +129,39 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     resolver: zodResolver(complianceSchema),
     defaultValues: {
       academicYear: selectedAY,
-      ched: { copcStatus: 'In Progress', contentNoted: false },
-      accreditation: { level: 'Not Accredited' },
-      curriculum: { revisionNumber: '0', isNotedByChed: false },
+      ched: { 
+        copcStatus: 'In Progress', 
+        contentNoted: false,
+        copcLink: '',
+        contentNotedLink: '',
+        rqatVisit: { result: '', comments: '', nonCompliances: '' }
+      },
+      accreditation: { 
+        level: 'Not Accredited',
+        certificateLink: '',
+        dateOfAward: '',
+        nextSchedule: ''
+      },
+      curriculum: { 
+        revisionNumber: '0', 
+        isNotedByChed: false, 
+        cmoLink: '',
+        dateImplemented: ''
+      },
       faculty: { 
         dean: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' },
         programChair: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' },
         members: [] 
       },
       stats: { enrollment: { firstYear: 0, secondYear: 0, thirdYear: 0, fourthYear: 0 }, graduationCount: 0 },
-      tracer: { totalGraduates: 0, tracedCount: 0, employmentRate: 0 }
+      tracer: { totalGraduates: 0, tracedCount: 0, employmentRate: 0 },
+      boardPerformance: { 
+        examDate: '',
+        firstTakersPassRate: 0, 
+        retakersPassRate: 0, 
+        overallPassRate: 0, 
+        nationalPassingRate: 0 
+      }
     },
   });
 
@@ -133,9 +174,25 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     } else {
       methods.reset({
         academicYear: selectedAY,
-        ched: { copcStatus: 'In Progress', contentNoted: false, rqatVisit: { result: '', comments: '', nonCompliances: '' } },
-        accreditation: { level: 'Not Accredited', certificateLink: '' },
-        curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '' },
+        ched: { 
+          copcStatus: 'In Progress', 
+          contentNoted: false, 
+          copcLink: '',
+          contentNotedLink: '',
+          rqatVisit: { result: '', comments: '', nonCompliances: '' } 
+        },
+        accreditation: { 
+          level: 'Not Accredited', 
+          certificateLink: '',
+          dateOfAward: '',
+          nextSchedule: ''
+        },
+        curriculum: { 
+          revisionNumber: '0', 
+          isNotedByChed: false, 
+          cmoLink: '',
+          dateImplemented: ''
+        },
         faculty: { 
           dean: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' },
           programChair: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' },
@@ -143,21 +200,30 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         },
         stats: { enrollment: { firstYear: 0, secondYear: 0, thirdYear: 0, fourthYear: 0 }, graduationCount: 0 },
         tracer: { totalGraduates: 0, tracedCount: 0, employmentRate: 0 },
-        boardPerformance: { firstTakersPassRate: 0, retakersPassRate: 0, overallPassRate: 0, nationalPassingRate: 0 }
+        boardPerformance: { 
+          examDate: '',
+          firstTakersPassRate: 0, 
+          retakersPassRate: 0, 
+          overallPassRate: 0, 
+          nationalPassingRate: 0 
+        }
       });
     }
   }, [activeRecord, selectedAY, methods]);
 
   const onSave = async (values: z.infer<typeof complianceSchema>) => {
     if (!firestore || !userProfile) return;
-    setIsSubmitting(true);
+    setIsSaving(true);
 
     const recordId = activeRecord?.id || `${program.id}-${selectedAY}`;
     const docRef = doc(firestore, 'programCompliances', recordId);
 
+    // Sanitize values to remove undefined fields which Firestore strictly rejects
+    const sanitizedData = sanitizeForFirestore(values);
+
     try {
       await setDoc(docRef, {
-        ...values,
+        ...sanitizedData,
         id: recordId,
         programId: program.id,
         campusId: campusId,
@@ -170,7 +236,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       console.error('Compliance save error:', error);
       toast({ title: 'Save Failed', description: 'Could not update compliance record.', variant: 'destructive' });
     } finally {
-      setIsSubmitting(false);
+      setIsSaving(false);
     }
   };
 
