@@ -31,22 +31,20 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, serverTimestamp, collection, query, where, getDocs, setDoc, addDoc, Timestamp } from 'firebase/firestore';
+import { doc, serverTimestamp, collection, setDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
-import { Loader2, Sparkles, ShieldCheck, Calculator, Info, BookOpen, ListTodo } from 'lucide-react';
+import { Loader2, Sparkles, ShieldCheck, Info, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { saveRiskAdmin, getOfficialServerTime } from '@/lib/actions';
+import { saveRiskAdmin } from '@/lib/actions';
 import { ScrollArea } from '../ui/scroll-area';
 import { suggestRiskTreatment } from '@/ai/flows/suggest-treatment-flow';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 interface RiskFormDialogProps {
   isOpen: boolean;
@@ -465,7 +463,11 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                           <FormItem>
                                             <FormLabel>Status</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value}>
-                                              <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                              <FormControl>
+                                                <SelectTrigger>
+                                                  <SelectValue />
+                                                </SelectTrigger>
+                                              </FormControl>
                                               <SelectContent>
                                                 <SelectItem value="Open">Open</SelectItem>
                                                 <SelectItem value="In Progress">In Progress</SelectItem>

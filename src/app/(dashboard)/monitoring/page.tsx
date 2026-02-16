@@ -7,11 +7,12 @@ import { collection, query, orderBy, Timestamp, where } from 'firebase/firestore
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, Calendar, School, ShieldAlert, DoorOpen, History, LayoutDashboard, User, ClipboardCheck, Building, AlertTriangle, FileDown, Printer, CalendarSearch } from 'lucide-react';
+import { PlusCircle, Loader2, History, LayoutDashboard, ClipboardCheck, AlertTriangle, FileDown, Printer, CalendarSearch, SearchCode } from 'lucide-react';
 import { format } from 'date-fns';
 import { MonitoringFormDialog } from '@/components/monitoring/monitoring-form-dialog';
 import { MonitoringAnalytics } from '@/components/monitoring/monitoring-analytics';
 import { MonitoringFindings } from '@/components/monitoring/monitoring-findings';
+import { MonitoringUnitExplorer } from '@/components/monitoring/monitoring-unit-explorer';
 import {
   Table,
   TableBody,
@@ -23,9 +24,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
-import { monitoringGroups } from '@/lib/monitoring-checklist-items';
 import ReactDOMServer from 'react-dom/server';
 import { MonitoringPrintTemplate } from '@/components/monitoring/monitoring-print-template';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -34,7 +33,7 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
 export default function MonitoringPage() {
-  const { isAdmin, isUserLoading, user, userProfile, isSupervisor, userRole } = useUser();
+  const { isAdmin, isUserLoading, userProfile, isSupervisor, userRole } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
 
@@ -42,22 +41,16 @@ export default function MonitoringPage() {
   const [selectedRecord, setSelectedRecord] = useState<UnitMonitoringRecord | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-  /**
-   * Strictly gated query logic.
-   * Prevents permission errors by only querying exactly what the security rules allow.
-   */
   const monitoringRecordsQuery = useMemoFirebase(
     () => {
         if (!firestore || isUserLoading || !userProfile) return null;
         
         const baseRef = collection(firestore, 'unitMonitoringRecords');
 
-        // Master Admins and Auditors query everything
         if (isAdmin || userRole === 'Auditor') {
             return query(baseRef, orderBy('visitDate', 'desc'));
         }
 
-        // Campus Officials MUST filter by campusId to satisfy security rules
         if (isSupervisor) {
              if (userProfile.campusId) {
                  return query(
@@ -69,7 +62,6 @@ export default function MonitoringPage() {
              return null;
         }
 
-        // Unit Users MUST filter by unitId to satisfy security rules
         if (userProfile.unitId) {
             return query(
                 baseRef, 
@@ -170,7 +162,7 @@ export default function MonitoringPage() {
   const safeFormatDate = (date: any) => {
     if (!date) return 'N/A';
     const d = date instanceof Timestamp ? date.toDate() : new Date(date);
-    return format(d, 'PPP');
+    return format(d, 'PP');
   };
 
   const handleExportToExcel = () => {
@@ -194,19 +186,6 @@ export default function MonitoringPage() {
   };
 
   const isLoading = isUserLoading || isLoadingRecords || isLoadingCampuses || isLoadingUnits;
-
-  if (!isUserLoading && !userProfile && !isAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
-        <ShieldAlert className="h-16 w-16 text-destructive opacity-50" />
-        <div className="text-center">
-          <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
-          <p className="text-muted-foreground">You do not have permission to access the monitoring module.</p>
-        </div>
-        <Button onClick={() => router.push('/dashboard')}>Return to Home</Button>
-      </div>
-    );
-  }
 
   const isUnitOnlyView = !isAdmin && !isSupervisor && userRole !== 'Auditor';
 
@@ -274,6 +253,12 @@ export default function MonitoringPage() {
                         <AlertTriangle className="mr-2 h-4 w-4" />
                         Gaps & Findings
                     </TabsTrigger>
+                    {!isUnitOnlyView && (
+                      <TabsTrigger value="explorer">
+                          <SearchCode className="mr-2 h-4 w-4" />
+                          Unit Explorer
+                      </TabsTrigger>
+                    )}
                 </TabsList>
 
                 <TabsContent value="performance">
@@ -303,7 +288,7 @@ export default function MonitoringPage() {
                             <Table>
                                 <TableHeader>
                                 <TableRow>
-                                    <TableHead>Date of Visit</TableHead>
+                                    <TableHead>Date</TableHead>
                                     {!isUnitOnlyView && <TableHead>Campus</TableHead>}
                                     {!isUnitOnlyView && <TableHead>Unit</TableHead>}
                                     <TableHead>Room</TableHead>
@@ -319,25 +304,16 @@ export default function MonitoringPage() {
                                       return (
                                         <TableRow key={record.id} className="cursor-pointer" onClick={() => handleViewRecord(record)}>
                                             <TableCell className="font-medium text-xs">
-                                            <div className="flex items-center gap-2">
-                                                <Calendar className="h-4 w-4 text-muted-foreground" />
                                                 {safeFormatDate(record.visitDate)}
-                                            </div>
                                             </TableCell>
                                             {!isUnitOnlyView && (
                                                 <TableCell className="text-xs">
-                                                <div className="flex items-center gap-2">
-                                                    <School className="h-4 w-4 text-muted-foreground" />
                                                     {campusMap.get(record.campusId) || '...'}
-                                                </div>
                                                 </TableCell>
                                             )}
                                             {!isUnitOnlyView && (
                                                 <TableCell className="text-xs">
-                                                <div className="flex items-center gap-2">
-                                                    <Building className="h-4 w-4 text-muted-foreground" />
                                                     {unitMap.get(record.unitId) || '...'}
-                                                </div>
                                                 </TableCell>
                                             )}
                                             <TableCell className="text-xs">{record.roomNumber || 'N/A'}</TableCell>
@@ -380,6 +356,19 @@ export default function MonitoringPage() {
                         isLoading={isLoading} 
                     />
                 </TabsContent>
+
+                {!isUnitOnlyView && (
+                  <TabsContent value="explorer">
+                      <MonitoringUnitExplorer 
+                          records={allRecords || []}
+                          campuses={campuses || []}
+                          units={units || []}
+                          isLoading={isLoading}
+                          onViewRecord={handleViewRecord}
+                          onPrintRecord={handlePrintRecord}
+                      />
+                  </TabsContent>
+                )}
             </Tabs>
         )}
       </div>
