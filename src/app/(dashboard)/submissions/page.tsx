@@ -42,6 +42,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -235,8 +236,6 @@ const SubmissionsTable = ({
                     ? submission.comments[submission.comments.length - 1].text
                     : null;
                 
-                const submitter = usersMap.get(submission.userId);
-
                 return (
                 <TableRow 
                   key={submission.id}
@@ -415,19 +414,8 @@ export default function SubmissionsPage() {
 
             const data = await response.json();
             const parsedData = data.map((s: any) => {
-                let rType = String(s.reportType || '').trim();
-                const lowerType = rType.toLowerCase();
-                
-                if (lowerType.includes('risk and opportunity registry')) rType = 'Risk and Opportunity Registry';
-                else if (lowerType.includes('operational plan')) rType = 'Operational Plan';
-                else if (lowerType.includes('objectives monitoring')) rType = 'Quality Objectives Monitoring';
-                else if (lowerType.includes('needs and expectation')) rType = 'Needs and Expectation of Interested Parties';
-                else if (lowerType.includes('swot')) rType = 'SWOT Analysis';
-                else if (lowerType.includes('action plan') && lowerType.includes('risk')) rType = 'Risk and Opportunity Action Plan';
-
                 return {
                     ...s,
-                    reportType: rType,
                     submissionDate: new Date(s.submissionDate),
                 };
             });
@@ -480,19 +468,8 @@ export default function SubmissionsPage() {
   const submissions = useMemo(() => {
     if (!submissionsData) return [];
     return submissionsData.map(s => {
-        let rType = String(s.reportType || '').trim();
-        const lowerType = rType.toLowerCase();
-        
-        if (lowerType.includes('risk and opportunity registry')) rType = 'Risk and Opportunity Registry';
-        else if (lowerType.includes('operational plan')) rType = 'Operational Plan';
-        else if (lowerType.includes('objectives monitoring')) rType = 'Quality Objectives Monitoring';
-        else if (lowerType.includes('needs and expectation')) rType = 'Needs and Expectation of Interested Parties';
-        else if (lowerType.includes('swot')) rType = 'SWOT Analysis';
-        else if (lowerType.includes('action plan') && lowerType.includes('risk')) rType = 'Risk and Opportunity Action Plan';
-
         return {
             ...s,
-            reportType: rType,
             submissionDate: s.submissionDate instanceof Timestamp ? s.submissionDate.toDate() : new Date(s.submissionDate)
         };
     });

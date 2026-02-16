@@ -54,7 +54,8 @@ const months = [
   { value: '9', label: 'October' }, { value: '10', label: 'November' }, { value: '11', label: 'December' },
 ];
 const currentYear = new Date().getFullYear();
-const yearsList = Array.from({ length: 10 }, (_, i) => String(currentYear - 5 + i));
+// Support for historical records: 10 years back, 2 years forward
+const yearsList = Array.from({ length: 13 }, (_, i) => String(currentYear - 10 + i));
 const daysList = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
 const formSchema = z.object({
@@ -122,14 +123,16 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
   const selectedCampusId = form.watch('campusId');
   const selectedUnitId = form.watch('unitId');
   const visitYearValue = form.watch('visitYear');
-  const selectedYear = visitYearValue ? Number(visitYearValue) : new Date().getFullYear();
+  
+  // CRITICAL: Construct the selectedYear from form state to support historical verification
+  const selectedYear = useMemo(() => visitYearValue ? Number(visitYearValue) : new Date().getFullYear(), [visitYearValue]);
 
   const unitsForCampus = useMemo(() => {
     if (!units) return [];
     return units.filter(u => u.campusIds?.includes(selectedCampusId));
   }, [units, selectedCampusId]);
 
-  // Fetch submissions for the selected unit to show missing ones
+  // Fetch submissions for the specifically selected visit year
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !selectedUnitId || !selectedCampusId || !isOpen) return null;
     return query(
@@ -161,7 +164,6 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
 
     const results: { name: string; missing: string[]; isNA?: boolean }[] = [];
 
-    // Check Action Plan Requirement (Only required if Registry rating is medium-high)
     const firstRegistry = submissions.find(s => s.reportType === 'Risk and Opportunity Registry' && s.cycleId === 'first');
     const finalRegistry = submissions.find(s => s.reportType === 'Risk and Opportunity Registry' && s.cycleId === 'final');
     
@@ -190,10 +192,8 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
     return results;
   }, [submissions, selectedUnitId]);
 
-  // AUTOMATION: Automatically flag "Not Available" and add remarks for missing portal submissions
   useEffect(() => {
     if (!record && isOpen && form) {
-        // Automation for core EOMS reports
         if (missingReports.length > 0) {
             missingReports.forEach(missingInfo => {
                 const index = monitoringChecklistItems.findIndex(item => item === missingInfo.name);
@@ -205,14 +205,13 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
             });
         }
 
-        // Automation for Procedure Manual
         if (unitManual) {
             const index = monitoringChecklistItems.findIndex(item => item === "Procedure Manual");
             if (index !== -1) {
                 form.setValue(`observations.${index}.status`, 'Available');
                 const rev = unitManual.revisionNumber || '00';
                 const date = unitManual.dateImplemented || 'TBA';
-                form.setValue(`observations.${index}.remarks`, `Uploaded the google drive file with revision ${rev} implemented on ${date}.`);
+                form.setValue(`observations.${index}.remarks`, `Verified current manual: Rev ${rev} (${date}).`);
             }
         }
     }
@@ -255,20 +254,8 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
     }
   }, [record, isOpen, form]);
 
-  useEffect(() => {
-    if(!record && isOpen) {
-        const currentUnitId = form.getValues('unitId');
-        if (currentUnitId && !unitsForCampus.some(u => u.id === currentUnitId)) {
-            form.setValue('unitId', '');
-        }
-    }
-  }, [selectedCampusId, form, record, isOpen, unitsForCampus]);
-
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!firestore || !userProfile) {
-      toast({ title: 'Error', description: 'User not logged in.', variant: 'destructive' });
-      return;
-    }
+    if (!firestore || !userProfile) return;
     setIsSubmitting(true);
 
     const visitDate = new Date(Number(values.visitYear), Number(values.visitMonth), Number(values.visitDay));
@@ -315,7 +302,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                         {isReadOnly ? 'Viewing' : (record ? 'Edit' : 'New')} Unit Monitoring Record
                     </DialogTitle>
                     <DialogDescription className="text-muted-foreground text-sm font-normal">
-                        {isReadOnly ? 'Findings from the official on-site monitoring visit.' : 'Record objective observations and findings from on-site unit monitoring visits.'}
+                        Use the date selector below to log historical records from paper copies.
                     </DialogDescription>
                 </div>
                 {record && onPrint && (
@@ -331,7 +318,6 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0 overflow-hidden">
             <ScrollArea className="flex-1">
               <div className="p-6 space-y-8">
-                {/* Visit Metadata */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                   <div className="space-y-2">
                     <FormLabel>Date of Visit</FormLabel>
@@ -402,7 +388,6 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                   )} />
                 </div>
 
-                {/* EOMS Submission Reference Helper */}
                 {selectedUnitId && !isLoadingSubmissions && (
                     <Card className="border-blue-200 bg-blue-50/30">
                         <CardHeader className="py-3 bg-blue-50">
@@ -413,7 +398,6 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                         </CardHeader>
                         <CardContent className="py-4 space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Portal Submissions Section */}
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-2 font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
                                         <ClipboardCheck className="h-3 w-3" /> Portal Submissions
@@ -438,7 +422,6 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                     )}
                                 </div>
 
-                                {/* Procedure Manual Section */}
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-2 font-bold text-[10px] uppercase tracking-wider text-muted-foreground">
                                         <BookOpen className="h-3 w-3" /> Registered Manual
@@ -449,15 +432,14 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                             <div>
                                                 <p className="text-xs font-bold">Procedure Manual Found</p>
                                                 <p className="text-[10px] text-muted-foreground">
-                                                    Revision: <span className="font-semibold">{unitManual.revisionNumber || '00'}</span> &bull; 
-                                                    Implemented: <span className="font-semibold">{unitManual.dateImplemented || 'TBA'}</span>
+                                                    Revision: <span className="font-semibold">{unitManual.revisionNumber || '00'}</span>
                                                 </p>
                                             </div>
                                         </div>
                                     ) : (
                                         <div className="flex items-start gap-2 bg-white p-3 rounded border border-amber-100 text-amber-700">
                                             <FileWarning className="h-4 w-4 shrink-0 mt-0.5" />
-                                            <p className="text-xs font-bold">No registered manual found for this unit.</p>
+                                            <p className="text-xs font-bold">No registered manual found.</p>
                                         </div>
                                     )}
                                 </div>
@@ -466,7 +448,6 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                     </Card>
                 )}
 
-                {/* Categorized Checklist Table */}
                 <div className="space-y-4">
                     <h3 className="font-bold text-lg flex items-center gap-2">
                         <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">1</div>
@@ -497,33 +478,9 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                         if (index === -1) return null;
                                         
                                         const field = fields[index];
-                                        const internalReportName = eomsReportMap[field.item];
-                                        const missingReportInfo = missingReports.find(r => r.name === field.item);
-                                        const isManualItem = field.item === "Procedure Manual";
-                                        
                                         return (
                                             <TableRow key={field.id} className="hover:bg-muted/20">
-                                                <TableCell className="font-medium text-sm py-3">
-                                                    <div className="flex flex-col gap-1">
-                                                        <span>{field.item}</span>
-                                                        {internalReportName && !isLoadingSubmissions && (
-                                                            missingReportInfo ? (
-                                                                <Badge variant="destructive" className="w-fit text-[9px] h-4 py-0 font-bold uppercase tracking-tighter">
-                                                                    Missing in Portal: {missingReportInfo.missing.join('/')}
-                                                                </Badge>
-                                                            ) : (
-                                                                <Badge variant="secondary" className="w-fit text-[9px] h-4 py-0 bg-green-100 text-green-700 border-green-200">
-                                                                    Submitted in Portal
-                                                                </Badge>
-                                                            )
-                                                        )}
-                                                        {isManualItem && unitManual && (
-                                                            <Badge variant="secondary" className="w-fit text-[9px] h-4 py-0 bg-blue-100 text-blue-700 border-blue-200">
-                                                                Registered: Rev {unitManual.revisionNumber}
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
+                                                <TableCell className="font-medium text-sm py-3">{field.item}</TableCell>
                                                 <TableCell>
                                                     <FormField control={form.control} name={`observations.${index}.status`} render={({ field: statusField }) => (
                                                     <FormItem>
@@ -543,7 +500,6 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                                             </SelectContent>
                                                             </Select>
                                                         </FormControl>
-                                                        <FormMessage />
                                                     </FormItem>
                                                     )} />
                                                 </TableCell>
@@ -553,7 +509,6 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                                         <FormControl>
                                                             <Input placeholder={isReadOnly ? "" : "Add findings..."} {...remarksField} value={remarksField.value || ''} className="h-8 text-xs bg-background" disabled={isReadOnly} />
                                                         </FormControl>
-                                                        <FormMessage />
                                                     </FormItem>
                                                     )} />
                                                 </TableCell>
@@ -567,7 +522,6 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                     </div>
                 </div>
 
-                {/* General Remarks */}
                 <div className="space-y-4">
                     <h3 className="font-bold text-lg flex items-center gap-2">
                         <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">2</div>
