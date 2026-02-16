@@ -8,7 +8,7 @@ export const monitoringGroups = [
     category: "Core EOMS Documentation",
     items: [
       "Operational Plan",
-      "Objectives Monitoring",
+      "Quality Objectives Monitoring",
       "Risk and Opportunity Registry",
       "Risk and Opportunity Action Plan",
       "SWOT Analysis",
@@ -63,6 +63,18 @@ export const monitoringGroups = [
       "TV / PROJECTOR"
     ]
   }
+];
+
+/**
+ * Shared Status Legend definitions for UI and Reports.
+ */
+export const statusLegend = [
+  { status: 'Available', desc: 'Items/documents are present, updated, and officially signed.' },
+  { status: 'Not Available', desc: 'Items/documents are missing, not yet submitted, or cannot be produced.' },
+  { status: 'For Improvement', desc: 'Items are present but require minor revisions, better filing, or layout updates.' },
+  { status: 'Needs Updating', desc: 'Documents are outdated (e.g., from a previous year) and require a fresh submission.' },
+  { status: 'Need to revisit', desc: 'Verification could not be completed during this visit; follow-up required.' },
+  { status: 'Not Applicable', desc: 'Item is not relevant to this specific room or office.' },
 ];
 
 /**

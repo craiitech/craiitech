@@ -26,7 +26,7 @@ import { doc, setDoc, serverTimestamp, collection, addDoc, Timestamp, query, whe
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { UnitMonitoringRecord, Campus, Unit, Submission, ProcedureManual } from '@/lib/types';
-import { monitoringChecklistItems, monitoringGroups } from '@/lib/monitoring-checklist-items';
+import { monitoringChecklistItems, monitoringGroups, statusLegend } from '@/lib/monitoring-checklist-items';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -83,15 +83,6 @@ const statusColors: Record<string, string> = {
   'Needs Updating': 'text-indigo-500 fill-indigo-500',
 };
 
-const statusLegend = [
-  { status: 'Available', desc: 'Items/documents are present, updated, and officially signed.' },
-  { status: 'Not Available', desc: 'Items/documents are missing, not yet submitted, or cannot be produced.' },
-  { status: 'For Improvement', desc: 'Items are present but require minor revisions, better filing, or layout updates.' },
-  { status: 'Needs Updating', desc: 'Documents are outdated (e.g., from a previous year) and require a fresh submission.' },
-  { status: 'Need to revisit', desc: 'Verification could not be completed during this visit; follow-up required.' },
-  { status: 'Not Applicable', desc: 'Item is not relevant to this specific room or office.' },
-];
-
 const eomsReportMap: Record<string, string> = {
     "Operational Plan": "Operational Plan",
     "Objectives Monitoring": "Quality Objectives Monitoring",
@@ -139,7 +130,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
   
   const selectedYear = useMemo(() => visitYearValue ? Number(visitYearValue) : new Date().getFullYear(), [visitYearValue]);
 
-  // Logic to handle "Not Applicable" status change automatically setting remarks
+  // Handle "Not Applicable" status change automatically
   useEffect(() => {
     observationsValue?.forEach((obs, index) => {
       if (obs.status === 'Not Applicable' && obs.remarks !== 'Not Applicable to this Room') {
@@ -467,12 +458,9 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                                                                 <SelectValue />
                                                                             </SelectTrigger>
                                                                             <SelectContent>
-                                                                                <SelectItem value="Available">Available</SelectItem>
-                                                                                <SelectItem value="Not Available">Not Available</SelectItem>
-                                                                                <SelectItem value="For Improvement">For Improvement</SelectItem>
-                                                                                <SelectItem value="Needs Updating">Needs Updating</SelectItem>
-                                                                                <SelectItem value="Not Applicable">Not Applicable</SelectItem>
-                                                                                <SelectItem value="Need to revisit">Need to revisit</SelectItem>
+                                                                                {statusLegend.map(l => (
+                                                                                    <SelectItem key={l.status} value={l.status}>{l.status}</SelectItem>
+                                                                                ))}
                                                                             </SelectContent>
                                                                             </Select>
                                                                         </FormControl>

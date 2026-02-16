@@ -3,7 +3,7 @@
 
 import React from 'react';
 import type { UnitMonitoringRecord } from '@/lib/types';
-import { monitoringGroups } from '@/lib/monitoring-checklist-items';
+import { monitoringGroups, statusLegend } from '@/lib/monitoring-checklist-items';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 
@@ -78,10 +78,23 @@ export function MonitoringPrintTemplate({ record, campusName, unitName }: Monito
       </table>
 
       {/* General Remarks */}
-      <div className="mb-12">
+      <div className="mb-8">
         <h3 className="font-bold text-sm uppercase mb-2">Final Assessment & General Remarks:</h3>
         <div className="p-4 border border-black min-h-[100px] text-sm whitespace-pre-wrap">
           {record.generalRemarks || 'No general remarks provided.'}
+        </div>
+      </div>
+
+      {/* Legend Section */}
+      <div className="mb-12 pt-4 border-t-2 border-black">
+        <h3 className="font-bold text-xs uppercase mb-2">Status Legend:</h3>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-[9px] leading-tight">
+          {statusLegend.map((item) => (
+            <div key={item.status} className="flex gap-2">
+              <span className="font-bold min-w-[80px]">{item.status}:</span>
+              <span className="text-gray-600 italic">{item.desc}</span>
+            </div>
+          ))}
         </div>
       </div>
 
