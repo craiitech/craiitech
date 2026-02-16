@@ -263,6 +263,20 @@ export type ProgramFacultyMember = {
   isAlignedWithCMO: FacultyAlignment;
 };
 
+export type GraduationOutcome = {
+  year: number;
+  semester: string;
+  count: number;
+};
+
+export type TracerOutcome = {
+  year: number;
+  semester: string;
+  totalGraduates: number;
+  tracedCount: number;
+  employmentRate: number;
+};
+
 export type ProgramComplianceRecord = {
   id: string;
   programId: string;
@@ -326,6 +340,10 @@ export type ProgramComplianceRecord = {
     graduationCount: number;
   };
 
+  // Outcomes registries
+  graduationRecords?: GraduationOutcome[];
+  tracerRecords?: TracerOutcome[];
+
   // Board Performance
   boardPerformance?: {
     examDate: any;
@@ -335,8 +353,8 @@ export type ProgramComplianceRecord = {
     nationalPassingRate: number;
   };
 
-  // Tracer Data
-  tracer: {
+  // Tracer Data (Deprecated - using tracerRecords)
+  tracer?: {
     totalGraduates: number;
     tracedCount: number;
     employmentRate: number; // calculated %

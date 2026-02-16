@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -5,7 +6,7 @@ import type { AcademicProgram, ProgramComplianceRecord } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Loader2, Save, FileCheck, Users, BookOpen, BarChart3, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -77,6 +78,18 @@ const complianceSchema = z.object({
     }),
     graduationCount: z.coerce.number(),
   }),
+  graduationRecords: z.array(z.object({
+    year: z.coerce.number(),
+    semester: z.string(),
+    count: z.coerce.number(),
+  })).optional(),
+  tracerRecords: z.array(z.object({
+    year: z.coerce.number(),
+    semester: z.string(),
+    totalGraduates: z.coerce.number(),
+    tracedCount: z.coerce.number(),
+    employmentRate: z.coerce.number(),
+  })).optional(),
   boardPerformance: z.object({
     examDate: z.any().optional(),
     firstTakersPassRate: z.coerce.number(),
@@ -84,11 +97,6 @@ const complianceSchema = z.object({
     overallPassRate: z.coerce.number(),
     nationalPassingRate: z.coerce.number(),
   }).optional(),
-  tracer: z.object({
-    totalGraduates: z.coerce.number(),
-    tracedCount: z.coerce.number(),
-    employmentRate: z.coerce.number(),
-  }),
 });
 
 /**
@@ -154,7 +162,8 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         members: [] 
       },
       stats: { enrollment: { firstYear: 0, secondYear: 0, thirdYear: 0, fourthYear: 0 }, graduationCount: 0 },
-      tracer: { totalGraduates: 0, tracedCount: 0, employmentRate: 0 },
+      graduationRecords: [],
+      tracerRecords: [],
       boardPerformance: { 
         examDate: '',
         firstTakersPassRate: 0, 
@@ -170,6 +179,8 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       methods.reset({
         ...activeRecord,
         academicYear: selectedAY,
+        graduationRecords: activeRecord.graduationRecords || [],
+        tracerRecords: activeRecord.tracerRecords || [],
       });
     } else {
       methods.reset({
@@ -199,7 +210,8 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
           members: [] 
         },
         stats: { enrollment: { firstYear: 0, secondYear: 0, thirdYear: 0, fourthYear: 0 }, graduationCount: 0 },
-        tracer: { totalGraduates: 0, tracedCount: 0, employmentRate: 0 },
+        graduationRecords: [],
+        tracerRecords: [],
         boardPerformance: { 
           examDate: '',
           firstTakersPassRate: 0, 
@@ -279,17 +291,12 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
           </div>
         ) : (
           <Tabs defaultValue="ched" className="w-full">
-            <TabsList className={cn(
-                "grid h-auto w-full",
-                program.isBoardProgram ? "grid-cols-2 md:grid-cols-5" : "grid-cols-2 md:grid-cols-4"
-            )}>
+            <TabsList className="grid h-auto w-full grid-cols-2 md:grid-cols-5">
               <TabsTrigger value="ched" className="py-2"><FileCheck className="mr-2 h-4 w-4" /> CHED & RQAT</TabsTrigger>
               <TabsTrigger value="accreditation" className="py-2"><ShieldCheck className="mr-2 h-4 w-4" /> Accreditation</TabsTrigger>
               <TabsTrigger value="faculty" className="py-2"><Users className="mr-2 h-4 w-4" /> Faculty</TabsTrigger>
               <TabsTrigger value="curriculum" className="py-2"><BookOpen className="mr-2 h-4 w-4" /> Curriculum</TabsTrigger>
-              {program.isBoardProgram && (
-                <TabsTrigger value="outcomes" className="py-2"><BarChart3 className="mr-2 h-4 w-4" /> Outcomes</TabsTrigger>
-              )}
+              <TabsTrigger value="outcomes" className="py-2"><BarChart3 className="mr-2 h-4 w-4" /> Outcomes</TabsTrigger>
             </TabsList>
 
             <div className="mt-6">
@@ -297,9 +304,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
               <TabsContent value="accreditation"><AccreditationModule canEdit={canEdit} /></TabsContent>
               <TabsContent value="faculty"><FacultyModule canEdit={canEdit} /></TabsContent>
               <TabsContent value="curriculum"><CurriculumModule canEdit={canEdit} /></TabsContent>
-              {program.isBoardProgram && (
-                <TabsContent value="outcomes"><OutcomesModule canEdit={canEdit} /></TabsContent>
-              )}
+              <TabsContent value="outcomes"><OutcomesModule canEdit={canEdit} isBoardProgram={program.isBoardProgram} /></TabsContent>
             </div>
           </Tabs>
         )}
