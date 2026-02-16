@@ -59,7 +59,8 @@ export const monitoringGroups = [
       "Switches",
       "Electric Fans",
       "Aircons",
-      "Student chairs"
+      "Student chairs",
+      "TV / PROJECTOR"
     ]
   }
 ];

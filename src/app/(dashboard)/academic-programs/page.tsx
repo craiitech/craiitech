@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -15,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProgramAnalytics } from '@/components/programs/program-analytics';
 
 export default function AcademicProgramsPage() {
-  const { userProfile, isAdmin, userRole, isUserLoading } = useUser();
+  const { user, userProfile, isAdmin, userRole, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<AcademicProgram | null>(null);
@@ -26,20 +27,20 @@ export default function AcademicProgramsPage() {
   const canManage = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO';
 
   const programsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'academicPrograms'), orderBy('name', 'asc')) : null),
-    [firestore]
+    () => (firestore && user ? query(collection(firestore, 'academicPrograms'), orderBy('name', 'asc')) : null),
+    [firestore, user]
   );
   const { data: programs, isLoading: isLoadingPrograms } = useCollection<AcademicProgram>(programsQuery);
 
   const compliancesQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'programCompliances'), where('academicYear', '==', selectedYear)) : null),
-    [firestore, selectedYear]
+    () => (firestore && user ? query(collection(firestore, 'programCompliances'), where('academicYear', '==', selectedYear)) : null),
+    [firestore, user, selectedYear]
   );
   const { data: compliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
   const campusesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'campuses') : null),
-    [firestore]
+    () => (firestore && user ? collection(firestore, 'campuses') : null),
+    [firestore, user]
   );
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 

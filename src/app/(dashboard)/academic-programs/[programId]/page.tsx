@@ -12,18 +12,18 @@ import { ProgramComplianceWorkspace } from '@/components/programs/program-compli
 export default function ProgramMonitoringDetailPage() {
   const { programId } = useParams();
   const firestore = useFirestore();
-  const { isUserLoading } = useUser();
+  const { user, isUserLoading } = useUser();
   const router = useRouter();
 
   const programRef = useMemoFirebase(
-    () => (firestore && programId ? doc(firestore, 'academicPrograms', programId as string) : null),
-    [firestore, programId]
+    () => (firestore && user && programId ? doc(firestore, 'academicPrograms', programId as string) : null),
+    [firestore, user, programId]
   );
   const { data: program, isLoading: isLoadingProgram } = useDoc<AcademicProgram>(programRef);
 
   const campusRef = useMemoFirebase(
-    () => (firestore && program?.campusId ? doc(firestore, 'campuses', program.campusId) : null),
-    [firestore, program?.campusId]
+    () => (firestore && user && program?.campusId ? doc(firestore, 'campuses', program.campusId) : null),
+    [firestore, user, program?.campusId]
   );
   const { data: campus } = useDoc<Campus>(campusRef);
 

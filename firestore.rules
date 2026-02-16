@@ -47,14 +47,14 @@ service cloud.firestore {
     // Academic Program Monitoring (Strategic Quality Data)
     // --------------------------------------------------------------------------
     
-    match /academicPrograms/{document=**} {
+    match /academicPrograms/{programId} {
         // Allow all signed-in staff to see the university offerings registry
         allow read: if isSignedIn();
         // Restrict management to Admins and Campus Directors
         allow write: if isAdmin() || (isSignedIn() && hasProfile() && (profile().get('role', '') == 'Campus Director' || profile().get('role', '') == 'Campus ODIMO'));
     }
 
-    match /programCompliances/{document=**} {
+    match /programCompliances/{recordId} {
         // Allow all signed-in staff to see compliance data
         allow read: if isSignedIn();
         // Restrict editing to oversight roles or assigned campus coordinators
