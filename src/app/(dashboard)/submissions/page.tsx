@@ -1,7 +1,7 @@
 
 'use client';
 
-import { PlusCircle, Eye, Trash2, Loader2, Download, FileText, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Filter } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -44,21 +44,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UnitSubmissionsView } from '@/components/submissions/unit-submissions-view';
 import { CampusSubmissionsView } from '@/components/submissions/campus-submissions-view';
 import { format } from 'date-fns';
-import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { submissionTypes } from './new/page';
-
-const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    approved: 'default',
-    pending: 'secondary',
-    rejected: 'destructive',
-    submitted: 'outline'
-};
 
 /**
  * Returns a Tailwind class string for row background based on the submission year.
@@ -114,8 +106,8 @@ export default function SubmissionsPage() {
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
   const usersQuery = useMemoFirebase(
-    () => (firestore && isAdmin ? collection(firestore, 'users') : null),
-    [firestore, isAdmin]
+    () => (firestore && (isAdmin || isSupervisor) ? collection(firestore, 'users') : null),
+    [firestore, isAdmin, isSupervisor]
   );
   const { data: allUsers } = useCollection<AppUser>(usersQuery);
 
@@ -147,9 +139,6 @@ export default function SubmissionsPage() {
 
   const campusesQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'campuses') : null), [firestore, user]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
-
-  const unitsQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'units') : null), [firestore, user]);
-  const { data: units } = useCollection<Unit>(unitsQuery);
 
   const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
 
@@ -197,8 +186,8 @@ export default function SubmissionsPage() {
         <Tabs defaultValue="all-submissions" className="space-y-4">
             <TabsList>
                 <TabsTrigger value="all-submissions">All Submissions</TabsTrigger>
-                {isSupervisor && !isAdmin && <TabsTrigger value="by-unit">Unit Submissions</TabsTrigger>}
-                {isAdmin && <TabsTrigger value="by-campus">Campus Submissions</TabsTrigger>}
+                {isSupervisor && !isAdmin && <TabsTrigger value="by-unit">Unit Records</TabsTrigger>}
+                {isAdmin && <TabsTrigger value="by-campus">Campus Records</TabsTrigger>}
             </TabsList>
             <TabsContent value="all-submissions">
                 <Card>
@@ -296,8 +285,16 @@ export default function SubmissionsPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant={statusVariant[sub.statusId] || 'secondary'} className="capitalize bg-background/50 border-primary/10">
-                                                    {sub.statusId === 'submitted' ? 'Awaiting Approval' : sub.statusId}
+                                                <Badge 
+                                                    className={cn(
+                                                        "capitalize font-black text-[9px] px-2 py-0.5 shadow-sm border-none",
+                                                        sub.statusId === 'approved' && "bg-emerald-600 text-white hover:bg-emerald-700",
+                                                        sub.statusId === 'rejected' && "bg-rose-600 text-white hover:bg-rose-700",
+                                                        sub.statusId === 'submitted' && "bg-amber-500 text-amber-950 hover:bg-amber-600",
+                                                        sub.statusId === 'pending' && "bg-slate-500 text-white hover:bg-slate-600"
+                                                    )}
+                                                >
+                                                    {sub.statusId === 'submitted' ? 'AWAITING APPROVAL' : sub.statusId.toUpperCase()}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right space-x-2 whitespace-nowrap">
@@ -333,8 +330,8 @@ export default function SubmissionsPage() {
                     </CardContent>
                 </Card>
             </TabsContent>
-            {isSupervisor && !isAdmin && <TabsContent value="by-unit"><UnitSubmissionsView allSubmissions={rawSubmissions} allUnits={units} userProfile={userProfile} isLoading={isLoadingSubmissions} /></TabsContent>}
-            {isAdmin && <TabsContent value="by-campus"><CampusSubmissionsView allSubmissions={rawSubmissions} allCampuses={campuses} allUnits={units} isLoading={isLoadingSubmissions} isAdmin={isAdmin} onDeleteClick={handleDeleteClick} /></TabsContent>}
+            {isSupervisor && !isAdmin && <TabsContent value="by-unit"><UnitSubmissionsView allSubmissions={rawSubmissions} allUnits={null} userProfile={userProfile} isLoading={isLoadingSubmissions} /></TabsContent>}
+            {isAdmin && <TabsContent value="by-campus"><CampusSubmissionsView allSubmissions={rawSubmissions} allCampuses={campuses} allUnits={null} isLoading={isLoadingSubmissions} isAdmin={isAdmin} onDeleteClick={handleDeleteClick} /></TabsContent>}
         </Tabs>
       </div>
 
