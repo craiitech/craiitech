@@ -115,7 +115,7 @@ export default function NewSubmissionPage() {
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
   
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
-  const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+  const { data: units } = useCollection<Unit>(unitsQuery);
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
     if (!rawSubmissions) {
@@ -415,47 +415,73 @@ export default function NewSubmissionPage() {
 
         <div className="lg:col-span-2">
             {isCycleSelected && selectedReport ? (
-                <Card className="lg:sticky top-20">
-                    <CardHeader>
-                        <CardTitle>Submit: {selectedReport}</CardTitle>
-                        <CardDescription>
-                            {submissionStatusMap.get(selectedReport)
-                                ? `A report has already been submitted for your unit. You can update it by submitting again.`
-                                : `Fill out the form below to submit this report for your unit.`}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {showUpdateDialog === selectedReport && !showFormForUpdate ? (
-                            <AlertDialog open={true} onOpenChange={(open) => !open && setShowUpdateDialog(null)}>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Update Confirmation</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            A submission for this report was made in the First Cycle. Are there any updates for the Final Cycle?
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel onClick={handleCarryOverSubmission} disabled={isCarryingOver}>
-                                            {isCarryingOver && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                            No, No Updates
-                                        </AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => setShowFormForUpdate(true)}>
-                                            Yes, I Have Updates
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        ) : (
-                            <SubmissionForm
-                                reportType={selectedReport}
-                                year={selectedYear}
-                                cycleId={selectedCycle}
-                                onSuccess={handleFormSuccess}
-                                key={`${selectedReport}-${selectedYear}-${selectedCycle}`}
-                            />
-                        )}
-                    </CardContent>
-                </Card>
+                selectedReport === 'Risk and Opportunity Action Plan' && !submissionStatusMap.has('Risk and Opportunity Registry') ? (
+                    <Card className="lg:sticky top-20 border-destructive/50">
+                        <CardHeader className="bg-destructive/5">
+                            <CardTitle className="flex items-center gap-2 text-destructive">
+                                <AlertCircle className="h-5 w-5" />
+                                Registry Required First
+                            </CardTitle>
+                            <CardDescription>
+                                You cannot submit an Action Plan until the <strong>Risk and Opportunity Registry</strong> has been submitted.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <Alert variant="destructive">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>Validation Blocked</AlertTitle>
+                                <AlertDescription>
+                                    The system needs your Registry submission first to determine if this Action Plan is mandatory or if your unit is exempt (Low Risk).
+                                </AlertDescription>
+                            </Alert>
+                            <Button className="mt-6 w-full md:w-auto" onClick={() => setSelectedReport('Risk and Opportunity Registry')}>
+                                Go to Registry Submission
+                            </Button>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <Card className="lg:sticky top-20">
+                        <CardHeader>
+                            <CardTitle>Submit: {selectedReport}</CardTitle>
+                            <CardDescription>
+                                {submissionStatusMap.get(selectedReport)
+                                    ? `A report has already been submitted for your unit. You can update it by submitting again.`
+                                    : `Fill out the form below to submit this report for your unit.`}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {showUpdateDialog === selectedReport && !showFormForUpdate ? (
+                                <AlertDialog open={true} onOpenChange={(open) => !open && setShowUpdateDialog(null)}>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Update Confirmation</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                A submission for this report was made in the First Cycle. Are there any updates for the Final Cycle?
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel onClick={handleCarryOverSubmission} disabled={isCarryingOver}>
+                                                {isCarryingOver && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                                No, No Updates
+                                            </AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => setShowFormForUpdate(true)}>
+                                                Yes, I Have Updates
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            ) : (
+                                <SubmissionForm
+                                    reportType={selectedReport}
+                                    year={selectedYear}
+                                    cycleId={selectedCycle}
+                                    onSuccess={handleFormSuccess}
+                                    key={`${selectedReport}-${selectedYear}-${selectedCycle}`}
+                                />
+                            )}
+                        </CardContent>
+                    </Card>
+                )
             ) : (
                  <Card className="lg:sticky top-20 flex items-center justify-center h-96">
                     <div className="text-center text-muted-foreground">
