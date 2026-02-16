@@ -85,7 +85,7 @@ const statusColors: Record<string, string> = {
 
 const eomsReportMap: Record<string, string> = {
     "Operational Plan": "Operational Plan",
-    "Objectives Monitoring": "Quality Objectives Monitoring",
+    "Quality Objectives Monitoring": "Quality Objectives Monitoring",
     "Risk and Opportunity Registry": "Risk and Opportunity Registry",
     "Risk and Opportunity Action Plan": "Risk and Opportunity Action Plan",
     "SWOT Analysis": "SWOT Analysis",
