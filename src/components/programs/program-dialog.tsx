@@ -31,11 +31,11 @@ import { Switch } from '@/components/ui/switch';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
-import type { AcademicProgram, Campus } from '@/lib/types';
+import { useState, useEffect, useMemo } from 'react';
+import type { AcademicProgram, Campus, Unit } from '@/lib/types';
 import { Loader2, GraduationCap } from 'lucide-react';
 
 interface ProgramDialogProps {
@@ -49,7 +49,7 @@ const formSchema = z.object({
   name: z.string().min(5, 'Full program name is required.'),
   abbreviation: z.string().min(2, 'Program initials are required.'),
   campusId: z.string().min(1, 'Please select a campus.'),
-  collegeId: z.string().min(2, 'College ID is required (e.g., CET, CAS).'),
+  collegeId: z.string().min(1, 'Please select the parent Academic Unit.'),
   level: z.enum(['Undergraduate', 'Graduate', 'TVET']),
   isActive: z.boolean().default(true),
 });
@@ -58,6 +58,9 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: Progr
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
+  const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,6 +73,16 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: Progr
       isActive: true,
     },
   });
+
+  const selectedCampusId = form.watch('campusId');
+
+  const academicUnitsForCampus = useMemo(() => {
+    if (!allUnits || !selectedCampusId) return [];
+    return allUnits.filter(u => 
+        u.campusIds?.includes(selectedCampusId) && 
+        u.category === 'Academic'
+    ).sort((a, b) => a.name.localeCompare(b.name));
+  }, [allUnits, selectedCampusId]);
 
   useEffect(() => {
     if (program) {
@@ -141,25 +154,6 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: Progr
                   <FormMessage />
                 </FormItem>
               )} />
-              <FormField control={form.control} name="collegeId" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>College / Institute Code</FormLabel>
-                  <FormControl><Input {...field} placeholder="e.g., CET" /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="campusId" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Campus Location</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
-                    <SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
               <FormField control={form.control} name="level" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Education Level</FormLabel>
@@ -169,6 +163,33 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: Progr
                       <SelectItem value="Undergraduate">Undergraduate</SelectItem>
                       <SelectItem value="Graduate">Graduate</SelectItem>
                       <SelectItem value="TVET">TVET</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField control={form.control} name="campusId" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Campus Site</FormLabel>
+                  <Select onValueChange={(val) => { field.onChange(val); form.setValue('collegeId', ''); }} value={field.value}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
+                    <SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="collegeId" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Academic Unit (Parent)</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCampusId}>
+                    <FormControl><SelectTrigger><SelectValue placeholder={selectedCampusId ? "Select Unit" : "Select Campus First"} /></SelectTrigger></FormControl>
+                    <SelectContent>
+                        {academicUnitsForCampus.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                        {selectedCampusId && academicUnitsForCampus.length === 0 && (
+                            <div className="p-4 text-[10px] text-muted-foreground italic">No units marked as 'Academic' in this campus.</div>
+                        )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

@@ -70,7 +70,7 @@
         "name": { "type": "string" },
         "abbreviation": { "type": "string" },
         "campusId": { "type": "string" },
-        "collegeId": { "type": "string" },
+        "collegeId": { "type": "string", "description": "Reference to a Unit categorized as Academic" },
         "level": { "type": "string", "enum": ["Undergraduate", "Graduate", "TVET"] },
         "isActive": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" },
@@ -157,6 +157,7 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
+        "category": { "type": "string", "enum": ["Academic", "Administrative", "Research", "Support"] },
         "campusIds": { "type": "array", "items": { "type": "string" } }
       },
       "required": ["id", "name"]

@@ -24,8 +24,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Trash2, Search, MoreHorizontal } from 'lucide-react';
-import type { Unit } from '@/lib/types';
+import { Loader2, PlusCircle, Trash2, Search, MoreHorizontal, Tags } from 'lucide-react';
+import type { Unit, UnitCategory } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { ScrollArea } from '../ui/scroll-area';
@@ -50,11 +50,22 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { requireClaims } from '@/lib/require-claims';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Badge } from '../ui/badge';
+import { cn } from '@/lib/utils';
 
 
 const newUnitSchema = z.object({
   name: z.string().min(3, 'Unit name must be at least 3 characters.'),
+  category: z.enum(['Academic', 'Administrative', 'Research', 'Support']),
 });
+
+const categoryColors: Record<string, string> = {
+    'Academic': 'bg-blue-100 text-blue-700 border-blue-200',
+    'Administrative': 'bg-slate-100 text-slate-700 border-slate-200',
+    'Research': 'bg-purple-100 text-purple-700 border-purple-200',
+    'Support': 'bg-amber-100 text-amber-700 border-amber-200',
+};
 
 export function DirectorUnitManagement() {
   const { userProfile, userRole } = useUser();
@@ -95,7 +106,7 @@ export function DirectorUnitManagement() {
 
   const form = useForm<z.infer<typeof newUnitSchema>>({
     resolver: zodResolver(newUnitSchema),
-    defaultValues: { name: '' },
+    defaultValues: { name: '', category: 'Administrative' },
   });
 
   const isLoading = isLoadingUnits;
@@ -184,6 +195,7 @@ export function DirectorUnitManagement() {
       
       const newUnitData = {
           name: values.name,
+          category: values.category,
           campusIds: [userProfile.campusId], // Assign to current campus on creation
           createdAt: serverTimestamp(),
       };
@@ -261,13 +273,19 @@ export function DirectorUnitManagement() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
+                    <TableHead>Category</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {unitsInCampus.map((unit) => (
                     <TableRow key={unit.id}>
-                      <TableCell>{unit.name}</TableCell>
+                      <TableCell className="text-xs font-medium">{unit.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={cn("text-[9px] uppercase font-bold", categoryColors[unit.category || 'Administrative'])}>
+                            {unit.category || 'Administrative'}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -344,15 +362,16 @@ export function DirectorUnitManagement() {
                       {availableUnits.map((unit) => {
                         return (
                             <TableRow key={unit.id}>
-                              <TableCell>{unit.name}</TableCell>
+                              <TableCell className="text-xs">{unit.name}</TableCell>
                               <TableCell className="text-right">
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => handleAddUnitToCampus(unit)}
                                     disabled={isSubmitting}
+                                    className="h-7 text-[10px]"
                                 >
-                                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <PlusCircle className="mr-2 h-4 w-4" />}
+                                    {isSubmitting ? <Loader2 className="mr-2 h-3 w-3 animate-spin"/> : <PlusCircle className="mr-2 h-3 w-3" />}
                                     Add to my Campus
                                 </Button>
                               </TableCell>
@@ -385,7 +404,30 @@ export function DirectorUnitManagement() {
                         </FormItem>
                         )}
                     />
-                    <Button type="submit" disabled={isSubmitting}>
+                    <FormField
+                        control={form.control}
+                        name="category"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Unit Category</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                <SelectValue placeholder="Select Category" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="Academic">Academic (Offers Programs)</SelectItem>
+                                <SelectItem value="Administrative">Administrative Office</SelectItem>
+                                <SelectItem value="Research">Research Center</SelectItem>
+                                <SelectItem value="Support">Support Unit</SelectItem>
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <Button type="submit" disabled={isSubmitting} className="w-full">
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Create and Add Unit
                     </Button>

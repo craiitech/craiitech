@@ -38,7 +38,7 @@ import { useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebas
 import { doc, updateDoc, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
-import type { Unit, Campus, User } from '@/lib/types';
+import type { Unit, Campus, User, UnitCategory } from '@/lib/types';
 import { Loader2, Check, ChevronsUpDown } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -56,6 +56,7 @@ interface EditUnitDialogProps {
 
 const editUnitSchema = z.object({
   name: z.string().min(1, 'Unit name is required'),
+  category: z.enum(['Academic', 'Administrative', 'Research', 'Support']),
   campusIds: z.array(z.string()).optional(),
   vicePresidentId: z.string().optional(),
 });
@@ -84,6 +85,7 @@ export function EditUnitDialog({
     resolver: zodResolver(editUnitSchema),
     defaultValues: {
       name: '',
+      category: 'Administrative',
       campusIds: [],
       vicePresidentId: '',
     },
@@ -93,6 +95,7 @@ export function EditUnitDialog({
     if (unit) {
       form.reset({
         name: unit.name,
+        category: unit.category || 'Administrative',
         campusIds: unit.campusIds || [],
         vicePresidentId: unit.vicePresidentId || '',
       });
@@ -108,6 +111,7 @@ export function EditUnitDialog({
     
     const updateData = {
         name: values.name,
+        category: values.category,
         campusIds: values.campusIds || [],
         vicePresidentId: values.vicePresidentId === 'none' ? '' : values.vicePresidentId || '',
     };
@@ -161,6 +165,29 @@ export function EditUnitDialog({
             />
             <FormField
                 control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unit Category</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Academic">Academic (Offers Programs)</SelectItem>
+                        <SelectItem value="Administrative">Administrative Office</SelectItem>
+                        <SelectItem value="Research">Research Center</SelectItem>
+                        <SelectItem value="Support">Support Unit</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            <FormField
+                control={form.control}
                 name="campusIds"
                 render={({ field }) => (
                     <FormItem className="flex flex-col">
@@ -172,14 +199,14 @@ export function EditUnitDialog({
                                 variant="outline"
                                 role="combobox"
                                 className={cn(
-                                    "w-full justify-between",
+                                    "w-full justify-between h-auto min-h-10",
                                     !field.value && "text-muted-foreground"
                                 )}
                                 >
-                                <div className="flex gap-1 flex-wrap">
+                                <div className="flex gap-1 flex-wrap py-1">
                                   {selectedCampusIds.length > 0 ? (
                                     selectedCampusIds.map(id => (
-                                      <Badge key={id} variant="secondary">
+                                      <Badge key={id} variant="secondary" className="text-[10px]">
                                         {allCampuses.find(c => c.id === id)?.name || '...'}
                                       </Badge>
                                     ))
@@ -269,5 +296,3 @@ export function EditUnitDialog({
     </Dialog>
   );
 }
-
-    

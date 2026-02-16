@@ -34,8 +34,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MoreHorizontal, ArrowUpDown, Search } from 'lucide-react';
-import type { Unit, Campus, User } from '@/lib/types';
+import { Loader2, MoreHorizontal, ArrowUpDown, Search, Tags } from 'lucide-react';
+import type { Unit, Campus, User, UnitCategory } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -57,15 +57,25 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { EditUnitDialog } from './edit-unit-dialog';
+import { Badge } from '../ui/badge';
+import { cn } from '@/lib/utils';
 
 
 const formSchema = z.object({
   name: z.string().min(3, 'Unit name must be at least 3 characters.'),
+  category: z.enum(['Academic', 'Administrative', 'Research', 'Support']),
   campusId: z.string().min(1, 'Please select a campus for the unit.'),
 });
 
 type UnitFormValues = z.infer<typeof formSchema>;
-type SortConfig = { key: 'name' | 'campusNames'; direction: 'ascending' | 'descending' } | null;
+type SortConfig = { key: 'name' | 'campusNames' | 'category'; direction: 'ascending' | 'descending' } | null;
+
+const categoryColors: Record<string, string> = {
+    'Academic': 'bg-blue-100 text-blue-700 border-blue-200',
+    'Administrative': 'bg-slate-100 text-slate-700 border-slate-200',
+    'Research': 'bg-purple-100 text-purple-700 border-purple-200',
+    'Support': 'bg-amber-100 text-amber-700 border-amber-200',
+};
 
 export function AdminUnitManagement() {
   const firestore = useFirestore();
@@ -96,11 +106,6 @@ export function AdminUnitManagement() {
   );
   const { data: allUsers, isLoading: isLoadingUsers } = useCollection<User>(usersQuery);
 
-  const vicePresidents = useMemo(() => {
-    if (!allUsers) return [];
-    return allUsers.filter(user => user.role?.toLowerCase().includes('vice president'));
-  }, [allUsers]);
-
   const campusMap = useMemo(() => {
     if (!allCampuses) return new Map<string, string>();
     return new Map(allCampuses.map(c => [c.id, c.name]));
@@ -110,7 +115,7 @@ export function AdminUnitManagement() {
 
   const form = useForm<UnitFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', campusId: '' },
+    defaultValues: { name: '', campusId: '', category: 'Administrative' },
   });
   
   const getCampusNamesString = (campusIds: string[] | undefined) => {
@@ -128,7 +133,8 @@ export function AdminUnitManagement() {
         const lowercasedFilter = searchTerm.toLowerCase();
         filtered = filtered.filter(unit => 
             unit.name.toLowerCase().includes(lowercasedFilter) ||
-            getCampusNamesString(unit.campusIds).toLowerCase().includes(lowercasedFilter)
+            getCampusNamesString(unit.campusIds).toLowerCase().includes(lowercasedFilter) ||
+            (unit.category || '').toLowerCase().includes(lowercasedFilter)
         );
     }
     
@@ -140,8 +146,8 @@ export function AdminUnitManagement() {
           aValue = getCampusNamesString(a.campusIds);
           bValue = getCampusNamesString(b.campusIds);
         } else {
-          aValue = a[sortConfig.key];
-          bValue = b[sortConfig.key];
+          aValue = a[sortConfig.key] || '';
+          bValue = b[sortConfig.key] || '';
         }
 
         if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
@@ -154,7 +160,7 @@ export function AdminUnitManagement() {
 
   }, [allUnits, searchTerm, sortConfig, campusMap]);
   
-  const requestSort = (key: 'name' | 'campusNames') => {
+  const requestSort = (key: 'name' | 'campusNames' | 'category') => {
     let direction: 'ascending' | 'descending' = 'ascending';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
         direction = 'descending';
@@ -162,7 +168,7 @@ export function AdminUnitManagement() {
     setSortConfig({ key, direction });
   };
 
-  const getSortIndicator = (key: 'name' | 'campusNames') => {
+  const getSortIndicator = (key: 'name' | 'campusNames' | 'category') => {
     if (!sortConfig || sortConfig.key !== key) {
       return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
     }
@@ -174,9 +180,9 @@ export function AdminUnitManagement() {
     if (!firestore) return;
     setIsSubmitting(true);
     
-    // Admin creates a unit and assigns it to an initial campus
     const newUnitData = {
         name: values.name,
+        category: values.category,
         createdAt: serverTimestamp(),
         campusIds: [values.campusId],
     };
@@ -186,7 +192,7 @@ export function AdminUnitManagement() {
     addDoc(unitsCollectionRef, newUnitData)
         .then(() => {
             toast({ title: 'Success', description: 'New unit created.' });
-            form.reset({ name: '', campusId: '' });
+            form.reset({ name: '', campusId: '', category: 'Administrative' });
         })
         .catch((error) => {
             console.error('Error creating unit:', error);
@@ -245,6 +251,29 @@ export function AdminUnitManagement() {
                     <FormControl>
                       <Input placeholder="e.g., College of Engineering" {...field} value={field.value ?? ''} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unit Category</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Academic">Academic (Offers Programs)</SelectItem>
+                        <SelectItem value="Administrative">Administrative Office</SelectItem>
+                        <SelectItem value="Research">Research Center</SelectItem>
+                        <SelectItem value="Support">Support Unit</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -308,13 +337,18 @@ export function AdminUnitManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>
-                    <Button variant="ghost" onClick={() => requestSort('name')}>
+                    <Button variant="ghost" onClick={() => requestSort('name')} className="-ml-4">
                         Name {getSortIndicator('name')}
                     </Button>
                   </TableHead>
                   <TableHead>
-                    <Button variant="ghost" onClick={() => requestSort('campusNames')}>
-                        Assigned Campuses {getSortIndicator('campusNames')}
+                    <Button variant="ghost" onClick={() => requestSort('category')} className="-ml-4">
+                        Category {getSortIndicator('category')}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button variant="ghost" onClick={() => requestSort('campusNames')} className="-ml-4">
+                        Campuses {getSortIndicator('campusNames')}
                     </Button>
                   </TableHead>
                   <TableHead><span className="sr-only">Actions</span></TableHead>
@@ -323,8 +357,13 @@ export function AdminUnitManagement() {
               <TableBody>
                 {filteredAndSortedUnits.map((unit) => (
                   <TableRow key={unit.id}>
-                    <TableCell>{unit.name}</TableCell>
+                    <TableCell className="font-medium text-xs">{unit.name}</TableCell>
                     <TableCell>
+                        <Badge variant="outline" className={cn("text-[9px] uppercase font-bold", categoryColors[unit.category || 'Administrative'])}>
+                            {unit.category || 'Administrative'}
+                        </Badge>
+                    </TableCell>
+                    <TableCell className="text-[10px] text-muted-foreground">
                       {getCampusNamesString(unit.campusIds)}
                     </TableCell>
                     <TableCell className="text-right">
@@ -363,7 +402,6 @@ export function AdminUnitManagement() {
         <EditUnitDialog
             unit={editingUnit}
             allCampuses={allCampuses}
-            vicePresidents={vicePresidents}
             isOpen={!!editingUnit}
             onOpenChange={() => setEditingUnit(null)}
         />

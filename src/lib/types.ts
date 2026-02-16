@@ -93,9 +93,12 @@ export type Campus = {
     location: string;
 }
 
+export type UnitCategory = 'Academic' | 'Administrative' | 'Research' | 'Support';
+
 export type Unit = {
     id: string;
     name: string;
+    category?: UnitCategory;
     vicePresidentId?: string;
     campusIds?: string[];
 }
