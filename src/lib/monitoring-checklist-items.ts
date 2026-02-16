@@ -53,7 +53,7 @@ export const monitoringGroups = [
       "Fire Exit Stairs Free from Obstructions",
       "Medicine Cabinet",
       "Clean Tables of Employees",
-      "Files Documents Based on Pocess",
+      "Files Documents Based on Process",
       "Certificate of Occupancy",
       "Sockets",
       "Switches",
