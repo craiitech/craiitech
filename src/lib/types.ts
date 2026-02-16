@@ -284,6 +284,18 @@ export type RQATVisit = {
   nonCompliances: string;
 };
 
+export type BoardExamPerformance = {
+  examDate: string;
+  firstTakersCount: number;
+  firstTakersPassed: number;
+  firstTakersPassRate: number;
+  retakersCount: number;
+  retakersPassed: number;
+  retakersPassRate: number;
+  overallPassRate: number;
+  nationalPassingRate: number;
+};
+
 export type ProgramComplianceRecord = {
   id: string;
   programId: string;
@@ -347,13 +359,7 @@ export type ProgramComplianceRecord = {
   tracerRecords?: TracerOutcome[];
 
   // Board Performance
-  boardPerformance?: {
-    examDate: any;
-    firstTakersPassRate: number;
-    retakersPassRate: number;
-    overallPassRate: number;
-    nationalPassingRate: number;
-  };
+  boardPerformance?: BoardExamPerformance[];
 
   updatedAt: any;
   updatedBy: string;

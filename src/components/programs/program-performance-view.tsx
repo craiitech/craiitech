@@ -78,7 +78,12 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
 
     const alignmentRate = totalFaculty > 0 ? Math.round((alignedFaculty / totalFaculty) * 100) : 0;
 
-    return { enrollmentData, successTrends, alignmentRate, totalFaculty };
+    // Board Performance Aggregation (Latest or Average)
+    const latestBoard = record.boardPerformance && record.boardPerformance.length > 0 
+        ? record.boardPerformance[record.boardPerformance.length - 1] 
+        : null;
+
+    return { enrollmentData, successTrends, alignmentRate, totalFaculty, latestBoard };
   }, [record]);
 
   const documents = useMemo(() => {
@@ -280,32 +285,34 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
       </div>
 
       {/* 4. Board Performance (If applicable) */}
-      {program.isBoardProgram && record.boardPerformance && (
+      {program.isBoardProgram && analyticsData?.latestBoard && (
         <Card className="border-green-100 shadow-inner">
             <CardHeader className="bg-green-50/50">
                 <CardTitle className="text-lg flex items-center gap-2">
                     <ShieldCheck className="h-5 w-5 text-green-600" />
-                    Board Exam Performance Benchmarking
+                    Latest Board Performance: {analyticsData.latestBoard.examDate}
                 </CardTitle>
-                <CardDescription>Comparison vs. National Passing Average for {record.boardPerformance.examDate}</CardDescription>
+                <CardDescription>Performance breakdown for the most recent licensure examination.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                     <div className="space-y-6">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="p-4 rounded-lg bg-background border shadow-sm">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">First Takers</p>
-                                <p className="text-2xl font-black text-primary">{record.boardPerformance.firstTakersPassRate}%</p>
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">First Takers Rate</p>
+                                <p className="text-2xl font-black text-primary">{analyticsData.latestBoard.firstTakersPassRate}%</p>
+                                <p className="text-[10px] text-muted-foreground mt-1">({analyticsData.latestBoard.firstTakersPassed} of {analyticsData.latestBoard.firstTakersCount})</p>
                             </div>
                             <div className="p-4 rounded-lg bg-background border shadow-sm">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Retakers</p>
-                                <p className="text-2xl font-black text-muted-foreground">{record.boardPerformance.retakersPassRate}%</p>
+                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Retakers Rate</p>
+                                <p className="text-2xl font-black text-muted-foreground">{analyticsData.latestBoard.retakersPassRate}%</p>
+                                <p className="text-[10px] text-muted-foreground mt-1">({analyticsData.latestBoard.retakersPassed} of {analyticsData.latestBoard.retakersCount})</p>
                             </div>
                         </div>
                         <div className="p-6 rounded-xl bg-primary text-primary-foreground shadow-lg flex items-center justify-between">
                             <div>
-                                <p className="text-xs font-bold uppercase tracking-widest opacity-80">University Passing Rate</p>
-                                <p className="text-4xl font-black">{record.boardPerformance.overallPassRate}%</p>
+                                <p className="text-xs font-bold uppercase tracking-widest opacity-80">Overall RSU Passing Rate</p>
+                                <p className="text-4xl font-black">{analyticsData.latestBoard.overallPassRate}%</p>
                             </div>
                             <div className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center">
                                 <TrendingUp className="h-8 w-8" />
@@ -315,8 +322,8 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                     <ChartContainer config={{}} className="h-[200px] w-full">
                         <ResponsiveContainer>
                             <BarChart data={[
-                                { name: 'RSU Rate', rate: record.boardPerformance.overallPassRate, fill: 'hsl(var(--primary))' },
-                                { name: 'National Avg', rate: record.boardPerformance.nationalPassingRate, fill: 'hsl(var(--muted-foreground))' }
+                                { name: 'RSU Rate', rate: analyticsData.latestBoard.overallPassRate, fill: 'hsl(var(--primary))' },
+                                { name: 'National Avg', rate: analyticsData.latestBoard.nationalPassingRate, fill: 'hsl(var(--muted-foreground))' }
                             ]}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} />

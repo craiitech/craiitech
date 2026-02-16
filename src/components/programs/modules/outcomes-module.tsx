@@ -7,9 +7,10 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/comp
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, Users, PlusCircle, Trash2, GraduationCap, BarChart3, Star } from 'lucide-react';
+import { TrendingUp, Users, PlusCircle, Trash2, GraduationCap, BarChart3, Star, Calculator } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
+import { useEffect } from 'react';
 
 interface OutcomesModuleProps {
   canEdit: boolean;
@@ -23,7 +24,7 @@ const semesterOptions = [
 ];
 
 export function OutcomesModule({ canEdit, isBoardProgram }: OutcomesModuleProps) {
-  const { control } = useFormContext();
+  const { control, watch, setValue } = useFormContext();
 
   const { fields: gradFields, append: appendGrad, remove: removeGrad } = useFieldArray({
     control,
@@ -35,76 +36,140 @@ export function OutcomesModule({ canEdit, isBoardProgram }: OutcomesModuleProps)
     name: "tracerRecords"
   });
 
+  const { fields: boardFields, append: appendBoard, remove: removeBoard } = useFieldArray({
+    control,
+    name: "boardPerformance"
+  });
+
+  // Automatically calculate board exam percentages when taker/passer counts change
+  const watchBoard = watch("boardPerformance");
+
+  useEffect(() => {
+    if (!watchBoard || !Array.isArray(watchBoard)) return;
+
+    watchBoard.forEach((item, index) => {
+      const fTakers = Number(item.firstTakersCount) || 0;
+      const fPassed = Number(item.firstTakersPassed) || 0;
+      const rTakers = Number(item.retakersCount) || 0;
+      const rPassed = Number(item.retakersPassed) || 0;
+
+      const fRate = fTakers > 0 ? parseFloat(((fPassed / fTakers) * 100).toFixed(2)) : 0;
+      const rRate = rTakers > 0 ? parseFloat(((rPassed / rTakers) * 100).toFixed(2)) : 0;
+      const totalTakers = fTakers + rTakers;
+      const totalPassed = fPassed + rPassed;
+      const overallRate = totalTakers > 0 ? parseFloat(((totalPassed / totalTakers) * 100).toFixed(2)) : 0;
+
+      if (item.firstTakersPassRate !== fRate) setValue(`boardPerformance.${index}.firstTakersPassRate`, fRate);
+      if (item.retakersPassRate !== rRate) setValue(`boardPerformance.${index}.retakersPassRate`, rRate);
+      if (item.overallPassRate !== overallRate) setValue(`boardPerformance.${index}.overallPassRate`, overallRate);
+    });
+  }, [watchBoard, setValue]);
+
   return (
     <div className="space-y-8">
-      {/* 1. Board Examination Performance (Conditional) */}
+      {/* 1. Board Examination Performance (Conditional & Dynamic) */}
       {isBoardProgram && (
         <Card className="border-primary/20 shadow-sm">
-          <CardHeader className="bg-primary/5 border-b py-4">
-            <CardTitle className="flex items-center gap-2 text-primary">
-              <TrendingUp className="h-5 w-5" />
-              Board Examination Performance
-            </CardTitle>
-            <CardDescription>Professional licensure results for the academic year.</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-              <FormField
-                control={control}
-                name="boardPerformance.examDate"
-                render={({ field }) => (
-                  <FormItem className="lg:col-span-1">
-                    <FormLabel>Examination Date</FormLabel>
-                    <FormControl><Input {...field} placeholder="e.g., Sept 2024" disabled={!canEdit} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={control}
-                name="boardPerformance.firstTakersPassRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First Takers (%)</FormLabel>
-                    <FormControl><Input type="number" step="0.01" {...field} disabled={!canEdit} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={control}
-                name="boardPerformance.retakersPassRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Retakers (%)</FormLabel>
-                    <FormControl><Input type="number" step="0.01" {...field} disabled={!canEdit} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={control}
-                name="boardPerformance.overallPassRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="font-bold text-primary">Overall (%)</FormLabel>
-                    <FormControl><Input type="number" step="0.01" {...field} className="font-bold border-primary/50" disabled={!canEdit} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={control}
-                name="boardPerformance.nationalPassingRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>National Avg (%)</FormLabel>
-                    <FormControl><Input type="number" step="0.01" {...field} disabled={!canEdit} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <CardHeader className="bg-primary/5 border-b py-4 flex flex-row items-center justify-between">
+            <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2 text-primary">
+                <TrendingUp className="h-5 w-5" />
+                Board Examination Performance Registry
+                </CardTitle>
+                <CardDescription>Professional licensure results with automatic calculations.</CardDescription>
             </div>
+            {canEdit && (
+                <Button 
+                    type="button" 
+                    size="sm" 
+                    onClick={() => appendBoard({
+                        examDate: '',
+                        firstTakersCount: 0,
+                        firstTakersPassed: 0,
+                        firstTakersPassRate: 0,
+                        retakersCount: 0,
+                        retakersPassed: 0,
+                        retakersPassRate: 0,
+                        overallPassRate: 0,
+                        nationalPassingRate: 0
+                    })}
+                    className="h-8 gap-1"
+                >
+                    <PlusCircle className="h-3.5 w-3.5" />
+                    Add Exam
+                </Button>
+            )}
+          </CardHeader>
+          <CardContent className="pt-0">
+            <Table>
+                <TableHeader>
+                    <TableRow className="text-[10px] uppercase font-bold text-muted-foreground bg-muted/20">
+                        <TableHead className="w-[150px]">Date/Period</TableHead>
+                        <TableHead className="text-center">First Takers (Pass/Total)</TableHead>
+                        <TableHead className="text-center">Retakers (Pass/Total)</TableHead>
+                        <TableHead className="text-center">School %</TableHead>
+                        <TableHead className="text-center">National %</TableHead>
+                        {canEdit && <TableHead className="w-[40px]"></TableHead>}
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {boardFields.map((field, index) => (
+                        <TableRow key={field.id} className="hover:bg-muted/30">
+                            <TableCell>
+                                <FormField control={control} name={`boardPerformance.${index}.examDate`} render={({ field }) => (
+                                    <FormControl><Input {...field} placeholder="e.g. Sept 2024" className="h-8 text-xs font-bold" disabled={!canEdit} /></FormControl>
+                                )} />
+                            </TableCell>
+                            <TableCell>
+                                <div className="flex items-center gap-1 justify-center">
+                                    <FormField control={control} name={`boardPerformance.${index}.firstTakersPassed`} render={({ field }) => (
+                                        <FormControl><Input type="number" {...field} className="h-8 w-16 text-center text-xs" title="Passed" disabled={!canEdit} /></FormControl>
+                                    )} />
+                                    <span className="text-xs text-muted-foreground">/</span>
+                                    <FormField control={control} name={`boardPerformance.${index}.firstTakersCount`} render={({ field }) => (
+                                        <FormControl><Input type="number" {...field} className="h-8 w-16 text-center text-xs" title="Total" disabled={!canEdit} /></FormControl>
+                                    )} />
+                                    <Badge variant="secondary" className="h-5 text-[9px] font-mono ml-1">
+                                        {watchBoard?.[index]?.firstTakersPassRate || 0}%
+                                    </Badge>
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                                <div className="flex items-center gap-1 justify-center">
+                                    <FormField control={control} name={`boardPerformance.${index}.retakersPassed`} render={({ field }) => (
+                                        <FormControl><Input type="number" {...field} className="h-8 w-16 text-center text-xs" title="Passed" disabled={!canEdit} /></FormControl>
+                                    )} />
+                                    <span className="text-xs text-muted-foreground">/</span>
+                                    <FormField control={control} name={`boardPerformance.${index}.retakersCount`} render={({ field }) => (
+                                        <FormControl><Input type="number" {...field} className="h-8 w-16 text-center text-xs" title="Total" disabled={!canEdit} /></FormControl>
+                                    )} />
+                                    <Badge variant="secondary" className="h-5 text-[9px] font-mono ml-1">
+                                        {watchBoard?.[index]?.retakersPassRate || 0}%
+                                    </Badge>
+                                </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                                <FormField control={control} name={`boardPerformance.${index}.overallPassRate`} render={({ field }) => (
+                                    <FormControl><Input type="number" step="0.01" {...field} className="h-8 w-20 text-center text-xs font-black text-primary border-primary/30" disabled /></FormControl>
+                                )} />
+                            </TableCell>
+                            <TableCell className="text-center">
+                                <FormField control={control} name={`boardPerformance.${index}.nationalPassingRate`} render={({ field }) => (
+                                    <FormControl><Input type="number" step="0.01" {...field} className="h-8 w-20 text-center text-xs" disabled={!canEdit} /></FormControl>
+                                )} />
+                            </TableCell>
+                            {canEdit && (
+                                <TableCell>
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeBoard(index)} className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                </TableCell>
+                            )}
+                        </TableRow>
+                    ))}
+                    {boardFields.length === 0 && (
+                        <TableRow><TableCell colSpan={6} className="h-24 text-center text-muted-foreground italic text-xs">No board exam records added for this period.</TableCell></TableRow>
+                    )}
+                </TableBody>
+            </Table>
           </CardContent>
         </Card>
       )}

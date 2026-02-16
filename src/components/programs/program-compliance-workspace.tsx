@@ -91,13 +91,17 @@ const complianceSchema = z.object({
     tracedCount: z.coerce.number(),
     employmentRate: z.coerce.number(),
   })).optional(),
-  boardPerformance: z.object({
-    examDate: z.any().optional(),
-    firstTakersPassRate: z.coerce.number(),
-    retakersPassRate: z.coerce.number(),
-    overallPassRate: z.coerce.number(),
-    nationalPassingRate: z.coerce.number(),
-  }).optional(),
+  boardPerformance: z.array(z.object({
+    examDate: z.string().min(1, 'Exam date is required'),
+    firstTakersCount: z.coerce.number().min(0),
+    firstTakersPassed: z.coerce.number().min(0),
+    firstTakersPassRate: z.coerce.number().min(0),
+    retakersCount: z.coerce.number().min(0),
+    retakersPassed: z.coerce.number().min(0),
+    retakersPassRate: z.coerce.number().min(0),
+    overallPassRate: z.coerce.number().min(0),
+    nationalPassingRate: z.coerce.number().min(0),
+  })).optional(),
 });
 
 /**
@@ -165,13 +169,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       stats: { enrollment: { firstYear: 0, secondYear: 0, thirdYear: 0, fourthYear: 0 }, graduationCount: 0 },
       graduationRecords: [],
       tracerRecords: [],
-      boardPerformance: { 
-        examDate: '',
-        firstTakersPassRate: 0, 
-        retakersPassRate: 0, 
-        overallPassRate: 0, 
-        nationalPassingRate: 0 
-      }
+      boardPerformance: []
     },
   });
 
@@ -200,6 +198,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         academicYear: selectedAY,
         graduationRecords: activeRecord.graduationRecords || [],
         tracerRecords: activeRecord.tracerRecords || [],
+        boardPerformance: activeRecord.boardPerformance || [],
         ched: {
             ...activeRecord.ched,
             rqatVisits: activeRecord.ched.rqatVisits || []
@@ -235,13 +234,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         stats: { enrollment: { firstYear: 0, secondYear: 0, thirdYear: 0, fourthYear: 0 }, graduationCount: 0 },
         graduationRecords: [],
         tracerRecords: [],
-        boardPerformance: { 
-          examDate: '',
-          firstTakersPassRate: 0, 
-          retakersPassRate: 0, 
-          overallPassRate: 0, 
-          nationalPassingRate: 0 
-        }
+        boardPerformance: []
       });
     }
   }, [activeRecord, selectedAY, methods]);
