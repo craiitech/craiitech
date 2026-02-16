@@ -48,9 +48,16 @@ const complianceSchema = z.object({
   }),
   accreditation: z.object({
     level: z.string(),
-    dateOfAward: z.any().optional(),
-    nextSchedule: z.any().optional(),
+    dateOfVisit: z.string().optional(),
+    dateOfAward: z.string().optional(),
+    nextSchedule: z.string(),
     certificateLink: z.string().url().optional().or(z.literal('')),
+    taskForce: z.string().optional(),
+    areas: z.array(z.object({
+      areaCode: z.string(),
+      areaName: z.string(),
+      googleDriveLink: z.string().url().optional().or(z.literal('')),
+    })).optional(),
   }),
   curriculum: z.object({
     revisionNumber: z.string(),
@@ -110,7 +117,7 @@ const complianceSchema = z.object({
  */
 function sanitizeForFirestore(obj: any): any {
   if (Array.isArray(obj)) {
-    return obj.map((v) => (v && typeof v === 'object' && !(v instanceof Date)) ? sanitizeForFirestore(v) : v);
+    return obj.map((value) => (value && typeof value === 'object' && !(value instanceof Date)) ? sanitizeForFirestore(value) : value);
   }
   return Object.entries(obj).reduce((acc, [key, value]) => {
     if (value === undefined) return acc;
@@ -118,7 +125,7 @@ function sanitizeForFirestore(obj: any): any {
       return { ...acc, [key]: sanitizeForFirestore(value) };
     }
     return { ...acc, [key]: value };
-  }, {});
+  }, {} as any);
 }
 
 export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplianceWorkspaceProps) {
@@ -152,8 +159,11 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       accreditation: { 
         level: 'Not Accredited',
         certificateLink: '',
+        dateOfVisit: '',
         dateOfAward: '',
-        nextSchedule: ''
+        nextSchedule: '',
+        taskForce: '',
+        areas: []
       },
       curriculum: { 
         revisionNumber: '0', 
@@ -202,6 +212,10 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         ched: {
             ...activeRecord.ched,
             rqatVisits: activeRecord.ched.rqatVisits || []
+        },
+        accreditation: {
+            ...activeRecord.accreditation,
+            areas: activeRecord.accreditation.areas || []
         }
       });
     } else {
@@ -217,8 +231,11 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         accreditation: { 
           level: 'Not Accredited', 
           certificateLink: '',
+          dateOfVisit: '',
           dateOfAward: '',
-          nextSchedule: ''
+          nextSchedule: '',
+          taskForce: '',
+          areas: []
         },
         curriculum: { 
           revisionNumber: '0', 

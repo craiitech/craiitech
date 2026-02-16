@@ -296,6 +296,12 @@ export type BoardExamPerformance = {
   nationalPassingRate: number;
 };
 
+export type AccreditationArea = {
+  areaCode: string;
+  areaName: string;
+  googleDriveLink: string;
+};
+
 export type ProgramComplianceRecord = {
   id: string;
   programId: string;
@@ -314,9 +320,12 @@ export type ProgramComplianceRecord = {
   // Accreditation
   accreditation: {
     level: string; // Level 1, Level 2, etc.
-    dateOfAward: any;
-    nextSchedule: any;
+    dateOfVisit?: string;
+    dateOfAward?: string;
+    nextSchedule: string;
     certificateLink?: string; // GDrive PDF
+    taskForce?: string;
+    areas?: AccreditationArea[];
   };
 
   // Curriculum
