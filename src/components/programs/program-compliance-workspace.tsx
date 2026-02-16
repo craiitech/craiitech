@@ -32,85 +32,94 @@ const currentYear = new Date().getFullYear();
 const academicYears = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
 // Validation schema for the entire compliance record
+// We use .optional() and .or(z.literal('')) extensively to prevent validation blockages on empty fields.
 const complianceSchema = z.object({
   academicYear: z.coerce.number(),
   ched: z.object({
-    copcStatus: z.enum(['With COPC', 'No COPC', 'In Progress']),
-    copcLink: z.string().url('Invalid URL format').optional().or(z.literal('')),
-    contentNoted: z.boolean(),
-    contentNotedLink: z.string().url('Invalid URL format').optional().or(z.literal('')),
+    copcStatus: z.enum(['With COPC', 'No COPC', 'In Progress']).default('In Progress'),
+    copcLink: z.string().optional().or(z.literal('')),
+    contentNoted: z.boolean().default(false),
+    contentNotedLink: z.string().optional().or(z.literal('')),
     rqatVisits: z.array(z.object({
-      date: z.string().optional(),
-      result: z.string().optional(),
-      comments: z.string().optional(),
-      nonCompliances: z.string().optional(),
-    })).optional(),
+      date: z.string().optional().or(z.literal('')),
+      result: z.string().optional().or(z.literal('')),
+      comments: z.string().optional().or(z.literal('')),
+      nonCompliances: z.string().optional().or(z.literal('')),
+    })).optional().default([]),
   }),
   accreditation: z.object({
-    level: z.string(),
-    dateOfVisit: z.string().optional(),
-    dateOfAward: z.string().optional(),
-    nextSchedule: z.string().optional(),
-    certificateLink: z.string().url('Invalid URL format').optional().or(z.literal('')),
-    overallTaskForceHead: z.string().optional(),
-    taskForce: z.string().optional(),
+    level: z.string().default('Non Accredited'),
+    dateOfVisit: z.string().optional().or(z.literal('')),
+    dateOfAward: z.string().optional().or(z.literal('')),
+    nextSchedule: z.string().optional().or(z.literal('')),
+    certificateLink: z.string().optional().or(z.literal('')),
+    overallTaskForceHead: z.string().optional().or(z.literal('')),
+    taskForce: z.string().optional().or(z.literal('')),
     areas: z.array(z.object({
       areaCode: z.string(),
       areaName: z.string(),
-      googleDriveLink: z.string().url('Invalid URL format').optional().or(z.literal('')),
-      taskForce: z.string().optional(),
-    })).optional(),
+      googleDriveLink: z.string().optional().or(z.literal('')),
+      taskForce: z.string().optional().or(z.literal('')),
+    })).optional().default([]),
   }),
   curriculum: z.object({
-    revisionNumber: z.string(),
+    revisionNumber: z.string().default('0'),
     dateImplemented: z.any().optional(),
-    isNotedByChed: z.boolean(),
-    cmoLink: z.string().url('Invalid URL format').optional().or(z.literal('')),
+    isNotedByChed: z.boolean().default(false),
+    cmoLink: z.string().optional().or(z.literal('')),
   }),
   faculty: z.object({
-    dean: z.object({ name: z.string(), highestEducation: z.string(), isAlignedWithCMO: z.string() }),
-    programChair: z.object({ name: z.string(), highestEducation: z.string(), isAlignedWithCMO: z.string() }),
+    dean: z.object({ 
+        name: z.string().optional().default(''), 
+        highestEducation: z.string().optional().default(''), 
+        isAlignedWithCMO: z.string().optional().default('Aligned') 
+    }),
+    programChair: z.object({ 
+        name: z.string().optional().default(''), 
+        highestEducation: z.string().optional().default(''), 
+        isAlignedWithCMO: z.string().optional().default('Aligned') 
+    }),
     members: z.array(z.object({
       id: z.string(),
-      name: z.string(),
-      highestEducation: z.string(),
-      category: z.enum(['Core', 'Professional Special', 'General Education', 'Staff']),
-      isAlignedWithCMO: z.string(),
-    })),
+      name: z.string().optional().default(''),
+      highestEducation: z.string().optional().default(''),
+      category: z.enum(['Core', 'Professional Special', 'General Education', 'Staff']).default('Core'),
+      isAlignedWithCMO: z.string().optional().default('Aligned'),
+    })).optional().default([]),
   }),
   stats: z.object({
     enrollment: z.object({
-      firstYear: z.coerce.number(),
-      secondYear: z.coerce.number(),
-      thirdYear: z.coerce.number(),
-      fourthYear: z.coerce.number(),
-      fifthYear: z.coerce.number().optional(),
+      firstYear: z.coerce.number().default(0),
+      secondYear: z.coerce.number().default(0),
+      thirdYear: z.coerce.number().default(0),
+      fourthYear: z.coerce.number().default(0),
+      fifthYear: z.coerce.number().optional().default(0),
     }),
-    graduationCount: z.coerce.number(),
+    graduationCount: z.coerce.number().default(0),
   }),
   graduationRecords: z.array(z.object({
     year: z.coerce.number(),
     semester: z.string(),
     count: z.coerce.number(),
-  })).optional(),
+  })).optional().default([]),
   tracerRecords: z.array(z.object({
     year: z.coerce.number(),
     semester: z.string(),
     totalGraduates: z.coerce.number(),
     tracedCount: z.coerce.number(),
     employmentRate: z.coerce.number(),
-  })).optional(),
+  })).optional().default([]),
   boardPerformance: z.array(z.object({
-    examDate: z.string().min(1, 'Exam date is required'),
-    firstTakersCount: z.coerce.number().min(0),
-    firstTakersPassed: z.coerce.number().min(0),
-    firstTakersPassRate: z.coerce.number().min(0),
-    retakersCount: z.coerce.number().min(0),
-    retakersPassed: z.coerce.number().min(0),
-    retakersPassRate: z.coerce.number().min(0),
-    overallPassRate: z.coerce.number().min(0),
-    nationalPassingRate: z.coerce.number().min(0),
-  })).optional(),
+    examDate: z.string().optional().or(z.literal('')),
+    firstTakersCount: z.coerce.number().default(0),
+    firstTakersPassed: z.coerce.number().default(0),
+    firstTakersPassRate: z.coerce.number().default(0),
+    retakersCount: z.coerce.number().default(0),
+    retakersPassed: z.coerce.number().default(0),
+    retakersPassRate: z.coerce.number().default(0),
+    overallPassRate: z.coerce.number().default(0),
+    nationalPassingRate: z.coerce.number().default(0),
+  })).optional().default([]),
 });
 
 /**
@@ -121,7 +130,6 @@ const complianceSchema = z.object({
 function sanitizeForFirestore(obj: any): any {
   if (obj === null || obj === undefined) return null;
   
-  // If it's a Date or has a toDate method (Firestore Timestamp), return as is
   if (obj instanceof Date || (typeof obj.toDate === 'function')) {
     return obj;
   }
@@ -133,7 +141,13 @@ function sanitizeForFirestore(obj: any): any {
   if (typeof obj === 'object') {
     const sanitized: any = {};
     for (const [key, value] of Object.entries(obj)) {
-      sanitized[key] = sanitizeForFirestore(value);
+      if (value === undefined) {
+          sanitized[key] = null;
+      } else if (value !== null && typeof value === 'object' && !(value instanceof Date)) {
+          sanitized[key] = sanitizeForFirestore(value);
+      } else {
+          sanitized[key] = value;
+      }
     }
     return sanitized;
   }
@@ -294,7 +308,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       toast({ title: 'Compliance Updated', description: `Record for AY ${selectedAY} has been saved successfully.` });
     } catch (error) {
       console.error('Compliance save error:', error);
-      toast({ title: 'Save Failed', description: 'Could not update compliance record. Please check your data format.', variant: 'destructive' });
+      toast({ title: 'Save Failed', description: 'Could not update compliance record. Please check your internet connection or data formats.', variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
@@ -304,7 +318,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     console.error("Compliance Validation Errors:", errors);
     toast({ 
         title: "Validation Error", 
-        description: "Please check the form for invalid fields (e.g. incorrect URL formats).", 
+        description: "Please check the form for invalid fields. Ensure all URLs are properly formatted if provided.", 
         variant: 'destructive' 
     });
   };
