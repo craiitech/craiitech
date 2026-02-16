@@ -85,6 +85,7 @@ export default function SubmissionsPage() {
   
   const [reportTypeFilter, setReportTypeFilter] = useState<string>('all');
   const [yearFilter, setYearFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest'>('recent');
 
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
@@ -130,12 +131,16 @@ export default function SubmissionsPage() {
         filtered = filtered.filter(s => String(s.year) === yearFilter);
     }
 
+    if (statusFilter !== 'all') {
+        filtered = filtered.filter(s => s.statusId === statusFilter);
+    }
+
     return filtered.sort((a, b) => {
         const dateA = a.submissionDate instanceof Timestamp ? a.submissionDate.toMillis() : new Date(a.submissionDate).getTime();
         const dateB = b.submissionDate instanceof Timestamp ? b.submissionDate.toMillis() : new Date(b.submissionDate).getTime();
         return sortOrder === 'recent' ? dateB - dateA : dateA - dateB;
     });
-  }, [rawSubmissions, reportTypeFilter, yearFilter, sortOrder]);
+  }, [rawSubmissions, reportTypeFilter, yearFilter, statusFilter, sortOrder]);
 
   const campusesQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'campuses') : null), [firestore, user]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
@@ -201,7 +206,7 @@ export default function SubmissionsPage() {
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                             <div className="space-y-1">
-                                <label className="text-[10px] font-bold uppercase text-muted-foreground">Report Type</label>
+                                <label className="text-[10px] font-bold uppercase text-muted-foreground block">Report Type</label>
                                 <Select value={reportTypeFilter} onValueChange={setReportTypeFilter}>
                                     <SelectTrigger className="w-[180px] h-8 text-xs">
                                         <SelectValue placeholder="All Reports" />
@@ -213,7 +218,7 @@ export default function SubmissionsPage() {
                                 </Select>
                             </div>
                             <div className="space-y-1">
-                                <label className="text-[10px] font-bold uppercase text-muted-foreground">Year</label>
+                                <label className="text-[10px] font-bold uppercase text-muted-foreground block">Year</label>
                                 <Select value={yearFilter} onValueChange={setYearFilter}>
                                     <SelectTrigger className="w-[100px] h-8 text-xs">
                                         <SelectValue placeholder="All Years" />
@@ -225,7 +230,21 @@ export default function SubmissionsPage() {
                                 </Select>
                             </div>
                             <div className="space-y-1">
-                                <label className="text-[10px] font-bold uppercase text-muted-foreground">Order</label>
+                                <label className="text-[10px] font-bold uppercase text-muted-foreground block">Status</label>
+                                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                    <SelectTrigger className="w-[150px] h-8 text-xs">
+                                        <SelectValue placeholder="All Statuses" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Statuses</SelectItem>
+                                        <SelectItem value="submitted">Awaiting Approval</SelectItem>
+                                        <SelectItem value="approved">Approved</SelectItem>
+                                        <SelectItem value="rejected">Rejected</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold uppercase text-muted-foreground block">Order</label>
                                 <Button 
                                     variant="outline" 
                                     size="sm" 
