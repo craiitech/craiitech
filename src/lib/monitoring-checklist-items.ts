@@ -11,7 +11,8 @@ export const monitoringGroups = [
       "Objectives Monitoring",
       "Risk and Opportunity Registry",
       "Risk and Opportunity Action Plan",
-      "EOMS Submissions",
+      "SWOT Analysis",
+      "Needs and Expectation of Interested Parties",
       "Procedure Manual",
       "Forms Utilized by Units",
       "Attachments / Evidences"

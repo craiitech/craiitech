@@ -66,7 +66,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
     'awaiting approval': 'outline',
 };
 
-const submissionTypes = [
+const submissionTypesList = [
   'All Submissions',
   'Operational Plan',
   'Quality Objectives Monitoring',
@@ -102,7 +102,7 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
     },
     2028: { 
       first: 'bg-rose-50/20 hover:bg-rose-100/40 dark:bg-rose-900/5 dark:hover:bg-rose-900/10', 
-      final: 'bg-rose-100/40 hover:bg-rose-200/50 dark:bg-rose-900/20 dark:hover:bg-rose-900/30' 
+      final: 'bg-rose-100/40 hover:bg-rose-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
     },
   };
   
@@ -659,7 +659,7 @@ export default function SubmissionsPage() {
                     </div>
                     <div className="flex gap-2">
                         <Select value={activeYearFilter} onValueChange={setActiveYearFilter}><SelectTrigger className="w-[150px]"><SelectValue placeholder="Year" /></SelectTrigger><SelectContent>{yearsForFilter.map(y=><SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent></Select>
-                        <Select value={activeFilter} onValueChange={setActiveFilter}><SelectTrigger className="w-[250px]"><SelectValue placeholder="Filter..." /></SelectTrigger><SelectContent>{submissionTypes.map(t=><SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select>
+                        <Select value={activeFilter} onValueChange={setActiveFilter}><SelectTrigger className="w-[250px]"><SelectValue placeholder="Filter..." /></SelectTrigger><SelectContent>{submissionTypesList.map(t=><SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select>
                     </div>
                 </div>
                 </CardHeader>

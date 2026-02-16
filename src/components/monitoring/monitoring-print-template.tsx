@@ -36,6 +36,7 @@ export function MonitoringPrintTemplate({ record, campusName, unitName }: Monito
         <div><span className="font-bold">CAMPUS / SITE:</span> {campusName}</div>
         <div><span className="font-bold">DATE OF VISIT:</span> {format(visitDate, 'PPPP')}</div>
         <div><span className="font-bold">UNIT / OFFICE:</span> {unitName}</div>
+        <div><span className="font-bold">BUILDING:</span> {record.building || 'N/A'}</div>
         <div><span className="font-bold">OFFICE / ROOM NO:</span> {record.roomNumber || 'N/A'}</div>
         <div className="col-span-2"><span className="font-bold">OFFICER IN CHARGE:</span> {record.officerInCharge || 'N/A'}</div>
       </div>

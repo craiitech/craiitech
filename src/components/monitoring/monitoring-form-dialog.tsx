@@ -31,7 +31,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, ClipboardCheck, Circle, FileWarning, CheckCircle2, Info, LayoutList, Printer, BookOpen } from 'lucide-react';
+import { Loader2, ClipboardCheck, Circle, FileWarning, CheckCircle2, Info, LayoutList, Printer, BookOpen, Building } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
@@ -65,6 +65,7 @@ const formSchema = z.object({
   campusId: z.string().min(1, 'Please select a campus.'),
   unitId: z.string().min(1, 'Please select a unit.'),
   roomNumber: z.string().optional(),
+  building: z.string().optional(),
   officerInCharge: z.string().optional(),
   observations: z.array(z.object({
     item: z.string(),
@@ -87,7 +88,9 @@ const eomsReportMap: Record<string, string> = {
     "Operational Plan": "Operational Plan",
     "Objectives Monitoring": "Quality Objectives Monitoring",
     "Risk and Opportunity Registry": "Risk and Opportunity Registry",
-    "Risk and Opportunity Action Plan": "Risk and Opportunity Action Plan"
+    "Risk and Opportunity Action Plan": "Risk and Opportunity Action Plan",
+    "SWOT Analysis": "SWOT Analysis",
+    "Needs and Expectation of Interested Parties": "Needs and Expectation of Interested Parties"
 };
 
 export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, units, onPrint }: MonitoringFormDialogProps) {
@@ -105,6 +108,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
       campusId: '',
       unitId: '',
       roomNumber: '',
+      building: '',
       officerInCharge: '',
       generalRemarks: '',
       observations: monitoringChecklistItems.map(item => ({
@@ -157,7 +161,9 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
         "Operational Plan",
         "Objectives Monitoring",
         "Risk and Opportunity Registry",
-        "Risk and Opportunity Action Plan"
+        "Risk and Opportunity Action Plan",
+        "SWOT Analysis",
+        "Needs and Expectation of Interested Parties"
     ];
 
     const results: { name: string; missing: string[]; isNA?: boolean }[] = [];
@@ -225,6 +231,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
           visitDay: String(vDate.getDate()),
           visitYear: String(vDate.getFullYear()),
           roomNumber: record.roomNumber || '',
+          building: record.building || '',
           officerInCharge: record.officerInCharge || '',
           generalRemarks: record.generalRemarks || '',
           observations: monitoringChecklistItems.map(item => {
@@ -244,6 +251,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
           campusId: '',
           unitId: '',
           roomNumber: '',
+          building: '',
           officerInCharge: '',
           generalRemarks: '',
           observations: monitoringChecklistItems.map(item => ({ item, status: 'Available', remarks: '' })),
@@ -316,14 +324,14 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0 overflow-hidden">
             <ScrollArea className="flex-1">
               <div className="p-6 space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                  <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                  <div className="space-y-2 lg:col-span-1">
                     <FormLabel>Date of Visit</FormLabel>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-1">
                         <FormField control={form.control} name="visitMonth" render={({ field }) => (
                             <FormItem>
                                 <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
-                                    <FormControl><SelectTrigger className="px-2 h-9 text-xs"><SelectValue placeholder="Month" /></SelectTrigger></FormControl>
+                                    <FormControl><SelectTrigger className="px-1 h-9 text-[10px]"><SelectValue placeholder="Mo" /></SelectTrigger></FormControl>
                                     <SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
                                 </Select>
                             </FormItem>
@@ -331,7 +339,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                         <FormField control={form.control} name="visitDay" render={({ field }) => (
                             <FormItem>
                                 <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
-                                    <FormControl><SelectTrigger className="px-2 h-9 text-xs"><SelectValue placeholder="Day" /></SelectTrigger></FormControl>
+                                    <FormControl><SelectTrigger className="px-1 h-9 text-[10px]"><SelectValue placeholder="Day" /></SelectTrigger></FormControl>
                                     <SelectContent>{daysList.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                                 </Select>
                             </FormItem>
@@ -339,7 +347,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                         <FormField control={form.control} name="visitYear" render={({ field }) => (
                             <FormItem>
                                 <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
-                                    <FormControl><SelectTrigger className="px-2 h-9 text-xs"><SelectValue placeholder="Year" /></SelectTrigger></FormControl>
+                                    <FormControl><SelectTrigger className="px-1 h-9 text-[10px]"><SelectValue placeholder="Yr" /></SelectTrigger></FormControl>
                                     <SelectContent>
                                       {yearsList.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
                                     </SelectContent>
@@ -349,7 +357,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                     </div>
                   </div>
                   <FormField control={form.control} name="campusId" render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="lg:col-span-1">
                       <FormLabel>Campus</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value || ''} disabled={isReadOnly}>
                         <FormControl>
@@ -361,7 +369,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="unitId" render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="lg:col-span-1">
                       <FormLabel>Unit</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value || ''} disabled={isReadOnly || !selectedCampusId}>
                         <FormControl>
@@ -373,16 +381,23 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                     </FormItem>
                   )} />
                   <FormField control={form.control} name="roomNumber" render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="lg:col-span-1">
                       <FormLabel>Office / Room #</FormLabel>
                       <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Room 101" className="h-9 text-xs" disabled={isReadOnly} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
+                  <FormField control={form.control} name="building" render={({ field }) => (
+                    <FormItem className="lg:col-span-1">
+                      <FormLabel>Building</FormLabel>
+                      <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., CET Building" className="h-9 text-xs" disabled={isReadOnly} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
                   <FormField control={form.control} name="officerInCharge" render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="lg:col-span-1">
                       <FormLabel>Officer in Charge</FormLabel>
-                      <FormControl><Input {...field} value={field.value || ''} placeholder="Name of official" className="h-9 text-xs" disabled={isReadOnly} /></FormControl>
+                      <FormControl><Input {...field} value={field.value || ''} placeholder="Name" className="h-9 text-xs" disabled={isReadOnly} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />

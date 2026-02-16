@@ -226,6 +226,7 @@ export type UnitMonitoringRecord = {
   campusId: string;
   unitId: string;
   roomNumber?: string;
+  building?: string;
   officerInCharge?: string;
   monitorId: string;
   monitorName: string;
