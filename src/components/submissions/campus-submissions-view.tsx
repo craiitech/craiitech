@@ -5,7 +5,7 @@ import type { Submission, Unit, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Loader2, Building, Eye, School, Trash2, Download, Filter } from 'lucide-react';
+import { Loader2, Building, Eye, School, Trash2, Download, Filter, Calendar as CalendarIcon } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -63,15 +63,6 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
   return isFinal ? yearColor.final : yearColor.first;
 };
 
-const getGoogleDriveDownloadLink = (url: string) => {
-    const fileId = url.match(/d\/([^/]+)/);
-    if (fileId && fileId[1]) {
-        return `https://drive.google.com/uc?export=download&id=${fileId[1]}`;
-    }
-    return url;
-};
-
-
 interface CampusSubmissionsViewProps {
   allSubmissions: Submission[] | null;
   allCampuses: Campus[] | null;
@@ -101,36 +92,17 @@ export function CampusSubmissionsView({
     return years.sort((a,b) => b.localeCompare(a));
   }, [allSubmissions]);
 
-  const campusesWithSubmissions = useMemo(() => {
-    if (!allCampuses || !allSubmissions) return [];
-    const submittedCampusIds = new Set(
-        allSubmissions
-            .filter(s => s.year.toString() === selectedYear)
-            .map(s => s.campusId)
-    );
-    return allCampuses
-        .filter(campus => submittedCampusIds.has(campus.id))
-        .sort((a,b) => a.name.localeCompare(b.name));
-  }, [allCampuses, allSubmissions, selectedYear]);
+  const campusesToShow = useMemo(() => {
+    if (!allCampuses) return [];
+    return [...allCampuses].sort((a,b) => a.name.localeCompare(b.name));
+  }, [allCampuses]);
   
   const unitsInSelectedCampus = useMemo(() => {
-    if (!selectedCampusId || !allUnits || !allSubmissions) return [];
-
-    const unitsForCampus = allUnits.filter(unit =>
-        unit.campusIds?.includes(selectedCampusId)
-    );
-
-    const submittedUnitIds = new Set(
-        allSubmissions
-            .filter(s => s.year.toString() === selectedYear)
-            .map(s => s.unitId)
-    );
-
-    return unitsForCampus
-        .filter(unit => submittedUnitIds.has(unit.id))
+    if (!selectedCampusId || !allUnits) return [];
+    return allUnits
+        .filter(unit => unit.campusIds?.includes(selectedCampusId))
         .sort((a, b) => a.name.localeCompare(b.name));
-
-  }, [selectedCampusId, allUnits, allSubmissions, selectedYear]);
+  }, [selectedCampusId, allUnits]);
 
 
   const selectedUnitSubmissions = useMemo(() => {
@@ -172,7 +144,7 @@ export function CampusSubmissionsView({
         <div>
             <CardTitle>Campus Submissions</CardTitle>
             <CardDescription>
-            Drill down into specific sites and units to manage their compliance history.
+            Select a campus and unit to view their complete submission history for the selected year.
             </CardDescription>
         </div>
         <div className="flex items-center gap-2">
@@ -193,9 +165,9 @@ export function CampusSubmissionsView({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-1">
             <ScrollArea className="h-[60vh] rounded-md border bg-muted/5">
-                 {campusesWithSubmissions.length > 0 ? (
+                 {campusesToShow.length > 0 ? (
                     <Accordion type="single" collapsible value={selectedCampusId || ''} onValueChange={handleCampusSelect}>
-                        {campusesWithSubmissions.map(campus => (
+                        {campusesToShow.map(campus => (
                             <AccordionItem value={campus.id} key={campus.id} className="border-b-0">
                                 <AccordionTrigger 
                                     className="px-4 py-3 hover:no-underline hover:bg-muted/50 data-[state=open]:bg-muted/20"
@@ -224,7 +196,7 @@ export function CampusSubmissionsView({
                                         </Button>
                                     ))}
                                     {selectedCampusId === campus.id && unitsInSelectedCampus.length === 0 && (
-                                        <div className="p-4 text-[10px] text-center text-muted-foreground italic">No submissions for this year.</div>
+                                        <div className="p-4 text-[10px] text-center text-muted-foreground italic">No units assigned to this campus.</div>
                                     )}
                                     </div>
                                 </AccordionContent>
@@ -234,7 +206,7 @@ export function CampusSubmissionsView({
                  ) : (
                     <div className="flex flex-col items-center justify-center h-full text-center p-8 gap-2">
                         <Filter className="h-8 w-8 text-muted-foreground opacity-20" />
-                        <p className="text-xs text-muted-foreground font-medium">No activity recorded for {selectedYear}.</p>
+                        <p className="text-xs text-muted-foreground font-medium">No campuses registered.</p>
                     </div>
                  )}
             </ScrollArea>
@@ -336,7 +308,7 @@ function SubmissionTableForCycle({
                         <TableCell className="text-center">
                             <Badge 
                                 className={cn(
-                                    "capitalize font-black text-[8px] px-2 py-0 border-none shadow-sm",
+                                    "capitalize font-black text-[9px] px-2 py-0 border-none shadow-sm",
                                     sub.statusId === 'approved' && "bg-emerald-600 text-white",
                                     sub.statusId === 'rejected' && "bg-rose-600 text-white",
                                     sub.statusId === 'submitted' && "bg-amber-500 text-amber-950",

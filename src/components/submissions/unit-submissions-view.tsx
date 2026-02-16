@@ -85,20 +85,15 @@ export function UnitSubmissionsView({
     return years.sort((a,b) => b.localeCompare(a));
   }, [allSubmissions]);
 
-  const unitsWithSubmissions = useMemo(() => {
-    if (!allUnits || !allSubmissions || !userProfile?.campusId) {
+  const unitsToShow = useMemo(() => {
+    if (!allUnits || !userProfile?.campusId) {
       return [];
     }
-    const campusUnits = allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
-    const submittedUnitIds = new Set(
-        allSubmissions
-            .filter(s => s.year.toString() === selectedYear)
-            .map(s => s.unitId)
-    );
-    return campusUnits
-        .filter(unit => submittedUnitIds.has(unit.id))
+    // Show ALL units in the campus, whether they have submissions or not
+    return allUnits
+        .filter(u => u.campusIds?.includes(userProfile.campusId))
         .sort((a, b) => a.name.localeCompare(b.name));
-  }, [allUnits, allSubmissions, userProfile, selectedYear]);
+  }, [allUnits, userProfile]);
 
   const selectedUnitSubmissions = useMemo(() => {
     if (!selectedUnitId || !allSubmissions || !userProfile?.campusId) {
@@ -154,9 +149,9 @@ export function UnitSubmissionsView({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-1">
             <ScrollArea className="h-[60vh] rounded-md border bg-muted/5">
-                 {unitsWithSubmissions.length > 0 ? (
+                 {unitsToShow.length > 0 ? (
                     <div className="p-2 space-y-1">
-                        {unitsWithSubmissions.map(unit => (
+                        {unitsToShow.map(unit => (
                         <Button
                             key={unit.id}
                             variant="ghost"
@@ -174,7 +169,7 @@ export function UnitSubmissionsView({
                  ) : (
                     <div className="flex flex-col items-center justify-center h-full text-center p-8 gap-2">
                         <Filter className="h-8 w-8 text-muted-foreground opacity-20" />
-                        <p className="text-xs text-muted-foreground font-medium">No units found with activity in {selectedYear}.</p>
+                        <p className="text-xs text-muted-foreground font-medium">No units found assigned to your site.</p>
                     </div>
                  )}
             </ScrollArea>
@@ -255,7 +250,7 @@ function SubmissionTableForCycle({ submissions, onEyeClick }: { submissions: Sub
                         <TableCell className="text-center">
                             <Badge 
                                 className={cn(
-                                    "capitalize font-black text-[8px] px-2 py-0 border-none shadow-sm",
+                                    "capitalize font-black text-[9px] px-2 py-0 border-none shadow-sm",
                                     sub.statusId === 'approved' && "bg-emerald-600 text-white",
                                     sub.statusId === 'rejected' && "bg-rose-600 text-white",
                                     sub.statusId === 'submitted' && "bg-amber-500 text-amber-950",

@@ -289,7 +289,7 @@ export default function SubmissionsPage() {
                                             <TableCell>
                                                 <Badge 
                                                     className={cn(
-                                                        "capitalize font-black text-[9px] px-2 py-0.5 shadow-sm border-none",
+                                                        "capitalize font-black text-[10px] px-2 py-0.5 shadow-sm border-none",
                                                         sub.statusId === 'approved' && "bg-emerald-600 text-white hover:bg-emerald-700",
                                                         sub.statusId === 'rejected' && "bg-rose-600 text-white hover:bg-rose-700",
                                                         sub.statusId === 'submitted' && "bg-amber-500 text-amber-950 hover:bg-amber-600",
