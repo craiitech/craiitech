@@ -47,10 +47,12 @@ export default function MonitoringPage() {
         
         const baseRef = collection(firestore, 'unitMonitoringRecords');
 
+        // Security Rules Requirement: Master Admin and Auditors can see everything without filters
         if (isAdmin || userRole === 'Auditor') {
             return query(baseRef, orderBy('visitDate', 'desc'));
         }
 
+        // Security Rules Requirement: Campus Officials must filter by campusId
         if (isSupervisor) {
              if (userProfile.campusId) {
                  return query(
@@ -62,6 +64,7 @@ export default function MonitoringPage() {
              return null;
         }
 
+        // Security Rules Requirement: Unit Users must filter by unitId
         if (userProfile.unitId) {
             return query(
                 baseRef, 
