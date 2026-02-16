@@ -31,95 +31,58 @@ interface ProgramComplianceWorkspaceProps {
 const currentYear = new Date().getFullYear();
 const academicYears = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
-// Validation schema for the entire compliance record
-// Using .optional().or(z.literal('')) and strings instead of strict enums to prevent validation blockages.
+// Validation schema: Extremely permissive to allow saving partial data
 const complianceSchema = z.object({
   academicYear: z.coerce.number(),
   ched: z.object({
-    copcStatus: z.string().default('In Progress'),
-    copcLink: z.string().optional().or(z.literal('')),
-    contentNoted: z.boolean().default(false),
-    contentNotedLink: z.string().optional().or(z.literal('')),
-    rqatVisits: z.array(z.object({
-      date: z.string().optional().or(z.literal('')),
-      result: z.string().optional().or(z.literal('')),
-      comments: z.string().optional().or(z.literal('')),
-      nonCompliances: z.string().optional().or(z.literal('')),
-    })).optional().default([]),
-  }),
+    copcStatus: z.string().optional().default('In Progress'),
+    copcLink: z.string().optional().default(''),
+    contentNoted: z.boolean().optional().default(false),
+    contentNotedLink: z.string().optional().default(''),
+    rqatVisits: z.array(z.any()).optional().default([]),
+  }).optional().default({}),
   accreditation: z.object({
-    level: z.string().default('Non Accredited'),
-    dateOfVisit: z.string().optional().or(z.literal('')),
-    dateOfAward: z.string().optional().or(z.literal('')),
-    nextSchedule: z.string().optional().or(z.literal('')),
-    certificateLink: z.string().optional().or(z.literal('')),
-    overallTaskForceHead: z.string().optional().or(z.literal('')),
-    taskForce: z.string().optional().or(z.literal('')),
-    areas: z.array(z.object({
-      areaCode: z.string(),
-      areaName: z.string(),
-      googleDriveLink: z.string().optional().or(z.literal('')),
-      taskForce: z.string().optional().or(z.literal('')),
-    })).optional().default([]),
-  }),
+    level: z.string().optional().default('Non Accredited'),
+    dateOfVisit: z.string().optional().default(''),
+    dateOfAward: z.string().optional().default(''),
+    nextSchedule: z.string().optional().default(''),
+    certificateLink: z.string().optional().default(''),
+    overallTaskForceHead: z.string().optional().default(''),
+    taskForce: z.string().optional().default(''),
+    areas: z.array(z.any()).optional().default([]),
+  }).optional().default({}),
   curriculum: z.object({
-    revisionNumber: z.string().default('0'),
+    revisionNumber: z.string().optional().default('0'),
     dateImplemented: z.any().optional(),
-    isNotedByChed: z.boolean().default(false),
-    cmoLink: z.string().optional().or(z.literal('')),
-  }),
+    isNotedByChed: z.boolean().optional().default(false),
+    cmoLink: z.string().optional().default(''),
+  }).optional().default({}),
   faculty: z.object({
     dean: z.object({ 
         name: z.string().optional().default(''), 
         highestEducation: z.string().optional().default(''), 
         isAlignedWithCMO: z.string().optional().default('Aligned') 
-    }),
+    }).optional().default({}),
     programChair: z.object({ 
         name: z.string().optional().default(''), 
         highestEducation: z.string().optional().default(''), 
         isAlignedWithCMO: z.string().optional().default('Aligned') 
-    }),
-    members: z.array(z.object({
-      id: z.string(),
-      name: z.string().optional().default(''),
-      highestEducation: z.string().optional().default(''),
-      category: z.string().default('Core'),
-      isAlignedWithCMO: z.string().optional().default('Aligned'),
-    })).optional().default([]),
-  }),
+    }).optional().default({}),
+    members: z.array(z.any()).optional().default([]),
+  }).optional().default({}),
   stats: z.object({
     enrollment: z.object({
-      firstYear: z.coerce.number().default(0),
-      secondYear: z.coerce.number().default(0),
-      thirdYear: z.coerce.number().default(0),
-      fourthYear: z.coerce.number().default(0),
+      firstYear: z.coerce.number().optional().default(0),
+      secondYear: z.coerce.number().optional().default(0),
+      thirdYear: z.coerce.number().optional().default(0),
+      fourthYear: z.coerce.number().optional().default(0),
       fifthYear: z.coerce.number().optional().default(0),
-    }),
-    graduationCount: z.coerce.number().default(0),
-  }),
-  graduationRecords: z.array(z.object({
-    year: z.coerce.number(),
-    semester: z.string(),
-    count: z.coerce.number(),
-  })).optional().default([]),
-  tracerRecords: z.array(z.object({
-    year: z.coerce.number(),
-    semester: z.string(),
-    totalGraduates: z.coerce.number(),
-    tracedCount: z.coerce.number(),
-    employmentRate: z.coerce.number(),
-  })).optional().default([]),
-  boardPerformance: z.array(z.object({
-    examDate: z.string().optional().or(z.literal('')),
-    firstTakersCount: z.coerce.number().default(0),
-    firstTakersPassed: z.coerce.number().default(0),
-    firstTakersPassRate: z.coerce.number().default(0),
-    retakersCount: z.coerce.number().default(0),
-    retakersPassed: z.coerce.number().default(0),
-    retakersPassRate: z.coerce.number().default(0),
-    overallPassRate: z.coerce.number().default(0),
-    nationalPassingRate: z.coerce.number().default(0),
-  })).optional().default([]),
+    }).optional().default({}),
+    graduationCount: z.coerce.number().optional().default(0),
+  }).optional().default({}),
+  graduationRecords: z.array(z.any()).optional().default([]),
+  tracerRecords: z.array(z.any()).optional().default([]),
+  boardPerformance: z.array(z.any()).optional().default([]),
 });
 
 /**
@@ -130,24 +93,25 @@ const complianceSchema = z.object({
 function sanitizeForFirestore(obj: any): any {
   if (obj === null || obj === undefined) return null;
   
+  // Handle primitives
+  if (typeof obj !== 'object') return obj;
+
   // Preserve Timestamps or native Dates
   if (obj instanceof Date || (typeof obj.toDate === 'function')) {
     return obj;
   }
 
+  // Handle Arrays
   if (Array.isArray(obj)) {
     return obj.map(sanitizeForFirestore);
   }
 
-  if (typeof obj === 'object') {
-    const sanitized: any = {};
-    for (const [key, value] of Object.entries(obj)) {
-      sanitized[key] = sanitizeForFirestore(value);
-    }
-    return sanitized;
+  // Handle Objects
+  const sanitized: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    sanitized[key] = sanitizeForFirestore(value);
   }
-
-  return obj;
+  return sanitized;
 }
 
 export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplianceWorkspaceProps) {
@@ -210,13 +174,36 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         tracerRecords: activeRecord.tracerRecords || [],
         boardPerformance: activeRecord.boardPerformance || [],
         ched: {
-            ...activeRecord.ched,
-            rqatVisits: activeRecord.ched.rqatVisits || []
+            copcStatus: activeRecord.ched?.copcStatus || 'In Progress',
+            copcLink: activeRecord.ched?.copcLink || '',
+            contentNoted: !!activeRecord.ched?.contentNoted,
+            contentNotedLink: activeRecord.ched?.contentNotedLink || '',
+            rqatVisits: activeRecord.ched?.rqatVisits || []
         },
         accreditation: {
-            ...activeRecord.accreditation,
-            overallTaskForceHead: activeRecord.accreditation.overallTaskForceHead || '',
-            areas: activeRecord.accreditation.areas || []
+            level: activeRecord.accreditation?.level || 'Non Accredited',
+            dateOfVisit: activeRecord.accreditation?.dateOfVisit || '',
+            dateOfAward: activeRecord.accreditation?.dateOfAward || '',
+            nextSchedule: activeRecord.accreditation?.nextSchedule || '',
+            certificateLink: activeRecord.accreditation?.certificateLink || '',
+            overallTaskForceHead: activeRecord.accreditation?.overallTaskForceHead || '',
+            taskForce: activeRecord.accreditation?.taskForce || '',
+            areas: activeRecord.accreditation?.areas || []
+        },
+        curriculum: {
+            revisionNumber: activeRecord.curriculum?.revisionNumber || '0',
+            dateImplemented: activeRecord.curriculum?.dateImplemented || '',
+            isNotedByChed: !!activeRecord.curriculum?.isNotedByChed,
+            cmoLink: activeRecord.curriculum?.cmoLink || ''
+        },
+        faculty: {
+            dean: activeRecord.faculty?.dean || { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' },
+            programChair: activeRecord.faculty?.programChair || { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' },
+            members: activeRecord.faculty?.members || []
+        },
+        stats: {
+            enrollment: activeRecord.stats?.enrollment || { firstYear: 0, secondYear: 0, thirdYear: 0, fourthYear: 0 },
+            graduationCount: activeRecord.stats?.graduationCount || 0
         }
       });
     } else {
@@ -255,7 +242,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       toast({ title: 'Compliance Updated', description: `Record for AY ${selectedAY} has been saved successfully.` });
     } catch (error) {
       console.error('Compliance save error:', error);
-      toast({ title: 'Save Failed', description: 'Could not update record.', variant: 'destructive' });
+      toast({ title: 'Save Failed', description: 'Could not update record. Please check your connection.', variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
@@ -265,7 +252,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     console.error("Form Validation Failed:", errors);
     toast({ 
         title: "Validation Error", 
-        description: "Please check all modules for red highlights. Some required fields might be empty or invalid.", 
+        description: "Please check all modules for red highlights. Some required fields might be invalid.", 
         variant: 'destructive' 
     });
   };
