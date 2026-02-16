@@ -31,59 +31,12 @@ interface ProgramComplianceWorkspaceProps {
 const currentYear = new Date().getFullYear();
 const academicYears = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
-// Validation schema: Extremely permissive to allow saving partial data
-const complianceSchema = z.object({
-  academicYear: z.coerce.number(),
-  ched: z.object({
-    copcStatus: z.string().optional().default('In Progress'),
-    copcLink: z.string().optional().default(''),
-    contentNoted: z.boolean().optional().default(false),
-    contentNotedLink: z.string().optional().default(''),
-    rqatVisits: z.array(z.any()).optional().default([]),
-  }).optional().default({}),
-  accreditation: z.object({
-    level: z.string().optional().default('Non Accredited'),
-    dateOfVisit: z.string().optional().default(''),
-    dateOfAward: z.string().optional().default(''),
-    nextSchedule: z.string().optional().default(''),
-    certificateLink: z.string().optional().default(''),
-    overallTaskForceHead: z.string().optional().default(''),
-    taskForce: z.string().optional().default(''),
-    areas: z.array(z.any()).optional().default([]),
-  }).optional().default({}),
-  curriculum: z.object({
-    revisionNumber: z.string().optional().default('0'),
-    dateImplemented: z.any().optional(),
-    isNotedByChed: z.boolean().optional().default(false),
-    cmoLink: z.string().optional().default(''),
-  }).optional().default({}),
-  faculty: z.object({
-    dean: z.object({ 
-        name: z.string().optional().default(''), 
-        highestEducation: z.string().optional().default(''), 
-        isAlignedWithCMO: z.string().optional().default('Aligned') 
-    }).optional().default({}),
-    programChair: z.object({ 
-        name: z.string().optional().default(''), 
-        highestEducation: z.string().optional().default(''), 
-        isAlignedWithCMO: z.string().optional().default('Aligned') 
-    }).optional().default({}),
-    members: z.array(z.any()).optional().default([]),
-  }).optional().default({}),
-  stats: z.object({
-    enrollment: z.object({
-      firstYear: z.coerce.number().optional().default(0),
-      secondYear: z.coerce.number().optional().default(0),
-      thirdYear: z.coerce.number().optional().default(0),
-      fourthYear: z.coerce.number().optional().default(0),
-      fifthYear: z.coerce.number().optional().default(0),
-    }).optional().default({}),
-    graduationCount: z.coerce.number().optional().default(0),
-  }).optional().default({}),
-  graduationRecords: z.array(z.any()).optional().default([]),
-  tracerRecords: z.array(z.any()).optional().default([]),
-  boardPerformance: z.array(z.any()).optional().default([]),
-});
+/**
+ * COMPLETELY PERMISSIVE SCHEMA
+ * We use .passthrough() and z.any() to effectively remove all validation blocks.
+ * This allows the user to save partial or "invalid" data as requested.
+ */
+const complianceSchema = z.record(z.any());
 
 /**
  * Robustly sanitizes objects for Firestore.
@@ -93,11 +46,10 @@ const complianceSchema = z.object({
 function sanitizeForFirestore(obj: any): any {
   if (obj === null || obj === undefined) return null;
   
-  // Handle primitives
   if (typeof obj !== 'object') return obj;
 
   // Preserve Timestamps or native Dates
-  if (obj instanceof Date || (typeof obj.toDate === 'function')) {
+  if (obj instanceof Date || (obj && typeof obj.toDate === 'function')) {
     return obj;
   }
 
@@ -131,7 +83,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
 
   const activeRecord = records?.[0] || null;
 
-  const methods = useForm<z.infer<typeof complianceSchema>>({
+  const methods = useForm<any>({
     resolver: zodResolver(complianceSchema),
     defaultValues: {
       academicYear: selectedAY,
@@ -170,41 +122,6 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       methods.reset({
         ...activeRecord,
         academicYear: selectedAY,
-        graduationRecords: activeRecord.graduationRecords || [],
-        tracerRecords: activeRecord.tracerRecords || [],
-        boardPerformance: activeRecord.boardPerformance || [],
-        ched: {
-            copcStatus: activeRecord.ched?.copcStatus || 'In Progress',
-            copcLink: activeRecord.ched?.copcLink || '',
-            contentNoted: !!activeRecord.ched?.contentNoted,
-            contentNotedLink: activeRecord.ched?.contentNotedLink || '',
-            rqatVisits: activeRecord.ched?.rqatVisits || []
-        },
-        accreditation: {
-            level: activeRecord.accreditation?.level || 'Non Accredited',
-            dateOfVisit: activeRecord.accreditation?.dateOfVisit || '',
-            dateOfAward: activeRecord.accreditation?.dateOfAward || '',
-            nextSchedule: activeRecord.accreditation?.nextSchedule || '',
-            certificateLink: activeRecord.accreditation?.certificateLink || '',
-            overallTaskForceHead: activeRecord.accreditation?.overallTaskForceHead || '',
-            taskForce: activeRecord.accreditation?.taskForce || '',
-            areas: activeRecord.accreditation?.areas || []
-        },
-        curriculum: {
-            revisionNumber: activeRecord.curriculum?.revisionNumber || '0',
-            dateImplemented: activeRecord.curriculum?.dateImplemented || '',
-            isNotedByChed: !!activeRecord.curriculum?.isNotedByChed,
-            cmoLink: activeRecord.curriculum?.cmoLink || ''
-        },
-        faculty: {
-            dean: activeRecord.faculty?.dean || { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' },
-            programChair: activeRecord.faculty?.programChair || { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' },
-            members: activeRecord.faculty?.members || []
-        },
-        stats: {
-            enrollment: activeRecord.stats?.enrollment || { firstYear: 0, secondYear: 0, thirdYear: 0, fourthYear: 0 },
-            graduationCount: activeRecord.stats?.graduationCount || 0
-        }
       });
     } else {
       methods.reset({
@@ -221,20 +138,27 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     }
   }, [activeRecord, selectedAY, methods]);
 
-  const onSave = async (values: z.infer<typeof complianceSchema>) => {
+  const onSave = async (values: any) => {
     if (!firestore || !userProfile) return;
     setIsSaving(true);
 
     const recordId = activeRecord?.id || `${program.id}-${selectedAY}`;
     const docRef = doc(firestore, 'programCompliances', recordId);
-    const sanitizedData = sanitizeForFirestore(values);
+    
+    // Explicitly ensure critical keys are present before sanitization
+    const fullData = {
+        ...values,
+        academicYear: selectedAY,
+        programId: program.id,
+        campusId: campusId,
+    };
+
+    const sanitizedData = sanitizeForFirestore(fullData);
 
     try {
       await setDoc(docRef, {
         ...sanitizedData,
         id: recordId,
-        programId: program.id,
-        campusId: campusId,
         updatedAt: serverTimestamp(),
         updatedBy: userProfile.id,
       }, { merge: true });
@@ -249,12 +173,10 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
   };
 
   const onInvalid = (errors: any) => {
-    console.error("Form Validation Failed:", errors);
-    toast({ 
-        title: "Validation Error", 
-        description: "Please check all modules for red highlights. Some required fields might be invalid.", 
-        variant: 'destructive' 
-    });
+    // This should no longer be triggered since validation is removed
+    console.warn("Bypassed Validation Error:", errors);
+    // Attempt save anyway if for some reason the resolver is still strict
+    onSave(methods.getValues());
   };
 
   return (
