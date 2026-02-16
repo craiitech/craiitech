@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { FileWarning, Search, Building, School } from 'lucide-react';
+import { FileWarning, Search, Building, School, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MonitoringItemAnalysisProps {
@@ -47,6 +47,8 @@ export function MonitoringItemAnalysis({ records, campuses, units, isLoading, se
         id: record.id,
         campusName: campusMap.get(record.campusId) || 'Unknown',
         unitName: unitMap.get(record.unitId) || 'Unknown Unit',
+        building: record.building || 'N/A',
+        roomNumber: record.roomNumber || 'N/A',
         status: observation.status,
         remarks: observation.remarks,
         visitDate: record.visitDate
@@ -92,6 +94,7 @@ export function MonitoringItemAnalysis({ records, campuses, units, isLoading, se
                   <TableRow>
                     <TableHead>Campus</TableHead>
                     <TableHead>Unit / Office</TableHead>
+                    <TableHead>Location</TableHead>
                     <TableHead>Current Status</TableHead>
                     <TableHead>Monitor's Remarks</TableHead>
                   </TableRow>
@@ -109,6 +112,17 @@ export function MonitoringItemAnalysis({ records, campuses, units, isLoading, se
                         <div className="flex items-center gap-2">
                           <Building className="h-3.5 w-3.5 text-muted-foreground" />
                           {row.unitName}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1 font-medium">
+                            <MapPin className="h-3 w-3 text-muted-foreground" />
+                            {row.building}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground pl-4">
+                            Room: {row.roomNumber}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>

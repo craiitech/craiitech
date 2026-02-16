@@ -130,7 +130,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
   
   const selectedYear = useMemo(() => visitYearValue ? Number(visitYearValue) : new Date().getFullYear(), [visitYearValue]);
 
-  // Handle "Not Applicable" status change automatically
+  // AUTOMATION: Handle "Not Applicable" status change automatically populating remarks
   useEffect(() => {
     observationsValue?.forEach((obs, index) => {
       if (obs.status === 'Not Applicable' && obs.remarks !== 'Not Applicable to this Room') {
