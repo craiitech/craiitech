@@ -160,12 +160,15 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
     const userRole = userProfile?.role || null;
-    const isAdmin = !!adminRoleDoc;
+    
+    // Patterned after security rules logic: Admin doc OR "admin" in role string
+    const isAdmin = !!adminRoleDoc || (userRole ? userRole.toLowerCase().includes('admin') : false);
+    
     const isVp = !!userRole?.toLowerCase().includes('vice president');
     
-    // Unit ODIMO is no longer a supervisor for approvals
+    // Campus-level oversight roles
     const supervisorRoles = ['Admin', 'Campus Director', 'Campus ODIMO'];
-    const isSupervisor = isAdmin || (userRole ? supervisorRoles.some(role => userRole.includes(role)) : false) || isVp;
+    const isSupervisor = isAdmin || (userRole ? supervisorRoles.some(role => userRole.toLowerCase().includes(role.toLowerCase())) : false) || isVp;
 
     const mainCampus = campuses?.find(c => c.name === 'Main Campus');
     const isMainCampusCoordinator = !!(

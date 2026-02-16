@@ -78,7 +78,7 @@ service cloud.firestore {
         allow get, list: if isSignedIn() && hasProfile() && (
           resource.data.unitId == profile().get('unitId', '') || 
           resource.data.campusId == profile().get('campusId', '') ||
-          profile().get('role', '').matches('(?i).*(vice president|director|odimo).*')
+          profile().get('role', '').matches('(?i).*(vice president|director|odimo|admin).*')
         );
         allow write: if isAdmin();
     }
@@ -101,7 +101,7 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid || 
         resource.data.unitId == profile().get('unitId', '') || 
         resource.data.campusId == profile().get('campusId', '') ||
-        profile().get('role', '').matches('(?i).*(vice president|director|odimo).*')
+        profile().get('role', '').matches('(?i).*(vice president|director|odimo|admin).*')
       );
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
@@ -118,7 +118,7 @@ service cloud.firestore {
         resource.data.unitId == profile().get('unitId', '') ||
         resource.data.userId == request.auth.uid ||
         resource.data.campusId == profile().get('campusId', '') ||
-        profile().get('role', '').matches('(?i).*(vice president|director|odimo).*')
+        profile().get('role', '').matches('(?i).*(vice president|director|odimo|admin).*')
       );
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
@@ -145,13 +145,13 @@ service cloud.firestore {
     
     match /campusSettings/{campusId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSignedIn() && hasProfile() && profile().get('campusId', '') == campusId && (profile().get('role', '').matches('(?i).*(director|odimo).*')));
+      allow write: if isAdmin() || (isSignedIn() && hasProfile() && profile().get('campusId', '') == campusId && (profile().get('role', '').matches('(?i).*(director|odimo|admin).*')));
     }
     
     match /units/{unitId} {
       allow read: if isSignedIn();
       allow create: if isAdmin() || (isSignedIn() && hasProfile() && profile().get('role', '').matches('(?i).*director.*'));
-      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (profile().get('role', '').matches('(?i).*(director|vice president).*')));
+      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (profile().get('role', '').matches('(?i).*(director|vice president|admin).*')));
       allow delete: if isAdmin();
     }
 

@@ -42,19 +42,27 @@ export default function MonitoringPage() {
   const [selectedRecord, setSelectedRecord] = useState<UnitMonitoringRecord | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-  // Patterned query initiation: Strict gating by presence of firestore, userProfile, and completion of loading.
+  /**
+   * Patterned query logic: Strictly gated by presence of firestore, userProfile, and completion of loading.
+   * This matches the stable logic used in the Submissions module to satisfy security rules.
+   */
   const monitoringRecordsQuery = useMemoFirebase(
     () => {
         if (!firestore || isUserLoading || !userProfile) return null;
         
         const baseRef = collection(firestore, 'unitMonitoringRecords');
 
-        // Oversight roles execute unfiltered queries
-        if (isAdmin || userRole === 'Auditor') {
+        // Oversight roles (Master Admins) execute unfiltered queries
+        if (isAdmin) {
             return query(baseRef, orderBy('visitDate', 'desc'));
         }
 
-        // Supervisors filter by campus (Patterned after Submissions)
+        // Auditors also have oversight privileges
+        if (userRole === 'Auditor') {
+            return query(baseRef, orderBy('visitDate', 'desc'));
+        }
+
+        // Supervisors (Directors/ODIMOs) filter by campus
         if (isSupervisor) {
              if (userProfile.campusId) {
                  return query(
