@@ -1,10 +1,4 @@
-/**
- * CONFLICT RESOLUTION FILE
- * This folder is being neutralized to resolve the Next.js "Parallel Pages" error.
- * The active routes are now:
- * 1. /evaluate (Public Tool)
- * 2. /software-quality (Admin Dashboard)
- * 
- * PLEASE MANUALLY DELETE THIS FOLDER IF THE ERROR PERSISTS.
- */
-export {};
+// DEPRECATED: This route conflicted with the dashboard-group /software-evaluation.
+// The public evaluation tool has been moved to /evaluate.
+// Please manually delete this directory to completely clear the build error.
+export default function Deprecated() { return null; }
