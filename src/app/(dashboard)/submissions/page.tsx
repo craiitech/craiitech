@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter } from 'lucide-react';
@@ -56,7 +55,7 @@ import { submissionTypes } from './new/page';
 /**
  * Returns a Tailwind class string for row background based on the submission year.
  */
-const getYearRowColor = (year: number) => {
+const getYearRowColor = (year: number, cycle: string) => {
   const colors: Record<number, string> = {
     2024: 'bg-blue-50/50 hover:bg-blue-100/50 dark:bg-blue-900/10 dark:hover:bg-blue-900/20',
     2025: 'bg-green-50/50 hover:bg-green-100/50 dark:bg-green-900/10 dark:hover:bg-green-900/20',
@@ -115,6 +114,12 @@ export default function SubmissionsPage() {
     [firestore, isAdmin, isSupervisor]
   );
   const { data: allUsers } = useCollection<AppUser>(usersQuery);
+
+  const unitsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'units') : null),
+    [firestore]
+  );
+  const { data: allUnits } = useCollection<Unit>(unitsQuery);
 
   const userMap = useMemo(() => {
     const map = new Map<string, string>();
