@@ -34,7 +34,7 @@ const reportSchema = z.object({
   campusId: z.string().min(1, 'Campus is required'),
   eqaCategory: z.string().optional(),
   certifyingBody: z.string().optional(),
-  standard: z.string().optional(),
+  standard: z.string().min(1, 'Standard is required'),
 });
 
 const UNIVERSITY_WIDE_ID = 'university-wide';
@@ -90,7 +90,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
       if (type === 'IQA') {
           delete dataToSave.eqaCategory;
           delete dataToSave.certifyingBody;
-          delete dataToSave.standard;
+          // Note: Standard is now kept for IQA
       }
 
       await addDoc(collection(firestore, 'qaAuditReports'), dataToSave);
@@ -171,11 +171,11 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                         <div className="flex flex-col">
                             <span className="font-bold text-sm text-slate-900">{report.title}</span>
                             <div className="flex items-center gap-2 mt-1">
+                                {report.standard && (
+                                    <Badge variant="secondary" className="text-[9px] h-4 bg-primary/5 text-primary font-black border-none">{report.standard}</Badge>
+                                )}
                                 {type === 'EQA' && report.eqaCategory && (
                                     <Badge variant="outline" className="text-[9px] h-4 border-primary/30 text-primary font-bold">{report.eqaCategory}</Badge>
-                                )}
-                                {type === 'EQA' && report.standard && (
-                                    <Badge variant="secondary" className="text-[9px] h-4 bg-primary/5 text-primary font-black border-none">{report.standard}</Badge>
                                 )}
                             </div>
                         </div>
@@ -259,38 +259,42 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                 <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Report Title</FormLabel><FormControl><Input {...field} placeholder={`e.g., Annual ${type} Summary 2025`} className="h-9 text-sm" /></FormControl><FormMessage /></FormItem>
               )} />
               
+              <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="standard" render={({ field }) => (
+                      <FormItem>
+                          <FormLabel className="text-xs font-bold uppercase tracking-wider">Audit Standard</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl><SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select Standard" /></SelectTrigger></FormControl>
+                              <SelectContent>
+                                  <SelectItem value="ISO 9001:2015">ISO 9001:2015</SelectItem>
+                                  <SelectItem value="ISO 21001:2018">ISO 21001:2018</SelectItem>
+                              </SelectContent>
+                          </Select>
+                          <FormMessage />
+                      </FormItem>
+                  )} />
+                  {type === 'EQA' ? (
+                      <FormField control={form.control} name="eqaCategory" render={({ field }) => (
+                          <FormItem>
+                              <FormLabel className="text-xs font-bold uppercase tracking-wider">Audit Category</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl><SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger></FormControl>
+                                  <SelectContent>
+                                      <SelectItem value="Certification / Re-Certification Audit">Certification / Re-Certification Audit</SelectItem>
+                                      <SelectItem value="Surveillance Audit">Surveillance Audit</SelectItem>
+                                  </SelectContent>
+                              </Select>
+                          </FormItem>
+                      )} />
+                  ) : (
+                      <div /> // Placeholder for grid alignment
+                  )}
+              </div>
+
               {type === 'EQA' && (
-                  <>
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField control={form.control} name="standard" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-xs font-bold uppercase tracking-wider">Audit Standard</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl><SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select Standard" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="ISO 9001:2015">ISO 9001:2015</SelectItem>
-                                        <SelectItem value="ISO 21001:2018">ISO 21001:2018</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </FormItem>
-                        )} />
-                        <FormField control={form.control} name="eqaCategory" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-xs font-bold uppercase tracking-wider">Audit Category</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl><SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="Certification / Re-Certification Audit">Certification / Re-Certification Audit</SelectItem>
-                                        <SelectItem value="Surveillance Audit">Surveillance Audit</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </FormItem>
-                        )} />
-                    </div>
-                    <FormField control={form.control} name="certifyingBody" render={({ field }) => (
-                        <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Partner Certifying Body</FormLabel><FormControl><Input {...field} placeholder="e.g., TUV Rheinland, SOCOTEC" className="h-9 text-sm" /></FormControl><FormMessage /></FormItem>
-                    )} />
-                  </>
+                  <FormField control={form.control} name="certifyingBody" render={({ field }) => (
+                      <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Partner Certifying Body</FormLabel><FormControl><Input {...field} placeholder="e.g., TUV Rheinland, SOCOTEC" className="h-9 text-sm" /></FormControl><FormMessage /></FormItem>
+                  )} />
               )}
 
               <div className="grid grid-cols-2 gap-4">
