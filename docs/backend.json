@@ -39,11 +39,12 @@
       "properties": {
         "id": { "type": "string" },
         "title": { "type": "string" },
-        "meetingDate": { "type": "string", "format": "date-time" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
         "minutesLink": { "type": "string", "format": "uri" },
         "campusId": { "type": "string" }
       },
-      "required": ["title", "meetingDate", "minutesLink", "campusId"]
+      "required": ["title", "startDate", "endDate", "minutesLink", "campusId"]
     },
     "ManagementReviewOutput": {
       "title": "ManagementReviewOutput",

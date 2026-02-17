@@ -31,7 +31,8 @@ interface ManagementReviewTabProps {
 
 const mrSchema = z.object({
   title: z.string().min(1, 'Title is required'),
-  meetingDate: z.string().min(1, 'Date is required'),
+  startDate: z.string().min(1, 'Start date is required'),
+  endDate: z.string().min(1, 'End date is required'),
   minutesLink: z.string().url('Invalid URL'),
   campusId: z.string().min(1, 'Campus is required'),
 });
@@ -56,7 +57,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const reviewsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'managementReviews'), orderBy('meetingDate', 'desc')) : null),
+    () => (firestore ? query(collection(firestore, 'managementReviews'), orderBy('startDate', 'desc')) : null),
     [firestore]
   );
   const { data: reviews, isLoading: isLoadingReviews } = useCollection<ManagementReview>(reviewsQuery);
@@ -69,7 +70,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
 
   const mrForm = useForm<z.infer<typeof mrSchema>>({
     resolver: zodResolver(mrSchema),
-    defaultValues: { title: '', meetingDate: '', minutesLink: '', campusId: '' }
+    defaultValues: { title: '', startDate: '', endDate: '', minutesLink: '', campusId: '' }
   });
 
   const outputForm = useForm<z.infer<typeof outputSchema>>({
@@ -83,7 +84,8 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
     try {
       await addDoc(collection(firestore, 'managementReviews'), {
         ...values,
-        meetingDate: Timestamp.fromDate(new Date(values.meetingDate)),
+        startDate: Timestamp.fromDate(new Date(values.startDate)),
+        endDate: Timestamp.fromDate(new Date(values.endDate)),
         createdAt: serverTimestamp(),
       });
       toast({ title: 'Success', description: 'Management Review session added.' });
@@ -124,6 +126,12 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
 
   const unitMap = new Map(units.map(u => [u.id, u.name]));
 
+  const safeFormatDate = (date: any) => {
+    if (!date) return 'N/A';
+    const d = date instanceof Timestamp ? date.toDate() : new Date(date);
+    return format(d, 'PP');
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-1 space-y-4">
@@ -150,7 +158,8 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                       <div className="flex flex-col gap-1 mt-1">
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase">
                             <Calendar className="h-3 w-3" />
-                            {review.meetingDate?.toDate ? format(review.meetingDate.toDate(), 'PPP') : 'N/A'}
+                            {safeFormatDate(review.startDate)}
+                            {review.endDate && ` - ${safeFormatDate(review.endDate)}`}
                         </div>
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase">
                             {review.campusId === UNIVERSITY_WIDE_ID ? (
@@ -266,19 +275,22 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                 <FormItem><FormLabel>Meeting Title</FormLabel><FormControl><Input {...field} placeholder="e.g., 1st Quarter Management Review" /></FormControl><FormMessage /></FormItem>
               )} />
               <div className="grid grid-cols-2 gap-4">
-                <FormField control={mrForm.control} name="meetingDate" render={({ field }) => (
-                  <FormItem><FormLabel>Meeting Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+                <FormField control={mrForm.control} name="startDate" render={({ field }) => (
+                  <FormItem><FormLabel>Start of Meeting</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <FormField control={mrForm.control} name="campusId" render={({ field }) => (
-                  <FormItem><FormLabel>Campus Scope</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select Scope" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value={UNIVERSITY_WIDE_ID} className="font-bold text-primary italic">University-Wide (Institutional)</SelectItem>
-                        {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select><FormMessage /></FormItem>
+                <FormField control={mrForm.control} name="endDate" render={({ field }) => (
+                  <FormItem><FormLabel>End of Meeting</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
+              <FormField control={mrForm.control} name="campusId" render={({ field }) => (
+                <FormItem><FormLabel>Campus Scope</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select Scope" /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      <SelectItem value={UNIVERSITY_WIDE_ID} className="font-bold text-primary italic">University-Wide (Institutional)</SelectItem>
+                      {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select><FormMessage /></FormItem>
+              )} />
               <FormField control={mrForm.control} name="minutesLink" render={({ field }) => (
                 <FormItem><FormLabel>GDrive Minutes Link</FormLabel><FormControl><Input {...field} placeholder="https://drive.google.com/..." /></FormControl><FormMessage /></FormItem>
               )} />

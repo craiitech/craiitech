@@ -432,7 +432,8 @@ export type QaAuditReport = {
 export type ManagementReview = {
   id: string;
   title: string;
-  meetingDate: any; // Timestamp
+  startDate: any; // Timestamp
+  endDate: any; // Timestamp
   minutesLink: string;
   campusId: string;
   createdAt: any; // Timestamp
