@@ -100,9 +100,9 @@ export function SidebarNav({
       icon: <ClipboardCheck />,
     },
     {
-      href: '/software-evaluation',
+      href: '/software-quality',
       label: 'Software Quality',
-      active: pathname.startsWith('/software-evaluation'),
+      active: pathname.startsWith('/software-quality'),
       roles: ['Admin', 'Auditor'],
       icon: <MonitorCheck />,
     },

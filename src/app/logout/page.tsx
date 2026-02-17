@@ -187,7 +187,7 @@ export default function LogoutPage() {
                 <Button 
                   variant="outline"
                   className="w-full h-12 border-primary text-primary font-bold hover:bg-primary/5" 
-                  onClick={() => router.push('/software-evaluation')}
+                  onClick={() => router.push('/software-quality')}
                 >
                   <MonitorCheck className="mr-2 h-5 w-5" />
                   Perform Formal Software Audit (ISO 25010)
