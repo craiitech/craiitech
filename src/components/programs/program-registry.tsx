@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit, School, Layers, Activity, ArrowRight, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Edit, School, Layers, Activity, ShieldCheck, ShieldAlert, BookOpen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface ProgramRegistryProps {
@@ -25,18 +25,21 @@ export function ProgramRegistry({ programs, campuses, units, onEdit, canManage }
 
   if (programs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 border rounded-lg border-dashed bg-muted/30">
-        <Layers className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
-        <p className="text-sm font-medium text-muted-foreground">No academic programs registered.</p>
+      <div className="flex flex-col items-center justify-center h-64 border rounded-lg border-dashed bg-muted/30 p-8 text-center">
+        <div className="bg-muted h-16 w-16 rounded-full flex items-center justify-center mb-4">
+            <BookOpen className="h-8 w-8 text-muted-foreground opacity-40" />
+        </div>
+        <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">No Programs Found</p>
+        <p className="text-xs text-muted-foreground mt-1 max-w-xs">There are no academic programs currently registered within your authorized scope.</p>
       </div>
     );
   }
 
   return (
-    <Card>
+    <Card className="shadow-sm overflow-hidden border-primary/10">
       <CardContent className="p-0">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead>Program Name</TableHead>
               <TableHead>Campus</TableHead>
@@ -51,51 +54,56 @@ export function ProgramRegistry({ programs, campuses, units, onEdit, canManage }
               <TableRow key={program.id} className="hover:bg-muted/30 transition-colors">
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="font-bold text-sm">{program.name}</span>
-                    <span className="text-[10px] text-muted-foreground font-mono">{program.abbreviation} &bull; {program.level}</span>
+                    <span className="font-bold text-sm text-slate-900">{program.name}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">{program.abbreviation} &bull; {program.level}</span>
                   </div>
                 </TableCell>
                 <TableCell className="text-xs">
                   <div className="flex items-center gap-2">
-                    <School className="h-3 w-3 text-muted-foreground" />
-                    {campusMap.get(program.campusId) || '...'}
+                    <School className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="font-medium">{campusMap.get(program.campusId) || '...'}</span>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[11px] font-semibold leading-tight">{unitMap.get(program.collegeId) || 'Unknown Unit'}</span>
-                    <Badge variant="outline" className="text-[9px] h-4 w-fit py-0 uppercase tracking-tighter opacity-60">{program.collegeId}</Badge>
+                    <span className="text-[11px] font-bold text-slate-700 leading-tight">{unitMap.get(program.collegeId) || 'Unknown Unit'}</span>
+                    <Badge variant="outline" className="text-[8px] h-3.5 w-fit py-0 uppercase tracking-tighter opacity-60 font-mono border-muted-foreground/20">{program.collegeId}</Badge>
                   </div>
                 </TableCell>
                 <TableCell>
                     {program.isBoardProgram ? (
-                        <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 gap-1 h-5 text-[9px] uppercase font-bold">
-                            <ShieldCheck className="h-2 w-2" /> Board
+                        <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 gap-1 h-5 text-[9px] uppercase font-black">
+                            <ShieldCheck className="h-2.5 w-2.5" /> Board
                         </Badge>
                     ) : (
-                        <Badge variant="outline" className="text-muted-foreground gap-1 h-5 text-[9px] uppercase font-bold">
-                            <ShieldAlert className="h-2 w-2" /> Non-Board
+                        <Badge variant="outline" className="text-muted-foreground gap-1 h-5 text-[9px] uppercase font-bold border-dashed">
+                            <ShieldAlert className="h-2.5 w-2.5" /> Non-Board
                         </Badge>
                     )}
                 </TableCell>
                 <TableCell>
                   {program.isActive ? (
-                    <Badge className="bg-green-500 hover:bg-green-600 gap-1 h-5 text-[9px] uppercase tracking-tighter">
-                      <Activity className="h-2 w-2" /> Active
+                    <Badge className="bg-green-600 hover:bg-green-700 gap-1 h-5 text-[9px] uppercase tracking-tighter font-black">
+                      <Activity className="h-2.5 w-2.5" /> Active
                     </Badge>
                   ) : (
-                    <Badge variant="secondary" className="h-5 text-[9px] uppercase tracking-tighter">Inactive</Badge>
+                    <Badge variant="secondary" className="h-5 text-[9px] uppercase tracking-tighter font-black bg-slate-200">Inactive</Badge>
                   )}
                 </TableCell>
                 <TableCell className="text-right space-x-2">
+                  <Button 
+                    size="sm" 
+                    variant="default" 
+                    className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm"
+                    onClick={() => router.push(`/academic-programs/${program.id}`)}
+                  >
+                    Compliance Workspace
+                  </Button>
                   {canManage && (
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(program)}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/5" onClick={() => onEdit(program)}>
                       <Edit className="h-4 w-4" />
                     </Button>
                   )}
-                  <Button size="sm" variant="outline" onClick={() => router.push(`/academic-programs/${program.id}`)}>
-                    Compliance
-                  </Button>
                 </TableCell>
               </TableRow>
             ))}
