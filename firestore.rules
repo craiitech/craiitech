@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -125,6 +126,11 @@ service cloud.firestore {
         profile().get('unitId', '') == resource.data.unitId
       ));
       allow delete: if isAdmin();
+    }
+
+    match /appFeedbacks/{feedbackId} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin();
     }
 
     match /roles/{roleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }

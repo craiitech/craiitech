@@ -238,6 +238,16 @@ export type UnitMonitoringRecord = {
   createdAt: any; // Timestamp
 };
 
+export type AppFeedback = {
+  id: string;
+  userId: string;
+  userName: string;
+  rating: number;
+  comments?: string;
+  suggestions?: string;
+  timestamp: any;
+};
+
 // --- ACADEMIC PROGRAM MONITORING TYPES ---
 
 export type AcademicProgram = {

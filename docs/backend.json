@@ -61,6 +61,21 @@
         "verified"
       ]
     },
+    "AppFeedback": {
+      "title": "AppFeedback",
+      "type": "object",
+      "description": "User feedback and rating captured during logout.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "rating": { "type": "number", "description": "1-5 star rating" },
+        "comments": { "type": "string" },
+        "suggestions": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "rating"]
+    },
     "AcademicProgram": {
       "title": "AcademicProgram",
       "type": "object",
@@ -188,7 +203,8 @@
       { "path": "/risks/{riskId}", "definition": { "entityName": "Risk" } },
       { "path": "/campuses/{campusId}", "definition": { "entityName": "Campus" } },
       { "path": "/units/{unitId}", "definition": { "entityName": "Unit" } },
-      { "path": "/unitMonitoringRecords/{recordId}", "definition": { "entityName": "UnitMonitoringRecord" } }
+      { "path": "/unitMonitoringRecords/{recordId}", "definition": { "entityName": "UnitMonitoringRecord" } },
+      { "path": "/appFeedbacks/{feedbackId}", "definition": { "entityName": "AppFeedback" } }
     ]
   }
 }
