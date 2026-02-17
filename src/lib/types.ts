@@ -288,6 +288,8 @@ export type GraduationOutcome = {
   year: number;
   semester: string;
   count: number;
+  maleCount: number;
+  femaleCount: number;
 };
 
 export type TracerOutcome = {
@@ -296,6 +298,10 @@ export type TracerOutcome = {
   totalGraduates: number;
   tracedCount: number;
   employmentRate: number;
+  maleTraced: number;
+  femaleTraced: number;
+  maleEmployed: number;
+  femaleEmployed: number;
 };
 
 export type RQATVisit = {
@@ -322,6 +328,12 @@ export type AccreditationArea = {
   areaName: string;
   googleDriveLink: string;
   taskForce?: string;
+};
+
+export type EnrollmentStats = {
+  male: number;
+  female: number;
+  total: number;
 };
 
 export type ProgramComplianceRecord = {
@@ -377,13 +389,15 @@ export type ProgramComplianceRecord = {
   // Student Stats
   stats: {
     enrollment: {
-      firstYear: number;
-      secondYear: number;
-      thirdYear: number;
-      fourthYear: number;
-      fifthYear?: number;
+      firstYear: EnrollmentStats;
+      secondYear: EnrollmentStats;
+      thirdYear: EnrollmentStats;
+      fourthYear: EnrollmentStats;
+      fifthYear?: EnrollmentStats;
     };
     graduationCount: number;
+    maleGraduates?: number;
+    femaleGraduates?: number;
   };
 
   // Outcomes registries

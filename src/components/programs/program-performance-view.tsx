@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -48,12 +49,12 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
   const analyticsData = useMemo(() => {
     if (!record) return null;
 
-    // Enrollment Chart Data
+    // Enrollment Chart Data (Sex-Disaggregated)
     const enrollmentData = [
-      { name: '1st Yr', count: record.stats.enrollment.firstYear || 0 },
-      { name: '2nd Yr', count: record.stats.enrollment.secondYear || 0 },
-      { name: '3rd Yr', count: record.stats.enrollment.thirdYear || 0 },
-      { name: '4th Yr', count: record.stats.enrollment.fourthYear || 0 },
+      { name: '1st Yr', Male: record.stats.enrollment.firstYear?.male || 0, Female: record.stats.enrollment.firstYear?.female || 0 },
+      { name: '2nd Yr', Male: record.stats.enrollment.secondYear?.male || 0, Female: record.stats.enrollment.secondYear?.female || 0 },
+      { name: '3rd Yr', Male: record.stats.enrollment.thirdYear?.male || 0, Female: record.stats.enrollment.thirdYear?.female || 0 },
+      { name: '4th Yr', Male: record.stats.enrollment.fourthYear?.male || 0, Female: record.stats.enrollment.fourthYear?.female || 0 },
     ];
 
     // Graduation Trends (from dynamic records)
@@ -176,21 +177,26 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                         <div>
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <Users className="h-5 w-5 text-primary" />
-                                Student Enrollment Distribution
+                                Sex-Disaggregated Enrollment
                             </CardTitle>
-                            <CardDescription>Breakdown by year level for AY {selectedYear}</CardDescription>
+                            <CardDescription>Breakdown by year level and sex for AY {selectedYear}</CardDescription>
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <ChartContainer config={{}} className="h-[250px] w-full">
+                    <ChartContainer config={{ 
+                        Male: { label: 'Male', color: 'hsl(var(--chart-1))' },
+                        Female: { label: 'Female', color: 'hsl(var(--chart-2))' }
+                    }} className="h-[250px] w-full">
                         <ResponsiveContainer>
                             <BarChart data={analyticsData?.enrollmentData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                 <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
                                 <YAxis axisLine={false} tickLine={false} />
                                 <Tooltip content={<ChartTooltipContent />} />
-                                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                                <Legend verticalAlign="top" align="right" />
+                                <Bar dataKey="Male" stackId="a" fill="hsl(var(--chart-1))" radius={[0, 0, 0, 0]} />
+                                <Bar dataKey="Female" stackId="a" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </ChartContainer>
@@ -250,7 +256,6 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                                             className="h-8 text-[10px] font-black uppercase tracking-widest border-primary/20 hover:bg-primary/5 text-primary flex-1"
                                             onClick={() => setPreviewDoc({ title: doc.title, url: getEmbedUrl(doc.url!) })}
                                         >
-                                            <Eye className="h-3 w-3 mr-1.5" />
                                             VIEW DOCUMENT
                                         </Button>
                                         <Button 
@@ -315,7 +320,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                                 <p className="text-4xl font-black">{analyticsData.latestBoard.overallPassRate}%</p>
                             </div>
                             <div className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center">
-                                <TrendingUp className="h-8 w-8" />
+                                <趨勢Up className="h-8 w-8" />
                             </div>
                         </div>
                     </div>

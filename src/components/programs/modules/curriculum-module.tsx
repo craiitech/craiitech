@@ -6,10 +6,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { BookOpen, Calendar, Link as LinkIcon, GraduationCap } from 'lucide-react';
+import { BookOpen, Calendar, Link as LinkIcon, GraduationCap, Users } from 'lucide-react';
+import { useEffect } from 'react';
 
 export function CurriculumModule({ canEdit }: { canEdit: boolean }) {
-  const { control } = useFormContext();
+  const { control, watch, setValue } = useFormContext();
+
+  const enrollment = watch('stats.enrollment');
+
+  // Auto-calculate totals for each year level
+  useEffect(() => {
+    const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear', 'fifthYear'];
+    levels.forEach(level => {
+        const male = Number(enrollment?.[level]?.male) || 0;
+        const female = Number(enrollment?.[level]?.female) || 0;
+        const total = male + female;
+        if (enrollment?.[level] && enrollment[level].total !== total) {
+            setValue(`stats.enrollment.${level}.total`, total);
+        }
+    });
+  }, [enrollment, setValue]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -85,40 +101,58 @@ export function CurriculumModule({ canEdit }: { canEdit: boolean }) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <GraduationCap className="h-5 w-5 text-primary" />
-            Student Statistics
+            Sex-Disaggregated Enrollment
           </CardTitle>
-          <CardDescription>Enrollment and graduation data for the academic year.</CardDescription>
+          <CardDescription>Student population breakdown per year level for the academic year.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={control}
-              name="stats.enrollment.firstYear"
-              render={({ field }) => (<FormItem><FormLabel>1st Year</FormLabel><FormControl><Input type="number" {...field} disabled={!canEdit} /></FormControl></FormItem>)}
-            />
-            <FormField
-              control={control}
-              name="stats.enrollment.secondYear"
-              render={({ field }) => (<FormItem><FormLabel>2nd Year</FormLabel><FormControl><Input type="number" {...field} disabled={!canEdit} /></FormControl></FormItem>)}
-            />
-            <FormField
-              control={control}
-              name="stats.enrollment.thirdYear"
-              render={({ field }) => (<FormItem><FormLabel>3rd Year</FormLabel><FormControl><Input type="number" {...field} disabled={!canEdit} /></FormControl></FormItem>)}
-            />
-            <FormField
-              control={control}
-              name="stats.enrollment.fourthYear"
-              render={({ field }) => (<FormItem><FormLabel>4th Year</FormLabel><FormControl><Input type="number" {...field} disabled={!canEdit} /></FormControl></FormItem>)}
-            />
+          <div className="space-y-4">
+            {['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].map((level, idx) => (
+                <div key={level} className="space-y-2 p-3 rounded-lg border bg-muted/5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-primary">{idx + 1}{idx === 0 ? 'st' : idx === 1 ? 'nd' : idx === 2 ? 'rd' : 'th'} Year Enrollment</p>
+                    <div className="grid grid-cols-3 gap-2">
+                        <FormField
+                            control={control}
+                            name={`stats.enrollment.${level}.male`}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[9px] uppercase font-bold text-muted-foreground">Male</FormLabel>
+                                    <FormControl><Input type="number" {...field} className="h-8 text-xs" disabled={!canEdit} /></FormControl>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={control}
+                            name={`stats.enrollment.${level}.female`}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[9px] uppercase font-bold text-muted-foreground">Female</FormLabel>
+                                    <FormControl><Input type="number" {...field} className="h-8 text-xs" disabled={!canEdit} /></FormControl>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={control}
+                            name={`stats.enrollment.${level}.total`}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[9px] uppercase font-bold text-muted-foreground">Total</FormLabel>
+                                    <FormControl><Input type="number" {...field} className="h-8 text-xs font-bold bg-muted/20" disabled /></FormControl>
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                </div>
+            ))}
           </div>
           <FormField
             control={control}
             name="stats.graduationCount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-primary font-bold">Total Graduates for this Academic Year</FormLabel>
+                <FormLabel className="text-primary font-bold">Total Program Graduates (Target/Current)</FormLabel>
                 <FormControl><Input type="number" {...field} className="border-primary/50 text-lg font-bold" disabled={!canEdit} /></FormControl>
+                <FormDescription className="text-[10px]">Overall output for the specified period.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}

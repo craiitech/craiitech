@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormContext, useFieldArray } from 'react-hook-form';
@@ -41,9 +42,22 @@ export function OutcomesModule({ canEdit, isBoardProgram }: OutcomesModuleProps)
     name: "boardPerformance"
   });
 
+  // Sync graduation totals
+  const watchGrads = watch("graduationRecords");
+  useEffect(() => {
+    if (!watchGrads || !Array.isArray(watchGrads)) return;
+    watchGrads.forEach((item, index) => {
+        const male = Number(item.maleCount) || 0;
+        const female = Number(item.femaleCount) || 0;
+        const total = male + female;
+        if (item.count !== total) {
+            setValue(`graduationRecords.${index}.count`, total);
+        }
+    });
+  }, [watchGrads, setValue]);
+
   // Automatically calculate board exam percentages when taker/passer counts change
   const watchBoard = watch("boardPerformance");
-
   useEffect(() => {
     if (!watchBoard || !Array.isArray(watchBoard)) return;
 
@@ -174,21 +188,21 @@ export function OutcomesModule({ canEdit, isBoardProgram }: OutcomesModuleProps)
         </Card>
       )}
 
-      {/* 2. Graduation Registry (Dynamic) */}
+      {/* 2. Graduation Registry (Disaggregated) */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between py-4 border-b">
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2 text-lg">
               <GraduationCap className="h-5 w-5 text-primary" />
-              Graduation Outcomes Registry
+              Sex-Disaggregated Graduation Registry
             </CardTitle>
-            <CardDescription>Track total graduates per year and semester.</CardDescription>
+            <CardDescription>Track graduates with Male/Female breakdown.</CardDescription>
           </div>
           {canEdit && (
             <Button 
               type="button" 
               size="sm" 
-              onClick={() => appendGrad({ year: new Date().getFullYear(), semester: '1st Semester', count: 0 })}
+              onClick={() => appendGrad({ year: new Date().getFullYear(), semester: '1st Semester', maleCount: 0, femaleCount: 0, count: 0 })}
               className="h-8 gap-1"
             >
               <PlusCircle className="h-3.5 w-3.5" />
@@ -199,32 +213,43 @@ export function OutcomesModule({ canEdit, isBoardProgram }: OutcomesModuleProps)
         <CardContent className="pt-0">
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="w-1/4">Year</TableHead>
-                <TableHead className="w-1/3">Semester</TableHead>
-                <TableHead className="w-1/4">Graduate Count</TableHead>
+              <TableRow className="hover:bg-transparent text-[10px] uppercase font-bold text-muted-foreground">
+                <TableHead className="w-1/4">Year/Semester</TableHead>
+                <TableHead className="text-center">Male</TableHead>
+                <TableHead className="text-center">Female</TableHead>
+                <TableHead className="text-center">Total</TableHead>
                 {canEdit && <TableHead className="w-[50px]"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {gradFields.map((field, index) => (
                 <TableRow key={field.id} className="hover:bg-muted/30">
+                  <TableCell className="min-w-[180px]">
+                    <div className="grid grid-cols-2 gap-1">
+                        <FormField control={control} name={`graduationRecords.${index}.year`} render={({ field }) => (
+                        <FormControl><Input type="number" {...field} className="h-8 text-xs" disabled={!canEdit} /></FormControl>
+                        )} />
+                        <FormField control={control} name={`graduationRecords.${index}.semester`} render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
+                            <FormControl><SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger></FormControl>
+                            <SelectContent>{semesterOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                        )} />
+                    </div>
+                  </TableCell>
                   <TableCell>
-                    <FormField control={control} name={`graduationRecords.${index}.year`} render={({ field }) => (
-                      <FormControl><Input type="number" {...field} className="h-8 text-xs" disabled={!canEdit} /></FormControl>
+                    <FormField control={control} name={`graduationRecords.${index}.maleCount`} render={({ field }) => (
+                      <FormControl><Input type="number" {...field} className="h-8 text-xs text-center" disabled={!canEdit} /></FormControl>
                     )} />
                   </TableCell>
                   <TableCell>
-                    <FormField control={control} name={`graduationRecords.${index}.semester`} render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
-                        <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger></FormControl>
-                        <SelectContent>{semesterOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
-                      </Select>
+                    <FormField control={control} name={`graduationRecords.${index}.femaleCount`} render={({ field }) => (
+                      <FormControl><Input type="number" {...field} className="h-8 text-xs text-center" disabled={!canEdit} /></FormControl>
                     )} />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <FormField control={control} name={`graduationRecords.${index}.count`} render={({ field }) => (
-                      <FormControl><Input type="number" {...field} className="h-8 text-xs font-bold" disabled={!canEdit} /></FormControl>
+                      <FormControl><Input type="number" {...field} className="h-8 text-xs font-bold bg-muted/20 text-center" disabled /></FormControl>
                     )} />
                   </TableCell>
                   {canEdit && (
@@ -235,29 +260,29 @@ export function OutcomesModule({ canEdit, isBoardProgram }: OutcomesModuleProps)
                 </TableRow>
               ))}
               {gradFields.length === 0 && (
-                <TableRow><TableCell colSpan={4} className="h-24 text-center text-muted-foreground italic text-xs">No graduation records encoded for this period.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground italic text-xs">No graduation records encoded for this period.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {/* 3. Tracer Registry (Dynamic) */}
+      {/* 3. Tracer Registry (Disaggregated) */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between py-4 border-b">
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2 text-lg">
               <BarChart3 className="h-5 w-5 text-green-600" />
-              Graduate Tracer Study Registry
+              Sex-Disaggregated Tracer Registry
             </CardTitle>
-            <CardDescription>Employability status and tracing coverage.</CardDescription>
+            <CardDescription>Employability status breakdown for graduates.</CardDescription>
           </div>
           {canEdit && (
             <Button 
               type="button" 
               variant="outline"
               size="sm" 
-              onClick={() => appendTracer({ year: new Date().getFullYear(), semester: '1st Semester', totalGraduates: 0, tracedCount: 0, employmentRate: 0 })}
+              onClick={() => appendTracer({ year: new Date().getFullYear(), semester: '1st Semester', totalGraduates: 0, tracedCount: 0, employmentRate: 0, maleTraced: 0, femaleTraced: 0, maleEmployed: 0, femaleEmployed: 0 })}
               className="h-8 gap-1 border-green-200 text-green-700 hover:bg-green-50"
             >
               <PlusCircle className="h-3.5 w-3.5" />
@@ -268,10 +293,10 @@ export function OutcomesModule({ canEdit, isBoardProgram }: OutcomesModuleProps)
         <CardContent className="pt-0">
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent">
+              <TableRow className="hover:bg-transparent text-[10px] uppercase font-bold text-muted-foreground">
                 <TableHead>Period</TableHead>
-                <TableHead>Graduates</TableHead>
-                <TableHead>Traced</TableHead>
+                <TableHead className="text-center">Traced (M/F)</TableHead>
+                <TableHead className="text-center">Employed (M/F)</TableHead>
                 <TableHead>Employment %</TableHead>
                 {canEdit && <TableHead className="w-[50px]"></TableHead>}
               </TableRow>
@@ -295,14 +320,24 @@ export function OutcomesModule({ canEdit, isBoardProgram }: OutcomesModuleProps)
                       </div>
                     </TableCell>
                     <TableCell>
-                      <FormField control={control} name={`tracerRecords.${index}.totalGraduates`} render={({ field }) => (
-                        <FormControl><Input type="number" {...field} className="h-8 text-xs" disabled={!canEdit} /></FormControl>
-                      )} />
+                        <div className="flex gap-1 justify-center">
+                            <FormField control={control} name={`tracerRecords.${index}.maleTraced`} render={({ field }) => (
+                                <FormControl><Input type="number" {...field} className="h-8 w-12 text-center text-xs" title="Male" disabled={!canEdit} /></FormControl>
+                            )} />
+                            <FormField control={control} name={`tracerRecords.${index}.femaleTraced`} render={({ field }) => (
+                                <FormControl><Input type="number" {...field} className="h-8 w-12 text-center text-xs" title="Female" disabled={!canEdit} /></FormControl>
+                            )} />
+                        </div>
                     </TableCell>
                     <TableCell>
-                      <FormField control={control} name={`tracerRecords.${index}.tracedCount`} render={({ field }) => (
-                        <FormControl><Input type="number" {...field} className="h-8 text-xs" disabled={!canEdit} /></FormControl>
-                      )} />
+                        <div className="flex gap-1 justify-center">
+                            <FormField control={control} name={`tracerRecords.${index}.maleEmployed`} render={({ field }) => (
+                                <FormControl><Input type="number" {...field} className="h-8 w-12 text-center text-xs" title="Male" disabled={!canEdit} /></FormControl>
+                            )} />
+                            <FormField control={control} name={`tracerRecords.${index}.femaleEmployed`} render={({ field }) => (
+                                <FormControl><Input type="number" {...field} className="h-8 w-12 text-center text-xs" title="Female" disabled={!canEdit} /></FormControl>
+                            )} />
+                        </div>
                     </TableCell>
                     <TableCell className="min-w-[140px]">
                       <div className="space-y-1">

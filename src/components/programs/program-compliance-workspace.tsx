@@ -66,6 +66,8 @@ function sanitizeForFirestore(obj: any): any {
   return sanitized;
 }
 
+const emptyEnrollment = { male: 0, female: 0, total: 0 };
+
 export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplianceWorkspaceProps) {
   const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
@@ -91,7 +93,15 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       accreditation: { level: 'Non Accredited', certificateLink: '', dateOfVisit: '', dateOfAward: '', nextSchedule: '', overallTaskForceHead: '', taskForce: '', areas: [] },
       curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
       faculty: { dean: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' }, programChair: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' }, members: [] },
-      stats: { enrollment: { firstYear: 0, secondYear: 0, thirdYear: 0, fourthYear: 0 }, graduationCount: 0 },
+      stats: { 
+        enrollment: { 
+            firstYear: { ...emptyEnrollment }, 
+            secondYear: { ...emptyEnrollment }, 
+            thirdYear: { ...emptyEnrollment }, 
+            fourthYear: { ...emptyEnrollment } 
+        }, 
+        graduationCount: 0 
+      },
       graduationRecords: [],
       tracerRecords: [],
       boardPerformance: []
@@ -130,7 +140,15 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         accreditation: { level: 'Non Accredited', certificateLink: '', dateOfVisit: '', dateOfAward: '', nextSchedule: '', overallTaskForceHead: '', taskForce: '', areas: [] },
         curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
         faculty: { dean: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' }, programChair: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' }, members: [] },
-        stats: { enrollment: { firstYear: 0, secondYear: 0, thirdYear: 0, fourthYear: 0 }, graduationCount: 0 },
+        stats: { 
+            enrollment: { 
+                firstYear: { ...emptyEnrollment }, 
+                secondYear: { ...emptyEnrollment }, 
+                thirdYear: { ...emptyEnrollment }, 
+                fourthYear: { ...emptyEnrollment } 
+            }, 
+            graduationCount: 0 
+        },
         graduationRecords: [],
         tracerRecords: [],
         boardPerformance: []
