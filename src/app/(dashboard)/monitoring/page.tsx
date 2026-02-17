@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -223,6 +224,9 @@ export default function MonitoringPage() {
 
   // Refined view flag: Unit ODIMOs and Coordinators see the simplified Unit Status view
   const isUnitOnlyView = (isUnitOfficial || isUnitCoordinator) && !isAdmin;
+  
+  // Campus ODIMOs can add new visits for their campus
+  const canAddVisit = isAdmin || userRole === 'Campus ODIMO';
 
   return (
     <>
@@ -254,7 +258,7 @@ export default function MonitoringPage() {
                     Export
                 </Button>
             )}
-            {isAdmin && (
+            {canAddVisit && (
                 <Button onClick={handleNewVisit}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     New Visit
@@ -369,7 +373,7 @@ export default function MonitoringPage() {
                                                 <Printer className="h-4 w-4" />
                                             </Button>
                                             <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleViewRecord(record); }}>
-                                                {isAdmin ? 'Edit' : 'View'}
+                                                {isAdmin || userRole === 'Campus ODIMO' ? 'Edit' : 'View'}
                                             </Button>
                                             </TableCell>
                                         </TableRow>

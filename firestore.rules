@@ -55,11 +55,13 @@ service cloud.firestore {
         );
 
         // 4. Write Rules (ENFORCE DATA INTEGRITY)
-        // Admins can write, but MUST include unitId and campusId so others can read
-        allow create: if isAdmin() && 
+        // Admins can write anything. Campus ODIMOs can write/update records for their own campus.
+        allow create: if (isAdmin() || (isSignedIn() && hasProfile() && profile().get('role', '') == 'Campus ODIMO' && request.resource.data.campusId == profile().get('campusId', ''))) && 
           request.resource.data.keys().hasAll(['unitId', 'campusId']);
         
-        allow update, delete: if isAdmin();
+        allow update: if isAdmin() || (isSignedIn() && hasProfile() && profile().get('role', '') == 'Campus ODIMO' && resource.data.campusId == profile().get('campusId', ''));
+        
+        allow delete: if isAdmin();
     }
 
     // --------------------------------------------------------------------------

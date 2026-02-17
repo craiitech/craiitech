@@ -93,7 +93,7 @@ const eomsReportMap: Record<string, string> = {
 };
 
 export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, units, onPrint }: MonitoringFormDialogProps) {
-  const { userProfile, isAdmin } = useUser();
+  const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -256,7 +256,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
           visitMonth: String(new Date().getMonth()),
           visitDay: String(new Date().getDate()),
           visitYear: String(new Date().getFullYear()),
-          campusId: '',
+          campusId: userProfile?.campusId || '',
           unitId: '',
           roomNumber: '',
           building: '',
@@ -266,7 +266,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
         });
       }
     }
-  }, [record, isOpen, form]);
+  }, [record, isOpen, form, userProfile]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!firestore || !userProfile) return;
@@ -304,7 +304,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
     }
   };
 
-  const isReadOnly = !isAdmin;
+  const isReadOnly = !isAdmin && userRole !== 'Campus ODIMO';
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -374,7 +374,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                     <FormField control={form.control} name="campusId" render={({ field }) => (
                                         <FormItem className="lg:col-span-1">
                                             <FormLabel className="text-[10px] font-bold uppercase tracking-wider">Campus</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value || ''} disabled={isReadOnly}>
+                                            <Select onValueChange={field.onChange} value={field.value || ''} disabled={isReadOnly || (userRole === 'Campus ODIMO' && !isAdmin)}>
                                                 <FormControl>
                                                     <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Select Campus" /></SelectTrigger>
                                                 </FormControl>
