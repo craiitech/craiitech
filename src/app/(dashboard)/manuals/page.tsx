@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -41,8 +42,8 @@ export default function ProcedureManualsPage() {
           A central library of all official procedure manuals for university units.
         </p>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-12rem)]">
-        <Card className="lg:col-span-1 flex flex-col">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:h-[calc(100vh-12rem)]">
+        <Card className="lg:col-span-1 flex flex-col h-[400px] lg:h-full">
           <CardHeader>
             <CardTitle>All Units</CardTitle>
             <CardDescription>Select a unit to view its manual.</CardDescription>
@@ -64,7 +65,7 @@ export default function ProcedureManualsPage() {
             ) : (
               <ScrollArea className="h-full">
                 {filteredManuals && filteredManuals.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-2 pr-4">
                     {filteredManuals.map(manual => (
                       <Button
                         key={manual.id}
@@ -76,7 +77,7 @@ export default function ProcedureManualsPage() {
                         )}
                       >
                         <Building className="mr-3 h-4 w-4 flex-shrink-0" />
-                        <span>{manual.unitName}</span>
+                        <span className="truncate">{manual.unitName}</span>
                       </Button>
                     ))}
                   </div>
@@ -89,27 +90,27 @@ export default function ProcedureManualsPage() {
             )}
           </CardContent>
         </Card>
-        <div className="lg:col-span-2">
-          <Card className="h-full">
+        <div className="lg:col-span-2 h-[500px] lg:h-full">
+          <Card className="h-full flex flex-col">
             <CardHeader>
-                <CardTitle>{selectedManual ? selectedManual.unitName : 'Select a Manual'}</CardTitle>
+                <CardTitle className="truncate">{selectedManual ? selectedManual.unitName : 'Select a Manual'}</CardTitle>
                 <CardDescription>
                     {selectedManual ? 'Viewing the official procedure manual.' : 'Select a unit from the list to view their manual.'}
                 </CardDescription>
             </CardHeader>
-            <CardContent className="h-[calc(100%-8rem)]">
+            <CardContent className="flex-1 min-h-0">
               {previewUrl ? (
                 <iframe
                   src={previewUrl}
-                  className="h-full w-full rounded-md border"
+                  className="h-full w-full rounded-md border bg-muted"
                   allow="autoplay"
                   title={`${selectedManual?.unitName} Manual Preview`}
                 ></iframe>
               ) : (
                 <div className="flex h-full items-center justify-center rounded-md border border-dashed text-muted-foreground">
                   <div className="text-center">
-                    <BookOpen className="mx-auto h-12 w-12" />
-                    <p className="mt-2">No manual selected</p>
+                    <BookOpen className="mx-auto h-12 w-12 opacity-20" />
+                    <p className="mt-2 text-sm">No manual selected</p>
                   </div>
                 </div>
               )}

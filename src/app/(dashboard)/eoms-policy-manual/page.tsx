@@ -65,7 +65,7 @@ export default function EomsPolicyManualPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <ShieldCheck className="h-8 w-8 text-primary" />
+        <ShieldCheck className="h-8 w-8 text-primary shrink-0" />
         <div>
             <h2 className="text-2xl font-bold tracking-tight">RSU EOMS Manual</h2>
             <p className="text-muted-foreground text-sm">
@@ -74,15 +74,15 @@ export default function EomsPolicyManualPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-12rem)]">
-        <Card className="lg:col-span-1 flex flex-col shadow-md">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:h-[calc(100vh-12rem)]">
+        <Card className="lg:col-span-1 flex flex-col shadow-md h-[350px] lg:h-full">
           <CardHeader className="bg-muted/30">
             <CardTitle className="text-lg">Table of Contents</CardTitle>
             <CardDescription>Select a section to read.</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 overflow-hidden p-2">
             <ScrollArea className="h-full">
-              <div className="space-y-1">
+              <div className="space-y-1 pr-4">
                 {sections.map(section => {
                   if (isLoading) {
                     return <Skeleton key={section.id} className="h-12 w-full mb-2" />;
@@ -112,12 +112,12 @@ export default function EomsPolicyManualPage() {
           </CardContent>
         </Card>
 
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 h-[500px] lg:h-full">
           <Card className="h-full flex flex-col shadow-md border-primary/10">
             <CardHeader className="border-b">
-                <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                        <CardTitle className="text-xl">
+                <div className="flex justify-between items-start gap-4">
+                    <div className="space-y-1 min-w-0">
+                        <CardTitle className="text-xl truncate">
                             {isLoading ? <Skeleton className="h-6 w-48" /> : (selectedManual?.title || 'Select a Section')}
                         </CardTitle>
                         <CardDescription>
@@ -125,7 +125,7 @@ export default function EomsPolicyManualPage() {
                         </CardDescription>
                     </div>
                     {selectedManual && (
-                        <Badge variant="secondary" className="font-mono">
+                        <Badge variant="secondary" className="font-mono shrink-0">
                             Rev {selectedManual.revisionNumber}
                         </Badge>
                     )}
@@ -154,7 +154,7 @@ export default function EomsPolicyManualPage() {
               )}
             </CardContent>
             {selectedManual && (
-                <CardFooter className="grid grid-cols-3 gap-4 text-[10px] border-t bg-card py-3 px-6 uppercase tracking-widest font-bold text-muted-foreground">
+                <CardFooter className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-[10px] border-t bg-card py-3 px-6 uppercase tracking-widest font-bold text-muted-foreground">
                     <div className="flex items-center gap-2">
                         <Hash className="h-3 w-3 text-primary"/>
                         <span>Revision: {selectedManual.revisionNumber}</span>

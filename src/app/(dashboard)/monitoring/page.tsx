@@ -42,10 +42,6 @@ export default function MonitoringPage() {
   const [selectedRecord, setSelectedRecord] = useState<UnitMonitoringRecord | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-  /**
-   * REFINED ROLE LOGIC
-   * We distinguish between Campus-level and Unit-level users to ensure queries match Security Rules perfectly.
-   */
   const isGlobalAdmin = useMemo(() => isAdmin || (userRole && /admin|auditor/i.test(userRole)), [isAdmin, userRole]);
   const isCampusOfficial = useMemo(() => userRole && /director|campus odimo|vice president/i.test(userRole), [userRole]);
   const isUnitOfficial = useMemo(() => userRole && /unit odimo/i.test(userRole), [userRole]);
@@ -57,13 +53,10 @@ export default function MonitoringPage() {
         
         const baseRef = collection(firestore, 'unitMonitoringRecords');
 
-        // 1. Global Admin/Auditor - See Everything
         if (isGlobalAdmin) {
-            return query(baseRef); // Removed orderBy to avoid index requirement
+            return query(baseRef);
         }
 
-        // 2. Campus Official (Director, Campus ODIMO, VP) OR Unit ODIMO
-        // Note: Unit ODIMOs must use Rule #2 (Campus Scope) because Rule #3 excludes role names with "odimo".
         if (isCampusOfficial || isUnitOfficial) {
              if (userProfile.campusId) {
                  return query(baseRef, where('campusId', '==', userProfile.campusId));
@@ -71,7 +64,6 @@ export default function MonitoringPage() {
              return null; 
         }
 
-        // 3. Unit Coordinator - Restricted to Unit (Rule #3)
         if (isUnitCoordinator && userProfile.unitId) {
             return query(baseRef, where('unitId', '==', userProfile.unitId));
         }
@@ -83,27 +75,20 @@ export default function MonitoringPage() {
   
   const { data: allRecords, isLoading: isLoadingRecords } = useCollection<UnitMonitoringRecord>(monitoringRecordsQuery);
 
-  /**
-   * IN-MEMORY FILTERING & SORTING
-   * Bypasses the need for Firestore composite indices, preventing the "Permission/Precondition" crash.
-   */
   const filteredRecords = useMemo(() => {
     if (!allRecords) return [];
     
     let processed = [...allRecords];
 
-    // For Unit ODIMOs, further restrict the campus-wide records to their own unit for local display
     if (isUnitOfficial && userProfile?.unitId) {
         processed = processed.filter(r => r.unitId === userProfile.unitId);
     }
 
-    // Year Filter
     processed = processed.filter(record => {
         const vDate = record.visitDate instanceof Timestamp ? record.visitDate.toDate() : new Date(record.visitDate);
         return vDate.getFullYear() === selectedYear;
     });
 
-    // Sort by Date Descending
     return processed.sort((a, b) => {
         const dateA = a.visitDate instanceof Timestamp ? a.visitDate.toMillis() : new Date(a.visitDate).getTime();
         const dateB = b.visitDate instanceof Timestamp ? b.visitDate.toMillis() : new Date(b.visitDate).getTime();
@@ -221,29 +206,25 @@ export default function MonitoringPage() {
   };
 
   const isLoading = isUserLoading || isLoadingRecords || isLoadingCampuses || isLoadingUnits;
-
-  // Refined view flag: Unit ODIMOs and Coordinators see the simplified Unit Status view
   const isUnitOnlyView = (isUnitOfficial || isUnitCoordinator) && !isAdmin;
-  
-  // Campus ODIMOs can add new visits for their campus
   const canAddVisit = isAdmin || userRole === 'Campus ODIMO';
 
   return (
     <>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">
                 {isUnitOnlyView ? 'Unit Monitoring Status' : 'Unit Monitoring'}
             </h2>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
                 {isUnitOnlyView ? 'View results from on-site QA monitoring visits.' : 'Record and review on-site monitoring visit findings.'}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="w-[120px]">
                 <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-9">
                         <CalendarSearch className="h-4 w-4 mr-2 opacity-50" />
                         <SelectValue placeholder="Year" />
                     </SelectTrigger>
@@ -253,13 +234,13 @@ export default function MonitoringPage() {
                 </Select>
             </div>
             {!isUnitOnlyView && (
-                <Button variant="outline" onClick={handleExportToExcel} disabled={isLoading || filteredRecords.length === 0}>
+                <Button variant="outline" size="sm" onClick={handleExportToExcel} disabled={isLoading || filteredRecords.length === 0} className="h-9">
                     <FileDown className="mr-2 h-4 w-4" />
                     Export
                 </Button>
             )}
             {canAddVisit && (
-                <Button onClick={handleNewVisit}>
+                <Button size="sm" onClick={handleNewVisit} className="h-9">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     New Visit
                 </Button>
@@ -279,29 +260,24 @@ export default function MonitoringPage() {
             </Card>
         ) : (
             <Tabs defaultValue="performance" className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="performance">
-                        <LayoutDashboard className="mr-2 h-4 w-4" />
-                        Performance
+                <TabsList className="grid h-auto w-full grid-cols-2 md:inline-flex md:h-10 md:w-auto">
+                    <TabsTrigger value="performance" className="gap-2">
+                        <LayoutDashboard className="h-4 w-4" /> Performance
                     </TabsTrigger>
-                    <TabsTrigger value="history">
-                        <History className="mr-2 h-4 w-4" />
-                        Visit Log
+                    <TabsTrigger value="history" className="gap-2">
+                        <History className="h-4 w-4" /> Visit Log
                     </TabsTrigger>
-                    <TabsTrigger value="findings">
-                        <AlertTriangle className="mr-2 h-4 w-4" />
-                        Gaps & Findings
+                    <TabsTrigger value="findings" className="gap-2">
+                        <AlertTriangle className="h-4 w-4" /> Gaps & Findings
                     </TabsTrigger>
                     {!isUnitOnlyView && (
-                      <TabsTrigger value="explorer">
-                          <SearchCode className="mr-2 h-4 w-4" />
-                          Unit Explorer
+                      <TabsTrigger value="explorer" className="gap-2">
+                          <SearchCode className="h-4 w-4" /> Explorer
                       </TabsTrigger>
                     )}
                     {!isUnitOnlyView && (
-                      <TabsTrigger value="item-analysis">
-                          <ListChecks className="mr-2 h-4 w-4" />
-                          Item Analysis
+                      <TabsTrigger value="item-analysis" className="gap-2">
+                          <ListChecks className="h-4 w-4" /> Analysis
                       </TabsTrigger>
                     )}
                 </TabsList>
@@ -368,7 +344,7 @@ export default function MonitoringPage() {
                                                 {score}%
                                               </Badge>
                                             </TableCell>
-                                            <TableCell className="text-right space-x-1">
+                                            <TableCell className="text-right space-x-1 whitespace-nowrap">
                                             <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handlePrintRecord(record); }}>
                                                 <Printer className="h-4 w-4" />
                                             </Button>

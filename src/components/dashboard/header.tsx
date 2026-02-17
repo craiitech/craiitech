@@ -33,10 +33,10 @@ export function Header({ notificationCount }: HeaderProps) {
 
 
   return (
-    <header className="flex h-16 items-center justify-between border-b px-4 lg:px-8 bg-card">
-        <div className="flex items-center gap-2">
-            <SidebarTrigger className="md:hidden" />
-            <h1 className="font-semibold text-lg">{getPageTitle(pathname)}</h1>
+    <header className="flex h-16 items-center justify-between border-b px-4 lg:px-8 bg-card sticky top-0 z-30">
+        <div className="flex items-center gap-2 min-w-0">
+            <SidebarTrigger className="md:hidden shrink-0" />
+            <h1 className="font-semibold text-lg truncate pr-2">{getPageTitle(pathname)}</h1>
         </div>
         <UserNav user={user} userProfile={userProfile} notificationCount={notificationCount} />
     </header>

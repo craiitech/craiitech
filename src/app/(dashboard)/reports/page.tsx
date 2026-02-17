@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -93,11 +94,9 @@ export default function ReportsPage() {
   );
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
-  // Normalize submissions to handle legacy names, ensure year is a number, and trim IDs
   const allSubmissions = useMemo(() => {
     if (!rawSubmissions) return [];
     return rawSubmissions.map(s => {
-        // Aggressive fuzzy normalization of report types to handle pluralization and alternative naming
         let rType = String(s.reportType || '').trim();
         const lowerType = rType.toLowerCase();
         
@@ -197,7 +196,6 @@ export default function ReportsPage() {
 
     const submissionsForYear = allSubmissions.filter(s => s.year === selectedMatrixYear);
 
-    // Create a map for quick lookup with normalized keys
     const submissionMap = new Map<string, Submission>(
       submissionsForYear.map(s => {
         const key = `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`.toLowerCase();
@@ -325,13 +323,13 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between print:hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Reports</h2>
-          <p className="text-muted-foreground">Generate and view system-wide reports.</p>
+          <p className="text-muted-foreground text-sm">Generate and view system-wide reports.</p>
         </div>
         {isAdmin && (
-          <Button onClick={handlePrint}>
+          <Button size="sm" onClick={handlePrint}>
               <Printer className="mr-2 h-4 w-4" />
               Print Report
           </Button>
@@ -345,14 +343,13 @@ export default function ReportsPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:grid-cols-1 print:space-y-8">
-          {/* Campus and Units Report */}
           <Card className="lg:col-span-1 print:break-inside-avoid">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <School className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <School className="h-5 w-5 text-primary" />
                 Campuses and Units
               </CardTitle>
-              <CardDescription>Select a campus to view its assigned units.</CardDescription>
+              <CardDescription className="text-xs">Select a campus to view its assigned units.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Select onValueChange={setSelectedCampusId} value={selectedCampusId || ''} disabled={!isAdmin}>
@@ -381,12 +378,12 @@ export default function ReportsPage() {
                     {selectedCampusId && unitsInSelectedCampus.length > 0 ? (
                       unitsInSelectedCampus.map(unit => (
                         <TableRow key={unit.id}>
-                          <TableCell>{unit.name}</TableCell>
+                          <TableCell className="text-xs">{unit.name}</TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell className="text-center text-muted-foreground">
+                        <TableCell className="text-center text-muted-foreground text-xs py-10">
                           {selectedCampusId ? 'No units found for this campus.' : 'Please select a campus.'}
                         </TableCell>
                       </TableRow>
@@ -397,15 +394,14 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          {/* Submitted Units and All Users Reports */}
           <div className="lg:col-span-2 space-y-6 print:col-span-1">
             <Card className="print:break-inside-avoid">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileCheck2 className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FileCheck2 className="h-5 w-5 text-primary" />
                   Units With Submissions
                 </CardTitle>
-                <CardDescription>A list of all units that have made at least one submission, grouped by campus.</CardDescription>
+                <CardDescription className="text-xs">A list of all units that have made at least one submission, grouped by campus.</CardDescription>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-48 rounded-md border print:h-auto print:border-none">
@@ -413,9 +409,9 @@ export default function ReportsPage() {
                     <Accordion type="multiple" className="w-full">
                       {submittedUnitsByCampus.map(campus => (
                         <AccordionItem value={campus!.campusName} key={campus!.campusName}>
-                          <AccordionTrigger>{campus!.campusName}</AccordionTrigger>
+                          <AccordionTrigger className="text-xs font-bold uppercase">{campus!.campusName}</AccordionTrigger>
                           <AccordionContent>
-                            <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                            <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
                               {campus!.units.map(unitName => (
                                 <li key={unitName}>{unitName}</li>
                               ))}
@@ -425,7 +421,7 @@ export default function ReportsPage() {
                       ))}
                     </Accordion>
                   ) : (
-                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground py-10">
                       No units have submitted reports yet.
                     </div>
                   )}
@@ -435,11 +431,11 @@ export default function ReportsPage() {
 
             <Card className="print:break-inside-avoid">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Users className="h-5 w-5 text-primary" />
                   All Registered Users
                 </CardTitle>
-                <CardDescription>A complete list of all users in the system.</CardDescription>
+                <CardDescription className="text-xs">A complete list of all users in the system.</CardDescription>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-96 rounded-md border print:h-auto print:border-none">
@@ -458,18 +454,18 @@ export default function ReportsPage() {
                             <div className="flex items-center gap-3">
                               <Avatar className="h-8 w-8">
                                 <AvatarImage src={user.avatar} />
-                                <AvatarFallback>
+                                <AvatarFallback className="text-[10px]">
                                   {user.firstName?.charAt(0)}
                                   {user.lastName?.charAt(0)}
                                 </AvatarFallback>
                               </Avatar>
-                              <span>{user.firstName} {user.lastName}</span>
+                              <span className="text-xs font-medium">{user.firstName} {user.lastName}</span>
                             </div>
                           </TableCell>
-                          <TableCell>{user.email}</TableCell>
+                          <TableCell className="text-xs">{user.email}</TableCell>
                           <TableCell>
-                              <div className="text-sm">{campusMap.get(String(user.campusId).trim()) || 'N/A'}</div>
-                              <div className="text-xs text-muted-foreground">{allUnits?.find(u => u.id === user.unitId)?.name || ''}</div>
+                              <div className="text-[10px] font-bold">{campusMap.get(String(user.campusId).trim()) || 'N/A'}</div>
+                              <div className="text-[9px] text-muted-foreground">{allUnits?.find(u => u.id === user.unitId)?.name || ''}</div>
                           </TableCell>
                         </TableRow>
                       ))}
