@@ -1,7 +1,7 @@
 
 'use client';
 
-import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/select';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, deleteDoc, Timestamp } from 'firebase/firestore';
-import type { Submission, Campus, Unit, User as AppUser } from '@/lib/types';
+import type { Submission, Campus, Unit, User as AppUser, Cycle } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useState, useMemo } from 'react';
 import { FeedbackDialog } from '@/components/dashboard/feedback-dialog';
@@ -48,6 +48,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UnitSubmissionsView } from '@/components/submissions/unit-submissions-view';
 import { CampusSubmissionsView } from '@/components/submissions/campus-submissions-view';
+import { SubmissionDashboard } from '@/components/submissions/submission-dashboard';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { submissionTypes } from './new/page';
@@ -105,6 +106,9 @@ export default function SubmissionsPage() {
   }, [firestore, isAdmin, isSupervisor, userProfile, isUserLoading]);
 
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
+
+  const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
+  const { data: cycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
 
   const usersQuery = useMemoFirebase(
     () => (firestore && (isAdmin || isSupervisor) ? collection(firestore, 'users') : null),
@@ -182,7 +186,7 @@ export default function SubmissionsPage() {
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Submissions</h2>
-            <p className="text-muted-foreground">Manage unit compliance documentation.</p>
+            <p className="text-muted-foreground">Manage unit compliance documentation and track overall performance.</p>
           </div>
           <div className="flex items-center space-x-2">
             {!isSupervisor && (
@@ -196,12 +200,26 @@ export default function SubmissionsPage() {
           </div>
         </div>
 
-        <Tabs defaultValue="all-submissions" className="space-y-4">
+        <Tabs defaultValue="visual-insights" className="space-y-4">
             <TabsList>
-                <TabsTrigger value="all-submissions">All Submissions</TabsTrigger>
+                <TabsTrigger value="visual-insights" className="gap-2">
+                    <BarChart3 className="h-4 w-4" /> Visual Insights
+                </TabsTrigger>
+                <TabsTrigger value="all-submissions" className="gap-2">
+                    <List className="h-4 w-4" /> Recent Submissions
+                </TabsTrigger>
                 {isSupervisor && !isAdmin && <TabsTrigger value="by-unit">Unit Submissions</TabsTrigger>}
                 {isAdmin && <TabsTrigger value="by-campus">Campus Submissions</TabsTrigger>}
             </TabsList>
+
+            <TabsContent value="visual-insights">
+                <SubmissionDashboard 
+                    submissions={rawSubmissions || []}
+                    cycles={cycles || []}
+                    isLoading={isLoadingSubmissions || isLoadingCycles}
+                />
+            </TabsContent>
+
             <TabsContent value="all-submissions">
                 <Card>
                     <CardHeader className="flex flex-col md:flex-row md:items-end justify-between gap-4">
