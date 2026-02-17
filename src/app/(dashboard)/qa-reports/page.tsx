@@ -8,15 +8,16 @@ import type { QaAuditReport, ManagementReview, ManagementReviewOutput, Correctiv
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, FileText, Users, ClipboardCheck, History, ShieldCheck, Presentation } from 'lucide-react';
+import { PlusCircle, Loader2, FileText, Users, ClipboardCheck, History, ShieldCheck, Presentation, BarChart3 } from 'lucide-react';
 import { AuditReportsTab } from '@/components/qa-reports/audit-reports-tab';
 import { ManagementReviewTab } from '@/components/qa-reports/management-review-tab';
 import { CorrectiveActionRequestTab } from '@/components/qa-reports/corrective-action-request-tab';
+import { QaAnalyticsTab } from '@/components/qa-reports/qa-analytics-tab';
 
 export default function QaReportsPage() {
   const { isAdmin, userRole, isUserLoading, userProfile } = useUser();
   const firestore = useFirestore();
-  const [activeTab, setActiveTab] = useState('iqa');
+  const [activeTab, setActiveTab] = useState('analytics');
 
   const canManage = isAdmin || userRole === 'Auditor';
 
@@ -51,20 +52,27 @@ export default function QaReportsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-white border shadow-sm grid grid-cols-2 md:grid-cols-4 h-auto">
-          <TabsTrigger value="iqa" className="gap-2 px-4 py-2">
-            <FileText className="h-4 w-4" /> IQA Reports
+        <TabsList className="bg-white border shadow-sm grid grid-cols-2 md:grid-cols-5 h-auto p-1">
+          <TabsTrigger value="analytics" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
+            <BarChart3 className="h-3.5 w-3.5" /> Visual Insights
           </TabsTrigger>
-          <TabsTrigger value="eqa" className="gap-2 px-4 py-2">
-            <Presentation className="h-4 w-4" /> EQA Reports
+          <TabsTrigger value="iqa" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
+            <FileText className="h-3.5 w-3.5" /> IQA Reports
           </TabsTrigger>
-          <TabsTrigger value="mr" className="gap-2 px-4 py-2">
-            <Users className="h-4 w-4" /> Management Review
+          <TabsTrigger value="eqa" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
+            <Presentation className="h-3.5 w-3.5" /> EQA Reports
           </TabsTrigger>
-          <TabsTrigger value="car" className="gap-2 px-4 py-2">
-            <ClipboardCheck className="h-4 w-4" /> CAR Registry
+          <TabsTrigger value="mr" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
+            <Users className="h-3.5 w-3.5" /> Management Review
+          </TabsTrigger>
+          <TabsTrigger value="car" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
+            <ClipboardCheck className="h-3.5 w-3.5" /> CAR Registry
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="analytics" className="animate-in fade-in duration-500">
+          <QaAnalyticsTab />
+        </TabsContent>
 
         <TabsContent value="iqa">
           <AuditReportsTab type="IQA" campuses={campuses || []} canManage={canManage} />
