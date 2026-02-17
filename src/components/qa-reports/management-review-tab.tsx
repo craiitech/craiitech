@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -9,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, ChevronRight, User, Users, Globe, Building2 } from 'lucide-react';
+import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, ChevronRight, User, Users as UsersIcon, Globe, Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -63,7 +62,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
   const { data: reviews, isLoading: isLoadingReviews } = useCollection<ManagementReview>(reviewsQuery);
 
   const outputsQuery = useMemoFirebase(
-    () => (firestore && selectedMr ? query(collection(firestore, 'managementReviewOutputs'), where('mrId', '==', selectedMr.id), orderBy('createdAt', 'desc')) : null),
+    () => (firestore && selectedMr ? query(collection(firestore, 'managementReviewOutputs'), where('mrId', '==', selectedMr.id)) : null),
     [firestore, selectedMr]
   );
   const { data: outputs, isLoading: isLoadingOutputs } = useCollection<ManagementReviewOutput>(outputsQuery);
@@ -260,7 +259,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
           </Card>
         ) : (
           <div className="h-full flex flex-col items-center justify-center border border-dashed rounded-lg text-muted-foreground">
-            <Users className="h-12 w-12 opacity-10 mb-2" />
+            <UsersIcon className="h-12 w-12 opacity-10 mb-2" />
             <p className="text-sm">Select a Management Review session to view its outputs.</p>
           </div>
         )}
