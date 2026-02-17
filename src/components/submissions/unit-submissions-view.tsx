@@ -5,7 +5,7 @@ import type { Submission, Unit, User as AppUser } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Loader2, Building, Eye, Calendar as CalendarIcon, Filter } from 'lucide-react';
+import { Loader2, Building, Eye, Calendar as CalendarIcon, Filter, FileWarning, CheckCircle2, PieChart as PieIcon, AlertTriangle } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -19,12 +19,22 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
     pending: 'secondary',
     rejected: 'destructive',
     submitted: 'outline'
+};
+
+const COLORS: Record<string, string> = {
+    Approved: 'hsl(var(--chart-2))',
+    'Awaiting Approval': 'hsl(var(--chart-1))',
+    Missing: 'hsl(var(--destructive))',
+    Rejected: 'hsl(var(--chart-3))',
 };
 
 const getYearCycleRowColor = (year: number, cycle: string) => {
@@ -89,25 +99,70 @@ export function UnitSubmissionsView({
     if (!allUnits || !userProfile?.campusId) {
       return [];
     }
-    // Show ALL units in the campus, whether they have submissions or not
     return allUnits
         .filter(u => u.campusIds?.includes(userProfile.campusId))
         .sort((a, b) => a.name.localeCompare(b.name));
   }, [allUnits, userProfile]);
 
-  const selectedUnitSubmissions = useMemo(() => {
+  const unitData = useMemo(() => {
     if (!selectedUnitId || !allSubmissions || !userProfile?.campusId) {
-      return { firstCycle: [], finalCycle: [] };
+      return null;
     }
-    const unitSubmissions = allSubmissions.filter(s => 
+    const yearSubmissions = allSubmissions.filter(s => 
         s.unitId === selectedUnitId && 
         s.campusId === userProfile.campusId && 
         s.year.toString() === selectedYear
     );
-    return {
-        firstCycle: unitSubmissions.filter(s => s.cycleId === 'first'),
-        finalCycle: unitSubmissions.filter(s => s.cycleId === 'final'),
-    }
+
+    const firstSubs = yearSubmissions.filter(s => s.cycleId === 'first');
+    const finalSubs = yearSubmissions.filter(s => s.cycleId === 'final');
+
+    const firstRegistry = firstSubs.find(s => s.reportType === 'Risk and Opportunity Registry');
+    const isFirstActionPlanNA = firstRegistry?.riskRating === 'low';
+
+    const finalRegistry = finalSubs.find(s => s.reportType === 'Risk and Opportunity Registry');
+    const isFinalActionPlanNA = finalRegistry?.riskRating === 'low';
+
+    const getMissing = (cycleSubs: Submission[], isActionPlanNA: boolean) => {
+        const submitted = new Set(cycleSubs.map(s => s.reportType));
+        return submissionTypes.filter(type => {
+            if (submitted.has(type)) return false;
+            if (type === 'Risk and Opportunity Action Plan' && isActionPlanNA) return false;
+            return true;
+        });
+    };
+
+    const missingFirst = getMissing(firstSubs, isFirstActionPlanNA);
+    const missingFinal = getMissing(finalSubs, isFinalActionPlanNA);
+
+    // Performance Data for Chart
+    const approved = yearSubmissions.filter(s => s.statusId === 'approved').length;
+    const pending = yearSubmissions.filter(s => s.statusId === 'submitted').length;
+    const rejected = yearSubmissions.filter(s => s.statusId === 'rejected').length;
+    const missingTotal = missingFirst.length + missingFinal.length;
+
+    const chartData = [
+        { name: 'Approved', value: approved },
+        { name: 'Awaiting Approval', value: pending },
+        { name: 'Rejected', value: rejected },
+        { name: 'Missing', value: missingTotal }
+    ].filter(d => d.value > 0);
+
+    const totalPossible = (submissionTypes.length * 2) - (isFirstActionPlanNA ? 1 : 0) - (isFinalActionPlanNA ? 1 : 0);
+    const score = Math.round((approved / (totalPossible || 1)) * 100);
+
+    return { 
+        firstCycle: firstSubs, 
+        finalCycle: finalSubs, 
+        isFirstActionPlanNA, 
+        isFinalActionPlanNA,
+        missingFirst,
+        missingFinal,
+        chartData,
+        score,
+        totalPossible,
+        approved
+    };
   }, [selectedUnitId, allSubmissions, userProfile, selectedYear]);
   
   const handleUnitSelect = (unitId: string) => {
@@ -128,7 +183,7 @@ export function UnitSubmissionsView({
         <div>
             <CardTitle>Unit Submissions Monitoring</CardTitle>
             <CardDescription>
-            Select a unit to view their complete submission history for the selected year.
+            Select a unit to view their complete submission history and performance analytics for the selected year.
             </CardDescription>
         </div>
         <div className="flex items-center gap-2">
@@ -148,7 +203,7 @@ export function UnitSubmissionsView({
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-1">
-            <ScrollArea className="h-[60vh] rounded-md border bg-muted/5">
+            <ScrollArea className="h-[75vh] rounded-md border bg-muted/5">
                  {unitsToShow.length > 0 ? (
                     <div className="p-2 space-y-1">
                         {unitsToShow.map(unit => (
@@ -176,37 +231,133 @@ export function UnitSubmissionsView({
           </div>
 
           <div className="md:col-span-2">
-            <ScrollArea className="h-[60vh] rounded-md border p-4 bg-muted/5">
-                {selectedUnitId ? (
-                    <div className="space-y-8">
-                        <div className="flex items-center justify-between border-b pb-4">
-                            <div className="space-y-1">
-                                <h3 className="font-black text-lg uppercase tracking-tight text-primary">
-                                    {allUnits?.find(u => u.id === selectedUnitId)?.name}
-                                </h3>
-                                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase">
-                                    <CalendarIcon className="h-3 w-3" />
-                                    Reporting Year: {selectedYear}
+            <ScrollArea className="h-[75vh] rounded-md border p-4 bg-muted/5">
+                {selectedUnitId && unitData ? (
+                    <div className="space-y-8 pb-10">
+                        {/* --- UNIT PERFORMANCE SCORECARD --- */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 border-b pb-6">
+                            <div className="lg:col-span-1 flex flex-col items-center justify-center bg-background rounded-lg border shadow-sm p-4 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-2 opacity-5"><PieIcon className="h-12 w-12" /></div>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Unit Compliance Index</span>
+                                <ChartContainer config={{}} className="h-[120px] w-[120px]">
+                                    <ResponsiveContainer>
+                                        <PieChart>
+                                            <Tooltip content={<ChartTooltipContent hideLabel />} />
+                                            <Pie
+                                                data={unitData.chartData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={35}
+                                                outerRadius={50}
+                                                paddingAngle={5}
+                                                dataKey="value"
+                                            >
+                                                {unitData.chartData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[entry.name] || '#cbd5e1'} />
+                                                ))}
+                                            </Pie>
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
+                                <div className="mt-2 text-center">
+                                    <span className="text-2xl font-black tabular-nums tracking-tighter">{unitData.score}%</span>
+                                    <p className="text-[9px] font-bold text-green-600 uppercase">Target: 100%</p>
                                 </div>
+                            </div>
+
+                            <div className="lg:col-span-2 grid grid-cols-2 gap-4">
+                                <Card className="shadow-none border-dashed bg-muted/20">
+                                    <CardHeader className="p-4 pb-2">
+                                        <CardDescription className="text-[9px] font-black uppercase tracking-widest">Compliance Status</CardDescription>
+                                        <CardTitle className="text-xl font-black text-primary">
+                                            {unitData.approved} / {unitData.totalPossible}
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-4 pt-0">
+                                        <p className="text-[10px] text-muted-foreground leading-tight">Total verified and approved documents for {selectedYear}.</p>
+                                    </CardContent>
+                                </Card>
+                                <Card className={cn("shadow-none border-dashed", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200")}>
+                                    <CardHeader className="p-4 pb-2">
+                                        <CardDescription className={cn("text-[9px] font-black uppercase tracking-widest", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-700" : "text-green-700")}>Outstanding Actions</CardDescription>
+                                        <CardTitle className={cn("text-xl font-black", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-600" : "text-green-600")}>
+                                            {unitData.missingFirst.length + unitData.missingFinal.length} Missing
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-4 pt-0">
+                                        <p className="text-[10px] text-muted-foreground leading-tight">Documents yet to be uploaded to the portal.</p>
+                                    </CardContent>
+                                </Card>
                             </div>
                         </div>
 
-                        <div className="space-y-6">
+                        {/* --- CRITICAL GAPS SECTION --- */}
+                        {(unitData.missingFirst.length > 0 || unitData.missingFinal.length > 0) && (
+                            <div className="space-y-4">
+                                <h4 className="text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2 text-destructive">
+                                    <FileWarning className="h-4 w-4" /> 
+                                    Identification of Gaps
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {unitData.missingFirst.length > 0 && (
+                                        <div className="bg-destructive/5 rounded-lg p-4 border border-destructive/10">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-destructive mb-3">1st Cycle Missing</p>
+                                            <ul className="space-y-1.5">
+                                                {unitData.missingFirst.map(doc => (
+                                                    <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
+                                                        <AlertTriangle className="h-3 w-3 text-amber-500" /> {doc}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                    {unitData.missingFinal.length > 0 && (
+                                        <div className="bg-destructive/5 rounded-lg p-4 border border-destructive/10">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-destructive mb-3">Final Cycle Missing</p>
+                                            <ul className="space-y-1.5">
+                                                {unitData.missingFinal.map(doc => (
+                                                    <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
+                                                        <AlertTriangle className="h-3 w-3 text-amber-500" /> {doc}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {unitData.missingFirst.length === 0 && unitData.missingFinal.length === 0 && (
+                            <div className="bg-green-50 p-6 rounded-lg border border-green-100 text-center space-y-2">
+                                <div className="mx-auto h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                                    <CheckCircle2 className="h-6 w-6 text-green-600" />
+                                </div>
+                                <h4 className="font-black text-sm uppercase text-green-800">Compliance Satisfied</h4>
+                                <p className="text-xs text-green-700/70 max-w-xs mx-auto">This unit has successfully submitted all required documentation for the Academic Year {selectedYear}.</p>
+                            </div>
+                        )}
+
+                        {/* --- DETAILED LOG TABLES --- */}
+                        <div className="space-y-6 pt-4">
+                            <h4 className="text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2 text-primary">
+                                <CalendarIcon className="h-4 w-4" /> 
+                                Submission History
+                            </h4>
                             <div className="space-y-3">
                                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 uppercase text-[9px] font-black">First Submission Cycle</Badge>
-                                <SubmissionTableForCycle submissions={selectedUnitSubmissions.firstCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} />
+                                <SubmissionTableForCycle submissions={unitData.firstCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} />
                             </div>
                             
                             <div className="space-y-3">
                                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 uppercase text-[9px] font-black">Final Submission Cycle</Badge>
-                                <SubmissionTableForCycle submissions={selectedUnitSubmissions.finalCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} />
+                                <SubmissionTableForCycle submissions={unitData.finalCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} />
                             </div>
                         </div>
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full text-center gap-2 text-muted-foreground">
                         <Building className="h-12 w-12 opacity-10" />
-                        <p className="text-sm font-medium">Select a unit from the list to see their submissions.</p>
+                        <p className="text-sm font-medium">Select a unit from the site tree to see their performance summary.</p>
                     </div>
                 )}
             </ScrollArea>
