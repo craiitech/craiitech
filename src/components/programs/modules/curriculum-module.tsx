@@ -15,32 +15,32 @@ export function CurriculumModule({ canEdit }: { canEdit: boolean }) {
 
   const enrollment = watch('stats.enrollment');
 
-  // Auto-calculate totals for each year level in both semesters
+  // Auto-calculate totals for each year level in all terms
   useEffect(() => {
-    const semesters = ['firstSemester', 'secondSemester'];
+    const terms = ['firstSemester', 'secondSemester', 'midYearTerm'];
     const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'];
     
-    semesters.forEach(sem => {
+    terms.forEach(term => {
         levels.forEach(level => {
-            const male = Number(enrollment?.[sem]?.[level]?.male) || 0;
-            const female = Number(enrollment?.[sem]?.[level]?.female) || 0;
+            const male = Number(enrollment?.[term]?.[level]?.male) || 0;
+            const female = Number(enrollment?.[term]?.[level]?.female) || 0;
             const total = male + female;
-            if (enrollment?.[sem]?.[level] && enrollment[sem][level].total !== total) {
-                setValue(`stats.enrollment.${sem}.${level}.total`, total);
+            if (enrollment?.[term]?.[level] && enrollment[term][level].total !== total) {
+                setValue(`stats.enrollment.${term}.${level}.total`, total);
             }
         });
     });
   }, [enrollment, setValue]);
 
-  const renderEnrollmentSection = (semesterKey: string) => (
+  const renderEnrollmentSection = (termKey: string) => (
     <div className="space-y-4 pt-4">
         {['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].map((level, idx) => (
-            <div key={`${semesterKey}-${level}`} className="space-y-3 p-4 rounded-lg border bg-muted/5 relative">
+            <div key={`${termKey}-${level}`} className="space-y-3 p-4 rounded-lg border bg-muted/5 relative">
                 <p className="text-[10px] font-black uppercase tracking-[0.15em] text-primary">{idx + 1}{idx === 0 ? 'st' : idx === 1 ? 'nd' : idx === 2 ? 'rd' : 'th'} Year Registry</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <FormField
                         control={control}
-                        name={`stats.enrollment.${semesterKey}.${level}.male`}
+                        name={`stats.enrollment.${termKey}.${level}.male`}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="text-[9px] uppercase font-bold text-muted-foreground">Male</FormLabel>
@@ -50,7 +50,7 @@ export function CurriculumModule({ canEdit }: { canEdit: boolean }) {
                     />
                     <FormField
                         control={control}
-                        name={`stats.enrollment.${semesterKey}.${level}.female`}
+                        name={`stats.enrollment.${termKey}.${level}.female`}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="text-[9px] uppercase font-bold text-muted-foreground">Female</FormLabel>
@@ -60,7 +60,7 @@ export function CurriculumModule({ canEdit }: { canEdit: boolean }) {
                     />
                     <FormField
                         control={control}
-                        name={`stats.enrollment.${semesterKey}.${level}.specialNeeds`}
+                        name={`stats.enrollment.${termKey}.${level}.specialNeeds`}
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="text-[9px] uppercase font-bold text-primary flex items-center gap-1">
@@ -73,7 +73,7 @@ export function CurriculumModule({ canEdit }: { canEdit: boolean }) {
                     />
                     <FormItem>
                         <FormLabel className="text-[9px] uppercase font-bold text-muted-foreground">Total</FormLabel>
-                        <FormControl><Input type="number" value={enrollment?.[semesterKey]?.[level]?.total || 0} className="h-8 text-xs font-black bg-muted/20 text-center" disabled /></FormControl>
+                        <FormControl><Input type="number" value={enrollment?.[termKey]?.[level]?.total || 0} className="h-8 text-xs font-black bg-muted/20 text-center" disabled /></FormControl>
                     </FormItem>
                 </div>
             </div>
@@ -161,12 +161,14 @@ export function CurriculumModule({ canEdit }: { canEdit: boolean }) {
         </CardHeader>
         <CardContent className="space-y-6">
           <Tabs defaultValue="firstSemester" className="w-full">
-            <TabsList className="grid grid-cols-2 w-full h-9 p-1 bg-muted">
-                <TabsTrigger value="firstSemester" className="text-[10px] font-black uppercase tracking-wider">1st Semester</TabsTrigger>
-                <TabsTrigger value="secondSemester" className="text-[10px] font-black uppercase tracking-wider">2nd Semester</TabsTrigger>
+            <TabsList className="grid grid-cols-3 w-full h-9 p-1 bg-muted">
+                <TabsTrigger value="firstSemester" className="text-[10px] font-black uppercase tracking-wider">1st Sem</TabsTrigger>
+                <TabsTrigger value="secondSemester" className="text-[10px] font-black uppercase tracking-wider">2nd Sem</TabsTrigger>
+                <TabsTrigger value="midYearTerm" className="text-[10px] font-black uppercase tracking-wider">Summer</TabsTrigger>
             </TabsList>
             <TabsContent value="firstSemester">{renderEnrollmentSection('firstSemester')}</TabsContent>
             <TabsContent value="secondSemester">{renderEnrollmentSection('secondSemester')}</TabsContent>
+            <TabsContent value="midYearTerm">{renderEnrollmentSection('midYearTerm')}</TabsContent>
           </Tabs>
 
           <div className="pt-4 border-t mt-4">

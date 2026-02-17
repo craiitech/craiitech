@@ -404,6 +404,7 @@ export type ProgramComplianceRecord = {
     enrollment: {
       firstSemester: YearLevelEnrollment;
       secondSemester: YearLevelEnrollment;
+      midYearTerm?: YearLevelEnrollment;
     };
     graduationCount: number;
     maleGraduates?: number;

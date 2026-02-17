@@ -52,10 +52,12 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     const enrollmentData = levels.map(level => {
         const s1 = record.stats.enrollment?.firstSemester?.[level];
         const s2 = record.stats.enrollment?.secondSemester?.[level];
+        const sSummer = record.stats.enrollment?.midYearTerm?.[level];
         return {
             name: levelLabels[level],
             '1st Sem': (s1?.male || 0) + (s1?.female || 0),
-            '2nd Sem': (s2?.male || 0) + (s2?.female || 0)
+            '2nd Sem': (s2?.male || 0) + (s2?.female || 0),
+            'Mid-Year': (sSummer?.male || 0) + (sSummer?.female || 0)
         };
     });
 
@@ -175,15 +177,16 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                     <div>
                         <CardTitle className="text-lg flex items-center gap-2">
                             <Users className="h-5 w-5 text-primary" />
-                            Semester Enrollment Comparison
+                            Academic Year Enrollment Trends
                         </CardTitle>
-                        <CardDescription>Aggregate student counts for 1st and 2nd Semesters in AY {selectedYear}</CardDescription>
+                        <CardDescription>Aggregate student counts comparing 1st Sem, 2nd Sem, and Mid-Year terms in AY {selectedYear}</CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent>
                     <ChartContainer config={{ 
                         '1st Sem': { label: '1st Semester', color: 'hsl(var(--chart-1))' },
-                        '2nd Sem': { label: '2nd Semester', color: 'hsl(var(--chart-2))' }
+                        '2nd Sem': { label: '2nd Semester', color: 'hsl(var(--chart-2))' },
+                        'Mid-Year': { label: 'Mid-Year Term', color: 'hsl(var(--chart-3))' }
                     }} className="h-[250px] w-full">
                         <ResponsiveContainer>
                             <BarChart data={analyticsData?.enrollmentData}>
@@ -194,6 +197,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                                 <Legend verticalAlign="top" align="right" />
                                 <Bar dataKey="1st Sem" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
                                 <Bar dataKey="2nd Sem" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="Mid-Year" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </ChartContainer>

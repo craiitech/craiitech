@@ -96,7 +96,8 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       stats: { 
         enrollment: { 
             firstSemester: { ...emptyYearLevelEnrollment },
-            secondSemester: { ...emptyYearLevelEnrollment }
+            secondSemester: { ...emptyYearLevelEnrollment },
+            midYearTerm: { ...emptyYearLevelEnrollment }
         }, 
         graduationCount: 0 
       },
@@ -145,7 +146,8 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         stats: { 
             enrollment: { 
                 firstSemester: { ...emptyYearLevelEnrollment },
-                secondSemester: { ...emptyYearLevelEnrollment }
+                secondSemester: { ...emptyYearLevelEnrollment },
+                midYearTerm: { ...emptyYearLevelEnrollment }
             }, 
             graduationCount: 0 
         },
