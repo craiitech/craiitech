@@ -133,6 +133,11 @@ service cloud.firestore {
       allow read: if isAdmin();
     }
 
+    match /softwareEvaluations/{evalId} {
+      allow create: if isSignedIn() && (isAdmin() || isAuditor());
+      allow read: if isSignedIn();
+    }
+
     match /roles/{roleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /cycles/{cycleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /campuses/{campusId} { allow read: if isSignedIn(); allow write: if isAdmin(); }

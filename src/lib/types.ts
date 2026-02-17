@@ -248,6 +248,17 @@ export type AppFeedback = {
   timestamp: any;
 };
 
+export type SoftwareEvaluation = {
+  id: string;
+  userId: string;
+  userName: string;
+  timestamp: any;
+  scores: Record<string, number>;
+  overallScore: number;
+  generalComments?: string;
+  recommendations?: string;
+};
+
 // --- ACADEMIC PROGRAM MONITORING TYPES ---
 
 export type AcademicProgram = {

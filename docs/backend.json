@@ -76,6 +76,25 @@
       },
       "required": ["userId", "rating"]
     },
+    "SoftwareEvaluation": {
+      "title": "SoftwareEvaluation",
+      "type": "object",
+      "description": "Formal software quality audit based on ISO/IEC 25010.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "scores": { 
+          "type": "object",
+          "description": "Categorized scores (1-5) for ISO characteristics."
+        },
+        "overallScore": { "type": "number" },
+        "generalComments": { "type": "string" },
+        "recommendations": { "type": "string" }
+      },
+      "required": ["userId", "scores"]
+    },
     "AcademicProgram": {
       "title": "AcademicProgram",
       "type": "object",
@@ -204,7 +223,8 @@
       { "path": "/campuses/{campusId}", "definition": { "entityName": "Campus" } },
       { "path": "/units/{unitId}", "definition": { "entityName": "Unit" } },
       { "path": "/unitMonitoringRecords/{recordId}", "definition": { "entityName": "UnitMonitoringRecord" } },
-      { "path": "/appFeedbacks/{feedbackId}", "definition": { "entityName": "AppFeedback" } }
+      { "path": "/appFeedbacks/{feedbackId}", "definition": { "entityName": "AppFeedback" } },
+      { "path": "/softwareEvaluations/{evalId}", "definition": { "entityName": "SoftwareEvaluation" } }
     ]
   }
 }

@@ -9,7 +9,7 @@ import {
   useCollection,
   useMemoFirebase,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, User as UserIcon, ClipboardList, BookOpen, BookMarked, ClipboardCheck, GraduationCap } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, User as UserIcon, ClipboardList, BookOpen, BookMarked, ClipboardCheck, GraduationCap, MonitorCheck } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -99,6 +99,13 @@ export function SidebarNav({
       active: pathname.startsWith('/monitoring'),
       roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Vice President', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <ClipboardCheck />,
+    },
+    {
+      href: '/software-evaluation',
+      label: 'Software Quality',
+      active: pathname.startsWith('/software-evaluation'),
+      roles: ['Admin', 'Auditor'],
+      icon: <MonitorCheck />,
     },
      {
       href: '/reports',
