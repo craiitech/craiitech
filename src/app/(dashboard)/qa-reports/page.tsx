@@ -8,11 +8,12 @@ import type { QaAuditReport, ManagementReview, ManagementReviewOutput, Correctiv
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, FileText, Users, ClipboardCheck, History, ShieldCheck, Presentation, BarChart3 } from 'lucide-react';
+import { PlusCircle, Loader2, FileText, Users, ClipboardCheck, History, ShieldCheck, Presentation, BarChart3, ListTodo } from 'lucide-react';
 import { AuditReportsTab } from '@/components/qa-reports/audit-reports-tab';
 import { ManagementReviewTab } from '@/components/qa-reports/management-review-tab';
 import { CorrectiveActionRequestTab } from '@/components/qa-reports/corrective-action-request-tab';
 import { QaAnalyticsTab } from '@/components/qa-reports/qa-analytics-tab';
+import { ActionableDecisionsTab } from '@/components/qa-reports/actionable-decisions-tab';
 
 export default function QaReportsPage() {
   const { isAdmin, userRole, isUserLoading, userProfile } = useUser();
@@ -52,9 +53,12 @@ export default function QaReportsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-white border shadow-sm grid grid-cols-2 md:grid-cols-5 h-auto p-1">
+        <TabsList className="bg-white border shadow-sm grid grid-cols-2 md:grid-cols-6 h-auto p-1">
           <TabsTrigger value="overview" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
             <BarChart3 className="h-3.5 w-3.5" /> Overview
+          </TabsTrigger>
+          <TabsTrigger value="decisions" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
+            <ListTodo className="h-3.5 w-3.5" /> Actionable Decisions
           </TabsTrigger>
           <TabsTrigger value="iqa" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
             <FileText className="h-3.5 w-3.5" /> IQA Reports
@@ -72,6 +76,10 @@ export default function QaReportsPage() {
 
         <TabsContent value="overview" className="animate-in fade-in duration-500">
           <QaAnalyticsTab />
+        </TabsContent>
+
+        <TabsContent value="decisions">
+          <ActionableDecisionsTab campuses={campuses || []} units={units || []} />
         </TabsContent>
 
         <TabsContent value="iqa">

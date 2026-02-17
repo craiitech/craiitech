@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, ChevronRight, User, Users, Globe, Building2, FileText, Presentation } from 'lucide-react';
+import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, ChevronRight, User, Users, Globe, Building2, FileText, Presentation, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -41,6 +42,7 @@ const outputSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   initiator: z.string().min(1, 'Initiator is required'),
   concernedUnitIds: z.array(z.string()).min(1, 'At least one unit is required'),
+  campusId: z.string().min(1, 'Target campus is required'),
   actionPlan: z.string().min(1, 'Action plan is required'),
   followUpDate: z.string().min(1, 'Follow-up date is required'),
   status: z.enum(['Open', 'On-going', 'Closed']),
@@ -77,7 +79,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
 
   const outputForm = useForm<z.infer<typeof outputSchema>>({
     resolver: zodResolver(outputSchema),
-    defaultValues: { description: '', initiator: '', concernedUnitIds: [], actionPlan: '', followUpDate: '', status: 'Open' }
+    defaultValues: { description: '', initiator: '', concernedUnitIds: [], campusId: '', actionPlan: '', followUpDate: '', status: 'Open' }
   });
 
   const handleMrSubmit = async (values: z.infer<typeof mrSchema>) => {
@@ -240,6 +242,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                         <TableHeader className="bg-muted/30 sticky top-0 z-10">
                                             <TableRow className="hover:bg-transparent">
                                                 <TableHead className="text-[10px] font-black uppercase py-2">Decision / Description</TableHead>
+                                                <TableHead className="text-[10px] font-black uppercase py-2">Site / Campus</TableHead>
                                                 <TableHead className="text-[10px] font-black uppercase py-2">Concerned Units</TableHead>
                                                 <TableHead className="text-[10px] font-black uppercase py-2 text-center">Follow-up</TableHead>
                                                 <TableHead className="text-[10px] font-black uppercase py-2 text-right">Status</TableHead>
@@ -253,6 +256,12 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                                         <div className="flex items-center gap-1.5 mt-2 opacity-60">
                                                             <User className="h-2.5 w-2.5" />
                                                             <span className="text-[9px] font-bold uppercase tracking-tighter">Initiator: {output.initiator}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-600 uppercase tracking-tighter">
+                                                            <MapPin className="h-3 w-3 text-muted-foreground" />
+                                                            {campusMap.get(output.campusId) || '...'}
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
@@ -285,7 +294,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                             ))}
                                             {outputs?.length === 0 && (
                                                 <TableRow>
-                                                    <TableCell colSpan={4} className="h-40 text-center">
+                                                    <TableCell colSpan={5} className="h-40 text-center">
                                                         <div className="flex flex-col items-center gap-2 opacity-20">
                                                             <Presentation className="h-10 w-10" />
                                                             <p className="text-[10px] font-black uppercase tracking-widest">No decisions logged</p>
@@ -400,16 +409,27 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                   <FormItem><FormLabel className="text-xs font-bold uppercase">Follow-up Target Date</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
-              <FormField control={outputForm.control} name="concernedUnitIds" render={({ field }) => (
-                <FormItem><FormLabel className="text-xs font-bold uppercase">Concerned Unit(s) / Offices</FormLabel>
-                  <FormControl>
-                    <MultiSelectUnits 
-                      units={units} 
-                      selectedIds={field.value} 
-                      onSelect={(ids) => field.onChange(ids)} 
-                    />
-                  </FormControl><FormMessage /></FormItem>
-              )} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField control={outputForm.control} name="campusId" render={({ field }) => (
+                    <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Campus / Site</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Target Site" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                        <SelectItem value={UNIVERSITY_WIDE_ID} className="font-bold text-primary italic">University-Wide</SelectItem>
+                        {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select><FormMessage /></FormItem>
+                )} />
+                <FormField control={outputForm.control} name="concernedUnitIds" render={({ field }) => (
+                    <FormItem><FormLabel className="text-xs font-bold uppercase">Concerned Unit(s) / Offices</FormLabel>
+                    <FormControl>
+                        <MultiSelectUnits 
+                        units={units} 
+                        selectedIds={field.value} 
+                        onSelect={(ids) => field.onChange(ids)} 
+                        />
+                    </FormControl><FormMessage /></FormItem>
+                )} />
+              </div>
               <FormField control={outputForm.control} name="actionPlan" render={({ field }) => (
                 <FormItem><FormLabel className="text-xs font-bold uppercase">Proposed Action Strategy</FormLabel><FormControl><Input {...field} placeholder="How will this be implemented?" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
               )} />
