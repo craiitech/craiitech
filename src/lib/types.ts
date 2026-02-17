@@ -424,6 +424,9 @@ export type QaAuditReport = {
   googleDriveLink: string;
   campusId: string;
   createdAt: any; // Timestamp
+  // EQA specific fields
+  eqaCategory?: 'Certification / Re-Certification Audit' | 'Surveillance Audit';
+  certifyingBody?: string;
 };
 
 export type ManagementReview = {

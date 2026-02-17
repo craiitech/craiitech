@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -8,11 +9,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ExternalLink, Trash2, PlusCircle, FileText, Eye, Globe } from 'lucide-react';
+import { Loader2, ExternalLink, Trash2, PlusCircle, FileText, Eye, Globe, Building2, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
@@ -30,6 +31,9 @@ const reportSchema = z.object({
   reportDate: z.string().min(1, 'Date is required'),
   googleDriveLink: z.string().url('Invalid URL'),
   campusId: z.string().min(1, 'Campus is required'),
+  // Optional for IQA, conditional for EQA
+  eqaCategory: z.string().optional(),
+  certifyingBody: z.string().optional(),
 });
 
 const UNIVERSITY_WIDE_ID = 'university-wide';
@@ -58,19 +62,28 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
 
   const form = useForm<z.infer<typeof reportSchema>>({
     resolver: zodResolver(reportSchema),
-    defaultValues: { title: '', reportDate: '', googleDriveLink: '', campusId: '' }
+    defaultValues: { title: '', reportDate: '', googleDriveLink: '', campusId: '', eqaCategory: 'Certification / Re-Certification Audit', certifyingBody: '' }
   });
 
   const onSubmit = async (values: z.infer<typeof reportSchema>) => {
     if (!firestore) return;
     setIsSubmitting(true);
     try {
-      await addDoc(collection(firestore, 'qaAuditReports'), {
+      const dataToSave: any = {
         ...values,
         type,
         reportDate: Timestamp.fromDate(new Date(values.reportDate)),
         createdAt: serverTimestamp(),
-      });
+      };
+
+      // Clean up optional fields if they are empty
+      if (!values.certifyingBody) delete dataToSave.certifyingBody;
+      if (type === 'IQA') {
+          delete dataToSave.eqaCategory;
+          delete dataToSave.certifyingBody;
+      }
+
+      await addDoc(collection(firestore, 'qaAuditReports'), dataToSave);
       toast({ title: 'Success', description: 'Report uploaded successfully.' });
       setIsDialogOpen(false);
       form.reset();
@@ -103,112 +116,163 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-bold">{type} Documentation Vault</h3>
+        <div className="space-y-1">
+            <h3 className="text-lg font-black uppercase tracking-tight">{type} Documentation Vault</h3>
+            <p className="text-xs text-muted-foreground">Official repository for institutional {type} records.</p>
+        </div>
         {canManage && (
-          <Button onClick={() => setIsDialogOpen(true)} size="sm">
+          <Button onClick={() => setIsDialogOpen(true)} size="sm" className="shadow-lg shadow-primary/20">
             <PlusCircle className="mr-2 h-4 w-4" /> Add New Report
           </Button>
         )}
       </div>
 
-      <Card>
+      <Card className="shadow-sm border-primary/10 overflow-hidden">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center items-center h-48">
-              <Loader2 className="h-8 w-8 animate-spin" />
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Report Title</TableHead>
-                  <TableHead>Campus Scope</TableHead>
-                  <TableHead>Audit Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {reports?.map((report) => (
-                  <TableRow key={report.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-primary" />
-                        {report.title}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {report.campusId === UNIVERSITY_WIDE_ID ? (
-                        <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 gap-1 h-5 text-[10px] font-bold">
-                          <Globe className="h-3 w-3" />
-                          UNIVERSITY-WIDE
-                        </Badge>
-                      ) : (
-                        campusMap.get(report.campusId) || '...'
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {report.reportDate?.toDate ? format(report.reportDate.toDate(), 'PPP') : 'N/A'}
-                    </TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => setPreviewDoc(report)}>
-                        <Eye className="mr-2 h-4 w-4" /> Preview
-                      </Button>
-                      <Button variant="ghost" size="icon" asChild>
-                        <a href={report.googleDriveLink} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      </Button>
-                      {canManage && (
-                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(report.id)}>
-                          <Trash2 className="h-4 w-4" />
+            <div className="overflow-x-auto">
+                <Table>
+                <TableHeader className="bg-muted/50">
+                    <TableRow>
+                    <TableHead className="font-bold text-[10px] uppercase">Report Details</TableHead>
+                    <TableHead className="font-bold text-[10px] uppercase">Campus Scope</TableHead>
+                    <TableHead className="font-bold text-[10px] uppercase text-center">Audit Date</TableHead>
+                    {type === 'EQA' && <TableHead className="font-bold text-[10px] uppercase">Auditor / Body</TableHead>}
+                    <TableHead className="text-right font-bold text-[10px] uppercase">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {reports?.map((report) => (
+                    <TableRow key={report.id} className="hover:bg-muted/30">
+                        <TableCell>
+                        <div className="flex flex-col">
+                            <span className="font-bold text-sm text-slate-900">{report.title}</span>
+                            {type === 'EQA' && report.eqaCategory && (
+                                <Badge variant="outline" className="w-fit text-[9px] h-4 mt-1 border-primary/30 text-primary font-bold">{report.eqaCategory}</Badge>
+                            )}
+                        </div>
+                        </TableCell>
+                        <TableCell>
+                        {report.campusId === UNIVERSITY_WIDE_ID ? (
+                            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 gap-1 h-5 text-[10px] font-black uppercase tracking-tighter">
+                            <Globe className="h-3 w-3" />
+                            UNIVERSITY-WIDE
+                            </Badge>
+                        ) : (
+                            <div className="flex items-center gap-2 text-xs font-medium">
+                                <Building2 className="h-3 w-3 text-muted-foreground" />
+                                {campusMap.get(report.campusId) || '...'}
+                            </div>
+                        )}
+                        </TableCell>
+                        <TableCell className="text-center font-medium text-xs text-slate-600">
+                        {report.reportDate?.toDate ? format(report.reportDate.toDate(), 'PPP') : 'N/A'}
+                        </TableCell>
+                        {type === 'EQA' && (
+                            <TableCell>
+                                <div className="flex items-center gap-2">
+                                    <ShieldCheck className="h-3 w-3 text-emerald-600" />
+                                    <span className="text-xs font-bold text-emerald-700">{report.certifyingBody || 'Not Specified'}</span>
+                                </div>
+                            </TableCell>
+                        )}
+                        <TableCell className="text-right space-x-2 whitespace-nowrap">
+                        <Button variant="outline" size="sm" onClick={() => setPreviewDoc(report)} className="h-8 text-[10px] font-bold">
+                            PREVIEW
                         </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {!isLoading && reports?.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                      No reports found in this category.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" asChild>
+                            <a href={report.googleDriveLink} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-4 w-4" />
+                            </a>
+                        </Button>
+                        {canManage && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(report.id)}>
+                            <Trash2 className="h-4 w-4" />
+                            </Button>
+                        )}
+                        </TableCell>
+                    </TableRow>
+                    ))}
+                    {!isLoading && reports?.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={type === 'EQA' ? 5 : 4} className="h-32 text-center text-muted-foreground">
+                            <div className="flex flex-col items-center gap-2">
+                                <FileText className="h-8 w-8 opacity-10" />
+                                <p className="text-xs italic font-medium">No reports found in this vault.</p>
+                            </div>
+                        </TableCell>
+                    </TableRow>
+                    )}
+                </TableBody>
+                </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add {type} Report</DialogTitle>
-            <DialogDescription>Provide documentation details and link.</DialogDescription>
+            <DialogTitle>Add {type} Record</DialogTitle>
+            <DialogDescription>Capture documentation parameters and external file reference.</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
               <FormField control={form.control} name="title" render={({ field }) => (
-                <FormItem><FormLabel>Report Title</FormLabel><FormControl><Input {...field} placeholder="e.g., Annual IQA Summary 2025" /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Report Title</FormLabel><FormControl><Input {...field} placeholder="e.g., Annual IQA Summary 2025" className="h-9 text-sm" /></FormControl><FormMessage /></FormItem>
               )} />
-              <FormField control={form.control} name="reportDate" render={({ field }) => (
-                <FormItem><FormLabel>Audit Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
-              )} />
-              <FormField control={form.control} name="campusId" render={({ field }) => (
-                <FormItem><FormLabel>Campus Scope</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select Scope" /></SelectTrigger></FormControl>
-                    <SelectContent>
-                      <SelectItem value={UNIVERSITY_WIDE_ID} className="font-bold text-primary">University-Wide (Global)</SelectItem>
-                      {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select><FormMessage /></FormItem>
-              )} />
+              
+              {type === 'EQA' && (
+                  <>
+                    <FormField control={form.control} name="eqaCategory" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-xs font-bold uppercase tracking-wider">Audit Category</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl><SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                    <SelectItem value="Certification / Re-Certification Audit">Certification / Re-Certification Audit</SelectItem>
+                                    <SelectItem value="Surveillance Audit">Surveillance Audit</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </FormItem>
+                    )} />
+                    <FormField control={form.control} name="certifyingBody" render={({ field }) => (
+                        <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Partner Certifying Body</FormLabel><FormControl><Input {...field} placeholder="e.g., TUV Rheinland, SOCOTEC" className="h-9 text-sm" /></FormControl><FormMessage /></FormItem>
+                    )} />
+                  </>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="reportDate" render={({ field }) => (
+                    <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Audit Date</FormLabel><FormControl><Input type="date" {...field} className="h-9 text-sm" /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="campusId" render={({ field }) => (
+                    <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Site Scope</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select Scope" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                        <SelectItem value={UNIVERSITY_WIDE_ID} className="font-bold text-primary italic">University-Wide (Institutional)</SelectItem>
+                        {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select><FormMessage /></FormItem>
+                )} />
+              </div>
               <FormField control={form.control} name="googleDriveLink" render={({ field }) => (
-                <FormItem><FormLabel>Google Drive Link</FormLabel><FormControl><Input {...field} placeholder="https://drive.google.com/..." /></FormControl><FormMessage /></FormItem>
+                <FormItem>
+                    <FormLabel className="text-xs font-bold uppercase tracking-wider">Google Drive Reference</FormLabel>
+                    <FormControl><Input {...field} placeholder="https://drive.google.com/..." className="h-9 text-sm" /></FormControl>
+                    <FormDescription className="text-[10px]">Must be accessible to 'Anyone with the link'.</FormDescription>
+                    <FormMessage />
+                </FormItem>
               )} />
-              <DialogFooter>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Submit Report
+              <DialogFooter className="pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
+                <Button type="submit" disabled={isSubmitting} className="min-w-[120px]">
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                  Submit to Vault
                 </Button>
               </DialogFooter>
             </form>
@@ -217,14 +281,34 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
       </Dialog>
 
       <Dialog open={!!previewReport} onOpenChange={() => setPreviewDoc(null)}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
-          <DialogHeader className="p-4 border-b">
-            <DialogTitle>{previewReport?.title}</DialogTitle>
+        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+          <DialogHeader className="p-4 border-b bg-slate-50 shrink-0">
+            <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                    <DialogTitle className="text-sm font-black uppercase tracking-tight">{previewReport?.title}</DialogTitle>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Digital Audit Evidence Preview</p>
+                </div>
+                <Badge variant="secondary" className="h-5 text-[9px] font-bold bg-primary/10 text-primary border-primary/20">{type} REPORT</Badge>
+            </div>
           </DialogHeader>
           <div className="flex-1 bg-muted relative">
             {previewReport && (
-              <iframe src={getEmbedUrl(previewReport.googleDriveLink)} className="absolute inset-0 w-full h-full border-none" allow="autoplay" />
+              <iframe 
+                src={getEmbedUrl(previewReport.googleDriveLink)} 
+                className="absolute inset-0 w-full h-full border-none bg-white" 
+                allow="autoplay" 
+                title="QA Document Preview"
+              />
             )}
+          </div>
+          <div className="p-3 border-t bg-card shrink-0 flex justify-between items-center px-6">
+              <p className="text-[9px] text-muted-foreground italic">Source: {previewReport?.googleDriveLink}</p>
+              <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold text-primary" asChild>
+                  <a href={previewReport?.googleDriveLink} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                      Open in Drive
+                  </a>
+              </Button>
           </div>
         </DialogContent>
       </Dialog>

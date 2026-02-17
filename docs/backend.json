@@ -27,7 +27,9 @@
         "title": { "type": "string" },
         "reportDate": { "type": "string", "format": "date-time" },
         "googleDriveLink": { "type": "string", "format": "uri" },
-        "campusId": { "type": "string" }
+        "campusId": { "type": "string" },
+        "eqaCategory": { "type": "string", "enum": ["Certification / Re-Certification Audit", "Surveillance Audit"] },
+        "certifyingBody": { "type": "string" }
       },
       "required": ["type", "title", "reportDate", "googleDriveLink", "campusId"]
     },
