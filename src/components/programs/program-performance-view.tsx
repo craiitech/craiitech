@@ -306,58 +306,67 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         </div>
       </div>
 
-      {program.isBoardProgram && analyticsData?.latestBoard && (
+      {program.isBoardProgram && (
         <Card className="border-green-100 shadow-inner">
             <CardHeader className="bg-green-50/50">
                 <CardTitle className="text-lg flex items-center gap-2">
                     <ShieldCheck className="h-5 w-5 text-green-600" />
-                    Latest Board Performance: {analyticsData.latestBoard.examDate}
+                    Latest Board Performance
+                    {analyticsData?.latestBoard && `: ${analyticsData.latestBoard.examDate}`}
                 </CardTitle>
                 <CardDescription>Performance breakdown for the most recent licensure examination.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                    <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-4 rounded-lg bg-background border shadow-sm">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">First Takers Rate</p>
-                                <p className="text-2xl font-black text-primary">{analyticsData.latestBoard.firstTakersPassRate}%</p>
-                                <p className="text-[10px] text-muted-foreground mt-1">({analyticsData.latestBoard.firstTakersPassed} of {analyticsData.latestBoard.firstTakersCount})</p>
+                {analyticsData?.latestBoard ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 rounded-lg bg-background border shadow-sm">
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">First Takers Rate</p>
+                                    <p className="text-2xl font-black text-primary">{analyticsData.latestBoard.firstTakersPassRate}%</p>
+                                    <p className="text-[10px] text-muted-foreground mt-1">({analyticsData.latestBoard.firstTakersPassed} of {analyticsData.latestBoard.firstTakersCount})</p>
+                                </div>
+                                <div className="p-4 rounded-lg bg-background border shadow-sm">
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Retakers Rate</p>
+                                    <p className="text-2xl font-black text-muted-foreground">{analyticsData.latestBoard.retakersPassRate}%</p>
+                                    <p className="text-[10px] text-muted-foreground mt-1">({analyticsData.latestBoard.retakersPassed} of {analyticsData.latestBoard.retakersCount})</p>
+                                </div>
                             </div>
-                            <div className="p-4 rounded-lg bg-background border shadow-sm">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Retakers Rate</p>
-                                <p className="text-2xl font-black text-muted-foreground">{analyticsData.latestBoard.retakersPassRate}%</p>
-                                <p className="text-[10px] text-muted-foreground mt-1">({analyticsData.latestBoard.retakersPassed} of {analyticsData.latestBoard.retakersCount})</p>
+                            <div className="p-6 rounded-xl bg-primary text-primary-foreground shadow-lg flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-bold uppercase tracking-widest opacity-80">Overall RSU Passing Rate</p>
+                                    <p className="text-4xl font-black">{analyticsData.latestBoard.overallPassRate}%</p>
+                                </div>
+                                <div className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center">
+                                    <CheckCircle2 className="h-8 w-8" />
+                                </div>
                             </div>
                         </div>
-                        <div className="p-6 rounded-xl bg-primary text-primary-foreground shadow-lg flex items-center justify-between">
-                            <div>
-                                <p className="text-xs font-bold uppercase tracking-widest opacity-80">Overall RSU Passing Rate</p>
-                                <p className="text-4xl font-black">{analyticsData.latestBoard.overallPassRate}%</p>
-                            </div>
-                            <div className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center">
-                                <CheckCircle2 className="h-8 w-8" />
-                            </div>
-                        </div>
+                        <ChartContainer config={{}} className="h-[200px] w-full">
+                            <ResponsiveContainer>
+                                <BarChart data={[
+                                    { name: 'RSU Rate', rate: analyticsData.latestBoard.overallPassRate, fill: 'hsl(var(--primary))' },
+                                    { name: 'National Avg', rate: analyticsData.latestBoard.nationalPassingRate, fill: '#cbd5e1' }
+                                ]}>
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                                    <YAxis domain={[0, 100]} axisLine={false} tickLine={false} />
+                                    <Tooltip content={<ChartTooltipContent />} />
+                                    <Bar dataKey="rate" radius={[4, 4, 0, 0]} barSize={60}>
+                                        <Cell fill="hsl(var(--primary))" />
+                                        <Cell fill="#cbd5e1" />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
                     </div>
-                    <ChartContainer config={{}} className="h-[200px] w-full">
-                        <ResponsiveContainer>
-                            <BarChart data={[
-                                { name: 'RSU Rate', rate: analyticsData.latestBoard.overallPassRate, fill: 'hsl(var(--primary))' },
-                                { name: 'National Avg', rate: analyticsData.latestBoard.nationalPassingRate, fill: 'hsl(var(--muted-foreground))' }
-                            ]}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                                <YAxis domain={[0, 100]} axisLine={false} tickLine={false} />
-                                <Tooltip content={<ChartTooltipContent />} />
-                                <Bar dataKey="rate" radius={[4, 4, 0, 0]} barSize={60}>
-                                    <Cell fill="hsl(var(--primary))" />
-                                    <Cell fill="#cbd5e1" />
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
-                </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-10 text-center space-y-2">
+                        <TrendingUp className="h-10 w-10 text-muted-foreground opacity-20" />
+                        <p className="text-sm font-medium text-muted-foreground">Awaiting Board Performance Data</p>
+                        <p className="text-xs text-muted-foreground max-w-xs">Licensure examination results for this academic year have not been encoded yet.</p>
+                    </div>
+                )}
             </CardContent>
         </Card>
       )}
