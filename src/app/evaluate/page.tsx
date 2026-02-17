@@ -4,15 +4,14 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MonitorCheck, ShieldCheck, Home } from 'lucide-react';
+import { MonitorCheck, ShieldCheck, Home, ArrowRight } from 'lucide-react';
 import { Iso25010Form } from '@/components/evaluation/iso-25010-form';
 import Image from 'next/image';
 import Link from 'next/link';
 
 /**
  * PUBLIC STAKEHOLDER EVALUATION PAGE
- * Accessible at /evaluate
- * This page is intended for public stakeholders to perform audits without logging in.
+ * Leads directly to the ISO 25010 evaluation instrument.
  */
 export default function PublicSoftwareEvaluationPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -43,13 +42,13 @@ export default function PublicSoftwareEvaluationPage() {
           </CardHeader>
           <CardContent className="pt-8 space-y-6 text-center">
               <div className="space-y-2">
-                  <h3 className="font-bold text-lg text-slate-800">Stakeholder Participation</h3>
+                  <h3 className="font-bold text-lg text-slate-800">Direct Stakeholder Participation</h3>
                   <p className="text-sm text-slate-500 leading-relaxed max-w-md mx-auto">
-                      Your evaluation helps us measure the system's maturity across Functional Suitability, Usability, Security, and other key characteristics.
+                      Click the button below to launch the formal evaluation instrument. Your input is vital for measuring the system's maturity and operational quality.
                   </p>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-4">
-                  {['Usability', 'Security', 'Reliability', 'Performance'].map(tag => (
+                  {['Suitability', 'Security', 'Reliability', 'Efficiency'].map(tag => (
                       <div key={tag} className="px-3 py-1.5 rounded-full bg-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-widest border border-slate-200">
                           {tag}
                       </div>
@@ -63,7 +62,8 @@ export default function PublicSoftwareEvaluationPage() {
                   onClick={() => setIsFormOpen(true)}
               >
                   <ShieldCheck className="mr-2 h-6 w-6" />
-                  Start Quality Evaluation
+                  Launch Evaluation Instrument
+                  <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               <Button variant="ghost" asChild className="text-slate-400 hover:text-slate-900">
                   <Link href="/">

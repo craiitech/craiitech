@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 
 /**
  * CONFLICT RESOLUTION PAGE
- * This path is deprecated to avoid parallel route clashes.
+ * This path is deprecated to avoid parallel route clashes in Next.js.
  * Users are redirected to the new public evaluation path.
  */
 export default function SoftwareEvaluationClashFix() {
