@@ -101,11 +101,21 @@ export default function AcademicProgramsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="registry" className="space-y-6">
+      <Tabs defaultValue="analytics" className="space-y-6">
         <TabsList>
-            <TabsTrigger value="registry" className="gap-2"><Layers className="h-4 w-4" /> Program Registry</TabsTrigger>
             <TabsTrigger value="analytics" className="gap-2"><BarChart3 className="h-4 w-4" /> Decision Support</TabsTrigger>
+            <TabsTrigger value="registry" className="gap-2"><Layers className="h-4 w-4" /> Program Registry</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="analytics">
+            <ProgramAnalytics 
+                programs={programs || []}
+                compliances={compliances || []}
+                campuses={campuses || []}
+                isLoading={isLoading}
+                selectedYear={selectedYear}
+            />
+        </TabsContent>
 
         <TabsContent value="registry">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -155,16 +165,6 @@ export default function AcademicProgramsPage() {
                     )}
                 </div>
             </div>
-        </TabsContent>
-
-        <TabsContent value="analytics">
-            <ProgramAnalytics 
-                programs={programs || []}
-                compliances={compliances || []}
-                campuses={campuses || []}
-                isLoading={isLoading}
-                selectedYear={selectedYear}
-            />
         </TabsContent>
       </Tabs>
 
