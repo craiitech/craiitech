@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, deleteDoc, doc, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import type { QaAuditReport, Campus } from '@/lib/types';
@@ -91,7 +90,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
     }
   };
 
-  const campusMap = new Map(campuses.map(c => [c.id, c.name]));
+  const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
 
   const getEmbedUrl = (url: string) => url.replace('/view', '/preview').replace('?usp=sharing', '');
 
