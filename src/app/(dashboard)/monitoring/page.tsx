@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, Timestamp, where } from 'firebase/firestore';
+import { collection, query, Timestamp, where } from 'firebase/firestore';
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,64 +42,73 @@ export default function MonitoringPage() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   /**
-   * CRITICAL: Monitoring Records Query Scoping
-   * Firestore Security Rules require client-side queries to match the security filters exactly.
-   * If a global list is attempted by a non-admin, Firestore denies access.
+   * REFINED ROLE LOGIC
+   * We distinguish between Campus-level and Unit-level users to ensure queries match Security Rules perfectly.
    */
+  const isGlobalAdmin = useMemo(() => isAdmin || (userRole && /admin|auditor/i.test(userRole)), [isAdmin, userRole]);
+  const isCampusOfficial = useMemo(() => userRole && /director|campus odimo|vice president/i.test(userRole), [userRole]);
+  const isUnitOfficial = useMemo(() => userRole && /unit odimo/i.test(userRole), [userRole]);
+  const isUnitCoordinator = useMemo(() => userRole && /unit coordinator/i.test(userRole), [userRole]);
+
   const monitoringRecordsQuery = useMemoFirebase(
     () => {
         if (!firestore || isUserLoading || !userProfile) return null;
         
         const baseRef = collection(firestore, 'unitMonitoringRecords');
 
-        // 1. Master Admin and Auditors can see everything (Global Scope)
-        // Match the Rule logic: (?i).*admin.* or (?i).*auditor.*
-        const isGlobalAdmin = isAdmin || (userRole && /admin|auditor/i.test(userRole));
-        
+        // 1. Global Admin/Auditor - See Everything
         if (isGlobalAdmin) {
-            console.log("Monitoring: Global Query Mode");
-            return query(baseRef, orderBy('visitDate', 'desc'));
+            return query(baseRef); // Removed orderBy to avoid index requirement
         }
 
-        // 2. Campus Officials (Director, Odimos, VP) see their campus
-        // Match the Rule logic: (?i).*(director|odimo|vice president).*
-        const isCampusOfficial = userRole && /director|odimo|vice president/i.test(userRole);
-        if (isCampusOfficial) {
+        // 2. Campus Official (Director, Campus ODIMO, VP) OR Unit ODIMO
+        // Note: Unit ODIMOs must use Rule #2 (Campus Scope) because Rule #3 excludes role names with "odimo".
+        if (isCampusOfficial || isUnitOfficial) {
              if (userProfile.campusId) {
-                 console.log("Monitoring: Scoped Query Mode (Campus)", userProfile.campusId);
-                 return query(
-                    baseRef, 
-                    where('campusId', '==', userProfile.campusId), 
-                    orderBy('visitDate', 'desc')
-                );
+                 return query(baseRef, where('campusId', '==', userProfile.campusId));
              }
              return null; 
         }
 
-        // 3. Unit Users see their unit
-        if (userProfile.unitId) {
-            console.log("Monitoring: Scoped Query Mode (Unit)", userProfile.unitId);
-            return query(
-                baseRef, 
-                where('unitId', '==', userProfile.unitId), 
-                orderBy('visitDate', 'desc')
-            );
+        // 3. Unit Coordinator - Restricted to Unit (Rule #3)
+        if (isUnitCoordinator && userProfile.unitId) {
+            return query(baseRef, where('unitId', '==', userProfile.unitId));
         }
 
         return null;
     },
-    [firestore, isUserLoading, userProfile, isAdmin, userRole, user?.uid]
+    [firestore, isUserLoading, userProfile, isGlobalAdmin, isCampusOfficial, isUnitOfficial, isUnitCoordinator]
   );
   
   const { data: allRecords, isLoading: isLoadingRecords } = useCollection<UnitMonitoringRecord>(monitoringRecordsQuery);
 
+  /**
+   * IN-MEMORY FILTERING & SORTING
+   * Bypasses the need for Firestore composite indices, preventing the "Permission/Precondition" crash.
+   */
   const filteredRecords = useMemo(() => {
     if (!allRecords) return [];
-    return allRecords.filter(record => {
+    
+    let processed = [...allRecords];
+
+    // For Unit ODIMOs, further restrict the campus-wide records to their own unit for local display
+    if (isUnitOfficial && userProfile?.unitId) {
+        processed = processed.filter(r => r.unitId === userProfile.unitId);
+    }
+
+    // Year Filter
+    processed = processed.filter(record => {
         const vDate = record.visitDate instanceof Timestamp ? record.visitDate.toDate() : new Date(record.visitDate);
         return vDate.getFullYear() === selectedYear;
     });
-  }, [allRecords, selectedYear]);
+
+    // Sort by Date Descending
+    return processed.sort((a, b) => {
+        const dateA = a.visitDate instanceof Timestamp ? a.visitDate.toMillis() : new Date(a.visitDate).getTime();
+        const dateB = b.visitDate instanceof Timestamp ? b.visitDate.toMillis() : new Date(b.visitDate).getTime();
+        return dateB - dateA;
+    });
+  }, [allRecords, selectedYear, isUnitOfficial, userProfile]);
 
   const campusesQuery = useMemoFirebase(() => (firestore && !isUserLoading && userProfile ? collection(firestore, 'campuses') : null), [firestore, isUserLoading, userProfile]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
@@ -212,7 +221,8 @@ export default function MonitoringPage() {
 
   const isLoading = isUserLoading || isLoadingRecords || isLoadingCampuses || isLoadingUnits;
 
-  const isUnitOnlyView = !isAdmin && !isSupervisor && !(userRole && /auditor/i.test(userRole));
+  // Refined view flag: Unit ODIMOs and Coordinators see the simplified Unit Status view
+  const isUnitOnlyView = (isUnitOfficial || isUnitCoordinator) && !isAdmin;
 
   return (
     <>
