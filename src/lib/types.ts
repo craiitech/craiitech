@@ -339,6 +339,14 @@ export type EnrollmentStats = {
   specialNeeds: number;
 };
 
+export type YearLevelEnrollment = {
+  firstYear: EnrollmentStats;
+  secondYear: EnrollmentStats;
+  thirdYear: EnrollmentStats;
+  fourthYear: EnrollmentStats;
+  fifthYear?: EnrollmentStats;
+};
+
 export type FacultyLeadershipMember = {
   name: string;
   highestEducation: string;
@@ -394,11 +402,8 @@ export type ProgramComplianceRecord = {
   // Student Stats
   stats: {
     enrollment: {
-      firstYear: EnrollmentStats;
-      secondYear: EnrollmentStats;
-      thirdYear: EnrollmentStats;
-      fourthYear: EnrollmentStats;
-      fifthYear?: EnrollmentStats;
+      firstSemester: YearLevelEnrollment;
+      secondSemester: YearLevelEnrollment;
     };
     graduationCount: number;
     maleGraduates?: number;

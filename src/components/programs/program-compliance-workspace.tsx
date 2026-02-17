@@ -31,34 +31,21 @@ interface ProgramComplianceWorkspaceProps {
 const currentYear = new Date().getFullYear();
 const academicYears = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
-/**
- * COMPLETELY PERMISSIVE SCHEMA
- * We use .passthrough() and z.any() to effectively remove all validation blocks.
- * This allows the user to save partial or "invalid" data as requested.
- */
 const complianceSchema = z.record(z.any());
 
-/**
- * Robustly sanitizes objects for Firestore.
- * - Converts undefined to null.
- * - Preserves native Firestore types like Timestamps.
- */
 function sanitizeForFirestore(obj: any): any {
   if (obj === null || obj === undefined) return null;
   
   if (typeof obj !== 'object') return obj;
 
-  // Preserve Timestamps or native Dates
   if (obj instanceof Date || (obj && typeof obj.toDate === 'function')) {
     return obj;
   }
 
-  // Handle Arrays
   if (Array.isArray(obj)) {
     return obj.map(sanitizeForFirestore);
   }
 
-  // Handle Objects
   const sanitized: any = {};
   for (const [key, value] of Object.entries(obj)) {
     sanitized[key] = sanitizeForFirestore(value);
@@ -67,6 +54,12 @@ function sanitizeForFirestore(obj: any): any {
 }
 
 const emptyEnrollment = { male: 0, female: 0, total: 0, specialNeeds: 0 };
+const emptyYearLevelEnrollment = { 
+    firstYear: { ...emptyEnrollment }, 
+    secondYear: { ...emptyEnrollment }, 
+    thirdYear: { ...emptyEnrollment }, 
+    fourthYear: { ...emptyEnrollment } 
+};
 const emptyLeadership = { name: '', academicRank: '', highestEducation: '', isAlignedWithCMO: 'Aligned', sex: 'Female' };
 
 export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplianceWorkspaceProps) {
@@ -102,10 +95,8 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       },
       stats: { 
         enrollment: { 
-            firstYear: { ...emptyEnrollment }, 
-            secondYear: { ...emptyEnrollment }, 
-            thirdYear: { ...emptyEnrollment }, 
-            fourthYear: { ...emptyEnrollment } 
+            firstSemester: { ...emptyYearLevelEnrollment },
+            secondSemester: { ...emptyYearLevelEnrollment }
         }, 
         graduationCount: 0 
       },
@@ -115,7 +106,6 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     },
   });
 
-  // Cross-module synchronization
   useEffect(() => {
     const subscription = methods.watch((value, { name }) => {
       if (name === 'ched.contentNoted') {
@@ -133,7 +123,6 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     return () => subscription.unsubscribe();
   }, [methods]);
 
-  // Sync form with database record
   useEffect(() => {
     if (activeRecord) {
       methods.reset({
@@ -155,10 +144,8 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         },
         stats: { 
             enrollment: { 
-                firstYear: { ...emptyEnrollment }, 
-                secondYear: { ...emptyEnrollment }, 
-                thirdYear: { ...emptyEnrollment }, 
-                fourthYear: { ...emptyEnrollment } 
+                firstSemester: { ...emptyYearLevelEnrollment },
+                secondSemester: { ...emptyYearLevelEnrollment }
             }, 
             graduationCount: 0 
         },
@@ -176,7 +163,6 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     const recordId = activeRecord?.id || `${program.id}-${selectedAY}`;
     const docRef = doc(firestore, 'programCompliances', recordId);
     
-    // Explicitly ensure critical keys are present before sanitization
     const fullData = {
         ...values,
         academicYear: selectedAY,
@@ -203,16 +189,9 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     }
   };
 
-  const onInvalid = (errors: any) => {
-    // This should no longer be triggered since validation is removed
-    console.warn("Bypassed Validation Error:", errors);
-    // Attempt save anyway if for some reason the resolver is still strict
-    onSave(methods.getValues());
-  };
-
   return (
     <FormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit(onSave, onInvalid)} className="space-y-6">
+      <form onSubmit={methods.handleSubmit(onSave)} className="space-y-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-muted/30 p-4 rounded-lg border border-primary/10">
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-5 w-5 text-primary" />

@@ -9,16 +9,13 @@ import { Button } from '@/components/ui/button';
 import { 
     FileText, 
     ExternalLink, 
-    Eye, 
     BarChart3, 
     Users, 
-    GraduationCap, 
     Award, 
     ShieldCheck, 
     TrendingUp, 
     CheckCircle2, 
     AlertCircle,
-    Download
 } from 'lucide-react';
 import { 
     BarChart, 
@@ -35,7 +32,6 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
 
 interface ProgramPerformanceViewProps {
   program: AcademicProgram;
@@ -49,13 +45,19 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
   const analyticsData = useMemo(() => {
     if (!record) return null;
 
-    // Enrollment Chart Data (Sex-Disaggregated)
-    const enrollmentData = [
-      { name: '1st Yr', Male: record.stats.enrollment.firstYear?.male || 0, Female: record.stats.enrollment.firstYear?.female || 0 },
-      { name: '2nd Yr', Male: record.stats.enrollment.secondYear?.male || 0, Female: record.stats.enrollment.secondYear?.female || 0 },
-      { name: '3rd Yr', Male: record.stats.enrollment.thirdYear?.male || 0, Female: record.stats.enrollment.thirdYear?.female || 0 },
-      { name: '4th Yr', Male: record.stats.enrollment.fourthYear?.male || 0, Female: record.stats.enrollment.fourthYear?.female || 0 },
-    ];
+    // Enrollment Chart Data (Aggregated Semester Comparison)
+    const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
+    const levelLabels: Record<string, string> = { firstYear: '1st Yr', secondYear: '2nd Yr', thirdYear: '3rd Yr', fourthYear: '4th Yr' };
+
+    const enrollmentData = levels.map(level => {
+        const s1 = record.stats.enrollment?.firstSemester?.[level];
+        const s2 = record.stats.enrollment?.secondSemester?.[level];
+        return {
+            name: levelLabels[level],
+            '1st Sem': (s1?.male || 0) + (s1?.female || 0),
+            '2nd Sem': (s2?.male || 0) + (s2?.female || 0)
+        };
+    });
 
     // Graduation Trends (from dynamic records)
     const successTrends = (record.graduationRecords || []).map(g => ({
@@ -78,7 +80,6 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
 
     const alignmentRate = totalFaculty > 0 ? Math.round((alignedFaculty / totalFaculty) * 100) : 0;
 
-    // Board Performance Aggregation (Latest or Average)
     const latestBoard = record.boardPerformance && record.boardPerformance.length > 0 
         ? record.boardPerformance[record.boardPerformance.length - 1] 
         : null;
@@ -113,7 +114,6 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* 1. High-Level Performance Tiles */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-100">
             <CardHeader className="pb-2">
@@ -169,24 +169,21 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* 2. Enrollment & Success Trends */}
         <div className="lg:col-span-2 space-y-6">
             <Card>
                 <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle className="text-lg flex items-center gap-2">
-                                <Users className="h-5 w-5 text-primary" />
-                                Sex-Disaggregated Enrollment
-                            </CardTitle>
-                            <CardDescription>Breakdown by year level and sex for AY {selectedYear}</CardDescription>
-                        </div>
+                    <div>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <Users className="h-5 w-5 text-primary" />
+                            Semester Enrollment Comparison
+                        </CardTitle>
+                        <CardDescription>Aggregate student counts for 1st and 2nd Semesters in AY {selectedYear}</CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent>
                     <ChartContainer config={{ 
-                        Male: { label: 'Male', color: 'hsl(var(--chart-1))' },
-                        Female: { label: 'Female', color: 'hsl(var(--chart-2))' }
+                        '1st Sem': { label: '1st Semester', color: 'hsl(var(--chart-1))' },
+                        '2nd Sem': { label: '2nd Semester', color: 'hsl(var(--chart-2))' }
                     }} className="h-[250px] w-full">
                         <ResponsiveContainer>
                             <BarChart data={analyticsData?.enrollmentData}>
@@ -195,8 +192,8 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                                 <YAxis axisLine={false} tickLine={false} />
                                 <Tooltip content={<ChartTooltipContent />} />
                                 <Legend verticalAlign="top" align="right" />
-                                <Bar dataKey="Male" stackId="a" fill="hsl(var(--chart-1))" radius={[0, 0, 0, 0]} />
-                                <Bar dataKey="Female" stackId="a" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="1st Sem" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="2nd Sem" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </ChartContainer>
@@ -230,7 +227,6 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
             </Card>
         </div>
 
-        {/* 3. Document Vault */}
         <div className="lg:col-span-1 space-y-6">
             <Card className="h-full flex flex-col shadow-lg border-primary/10">
                 <CardHeader className="bg-primary/5 border-b">
@@ -289,7 +285,6 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         </div>
       </div>
 
-      {/* 4. Board Performance (If applicable) */}
       {program.isBoardProgram && analyticsData?.latestBoard && (
         <Card className="border-green-100 shadow-inner">
             <CardHeader className="bg-green-50/50">
@@ -320,7 +315,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                                 <p className="text-4xl font-black">{analyticsData.latestBoard.overallPassRate}%</p>
                             </div>
                             <div className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center">
-                                <趨勢Up className="h-8 w-8" />
+                                <CheckCircle2 className="h-8 w-8" />
                             </div>
                         </div>
                     </div>
@@ -346,7 +341,6 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         </Card>
       )}
 
-      {/* Document Preview Dialog */}
       <Dialog open={!!previewDoc} onOpenChange={() => setPreviewDoc(null)}>
         <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden">
             <DialogHeader className="p-4 border-b shrink-0">
