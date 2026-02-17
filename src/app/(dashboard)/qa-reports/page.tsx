@@ -17,7 +17,7 @@ import { QaAnalyticsTab } from '@/components/qa-reports/qa-analytics-tab';
 export default function QaReportsPage() {
   const { isAdmin, userRole, isUserLoading, userProfile } = useUser();
   const firestore = useFirestore();
-  const [activeTab, setActiveTab] = useState('analytics');
+  const [activeTab, setActiveTab] = useState('overview');
 
   const canManage = isAdmin || userRole === 'Auditor';
 
@@ -53,8 +53,8 @@ export default function QaReportsPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-white border shadow-sm grid grid-cols-2 md:grid-cols-5 h-auto p-1">
-          <TabsTrigger value="analytics" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
-            <BarChart3 className="h-3.5 w-3.5" /> Visual Insights
+          <TabsTrigger value="overview" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
+            <BarChart3 className="h-3.5 w-3.5" /> Overview
           </TabsTrigger>
           <TabsTrigger value="iqa" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
             <FileText className="h-3.5 w-3.5" /> IQA Reports
@@ -70,7 +70,7 @@ export default function QaReportsPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="analytics" className="animate-in fade-in duration-500">
+        <TabsContent value="overview" className="animate-in fade-in duration-500">
           <QaAnalyticsTab />
         </TabsContent>
 
