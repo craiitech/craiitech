@@ -72,18 +72,18 @@ export function SidebarNav({
       icon: <GraduationCap />,
     },
     {
-      href: '/audit',
-      label: 'Audit',
-      active: pathname.startsWith('/audit'),
-      roles: ['Admin', 'Auditor'],
-      icon: <ClipboardList />,
-    },
-    {
       href: '/monitoring',
       label: 'Unit Monitoring',
       active: pathname.startsWith('/monitoring'),
       roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Vice President', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <ClipboardCheck />,
+    },
+    {
+      href: '/audit',
+      label: 'Audit',
+      active: pathname.startsWith('/audit'),
+      roles: ['Admin', 'Auditor'],
+      icon: <ClipboardList />,
     },
     {
       href: '/software-quality',
