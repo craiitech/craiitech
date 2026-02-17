@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { BookOpen, Calendar, Link as LinkIcon, GraduationCap, Users } from 'lucide-react';
+import { BookOpen, Calendar, Link as LinkIcon, GraduationCap, Users, HeartHandshake } from 'lucide-react';
 import { useEffect } from 'react';
 
 export function CurriculumModule({ canEdit }: { canEdit: boolean }) {
@@ -101,23 +101,23 @@ export function CurriculumModule({ canEdit }: { canEdit: boolean }) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <GraduationCap className="h-5 w-5 text-primary" />
-            Sex-Disaggregated Enrollment
+            Student Statistics Breakdown
           </CardTitle>
-          <CardDescription>Student population breakdown per year level for the academic year.</CardDescription>
+          <CardDescription>Sex-disaggregated enrollment and special needs tracking.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
             {['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].map((level, idx) => (
-                <div key={level} className="space-y-2 p-3 rounded-lg border bg-muted/5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-primary">{idx + 1}{idx === 0 ? 'st' : idx === 1 ? 'nd' : idx === 2 ? 'rd' : 'th'} Year Enrollment</p>
-                    <div className="grid grid-cols-3 gap-2">
+                <div key={level} className="space-y-3 p-4 rounded-lg border bg-muted/5 relative">
+                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-primary">{idx + 1}{idx === 0 ? 'st' : idx === 1 ? 'nd' : idx === 2 ? 'rd' : 'th'} Year Registry</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <FormField
                             control={control}
                             name={`stats.enrollment.${level}.male`}
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-[9px] uppercase font-bold text-muted-foreground">Male</FormLabel>
-                                    <FormControl><Input type="number" {...field} className="h-8 text-xs" disabled={!canEdit} /></FormControl>
+                                    <FormControl><Input type="number" {...field} className="h-8 text-xs bg-background" disabled={!canEdit} /></FormControl>
                                 </FormItem>
                             )}
                         />
@@ -127,20 +127,27 @@ export function CurriculumModule({ canEdit }: { canEdit: boolean }) {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-[9px] uppercase font-bold text-muted-foreground">Female</FormLabel>
-                                    <FormControl><Input type="number" {...field} className="h-8 text-xs" disabled={!canEdit} /></FormControl>
+                                    <FormControl><Input type="number" {...field} className="h-8 text-xs bg-background" disabled={!canEdit} /></FormControl>
                                 </FormItem>
                             )}
                         />
                         <FormField
                             control={control}
-                            name={`stats.enrollment.${level}.total`}
+                            name={`stats.enrollment.${level}.specialNeeds`}
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[9px] uppercase font-bold text-muted-foreground">Total</FormLabel>
-                                    <FormControl><Input type="number" {...field} className="h-8 text-xs font-bold bg-muted/20" disabled /></FormControl>
+                                    <FormLabel className="text-[9px] uppercase font-bold text-primary flex items-center gap-1">
+                                        <HeartHandshake className="h-2.5 w-2.5" />
+                                        Sp. Needs
+                                    </FormLabel>
+                                    <FormControl><Input type="number" {...field} className="h-8 text-xs bg-primary/5 border-primary/20" disabled={!canEdit} /></FormControl>
                                 </FormItem>
                             )}
                         />
+                        <FormItem>
+                            <FormLabel className="text-[9px] uppercase font-bold text-muted-foreground">Total</FormLabel>
+                            <FormControl><Input type="number" value={enrollment?.[level]?.total || 0} className="h-8 text-xs font-black bg-muted/20 text-center" disabled /></FormControl>
+                        </FormItem>
                     </div>
                 </div>
             ))}
@@ -150,9 +157,9 @@ export function CurriculumModule({ canEdit }: { canEdit: boolean }) {
             name="stats.graduationCount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-primary font-bold">Total Program Graduates (Target/Current)</FormLabel>
+                <FormLabel className="text-primary font-bold">Total Program Graduates (Current Year Target)</FormLabel>
                 <FormControl><Input type="number" {...field} className="border-primary/50 text-lg font-bold" disabled={!canEdit} /></FormControl>
-                <FormDescription className="text-[10px]">Overall output for the specified period.</FormDescription>
+                <FormDescription className="text-[10px]">Overall expected graduate output for the academic year.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}

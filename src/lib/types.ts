@@ -282,6 +282,7 @@ export type ProgramFacultyMember = {
   highestEducation: string;
   category: FacultyCategory;
   isAlignedWithCMO: FacultyAlignment;
+  sex: 'Male' | 'Female';
 };
 
 export type GraduationOutcome = {
@@ -334,6 +335,7 @@ export type EnrollmentStats = {
   male: number;
   female: number;
   total: number;
+  specialNeeds: number;
 };
 
 export type ProgramComplianceRecord = {
@@ -377,11 +379,13 @@ export type ProgramComplianceRecord = {
       name: string;
       highestEducation: string;
       isAlignedWithCMO: FacultyAlignment;
+      sex: 'Male' | 'Female';
     };
     programChair: {
       name: string;
       highestEducation: string;
       isAlignedWithCMO: FacultyAlignment;
+      sex: 'Male' | 'Female';
     };
     members: ProgramFacultyMember[];
   };

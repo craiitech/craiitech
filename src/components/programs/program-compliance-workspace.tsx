@@ -66,7 +66,7 @@ function sanitizeForFirestore(obj: any): any {
   return sanitized;
 }
 
-const emptyEnrollment = { male: 0, female: 0, total: 0 };
+const emptyEnrollment = { male: 0, female: 0, total: 0, specialNeeds: 0 };
 
 export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplianceWorkspaceProps) {
   const { userProfile, isAdmin, userRole } = useUser();
@@ -92,7 +92,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', contentNotedLink: '', rqatVisits: [] },
       accreditation: { level: 'Non Accredited', certificateLink: '', dateOfVisit: '', dateOfAward: '', nextSchedule: '', overallTaskForceHead: '', taskForce: '', areas: [] },
       curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
-      faculty: { dean: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' }, programChair: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' }, members: [] },
+      faculty: { dean: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned', sex: 'Female' }, programChair: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned', sex: 'Female' }, members: [] },
       stats: { 
         enrollment: { 
             firstYear: { ...emptyEnrollment }, 
@@ -139,7 +139,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', contentNotedLink: '', rqatVisits: [] },
         accreditation: { level: 'Non Accredited', certificateLink: '', dateOfVisit: '', dateOfAward: '', nextSchedule: '', overallTaskForceHead: '', taskForce: '', areas: [] },
         curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
-        faculty: { dean: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' }, programChair: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned' }, members: [] },
+        faculty: { dean: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned', sex: 'Female' }, programChair: { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned', sex: 'Female' }, members: [] },
         stats: { 
             enrollment: { 
                 firstYear: { ...emptyEnrollment }, 
