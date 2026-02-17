@@ -123,7 +123,7 @@ export type Cycle = {
   name: 'first' | 'final';
   year: number;
   startDate: any; // Can be Timestamp
-  endDate: any; // Can be Timestamp
+  endDate: any; // Timestamp
 }
 
 export type ErrorReport = {
@@ -428,6 +428,7 @@ export type QaAuditReport = {
   // EQA specific fields
   eqaCategory?: 'Certification / Re-Certification Audit' | 'Surveillance Audit';
   certifyingBody?: string;
+  standard?: 'ISO 9001:2015' | 'ISO 21001:2018';
 };
 
 export type ManagementReview = {

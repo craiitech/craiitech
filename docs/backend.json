@@ -30,7 +30,8 @@
         "googleDriveLink": { "type": "string", "format": "uri" },
         "campusId": { "type": "string" },
         "eqaCategory": { "type": "string", "enum": ["Certification / Re-Certification Audit", "Surveillance Audit"] },
-        "certifyingBody": { "type": "string" }
+        "certifyingBody": { "type": "string" },
+        "standard": { "type": "string", "enum": ["ISO 9001:2015", "ISO 21001:2018"] }
       },
       "required": ["type", "title", "startDate", "endDate", "googleDriveLink", "campusId"]
     },
