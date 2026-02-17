@@ -80,7 +80,7 @@ export function SidebarNav({
     },
     {
       href: '/monitoring',
-      label: 'Monitoring',
+      label: 'Unit Monitoring',
       active: pathname.startsWith('/monitoring'),
       roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Vice President', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <ClipboardCheck />,
