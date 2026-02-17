@@ -25,13 +25,14 @@
         "id": { "type": "string" },
         "type": { "type": "string", "enum": ["IQA", "EQA"] },
         "title": { "type": "string" },
-        "reportDate": { "type": "string", "format": "date-time" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
         "googleDriveLink": { "type": "string", "format": "uri" },
         "campusId": { "type": "string" },
         "eqaCategory": { "type": "string", "enum": ["Certification / Re-Certification Audit", "Surveillance Audit"] },
         "certifyingBody": { "type": "string" }
       },
-      "required": ["type", "title", "reportDate", "googleDriveLink", "campusId"]
+      "required": ["type", "title", "startDate", "endDate", "googleDriveLink", "campusId"]
     },
     "ManagementReview": {
       "title": "ManagementReview",

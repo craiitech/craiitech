@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ExternalLink, Trash2, PlusCircle, FileText, Eye, Globe, Building2, ShieldCheck } from 'lucide-react';
+import { Loader2, ExternalLink, Trash2, PlusCircle, FileText, Eye, Globe, Building2, ShieldCheck, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -27,7 +28,8 @@ interface AuditReportsTabProps {
 
 const reportSchema = z.object({
   title: z.string().min(1, 'Title is required'),
-  reportDate: z.string().min(1, 'Date is required'),
+  startDate: z.string().min(1, 'Start date is required'),
+  endDate: z.string().min(1, 'End date is required'),
   googleDriveLink: z.string().url('Invalid URL'),
   campusId: z.string().min(1, 'Campus is required'),
   eqaCategory: z.string().optional(),
@@ -52,15 +54,15 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
   const reports = useMemo(() => {
     if (!rawReports) return [];
     return [...rawReports].sort((a, b) => {
-        const dateA = a.reportDate instanceof Timestamp ? a.reportDate.toMillis() : new Date(a.reportDate).getTime();
-        const dateB = b.reportDate instanceof Timestamp ? b.reportDate.toMillis() : new Date(b.reportDate).getTime();
+        const dateA = a.startDate instanceof Timestamp ? a.startDate.toMillis() : new Date(a.startDate).getTime();
+        const dateB = b.startDate instanceof Timestamp ? b.startDate.toMillis() : new Date(b.startDate).getTime();
         return dateB - dateA;
     });
   }, [rawReports]);
 
   const form = useForm<z.infer<typeof reportSchema>>({
     resolver: zodResolver(reportSchema),
-    defaultValues: { title: '', reportDate: '', googleDriveLink: '', campusId: '', eqaCategory: 'Certification / Re-Certification Audit', certifyingBody: '' }
+    defaultValues: { title: '', startDate: '', endDate: '', googleDriveLink: '', campusId: '', eqaCategory: 'Certification / Re-Certification Audit', certifyingBody: '' }
   });
 
   const onSubmit = async (values: z.infer<typeof reportSchema>) => {
@@ -70,7 +72,8 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
       const dataToSave: any = {
         ...values,
         type,
-        reportDate: Timestamp.fromDate(new Date(values.reportDate)),
+        startDate: Timestamp.fromDate(new Date(values.startDate)),
+        endDate: Timestamp.fromDate(new Date(values.endDate)),
         createdAt: serverTimestamp(),
       };
 
@@ -136,7 +139,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                     <TableRow>
                     <TableHead className="font-bold text-[10px] uppercase">Report Details</TableHead>
                     <TableHead className="font-bold text-[10px] uppercase">Campus Scope</TableHead>
-                    <TableHead className="font-bold text-[10px] uppercase text-center">Audit Date</TableHead>
+                    <TableHead className="font-bold text-[10px] uppercase text-center">Audit Period</TableHead>
                     {type === 'EQA' && <TableHead className="font-bold text-[10px] uppercase">Auditor / Body</TableHead>}
                     <TableHead className="text-right font-bold text-[10px] uppercase">Actions</TableHead>
                     </TableRow>
@@ -165,8 +168,17 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                             </div>
                         )}
                         </TableCell>
-                        <TableCell className="text-center font-medium text-xs text-slate-600">
-                        {report.reportDate?.toDate ? format(report.reportDate.toDate(), 'PPP') : 'N/A'}
+                        <TableCell className="text-center">
+                            <div className="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
+                                <div className="flex items-center gap-1.5">
+                                    <Calendar className="h-3 w-3 opacity-50" />
+                                    {report.startDate?.toDate ? format(report.startDate.toDate(), 'PP') : 'N/A'}
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <div className="w-3" /> {/* Spacer */}
+                                    to {report.endDate?.toDate ? format(report.endDate.toDate(), 'PP') : 'N/A'}
+                                </div>
+                            </div>
                         </TableCell>
                         {type === 'EQA' && (
                             <TableCell>
@@ -243,19 +255,24 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="reportDate" render={({ field }) => (
-                    <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Audit Date</FormLabel><FormControl><Input type="date" {...field} className="h-9 text-sm" /></FormControl><FormMessage /></FormItem>
+                <FormField control={form.control} name="startDate" render={({ field }) => (
+                    <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Start Date</FormLabel><FormControl><Input type="date" {...field} className="h-9 text-sm" /></FormControl><FormMessage /></FormItem>
                 )} />
-                <FormField control={form.control} name="campusId" render={({ field }) => (
-                    <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Site Scope</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select Scope" /></SelectTrigger></FormControl>
-                        <SelectContent>
-                        <SelectItem value={UNIVERSITY_WIDE_ID} className="font-bold text-primary italic">University-Wide (Institutional)</SelectItem>
-                        {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select><FormMessage /></FormItem>
+                <FormField control={form.control} name="endDate" render={({ field }) => (
+                    <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">End Date</FormLabel><FormControl><Input type="date" {...field} className="h-9 text-sm" /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
+              
+              <FormField control={form.control} name="campusId" render={({ field }) => (
+                  <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Site Scope</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select Scope" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                      <SelectItem value={UNIVERSITY_WIDE_ID} className="font-bold text-primary italic">University-Wide (Institutional)</SelectItem>
+                      {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      </SelectContent>
+                  </Select><FormMessage /></FormItem>
+              )} />
+
               <FormField control={form.control} name="googleDriveLink" render={({ field }) => (
                 <FormItem>
                     <FormLabel className="text-xs font-bold uppercase tracking-wider">Google Drive Reference</FormLabel>

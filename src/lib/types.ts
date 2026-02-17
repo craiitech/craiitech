@@ -420,7 +420,8 @@ export type QaAuditReport = {
   id: string;
   type: 'IQA' | 'EQA';
   title: string;
-  reportDate: any; // Timestamp
+  startDate: any; // Timestamp
+  endDate: any; // Timestamp
   googleDriveLink: string;
   campusId: string;
   createdAt: any; // Timestamp
