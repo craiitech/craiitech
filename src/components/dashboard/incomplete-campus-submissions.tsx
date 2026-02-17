@@ -49,10 +49,12 @@ export function IncompleteCampusSubmissions({
       const incompleteUnits = unitsInThisCampus.map(unit => {
         const submissionsForUnitAndYear = allSubmissions.filter(s => s.unitId === unit.id && s.campusId === campus.id && s.year === selectedYear);
 
+        // CRITICAL: Logic based on APPROVED status, excluding N/A
+        
         // --- FIRST CYCLE ---
-        const firstCycleSubmissions = submissionsForUnitAndYear.filter(s => s.cycleId === 'first');
-        const firstCycleSubmittedTypes = new Set(firstCycleSubmissions.map(s => s.reportType));
-        const firstRegistry = firstCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry');
+        const firstCycleApproved = submissionsForUnitAndYear.filter(s => s.cycleId === 'first' && s.statusId === 'approved');
+        const firstCycleApprovedTypes = new Set(firstCycleApproved.map(s => s.reportType));
+        const firstRegistry = submissionsForUnitAndYear.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
         const firstIsActionPlanNA = firstRegistry?.riskRating === 'low';
         
         let requiredInFirst = TOTAL_REPORTS_PER_CYCLE;
@@ -60,17 +62,12 @@ export function IncompleteCampusSubmissions({
           requiredInFirst = TOTAL_REPORTS_PER_CYCLE - 1;
         }
 
-        let submittedInFirst = firstCycleSubmittedTypes.size;
-        if (firstIsActionPlanNA && firstCycleSubmittedTypes.has('Risk and Opportunity Action Plan')) {
-          submittedInFirst = submittedInFirst - 1;
-        }
-
-        const missingFirst = Math.max(0, requiredInFirst - submittedInFirst);
+        const missingFirst = Math.max(0, requiredInFirst - firstCycleApprovedTypes.size);
 
         // --- FINAL CYCLE ---
-        const finalCycleSubmissions = submissionsForUnitAndYear.filter(s => s.cycleId === 'final');
-        const finalCycleSubmittedTypes = new Set(finalCycleSubmissions.map(s => s.reportType));
-        const finalRegistry = finalCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry');
+        const finalCycleApproved = submissionsForUnitAndYear.filter(s => s.cycleId === 'final' && s.statusId === 'approved');
+        const finalCycleApprovedTypes = new Set(finalCycleApproved.map(s => s.reportType));
+        const finalRegistry = submissionsForUnitAndYear.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
         const finalIsActionPlanNA = finalRegistry?.riskRating === 'low';
 
         let requiredInFinal = TOTAL_REPORTS_PER_CYCLE;
@@ -78,12 +75,7 @@ export function IncompleteCampusSubmissions({
           requiredInFinal = TOTAL_REPORTS_PER_CYCLE - 1;
         }
         
-        let submittedInFinal = finalCycleSubmittedTypes.size;
-        if (finalIsActionPlanNA && finalCycleSubmittedTypes.has('Risk and Opportunity Action Plan')) {
-          submittedInFinal = submittedInFinal - 1;
-        }
-
-        const missingFinal = Math.max(0, requiredInFinal - submittedInFinal);
+        const missingFinal = Math.max(0, requiredInFinal - finalCycleApprovedTypes.size);
 
         // --- TOTAL ---
         const totalMissing = missingFirst + missingFinal;
@@ -127,21 +119,21 @@ export function IncompleteCampusSubmissions({
   }
 
   return (
-    <Card>
+    <Card className="border-amber-200">
       <CardHeader>
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
-                 <CardTitle className="flex items-center gap-2">
-                    <FileWarning className="text-destructive h-5 w-5" />
-                    Incomplete Submissions
+                 <CardTitle className="flex items-center gap-2 text-amber-700">
+                    <FileWarning className="h-5 w-5" />
+                    Pending Verification
                 </CardTitle>
-                <CardDescription className="text-xs">
-                Units failing to meet the full requirement for {selectedYear}.
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Units with reports awaiting upload or final approval.
                 </CardDescription>
             </div>
             <div className="w-full sm:w-[120px]">
                 <Select value={String(selectedYear)} onValueChange={(v) => onYearChange(Number(v))}>
-                    <SelectTrigger className="h-8 text-xs">
+                    <SelectTrigger className="h-8 text-xs bg-white">
                     <SelectValue placeholder="Year" />
                     </SelectTrigger>
                     <SelectContent>
@@ -169,13 +161,13 @@ export function IncompleteCampusSubmissions({
                             <li key={unit.unitId}>
                               <Button
                                 variant="ghost"
-                                className="flex h-auto w-full items-start justify-start gap-2 p-2 hover:bg-destructive/5 group transition-colors"
+                                className="flex h-auto w-full items-start justify-start gap-2 p-2 hover:bg-amber-50 group transition-colors"
                                 onClick={() => onUnitClick?.(unit.unitId, campus.campusId)}
                               >
-                                <Building className="h-3.5 w-3.5 shrink-0 mt-0.5 text-muted-foreground group-hover:text-destructive" />
+                                <Building className="h-3.5 w-3.5 shrink-0 mt-0.5 text-muted-foreground group-hover:text-amber-600" />
                                 <div className="flex flex-col flex-1 items-start min-w-0">
                                     <span className="text-xs font-bold text-card-foreground leading-tight truncate w-full">{unit.unitName}</span>
-                                    <span className="text-[10px] text-destructive font-medium">{unit.missingCount} document(s) missing</span>
+                                    <span className="text-[10px] text-amber-600 font-black uppercase tracking-tighter">{unit.missingCount} REQUIRED ACTIONS</span>
                                 </div>
                               </Button>
                             </li>
@@ -188,8 +180,8 @@ export function IncompleteCampusSubmissions({
         ) : (
              <div className="flex flex-col items-center justify-center text-center text-sm text-muted-foreground h-40 border border-dashed rounded-lg">
                 <CheckCircle className="h-8 w-8 text-green-500 mb-2 opacity-20" />
-                <p className="font-bold text-xs uppercase tracking-widest">Compliant</p>
-                <p className="text-[10px] max-w-[200px] mt-1">All units have satisfied their reporting requirements for {selectedYear}.</p>
+                <p className="font-bold text-xs uppercase tracking-widest">Institutionally Compliant</p>
+                <p className="text-[10px] max-w-[200px] mt-1">All units have achieved 100% verified approval for {selectedYear}.</p>
             </div>
         )}
       </CardContent>

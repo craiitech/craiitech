@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -17,7 +16,7 @@ interface UnitSubmissionDetailCardProps {
   allUnits: Unit[] | null;
   allSubmissions: Submission[] | null;
   onClose: () => void;
-  onViewSubmission: (id: string) => void; // Added for navigation
+  onViewSubmission: (id: string) => void;
   selectedYear: number;
 }
 
@@ -38,7 +37,7 @@ const getIconForStatus = (status?: string) => {
     case 'n/a':
       return <CheckCircle className="h-4 w-4 text-muted-foreground" />;
     default:
-      return <Circle className="h-4 w-4 text-muted-foreground" />;
+      return <Circle className="h-4 w-4 text-muted-foreground opacity-20" />;
   }
 };
 
@@ -84,8 +83,8 @@ export function UnitSubmissionDetailCard({
   if (!unit) return null;
 
   const renderSubmissionList = (cycleName: 'First' | 'Final', statusMap: Map<string, Submission>, isActionPlanNA: boolean) => (
-    <div>
-        <h4 className="font-semibold mb-2 capitalize">{cycleName} Cycle</h4>
+    <div className="bg-background rounded-lg border p-3">
+        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3">{cycleName} Cycle Verification</h4>
         <div className="space-y-2">
             {submissionTypes.map(reportType => {
                 const submission = statusMap.get(reportType);
@@ -93,31 +92,31 @@ export function UnitSubmissionDetailCard({
                 const submissionId = submission?.id;
                 const isNA = reportType === 'Risk and Opportunity Action Plan' && isActionPlanNA;
                 return (
-                    <div key={reportType} className={cn("flex items-center justify-between rounded-md border p-2", isNA && "opacity-50 bg-muted/50")}>
+                    <div key={reportType} className={cn("flex items-center justify-between rounded-md border p-2 text-[11px]", isNA && "opacity-50 bg-muted/50")}>
                         <div className="flex items-center gap-2 flex-1 min-w-0">
                             {getIconForStatus(isNA ? 'n/a' : status)}
-                            <span className="text-sm truncate">{reportType}</span>
+                            <span className={cn("font-medium truncate", !status && !isNA && "text-muted-foreground italic")}>{reportType}</span>
                         </div>
                         <div className="flex items-center gap-2 ml-2">
                             {isNA ? (
-                                <Badge variant="secondary" className="text-xs">N/A</Badge>
+                                <Badge variant="secondary" className="text-[9px] h-4 py-0">N/A</Badge>
                             ) : status ? (
                                 <>
-                                    <Badge variant={statusVariant[status] ?? 'secondary'} className="capitalize text-xs">
+                                    <Badge variant={statusVariant[status] ?? 'secondary'} className="capitalize text-[9px] h-4 py-0 font-black">
                                         {status}
                                     </Badge>
                                     <Button 
                                         variant="ghost" 
                                         size="icon" 
-                                        className="h-7 w-7" 
+                                        className="h-6 w-6" 
                                         onClick={() => onViewSubmission(submissionId!)}
                                         title="View Submission"
                                     >
-                                        <Eye className="h-3.5 w-3.5" />
+                                        <Eye className="h-3 w-3" />
                                     </Button>
                                 </>
                             ) : (
-                                <Badge variant="outline" className="text-xs">Not Submitted</Badge>
+                                <Badge variant="outline" className="text-[9px] h-4 py-0 text-destructive border-destructive/30">PENDING</Badge>
                             )}
                         </div>
                     </div>
@@ -128,24 +127,29 @@ export function UnitSubmissionDetailCard({
   );
 
   return (
-    <Card className="sticky top-4 border-primary/20 shadow-md">
-      <CardHeader className="flex flex-row items-start justify-between bg-muted/30 pb-4 rounded-t-lg">
-        <div>
-          <CardTitle className="text-lg">{unit.name}</CardTitle>
-          <CardDescription className="text-xs">Audit Compliance Tracker &bull; {selectedYear}</CardDescription>
+    <Card className="sticky top-4 border-primary/30 shadow-xl animate-in slide-in-from-right-4 duration-300">
+      <CardHeader className="flex flex-row items-start justify-between bg-primary/5 pb-4 rounded-t-lg border-b">
+        <div className="min-w-0 pr-4">
+          <CardTitle className="text-sm font-black uppercase tracking-tight truncate" title={unit.name}>{unit.name}</CardTitle>
+          <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Audit Registry Tracker &bull; {selectedYear}</CardDescription>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
+        <Button variant="ghost" size="icon" onClick={onClose} className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive shrink-0">
           <X className="h-4 w-4" />
         </Button>
       </CardHeader>
-      <CardContent className="pt-6">
-        <ScrollArea className="h-[45vh] pr-4">
+      <CardContent className="pt-6 bg-muted/5">
+        <ScrollArea className="h-[55vh] pr-4">
             <div className="space-y-6">
                 {renderSubmissionList('First', unitSubmissions.firstCycle, unitSubmissions.isFirstActionPlanNA)}
                 {renderSubmissionList('Final', unitSubmissions.finalCycle, unitSubmissions.isFinalActionPlanNA)}
             </div>
         </ScrollArea>
       </CardContent>
+      <div className="p-4 border-t bg-white rounded-b-lg">
+        <p className="text-[9px] text-muted-foreground leading-relaxed italic">
+            This workspace provides direct oversight of verified records. Only <strong>Approved</strong> documents are marked as compliant.
+        </p>
+      </div>
     </Card>
   );
 }

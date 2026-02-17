@@ -82,24 +82,27 @@ export function Leaderboard({
             const firstCycleRegistry = campusUnitSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
             const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
             const requiredFirst = isFirstActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
-            const firstCycleSubmissions = new Set(campusUnitSubmissions.filter(s => s.cycleId === 'first').map(s => s.reportType));
-            if (isFirstActionPlanNA) {
-                firstCycleSubmissions.delete('Risk and Opportunity Action Plan');
-            }
-            const firstCycleCount = firstCycleSubmissions.size;
+            
+            // CRITICAL: Count only APPROVED submissions for the leaderboard score
+            const firstCycleApprovedCount = new Set(
+                campusUnitSubmissions
+                    .filter(s => s.cycleId === 'first' && s.statusId === 'approved')
+                    .map(s => s.reportType)
+            ).size;
 
             const finalCycleRegistry = campusUnitSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
             const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
             const requiredFinal = isFinalActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
-            const finalCycleSubmissions = new Set(campusUnitSubmissions.filter(s => s.cycleId === 'final').map(s => s.reportType));
-            if (isFinalActionPlanNA) {
-                finalCycleSubmissions.delete('Risk and Opportunity Action Plan');
-            }
-            const finalCycleCount = finalCycleSubmissions.size;
+            
+            const finalCycleApprovedCount = new Set(
+                campusUnitSubmissions
+                    .filter(s => s.cycleId === 'final' && s.statusId === 'approved')
+                    .map(s => s.reportType)
+            ).size;
             
             const totalRequired = requiredFirst + requiredFinal;
-            const submissionCount = firstCycleCount + finalCycleCount;
-            const percentage = totalRequired > 0 ? Math.round((submissionCount / totalRequired) * 100) : 0;
+            const approvedCount = firstCycleApprovedCount + finalCycleApprovedCount;
+            const percentage = totalRequired > 0 ? Math.round((approvedCount / totalRequired) * 100) : 0;
 
             campusUnitProgress.push({
                 id: `${unit.id}-${campus.id}`,
@@ -112,7 +115,7 @@ export function Leaderboard({
 
 
     return campusUnitProgress
-      .filter(item => item.percentage >= 5) 
+      .filter(item => item.percentage >= 1) // Show anything with progress
       .sort((a, b) => b.percentage - a.percentage);
 
   }, [allSubmissions, allUnits, allCampuses, userProfile, isCampusSupervisor, selectedYear]);
@@ -134,20 +137,20 @@ export function Leaderboard({
   }
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="flex flex-row items-start justify-between">
+    <Card className="overflow-hidden border-primary/10 shadow-md">
+      <CardHeader className="flex flex-row items-start justify-between bg-primary/5 pb-4">
         <div>
             <CardTitle className="flex items-center gap-2">
             <Trophy className="text-yellow-500 h-5 w-5" />
-            Unit Compliance Scorecard
+            Unit Verified Performance
             </CardTitle>
-            <CardDescription className="text-xs">
-            Performance based on submission completion for {selectedYear}.
+            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Ranked by <strong>Approved</strong> documents for {selectedYear}.
             </CardDescription>
         </div>
         <div className="w-[100px]">
              <Select value={String(selectedYear)} onValueChange={(v) => onYearChange(Number(v))}>
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-8 text-xs bg-white">
                 <SelectValue placeholder="Year" />
                 </SelectTrigger>
                 <SelectContent>
@@ -156,14 +159,14 @@ export function Leaderboard({
             </Select>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         {leaderboardData.length > 0 ? (
             <div className="space-y-3">
             {leaderboardData.slice(0, 10).map((unit, index) => {
                 return (
                     <div key={unit.id} className="space-y-2 rounded-lg border p-3 hover:bg-muted/30 transition-colors overflow-hidden">
                         <div className="flex items-center gap-3">
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted font-bold text-[10px]">
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 font-black text-primary text-[10px]">
                                 {index + 1}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -175,7 +178,7 @@ export function Leaderboard({
                             </div>
                             <div className="text-right flex flex-col items-end shrink-0">
                                 <StarRating percentage={unit.percentage} />
-                                <p className="text-[9px] font-bold text-muted-foreground mt-1">{unit.percentage}%</p>
+                                <p className="text-[9px] font-black text-primary mt-1">{unit.percentage}% Verified</p>
                             </div>
                         </div>
                         <Progress value={unit.percentage} className="h-1" />
@@ -184,9 +187,10 @@ export function Leaderboard({
             })}
             </div>
         ) : (
-            <div className="h-40 flex flex-col items-center justify-center text-muted-foreground text-sm">
+            <div className="h-40 flex flex-col items-center justify-center text-muted-foreground text-center">
                 <TrendingUp className="h-8 w-8 mb-2 opacity-20" />
-                <p className="text-xs">Waiting for unit activity...</p>
+                <p className="text-xs font-bold uppercase tracking-widest opacity-50">Pending Approvals</p>
+                <p className="text-[10px] mt-1">Units will appear here once submissions are verified by ODIMO.</p>
             </div>
         )}
       </CardContent>

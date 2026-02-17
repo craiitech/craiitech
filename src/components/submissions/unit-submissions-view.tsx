@@ -123,23 +123,26 @@ export function UnitSubmissionsView({
     const finalRegistry = finalSubs.find(s => s.reportType === 'Risk and Opportunity Registry');
     const isFinalActionPlanNA = finalRegistry?.riskRating === 'low';
 
-    const getMissing = (cycleSubs: Submission[], isActionPlanNA: boolean) => {
-        const submitted = new Set(cycleSubs.map(s => s.reportType));
+    const getMissingOrUnapproved = (cycleSubs: Submission[], isActionPlanNA: boolean) => {
+        const approvedSet = new Set(cycleSubs.filter(s => s.statusId === 'approved').map(s => s.reportType));
         return submissionTypes.filter(type => {
-            if (submitted.has(type)) return false;
+            if (approvedSet.has(type)) return false;
             if (type === 'Risk and Opportunity Action Plan' && isActionPlanNA) return false;
             return true;
         });
     };
 
-    const missingFirst = getMissing(firstSubs, isFirstActionPlanNA);
-    const missingFinal = getMissing(finalSubs, isFinalActionPlanNA);
+    const missingFirst = getMissingOrUnapproved(firstSubs, isFirstActionPlanNA);
+    const missingFinal = getMissingOrUnapproved(finalSubs, isFinalActionPlanNA);
 
     // Performance Data for Chart
     const approved = yearSubmissions.filter(s => s.statusId === 'approved').length;
     const pending = yearSubmissions.filter(s => s.statusId === 'submitted').length;
     const rejected = yearSubmissions.filter(s => s.statusId === 'rejected').length;
-    const missingTotal = missingFirst.length + missingFinal.length;
+    
+    // Denominator exclusion logic: Only count things that are NOT N/A
+    const totalPossible = (submissionTypes.length * 2) - (isFirstActionPlanNA ? 1 : 0) - (isFinalActionPlanNA ? 1 : 0);
+    const missingTotal = Math.max(0, totalPossible - approved - pending - rejected);
 
     const chartData = [
         { name: 'Approved', value: approved },
@@ -148,7 +151,6 @@ export function UnitSubmissionsView({
         { name: 'Missing', value: missingTotal }
     ].filter(d => d.value > 0);
 
-    const totalPossible = (submissionTypes.length * 2) - (isFirstActionPlanNA ? 1 : 0) - (isFinalActionPlanNA ? 1 : 0);
     const score = Math.round((approved / (totalPossible || 1)) * 100);
 
     return { 
@@ -183,7 +185,7 @@ export function UnitSubmissionsView({
         <div>
             <CardTitle>Unit Submissions Monitoring</CardTitle>
             <CardDescription>
-            Select a unit to view their complete submission history and performance analytics for the selected year.
+            Performance is calculated based on <strong>Approved</strong> documents. N/A reports are excluded from the score.
             </CardDescription>
         </div>
         <div className="flex items-center gap-2">
@@ -238,7 +240,7 @@ export function UnitSubmissionsView({
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 border-b pb-6">
                             <div className="lg:col-span-1 flex flex-col items-center justify-center bg-background rounded-lg border shadow-sm p-4 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-2 opacity-5"><PieIcon className="h-12 w-12" /></div>
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Unit Compliance Index</span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Verified Maturity</span>
                                 <ChartContainer config={{}} className="h-[120px] w-[120px]">
                                     <ResponsiveContainer>
                                         <PieChart>
@@ -274,18 +276,18 @@ export function UnitSubmissionsView({
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="p-4 pt-0">
-                                        <p className="text-[10px] text-muted-foreground leading-tight">Total verified and approved documents for {selectedYear}.</p>
+                                        <p className="text-[10px] text-muted-foreground leading-tight">Total verified and <strong>Approved</strong> documents for {selectedYear}.</p>
                                     </CardContent>
                                 </Card>
                                 <Card className={cn("shadow-none border-dashed", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200")}>
                                     <CardHeader className="p-4 pb-2">
-                                        <CardDescription className={cn("text-[9px] font-black uppercase tracking-widest", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-700" : "text-green-700")}>Outstanding Actions</CardDescription>
+                                        <CardDescription className={cn("text-[9px] font-black uppercase tracking-widest", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-700" : "text-green-700")}>Action Items</CardDescription>
                                         <CardTitle className={cn("text-xl font-black", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-600" : "text-green-600")}>
-                                            {unitData.missingFirst.length + unitData.missingFinal.length} Missing
+                                            {unitData.missingFirst.length + unitData.missingFinal.length} Required
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="p-4 pt-0">
-                                        <p className="text-[10px] text-muted-foreground leading-tight">Documents yet to be uploaded to the portal.</p>
+                                        <p className="text-[10px] text-muted-foreground leading-tight">Documents awaiting upload or final approval.</p>
                                     </CardContent>
                                 </Card>
                             </div>
@@ -296,12 +298,12 @@ export function UnitSubmissionsView({
                             <div className="space-y-4">
                                 <h4 className="text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2 text-destructive">
                                     <FileWarning className="h-4 w-4" /> 
-                                    Identification of Gaps
+                                    Institutional Compliance Gaps
                                 </h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {unitData.missingFirst.length > 0 && (
                                         <div className="bg-destructive/5 rounded-lg p-4 border border-destructive/10">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-destructive mb-3">1st Cycle Missing</p>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-destructive mb-3">1st Cycle To-Do</p>
                                             <ul className="space-y-1.5">
                                                 {unitData.missingFirst.map(doc => (
                                                     <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
@@ -313,7 +315,7 @@ export function UnitSubmissionsView({
                                     )}
                                     {unitData.missingFinal.length > 0 && (
                                         <div className="bg-destructive/5 rounded-lg p-4 border border-destructive/10">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-destructive mb-3">Final Cycle Missing</p>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-destructive mb-3">Final Cycle To-Do</p>
                                             <ul className="space-y-1.5">
                                                 {unitData.missingFinal.map(doc => (
                                                     <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
@@ -332,8 +334,8 @@ export function UnitSubmissionsView({
                                 <div className="mx-auto h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
                                     <CheckCircle2 className="h-6 w-6 text-green-600" />
                                 </div>
-                                <h4 className="font-black text-sm uppercase text-green-800">Compliance Satisfied</h4>
-                                <p className="text-xs text-green-700/70 max-w-xs mx-auto">This unit has successfully submitted all required documentation for the Academic Year {selectedYear}.</p>
+                                <h4 className="font-black text-sm uppercase text-green-800">Operational Excellence</h4>
+                                <p className="text-xs text-green-700/70 max-w-xs mx-auto">This unit has achieved 100% verified compliance for Academic Year {selectedYear}.</p>
                             </div>
                         )}
 

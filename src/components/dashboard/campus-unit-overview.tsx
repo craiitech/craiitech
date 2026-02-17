@@ -38,27 +38,32 @@ export function CampusUnitOverview({
       const firstCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
       const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
       const requiredFirst = isFirstActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
-      const firstCycleSubmissions = new Set(unitSubmissionsForYear.filter(s => s.cycleId === 'first').map(s => s.reportType));
-      if (isFirstActionPlanNA) {
-        firstCycleSubmissions.delete('Risk and Opportunity Action Plan');
-      }
+      
+      // CRITICAL: Progress is based on APPROVED status
+      const firstCycleApproved = new Set(
+        unitSubmissionsForYear
+            .filter(s => s.cycleId === 'first' && s.statusId === 'approved')
+            .map(s => s.reportType)
+      ).size;
       
       const finalCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
       const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
       const requiredFinal = isFinalActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
-      const finalCycleSubmissions = new Set(unitSubmissionsForYear.filter(s => s.cycleId === 'final').map(s => s.reportType));
-       if (isFinalActionPlanNA) {
-        finalCycleSubmissions.delete('Risk and Opportunity Action Plan');
-      }
+      
+      const finalCycleApproved = new Set(
+        unitSubmissionsForYear
+            .filter(s => s.cycleId === 'final' && s.statusId === 'approved')
+            .map(s => s.reportType)
+      ).size;
       
       const totalRequired = requiredFirst + requiredFinal;
-      const submissionCount = firstCycleSubmissions.size + finalCycleSubmissions.size;
-      const progress = totalRequired > 0 ? (submissionCount / totalRequired) * 100 : 0;
+      const approvedCount = firstCycleApproved + finalCycleApproved;
+      const progress = totalRequired > 0 ? (approvedCount / totalRequired) * 100 : 0;
 
       return {
         id: unit.id,
         name: unit.name,
-        submissionCount,
+        approvedCount,
         progress,
         totalRequired,
       };
@@ -83,31 +88,37 @@ export function CampusUnitOverview({
   }
 
   if (unitSubmissionProgress.length === 0) {
-    return null; // Don't show the card if there are no units in the campus
+    return null;
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Submission Status per Unit</CardTitle>
+        <CardTitle>Unit Verification Progress</CardTitle>
         <CardDescription>
-          Shows the submission progress for each unit within your campus for {selectedYear}.
+          Percentage of <strong>Approved</strong> documents per unit for {selectedYear}. N/A items are excluded.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <List>
           {unitSubmissionProgress.map(unit => (
-            <ListItem key={unit.id} className="flex-col !items-start">
+            <ListItem key={unit.id} className="flex-col !items-start p-4 hover:bg-muted/20 transition-colors">
               <div className="flex w-full items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Building className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{unit.name}</span>
+                  <Building className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-bold truncate">{unit.name}</span>
                 </div>
-                <span className="text-sm text-muted-foreground">
-                  {unit.submissionCount} of {unit.totalRequired}
-                </span>
+                <Badge variant="secondary" className="text-[10px] font-black">
+                  {unit.approvedCount} / {unit.totalRequired} VERIFIED
+                </Badge>
               </div>
-              <Progress value={unit.progress} className="mt-2 h-2" />
+              <div className="w-full mt-3 space-y-1">
+                <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                    <span>Maturity</span>
+                    <span>{Math.round(unit.progress)}%</span>
+                </div>
+                <Progress value={unit.progress} className="h-1.5" />
+              </div>
             </ListItem>
           ))}
         </List>

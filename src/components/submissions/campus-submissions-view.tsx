@@ -52,7 +52,7 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
     },
     2026: { 
       first: 'bg-amber-50/20 hover:bg-amber-100/40 dark:bg-amber-900/5 dark:hover:bg-amber-900/10', 
-      final: 'bg-amber-100/40 hover:bg-blue-200/50 dark:bg-amber-900/20 dark:hover:bg-amber-900/30' 
+      final: 'bg-amber-100/40 hover:bg-amber-200/50 dark:bg-amber-900/20 dark:hover:bg-amber-900/30' 
     },
     2027: { 
       first: 'bg-purple-50/20 hover:bg-purple-100/40 dark:bg-purple-900/5 dark:hover:bg-purple-900/10', 
@@ -134,23 +134,25 @@ export function CampusSubmissionsView({
     const finalRegistry = finalSubs.find(s => s.reportType === 'Risk and Opportunity Registry');
     const isFinalActionPlanNA = finalRegistry?.riskRating === 'low';
 
-    const getMissing = (cycleSubs: Submission[], isActionPlanNA: boolean) => {
-        const submitted = new Set(cycleSubs.map(s => s.reportType));
+    const getMissingOrUnapproved = (cycleSubs: Submission[], isActionPlanNA: boolean) => {
+        const approvedSet = new Set(cycleSubs.filter(s => s.statusId === 'approved').map(s => s.reportType));
         return submissionTypes.filter(type => {
-            if (submitted.has(type)) return false;
+            if (approvedSet.has(type)) return false;
             if (type === 'Risk and Opportunity Action Plan' && isActionPlanNA) return false;
             return true;
         });
     };
 
-    const missingFirst = getMissing(firstSubs, isFirstActionPlanNA);
-    const missingFinal = getMissing(finalSubs, isFinalActionPlanNA);
+    const missingFirst = getMissingOrUnapproved(firstSubs, isFirstActionPlanNA);
+    const missingFinal = getMissingOrUnapproved(finalSubs, isFinalActionPlanNA);
 
     // Performance Data for Chart
     const approved = unitSubmissions.filter(s => s.statusId === 'approved').length;
     const pending = unitSubmissions.filter(s => s.statusId === 'submitted').length;
     const rejected = unitSubmissions.filter(s => s.statusId === 'rejected').length;
-    const missingTotal = missingFirst.length + missingFinal.length;
+    
+    const totalPossible = (submissionTypes.length * 2) - (isFirstActionPlanNA ? 1 : 0) - (isFinalActionPlanNA ? 1 : 0);
+    const missingTotal = Math.max(0, totalPossible - approved - pending - rejected);
 
     const chartData = [
         { name: 'Approved', value: approved },
@@ -159,7 +161,6 @@ export function CampusSubmissionsView({
         { name: 'Missing', value: missingTotal }
     ].filter(d => d.value > 0);
 
-    const totalPossible = (submissionTypes.length * 2) - (isFirstActionPlanNA ? 1 : 0) - (isFinalActionPlanNA ? 1 : 0);
     const score = Math.round((approved / (totalPossible || 1)) * 100);
 
     return {
@@ -200,7 +201,7 @@ export function CampusSubmissionsView({
         <div>
             <CardTitle>Campus Submissions</CardTitle>
             <CardDescription>
-            Select a campus and unit to view their complete submission history and performance analytics for the selected year.
+            Audit scores are calculated based on <strong>Approved</strong> documents. N/A reports are excluded from performance metrics.
             </CardDescription>
         </div>
         <div className="flex items-center gap-2">
@@ -318,24 +319,24 @@ export function CampusSubmissionsView({
                             <div className="lg:col-span-2 grid grid-cols-2 gap-4">
                                 <Card className="shadow-none border-dashed bg-muted/20">
                                     <CardHeader className="p-4 pb-2">
-                                        <CardDescription className="text-[9px] font-black uppercase tracking-widest">Compliance Status</CardDescription>
+                                        <CardDescription className="text-[9px] font-black uppercase tracking-widest">Verified Status</CardDescription>
                                         <CardTitle className="text-xl font-black text-primary">
                                             {unitData.approved} / {unitData.totalPossible}
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="p-4 pt-0">
-                                        <p className="text-[10px] text-muted-foreground leading-tight">Total verified and approved documents.</p>
+                                        <p className="text-[10px] text-muted-foreground leading-tight">Total verified and <strong>Approved</strong> documents.</p>
                                     </CardContent>
                                 </Card>
                                 <Card className={cn("shadow-none border-dashed", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200")}>
                                     <CardHeader className="p-4 pb-2">
                                         <CardDescription className={cn("text-[9px] font-black uppercase tracking-widest", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-700" : "text-green-700")}>Action Required</CardDescription>
                                         <CardTitle className={cn("text-xl font-black", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-600" : "text-green-600")}>
-                                            {unitData.missingFirst.length + unitData.missingFinal.length} Missing
+                                            {unitData.missingFirst.length + unitData.missingFinal.length} Outstanding
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="p-4 pt-0">
-                                        <p className="text-[10px] text-muted-foreground leading-tight">Reports yet to be submitted for this year.</p>
+                                        <p className="text-[10px] text-muted-foreground leading-tight">Reports awaiting upload or final approval.</p>
                                     </CardContent>
                                 </Card>
                             </div>
@@ -346,12 +347,12 @@ export function CampusSubmissionsView({
                             <div className="space-y-4">
                                 <h4 className="text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2 text-destructive">
                                     <FileWarning className="h-4 w-4" /> 
-                                    Institutional Gaps
+                                    Institutional Quality Gaps
                                 </h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {unitData.missingFirst.length > 0 && (
                                         <div className="bg-destructive/5 rounded-lg p-4 border border-destructive/10">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-destructive mb-3">1st Cycle Gaps</p>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-destructive mb-3">1st Cycle To-Do</p>
                                             <ul className="space-y-1.5">
                                                 {unitData.missingFirst.map(doc => (
                                                     <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
@@ -363,7 +364,7 @@ export function CampusSubmissionsView({
                                     )}
                                     {unitData.missingFinal.length > 0 && (
                                         <div className="bg-destructive/5 rounded-lg p-4 border border-destructive/10">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-destructive mb-3">Final Cycle Gaps</p>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-destructive mb-3">Final Cycle To-Do</p>
                                             <ul className="space-y-1.5">
                                                 {unitData.missingFinal.map(doc => (
                                                     <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700">

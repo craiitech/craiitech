@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -6,7 +5,7 @@ import type { Unit, Submission, User as AppUser, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building, AlertCircle, Send, Loader2 } from 'lucide-react';
+import { Building, AlertCircle, Send, Loader2, FileX } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
@@ -27,7 +26,7 @@ interface UnitsWithoutSubmissionsProps {
   userProfile: AppUser | null;
   isAdmin: boolean;
   isCampusSupervisor: boolean;
-  onUnitClick: (unitId: string, campusId: string) => void; // FIX: Added campusId
+  onUnitClick: (unitId: string, campusId: string) => void;
   selectedYear: number;
 }
 
@@ -81,11 +80,15 @@ export function UnitsWithoutSubmissions({
 
             const totalRequired = requiredFirst + requiredFinal;
 
-            const uniqueSubmissions = new Set(unitSubmissions.map(s => `${s.reportType}-${s.cycleId}`));
+            // CRITICAL: Compliance based on APPROVED count
+            const approvedSubmissions = new Set(
+                unitSubmissions.filter(s => s.statusId === 'approved').map(s => `${s.reportType}-${s.cycleId}`)
+            );
+            
             return {
                 id: unit.id,
                 name: unit.name,
-                count: uniqueSubmissions.size,
+                count: approvedSubmissions.size,
                 totalRequired: totalRequired
             };
         }).filter(unit => unit.count < unit.totalRequired);
@@ -104,7 +107,7 @@ export function UnitsWithoutSubmissions({
     setIsSendingReminders(true);
 
     const batch = writeBatch(firestore);
-    const reminderMessage = `Reminder: Please ensure all required EOMS reports for ${selectedYear} are submitted as soon as possible.`;
+    const reminderMessage = `Compliance Reminder: Please ensure all required EOMS reports for ${selectedYear} are submitted and revised for final approval.`;
 
     const campusIdsToRemind = incompleteSubmissionsByCampus.map(c => c.campusId);
 
@@ -117,7 +120,7 @@ export function UnitsWithoutSubmissions({
         await batch.commit();
         toast({
             title: 'Reminders Sent',
-            description: `A reminder announcement has been posted to ${campusIdsToRemind.length} campus(es).`
+            description: `A verification reminder has been posted to ${campusIdsToRemind.length} campus(es).`
         });
     } catch(e) {
         console.error("Error sending reminders:", e);
@@ -156,46 +159,49 @@ export function UnitsWithoutSubmissions({
 
   return (
     <>
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between">
+    <Card className="border-destructive/20 bg-destructive/5">
+      <CardHeader className="flex flex-row items-start justify-between pb-4">
         <div>
-            <CardTitle className="flex items-center gap-2">
-                <AlertCircle className="text-destructive" />
-                Incomplete Submissions
+            <CardTitle className="flex items-center gap-2 text-destructive">
+                <FileX className="h-5 w-5" />
+                Zero-Approved Units
             </CardTitle>
-            <CardDescription>
-            Campuses with units that have not completed all submissions for {selectedYear}.
+            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Units with no verified documentation for {selectedYear}.
             </CardDescription>
         </div>
         {isAdmin && (
-            <Button variant="outline" size="sm" onClick={() => setIsReminderDialogOpen(true)}>
-                <Send className="mr-2 h-4 w-4"/>
-                Send Reminders
+            <Button variant="outline" size="sm" onClick={() => setIsReminderDialogOpen(true)} className="h-8 bg-white">
+                <Send className="mr-2 h-3.5 w-3.5"/>
+                Remind All
             </Button>
         )}
       </CardHeader>
       <CardContent>
-        <Accordion type="multiple" className="w-full">
+        <Accordion type="multiple" className="w-full" defaultValue={incompleteSubmissionsByCampus.map(c => c.campusId)}>
             {incompleteSubmissionsByCampus.map(campus => (
-                 <AccordionItem value={campus.campusId} key={campus.campusId}>
-                    <AccordionTrigger className="font-medium">
-                        {campus.campusName} ({campus.incompleteUnits.length} units)
+                 <AccordionItem value={campus.campusId} key={campus.campusId} className="border-none">
+                    <AccordionTrigger className="font-bold hover:no-underline hover:bg-muted/50 rounded-md px-2 py-3">
+                        <div className="flex items-center gap-3">
+                            <span className="text-xs uppercase tracking-tight">{campus.campusName}</span>
+                            <Badge variant="destructive" className="h-5 text-[9px] font-black">{campus.incompleteUnits.length} UNITS</Badge>
+                        </div>
                     </AccordionTrigger>
-                    <AccordionContent>
-                         <List>
+                    <AccordionContent className="pt-2">
+                         <List className="pl-2">
                           {campus.incompleteUnits.map(unit => (
-                            <ListItem key={unit.id}>
+                            <ListItem key={unit.id} className="p-0 border-none">
                               <Button
                                 variant="ghost"
-                                className="flex h-auto w-full cursor-pointer items-center justify-between p-0 hover:bg-transparent"
+                                className="flex h-auto w-full cursor-pointer items-center justify-between p-2 hover:bg-background group"
                                 onClick={() => onUnitClick(unit.id, campus.campusId)}
                               >
                                   <div className="flex items-center gap-3">
-                                    <Building className="h-4 w-4 text-muted-foreground" />
-                                    <span className="font-medium">{unit.name}</span>
+                                    <Building className="h-3.5 w-3.5 text-muted-foreground group-hover:text-destructive" />
+                                    <span className="text-xs font-bold text-slate-700 truncate">{unit.name}</span>
                                   </div>
-                                  <Badge variant={unit.count === 0 ? 'destructive' : 'secondary'}>
-                                    {unit.count} of {unit.totalRequired}
+                                  <Badge variant={unit.count === 0 ? 'destructive' : 'secondary'} className="text-[9px] font-black h-5">
+                                    {unit.count} / {unit.totalRequired}
                                   </Badge>
                               </Button>
                             </ListItem>
@@ -211,14 +217,14 @@ export function UnitsWithoutSubmissions({
     <AlertDialog open={isReminderDialogOpen} onOpenChange={setIsReminderDialogOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Confirm Reminders</AlertDialogTitle>
+                <AlertDialogTitle>Confirm Verification Reminders</AlertDialogTitle>
                 <AlertDialogDescription>
-                    This will post a standard reminder announcement to the dashboard of all users in the {incompleteSubmissionsByCampus.length} campus(es) with incomplete submissions for {selectedYear}. Are you sure?
+                    This will post a compliance reminder to the dashboard of all users in the {incompleteSubmissionsByCampus.length} campus(es) with unverified submissions for {selectedYear}. This emphasizes <strong>Approval</strong> over mere submission.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleSendReminders} disabled={isSendingReminders}>
+                <AlertDialogAction onClick={handleSendReminders} disabled={isSendingReminders} className="bg-primary">
                     {isSendingReminders ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Send className="mr-2 h-4 w-4"/>}
                     Yes, Send Reminders
                 </AlertDialogAction>

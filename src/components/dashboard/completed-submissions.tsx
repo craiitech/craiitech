@@ -5,9 +5,10 @@ import type { Unit, Submission, User as AppUser, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building, Heart } from 'lucide-react';
+import { Building, Heart, CheckCircle2 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
+import { Badge } from '../ui/badge';
 
 interface CompletedSubmissionsProps {
   allUnits: Unit[] | null;
@@ -57,20 +58,20 @@ export function CompletedSubmissions({
             const firstCycleRegistry = unitSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
             const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
             const requiredFirst = isFirstActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
-            const firstCycleSubmissions = new Set(unitSubmissions.filter(s => s.cycleId === 'first').map(s => s.reportType));
-             if (isFirstActionPlanNA) {
-                firstCycleSubmissions.delete('Risk and Opportunity Action Plan');
-            }
+            
+            const firstCycleApproved = new Set(
+                unitSubmissions.filter(s => s.cycleId === 'first' && s.statusId === 'approved').map(s => s.reportType)
+            ).size;
 
             const finalCycleRegistry = unitSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
             const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
             const requiredFinal = isFinalActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
-            const finalCycleSubmissions = new Set(unitSubmissions.filter(s => s.cycleId === 'final').map(s => s.reportType));
-            if (isFinalActionPlanNA) {
-                finalCycleSubmissions.delete('Risk and Opportunity Action Plan');
-            }
+            
+            const finalCycleApproved = new Set(
+                unitSubmissions.filter(s => s.cycleId === 'final' && s.statusId === 'approved').map(s => s.reportType)
+            ).size;
 
-            const isComplete = firstCycleSubmissions.size >= requiredFirst && finalCycleSubmissions.size >= requiredFinal;
+            const isComplete = firstCycleApproved >= requiredFirst && finalCycleApproved >= requiredFinal;
             
             return {
                 id: unit.id,
@@ -111,31 +112,35 @@ export function CompletedSubmissions({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-            <Heart className="text-green-500" />
-            On-Track Units
+    <Card className="border-green-200 bg-green-50/10 shadow-sm">
+      <CardHeader className="bg-green-50/50 border-b pb-4">
+        <CardTitle className="flex items-center gap-2 text-green-700">
+            <CheckCircle2 className="h-5 w-5" />
+            Verified Compliant Units
         </CardTitle>
-        <CardDescription>
-            Congratulations to the following units for completing all required submissions for {selectedYear}.
+        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-green-600/70">
+            Units with 100% <strong>Approved</strong> documents for {selectedYear}.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <Accordion type="multiple" className="w-full">
+      <CardContent className="pt-4">
+        <Accordion type="multiple" className="w-full" defaultValue={completedSubmissionsByCampus.map(c => c.campusId)}>
             {completedSubmissionsByCampus.map(campus => (
-                 <AccordionItem value={campus.campusId} key={campus.campusId}>
-                    <AccordionTrigger className="font-medium">
-                        {campus.campusName} ({campus.completedUnits.length} units)
+                 <AccordionItem value={campus.campusId} key={campus.campusId} className="border-none">
+                    <AccordionTrigger className="font-bold hover:no-underline hover:bg-green-100/50 rounded-md px-2 py-3 transition-colors">
+                        <div className="flex items-center gap-3">
+                            <span className="text-xs uppercase tracking-tight">{campus.campusName}</span>
+                            <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 h-5 text-[9px] font-black">{campus.completedUnits.length} UNITS</Badge>
+                        </div>
                     </AccordionTrigger>
-                    <AccordionContent>
-                         <List>
+                    <AccordionContent className="pt-2">
+                         <List className="pl-2">
                           {campus.completedUnits.map(unit => (
-                            <ListItem key={unit.id} className="flex justify-between items-center">
+                            <ListItem key={unit.id} className="flex justify-between items-center border-none p-2 hover:bg-green-50 transition-colors">
                               <div className="flex items-center gap-3">
-                                <Building className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">{unit.name}</span>
+                                <Building className="h-3.5 w-3.5 text-green-600" />
+                                <span className="text-xs font-bold text-slate-700">{unit.name}</span>
                               </div>
+                              <CheckCircle2 className="h-3 w-3 text-green-500" />
                             </ListItem>
                           ))}
                         </List>
