@@ -413,3 +413,51 @@ export type ProgramComplianceRecord = {
   updatedAt: any;
   updatedBy: string;
 };
+
+// --- QA REPORTS MODULE TYPES ---
+
+export type QaAuditReport = {
+  id: string;
+  type: 'IQA' | 'EQA';
+  title: string;
+  reportDate: any; // Timestamp
+  googleDriveLink: string;
+  campusId: string;
+  createdAt: any; // Timestamp
+};
+
+export type ManagementReview = {
+  id: string;
+  title: string;
+  meetingDate: any; // Timestamp
+  minutesLink: string;
+  campusId: string;
+  createdAt: any; // Timestamp
+};
+
+export type ManagementReviewOutput = {
+  id: string;
+  mrId: string; // Linked to ManagementReview
+  description: string;
+  initiator: string;
+  concernedUnitIds: string[];
+  actionPlan: string;
+  followUpDate: any; // Timestamp
+  followUpRemarks?: string;
+  status: 'Open' | 'On-going' | 'Closed';
+  createdAt: any; // Timestamp
+};
+
+export type CorrectiveActionRequest = {
+  id: string;
+  carNumber: string; // e.g., CAR-2025-001
+  source: string; // e.g., 'IQA', 'EQA', 'Monitoring', 'Others'
+  description: string;
+  unitId: string;
+  campusId: string;
+  actionPlan: string;
+  targetDate: any; // Timestamp
+  status: 'Open' | 'In Progress' | 'Closed';
+  createdAt: any; // Timestamp
+  updatedAt: any; // Timestamp
+};

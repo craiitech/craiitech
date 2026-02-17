@@ -163,5 +163,31 @@ service cloud.firestore {
         (settingId == profile().get('campusId', '') || settingId == 'global')
       ));
     }
+
+    // --------------------------------------------------------------------------
+    // QA REPORTS MODULE
+    // --------------------------------------------------------------------------
+    match /qaAuditReports/{reportId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isAuditor();
+    }
+
+    match /managementReviews/{mrId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isAuditor();
+    }
+
+    match /managementReviewOutputs/{outputId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isAuditor();
+    }
+
+    match /correctiveActionRequests/{carId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin() || isAuditor();
+      allow update: if isAdmin() || isAuditor() || 
+        (hasProfile() && resource.data.unitId == profile().get('unitId', ''));
+      allow delete: if isAdmin();
+    }
   }
 }
