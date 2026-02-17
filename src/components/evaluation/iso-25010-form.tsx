@@ -1,5 +1,4 @@
-
-'use client';
+'use server';
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -24,6 +23,7 @@ import { iso25010Categories } from '@/lib/iso-25010-data';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ShieldCheck, ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface Iso25010FormProps {
   isOpen: boolean;
