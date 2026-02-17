@@ -62,7 +62,15 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
 
   const form = useForm<z.infer<typeof reportSchema>>({
     resolver: zodResolver(reportSchema),
-    defaultValues: { title: '', startDate: '', endDate: '', googleDriveLink: '', campusId: '', eqaCategory: 'Certification / Re-Certification Audit', certifyingBody: '' }
+    defaultValues: { 
+      title: '', 
+      startDate: '', 
+      endDate: '', 
+      googleDriveLink: '', 
+      campusId: '', 
+      eqaCategory: 'Certification / Re-Certification Audit', 
+      certifyingBody: '' 
+    }
   });
 
   const onSubmit = async (values: z.infer<typeof reportSchema>) => {
@@ -85,7 +93,15 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
       await addDoc(collection(firestore, 'qaAuditReports'), dataToSave);
       toast({ title: 'Success', description: 'Report uploaded successfully.' });
       setIsDialogOpen(false);
-      form.reset();
+      form.reset({
+        title: '',
+        startDate: '',
+        endDate: '',
+        googleDriveLink: '',
+        campusId: '',
+        eqaCategory: 'Certification / Re-Certification Audit',
+        certifyingBody: ''
+      });
     } catch (error) {
       console.error(error);
       toast({ title: 'Error', description: 'Failed to upload report.', variant: 'destructive' });
@@ -231,7 +247,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
               <FormField control={form.control} name="title" render={({ field }) => (
-                <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Report Title</FormLabel><FormControl><Input {...field} placeholder="e.g., Annual IQA Summary 2025" className="h-9 text-sm" /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Report Title</FormLabel><FormControl><Input {...field} placeholder={`e.g., Annual ${type} Summary 2025`} className="h-9 text-sm" /></FormControl><FormMessage /></FormItem>
               )} />
               
               {type === 'EQA' && (
@@ -256,10 +272,10 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="startDate" render={({ field }) => (
-                    <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Start Date</FormLabel><FormControl><Input type="date" {...field} className="h-9 text-sm" /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Audit Start Date</FormLabel><FormControl><Input type="date" {...field} className="h-9 text-sm" /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="endDate" render={({ field }) => (
-                    <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">End Date</FormLabel><FormControl><Input type="date" {...field} className="h-9 text-sm" /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Audit End Date</FormLabel><FormControl><Input type="date" {...field} className="h-9 text-sm" /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
               
