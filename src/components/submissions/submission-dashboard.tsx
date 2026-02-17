@@ -56,23 +56,31 @@ export function SubmissionDashboard({ submissions, cycles, isLoading }: Submissi
     let lateCount = 0;
 
     submissions.forEach(sub => {
-        const matchingCycle = cycles.find(c => c.id === sub.cycleId && c.year === sub.year);
-        if (matchingCycle) {
-            const submissionDate = sub.submissionDate instanceof Date 
-                ? sub.submissionDate 
-                : (sub.submissionDate as any).toDate();
-            
-            const deadline = matchingCycle.endDate instanceof Timestamp 
-                ? matchingCycle.endDate.toDate() 
-                : new Date(matchingCycle.endDate);
+        // FIX: Match cycle by name and year, not the unique doc ID which contains the year suffix
+        const matchingCycle = cycles.find(c => 
+            c.name.toLowerCase() === sub.cycleId.toLowerCase() && 
+            Number(c.year) === Number(sub.year)
+        );
 
-            if (isBefore(submissionDate, deadline) || submissionDate.getTime() === deadline.getTime()) {
+        if (matchingCycle && matchingCycle.endDate) {
+            // Robust Date extraction for comparison
+            const getMs = (val: any) => {
+                if (val instanceof Timestamp) return val.toMillis();
+                if (val instanceof Date) return val.getTime();
+                if (val?.seconds) return val.seconds * 1000;
+                return new Date(val).getTime();
+            };
+
+            const subTime = getMs(sub.submissionDate);
+            const deadlineTime = getMs(matchingCycle.endDate);
+
+            if (subTime <= deadlineTime) {
                 onTimeCount++;
             } else {
                 lateCount++;
             }
         } else {
-            // Default to on-time if no cycle found (shouldn't happen with valid data)
+            // Default to on-time if no cycle/deadline is defined for that specific year/cycle
             onTimeCount++;
         }
     });
