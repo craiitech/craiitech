@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -127,9 +128,9 @@ export function EomsPolicyManualManagement() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>EOMS Policy Manual Administration</CardTitle>
+          <CardTitle>RSU EOMS Manual Administration</CardTitle>
           <CardDescription>
-            Populate and maintain the 10 core sections of the official RSU EOMS Policy Manual.
+            Populate and maintain the 10 core sections of the official RSU EOMS Manual.
           </CardDescription>
         </CardHeader>
         <CardContent>

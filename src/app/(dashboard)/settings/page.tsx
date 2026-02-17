@@ -57,7 +57,7 @@ export default function SettingsPage() {
             <TabsTrigger value="units">Units</TabsTrigger>
             <TabsTrigger value="roles">Roles</TabsTrigger>
             <TabsTrigger value="procedure-manuals">Procedure Manuals</TabsTrigger>
-            <TabsTrigger value="eoms-policy-manual">EOMS Policy Manual</TabsTrigger>
+            <TabsTrigger value="eoms-policy-manual">RSU EOMS Manual</TabsTrigger>
             <TabsTrigger value="cycles">Cycles &amp; Deadlines</TabsTrigger>
             <TabsTrigger value="campus-settings">Campus Settings</TabsTrigger>
             <TabsTrigger value="error-reports">Error Reports</TabsTrigger>

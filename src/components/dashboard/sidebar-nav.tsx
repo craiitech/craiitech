@@ -69,7 +69,7 @@ export function SidebarNav({
     },
     {
       href: '/eoms-policy-manual',
-      label: 'EOMS Policy Manual',
+      label: 'RSU EOMS Manual',
       active: pathname.startsWith('/eoms-policy-manual'),
       icon: <BookMarked />,
     },

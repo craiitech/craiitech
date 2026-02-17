@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -66,7 +67,7 @@ export default function EomsPolicyManualPage() {
       <div className="flex items-center gap-3">
         <ShieldCheck className="h-8 w-8 text-primary" />
         <div>
-            <h2 className="text-2xl font-bold tracking-tight">EOMS Policy Manual</h2>
+            <h2 className="text-2xl font-bold tracking-tight">RSU EOMS Manual</h2>
             <p className="text-muted-foreground text-sm">
             Official policy documentation aligned with ISO 21001:2018 standards.
             </p>
