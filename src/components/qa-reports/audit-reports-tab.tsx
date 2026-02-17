@@ -31,7 +31,6 @@ const reportSchema = z.object({
   reportDate: z.string().min(1, 'Date is required'),
   googleDriveLink: z.string().url('Invalid URL'),
   campusId: z.string().min(1, 'Campus is required'),
-  // Optional for IQA, conditional for EQA
   eqaCategory: z.string().optional(),
   certifyingBody: z.string().optional(),
 });
@@ -76,8 +75,6 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
         createdAt: serverTimestamp(),
       };
 
-      // Clean up optional fields if they are empty
-      if (!values.certifyingBody) delete dataToSave.certifyingBody;
       if (type === 'IQA') {
           delete dataToSave.eqaCategory;
           delete dataToSave.certifyingBody;

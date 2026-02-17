@@ -39,22 +39,22 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /qaAuditReports/{reportId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create, update, delete: if isAdmin() || isAuditor();
     }
 
     match /managementReviews/{mrId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create, update, delete: if isAdmin() || isAuditor();
     }
 
     match /managementReviewOutputs/{outputId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create, update, delete: if isAdmin() || isAuditor();
     }
 
     match /correctiveActionRequests/{carId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create: if isAdmin() || isAuditor();
       allow update: if isAdmin() || isAuditor() || 
         (hasProfile() && resource.data.unitId == profile().get('unitId', ''));
