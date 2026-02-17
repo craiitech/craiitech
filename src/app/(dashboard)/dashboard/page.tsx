@@ -304,14 +304,19 @@ export default function HomePage() {
       };
     } else if (isSupervisor) {
       const totalRequired = unitsInCampus.length * TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT;
-      const uniqueSubmissionsCount = new Set(yearSubmissions.map(s => s.reportType + s.unitId + s.cycleId)).size;
+      // CRITICAL: Progress based on APPROVED documents
+      const approvedSubmissionsCount = new Set(
+        yearSubmissions
+            .filter(s => s.statusId === 'approved')
+            .map(s => s.reportType + s.unitId + s.cycleId)
+      ).size;
 
       return {
         stat1: {
-          title: 'Required Submissions',
-          value: `${uniqueSubmissionsCount} of ${totalRequired}`,
+          title: 'Verified Submissions',
+          value: `${approvedSubmissionsCount} of ${totalRequired}`,
           description: `Across ${unitsInCampus.length} units in ${selectedYear}`,
-          icon: <FileText className="h-6 w-6 text-primary" />,
+          icon: <CheckCircle className="h-6 w-6 text-primary" />,
         },
         stat2: {
           title: 'Campus Submissions',
@@ -327,35 +332,35 @@ export default function HomePage() {
         },
       };
     } else {
-        const firstCycleSubmissions = yearSubmissions.filter(s => s.cycleId === 'first');
-        const firstCycleRegistry = firstCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry');
+        const firstCycleApproved = yearSubmissions.filter(s => s.cycleId === 'first' && s.statusId === 'approved');
+        const firstCycleRegistry = yearSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
         const requiredFirstCycle = firstCycleRegistry?.riskRating === 'low' ? (TOTAL_REPORTS_PER_CYCLE - 1) : TOTAL_REPORTS_PER_CYCLE;
 
-        const finalCycleSubmissions = yearSubmissions.filter(s => s.cycleId === 'final');
-        const finalCycleRegistry = finalCycleSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry');
+        const finalCycleApproved = yearSubmissions.filter(s => s.cycleId === 'final' && s.statusId === 'approved');
+        const finalCycleRegistry = yearSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
         const requiredFinalCycle = finalCycleRegistry?.riskRating === 'low' ? (TOTAL_REPORTS_PER_CYCLE - 1) : TOTAL_REPORTS_PER_CYCLE;
 
-        const firstCycleCount = new Set(firstCycleSubmissions.map(s => s.reportType)).size;
-        const finalCycleCount = new Set(finalCycleSubmissions.map(s => s.reportType)).size;
+        const firstCycleCount = new Set(firstCycleApproved.map(s => s.reportType)).size;
+        const finalCycleCount = new Set(finalCycleApproved.map(s => s.reportType)).size;
         
         return {
             stat1: {
-              title: 'First Cycle',
+              title: 'First Cycle (Verified)',
               value: `${firstCycleCount} of ${requiredFirstCycle}`,
-              description: `Submissions for ${selectedYear}`,
-              icon: <FileText className="h-6 w-6 text-primary" />,
+              description: `Approved docs for ${selectedYear}`,
+              icon: <CheckCircle className="h-6 w-6 text-primary" />,
             },
             stat2: {
-              title: 'Final Cycle',
+              title: 'Final Cycle (Verified)',
               value: `${finalCycleCount} of ${requiredFinalCycle}`,
-              description: `Submissions for ${selectedYear}`,
-              icon: <FileText className="h-6 w-6 text-primary" />,
+              description: `Approved docs for ${selectedYear}`,
+              icon: <CheckCircle className="h-6 w-6 text-primary" />,
             },
             stat3: {
-              title: 'Total Approved',
-              value: yearSubmissions.filter((s) => s.statusId === 'approved').length,
-              description: `Approved in ${selectedYear}`,
-              icon: <CheckCircle className="h-6 w-6 text-primary" />,
+              title: 'Total Submissions',
+              value: yearSubmissions.length,
+              description: `Total attempts in ${selectedYear}`,
+              icon: <FileText className="h-6 w-6 text-primary" />,
             },
         };
     }
@@ -428,13 +433,15 @@ export default function HomePage() {
     const registryFormSubmission = statusMap.get('Risk and Opportunity Registry');
     const isActionPlanNA = registryFormSubmission?.riskRating === 'low';
     const requiredReports = isActionPlanNA ? submissionTypes.filter(t => t !== 'Risk and Opportunity Action Plan') : submissionTypes;
-    const submittedCount = Array.from(statusMap.keys()).filter(type => requiredReports.includes(type)).length;
-    const progress = (submittedCount / requiredReports.length) * 100;
+    
+    // CRITICAL: Progress based on APPROVED status
+    const approvedCount = Array.from(statusMap.values()).filter(s => s.statusId === 'approved' && requiredReports.includes(s.reportType)).length;
+    const progress = (approvedCount / requiredReports.length) * 100;
     
     return (
         <div className="space-y-4">
             <div className="flex justify-between text-sm font-medium mb-1">
-              <span>Overall Progress ({cycle === 'first' ? 'First' : 'Final'} Cycle)</span>
+              <span>Verified Maturity ({cycle === 'first' ? 'First' : 'Final'} Cycle)</span>
               <span>{Math.round(progress)}%</span>
             </div>
             <Progress value={progress} />
@@ -540,7 +547,7 @@ export default function HomePage() {
 
       <TabsContent value="actions" className="space-y-4">
         <Card>
-          <CardHeader><CardTitle>Submission Status</CardTitle><CardDescription>Checklist for all required submissions for {selectedYear}.</CardDescription></CardHeader>
+          <CardHeader><CardTitle>Verified Documentation Checklist</CardTitle><CardDescription>Only <strong>Approved</strong> documents contribute to your unit's compliance progress for {selectedYear}.</CardDescription></CardHeader>
           <CardContent>
               <Tabs defaultValue="first-cycle" className="space-y-4">
                  <TabsList><TabsTrigger value="first-cycle">First Cycle</TabsTrigger><TabsTrigger value="final-cycle">Final Cycle</TabsTrigger></TabsList>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -8,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Building } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
+import { Badge } from '../ui/badge';
 
 interface CampusUnitOverviewProps {
   allUnits: Unit[] | null;
