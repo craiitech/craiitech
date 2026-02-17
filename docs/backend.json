@@ -2,147 +2,103 @@
 {
   "entities": {
     "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user within the RSU EOMS Submission Portal.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
-        "email": {
-          "type": "string",
-          "description": "User's email address.",
-          "format": "email"
-        },
-        "firstName": {
-          "type": "string",
-          "description": "User's first name."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "User's last name."
-        },
-        "roleId": {
-          "type": "string",
-          "description": "Reference to Role."
-        },
-        "role": {
-          "type": "string",
-          "description": "The name of the user's role, denormalized."
-        },
-        "campusId": {
-          "type": "string",
-          "description": "Reference to Campus."
-        },
-        "unitId": {
-          "type": "string",
-          "description": "Reference to Unit."
-        },
-        "verified": {
-          "type": "boolean",
-          "description": "Indicates if the user's account has been verified."
-        },
-        "ndaAccepted": {
-          "type": "boolean",
-          "description": "Indicates if the user has accepted the NDA."
-        }
-      },
-      "required": [
-        "id",
-        "email",
-        "firstName",
-        "lastName",
-        "roleId",
-        "role",
-        "campusId",
-        "unitId",
-        "verified"
-      ]
-    },
-    "AppFeedback": {
-      "title": "AppFeedback",
-      "type": "object",
-      "description": "User feedback and rating captured during logout.",
       "properties": {
         "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "userName": { "type": "string" },
-        "rating": { "type": "number", "description": "1-5 star rating" },
-        "comments": { "type": "string" },
-        "suggestions": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "email": { "type": "string", "format": "email" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "roleId": { "type": "string" },
+        "role": { "type": "string" },
+        "campusId": { "type": "string" },
+        "unitId": { "type": "string" },
+        "verified": { "type": "boolean" },
+        "ndaAccepted": { "type": "boolean" }
       },
-      "required": ["userId", "rating"]
+      "required": ["id", "email", "firstName", "lastName", "roleId", "role", "campusId", "unitId", "verified"]
     },
-    "SoftwareEvaluation": {
-      "title": "SoftwareEvaluation",
+    "QaAuditReport": {
+      "title": "QaAuditReport",
       "type": "object",
-      "description": "Formal software quality audit based on ISO/IEC 25010.",
       "properties": {
         "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "userName": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "scores": { 
-          "type": "object",
-          "description": "Categorized scores (1-5) for ISO characteristics."
-        },
-        "overallScore": { "type": "number" },
-        "generalComments": { "type": "string" },
-        "recommendations": { "type": "string" }
+        "type": { "type": "string", "enum": ["IQA", "EQA"] },
+        "title": { "type": "string" },
+        "reportDate": { "type": "string", "format": "date-time" },
+        "googleDriveLink": { "type": "string", "format": "uri" },
+        "campusId": { "type": "string" }
       },
-      "required": ["userId", "scores"]
+      "required": ["type", "title", "reportDate", "googleDriveLink", "campusId"]
+    },
+    "ManagementReview": {
+      "title": "ManagementReview",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "meetingDate": { "type": "string", "format": "date-time" },
+        "minutesLink": { "type": "string", "format": "uri" },
+        "campusId": { "type": "string" }
+      },
+      "required": ["title", "meetingDate", "minutesLink", "campusId"]
+    },
+    "ManagementReviewOutput": {
+      "title": "ManagementReviewOutput",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "mrId": { "type": "string" },
+        "description": { "type": "string" },
+        "initiator": { "type": "string" },
+        "concernedUnitIds": { "type": "array", "items": { "type": "string" } },
+        "actionPlan": { "type": "string" },
+        "followUpDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["Open", "On-going", "Closed"] }
+      },
+      "required": ["mrId", "description", "concernedUnitIds", "status"]
+    },
+    "CorrectiveActionRequest": {
+      "title": "CorrectiveActionRequest",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "carNumber": { "type": "string" },
+        "source": { "type": "string" },
+        "description": { "type": "string" },
+        "unitId": { "type": "string" },
+        "campusId": { "type": "string" },
+        "actionPlan": { "type": "string" },
+        "targetDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["Open", "In Progress", "Closed"] }
+      },
+      "required": ["carNumber", "source", "description", "unitId", "campusId", "status"]
     },
     "AcademicProgram": {
       "title": "AcademicProgram",
       "type": "object",
-      "description": "An academic degree program offered by the university.",
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
         "abbreviation": { "type": "string" },
         "campusId": { "type": "string" },
-        "collegeId": { "type": "string", "description": "Reference to a Unit categorized as Academic" },
+        "collegeId": { "type": "string" },
         "level": { "type": "string", "enum": ["Undergraduate", "Graduate", "TVET"] },
-        "isBoardProgram": { "type": "boolean", "description": "Whether the program has a professional board exam." },
-        "isActive": { "type": "boolean" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "isBoardProgram": { "type": "boolean" },
+        "isActive": { "type": "boolean" }
       },
       "required": ["id", "name", "campusId", "collegeId", "level", "isActive", "isBoardProgram"]
     },
     "ProgramComplianceRecord": {
       "title": "ProgramComplianceRecord",
       "type": "object",
-      "description": "Annual compliance data for an academic program.",
       "properties": {
         "id": { "type": "string" },
         "programId": { "type": "string" },
         "campusId": { "type": "string" },
-        "academicYear": { "type": "number" },
-        "ched": { "type": "object" },
-        "accreditation": { "type": "object" },
-        "curriculum": { "type": "object" },
-        "faculty": { "type": "object" },
-        "stats": { "type": "object" },
-        "boardPerformance": { "type": "object" },
-        "tracer": { "type": "object" },
-        "updatedAt": { "type": "string", "format": "date-time" },
-        "updatedBy": { "type": "string" }
+        "academicYear": { "type": "number" }
       },
       "required": ["id", "programId", "campusId", "academicYear"]
-    },
-    "Role": {
-      "title": "Role",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "description": { "type": "string" }
-      },
-      "required": ["id", "name", "description"]
     },
     "Submission": {
       "title": "Submission",
@@ -163,50 +119,6 @@
         "controlNumber": { "type": "string" }
       },
       "required": ["id", "userId", "submissionDate", "googleDriveLink", "cycleId", "statusId", "reportType", "year", "unitName", "campusId", "unitId", "revision", "controlNumber"]
-    },
-    "Risk": {
-      "title": "Risk",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "unitId": { "type": "string" },
-        "campusId": { "type": "string" },
-        "year": { "type": "number" },
-        "type": { "type": "string", "enum": ["Risk", "Opportunity"] },
-        "status": { "type": "string", "enum": ["Open", "In Progress", "Closed"] }
-      }
-    },
-    "Campus": {
-      "title": "Campus",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "location": { "type": "string" }
-      },
-      "required": ["id", "name", "location"]
-    },
-    "Unit": {
-      "title": "Unit",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "category": { "type": "string", "enum": ["Academic", "Administrative", "Research", "Support"] },
-        "campusIds": { "type": "array", "items": { "type": "string" } }
-      },
-      "required": ["id", "name"]
-    },
-    "UnitMonitoringRecord": {
-      "title": "UnitMonitoringRecord",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "visitDate": { "type": "string", "format": "date-time" },
-        "campusId": { "type": "string" },
-        "unitId": { "type": "string" },
-        "monitorName": { "type": "string" }
-      }
     }
   },
   "auth": {
@@ -216,15 +128,15 @@
     "structure": [
       { "path": "/users/{userId}", "definition": { "entityName": "User" } },
       { "path": "/roles_admin/{userId}", "definition": { "description": "Admin privileges map." } },
+      { "path": "/qaAuditReports/{reportId}", "definition": { "entityName": "QaAuditReport" } },
+      { "path": "/managementReviews/{mrId}", "definition": { "entityName": "ManagementReview" } },
+      { "path": "/managementReviewOutputs/{outputId}", "definition": { "entityName": "ManagementReviewOutput" } },
+      { "path": "/correctiveActionRequests/{carId}", "definition": { "entityName": "CorrectiveActionRequest" } },
       { "path": "/academicPrograms/{programId}", "definition": { "entityName": "AcademicProgram" } },
       { "path": "/programCompliances/{recordId}", "definition": { "entityName": "ProgramComplianceRecord" } },
       { "path": "/submissions/{submissionId}", "definition": { "entityName": "Submission" } },
-      { "path": "/risks/{riskId}", "definition": { "entityName": "Risk" } },
       { "path": "/campuses/{campusId}", "definition": { "entityName": "Campus" } },
-      { "path": "/units/{unitId}", "definition": { "entityName": "Unit" } },
-      { "path": "/unitMonitoringRecords/{recordId}", "definition": { "entityName": "UnitMonitoringRecord" } },
-      { "path": "/appFeedbacks/{feedbackId}", "definition": { "entityName": "AppFeedback" } },
-      { "path": "/softwareEvaluations/{evalId}", "definition": { "entityName": "SoftwareEvaluation" } }
+      { "path": "/units/{unitId}", "definition": { "entityName": "Unit" } }
     ]
   }
 }

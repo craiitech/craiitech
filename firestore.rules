@@ -35,6 +35,33 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
+    // QA REPORTS MODULE COLLECTIONS (Top Level)
+    // --------------------------------------------------------------------------
+    
+    match /qaAuditReports/{reportId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isAuditor();
+    }
+
+    match /managementReviews/{mrId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isAuditor();
+    }
+
+    match /managementReviewOutputs/{outputId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isAuditor();
+    }
+
+    match /correctiveActionRequests/{carId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin() || isAuditor();
+      allow update: if isAdmin() || isAuditor() || 
+        (hasProfile() && resource.data.unitId == profile().get('unitId', ''));
+      allow delete: if isAdmin();
+    }
+
+    // --------------------------------------------------------------------------
     // CORE COLLECTION: unitMonitoringRecords
     // --------------------------------------------------------------------------
     match /unitMonitoringRecords/{recordId} {
@@ -55,7 +82,6 @@ service cloud.firestore {
         );
 
         // 4. Write Rules (ENFORCE DATA INTEGRITY)
-        // Admins can write anything. Campus ODIMOs can write/update records for their own campus.
         allow create: if (isAdmin() || (isSignedIn() && hasProfile() && profile().get('role', '') == 'Campus ODIMO' && request.resource.data.campusId == profile().get('campusId', ''))) && 
           request.resource.data.keys().hasAll(['unitId', 'campusId']);
         
@@ -136,9 +162,7 @@ service cloud.firestore {
     }
 
     match /softwareEvaluations/{evalId} {
-      // Evaluation is now public for creation
       allow create: if true;
-      // Only Admins can see the results
       allow read: if isAdmin();
     }
 
@@ -162,32 +186,6 @@ service cloud.firestore {
         profile().get('role', '').matches('(?i).*(director|odimo|admin|vice president).*') &&
         (settingId == profile().get('campusId', '') || settingId == 'global')
       ));
-    }
-
-    // --------------------------------------------------------------------------
-    // QA REPORTS MODULE
-    // --------------------------------------------------------------------------
-    match /qaAuditReports/{reportId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || isAuditor();
-    }
-
-    match /managementReviews/{mrId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || isAuditor();
-    }
-
-    match /managementReviewOutputs/{outputId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || isAuditor();
-    }
-
-    match /correctiveActionRequests/{carId} {
-      allow read: if isSignedIn();
-      allow create: if isAdmin() || isAuditor();
-      allow update: if isAdmin() || isAuditor() || 
-        (hasProfile() && resource.data.unitId == profile().get('unitId', ''));
-      allow delete: if isAdmin();
     }
   }
 }

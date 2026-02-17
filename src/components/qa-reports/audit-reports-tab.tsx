@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, deleteDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, deleteDoc, doc, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import type { QaAuditReport, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,10 +41,19 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
   const [previewReport, setPreviewDoc] = useState<QaAuditReport | null>(null);
 
   const reportsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'qaAuditReports'), where('type', '==', type), orderBy('reportDate', 'desc')) : null),
+    () => (firestore ? query(collection(firestore, 'qaAuditReports'), where('type', '==', type)) : null),
     [firestore, type]
   );
-  const { data: reports, isLoading } = useCollection<QaAuditReport>(reportsQuery);
+  const { data: rawReports, isLoading } = useCollection<QaAuditReport>(reportsQuery);
+
+  const reports = useMemo(() => {
+    if (!rawReports) return [];
+    return [...rawReports].sort((a, b) => {
+        const dateA = a.reportDate instanceof Timestamp ? a.reportDate.toMillis() : new Date(a.reportDate).getTime();
+        const dateB = b.reportDate instanceof Timestamp ? b.reportDate.toMillis() : new Date(b.reportDate).getTime();
+        return dateB - dateA;
+    });
+  }, [rawReports]);
 
   const form = useForm<z.infer<typeof reportSchema>>({
     resolver: zodResolver(reportSchema),
@@ -58,7 +67,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
       await addDoc(collection(firestore, 'qaAuditReports'), {
         ...values,
         type,
-        reportDate: new Date(values.reportDate),
+        reportDate: Timestamp.fromDate(new Date(values.reportDate)),
         createdAt: serverTimestamp(),
       });
       toast({ title: 'Success', description: 'Report uploaded successfully.' });
