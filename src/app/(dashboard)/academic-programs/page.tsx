@@ -7,7 +7,7 @@ import { collection, query, where } from 'firebase/firestore';
 import type { AcademicProgram, Campus, ProgramComplianceRecord, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, GraduationCap, Filter, BarChart3, Layers, ShieldCheck } from 'lucide-react';
+import { PlusCircle, Loader2, GraduationCap, Filter, BarChart3, Layers, ShieldCheck, Search } from 'lucide-react';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
 import { Input } from '@/components/ui/input';
@@ -170,55 +170,52 @@ export default function AcademicProgramsPage() {
             />
         </TabsContent>
 
-        <TabsContent value="registry">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="md:col-span-1 h-fit">
-                    <CardHeader className="pb-3 border-b">
-                        <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                            <Filter className="h-3 w-3" /> Filter Scoped View
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4 pt-4">
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase text-muted-foreground">Search Registry</label>
+        <TabsContent value="registry" className="space-y-4">
+            <Card>
+                <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4">
+                    <div className="flex-1 w-full space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Search Registry</label>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="e.g. BSIT"
+                                placeholder="Search by name or initials..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-9"
                             />
                         </div>
-                        {isGlobalViewer && (
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold uppercase text-muted-foreground">Campus Site</label>
-                                <Select value={campusFilter} onValueChange={setCampusFilter}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="All Campuses" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Campuses</SelectItem>
-                                        {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <div className="md:col-span-3">
-                    {isLoading ? (
-                        <div className="flex h-64 items-center justify-center">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                    {isGlobalViewer && (
+                        <div className="w-full md:w-64 space-y-1.5">
+                            <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Campus Site Filter</label>
+                            <Select value={campusFilter} onValueChange={setCampusFilter}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="All Campuses" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Campuses</SelectItem>
+                                    {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
                         </div>
-                    ) : (
-                        <ProgramRegistry 
-                            programs={filteredPrograms} 
-                            campuses={campuses || []}
-                            units={units || []}
-                            onEdit={handleEditProgram}
-                            canManage={canManage}
-                        />
                     )}
-                </div>
+                </CardContent>
+            </Card>
+
+            <div>
+                {isLoading ? (
+                    <div className="flex h-64 items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                ) : (
+                    <ProgramRegistry 
+                        programs={filteredPrograms} 
+                        campuses={campuses || []}
+                        units={units || []}
+                        onEdit={handleEditProgram}
+                        canManage={canManage}
+                    />
+                )}
             </div>
         </TabsContent>
       </Tabs>
