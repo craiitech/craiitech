@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -131,23 +130,12 @@ export function SidebarNav({
   ];
 
   const visibleRoutes = allRoutes.filter((route) => {
-    // If no roles are required, show the route.
-    if (!route.roles) {
-      return true;
-    }
-    // Specific check for admins
-    if (isAdmin && route.roles.includes('Admin')) {
-        return true;
-    }
-    // Check for other roles
+    if (!route.roles) return true;
+    if (isAdmin && route.roles.includes('Admin')) return true;
     if (userRole) {
         const isVp = userRole.toLowerCase().includes('vice president');
-        if (route.roles.includes(userRole)) {
-            return true;
-        }
-        if (isVp && route.roles.includes('Vice President')) {
-            return true;
-        }
+        if (route.roles.includes(userRole)) return true;
+        if (isVp && route.roles.includes('Vice President')) return true;
     }
     return false;
   });

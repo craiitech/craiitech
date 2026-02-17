@@ -134,8 +134,10 @@ service cloud.firestore {
     }
 
     match /softwareEvaluations/{evalId} {
-      allow create: if isSignedIn() && (isAdmin() || isAuditor());
-      allow read: if isSignedIn();
+      // Evaluation is now public for creation
+      allow create: if true;
+      // Only Admins can see the results
+      allow read: if isAdmin();
     }
 
     match /roles/{roleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
