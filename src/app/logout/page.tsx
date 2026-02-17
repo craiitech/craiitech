@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -41,7 +42,6 @@ export default function LogoutPage() {
     setIsProcessingLogout(true);
 
     try {
-      // Save feedback if not skipping and rating is provided
       if (!skipFeedback && rating > 0 && firestore) {
         await addDoc(collection(firestore, 'appFeedbacks'), {
           userId: user.uid,
@@ -53,7 +53,6 @@ export default function LogoutPage() {
         });
       }
 
-      // Proceed with Firebase sign-out
       await signOut(auth);
       clearSessionLogs();
       
@@ -108,7 +107,6 @@ export default function LogoutPage() {
         ) : (
           <>
             <CardContent className="space-y-8 pt-6">
-              {/* Rating Section */}
               <div className="space-y-4 text-center">
                 <Label className="text-sm font-black uppercase tracking-widest text-muted-foreground">Rate your overall experience</Label>
                 <div className="flex justify-center gap-2">
@@ -141,7 +139,6 @@ export default function LogoutPage() {
                 </p>
               </div>
 
-              {/* Feedback Form */}
               <div className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="comments" className="flex items-center gap-2 font-bold">

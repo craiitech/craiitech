@@ -6,20 +6,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   useUser,
   useAuth,
-  useCollection,
-  useMemoFirebase,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, User as UserIcon, ClipboardList, BookOpen, BookMarked, ClipboardCheck, GraduationCap, MonitorCheck } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, BookOpen, BookMarked, ClipboardCheck, GraduationCap, MonitorCheck, ClipboardList } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
-import { signOut } from 'firebase/auth';
-import { useToast } from '@/hooks/use-toast';
-import { useSessionActivity } from '@/lib/activity-log-provider';
-import type { User as AppUser } from '@/lib/types';
-import { collection, query, where, Timestamp } from 'firebase/firestore';
-import { useMemo, useState, useEffect } from 'react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-import { cn } from '@/lib/utils';
-import { Skeleton } from '../ui/skeleton';
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
   notificationCount: number;
@@ -32,10 +21,7 @@ export function SidebarNav({
 }: SidebarNavProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const auth = useAuth();
-  const { toast } = useToast();
-  const { user, userProfile, isAdmin, userRole, isSupervisor, firestore } = useUser();
-  const { logSessionActivity } = useSessionActivity();
+  const { isAdmin, userRole, isSupervisor } = useUser();
 
   const handleLogout = () => {
     router.push('/logout');
