@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, ChevronRight, User, Users as UsersIcon, Globe, Building2, FileText, Presentation } from 'lucide-react';
+import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, ChevronRight, User, Users, Globe, Building2, FileText, Presentation } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -323,7 +323,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
         ) : (
           <div className="h-full flex flex-col items-center justify-center border border-dashed rounded-2xl bg-muted/5 text-muted-foreground animate-in fade-in duration-500">
             <div className="bg-muted h-20 w-20 rounded-full flex items-center justify-center mb-4">
-                <UsersIcon className="h-10 w-10 opacity-20" />
+                <Users className="h-10 w-10 opacity-20" />
             </div>
             <h4 className="font-black text-xs uppercase tracking-[0.2em]">MR Content Hub</h4>
             <p className="text-[10px] mt-2 max-w-[200px] text-center">Select a Management Review session from the meeting log to view minutes and decisions.</p>
@@ -416,7 +416,8 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
               )} />
               <FormField control={outputForm.control} name="status" render={({ field }) => (
                 <FormItem><FormLabel className="text-xs font-bold uppercase text-primary">Initial Lifecycle Status</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-primary/5 border-primary/20 font-black"><SelectValue /></SelectTrigger></FormControl>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl><SelectTrigger className="bg-primary/5 border-primary/20 font-black"><SelectValue /></SelectTrigger></FormControl>
                     <SelectContent><SelectItem value="Open">Open</SelectItem><SelectItem value="On-going">On-going</SelectItem><SelectItem value="Closed">Closed</SelectItem></SelectContent>
                   </Select><FormMessage /></FormItem>
               )} />
@@ -424,7 +425,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                 <Button type="button" variant="outline" onClick={() => setIsOutputDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
                 <Button type="submit" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black">
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ListChecks className="h-4 w-4 mr-1.5" />}
-                    Log Decision
+                    Log MR Output
                 </Button>
               </DialogFooter>
             </form>
