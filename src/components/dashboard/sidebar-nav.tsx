@@ -54,6 +54,13 @@ export function SidebarNav({
       active: pathname.startsWith('/submissions'),
       icon: <FileText />,
     },
+    {
+      href: '/approvals',
+      label: 'Approvals',
+      active: pathname.startsWith('/approvals'),
+      roles: ['Campus Director', 'Campus ODIMO', 'Admin', 'Vice President'],
+      icon: <CheckSquare />,
+    },
      {
       href: '/manuals',
       label: 'Procedure Manuals',
@@ -92,13 +99,6 @@ export function SidebarNav({
       active: pathname.startsWith('/monitoring'),
       roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Vice President', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <ClipboardCheck />,
-    },
-    {
-      href: '/approvals',
-      label: 'Approvals',
-      active: pathname.startsWith('/approvals'),
-      roles: ['Campus Director', 'Campus ODIMO', 'Admin', 'Vice President'],
-      icon: <CheckSquare />,
     },
      {
       href: '/reports',
