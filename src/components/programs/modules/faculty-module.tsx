@@ -7,27 +7,30 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescripti
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { User, UserPlus, Trash2, ShieldCheck, Info, UserCircle2 } from 'lucide-react';
+import { User, UserPlus, Trash2, ShieldCheck, Info, UserCircle2, UserCheck } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
 
 export function FacultyModule({ canEdit }: { canEdit: boolean }) {
-  const { control } = useFormContext();
+  const { control, watch } = useFormContext();
+  const hasAssociateDean = watch('faculty.hasAssociateDean');
+
   const { fields, append, remove } = useFieldArray({
     control,
     name: "faculty.members"
   });
 
-  const FacultyForm = ({ prefix, label, desc }: { prefix: string, label: string, desc: string }) => (
+  const FacultyForm = ({ prefix, label, desc, icon }: { prefix: string, label: string, desc: string, icon?: React.ReactNode }) => (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-lg border bg-card shadow-sm relative overflow-hidden">
       <div className="absolute top-0 left-0 w-1 h-full bg-primary/20" />
       <div className="md:col-span-4 border-b pb-2">
         <p className="font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-          <UserCircle2 className="h-4 w-4 text-primary" /> {label}
+          {icon || <UserCircle2 className="h-4 w-4 text-primary" />} {label}
         </p>
         <p className="text-[10px] text-muted-foreground">{desc}</p>
       </div>
       <FormField control={control} name={`${prefix}.name`} render={({ field }) => (
-        <FormItem><FormLabel className="text-[10px] uppercase font-bold">Full Name</FormLabel><FormControl><Input {...field} placeholder="e.g., Dr. Jane Doe" className="h-8 text-xs" disabled={!canEdit} /></FormControl></FormItem>
+        <FormItem><FormLabel className="text-[10px] uppercase font-bold">Full Name</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Dr. Jane Doe" className="h-8 text-xs" disabled={!canEdit} /></FormControl></FormItem>
       )} />
       <FormField control={control} name={`${prefix}.sex`} render={({ field }) => (
         <FormItem><FormLabel className="text-[10px] uppercase font-bold">Sex</FormLabel>
@@ -41,7 +44,7 @@ export function FacultyModule({ canEdit }: { canEdit: boolean }) {
         </FormItem>
       )} />
       <FormField control={control} name={`${prefix}.highestEducation`} render={({ field }) => (
-        <FormItem><FormLabel className="text-[10px] uppercase font-bold">Highest Degree</FormLabel><FormControl><Input {...field} placeholder="e.g., PhD in CS" className="h-8 text-xs" disabled={!canEdit} /></FormControl></FormItem>
+        <FormItem><FormLabel className="text-[10px] uppercase font-bold">Highest Degree</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g., PhD in CS" className="h-8 text-xs" disabled={!canEdit} /></FormControl></FormItem>
       )} />
       <FormField control={control} name={`${prefix}.isAlignedWithCMO`} render={({ field }) => (
         <FormItem><FormLabel className="text-[10px] uppercase font-bold">CMO Alignment</FormLabel>
@@ -60,8 +63,33 @@ export function FacultyModule({ canEdit }: { canEdit: boolean }) {
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-6">
         <FacultyForm prefix="faculty.dean" label="Dean / Director" desc="Top academic officer responsible for the college/institute." />
+        
+        {/* Associate Dean Toggle */}
+        <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/20">
+            <div className="space-y-0.5">
+                <FormLabel className="text-sm font-bold">Presence of Associate Dean</FormLabel>
+                <FormDescription className="text-[10px]">Enable this if your unit has an officially designated Associate Dean.</FormDescription>
+            </div>
+            <FormField
+                control={control}
+                name="faculty.hasAssociateDean"
+                render={({ field }) => (
+                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={!canEdit} /></FormControl>
+                )}
+            />
+        </div>
+
+        {hasAssociateDean && (
+            <FacultyForm 
+                prefix="faculty.associateDean" 
+                label="Associate Dean" 
+                desc="Assists the Dean in academic and administrative governance." 
+                icon={<UserCheck className="h-4 w-4 text-primary" />}
+            />
+        )}
+
         <FacultyForm prefix="faculty.programChair" label="Program Chair" desc="Officer directly responsible for this specific academic program." />
       </div>
 

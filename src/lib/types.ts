@@ -338,6 +338,13 @@ export type EnrollmentStats = {
   specialNeeds: number;
 };
 
+export type FacultyLeadershipMember = {
+  name: string;
+  highestEducation: string;
+  isAlignedWithCMO: FacultyAlignment;
+  sex: 'Male' | 'Female';
+};
+
 export type ProgramComplianceRecord = {
   id: string;
   programId: string;
@@ -375,18 +382,10 @@ export type ProgramComplianceRecord = {
 
   // Faculty/Staff
   faculty: {
-    dean: {
-      name: string;
-      highestEducation: string;
-      isAlignedWithCMO: FacultyAlignment;
-      sex: 'Male' | 'Female';
-    };
-    programChair: {
-      name: string;
-      highestEducation: string;
-      isAlignedWithCMO: FacultyAlignment;
-      sex: 'Male' | 'Female';
-    };
+    dean: FacultyLeadershipMember;
+    hasAssociateDean?: boolean;
+    associateDean?: FacultyLeadershipMember;
+    programChair: FacultyLeadershipMember;
     members: ProgramFacultyMember[];
   };
 
