@@ -56,14 +56,12 @@ export function SubmissionDashboard({ submissions, cycles, isLoading }: Submissi
     let lateCount = 0;
 
     submissions.forEach(sub => {
-        // FIX: Match cycle by name and year, not the unique doc ID which contains the year suffix
         const matchingCycle = cycles.find(c => 
             c.name.toLowerCase() === sub.cycleId.toLowerCase() && 
             Number(c.year) === Number(sub.year)
         );
 
         if (matchingCycle && matchingCycle.endDate) {
-            // Robust Date extraction for comparison
             const getMs = (val: any) => {
                 if (val instanceof Timestamp) return val.toMillis();
                 if (val instanceof Date) return val.getTime();
@@ -80,7 +78,6 @@ export function SubmissionDashboard({ submissions, cycles, isLoading }: Submissi
                 lateCount++;
             }
         } else {
-            // Default to on-time if no cycle/deadline is defined for that specific year/cycle
             onTimeCount++;
         }
     });
@@ -130,40 +127,40 @@ export function SubmissionDashboard({ submissions, cycles, isLoading }: Submissi
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary/5 border-primary/10">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Total Submissions</CardTitle>
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Total Documents</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-primary">{analytics.total}</div>
-            <p className="text-[10px] text-muted-foreground mt-1">Uploaded documents in current view</p>
+            <div className="text-3xl font-black text-primary tabular-nums tracking-tighter">{analytics.total}</div>
+            <p className="text-[9px] font-bold text-muted-foreground mt-1">Verified Portal Submissions</p>
           </CardContent>
         </Card>
         <Card className="bg-green-50 border-green-100">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-green-700">Approval Rate</CardTitle>
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-green-700">Approval Maturity</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-green-600">{analytics.approvalRate}%</div>
-            <p className="text-[10px] text-green-600/70 mt-1">Percentage of approved reports</p>
+            <div className="text-3xl font-black text-green-600 tabular-nums tracking-tighter">{analytics.approvalRate}%</div>
+            <p className="text-[9px] font-bold text-green-600/70 mt-1">Completion rate of review process</p>
           </CardContent>
         </Card>
         <Card className="bg-amber-50 border-amber-100">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-amber-700">Pending Evaluation</CardTitle>
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">Audit Queue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-amber-600">{analytics.pending}</div>
-            <p className="text-[10px] text-amber-600/70 mt-1">Waiting for approver action</p>
+            <div className="text-3xl font-black text-amber-600 tabular-nums tracking-tighter">{analytics.pending}</div>
+            <p className="text-[9px] font-bold text-amber-600/70 mt-1">Items awaiting evaluator action</p>
           </CardContent>
         </Card>
         <Card className="bg-blue-50 border-blue-100">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-blue-700">Timeliness Index</CardTitle>
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Timeliness index</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-blue-600">
+            <div className="text-3xl font-black text-blue-600 tabular-nums tracking-tighter">
                 {Math.round((analytics.timelinessData[0].value / (analytics.total || 1)) * 100)}%
             </div>
-            <p className="text-[10px] text-blue-600/70 mt-1">Submissions made before deadline</p>
+            <p className="text-[9px] font-bold text-blue-600/70 mt-1">Documents sent before deadline</p>
           </CardContent>
         </Card>
       </div>
@@ -174,13 +171,13 @@ export function SubmissionDashboard({ submissions, cycles, isLoading }: Submissi
           <CardHeader>
             <div className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-primary" />
-              <CardTitle>On-Time vs Late Submissions</CardTitle>
+              <CardTitle className="text-sm">Compliance Timeliness</CardTitle>
             </div>
-            <CardDescription>Analysis of submissions against official cycle deadlines.</CardDescription>
+            <CardDescription className="text-xs">Submissions relative to official ISO cycle deadlines.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 items-center">
-                <ChartContainer config={{}} className="h-[250px] w-full">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <ChartContainer config={{}} className="h-[200px] w-[200px] shrink-0">
                     <ResponsiveContainer>
                         <PieChart>
                             <Tooltip content={<ChartTooltipContent hideLabel />} />
@@ -188,8 +185,8 @@ export function SubmissionDashboard({ submissions, cycles, isLoading }: Submissi
                                 data={analytics.timelinessData}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={60}
-                                outerRadius={80}
+                                innerRadius={50}
+                                outerRadius={70}
                                 paddingAngle={5}
                                 dataKey="value"
                             >
@@ -200,20 +197,20 @@ export function SubmissionDashboard({ submissions, cycles, isLoading }: Submissi
                         </PieChart>
                     </ResponsiveContainer>
                 </ChartContainer>
-                <div className="space-y-4">
+                <div className="space-y-2 w-full">
                     <div className="flex items-center justify-between p-3 rounded-lg border bg-green-50/30">
                         <div className="flex items-center gap-2">
                             <CalendarCheck className="h-4 w-4 text-green-600" />
-                            <span className="text-sm font-bold">On-Time</span>
+                            <span className="text-xs font-bold uppercase tracking-wider">On-Time</span>
                         </div>
-                        <span className="text-lg font-black text-green-600">{analytics.timelinessData[0].value}</span>
+                        <span className="text-lg font-black text-green-600 tabular-nums">{analytics.timelinessData[0].value}</span>
                     </div>
                     <div className="flex items-center justify-between p-3 rounded-lg border bg-red-50/30">
                         <div className="flex items-center gap-2">
                             <CalendarOff className="h-4 w-4 text-red-600" />
-                            <span className="text-sm font-bold">Late</span>
+                            <span className="text-xs font-bold uppercase tracking-wider">Late</span>
                         </div>
-                        <span className="text-lg font-black text-red-600">{analytics.timelinessData[1].value}</span>
+                        <span className="text-lg font-black text-red-600 tabular-nums">{analytics.timelinessData[1].value}</span>
                     </div>
                 </div>
             </div>
@@ -225,9 +222,9 @@ export function SubmissionDashboard({ submissions, cycles, isLoading }: Submissi
           <CardHeader>
             <div className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-primary" />
-              <CardTitle>Submission Status Profile</CardTitle>
+              <CardTitle className="text-sm">Maturity Lifecycle</CardTitle>
             </div>
-            <CardDescription>Breakdown of current lifecycle status across all documents.</CardDescription>
+            <CardDescription className="text-xs">Real-time status of all submitted documentation.</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={{}} className="h-[250px] w-full">
@@ -246,7 +243,7 @@ export function SubmissionDashboard({ submissions, cycles, isLoading }: Submissi
                                 <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.statusId] || '#cbd5e1'} />
                             ))}
                         </Pie>
-                        <Legend verticalAlign="bottom" height={36} />
+                        <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }} />
                     </PieChart>
                 </ResponsiveContainer>
             </ChartContainer>
@@ -258,26 +255,26 @@ export function SubmissionDashboard({ submissions, cycles, isLoading }: Submissi
           <CardHeader>
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
-              <CardTitle>Report Type Volume</CardTitle>
+              <CardTitle className="text-sm">Documentation Density</CardTitle>
             </div>
-            <CardDescription>Submission density per core EOMS document type.</CardDescription>
+            <CardDescription className="text-xs">Submission volume mapped to core ISO 21001:2018 report categories.</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={{}} className="h-[300px] w-full">
                 <ResponsiveContainer>
-                    <BarChart data={analytics.reportData} layout="vertical" margin={{ left: 40, right: 40 }}>
+                    <BarChart data={analytics.reportData} layout="vertical" margin={{ left: 20, right: 40 }}>
                         <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                         <XAxis type="number" hide />
                         <YAxis 
                             dataKey="name" 
                             type="category" 
-                            tick={{ fontSize: 10, fontWeight: 600 }} 
-                            width={150}
+                            tick={{ fontSize: 9, fontWeight: 700, fill: 'hsl(var(--muted-foreground))' }} 
+                            width={160}
                             axisLine={false}
                             tickLine={false}
                         />
                         <Tooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={20} />
+                        <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={12} />
                     </BarChart>
                 </ResponsiveContainer>
             </ChartContainer>

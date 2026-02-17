@@ -21,7 +21,7 @@ interface IncompleteCampusSubmissionsProps {
   isLoading: boolean;
   selectedYear: number;
   onYearChange: (year: number) => void;
-  onUnitClick?: (unitId: string, campusId: string) => void; // FIX: Added optional click handler
+  onUnitClick?: (unitId: string, campusId: string) => void; 
 }
 
 export function IncompleteCampusSubmissions({
@@ -129,19 +129,19 @@ export function IncompleteCampusSubmissions({
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
                  <CardTitle className="flex items-center gap-2">
-                    <FileWarning className="text-destructive" />
+                    <FileWarning className="text-destructive h-5 w-5" />
                     Incomplete Submissions
                 </CardTitle>
-                <CardDescription>
-                A list of units that have not completed all required submissions for {selectedYear}.
+                <CardDescription className="text-xs">
+                Units failing to meet the full requirement for {selectedYear}.
                 </CardDescription>
             </div>
-            <div className="w-[120px]">
+            <div className="w-full sm:w-[120px]">
                 <Select value={String(selectedYear)} onValueChange={(v) => onYearChange(Number(v))}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs">
                     <SelectValue placeholder="Year" />
                     </SelectTrigger>
                     <SelectContent>
@@ -155,25 +155,28 @@ export function IncompleteCampusSubmissions({
         {incompleteSubmissionsByCampus.length > 0 ? (
             <Accordion type="multiple" className="w-full" defaultValue={incompleteSubmissionsByCampus.map(c => c.campusId)}>
             {incompleteSubmissionsByCampus.map(campus => (
-                <AccordionItem value={campus.campusId} key={campus.campusId}>
-                <AccordionTrigger className="font-medium hover:no-underline">
+                <AccordionItem value={campus.campusId} key={campus.campusId} className="border-none">
+                <AccordionTrigger className="font-bold hover:no-underline py-3 px-2 hover:bg-muted/50 rounded-md">
                     <div className="flex items-center gap-3">
-                        <School className="h-4 w-4 text-muted-foreground" />
-                        <span>{campus.campusName} ({campus.incompleteUnits.length} Incomplete Units)</span>
+                        <School className="h-4 w-4 text-primary shrink-0" />
+                        <span className="text-xs uppercase tracking-tight">{campus.campusName}</span>
+                        <Badge variant="outline" className="h-5 text-[9px] font-black">{campus.incompleteUnits.length} UNITS</Badge>
                     </div>
                 </AccordionTrigger>
-                <AccordionContent>
-                    <ul className="space-y-2 pl-6 text-sm text-muted-foreground">
+                <AccordionContent className="pt-2">
+                    <ul className="space-y-1 pl-2">
                         {campus.incompleteUnits.map(unit => (
                             <li key={unit.unitId}>
                               <Button
                                 variant="ghost"
-                                className="flex h-auto w-full items-center justify-start gap-2 p-0 hover:bg-transparent text-left"
+                                className="flex h-auto w-full items-start justify-start gap-2 p-2 hover:bg-destructive/5 group transition-colors"
                                 onClick={() => onUnitClick?.(unit.unitId, campus.campusId)}
                               >
-                                <Building className="h-4 w-4 shrink-0" />
-                                <span className="font-semibold text-card-foreground flex-1">{unit.unitName}</span>
-                                <span className="text-destructive whitespace-nowrap">{unit.missingCount} report(s) missing</span>
+                                <Building className="h-3.5 w-3.5 shrink-0 mt-0.5 text-muted-foreground group-hover:text-destructive" />
+                                <div className="flex flex-col flex-1 items-start min-w-0">
+                                    <span className="text-xs font-bold text-card-foreground leading-tight truncate w-full">{unit.unitName}</span>
+                                    <span className="text-[10px] text-destructive font-medium">{unit.missingCount} document(s) missing</span>
+                                </div>
                               </Button>
                             </li>
                         ))}
@@ -183,10 +186,10 @@ export function IncompleteCampusSubmissions({
             ))}
             </Accordion>
         ) : (
-             <div className="flex flex-col items-center justify-center text-center text-sm text-muted-foreground h-40">
-                <CheckCircle className="h-8 w-8 text-green-500 mb-2" />
-                <p className="font-semibold">All Compliant!</p>
-                <p>All units across all campuses have submitted their required reports for {selectedYear}.</p>
+             <div className="flex flex-col items-center justify-center text-center text-sm text-muted-foreground h-40 border border-dashed rounded-lg">
+                <CheckCircle className="h-8 w-8 text-green-500 mb-2 opacity-20" />
+                <p className="font-bold text-xs uppercase tracking-widest">Compliant</p>
+                <p className="text-[10px] max-w-[200px] mt-1">All units have satisfied their reporting requirements for {selectedYear}.</p>
             </div>
         )}
       </CardContent>

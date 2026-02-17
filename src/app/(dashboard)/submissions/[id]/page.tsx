@@ -16,7 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Check, X, Send, History } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, X, Send, History, ShieldCheck, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useState, useMemo, useEffect } from 'react';
@@ -360,26 +360,29 @@ export default function SubmissionDetailPage() {
         {/* Left Column: Document Preview & Actions */}
         <div className="lg:col-span-2 space-y-6">
           
-          {/* Unified Metadata Header with Emphasized Values */}
+          {/* Unified Metadata Header with Emphasized Values - Responsive Stacking */}
           <div className="rounded-lg border bg-muted/5 p-6 shadow-sm">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-6 gap-x-8">
                 {/* Identification & Control */}
                 <div className="space-y-1">
                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Control Number</p>
-                    <p className="font-mono text-sm font-bold text-primary truncate" title={submission.controlNumber}>{submission.controlNumber}</p>
+                    <p className="font-mono text-xs font-bold text-primary truncate" title={submission.controlNumber}>{submission.controlNumber}</p>
                 </div>
                 <div className="space-y-1">
                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Status</p>
                     <p className={cn(
                         "text-sm font-black uppercase tracking-tight",
-                        submission.statusId === 'submitted' ? "text-destructive animate-pulse" : "text-foreground"
+                        submission.statusId === 'submitted' ? "text-amber-600 animate-pulse" : 
+                        submission.statusId === 'approved' ? "text-emerald-600" : "text-destructive"
                     )}>
                         {getStatusText(submission.statusId)}
                     </p>
                 </div>
                 <div className="space-y-1">
                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Revision</p>
-                    <p className="text-sm font-bold text-foreground">Rev {String(submission.revision || 0).padStart(2, '0')}</p>
+                    <Badge variant="outline" className="font-mono font-bold bg-background">
+                        Rev {String(submission.revision || 0).padStart(2, '0')}
+                    </Badge>
                 </div>
                 <div className="space-y-1">
                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Submitter</p>
@@ -408,17 +411,20 @@ export default function SubmissionDetailPage() {
 
           <Card>
             <CardHeader className="py-4 border-b">
-                <CardTitle className="text-lg">{submission.reportType}</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    {submission.reportType}
+                </CardTitle>
                  <CardDescription className="text-xs">
                     Last updated: {getFormattedDate(submission.submissionDate)}
                 </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
                 {previewUrl ? (
-                    <div className="aspect-video w-full rounded-lg border bg-muted">
+                    <div className="aspect-video w-full rounded-lg border bg-muted shadow-inner">
                         <iframe
                             src={previewUrl}
-                            className="h-full w-full"
+                            className="h-full w-full rounded-lg"
                             allow="autoplay"
                         ></iframe>
                     </div>
@@ -434,19 +440,23 @@ export default function SubmissionDetailPage() {
              <>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Approver's Final Check</CardTitle>
-                        <CardDescription>Please confirm the following before taking action.</CardDescription>
+                        <CardTitle className="flex items-center gap-2">
+                            <ShieldCheck className="text-primary" />
+                            Approver's Compliance Checklist
+                        </CardTitle>
+                        <CardDescription>Please verify and confirm the following criteria before taking action.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
                         {approverChecklistItems.map(item => (
-                            <div key={item.id} className="flex items-center space-x-3">
+                            <div key={item.id} className="flex items-start space-x-3 p-2 rounded-md hover:bg-muted/30 transition-colors">
                                 <Checkbox
                                     id={`approver-${item.id}`}
                                     checked={approverChecklist[item.id] || false}
                                     onCheckedChange={() => handleChecklistChange(item.id)}
                                     disabled={isSubmitting}
+                                    className="mt-1"
                                 />
-                                <Label htmlFor={`approver-${item.id}`} className="text-sm font-normal leading-snug">
+                                <Label htmlFor={`approver-${item.id}`} className="text-sm font-normal leading-relaxed cursor-pointer">
                                     {item.label}
                                 </Label>
                             </div>
@@ -455,31 +465,32 @@ export default function SubmissionDetailPage() {
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Take Action</CardTitle>
+                        <CardTitle>Final Determination</CardTitle>
                         <CardDescription>
-                            Provide additional comments below for the submitter.
+                            Provide context or constructive feedback for the unit coordinator.
                         </CardDescription>
                     </CardHeader>
                         <CardContent className="space-y-4">
                         <div>
-                            <Label htmlFor="feedback">Additional Comments</Label>
+                            <Label htmlFor="feedback">Official Comments</Label>
                             <Textarea 
                                 id="feedback"
-                                placeholder="Provide any extra details or comments here..."
+                                placeholder="Enter approval notes or rejection findings here..."
                                 value={feedback}
                                 onChange={(e) => setFeedback(e.target.value)}
                                 disabled={isSubmitting}
+                                className="min-h-[120px]"
                             />
                         </div>
                         </CardContent>
-                    <CardFooter className="flex justify-end gap-2">
+                    <CardFooter className="flex justify-end gap-3 pt-2">
                         <Button variant="destructive" onClick={handleReject} disabled={isSubmitting || !canReject}>
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4"/>}
-                            Reject
+                            Reject Submission
                         </Button>
-                            <Button onClick={handleApprove} disabled={isSubmitting || !isChecklistComplete}>
+                            <Button onClick={handleApprove} disabled={isSubmitting || !isChecklistComplete} className="shadow-lg shadow-primary/20">
                             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4"/>}
-                            Approve
+                            Approve Record
                         </Button>
                     </CardFooter>
                 </Card>
@@ -487,40 +498,41 @@ export default function SubmissionDetailPage() {
           )}
 
           {isSubmitter && submission.statusId === 'rejected' && (
-             <Card className="border-destructive/50">
-                <CardHeader className="bg-destructive/5">
+             <Card className="border-destructive/50 shadow-lg">
+                <CardHeader className="bg-destructive/5 border-b">
                     <CardTitle className="flex items-center gap-2">
                         <History className="text-destructive" />
-                        Resubmit Report (New Revision)
+                        Resubmit Report (Process Correction)
                     </CardTitle>
-                    <CardDescription>Your submission was rejected. This resubmission will be logged as <strong>Revision {String((submission.revision || 0) + 1).padStart(2, '0')}</strong>.</CardDescription>
+                    <CardDescription>This resubmission will automatically increment the document to <strong>Revision {String((submission.revision || 0) + 1).padStart(2, '0')}</strong>.</CardDescription>
                 </CardHeader>
                  <CardContent className="space-y-4 pt-6">
                     <div>
-                        <Label htmlFor="new-link">New Google Drive Link</Label>
+                        <Label htmlFor="new-link">Corrected Google Drive Link</Label>
                         <Input 
                             id="new-link"
                             placeholder="https://drive.google.com/..."
                             value={newLink}
                             onChange={(e) => setNewLink(e.target.value)}
                             disabled={isSubmitting}
+                            className="focus:ring-primary"
                         />
                     </div>
                      <div>
-                        <Label htmlFor="new-comment">Add a Comment</Label>
+                        <Label htmlFor="new-comment">Summary of Corrections</Label>
                         <Textarea 
                             id="new-comment"
-                            placeholder="Explain the changes you've made for this new revision..."
+                            placeholder="Briefly describe the corrective actions taken in this revision..."
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
                             disabled={isSubmitting}
                         />
                     </div>
                  </CardContent>
-                <CardFooter className="flex justify-end gap-2">
-                    <Button onClick={handleResubmit} disabled={isSubmitting || !newLink}>
+                <CardFooter className="flex justify-end gap-2 border-t pt-4">
+                    <Button onClick={handleResubmit} disabled={isSubmitting || !newLink} className="min-w-[200px]">
                          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4"/>}
-                        Submit Revision {String((submission.revision || 0) + 1).padStart(2, '0')}
+                        Submit Corrected Revision
                     </Button>
                 </CardFooter>
              </Card>
@@ -530,12 +542,12 @@ export default function SubmissionDetailPage() {
 
         {/* Right Column: Comments & History */}
         <div className="space-y-4">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Conversation History</CardTitle>
-                    <CardDescription>Official communication regarding this document.</CardDescription>
+            <Card className="shadow-md">
+                <CardHeader className="border-b">
+                    <CardTitle className="text-md">Conversation History</CardTitle>
+                    <CardDescription className="text-[10px] uppercase font-bold tracking-widest">Official audit trail</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 pt-6">
                     {Array.isArray(submission.comments) && submission.comments.length > 0 ? (
                         <div className="space-y-6">
                             {submission.comments.slice().sort((a,b) => (a.createdAt as Timestamp)?.toMillis() - (b.createdAt as Timestamp)?.toMillis()).map((comment, index) => (
@@ -549,7 +561,9 @@ export default function SubmissionDetailPage() {
                                             <p className="text-[10px] text-muted-foreground whitespace-nowrap">{getFormattedDate(comment.createdAt)}</p>
                                         </div>
                                         <p className="text-[10px] text-muted-foreground italic mb-1">({comment.authorRole})</p>
-                                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed">{comment.text}</p>
+                                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed bg-muted/20 p-3 rounded-md border border-dashed">
+                                            {comment.text}
+                                        </p>
                                     </div>
                             </div>
                             ))}
