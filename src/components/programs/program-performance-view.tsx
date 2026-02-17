@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -239,19 +238,20 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                     <div className="space-y-3">
                         {documents.map(doc => (
                             <div key={doc.id} className="group p-4 rounded-xl border bg-background hover:border-primary/50 hover:shadow-md transition-all">
-                                <div className="flex items-start justify-between gap-4">
+                                <div className="flex flex-col gap-4">
                                     <div className="space-y-1 min-w-0">
                                         <p className="font-bold text-sm truncate">{doc.title}</p>
                                         <p className="text-[10px] text-muted-foreground uppercase tracking-tighter">{doc.status}</p>
                                     </div>
-                                    <div className="flex gap-1 shrink-0">
+                                    <div className="flex gap-2 w-full">
                                         <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="h-8 w-8 text-primary hover:bg-primary/10"
+                                            variant="outline" 
+                                            size="sm" 
+                                            className="h-8 text-[10px] font-black uppercase tracking-widest border-primary/20 hover:bg-primary/5 text-primary flex-1"
                                             onClick={() => setPreviewDoc({ title: doc.title, url: getEmbedUrl(doc.url!) })}
                                         >
-                                            <Eye className="h-4 w-4" />
+                                            <Eye className="h-3 w-3 mr-1.5" />
+                                            VIEW DOCUMENT
                                         </Button>
                                         <Button 
                                             variant="ghost" 
