@@ -454,13 +454,49 @@ export type ManagementReviewOutput = {
 
 export type CorrectiveActionRequest = {
   id: string;
-  carNumber: string; // e.g., CAR-2025-001
-  source: string; // e.g., 'IQA', 'EQA', 'Monitoring', 'Others'
-  description: string;
+  carNumber: string;
+  ncReportNumber?: string;
+  source: 'Audit Finding' | 'Legal Non-compliance' | 'Non-conforming Service' | 'Others';
+  procedureTitle: string;
+  initiator: string;
+  natureOfFinding: 'NC' | 'OFI';
+  concerningClause: string;
+  timeLimitForReply?: any; // Timestamp
   unitId: string;
   campusId: string;
-  actionPlan: string;
-  targetDate: any; // Timestamp
+  unitHead: string;
+  descriptionOfNonconformance: string;
+  requestDate: any; // Timestamp
+  preparedBy: string;
+  approvedBy: string;
+  
+  // Root Cause
+  rootCauseAnalysis?: string;
+  
+  // Actions
+  immediateCorrection?: string;
+  immediateCompletionDate?: any; // Timestamp
+  correctiveAction?: string;
+  correctiveCompletionDate?: any; // Timestamp
+  
+  // Follow up
+  followUpResult?: string;
+  followUpRemarks?: string;
+  followUpVerifiedBy?: string;
+  followUpVerificationDate?: any; // Timestamp
+  followUpApprovedBy?: string;
+  
+  // Effectiveness
+  effectivenessVerification?: string;
+  effectivenessRemarks?: string;
+  effectivenessVerifiedBy?: string;
+  effectivenessVerificationDate?: any; // Timestamp
+  effectivenessApprovedBy?: string;
+  
+  // Filing
+  receivedBy?: string;
+  receivedDate?: any; // Timestamp
+  
   status: 'Open' | 'In Progress' | 'Closed';
   createdAt: any; // Timestamp
   updatedAt: any; // Timestamp

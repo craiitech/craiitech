@@ -67,15 +67,19 @@
       "properties": {
         "id": { "type": "string" },
         "carNumber": { "type": "string" },
-        "source": { "type": "string" },
-        "description": { "type": "string" },
+        "ncReportNumber": { "type": "string" },
+        "source": { "type": "string", "enum": ["Audit Finding", "Legal Non-compliance", "Non-conforming Service", "Others"] },
+        "procedureTitle": { "type": "string" },
+        "initiator": { "type": "string" },
+        "natureOfFinding": { "type": "string", "enum": ["NC", "OFI"] },
+        "concerningClause": { "type": "string" },
         "unitId": { "type": "string" },
         "campusId": { "type": "string" },
-        "actionPlan": { "type": "string" },
-        "targetDate": { "type": "string", "format": "date-time" },
+        "unitHead": { "type": "string" },
+        "descriptionOfNonconformance": { "type": "string" },
         "status": { "type": "string", "enum": ["Open", "In Progress", "Closed"] }
       },
-      "required": ["carNumber", "source", "description", "unitId", "campusId", "status"]
+      "required": ["carNumber", "source", "procedureTitle", "unitId", "campusId", "status"]
     },
     "AcademicProgram": {
       "title": "AcademicProgram",
