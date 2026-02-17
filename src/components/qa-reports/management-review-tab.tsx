@@ -1,14 +1,15 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, deleteDoc, doc, addDoc, serverTimestamp, where } from 'firebase/firestore';
+import { collection, query, orderBy, deleteDoc, doc, addDoc, serverTimestamp, where, Timestamp } from 'firebase/firestore';
 import type { ManagementReview, ManagementReviewOutput, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, ChevronRight, User, Users } from 'lucide-react';
+import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, ChevronRight, User, Users, Globe, Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -43,6 +44,8 @@ const outputSchema = z.object({
   followUpDate: z.string().min(1, 'Follow-up date is required'),
   status: z.enum(['Open', 'On-going', 'Closed']),
 });
+
+const UNIVERSITY_WIDE_ID = 'university-wide';
 
 export function ManagementReviewTab({ campuses, units, canManage }: ManagementReviewTabProps) {
   const firestore = useFirestore();
@@ -80,7 +83,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
     try {
       await addDoc(collection(firestore, 'managementReviews'), {
         ...values,
-        meetingDate: new Date(values.meetingDate),
+        meetingDate: Timestamp.fromDate(new Date(values.meetingDate)),
         createdAt: serverTimestamp(),
       });
       toast({ title: 'Success', description: 'Management Review session added.' });
@@ -100,7 +103,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
       await addDoc(collection(firestore, 'managementReviewOutputs'), {
         ...values,
         mrId: selectedMr.id,
-        followUpDate: new Date(values.followUpDate),
+        followUpDate: Timestamp.fromDate(new Date(values.followUpDate)),
         createdAt: serverTimestamp(),
       });
       toast({ title: 'Success', description: 'MR Output added.' });
@@ -113,7 +116,12 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
     }
   };
 
-  const campusMap = new Map(campuses.map(c => [c.id, c.name]));
+  const campusMap = useMemo(() => {
+    const map = new Map(campuses.map(c => [c.id, c.name]));
+    map.set(UNIVERSITY_WIDE_ID, 'University-Wide');
+    return map;
+  }, [campuses]);
+
   const unitMap = new Map(units.map(u => [u.id, u.name]));
 
   return (
@@ -139,9 +147,24 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
                       <p className="font-bold text-sm">{review.title}</p>
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase">
-                        <Calendar className="h-3 w-3" />
-                        {review.meetingDate?.toDate ? format(review.meetingDate.toDate(), 'PPP') : 'N/A'}
+                      <div className="flex flex-col gap-1 mt-1">
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase">
+                            <Calendar className="h-3 w-3" />
+                            {review.meetingDate?.toDate ? format(review.meetingDate.toDate(), 'PPP') : 'N/A'}
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase">
+                            {review.campusId === UNIVERSITY_WIDE_ID ? (
+                                <>
+                                    <Globe className="h-3 w-3 text-primary" />
+                                    <span className="text-primary italic">Institutional</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Building2 className="h-3 w-3" />
+                                    <span>{campusMap.get(review.campusId) || '...'}</span>
+                                </>
+                            )}
+                        </div>
                       </div>
                     </div>
                     <ChevronRight className={cn("h-4 w-4 text-muted-foreground", selectedMr?.id === review.id && "text-primary")} />
@@ -159,7 +182,12 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
           <Card className="h-full">
             <CardHeader className="bg-muted/30 border-b flex flex-row items-center justify-between py-4">
               <div className="space-y-1">
-                <CardTitle className="text-lg">{selectedMr.title}</CardTitle>
+                <div className="flex items-center gap-2">
+                    <CardTitle className="text-lg">{selectedMr.title}</CardTitle>
+                    {selectedMr.campusId === UNIVERSITY_WIDE_ID && (
+                        <Badge variant="secondary" className="bg-primary/10 text-primary text-[9px] font-black h-4">UNIVERSITY-WIDE</Badge>
+                    )}
+                </div>
                 <CardDescription>
                   <Button variant="link" size="sm" className="p-0 h-auto text-xs" asChild>
                     <a href={selectedMr.minutesLink} target="_blank" rel="noopener noreferrer">
@@ -242,9 +270,12 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                   <FormItem><FormLabel>Meeting Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={mrForm.control} name="campusId" render={({ field }) => (
-                  <FormItem><FormLabel>Campus</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
-                      <SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                  <FormItem><FormLabel>Campus Scope</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select Scope" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value={UNIVERSITY_WIDE_ID} className="font-bold text-primary italic">University-Wide (Institutional)</SelectItem>
+                        {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      </SelectContent>
                     </Select><FormMessage /></FormItem>
                 )} />
               </div>
