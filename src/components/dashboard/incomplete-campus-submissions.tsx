@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -10,9 +9,10 @@ import { FileWarning, School, CheckCircle, Building } from 'lucide-react';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 
 const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
+const yearsList = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
 interface IncompleteCampusSubmissionsProps {
   allSubmissions: Submission[] | null;
@@ -145,7 +145,7 @@ export function IncompleteCampusSubmissions({
                     <SelectValue placeholder="Year" />
                     </SelectTrigger>
                     <SelectContent>
-                    {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                    {yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>
