@@ -114,7 +114,7 @@ export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
                     <Button 
                         type="button" 
                         size="sm" 
-                        onClick={() => append({ date: '', result: '', nonCompliances: '', comments: '' })}
+                        onClick={() => append({ date: '', result: '', nonCompliances: '', comments: '', reportLink: '' })}
                         className="h-8 gap-1"
                     >
                         <PlusCircle className="h-3.5 w-3.5" />
@@ -159,6 +159,24 @@ export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
                                     )}
                                 />
                             </div>
+                            
+                            <FormField
+                                control={control}
+                                name={`ched.rqatVisits.${index}.reportLink`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="flex items-center gap-2">
+                                            <LinkIcon className="h-3 w-3 text-primary" />
+                                            RQAT Report Link (Google Drive)
+                                        </FormLabel>
+                                        <FormControl>
+                                            <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." disabled={!canEdit} />
+                                        </FormControl>
+                                        <FormDescription className="text-[10px]">GDrive link to the PDF monitoring report.</FormDescription>
+                                    </FormItem>
+                                )}
+                            />
+
                             <FormField
                                 control={control}
                                 name={`ched.rqatVisits.${index}.nonCompliances`}

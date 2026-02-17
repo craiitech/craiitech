@@ -311,6 +311,7 @@ export type RQATVisit = {
   result: string;
   comments: string;
   nonCompliances: string;
+  reportLink?: string; // Link to GDrive PDF
 };
 
 export type BoardExamPerformance = {

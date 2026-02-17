@@ -91,12 +91,29 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
 
   const documents = useMemo(() => {
     if (!record) return [];
-    return [
+    
+    const baseDocs = [
       { id: 'copc', title: 'CHED COPC', url: record.ched?.copcLink, status: record.ched?.copcStatus },
       { id: 'accreditation', title: 'Accreditation Certificate', url: record.accreditation?.certificateLink, status: record.accreditation?.level },
       { id: 'cmo', title: 'Program CMO', url: record.curriculum?.cmoLink, status: record.curriculum?.revisionNumber ? `Rev ${record.curriculum.revisionNumber}` : 'Current' },
       { id: 'noted', title: 'Contents Noted Proof', url: record.ched?.contentNotedLink, status: record.ched?.contentNoted ? 'Acknowledged' : 'Pending' },
-    ].filter(doc => !!doc.url);
+    ];
+
+    // Add RQAT reports from history
+    if (record.ched?.rqatVisits) {
+        record.ched.rqatVisits.forEach((visit, index) => {
+            if (visit.reportLink) {
+                baseDocs.push({
+                    id: `rqat-${index}`,
+                    title: `RQAT Report (${visit.date || 'TBA'})`,
+                    url: visit.reportLink,
+                    status: visit.result || 'Monitoring Result'
+                });
+            }
+        });
+    }
+
+    return baseDocs.filter(doc => !!doc.url);
   }, [record]);
 
   if (!record) {
