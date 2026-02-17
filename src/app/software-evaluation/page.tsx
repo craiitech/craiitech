@@ -1,28 +1,10 @@
-
-'use client';
-
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
-
 /**
- * CONFLICT RESOLUTION PAGE
- * This path is deprecated to avoid parallel route clashes in Next.js.
- * Users are redirected to the new public evaluation path.
+ * CONFLICT RESOLUTION FILE
+ * This folder is being neutralized to resolve the Next.js "Parallel Pages" error.
+ * The active routes are now:
+ * 1. /evaluate (Public Tool)
+ * 2. /software-quality (Admin Dashboard)
+ * 
+ * PLEASE MANUALLY DELETE THIS FOLDER IF THE ERROR PERSISTS.
  */
-export default function SoftwareEvaluationClashFix() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace('/evaluate');
-  }, [router]);
-
-  return (
-    <div className="flex h-screen items-center justify-center bg-slate-950 text-white">
-      <div className="text-center space-y-4">
-        <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
-        <p className="text-sm font-medium animate-pulse">Redirecting to evaluation portal...</p>
-      </div>
-    </div>
-  );
-}
+export {};

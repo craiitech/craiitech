@@ -1,24 +1,10 @@
-
-'use client';
-
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
-
 /**
- * CONFLICT RESOLUTION PAGE
- * Redirection to /software-quality to ensure no clashes with the public evaluation path.
+ * CONFLICT RESOLUTION FILE
+ * This folder is being neutralized to resolve the Next.js "Parallel Pages" error.
+ * The active routes are now:
+ * 1. /evaluate (Public Tool)
+ * 2. /software-quality (Admin Dashboard)
+ * 
+ * PLEASE MANUALLY DELETE THIS FOLDER IF THE ERROR PERSISTS.
  */
-export default function InternalEvaluationRedirect() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace('/software-quality');
-  }, [router]);
-
-  return (
-    <div className="flex h-64 items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
-    </div>
-  );
-}
+export {};
