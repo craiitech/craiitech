@@ -1,4 +1,3 @@
-
 'use client';
 
 import { usePathname } from 'next/navigation';
@@ -19,6 +18,13 @@ export function Header({ notificationCount }: HeaderProps) {
 
   const getPageTitle = (path: string) => {
     if (path === '/dashboard') return 'Home';
+    
+    // Special case for the Audit module
+    if (path.startsWith('/audit')) {
+        if (path === '/audit') return 'Internal Quality Audit';
+        return 'IQA Details';
+    }
+
     const lastSegment = path.split('/').pop();
     if (!lastSegment) return '';
     // Handle UUIDs in path

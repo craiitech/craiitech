@@ -80,7 +80,7 @@ export function SidebarNav({
     },
     {
       href: '/audit',
-      label: 'Audit',
+      label: 'Internal Quality Audit',
       active: pathname.startsWith('/audit'),
       roles: ['Admin', 'Auditor'],
       icon: <ClipboardList />,
