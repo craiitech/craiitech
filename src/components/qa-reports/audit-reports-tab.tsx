@@ -2,13 +2,13 @@
 
 import { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, deleteDoc, doc, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, query, where, deleteDoc, doc, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import type { QaAuditReport, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ExternalLink, Trash2, PlusCircle, FileText, Eye, Calendar } from 'lucide-react';
+import { Loader2, ExternalLink, Trash2, PlusCircle, FileText, Eye, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -31,6 +31,8 @@ const reportSchema = z.object({
   googleDriveLink: z.string().url('Invalid URL'),
   campusId: z.string().min(1, 'Campus is required'),
 });
+
+const UNIVERSITY_WIDE_ID = 'university-wide';
 
 export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabProps) {
   const firestore = useFirestore();
@@ -90,7 +92,11 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
     }
   };
 
-  const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
+  const campusMap = useMemo(() => {
+    const map = new Map(campuses.map(c => [c.id, c.name]));
+    map.set(UNIVERSITY_WIDE_ID, 'University-Wide');
+    return map;
+  }, [campuses]);
 
   const getEmbedUrl = (url: string) => url.replace('/view', '/preview').replace('?usp=sharing', '');
 
@@ -116,7 +122,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
               <TableHeader>
                 <TableRow>
                   <TableHead>Report Title</TableHead>
-                  <TableHead>Campus</TableHead>
+                  <TableHead>Campus Scope</TableHead>
                   <TableHead>Audit Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -130,7 +136,16 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                         {report.title}
                       </div>
                     </TableCell>
-                    <TableCell>{campusMap.get(report.campusId) || '...'}</TableCell>
+                    <TableCell>
+                      {report.campusId === UNIVERSITY_WIDE_ID ? (
+                        <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 gap-1 h-5 text-[10px] font-bold">
+                          <Globe className="h-3 w-3" />
+                          UNIVERSITY-WIDE
+                        </Badge>
+                      ) : (
+                        campusMap.get(report.campusId) || '...'
+                      )}
+                    </TableCell>
                     <TableCell>
                       {report.reportDate?.toDate ? format(report.reportDate.toDate(), 'PPP') : 'N/A'}
                     </TableCell>
@@ -179,9 +194,12 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                 <FormItem><FormLabel>Audit Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="campusId" render={({ field }) => (
-                <FormItem><FormLabel>Campus</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
-                    <SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                <FormItem><FormLabel>Campus Scope</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select Scope" /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      <SelectItem value={UNIVERSITY_WIDE_ID} className="font-bold text-primary">University-Wide (Global)</SelectItem>
+                      {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
                   </Select><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="googleDriveLink" render={({ field }) => (
