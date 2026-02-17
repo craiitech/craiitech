@@ -66,14 +66,22 @@ export function QaAnalyticsTab() {
     // 1. CAR Status Distribution
     const carStatusCounts: Record<string, number> = { Open: 0, 'In Progress': 0, Closed: 0 };
     cars.forEach(car => {
-      carStatusCounts[car.status]++;
+      if (carStatusCounts[car.status] !== undefined) {
+        carStatusCounts[car.status]++;
+      }
     });
-    const carStatusData = Object.entries(carStatusCounts).map(([name, value]) => ({ name, value }));
+    const carStatusData = Object.entries(carStatusCounts).map(([name, value]) => ({ 
+        name: name, 
+        value,
+        statusId: name
+    })).filter(d => d.value >= 0);
 
     // 2. Finding Nature (NC vs OFI)
     const findingCounts = { NC: 0, OFI: 0 };
     cars.forEach(car => {
-      findingCounts[car.natureOfFinding]++;
+      if (findingCounts[car.natureOfFinding] !== undefined) {
+        findingCounts[car.natureOfFinding]++;
+      }
     });
     const findingData = Object.entries(findingCounts).map(([name, value]) => ({ name, value }));
 
@@ -87,7 +95,9 @@ export function QaAnalyticsTab() {
     // 4. MR Output Status
     const outputStatusCounts: Record<string, number> = { Open: 0, 'On-going': 0, Closed: 0 };
     mrOutputs.forEach(o => {
-      outputStatusCounts[o.status]++;
+      if (outputStatusCounts[o.status] !== undefined) {
+        outputStatusCounts[o.status]++;
+      }
     });
     const outputData = Object.entries(outputStatusCounts).map(([name, value]) => ({ name, value }));
 
@@ -105,6 +115,12 @@ export function QaAnalyticsTab() {
     };
   }, [cars, mrOutputs, mrs, auditReports]);
 
+  // Determine if there is ANY data across all modules
+  const hasData = useMemo(() => {
+    if (!analytics) return false;
+    return analytics.totalCars > 0 || analytics.totalAudits > 0 || analytics.totalMrSessions > 0;
+  }, [analytics]);
+
   if (isLoadingCars) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -114,12 +130,12 @@ export function QaAnalyticsTab() {
     );
   }
 
-  if (!analytics || analytics.totalCars === 0) {
+  if (!analytics || !hasData) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center border rounded-xl border-dashed bg-muted/5">
         <Activity className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
         <h3 className="text-lg font-bold">Institutional Quality Dashboard</h3>
-        <p className="text-sm text-muted-foreground max-w-sm">Analytics will synchronize once reports, MR sessions, and CARs are registered in the system.</p>
+        <p className="text-sm text-muted-foreground max-w-sm">Analytics will synchronize once reports, MR sessions, or CARs are registered in the system.</p>
       </div>
     );
   }
@@ -146,7 +162,7 @@ export function QaAnalyticsTab() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-green-600 tabular-nums">
-                {Math.round((analytics.closedCars / (analytics.totalCars || 1)) * 100)}%
+                {analytics.totalCars > 0 ? Math.round((analytics.closedCars / analytics.totalCars) * 100) : 0}%
             </div>
             <p className="text-[9px] font-bold text-green-600/70 mt-1 uppercase tracking-tighter">CAR Closure Effectiveness Rate</p>
           </CardContent>
@@ -186,27 +202,34 @@ export function QaAnalyticsTab() {
             <CardDescription className="text-xs font-medium">Real-time resolution status of issued requests.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={{}} className="h-[250px] w-full">
-                <ResponsiveContainer>
-                    <PieChart>
-                        <Tooltip content={<ChartTooltipContent hideLabel />} />
-                        <Pie
-                            data={analytics.carStatusData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={5}
-                            dataKey="value"
-                        >
-                            {analytics.carStatusData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={CAR_STATUS_COLORS[entry.name] || '#cbd5e1'} />
-                            ))}
-                        </Pie>
-                        <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'black' }} />
-                    </PieChart>
-                </ResponsiveContainer>
-            </ChartContainer>
+            {analytics.totalCars > 0 ? (
+                <ChartContainer config={{}} className="h-[250px] w-full">
+                    <ResponsiveContainer>
+                        <PieChart>
+                            <Tooltip content={<ChartTooltipContent hideLabel />} />
+                            <Pie
+                                data={analytics.carStatusData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={60}
+                                outerRadius={80}
+                                paddingAngle={5}
+                                dataKey="value"
+                            >
+                                {analytics.carStatusData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={CAR_STATUS_COLORS[entry.statusId] || '#cbd5e1'} />
+                                ))}
+                            </Pie>
+                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'black' }} />
+                        </PieChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+            ) : (
+                <div className="h-[250px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+                    <ShieldAlert className="h-10 w-10 mb-2" />
+                    <p className="text-xs font-bold uppercase tracking-widest">No active CARs to visualize</p>
+                </div>
+            )}
           </CardContent>
         </Card>
 
@@ -220,21 +243,28 @@ export function QaAnalyticsTab() {
             <CardDescription className="text-xs font-medium">Non-Conformance volume compared to strategic improvements.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={{}} className="h-[250px] w-full">
-                <ResponsiveContainer>
-                    <BarChart data={analytics.findingData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                        <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={60}>
-                            {analytics.findingData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={FINDING_COLORS[entry.name]} />
-                            ))}
-                        </Bar>
-                    </BarChart>
-                </ResponsiveContainer>
-            </ChartContainer>
+            {analytics.totalCars > 0 ? (
+                <ChartContainer config={{}} className="h-[250px] w-full">
+                    <ResponsiveContainer>
+                        <BarChart data={analytics.findingData}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
+                            <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
+                            <Tooltip content={<ChartTooltipContent />} />
+                            <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={60}>
+                                {analytics.findingData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={FINDING_COLORS[entry.name]} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+            ) : (
+                <div className="h-[250px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+                    <TrendingUp className="h-10 w-10 mb-2" />
+                    <p className="text-xs font-bold uppercase tracking-widest">No finding data available</p>
+                </div>
+            )}
           </CardContent>
         </Card>
 
@@ -248,24 +278,30 @@ export function QaAnalyticsTab() {
             <CardDescription className="text-xs font-medium">Identifying primary channels generating corrective requests.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={{}} className="h-[300px] w-full">
-                <ResponsiveContainer>
-                    <BarChart data={analytics.sourceData} layout="vertical" margin={{ left: 20, right: 40 }}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                        <XAxis type="number" hide />
-                        <YAxis 
-                            dataKey="name" 
-                            type="category" 
-                            tick={{ fontSize: 10, fontWeight: 700, fill: 'hsl(var(--muted-foreground))' }} 
-                            width={160}
-                            axisLine={false}
-                            tickLine={false}
-                        />
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={16} />
-                    </BarChart>
-                </ResponsiveContainer>
-            </ChartContainer>
+            {analytics.totalCars > 0 ? (
+                <ChartContainer config={{}} className="h-[300px] w-full">
+                    <ResponsiveContainer>
+                        <BarChart data={analytics.sourceData} layout="vertical" margin={{ left: 20, right: 40 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                            <XAxis type="number" hide />
+                            <YAxis 
+                                dataKey="name" 
+                                type="category" 
+                                tick={{ fontSize: 10, fontWeight: 700, fill: 'hsl(var(--muted-foreground))' }} 
+                                width={160}
+                                axisLine={false}
+                                tickLine={false}
+                            />
+                            <Tooltip content={<ChartTooltipContent />} />
+                            <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={16} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+            ) : (
+                <div className="h-[100px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+                    <p className="text-xs font-bold uppercase tracking-widest">Awaiting source identification data</p>
+                </div>
+            )}
           </CardContent>
         </Card>
       </div>
