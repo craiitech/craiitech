@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -205,7 +204,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                         </div>
                         <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold" asChild>
                             <a href={selectedMr.minutesLink} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="h-3 w-3 mr-1.5" /> OPEN IN DRIVE
+                                <ExternalLink className="h-3 w-3 mr-1.5" /> OPEN IN PDF READER
                             </a>
                         </Button>
                     </div>
@@ -228,7 +227,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                             <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Decisions / Action Plans Registry</h4>
                             {canManage && (
                                 <Button onClick={() => setIsOutputDialogOpen(true)} size="sm" className="h-7 text-[9px] font-black uppercase shadow-lg shadow-primary/20">
-                                    <PlusCircle className="h-3 w-3 mr-1.5" /> ADD OUTPUT
+                                    <PlusCircle className="h-3 w-3 mr-1.5" /> LOG MR OUTPUT
                                 </Button>
                             )}
                         </div>
@@ -305,8 +304,8 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                 <TabsContent value="minutes" className="flex-1 min-h-0 pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <Card className="h-full flex flex-col overflow-hidden border-primary/10">
                         <div className="p-4 border-b bg-muted/5 flex items-center justify-between shrink-0">
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Minutes of the Meeting Preview</h4>
-                            <p className="text-[9px] font-bold text-muted-foreground italic">Powered by Google Drive</p>
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Minutes of the Meeting (PDF Reader)</h4>
+                            <p className="text-[9px] font-bold text-muted-foreground italic">Powered by Google Drive Preview</p>
                         </div>
                         <div className="flex-1 bg-muted relative">
                             <iframe
