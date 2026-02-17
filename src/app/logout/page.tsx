@@ -75,7 +75,7 @@ export default function LogoutPage() {
 
   if (isUserLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
+      <div className="flex min-h min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
