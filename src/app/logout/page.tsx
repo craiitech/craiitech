@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -13,7 +12,7 @@ import {
   CardTitle,
   CardFooter,
 } from '@/components/ui/card';
-import { Loader2, Star, Send, LogOut, MessageSquareText } from 'lucide-react';
+import { Loader2, Star, Send, LogOut, MessageSquareText, MonitorCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -27,13 +26,15 @@ export default function LogoutPage() {
   const auth = useAuth();
   const { toast } = useToast();
   const { clearSessionLogs } = useSessionActivity();
-  const { user, userProfile, firestore, isUserLoading } = useUser();
+  const { user, userProfile, firestore, isUserLoading, isAdmin, userRole } = useUser();
 
   const [rating, setRating] = useState<number>(0);
   const [hoveredRating, setHoveredRating] = useState<number>(0);
   const [comments, setComments] = useState('');
   const [suggestions, setSuggestions] = useState('');
   const [isProcessingLogout, setIsProcessingLogout] = useState(false);
+
+  const canPerformSoftwareAudit = isAdmin || userRole === 'Auditor';
 
   const handleFinalLogout = async (skipFeedback = false) => {
     if (!auth || !user) return;
@@ -181,6 +182,18 @@ export default function LogoutPage() {
                 <Send className="mr-2 h-5 w-5" />
                 Submit Feedback & Logout
               </Button>
+              
+              {canPerformSoftwareAudit && (
+                <Button 
+                  variant="outline"
+                  className="w-full h-12 border-primary text-primary font-bold hover:bg-primary/5" 
+                  onClick={() => router.push('/software-evaluation')}
+                >
+                  <MonitorCheck className="mr-2 h-5 w-5" />
+                  Perform Formal Software Audit (ISO 25010)
+                </Button>
+              )}
+
               <Button 
                 variant="ghost" 
                 className="w-full text-muted-foreground hover:text-foreground" 

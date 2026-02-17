@@ -14,7 +14,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { ShieldCheck, ArrowRight } from 'lucide-react';
+import { ShieldCheck, ArrowRight, MonitorCheck } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -81,12 +81,17 @@ export default function Home() {
         {/* Simple Footer */}
         <footer className="relative border-t border-white/10 py-12 bg-black/40 backdrop-blur-md mt-auto">
             <div className="container mx-auto px-4 text-center space-y-6">
-                <div className="flex justify-center gap-6">
+                <div className="flex flex-wrap justify-center gap-6">
                     <Button variant="link" asChild className="text-white/40 hover:text-white">
                         <Link href="/help">Support Center</Link>
                     </Button>
                     <Button variant="link" asChild className="text-white/40 hover:text-white">
                         <Link href="/terms">Terms & Conditions</Link>
+                    </Button>
+                    <Button variant="link" asChild className="text-white/40 hover:text-white">
+                        <Link href="/software-evaluation" className="flex items-center gap-1">
+                            <MonitorCheck className="h-3 w-3" /> Software Quality
+                        </Link>
                     </Button>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
