@@ -124,7 +124,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
     return map;
   }, [campuses]);
 
-  const unitMap = new Map(units.map(u => [u.id, u.name]));
+  const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
 
   const safeFormatDate = (date: any) => {
     if (!date) return 'N/A';
