@@ -1,7 +1,8 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Loader2, CalendarSearch } from 'lucide-react';
+import { PlusCircle, Loader2, CalendarSearch, BarChart3, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Risk, User as AppUser, Unit, Campus, Cycle } from '@/lib/types';
@@ -9,8 +10,10 @@ import { useState, useMemo, useEffect } from 'react';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
 import { RiskTable } from '@/components/risk/risk-table';
+import { RiskDashboard } from '@/components/risk/risk-dashboard';
 import { useSearchParams } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
@@ -113,13 +116,12 @@ export default function RiskRegisterPage() {
     
     const isLoading = isUserLoading || isLoadingRisks || isLoadingUsers || isLoadingUnits || isLoadingCampuses;
 
-    // Admins and regular users can log risks. Supervisors (Directors/ODIMOs) stay read-only unless they are Admin.
     const canLogRisk = isAdmin || !isSupervisor;
 
   return (
     <>
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Risk & Opportunity Register</h2>
             <p className="text-muted-foreground">
@@ -127,9 +129,10 @@ export default function RiskRegisterPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-[120px]">
+            <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-muted-foreground block text-right">Monitoring Year</label>
                 <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-[120px] h-9">
                         <CalendarSearch className="h-4 w-4 mr-2 opacity-50" />
                         <SelectValue placeholder="Year" />
                     </SelectTrigger>
@@ -139,38 +142,62 @@ export default function RiskRegisterPage() {
                 </Select>
             </div>
             {canLogRisk && (
-                <Button onClick={handleNewRisk}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Log New Entry
-                </Button>
+                <div className="pt-5">
+                    <Button onClick={handleNewRisk} className="h-9 shadow-lg shadow-primary/20">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Log New Entry
+                    </Button>
+                </div>
             )}
           </div>
       </div>
-      <Card>
-        <CardHeader>
-            <CardTitle>Register for {selectedYear}</CardTitle>
-            <CardDescription>
-                Below is a list of all risks and opportunities for {isSupervisor && !isAdmin && userProfile?.campusId ? `the ${campusMap.get(userProfile.campusId) || 'campus'}` : (isAdmin ? 'all units' : 'your unit')} in {selectedYear}.
-            </CardDescription>
-        </CardHeader>
-        <CardContent>
-            {isLoading ? (
-                <div className="flex items-center justify-center h-64">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-            ) : (
-                <RiskTable 
-                    risks={risks ?? []}
-                    usersMap={usersMap}
-                    onEdit={handleEditRisk}
-                    isAdmin={isAdmin}
-                    isSupervisor={isSupervisor}
-                    campusMap={campusMap}
-                    unitMap={unitMap}
-                />
-            )}
-        </CardContent>
-      </Card>
+
+      <Tabs defaultValue="visual-insights" className="space-y-4">
+        <TabsList className="bg-muted/50 p-1 border">
+            <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm">
+                <BarChart3 className="h-4 w-4" /> Visual Insights
+            </TabsTrigger>
+            <TabsTrigger value="detailed-register" className="gap-2 data-[state=active]:shadow-sm">
+                <List className="h-4 w-4" /> Detailed Register
+            </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="visual-insights">
+            <RiskDashboard 
+                risks={risks || []} 
+                isLoading={isLoading} 
+                selectedYear={selectedYear}
+            />
+        </TabsContent>
+
+        <TabsContent value="detailed-register">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Register for {selectedYear}</CardTitle>
+                    <CardDescription>
+                        Below is a list of all risks and opportunities for {isSupervisor && !isAdmin && userProfile?.campusId ? `the ${campusMap.get(userProfile.campusId) || 'campus'}` : (isAdmin ? 'all units' : 'your unit')} in {selectedYear}.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? (
+                        <div className="flex items-center justify-center h-64">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                    ) : (
+                        <RiskTable 
+                            risks={risks ?? []}
+                            usersMap={usersMap}
+                            onEdit={handleEditRisk}
+                            isAdmin={isAdmin}
+                            isSupervisor={isSupervisor}
+                            campusMap={campusMap}
+                            unitMap={unitMap}
+                        />
+                    )}
+                </CardContent>
+            </Card>
+        </TabsContent>
+      </Tabs>
     </div>
     <RiskFormDialog 
         isOpen={isFormOpen}
