@@ -1,7 +1,7 @@
 
 'use client';
 
-import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -85,7 +85,7 @@ export default function SubmissionsPage() {
   const { toast } = useToast();
   
   const [reportTypeFilter, setReportTypeFilter] = useState<string>('all');
-  const [yearFilter, setYearFilter] = useState<string>('all');
+  const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString());
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest'>('recent');
 
@@ -122,7 +122,22 @@ export default function SubmissionsPage() {
     return map;
   }, [allUsers]);
 
-  const submissionsData = useMemo(() => {
+  const availableYears = useMemo(() => {
+    if (!rawSubmissions) return [new Date().getFullYear().toString()];
+    const years = Array.from(new Set(rawSubmissions.map(s => String(s.year))));
+    if (years.length === 0) return [new Date().getFullYear().toString()];
+    return years.sort((a,b) => b.localeCompare(a));
+  }, [rawSubmissions]);
+
+  // Data specifically for the Dashboard visuals (Only filtered by Year)
+  const dashboardSubmissions = useMemo(() => {
+    if (!rawSubmissions) return [];
+    if (yearFilter === 'all') return rawSubmissions;
+    return rawSubmissions.filter(s => String(s.year) === yearFilter);
+  }, [rawSubmissions, yearFilter]);
+
+  // Data for the table (Filtered by all active filters)
+  const tableSubmissionsData = useMemo(() => {
     if (!rawSubmissions) return [];
     
     let filtered = [...rawSubmissions];
@@ -149,16 +164,7 @@ export default function SubmissionsPage() {
   const campusesQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'campuses') : null), [firestore, user]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
 
-  const unitsQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'units') : null), [firestore, user]);
-  const { data: units } = useCollection<Unit>(unitsQuery);
-
   const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
-
-  const availableYears = useMemo(() => {
-    if (!rawSubmissions) return [];
-    const years = Array.from(new Set(rawSubmissions.map(s => String(s.year))));
-    return years.sort((a,b) => b.localeCompare(a));
-  }, [rawSubmissions]);
 
   const handleDeleteClick = (submission: Submission) => {
     setDeletingSubmission(submission);
@@ -183,38 +189,53 @@ export default function SubmissionsPage() {
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Submissions</h2>
             <p className="text-muted-foreground">Manage unit compliance documentation and track overall performance.</p>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2 md:justify-end">
+            <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-muted-foreground block">Monitoring Year</label>
+                <Select value={yearFilter} onValueChange={setYearFilter}>
+                    <SelectTrigger className="w-[140px] h-9 bg-card font-semibold shadow-sm">
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5 opacity-50" />
+                        <SelectValue placeholder="All Years" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Years</SelectItem>
+                        {availableYears.map(y => <SelectItem key={y} value={y}>AY {y}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
             {!isSupervisor && (
-                <Button 
-                  onClick={() => router.push('/submissions/new')}
-                  className="animate-pulse shadow-lg shadow-primary/20"
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" /> New Submission / Resubmission
-                </Button>
+                <div className="pt-5">
+                    <Button 
+                        onClick={() => router.push('/submissions/new')}
+                        className="shadow-lg shadow-primary/20 h-9"
+                    >
+                        <PlusCircle className="mr-2 h-4 w-4" /> New Submission
+                    </Button>
+                </div>
             )}
           </div>
         </div>
 
         <Tabs defaultValue="visual-insights" className="space-y-4">
-            <TabsList>
-                <TabsTrigger value="visual-insights" className="gap-2">
+            <TabsList className="bg-muted/50 p-1 border">
+                <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm">
                     <BarChart3 className="h-4 w-4" /> Visual Insights
                 </TabsTrigger>
-                <TabsTrigger value="all-submissions" className="gap-2">
-                    <List className="h-4 w-4" /> Recent Submissions
+                <TabsTrigger value="all-submissions" className="gap-2 data-[state=active]:shadow-sm">
+                    <List className="h-4 w-4" /> Submission Log
                 </TabsTrigger>
-                {isSupervisor && !isAdmin && <TabsTrigger value="by-unit">Unit Submissions</TabsTrigger>}
-                {isAdmin && <TabsTrigger value="by-campus">Campus Submissions</TabsTrigger>}
+                {isSupervisor && !isAdmin && <TabsTrigger value="by-unit" className="data-[state=active]:shadow-sm">Unit Explorer</TabsTrigger>}
+                {isAdmin && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm">Campus Matrix</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="visual-insights">
                 <SubmissionDashboard 
-                    submissions={rawSubmissions || []}
+                    submissions={dashboardSubmissions}
                     cycles={cycles || []}
                     isLoading={isLoadingSubmissions || isLoadingCycles}
                 />
@@ -222,16 +243,16 @@ export default function SubmissionsPage() {
 
             <TabsContent value="all-submissions">
                 <Card>
-                    <CardHeader className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <CardHeader className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b">
                         <div className="space-y-1">
-                            <CardTitle>Recent Submissions</CardTitle>
-                            <CardDescription>A chronological list of all submitted reports.</CardDescription>
+                            <CardTitle className="text-lg">Detailed Submission Log</CardTitle>
+                            <CardDescription>Filtering {tableSubmissionsData.length} records for {yearFilter === 'all' ? 'all years' : `AY ${yearFilter}`}.</CardDescription>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                             <div className="space-y-1">
                                 <label className="text-[10px] font-bold uppercase text-muted-foreground block">Report Type</label>
                                 <Select value={reportTypeFilter} onValueChange={setReportTypeFilter}>
-                                    <SelectTrigger className="w-[180px] h-8 text-xs">
+                                    <SelectTrigger className="w-[180px] h-8 text-xs bg-muted/20">
                                         <SelectValue placeholder="All Reports" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -241,21 +262,9 @@ export default function SubmissionsPage() {
                                 </Select>
                             </div>
                             <div className="space-y-1">
-                                <label className="text-[10px] font-bold uppercase text-muted-foreground block">Year</label>
-                                <Select value={yearFilter} onValueChange={setYearFilter}>
-                                    <SelectTrigger className="w-[100px] h-8 text-xs">
-                                        <SelectValue placeholder="All Years" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Years</SelectItem>
-                                        {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1">
                                 <label className="text-[10px] font-bold uppercase text-muted-foreground block">Status</label>
                                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                    <SelectTrigger className="w-[150px] h-8 text-xs">
+                                    <SelectTrigger className="w-[150px] h-8 text-xs bg-muted/20">
                                         <SelectValue placeholder="All Statuses" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -267,11 +276,11 @@ export default function SubmissionsPage() {
                                 </Select>
                             </div>
                             <div className="space-y-1">
-                                <label className="text-[10px] font-bold uppercase text-muted-foreground block">Order</label>
+                                <label className="text-[10px] font-bold uppercase text-muted-foreground block">Sort</label>
                                 <Button 
                                     variant="outline" 
                                     size="sm" 
-                                    className="h-8 text-xs gap-2"
+                                    className="h-8 text-xs gap-2 bg-muted/20"
                                     onClick={() => setSortOrder(sortOrder === 'recent' ? 'oldest' : 'recent')}
                                 >
                                     <ArrowUpDown className="h-3 w-3" />
@@ -280,32 +289,32 @@ export default function SubmissionsPage() {
                             </div>
                         </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="pt-0">
                         {isLoadingSubmissions ? (
                             <div className="flex justify-center items-center h-48">
-                                <Loader2 className="animate-spin h-8 w-8" />
+                                <Loader2 className="animate-spin h-8 w-8 text-primary" />
                             </div>
-                        ) : submissionsData.length > 0 ? (
+                        ) : tableSubmissionsData.length > 0 ? (
                             <Table>
                                 <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Report Type</TableHead>
-                                        <TableHead>Unit / Campus</TableHead>
-                                        <TableHead>Uploader</TableHead>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
+                                    <TableRow className="hover:bg-transparent">
+                                        <TableHead className="font-bold uppercase text-[10px]">Report Details</TableHead>
+                                        <TableHead className="font-bold uppercase text-[10px]">Origin Unit</TableHead>
+                                        <TableHead className="font-bold uppercase text-[10px]">Uploader</TableHead>
+                                        <TableHead className="font-bold uppercase text-[10px]">Submission Date</TableHead>
+                                        <TableHead className="font-bold uppercase text-[10px]">Compliance Status</TableHead>
+                                        <TableHead className="text-right font-bold uppercase text-[10px]">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {submissionsData.map((sub) => (
+                                    {tableSubmissionsData.map((sub) => (
                                         <TableRow 
                                             key={sub.id} 
-                                            className={cn("transition-colors", getYearRowColor(sub.year))}
+                                            className={cn("transition-colors group", getYearRowColor(sub.year, sub.cycleId))}
                                         >
                                             <TableCell>
                                                 <div className="flex flex-col">
-                                                    <span className="font-bold text-sm">{sub.reportType}</span>
+                                                    <span className="font-bold text-sm text-slate-900">{sub.reportType}</span>
                                                     <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">
                                                         {sub.cycleId} Cycle {sub.year} &bull; {sub.controlNumber}
                                                     </span>
@@ -313,30 +322,30 @@ export default function SubmissionsPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col text-xs">
-                                                    <span className="flex items-center gap-1 font-medium"><Building className="h-3 w-3" /> {sub.unitName}</span>
-                                                    <span className="flex items-center gap-1 text-muted-foreground"><School className="h-3 w-3" /> {campusMap.get(sub.campusId) || '...'}</span>
+                                                    <span className="flex items-center gap-1 font-semibold text-slate-700"><Building className="h-3 w-3 text-primary/60" /> {sub.unitName}</span>
+                                                    <span className="flex items-center gap-1 text-muted-foreground text-[10px]"><School className="h-3 w-3" /> {campusMap.get(sub.campusId) || '...'}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-xs">
                                                 <div className="flex items-center gap-2">
-                                                    <User className="h-3 w-3 text-muted-foreground" />
+                                                    <User className="h-3.5 w-3.5 text-muted-foreground" />
                                                     <span className="font-medium">{userMap.get(sub.userId) || '...'}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-xs">
-                                                <div className="flex items-center gap-1">
-                                                    <CalendarIcon className="h-3 w-3 text-muted-foreground" /> 
+                                                <div className="flex items-center gap-1 font-medium text-slate-600">
+                                                    <CalendarIcon className="h-3 w-3 opacity-50" /> 
                                                     {safeFormatDate(sub.submissionDate)}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
                                                 <Badge 
                                                     className={cn(
-                                                        "capitalize font-black text-[10px] px-2 py-0.5 shadow-sm border-none",
-                                                        sub.statusId === 'approved' && "bg-emerald-600 text-white hover:bg-emerald-700",
-                                                        sub.statusId === 'rejected' && "bg-rose-600 text-white hover:bg-rose-700",
-                                                        sub.statusId === 'submitted' && "bg-amber-500 text-amber-950 hover:bg-amber-600",
-                                                        sub.statusId === 'pending' && "bg-slate-500 text-white hover:bg-slate-600"
+                                                        "capitalize font-black text-[9px] px-2 py-0.5 shadow-sm border-none",
+                                                        sub.statusId === 'approved' && "bg-emerald-600 text-white",
+                                                        sub.statusId === 'rejected' && "bg-rose-600 text-white",
+                                                        sub.statusId === 'submitted' && "bg-amber-500 text-amber-950",
+                                                        sub.statusId === 'pending' && "bg-slate-500 text-white"
                                                     )}
                                                 >
                                                     {sub.statusId === 'submitted' ? 'AWAITING APPROVAL' : sub.statusId.toUpperCase()}
@@ -346,19 +355,19 @@ export default function SubmissionsPage() {
                                                 <Button 
                                                     variant="default" 
                                                     size="sm" 
-                                                    className="text-[10px] h-8 px-3 font-bold bg-primary shadow-sm"
+                                                    className="text-[10px] h-8 px-3 font-black uppercase tracking-widest bg-primary shadow-sm"
                                                     onClick={() => router.push(`/submissions/${sub.id}`)}
                                                 >
-                                                    VIEW SUBMISSION
+                                                    VIEW
                                                 </Button>
                                                 {isAdmin && (
                                                     <Button 
-                                                        variant="destructive" 
-                                                        size="sm" 
-                                                        className="text-[10px] h-8 px-3 font-bold shadow-sm"
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                                         onClick={() => handleDeleteClick(sub)}
                                                     >
-                                                        DELETE SUBMISSION
+                                                        <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 )}
                                             </TableCell>
@@ -367,16 +376,41 @@ export default function SubmissionsPage() {
                                 </TableBody>
                             </Table>
                         ) : (
-                            <div className="py-12 text-center text-muted-foreground flex flex-col items-center gap-2 border border-dashed rounded-lg">
+                            <div className="py-20 text-center text-muted-foreground flex flex-col items-center gap-3 border border-dashed rounded-lg mt-4">
                                 <FileText className="h-12 w-12 opacity-10" />
-                                <p>No submissions found matching your filters.</p>
+                                <p className="font-medium text-sm">No records found for the current filter criteria.</p>
+                                <Button variant="outline" size="sm" onClick={() => { setYearFilter('all'); setReportTypeFilter('all'); setStatusFilter('all'); }}>
+                                    Clear all filters
+                                </Button>
                             </div>
                         )}
                     </CardContent>
                 </Card>
             </TabsContent>
-            {isSupervisor && !isAdmin && <TabsContent value="by-unit"><UnitSubmissionsView allSubmissions={rawSubmissions} allUnits={units} userProfile={userProfile} isLoading={isLoadingSubmissions} /></TabsContent>}
-            {isAdmin && <TabsContent value="by-campus"><CampusSubmissionsView allSubmissions={rawSubmissions} allCampuses={campuses} allUnits={units} isLoading={isLoadingSubmissions} isAdmin={isAdmin} onDeleteClick={handleDeleteClick} /></TabsContent>}
+            
+            {isSupervisor && !isAdmin && (
+                <TabsContent value="by-unit">
+                    <UnitSubmissionsView 
+                        allSubmissions={dashboardSubmissions} 
+                        allUnits={allUnits} 
+                        userProfile={userProfile} 
+                        isLoading={isLoadingSubmissions} 
+                    />
+                </TabsContent>
+            )}
+            
+            {isAdmin && (
+                <TabsContent value="by-campus">
+                    <CampusSubmissionsView 
+                        allSubmissions={dashboardSubmissions} 
+                        allCampuses={campuses} 
+                        allUnits={allUnits} 
+                        isLoading={isLoadingSubmissions} 
+                        isAdmin={isAdmin} 
+                        onDeleteClick={handleDeleteClick} 
+                    />
+                </TabsContent>
+            )}
         </Tabs>
       </div>
 
@@ -385,16 +419,16 @@ export default function SubmissionsPage() {
       <AlertDialog open={!!deletingSubmission} onOpenChange={() => setDeletingSubmission(null)}>
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>Delete <strong>{deletingSubmission?.reportType}</strong>. Type <strong className="text-destructive">{challengeText}</strong> to confirm.</AlertDialogDescription>
+                <AlertDialogTitle>Permanent Deletion</AlertDialogTitle>
+                <AlertDialogDescription>You are about to delete <strong>{deletingSubmission?.reportType}</strong>. This action is irreversible. Type <strong className="text-destructive">{challengeText}</strong> to proceed.</AlertDialogDescription>
             </AlertDialogHeader>
             <div className="py-2">
                 <Input value={confirmationText} onChange={(e) => setConfirmationText(e.target.value)} placeholder={`Type "${challengeText}"`} />
             </div>
             <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>Abort</AlertDialogCancel>
                 <AlertDialogAction onClick={handleConfirmDelete} disabled={isDeleting || confirmationText !== challengeText} className="bg-destructive">
-                    {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete
+                    {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete Record
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
