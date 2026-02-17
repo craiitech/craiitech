@@ -280,6 +280,7 @@ export type ProgramFacultyMember = {
   id: string;
   name: string;
   highestEducation: string;
+  academicRank: string;
   category: FacultyCategory;
   isAlignedWithCMO: FacultyAlignment;
   sex: 'Male' | 'Female';
@@ -341,6 +342,7 @@ export type EnrollmentStats = {
 export type FacultyLeadershipMember = {
   name: string;
   highestEducation: string;
+  academicRank?: string;
   isAlignedWithCMO: FacultyAlignment;
   sex: 'Male' | 'Female';
 };

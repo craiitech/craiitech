@@ -5,11 +5,43 @@ import { useFormContext, useFieldArray } from 'react-hook-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { User, UserPlus, Trash2, ShieldCheck, Info, UserCircle2, UserCheck } from 'lucide-react';
+import { User, UserPlus, Trash2, ShieldCheck, Info, UserCircle2, UserCheck, GraduationCap } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
+
+const academicRanks = {
+  nonPermanent: [
+    "Lecturer 1",
+    "Lecturer 2",
+    "Lecturer 3",
+    "Lecturer 4",
+    "Contract of Service",
+    "Part-Timer"
+  ],
+  permanent: [
+    "Instructor 1",
+    "Instructor 2",
+    "Instructor 3",
+    "Assistant Professor 1",
+    "Assistant Professor 2",
+    "Assistant Professor 3",
+    "Assistant Professor 4",
+    "Associate Professor 1",
+    "Associate Professor 2",
+    "Associate Professor 3",
+    "Associate Professor 4",
+    "Associate Professor 5",
+    "Professor 1",
+    "Professor 2",
+    "Professor 3",
+    "Professor 4",
+    "Professor 5",
+    "Professor 6",
+    "University Professor"
+  ]
+};
 
 export function FacultyModule({ canEdit }: { canEdit: boolean }) {
   const { control, watch } = useFormContext();
@@ -21,9 +53,9 @@ export function FacultyModule({ canEdit }: { canEdit: boolean }) {
   });
 
   const FacultyForm = ({ prefix, label, desc, icon }: { prefix: string, label: string, desc: string, icon?: React.ReactNode }) => (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-lg border bg-card shadow-sm relative overflow-hidden">
+    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 rounded-lg border bg-card shadow-sm relative overflow-hidden">
       <div className="absolute top-0 left-0 w-1 h-full bg-primary/20" />
-      <div className="md:col-span-4 border-b pb-2">
+      <div className="md:col-span-5 border-b pb-2">
         <p className="font-bold text-sm uppercase tracking-wider flex items-center gap-2">
           {icon || <UserCircle2 className="h-4 w-4 text-primary" />} {label}
         </p>
@@ -39,6 +71,23 @@ export function FacultyModule({ canEdit }: { canEdit: boolean }) {
             <SelectContent>
               <SelectItem value="Male">Male</SelectItem>
               <SelectItem value="Female">Female</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormItem>
+      )} />
+      <FormField control={control} name={`${prefix}.academicRank`} render={({ field }) => (
+        <FormItem><FormLabel className="text-[10px] uppercase font-bold">Academic Rank</FormLabel>
+          <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
+            <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select Rank" /></SelectTrigger></FormControl>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Non-Permanent</SelectLabel>
+                {academicRanks.nonPermanent.map(rank => <SelectItem key={rank} value={rank}>{rank}</SelectItem>)}
+              </SelectGroup>
+              <SelectGroup>
+                <SelectLabel>Permanent</SelectLabel>
+                {academicRanks.permanent.map(rank => <SelectItem key={rank} value={rank}>{rank}</SelectItem>)}
+              </SelectGroup>
             </SelectContent>
           </Select>
         </FormItem>
@@ -66,7 +115,6 @@ export function FacultyModule({ canEdit }: { canEdit: boolean }) {
       <div className="space-y-6">
         <FacultyForm prefix="faculty.dean" label="Dean / Director" desc="Top academic officer responsible for the college/institute." />
         
-        {/* Associate Dean Toggle */}
         <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/20">
             <div className="space-y-0.5">
                 <FormLabel className="text-sm font-bold">Presence of Associate Dean</FormLabel>
@@ -103,7 +151,7 @@ export function FacultyModule({ canEdit }: { canEdit: boolean }) {
             <CardDescription>Register and categorize all faculty members teaching in this program.</CardDescription>
           </div>
           {canEdit && (
-            <Button type="button" size="sm" onClick={() => append({ id: Math.random().toString(36).substr(2, 9), name: '', sex: 'Female', highestEducation: '', category: 'Core', isAlignedWithCMO: 'Aligned' })}>
+            <Button type="button" size="sm" onClick={() => append({ id: Math.random().toString(36).substr(2, 9), name: '', sex: 'Female', highestEducation: '', academicRank: 'Instructor 1', category: 'Core', isAlignedWithCMO: 'Aligned' })}>
               Add Faculty Member
             </Button>
           )}
@@ -111,7 +159,7 @@ export function FacultyModule({ canEdit }: { canEdit: boolean }) {
         <CardContent className="pt-6">
           <div className="space-y-4">
             {fields.map((field, index) => (
-              <div key={field.id} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 rounded-lg border bg-muted/5 items-end transition-colors hover:bg-muted/10">
+              <div key={field.id} className="grid grid-cols-1 md:grid-cols-7 gap-3 p-4 rounded-lg border bg-muted/5 items-end transition-colors hover:bg-muted/10 shadow-sm relative group">
                 <FormField control={control} name={`faculty.members.${index}.name`} render={({ field }) => (
                   <FormItem className="md:col-span-1"><FormLabel className="text-[9px] uppercase font-bold">Name</FormLabel><FormControl><Input {...field} className="h-8 text-xs bg-background" disabled={!canEdit} /></FormControl></FormItem>
                 )} />
@@ -122,6 +170,23 @@ export function FacultyModule({ canEdit }: { canEdit: boolean }) {
                       <SelectContent>
                         <SelectItem value="Male">Male</SelectItem>
                         <SelectItem value="Female">Female</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )} />
+                <FormField control={control} name={`faculty.members.${index}.academicRank`} render={({ field }) => (
+                  <FormItem className="md:col-span-1"><FormLabel className="text-[9px] uppercase font-bold">Rank</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
+                      <FormControl><SelectTrigger className="h-8 text-xs bg-background px-2"><SelectValue placeholder="Rank" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Non-Permanent</SelectLabel>
+                          {academicRanks.nonPermanent.map(rank => <SelectItem key={rank} value={rank}>{rank}</SelectItem>)}
+                        </SelectGroup>
+                        <SelectGroup>
+                          <SelectLabel>Permanent</SelectLabel>
+                          {academicRanks.permanent.map(rank => <SelectItem key={rank} value={rank}>{rank}</SelectItem>)}
+                        </SelectGroup>
                       </SelectContent>
                     </Select>
                   </FormItem>
@@ -155,7 +220,7 @@ export function FacultyModule({ canEdit }: { canEdit: boolean }) {
                 )} />
                 <div className="flex justify-end h-10 items-center">
                   {canEdit && (
-                    <Button type="button" variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => remove(index)}>
+                    <Button type="button" variant="ghost" size="icon" className="text-destructive h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => remove(index)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   )}

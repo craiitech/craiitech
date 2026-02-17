@@ -67,7 +67,7 @@ function sanitizeForFirestore(obj: any): any {
 }
 
 const emptyEnrollment = { male: 0, female: 0, total: 0, specialNeeds: 0 };
-const emptyLeadership = { name: '', highestEducation: '', isAlignedWithCMO: 'Aligned', sex: 'Female' };
+const emptyLeadership = { name: '', academicRank: '', highestEducation: '', isAlignedWithCMO: 'Aligned', sex: 'Female' };
 
 export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplianceWorkspaceProps) {
   const { userProfile, isAdmin, userRole } = useUser();
