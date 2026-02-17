@@ -89,7 +89,7 @@ export default function Home() {
                         <Link href="/terms">Terms & Conditions</Link>
                     </Button>
                     <Button variant="link" asChild className="text-white/40 hover:text-white">
-                        <Link href="/software-evaluation" className="flex items-center gap-1">
+                        <Link href="/evaluate" className="flex items-center gap-1">
                             <MonitorCheck className="h-3 w-3" /> Software Quality
                         </Link>
                     </Button>
