@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -53,6 +52,9 @@ const outputSchema = z.object({
 
 const UNIVERSITY_WIDE_ID = 'university-wide';
 const ALL_UNITS_ID = 'all-units';
+const ALL_ACADEMIC_ID = 'all-academic-units';
+const ALL_ADMIN_ID = 'all-admin-units';
+const ALL_REDI_ID = 'all-redi-units';
 
 const getEmbedUrl = (url: string) => url.replace('/view', '/preview').replace('?usp=sharing', '');
 
@@ -162,6 +164,9 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
   const unitMap = useMemo(() => {
     const map = new Map(units.map(u => [u.id, u.name]));
     map.set(ALL_UNITS_ID, 'All Units / Institutional');
+    map.set(ALL_ACADEMIC_ID, 'All Academic Units');
+    map.set(ALL_ADMIN_ID, 'All Administrative Units');
+    map.set(ALL_REDI_ID, 'All REDi Units');
     return map;
   }, [units]);
 
@@ -310,7 +315,13 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                                                         {campusMap.get(a.campusId) || a.campusId}
                                                                     </Badge>
                                                                     <ChevronRight className="h-2.5 w-2.5 opacity-30" />
-                                                                    <Badge variant="outline" className="text-[8px] font-bold border-primary/20 h-4 py-0 uppercase">
+                                                                    <Badge variant="outline" className={cn(
+                                                                        "text-[8px] font-bold h-4 py-0 uppercase",
+                                                                        a.unitId === ALL_ACADEMIC_ID ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                                                        a.unitId === ALL_ADMIN_ID ? "bg-slate-50 text-slate-700 border-slate-200" :
+                                                                        a.unitId === ALL_REDI_ID ? "bg-purple-50 text-purple-700 border-purple-200" :
+                                                                        "border-primary/20"
+                                                                    )}>
                                                                         {unitMap.get(a.unitId) || a.unitId}
                                                                     </Badge>
                                                                 </div>
@@ -508,6 +519,9 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                                     <FormControl><SelectTrigger className="bg-background h-9 text-xs font-bold"><SelectValue placeholder={currentCampusId ? "Select Unit" : "Select Campus First"} /></SelectTrigger></FormControl>
                                                     <SelectContent>
                                                         <SelectItem value={ALL_UNITS_ID} className="font-bold text-emerald-600 italic">All Relevant Units / Offices</SelectItem>
+                                                        <SelectItem value={ALL_ACADEMIC_ID} className="font-bold text-blue-600 italic">All Academic Units</SelectItem>
+                                                        <SelectItem value={ALL_ADMIN_ID} className="font-bold text-slate-600 italic">All Administrative Units</SelectItem>
+                                                        <SelectItem value={ALL_REDI_ID} className="font-bold text-purple-600 italic">All REDi Units</SelectItem>
                                                         {filteredUnits.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                                     </SelectContent>
                                                 </Select>

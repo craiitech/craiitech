@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -34,6 +33,11 @@ const updateSchema = z.object({
   actionTakenBy: z.string().min(1, 'Name of the person who executed the action is required.'),
 });
 
+const ALL_UNITS_ID = 'all-units';
+const ALL_ACADEMIC_ID = 'all-academic-units';
+const ALL_ADMIN_ID = 'all-admin-units';
+const ALL_REDI_ID = 'all-redi-units';
+
 export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsTabProps) {
   const { userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
@@ -53,21 +57,39 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   const reviewsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'managementReviews') : null), [firestore]);
   const { data: reviews } = useCollection<ManagementReview>(reviewsQuery);
 
+  const myUnit = useMemo(() => {
+    if (!userProfile?.unitId || !units) return null;
+    return units.find(u => u.id === userProfile.unitId);
+  }, [userProfile?.unitId, units]);
+
   const filteredOutputs = useMemo(() => {
     if (!rawOutputs || !userProfile) return [];
     if (isAdmin) return rawOutputs;
 
     return rawOutputs.filter(output => {
-        // Precise matching based on assignments
+        // Precise matching based on assignments including categorical groups
         return (output.assignments || []).some(a => {
             const isInstitutional = a.campusId === 'university-wide';
-            const isMyCampusAllUnits = a.campusId === userProfile.campusId && a.unitId === 'all-units';
-            const isMySpecificUnit = a.campusId === userProfile.campusId && a.unitId === userProfile.unitId;
+            const isMyCampus = a.campusId === userProfile.campusId;
             
-            return isInstitutional || isMyCampusAllUnits || isMySpecificUnit;
+            // Step 1: Campus Match Check
+            if (!isInstitutional && !isMyCampus) return false;
+
+            // Step 2: Unit/Category Match Check
+            if (a.unitId === ALL_UNITS_ID) return true;
+            
+            // Categorical Matches
+            if (a.unitId === ALL_ACADEMIC_ID && myUnit?.category === 'Academic') return true;
+            if (a.unitId === ALL_ADMIN_ID && myUnit?.category === 'Administrative') return true;
+            if (a.unitId === ALL_REDI_ID && myUnit?.category === 'Research') return true;
+            
+            // Specific Unit Match
+            if (a.unitId === userProfile.unitId) return true;
+            
+            return false;
         });
     });
-  }, [rawOutputs, userProfile, isAdmin]);
+  }, [rawOutputs, userProfile, isAdmin, myUnit]);
 
   const form = useForm<z.infer<typeof updateSchema>>({
     resolver: zodResolver(updateSchema),
@@ -106,11 +128,20 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     }
   };
 
-  const campusMap = new Map(campuses.map(c => [c.id, c.name]));
-  campusMap.set('university-wide', 'University-Wide');
+  const campusMap = useMemo(() => {
+    const map = new Map(campuses.map(c => [c.id, c.name]));
+    map.set('university-wide', 'University-Wide');
+    return map;
+  }, [campuses]);
   
-  const unitMap = new Map(units.map(u => [u.id, u.name]));
-  unitMap.set('all-units', 'All Units / Institutional');
+  const unitMap = useMemo(() => {
+    const map = new Map(units.map(u => [u.id, u.name]));
+    map.set(ALL_UNITS_ID, 'All Units / Institutional');
+    map.set(ALL_ACADEMIC_ID, 'All Academic Units');
+    map.set(ALL_ADMIN_ID, 'All Administrative Units');
+    map.set(ALL_REDI_ID, 'All REDi Units');
+    return map;
+  }, [units]);
   
   const reviewMap = new Map(reviews?.map(r => [r.id, r.title]));
 
@@ -177,7 +208,13 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                         <Badge variant="secondary" className="text-[8px] h-4 font-black bg-primary/5 text-primary border-none">
                                             {campusMap.get(a.campusId) || a.campusId}
                                         </Badge>
-                                        <Badge variant="outline" className="text-[8px] h-4 font-bold border-muted-foreground/20 text-muted-foreground">
+                                        <Badge variant="outline" className={cn(
+                                            "text-[8px] h-4 font-bold border-muted-foreground/20",
+                                            a.unitId === ALL_ACADEMIC_ID ? "bg-blue-50 text-blue-700" :
+                                            a.unitId === ALL_ADMIN_ID ? "bg-slate-50 text-slate-700" :
+                                            a.unitId === ALL_REDI_ID ? "bg-purple-50 text-purple-700" :
+                                            "text-muted-foreground"
+                                        )}>
                                             {unitMap.get(a.unitId) || a.unitId}
                                         </Badge>
                                     </div>
