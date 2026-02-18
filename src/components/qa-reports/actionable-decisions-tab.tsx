@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, ClipboardList, Send, Building2, ListChecks, History, Info, User, CheckCircle2, Hash } from 'lucide-react';
+import { Loader2, Calendar, ClipboardList, Send, Building2, ListChecks, History, Info, User, CheckCircle2, Hash, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -39,14 +39,14 @@ const ALL_ADMIN_ID = 'all-admin-units';
 const ALL_REDI_ID = 'all-redi-units';
 
 export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsTabProps) {
-  const { userProfile, isAdmin } = useUser();
+  const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [selectedOutput, setSelectedOutput] = useState<ManagementReviewOutput | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Scoped Query
+  // Scoped Query - Fetch all outputs and filter in-memory for precision hierarchy
   const outputsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     return query(collection(firestore, 'managementReviewOutputs'), orderBy('createdAt', 'desc'));
@@ -66,30 +66,47 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     if (!rawOutputs || !userProfile) return [];
     if (isAdmin) return rawOutputs;
 
+    // Detection of user authority level
+    const isCampusLevel = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
+    const isUnitLevel = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
+
     return rawOutputs.filter(output => {
-        // Precise matching based on assignments including categorical groups
+        // Evaluate each assignment coupling (Campus + Unit)
         return (output.assignments || []).some(a => {
             const isInstitutional = a.campusId === 'university-wide';
             const isMyCampus = a.campusId === userProfile.campusId;
             
-            // Step 1: Campus Match Check
+            // Step 1: Scoped Site Check
+            // Both campus and unit levels can see university-wide assignments.
+            // Campus-specific assignments require a match with the user's registered site.
             if (!isInstitutional && !isMyCampus) return false;
 
-            // Step 2: Unit/Category Match Check
-            if (a.unitId === ALL_UNITS_ID) return true;
-            
-            // Categorical Matches
-            if (a.unitId === ALL_ACADEMIC_ID && myUnit?.category === 'Academic') return true;
-            if (a.unitId === ALL_ADMIN_ID && myUnit?.category === 'Administrative') return true;
-            if (a.unitId === ALL_REDI_ID && myUnit?.category === 'Research') return true;
-            
-            // Specific Unit Match
-            if (a.unitId === userProfile.unitId) return true;
-            
-            return false;
+            // Step 2: Role-based filtering within the site
+            if (isCampusLevel) {
+                // Campus level users (Supervisors) see all tasks assigned to their campus, 
+                // including those assigned to specific units within their site.
+                return true;
+            }
+
+            if (isUnitLevel) {
+                // Unit level users only see assignments matching their specific unit, 
+                // their category, or the "All Units" catch-all.
+                if (a.unitId === ALL_UNITS_ID) return true;
+                
+                // Categorical Matches
+                if (a.unitId === ALL_ACADEMIC_ID && myUnit?.category === 'Academic') return true;
+                if (a.unitId === ALL_ADMIN_ID && myUnit?.category === 'Administrative') return true;
+                if (a.unitId === ALL_REDI_ID && myUnit?.category === 'Research') return true;
+                
+                // Direct Unit Match
+                if (a.unitId === userProfile.unitId) return true;
+            }
+
+            // Fallback for Auditors or special roles: visible if campus matches
+            return true;
         });
     });
-  }, [rawOutputs, userProfile, isAdmin, myUnit]);
+  }, [rawOutputs, userProfile, isAdmin, userRole, myUnit]);
 
   const form = useForm<z.infer<typeof updateSchema>>({
     resolver: zodResolver(updateSchema),
@@ -194,7 +211,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                 )}
                             </div>
                             {output.actionTakenBy && (
-                                <div className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-600 uppercase tracking-tighter">
+                                <div className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-600 uppercase tracking-tighter mt-1">
                                     <CheckCircle2 className="h-2.5 w-2.5" />
                                     Action by: {output.actionTakenBy} ({safeFormatDate(output.actionDate)})
                                 </div>
