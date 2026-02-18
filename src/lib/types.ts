@@ -468,6 +468,8 @@ export type ManagementReviewOutput = {
   followUpRemarks?: string; 
   status: 'Open' | 'On-going' | 'Closed';
   createdAt: any; // Timestamp
+  actionDate?: any; // New - when unit executed action
+  actionTakenBy?: string; // New - who executed action
 };
 
 export type CorrectiveActionRequest = {

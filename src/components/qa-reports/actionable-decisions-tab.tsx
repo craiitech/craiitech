@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, ClipboardList, Send, Building2, ListChecks, History, Info } from 'lucide-react';
+import { Loader2, Calendar, ClipboardList, Send, Building2, ListChecks, History, Info, User, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -18,6 +19,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 interface ActionableDecisionsTabProps {
@@ -28,6 +30,8 @@ interface ActionableDecisionsTabProps {
 const updateSchema = z.object({
   followUpRemarks: z.string().min(5, 'Please provide a descriptive update on actions taken.'),
   status: z.enum(['Open', 'On-going', 'Closed']),
+  actionDate: z.string().min(1, 'Date of action is required.'),
+  actionTakenBy: z.string().min(1, 'Name of the person who executed the action is required.'),
 });
 
 export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsTabProps) {
@@ -67,14 +71,18 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
 
   const form = useForm<z.infer<typeof updateSchema>>({
     resolver: zodResolver(updateSchema),
-    defaultValues: { status: 'Open', followUpRemarks: '' }
+    defaultValues: { status: 'Open', followUpRemarks: '', actionDate: format(new Date(), 'yyyy-MM-dd'), actionTakenBy: '' }
   });
 
   const handleOpenUpdate = (output: ManagementReviewOutput) => {
     setSelectedOutput(output);
+    const safeDate = (d: any) => d?.toDate ? format(d.toDate(), 'yyyy-MM-dd') : (d ? format(new Date(d), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
+    
     form.reset({
         status: output.status,
-        followUpRemarks: output.followUpRemarks || ''
+        followUpRemarks: output.followUpRemarks || '',
+        actionDate: safeDate(output.actionDate),
+        actionTakenBy: output.actionTakenBy || (userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '')
     });
     setIsDialogOpen(true);
   };
@@ -86,6 +94,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
       const docRef = doc(firestore, 'managementReviewOutputs', selectedOutput.id);
       await updateDoc(docRef, {
         ...values,
+        actionDate: Timestamp.fromDate(new Date(values.actionDate)),
         updatedAt: serverTimestamp(),
       });
       toast({ title: 'Update Recorded', description: 'Your action update has been successfully logged.' });
@@ -145,6 +154,12 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                 <History className="h-2.5 w-2.5" />
                                 From: {reviewMap.get(output.mrId) || 'Management Review'}
                             </div>
+                            {output.actionTakenBy && (
+                                <div className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-600 uppercase tracking-tighter">
+                                    <CheckCircle2 className="h-2.5 w-2.5" />
+                                    Action by: {output.actionTakenBy} ({safeFormatDate(output.actionDate)})
+                                </div>
+                            )}
                         </div>
                         </TableCell>
                         <TableCell>
@@ -236,6 +251,27 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="actionDate" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-xs font-bold uppercase">Date of Action</FormLabel>
+                        <FormControl>
+                            <Input type="date" {...field} className="bg-slate-50" />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField control={form.control} name="actionTakenBy" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-xs font-bold uppercase">Executed By</FormLabel>
+                        <FormControl>
+                            <Input {...field} placeholder="Name of Person" className="bg-slate-50 font-bold" />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+              </div>
+
               <FormField control={form.control} name="followUpRemarks" render={({ field }) => (
                 <FormItem>
                     <FormLabel className="text-xs font-bold uppercase">Action Taken / Unit Progress</FormLabel>
