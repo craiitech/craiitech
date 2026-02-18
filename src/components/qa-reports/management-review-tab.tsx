@@ -13,14 +13,14 @@ import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, Chevro
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MultiSelectUnits } from './multi-select-units';
+import { MultiSelector } from './multi-selector';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -42,8 +42,8 @@ const outputSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   initiator: z.string().min(1, 'Initiator is required'),
   concernedUnitIds: z.array(z.string()).min(1, 'At least one unit is required'),
-  campusId: z.string().min(1, 'Target campus is required'),
-  actionPlan: z.string().min(1, 'Action plan is required'),
+  campusIds: z.array(z.string()).min(1, 'At least one campus is required'),
+  actionPlan: z.string().optional(),
   followUpDate: z.string().min(1, 'Follow-up date is required'),
   status: z.enum(['Open', 'On-going', 'Closed']),
 });
@@ -79,7 +79,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
 
   const outputForm = useForm<z.infer<typeof outputSchema>>({
     resolver: zodResolver(outputSchema),
-    defaultValues: { description: '', initiator: '', concernedUnitIds: [], campusId: '', actionPlan: '', followUpDate: '', status: 'Open' }
+    defaultValues: { description: '', initiator: '', concernedUnitIds: [], campusIds: [], actionPlan: '', followUpDate: '', status: 'Open' }
   });
 
   const handleMrSubmit = async (values: z.infer<typeof mrSchema>) => {
@@ -135,6 +135,16 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
     const d = date instanceof Timestamp ? date.toDate() : new Date(date);
     return format(d, 'PP');
   };
+
+  const campusOptions = useMemo(() => {
+    const options = campuses.map(c => ({ id: c.id, name: c.name }));
+    options.unshift({ id: UNIVERSITY_WIDE_ID, name: "University-Wide (Institutional)" });
+    return options;
+  }, [campuses]);
+
+  const unitOptions = useMemo(() => {
+    return units.map(u => ({ id: u.id, name: u.name }));
+  }, [units]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -242,7 +252,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                         <TableHeader className="bg-muted/30 sticky top-0 z-10">
                                             <TableRow className="hover:bg-transparent">
                                                 <TableHead className="text-[10px] font-black uppercase py-2">Decision / Description</TableHead>
-                                                <TableHead className="text-[10px] font-black uppercase py-2">Site / Campus</TableHead>
+                                                <TableHead className="text-[10px] font-black uppercase py-2">Site Scope</TableHead>
                                                 <TableHead className="text-[10px] font-black uppercase py-2">Concerned Units</TableHead>
                                                 <TableHead className="text-[10px] font-black uppercase py-2 text-center">Follow-up</TableHead>
                                                 <TableHead className="text-[10px] font-black uppercase py-2 text-right">Status</TableHead>
@@ -259,9 +269,12 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-600 uppercase tracking-tighter">
-                                                            <MapPin className="h-3 w-3 text-muted-foreground" />
-                                                            {campusMap.get(output.campusId) || '...'}
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {output.campusIds?.map(id => (
+                                                                <Badge key={id} variant="secondary" className="text-[8px] font-black h-4 py-0 uppercase">
+                                                                    {campusMap.get(id) || id}
+                                                                </Badge>
+                                                            ))}
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
@@ -401,6 +414,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
               <FormField control={outputForm.control} name="description" render={({ field }) => (
                 <FormItem><FormLabel className="text-xs font-bold uppercase">Decision Description / Statement</FormLabel><FormControl><Input {...field} placeholder="Summarize the decision or required action..." className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
               )} />
+              
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={outputForm.control} name="initiator" render={({ field }) => (
                   <FormItem><FormLabel className="text-xs font-bold uppercase">Initiator / Responsible Party</FormLabel><FormControl><Input {...field} placeholder="Name or Office" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
@@ -409,30 +423,55 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                   <FormItem><FormLabel className="text-xs font-bold uppercase">Follow-up Target Date</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField control={outputForm.control} name="campusId" render={({ field }) => (
-                    <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Campus / Site</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Target Site" /></SelectTrigger></FormControl>
-                        <SelectContent>
-                        <SelectItem value={UNIVERSITY_WIDE_ID} className="font-bold text-primary italic">University-Wide</SelectItem>
-                        {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select><FormMessage /></FormItem>
+
+              <div className="space-y-6">
+                <FormField control={outputForm.control} name="campusIds" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-xs font-bold uppercase text-primary flex items-center gap-2">
+                            <Building2 className="h-3.5 w-3.5" />
+                            Responsible Campuses / Sites
+                        </FormLabel>
+                        <FormControl>
+                            <MultiSelector 
+                                items={campusOptions} 
+                                selectedIds={field.value} 
+                                onSelect={(ids) => field.onChange(ids)} 
+                                label="Add Campus"
+                                placeholder="Select Campus..."
+                            />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
                 )} />
+
                 <FormField control={outputForm.control} name="concernedUnitIds" render={({ field }) => (
-                    <FormItem><FormLabel className="text-xs font-bold uppercase">Concerned Unit(s) / Offices</FormLabel>
-                    <FormControl>
-                        <MultiSelectUnits 
-                        units={units} 
-                        selectedIds={field.value} 
-                        onSelect={(ids) => field.onChange(ids)} 
-                        />
-                    </FormControl><FormMessage /></FormItem>
+                    <FormItem>
+                        <FormLabel className="text-xs font-bold uppercase text-primary flex items-center gap-2">
+                            <Users className="h-3.5 w-3.5" />
+                            Concerned Unit(s) / Offices
+                        </FormLabel>
+                        <FormControl>
+                            <MultiSelector 
+                                items={unitOptions} 
+                                selectedIds={field.value} 
+                                onSelect={(ids) => field.onChange(ids)} 
+                                label="Add Unit"
+                                placeholder="Select Unit..."
+                            />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
                 )} />
               </div>
+
               <FormField control={outputForm.control} name="actionPlan" render={({ field }) => (
-                <FormItem><FormLabel className="text-xs font-bold uppercase">Proposed Action Strategy</FormLabel><FormControl><Input {...field} placeholder="How will this be implemented?" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                <FormItem>
+                    <FormLabel className="text-xs font-bold uppercase">Proposed Action Strategy (Optional)</FormLabel>
+                    <FormControl><Input {...field} placeholder="Brief suggestion on implementation..." className="bg-slate-50" /></FormControl>
+                    <FormDescription className="text-[10px]">Leave blank if the unit will propose their own plan.</FormDescription>
+                </FormItem>
               )} />
+
               <FormField control={outputForm.control} name="status" render={({ field }) => (
                 <FormItem><FormLabel className="text-xs font-bold uppercase text-primary">Initial Lifecycle Status</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
@@ -440,9 +479,10 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                     <SelectContent><SelectItem value="Open">Open</SelectItem><SelectItem value="On-going">On-going</SelectItem><SelectItem value="Closed">Closed</SelectItem></SelectContent>
                   </Select><FormMessage /></FormItem>
               )} />
+
               <DialogFooter className="pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsOutputDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
-                <Button type="submit" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black">
+                <Button type="submit" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black text-xs uppercase tracking-widest">
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ListChecks className="h-4 w-4 mr-1.5" />}
                     Log MR Output
                 </Button>

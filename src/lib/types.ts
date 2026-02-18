@@ -456,8 +456,8 @@ export type ManagementReviewOutput = {
   description: string;
   initiator: string;
   concernedUnitIds: string[];
-  campusId: string; // Added for explicit site identification
-  actionPlan: string;
+  campusIds: string[]; // Changed from campusId to campusIds for multiple sites
+  actionPlan?: string; // Made optional
   followUpDate: any; // Timestamp
   followUpRemarks?: string; // Action taken / updates from the units
   status: 'Open' | 'On-going' | 'Closed';

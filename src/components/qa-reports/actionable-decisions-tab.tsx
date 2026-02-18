@@ -38,16 +38,11 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Scoped Query: Show all for Admin, otherwise show where unit is concerned or campus matches
+  // Scoped Query: All for admin, filter contextually for units/campuses
   const outputsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
-    const baseRef = collection(firestore, 'managementReviewOutputs');
-    
-    if (isAdmin) return query(baseRef, orderBy('createdAt', 'desc'));
-    
-    // For non-admins, we'll fetch all and filter in-memory to ensure complex multi-unit matching
-    return query(baseRef, orderBy('createdAt', 'desc'));
-  }, [firestore, userProfile, isAdmin]);
+    return query(collection(firestore, 'managementReviewOutputs'), orderBy('createdAt', 'desc'));
+  }, [firestore, userProfile]);
 
   const { data: rawOutputs, isLoading: isLoadingOutputs } = useCollection<ManagementReviewOutput>(outputsQuery);
 
@@ -59,10 +54,10 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     if (isAdmin) return rawOutputs;
 
     return rawOutputs.filter(output => {
-        // Show if user's unit is concerned OR user's campus is the responsible campus
         const isConcernedUnit = userProfile.unitId && output.concernedUnitIds?.includes(userProfile.unitId);
-        const isTargetCampus = userProfile.campusId && output.campusId === userProfile.campusId;
-        return isConcernedUnit || isTargetCampus;
+        const isTargetCampus = userProfile.campusId && output.campusIds?.includes(userProfile.campusId);
+        const isInstitutional = output.campusIds?.includes('university-wide');
+        return isConcernedUnit || isTargetCampus || isInstitutional;
     });
   }, [rawOutputs, userProfile, isAdmin]);
 
@@ -126,7 +121,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                     <TableRow>
                     <TableHead className="font-bold text-[10px] uppercase">Decision & Source</TableHead>
                     <TableHead className="font-bold text-[10px] uppercase">Site Scope</TableHead>
-                    <TableHead className="font-bold text-[10px] uppercase">Action Plan</TableHead>
+                    <TableHead className="font-bold text-[10px] uppercase">Action Strategy</TableHead>
                     <TableHead className="font-bold text-[10px] uppercase text-center">Deadline</TableHead>
                     <TableHead className="font-bold text-[10px] uppercase text-right">Status</TableHead>
                     <TableHead className="text-right font-bold text-[10px] uppercase">Action</TableHead>
@@ -145,13 +140,18 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                         </div>
                         </TableCell>
                         <TableCell>
-                            <div className="flex items-center gap-2 text-xs font-medium">
-                                <MapPin className="h-3 w-3 text-muted-foreground" />
-                                {output.campusId === 'university-wide' ? 'Institutional' : (campusMap.get(output.campusId) || '...')}
+                            <div className="flex flex-wrap gap-1 max-w-[150px]">
+                                {output.campusIds?.map(id => (
+                                    <Badge key={id} variant="secondary" className="text-[8px] h-4 font-black bg-primary/5 text-primary border-none">
+                                        {id === 'university-wide' ? 'Institutional' : (campusMap.get(id) || id)}
+                                    </Badge>
+                                ))}
                             </div>
                         </TableCell>
                         <TableCell className="max-w-xs">
-                            <p className="text-[11px] text-muted-foreground line-clamp-2 italic">"{output.actionPlan}"</p>
+                            <p className="text-[11px] text-muted-foreground line-clamp-2 italic">
+                                {output.actionPlan ? `"${output.actionPlan}"` : "Unit defined plan"}
+                            </p>
                         </TableCell>
                         <TableCell className="text-center">
                             <div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600">
