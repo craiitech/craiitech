@@ -331,6 +331,9 @@ export type AccreditationArea = {
   areaName: string;
   googleDriveLink: string;
   taskForce?: string;
+  weight?: number;
+  mean?: number;
+  weightedMean?: number;
 };
 
 export type EnrollmentStats = {
@@ -381,6 +384,12 @@ export type ProgramComplianceRecord = {
     overallTaskForceHead?: string;
     taskForce?: string;
     areas?: AccreditationArea[];
+    ratingsSummary?: {
+        overallTotalWeight: number;
+        overallTotalWeightedMean: number;
+        grandMean: number;
+        descriptiveRating: string;
+    };
   };
 
   // Curriculum

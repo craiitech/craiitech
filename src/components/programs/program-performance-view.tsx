@@ -16,6 +16,7 @@ import {
     TrendingUp, 
     CheckCircle2, 
     AlertCircle,
+    Calculator,
 } from 'lucide-react';
 import { 
     BarChart, 
@@ -32,6 +33,7 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface ProgramPerformanceViewProps {
   program: AcademicProgram;
@@ -305,6 +307,82 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
             </Card>
         </div>
       </div>
+
+      {/* Accreditation Ratings Summary View */}
+      {record.accreditation?.ratingsSummary && (
+        <Card className="border-primary/20 shadow-sm overflow-hidden">
+            <CardHeader className="bg-primary/5 border-b py-4">
+                <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <Calculator className="h-5 w-5 text-primary" />
+                            Summary of Accreditation Ratings
+                        </CardTitle>
+                        <CardDescription>Verified area scores from the latest survey visit.</CardDescription>
+                    </div>
+                    <Badge className="bg-primary text-white font-black text-[10px] uppercase h-5 px-3">
+                        {record.accreditation.ratingsSummary.descriptiveRating || 'N/A'}
+                    </Badge>
+                </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                    <div className="lg:col-span-2 overflow-x-auto rounded-lg border">
+                        <Table>
+                            <TableHeader className="bg-muted/50">
+                                <TableRow>
+                                    <TableHead className="text-[10px] font-black uppercase">Area</TableHead>
+                                    <TableHead className="text-center text-[10px] font-black uppercase">Weight</TableHead>
+                                    <TableHead className="text-center text-[10px] font-black uppercase">Mean</TableHead>
+                                    <TableHead className="text-right text-[10px] font-black uppercase">Weighted Mean</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {record.accreditation.areas?.map((area) => (
+                                    <TableRow key={area.areaCode} className="hover:bg-muted/5">
+                                        <TableCell className="text-xs font-bold py-2">
+                                            <span className="text-muted-foreground mr-2">{area.areaCode}</span>
+                                            {area.areaName}
+                                        </TableCell>
+                                        <TableCell className="text-center text-xs tabular-nums">{area.weight || '---'}</TableCell>
+                                        <TableCell className="text-center text-xs tabular-nums font-medium">{area.mean || '0.00'}</TableCell>
+                                        <TableCell className="text-right text-xs tabular-nums font-black text-primary pr-4">{area.weightedMean || '---'}</TableCell>
+                                    </TableRow>
+                                ))}
+                                <TableRow className="bg-muted/30 font-black border-t-2 border-primary">
+                                    <TableCell className="text-[10px] uppercase tracking-wider text-right pr-4">Overall Totals</TableCell>
+                                    <TableCell className="text-center text-sm tabular-nums">{record.accreditation.ratingsSummary.overallTotalWeight}</TableCell>
+                                    <TableCell className="text-center text-[9px] text-muted-foreground">---</TableCell>
+                                    <TableCell className="text-right text-sm tabular-nums text-primary pr-4">{record.accreditation.ratingsSummary.overallTotalWeightedMean}</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </div>
+                    <div className="lg:col-span-1 space-y-4">
+                        <div className="p-6 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-xl">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 mb-2">Grand Mean Score</p>
+                            <div className="flex items-end justify-between">
+                                <span className="text-5xl font-black tracking-tighter tabular-nums">
+                                    {record.accreditation.ratingsSummary.grandMean.toFixed(2)}
+                                </span>
+                                <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
+                                    <TrendingUp className="h-6 w-6" />
+                                </div>
+                            </div>
+                            <p className="mt-4 text-xs font-bold bg-white/10 p-2 rounded text-center border border-white/20">
+                                {record.accreditation.ratingsSummary.descriptiveRating}
+                            </p>
+                        </div>
+                        <div className="p-4 rounded-xl border border-dashed border-primary/30 bg-primary/5">
+                            <p className="text-[9px] text-muted-foreground leading-relaxed italic">
+                                These scores are institutionalized records reflecting the program's maturity according to the Quality Assurance standards.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+      )}
 
       {program.isBoardProgram && (
         <Card className="border-green-100 shadow-inner">

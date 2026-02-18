@@ -6,10 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShieldCheck, Calendar, Link as LinkIcon, Award, Users, FileText, CheckCircle2, UserCircle } from 'lucide-react';
+import { ShieldCheck, Calendar, Link as LinkIcon, Award, Users, FileText, CheckCircle2, UserCircle, Calculator, Info } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useEffect, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const accreditationLevels = [
   "Non Accredited",
@@ -25,7 +26,7 @@ const accreditationLevels = [
 ];
 
 const standardAreas = [
-  { code: 'Area I', name: 'Mission, Vision, Goals, and Objectives' },
+  { code: 'Area I', name: 'Vision, Mission, Goals and Objectives' },
   { code: 'Area II', name: 'Faculty' },
   { code: 'Area III', name: 'Curriculum and Instruction' },
   { code: 'Area IV', name: 'Support to Students' },
@@ -65,7 +66,6 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
   }, [selectedLevel]);
 
   // Synchronize area fields when level changes, but ONLY if we don't already have area data.
-  // This prevents the system from wiping user-entered documentation links on load.
   useEffect(() => {
     if (!existingAreas || existingAreas.length === 0) {
         if (isPSVToLevel2) {
@@ -73,7 +73,10 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                 areaCode: area.code,
                 areaName: area.name,
                 googleDriveLink: '',
-                taskForce: ''
+                taskForce: '',
+                weight: 0,
+                mean: 0,
+                weightedMean: 0
             }));
             setValue('accreditation.areas', currentAreas);
         } else if (isLevel3Or4) {
@@ -81,18 +84,52 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                 areaCode: area.code,
                 areaName: area.name,
                 googleDriveLink: '',
-                taskForce: ''
+                taskForce: '',
+                weight: 0,
+                mean: 0,
+                weightedMean: 0
             }));
             const optional = level34OptionalAreas.map(area => ({
                 areaCode: area.code,
                 areaName: area.name,
                 googleDriveLink: '',
-                taskForce: ''
+                taskForce: '',
+                weight: 0,
+                mean: 0,
+                weightedMean: 0
             }));
             setValue('accreditation.areas', [...mandatory, ...optional]);
         }
     }
   }, [isPSVToLevel2, isLevel3Or4, setValue, existingAreas]);
+
+  // Auto-calculation for weighted means and grand total
+  useEffect(() => {
+    if (!existingAreas) return;
+
+    let totalWeight = 0;
+    let totalWeightedMean = 0;
+
+    existingAreas.forEach((area: any, index: number) => {
+        const weight = Number(area.weight) || 0;
+        const mean = Number(area.mean) || 0;
+        const weightedMean = parseFloat((weight * mean).toFixed(2));
+
+        if (area.weightedMean !== weightedMean) {
+            setValue(`accreditation.areas.${index}.weightedMean`, weightedMean);
+        }
+
+        totalWeight += weight;
+        totalWeightedMean += weightedMean;
+    });
+
+    const grandMean = totalWeight > 0 ? parseFloat((totalWeightedMean / totalWeight).toFixed(2)) : 0;
+
+    setValue('accreditation.ratingsSummary.overallTotalWeight', totalWeight);
+    setValue('accreditation.ratingsSummary.overallTotalWeightedMean', parseFloat(totalWeightedMean.toFixed(2)));
+    setValue('accreditation.ratingsSummary.grandMean', grandMean);
+
+  }, [existingAreas, setValue]);
 
   return (
     <div className="space-y-6">
@@ -230,6 +267,144 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
         </Card>
       </div>
 
+      {/* Summary of Ratings Section */}
+      <Card className="border-primary/20">
+        <CardHeader className="bg-primary/5 border-b py-4">
+            <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                    <CardTitle className="text-lg flex items-center gap-2 uppercase tracking-tighter">
+                        <Calculator className="h-5 w-5 text-primary" />
+                        Summary of Ratings
+                    </CardTitle>
+                    <CardDescription>Official scores derived from the accreditation survey instrument.</CardDescription>
+                </div>
+                <Badge variant="outline" className="bg-white font-black text-[10px] uppercase">Official Results</Badge>
+            </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+            <div className="overflow-x-auto rounded-lg border bg-background">
+                <Table>
+                    <TableHeader className="bg-muted/50">
+                        <TableRow className="hover:bg-transparent">
+                            <TableHead className="font-black text-[10px] uppercase tracking-wider py-2">Area of Evaluation</TableHead>
+                            <TableHead className="text-center font-black text-[10px] uppercase tracking-wider py-2 w-[100px]">Weight</TableHead>
+                            <TableHead className="text-center font-black text-[10px] uppercase tracking-wider py-2 w-[100px]">Mean</TableHead>
+                            <TableHead className="text-right font-black text-[10px] uppercase tracking-wider py-2 w-[120px]">Weighted Mean</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {existingAreas?.map((area: any, index: number) => (
+                            <TableRow key={area.areaCode} className="hover:bg-muted/10 group">
+                                <TableCell className="py-2">
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="secondary" className="h-5 text-[9px] font-bold shrink-0">{area.areaCode}</Badge>
+                                        <span className="text-xs font-bold text-slate-700 uppercase tracking-tight">{area.areaName}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                    <FormField
+                                        control={control}
+                                        name={`accreditation.areas.${index}.weight`}
+                                        render={({ field }) => (
+                                            <FormControl>
+                                                <Input 
+                                                    type="number" 
+                                                    step="0.01"
+                                                    {...field} 
+                                                    className="h-8 text-xs font-bold text-center bg-muted/5 group-hover:bg-white transition-colors" 
+                                                    disabled={!canEdit || area.areaCode === 'Area I'} 
+                                                />
+                                            </FormControl>
+                                        )}
+                                    />
+                                </TableCell>
+                                <TableCell className="text-center">
+                                    <FormField
+                                        control={control}
+                                        name={`accreditation.areas.${index}.mean`}
+                                        render={({ field }) => (
+                                            <FormControl>
+                                                <Input 
+                                                    type="number" 
+                                                    step="0.01"
+                                                    {...field} 
+                                                    className="h-8 text-xs font-bold text-center bg-muted/5 group-hover:bg-white transition-colors" 
+                                                    disabled={!canEdit} 
+                                                />
+                                            </FormControl>
+                                        )}
+                                    />
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <div className="text-sm font-black tabular-nums text-primary pr-2">
+                                        {area.weightedMean || '---'}
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                        <TableRow className="bg-muted/30 font-black">
+                            <TableCell className="text-[10px] uppercase tracking-widest text-right pr-4">Overall Totals</TableCell>
+                            <TableCell className="text-center">
+                                <div className="text-sm font-black tabular-nums text-slate-900 border-t-2 border-slate-900 pt-1">
+                                    {watch('accreditation.ratingsSummary.overallTotalWeight') || 0}
+                                </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                                <div className="text-[9px] text-muted-foreground pt-1 opacity-50">---</div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                                <div className="text-sm font-black tabular-nums text-primary border-t-2 border-primary pt-1 pr-2">
+                                    {watch('accreditation.ratingsSummary.overallTotalWeightedMean') || 0}
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+            </div>
+
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card className="shadow-inner bg-slate-50 border-slate-200">
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Institutional Grand Mean</p>
+                                <div className="text-4xl font-black text-primary tabular-nums tracking-tighter">
+                                    {watch('accreditation.ratingsSummary.grandMean') || '0.00'}
+                                </div>
+                            </div>
+                            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                                <TrendingUp className="h-8 w-8 text-primary" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-inner bg-slate-50 border-slate-200">
+                    <CardContent className="p-6">
+                        <div className="space-y-3">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Descriptive Rating</p>
+                            <FormField
+                                control={control}
+                                name="accreditation.ratingsSummary.descriptiveRating"
+                                render={({ field }) => (
+                                    <FormControl>
+                                        <Input 
+                                            {...field} 
+                                            value={field.value || ''} 
+                                            placeholder="e.g., Very Satisfactory" 
+                                            className="h-12 text-lg font-black uppercase tracking-tight bg-white border-slate-300"
+                                            disabled={!canEdit}
+                                        />
+                                    </FormControl>
+                                )}
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </CardContent>
+      </Card>
+
       {/* Dynamic Areas of Documentation */}
       {(isPSVToLevel2 || isLevel3Or4) && (
         <Card className="border-primary/20">
@@ -238,7 +413,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                     <div className="space-y-1">
                         <CardTitle className="text-lg flex items-center gap-2">
                             <FileText className="h-5 w-5 text-primary" />
-                            Areas of Documentation & Responsibilities
+                            Documentation Context & Responsibilities
                         </CardTitle>
                         <CardDescription>
                             {isPSVToLevel2 ? 'Standard 10 Areas for PSV to Level II' : 'Mandatory & Selected Areas for Level III / IV'}
