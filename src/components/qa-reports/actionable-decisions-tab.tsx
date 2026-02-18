@@ -50,9 +50,8 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   const [previewOutput, setPreviewOutput] = useState<ManagementReviewOutput | null>(null);
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+  const [selectedYear, setSelectedYear] = useState<string>('all');
 
-  // Scoped Query - Fetch all outputs and filter in-memory for precision hierarchy
   const outputsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     return query(collection(firestore, 'managementReviewOutputs'), orderBy('createdAt', 'desc'));
@@ -97,7 +96,6 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     const isUnitLevel = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
 
     let outputs = rawOutputs.filter(output => {
-        // Scoping Logic
         const isAssigned = (output.assignments || []).some(a => {
             const isInstitutional = a.campusId === 'university-wide';
             const isMyCampus = a.campusId === userProfile.campusId;
@@ -118,7 +116,6 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
 
         if (!isAssigned && !isAdmin) return false;
 
-        // Year Filtering Logic
         if (selectedYear !== 'all') {
             const reviewData = reviewMap.get(output.mrId);
             return reviewData?.year === selectedYear;
@@ -162,7 +159,6 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     setIsSubmitting(true);
     try {
       const docRef = doc(firestore, 'managementReviewOutputs', selectedOutput.id);
-      
       const updateData: any = {
         ...values,
         actionDate: Timestamp.fromDate(new Date(values.actionDate)),
@@ -173,7 +169,6 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
           updateData.verificationDate = Timestamp.fromDate(new Date(values.verificationDate || new Date()));
           updateData.verifiedBy = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : 'Admin';
       } else {
-          // Ensure non-admins don't overwrite verification data
           delete updateData.verificationRemarks;
           delete updateData.verificationDate;
       }
@@ -225,7 +220,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                 </label>
                 <Select value={selectedYear} onValueChange={setSelectedYear}>
                     <SelectTrigger className="w-[140px] h-9 bg-white font-bold shadow-sm">
-                        <SelectValue placeholder="Select Year" />
+                        <SelectValue placeholder="All Sessions" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Sessions</SelectItem>
@@ -289,6 +284,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                             "text-[8px] h-4 font-bold border-muted-foreground/20",
                                             a.unitId === ALL_UNITS_ID ? "bg-blue-50 text-blue-700" :
                                             a.unitId === ALL_ACADEMIC_ID ? "bg-slate-50 text-slate-700" :
+                                            a.unitId === ALL_ADMIN_ID ? "bg-slate-50 text-slate-700" :
                                             a.unitId === ALL_REDI_ID ? "bg-purple-50 text-purple-700" :
                                             "text-muted-foreground"
                                         )}>
@@ -360,7 +356,6 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
         </CardContent>
       </Card>
 
-      {/* --- PREVIEW DIALOG --- */}
       <Dialog open={!!previewOutput} onOpenChange={(open) => !open && setPreviewOutput(null)}>
         <DialogContent className="max-w-2xl overflow-hidden p-0 border-none shadow-2xl">
             {previewOutput && (
@@ -513,7 +508,6 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
         </DialogContent>
       </Dialog>
 
-      {/* --- UPDATE DIALOG --- */}
       <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
         <DialogContent className="sm:max-w-lg h-[80vh] flex flex-col p-0">
           <DialogHeader className="p-6 border-b shrink-0">
