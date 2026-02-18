@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, ClipboardList, Send, MapPin, Building2, ChevronRight, ListChecks, History, Info } from 'lucide-react';
+import { Loader2, Calendar, ClipboardList, Send, Building2, ListChecks, History, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -38,7 +39,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Scoped Query: All for admin, filter contextually for units/campuses
+  // Scoped Query
   const outputsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     return query(collection(firestore, 'managementReviewOutputs'), orderBy('createdAt', 'desc'));
@@ -54,10 +55,14 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     if (isAdmin) return rawOutputs;
 
     return rawOutputs.filter(output => {
-        const isConcernedUnit = userProfile.unitId && output.concernedUnitIds?.includes(userProfile.unitId);
-        const isTargetCampus = userProfile.campusId && output.campusIds?.includes(userProfile.campusId);
-        const isInstitutional = output.campusIds?.includes('university-wide');
-        return isConcernedUnit || isTargetCampus || isInstitutional;
+        // Precise matching based on assignments
+        return (output.assignments || []).some(a => {
+            const isInstitutional = a.campusId === 'university-wide';
+            const isMyCampusAllUnits = a.campusId === userProfile.campusId && a.unitId === 'all-units';
+            const isMySpecificUnit = a.campusId === userProfile.campusId && a.unitId === userProfile.unitId;
+            
+            return isInstitutional || isMyCampusAllUnits || isMySpecificUnit;
+        });
     });
   }, [rawOutputs, userProfile, isAdmin]);
 
@@ -94,7 +99,11 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   };
 
   const campusMap = new Map(campuses.map(c => [c.id, c.name]));
+  campusMap.set('university-wide', 'University-Wide');
+  
   const unitMap = new Map(units.map(u => [u.id, u.name]));
+  unitMap.set('all-units', 'All Units / Institutional');
+  
   const reviewMap = new Map(reviews?.map(r => [r.id, r.title]));
 
   const safeFormatDate = (date: any) => {
@@ -120,8 +129,8 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                 <TableHeader className="bg-muted/50">
                     <TableRow>
                     <TableHead className="font-bold text-[10px] uppercase">Decision & Source</TableHead>
-                    <TableHead className="font-bold text-[10px] uppercase">Site Scope</TableHead>
-                    <TableHead className="font-bold text-[10px] uppercase">Action Strategy</TableHead>
+                    <TableHead className="font-bold text-[10px] uppercase">Responsibility</TableHead>
+                    <TableHead className="font-bold text-[10px] uppercase">Proposed Strategy</TableHead>
                     <TableHead className="font-bold text-[10px] uppercase text-center">Deadline</TableHead>
                     <TableHead className="font-bold text-[10px] uppercase text-right">Status</TableHead>
                     <TableHead className="text-right font-bold text-[10px] uppercase">Action</TableHead>
@@ -140,11 +149,16 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                         </div>
                         </TableCell>
                         <TableCell>
-                            <div className="flex flex-wrap gap-1 max-w-[150px]">
-                                {output.campusIds?.map(id => (
-                                    <Badge key={id} variant="secondary" className="text-[8px] h-4 font-black bg-primary/5 text-primary border-none">
-                                        {id === 'university-wide' ? 'Institutional' : (campusMap.get(id) || id)}
-                                    </Badge>
+                            <div className="flex flex-col gap-1">
+                                {(output.assignments || []).map((a, i) => (
+                                    <div key={i} className="flex items-center gap-1">
+                                        <Badge variant="secondary" className="text-[8px] h-4 font-black bg-primary/5 text-primary border-none">
+                                            {campusMap.get(a.campusId) || a.campusId}
+                                        </Badge>
+                                        <Badge variant="outline" className="text-[8px] h-4 font-bold border-muted-foreground/20 text-muted-foreground">
+                                            {unitMap.get(a.unitId) || a.unitId}
+                                        </Badge>
+                                    </div>
                                 ))}
                             </div>
                         </TableCell>
@@ -217,9 +231,6 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
             <div className="flex items-center gap-4 pt-2">
                 <span className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
                     <Info className="h-3 w-3" /> Target: {safeFormatDate(selectedOutput?.followUpDate)}
-                </span>
-                <span className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                    <Building2 className="h-3 w-3" /> Assigned Units: {selectedOutput?.concernedUnitIds.map(uid => unitMap.get(uid)).join(', ')}
                 </span>
             </div>
           </div>

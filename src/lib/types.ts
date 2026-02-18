@@ -450,16 +450,22 @@ export type ManagementReview = {
   createdAt: any; // Timestamp
 };
 
+export type MRAssignment = {
+  campusId: string;
+  unitId: string;
+};
+
 export type ManagementReviewOutput = {
   id: string;
   mrId: string; // Linked to ManagementReview
   description: string;
   initiator: string;
-  concernedUnitIds: string[];
-  campusIds: string[]; // Changed from campusId to campusIds for multiple sites
-  actionPlan?: string; // Made optional
+  assignments: MRAssignment[];
+  concernedUnitIds: string[]; // Legacy - kept for backward compatibility if needed
+  campusIds: string[]; // Legacy - kept for backward compatibility if needed
+  actionPlan?: string; 
   followUpDate: any; // Timestamp
-  followUpRemarks?: string; // Action taken / updates from the units
+  followUpRemarks?: string; 
   status: 'Open' | 'On-going' | 'Closed';
   createdAt: any; // Timestamp
 };

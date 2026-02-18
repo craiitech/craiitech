@@ -4,23 +4,22 @@
 import { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, deleteDoc, doc, addDoc, serverTimestamp, where, Timestamp } from 'firebase/firestore';
-import type { ManagementReview, ManagementReviewOutput, Campus, Unit } from '@/lib/types';
+import type { ManagementReview, ManagementReviewOutput, Campus, Unit, MRAssignment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, ChevronRight, User, Users, Globe, Building2, FileText, Presentation, MapPin } from 'lucide-react';
+import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, ChevronRight, User, Globe, Building2, FileText, Presentation } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MultiSelector } from './multi-selector';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -41,14 +40,17 @@ const mrSchema = z.object({
 const outputSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   initiator: z.string().min(1, 'Initiator is required'),
-  concernedUnitIds: z.array(z.string()).min(1, 'At least one unit is required'),
-  campusIds: z.array(z.string()).min(1, 'At least one campus is required'),
+  assignments: z.array(z.object({
+    campusId: z.string().min(1, 'Campus is required'),
+    unitId: z.string().min(1, 'Unit is required'),
+  })).min(1, 'At least one assignment is required'),
   actionPlan: z.string().optional(),
   followUpDate: z.string().min(1, 'Follow-up date is required'),
   status: z.enum(['Open', 'On-going', 'Closed']),
 });
 
 const UNIVERSITY_WIDE_ID = 'university-wide';
+const ALL_UNITS_ID = 'all-units';
 
 const getEmbedUrl = (url: string) => url.replace('/view', '/preview').replace('?usp=sharing', '');
 
@@ -79,7 +81,19 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
 
   const outputForm = useForm<z.infer<typeof outputSchema>>({
     resolver: zodResolver(outputSchema),
-    defaultValues: { description: '', initiator: '', concernedUnitIds: [], campusIds: [], actionPlan: '', followUpDate: '', status: 'Open' }
+    defaultValues: { 
+        description: '', 
+        initiator: '', 
+        assignments: [{ campusId: '', unitId: '' }], 
+        actionPlan: '', 
+        followUpDate: '', 
+        status: 'Open' 
+    }
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: outputForm.control,
+    name: "assignments"
   });
 
   const handleMrSubmit = async (values: z.infer<typeof mrSchema>) => {
@@ -106,16 +120,30 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
     if (!firestore || !selectedMr) return;
     setIsSubmitting(true);
     try {
+      // Legacy compatibility: Keep arrays populated for existing filtering logic
+      const campusIds = Array.from(new Set(values.assignments.map(a => a.campusId)));
+      const concernedUnitIds = Array.from(new Set(values.assignments.map(a => a.unitId)));
+
       await addDoc(collection(firestore, 'managementReviewOutputs'), {
         ...values,
         mrId: selectedMr.id,
+        campusIds,
+        concernedUnitIds,
         followUpDate: Timestamp.fromDate(new Date(values.followUpDate)),
         createdAt: serverTimestamp(),
       });
       toast({ title: 'Success', description: 'MR Output added.' });
       setIsOutputDialogOpen(false);
-      outputForm.reset();
+      outputForm.reset({
+        description: '', 
+        initiator: '', 
+        assignments: [{ campusId: '', unitId: '' }], 
+        actionPlan: '', 
+        followUpDate: '', 
+        status: 'Open'
+      });
     } catch (error) {
+      console.error(error);
       toast({ title: 'Error', description: 'Failed to add output.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
@@ -128,23 +156,17 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
     return map;
   }, [campuses]);
 
-  const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
+  const unitMap = useMemo(() => {
+    const map = new Map(units.map(u => [u.id, u.name]));
+    map.set(ALL_UNITS_ID, 'All Units / Institutional');
+    return map;
+  }, [units]);
 
   const safeFormatDate = (date: any) => {
     if (!date) return 'N/A';
     const d = date instanceof Timestamp ? date.toDate() : new Date(date);
     return format(d, 'PP');
   };
-
-  const campusOptions = useMemo(() => {
-    const options = campuses.map(c => ({ id: c.id, name: c.name }));
-    options.unshift({ id: UNIVERSITY_WIDE_ID, name: "University-Wide (Institutional)" });
-    return options;
-  }, [campuses]);
-
-  const unitOptions = useMemo(() => {
-    return units.map(u => ({ id: u.id, name: u.name }));
-  }, [units]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -191,7 +213,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
             ))}
             {reviews?.length === 0 && (
                 <div className="text-center py-20 border border-dashed rounded-xl bg-muted/10">
-                    <Calendar className="h-8 w-8 mx-auto text-muted-foreground/20 mb-2" />
+                    <Presentation className="h-8 w-8 mx-auto text-muted-foreground/20 mb-2" />
                     <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">No sessions found</p>
                 </div>
             )}
@@ -216,7 +238,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                         </div>
                         <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold" asChild>
                             <a href={selectedMr.minutesLink} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="h-3 w-3 mr-1.5" /> OPEN IN PDF READER
+                                <ExternalLink className="h-3 w-3 mr-1.5" /> OPEN MINUTES
                             </a>
                         </Button>
                     </div>
@@ -252,8 +274,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                         <TableHeader className="bg-muted/30 sticky top-0 z-10">
                                             <TableRow className="hover:bg-transparent">
                                                 <TableHead className="text-[10px] font-black uppercase py-2">Decision / Description</TableHead>
-                                                <TableHead className="text-[10px] font-black uppercase py-2">Site Scope</TableHead>
-                                                <TableHead className="text-[10px] font-black uppercase py-2">Concerned Units</TableHead>
+                                                <TableHead className="text-[10px] font-black uppercase py-2">Assigned Responsibilities</TableHead>
                                                 <TableHead className="text-[10px] font-black uppercase py-2 text-center">Follow-up</TableHead>
                                                 <TableHead className="text-[10px] font-black uppercase py-2 text-right">Status</TableHead>
                                             </TableRow>
@@ -269,20 +290,17 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {output.campusIds?.map(id => (
-                                                                <Badge key={id} variant="secondary" className="text-[8px] font-black h-4 py-0 uppercase">
-                                                                    {campusMap.get(id) || id}
-                                                                </Badge>
-                                                            ))}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {output.concernedUnitIds.map(uid => (
-                                                                <Badge key={uid} variant="outline" className="text-[8px] font-bold border-primary/20 bg-background text-primary/80 h-4 py-0 uppercase">
-                                                                    {unitMap.get(uid) || '...'}
-                                                                </Badge>
+                                                        <div className="flex flex-col gap-1.5">
+                                                            {(output.assignments || []).map((a, idx) => (
+                                                                <div key={idx} className="flex flex-wrap items-center gap-1">
+                                                                    <Badge variant="secondary" className="text-[8px] font-black h-4 py-0 uppercase bg-primary/5 text-primary border-none">
+                                                                        {campusMap.get(a.campusId) || a.campusId}
+                                                                    </Badge>
+                                                                    <ChevronRight className="h-2.5 w-2.5 opacity-30" />
+                                                                    <Badge variant="outline" className="text-[8px] font-bold border-primary/20 h-4 py-0 uppercase">
+                                                                        {unitMap.get(a.unitId) || a.unitId}
+                                                                    </Badge>
+                                                                </div>
                                                             ))}
                                                         </div>
                                                     </TableCell>
@@ -307,7 +325,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                             ))}
                                             {outputs?.length === 0 && (
                                                 <TableRow>
-                                                    <TableCell colSpan={5} className="h-40 text-center">
+                                                    <TableCell colSpan={4} className="h-40 text-center">
                                                         <div className="flex flex-col items-center gap-2 opacity-20">
                                                             <Presentation className="h-10 w-10" />
                                                             <p className="text-[10px] font-black uppercase tracking-widest">No decisions logged</p>
@@ -326,7 +344,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                 <TabsContent value="minutes" className="flex-1 min-h-0 pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <Card className="h-full flex flex-col overflow-hidden border-primary/10">
                         <div className="p-4 border-b bg-muted/5 flex items-center justify-between shrink-0">
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Minutes of the Meeting (PDF Reader)</h4>
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Minutes of the Meeting</h4>
                             <p className="text-[9px] font-bold text-muted-foreground italic">Powered by Google Drive Preview</p>
                         </div>
                         <div className="flex-1 bg-muted relative">
@@ -344,13 +362,15 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
         ) : (
           <div className="h-full flex flex-col items-center justify-center border border-dashed rounded-2xl bg-muted/5 text-muted-foreground animate-in fade-in duration-500">
             <div className="bg-muted h-20 w-20 rounded-full flex items-center justify-center mb-4">
-                <Users className="h-10 w-10 opacity-20" />
+                <Presentation className="h-10 w-10 opacity-20" />
             </div>
             <h4 className="font-black text-xs uppercase tracking-[0.2em]">MR Content Hub</h4>
             <p className="text-[10px] mt-2 max-w-[200px] text-center">Select a Management Review session from the meeting log to view minutes and decisions.</p>
           </div>
         )}
       </div>
+
+      {/* --- Dialogs --- */}
 
       <Dialog open={isMrDialogOpen} onOpenChange={setIsMrDialogOpen}>
         <DialogContent className="sm:max-w-md">
@@ -400,89 +420,121 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
       </Dialog>
 
       <Dialog open={isOutputDialogOpen} onOpenChange={setIsOutputDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl">
+          <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
                 <ListChecks className="h-5 w-5" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Decision Registry</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Action Registry</span>
             </div>
             <DialogTitle className="text-xl font-bold">Log Review Output</DialogTitle>
-            <DialogDescription className="text-xs">Document actionable items or policy decisions from this session.</DialogDescription>
+            <DialogDescription className="text-xs">Assign decisions to specific campuses and units.</DialogDescription>
           </DialogHeader>
           <Form {...outputForm}>
-            <form onSubmit={outputForm.handleSubmit(handleOutputSubmit)} className="space-y-6 pt-4">
-              <FormField control={outputForm.control} name="description" render={({ field }) => (
-                <FormItem><FormLabel className="text-xs font-bold uppercase">Decision Description / Statement</FormLabel><FormControl><Input {...field} placeholder="Summarize the decision or required action..." className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
-              )} />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={outputForm.control} name="initiator" render={({ field }) => (
-                  <FormItem><FormLabel className="text-xs font-bold uppercase">Initiator / Responsible Party</FormLabel><FormControl><Input {...field} placeholder="Name or Office" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={outputForm.control} name="followUpDate" render={({ field }) => (
-                  <FormItem><FormLabel className="text-xs font-bold uppercase">Follow-up Target Date</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
-                )} />
-              </div>
+            <form onSubmit={outputForm.handleSubmit(handleOutputSubmit)} className="flex-1 flex flex-col overflow-hidden">
+              <ScrollArea className="flex-1">
+                <div className="p-8 space-y-8">
+                    <FormField control={outputForm.control} name="description" render={({ field }) => (
+                        <FormItem><FormLabel className="text-xs font-black uppercase text-slate-700">Decision Description / Statement</FormLabel><FormControl><Input {...field} placeholder="Summarize the decision or required action..." className="bg-slate-50 h-11" /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    
+                    <div className="grid grid-cols-2 gap-6">
+                        <FormField control={outputForm.control} name="initiator" render={({ field }) => (
+                        <FormItem><FormLabel className="text-xs font-black uppercase text-slate-700">Initiator / Responsible Party</FormLabel><FormControl><Input {...field} placeholder="Name or Office" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={outputForm.control} name="followUpDate" render={({ field }) => (
+                        <FormItem><FormLabel className="text-xs font-black uppercase text-slate-700">Follow-up Target Date</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                        )} />
+                    </div>
 
-              <div className="space-y-6">
-                <FormField control={outputForm.control} name="campusIds" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase text-primary flex items-center gap-2">
-                            <Building2 className="h-3.5 w-3.5" />
-                            Responsible Campuses / Sites
-                        </FormLabel>
-                        <FormControl>
-                            <MultiSelector 
-                                items={campusOptions} 
-                                selectedIds={field.value} 
-                                onSelect={(ids) => field.onChange(ids)} 
-                                label="Add Campus"
-                                placeholder="Select Campus..."
-                            />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between border-b pb-2">
+                            <h4 className="text-xs font-black uppercase tracking-widest text-primary">Responsibility Assignments</h4>
+                            <p className="text-[10px] font-bold text-muted-foreground italic">Campus + Unit coupling required per entry</p>
+                        </div>
+                        
+                        <div className="space-y-3">
+                            {fields.map((field, index) => {
+                                const currentCampusId = outputForm.watch(`assignments.${index}.campusId`);
+                                const filteredUnits = currentCampusId === UNIVERSITY_WIDE_ID 
+                                    ? [] 
+                                    : units.filter(u => u.campusIds?.includes(currentCampusId));
 
-                <FormField control={outputForm.control} name="concernedUnitIds" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase text-primary flex items-center gap-2">
-                            <Users className="h-3.5 w-3.5" />
-                            Concerned Unit(s) / Offices
-                        </FormLabel>
-                        <FormControl>
-                            <MultiSelector 
-                                items={unitOptions} 
-                                selectedIds={field.value} 
-                                onSelect={(ids) => field.onChange(ids)} 
-                                label="Add Unit"
-                                placeholder="Select Unit..."
-                            />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-              </div>
+                                return (
+                                    <div key={field.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end p-4 rounded-lg border bg-muted/5 group relative transition-all hover:border-primary/30">
+                                        <div className="md:col-span-5 space-y-1.5">
+                                            <Label className="text-[10px] font-bold uppercase text-muted-foreground">Responsible Campus</Label>
+                                            <FormField control={outputForm.control} name={`assignments.${index}.campusId`} render={({ field: cField }) => (
+                                                <Select onValueChange={(val) => { cField.onChange(val); outputForm.setValue(`assignments.${index}.unitId`, ''); }} value={cField.value}>
+                                                    <FormControl><SelectTrigger className="bg-background h-9 text-xs font-bold"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value={UNIVERSITY_WIDE_ID} className="font-bold text-primary italic">University-Wide (Institutional)</SelectItem>
+                                                        {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
+                                            )} />
+                                        </div>
+                                        <div className="md:col-span-6 space-y-1.5">
+                                            <Label className="text-[10px] font-bold uppercase text-muted-foreground">Concerned Unit / Office</Label>
+                                            <FormField control={outputForm.control} name={`assignments.${index}.unitId`} render={({ field: uField }) => (
+                                                <Select onValueChange={uField.onChange} value={uField.value} disabled={!currentCampusId}>
+                                                    <FormControl><SelectTrigger className="bg-background h-9 text-xs font-bold"><SelectValue placeholder={currentCampusId ? "Select Unit" : "Select Campus First"} /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value={ALL_UNITS_ID} className="font-bold text-emerald-600 italic">All Relevant Units / Offices</SelectItem>
+                                                        {filteredUnits.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
+                                            )} />
+                                        </div>
+                                        <div className="md:col-span-1 flex justify-end">
+                                            <Button 
+                                                type="button" 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-9 w-9 text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity" 
+                                                onClick={() => remove(index)}
+                                                disabled={fields.length === 1}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full border-dashed h-10 font-bold text-xs uppercase gap-2 hover:bg-primary/5 hover:text-primary hover:border-primary/50"
+                            onClick={() => append({ campusId: '', unitId: '' })}
+                            disabled={!outputForm.watch(`assignments.${fields.length - 1}.campusId`) || !outputForm.watch(`assignments.${fields.length - 1}.unitId`)}
+                        >
+                            <PlusCircle className="h-4 w-4" />
+                            Add Campus + Unit Concerned
+                        </Button>
+                    </div>
 
-              <FormField control={outputForm.control} name="actionPlan" render={({ field }) => (
-                <FormItem>
-                    <FormLabel className="text-xs font-bold uppercase">Proposed Action Strategy (Optional)</FormLabel>
-                    <FormControl><Input {...field} placeholder="Brief suggestion on implementation..." className="bg-slate-50" /></FormControl>
-                    <FormDescription className="text-[10px]">Leave blank if the unit will propose their own plan.</FormDescription>
-                </FormItem>
-              )} />
+                    <FormField control={outputForm.control} name="actionPlan" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-xs font-black uppercase text-slate-700">Proposed Action Strategy (Optional)</FormLabel>
+                            <FormControl><Input {...field} placeholder="Brief suggestion on implementation..." className="bg-slate-50" /></FormControl>
+                            <FormDescription className="text-[10px]">Leave blank if the unit will propose their own plan based on the decision.</FormDescription>
+                        </FormItem>
+                    )} />
 
-              <FormField control={outputForm.control} name="status" render={({ field }) => (
-                <FormItem><FormLabel className="text-xs font-bold uppercase text-primary">Initial Lifecycle Status</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl><SelectTrigger className="bg-primary/5 border-primary/20 font-black"><SelectValue /></SelectTrigger></FormControl>
-                    <SelectContent><SelectItem value="Open">Open</SelectItem><SelectItem value="On-going">On-going</SelectItem><SelectItem value="Closed">Closed</SelectItem></SelectContent>
-                  </Select><FormMessage /></FormItem>
-              )} />
+                    <FormField control={outputForm.control} name="status" render={({ field }) => (
+                        <FormItem><FormLabel className="text-xs font-black uppercase text-primary">Initial Lifecycle Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl><SelectTrigger className="bg-primary/5 border-primary/20 font-black"><SelectValue /></SelectTrigger></FormControl>
+                            <SelectContent><SelectItem value="Open">Open</SelectItem><SelectItem value="On-going">On-going</SelectItem><SelectItem value="Closed">Closed</SelectItem></SelectContent>
+                        </Select><FormMessage /></FormItem>
+                    )} />
+                </div>
+              </ScrollArea>
 
-              <DialogFooter className="pt-4">
+              <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
                 <Button type="button" variant="outline" onClick={() => setIsOutputDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
-                <Button type="submit" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black text-xs uppercase tracking-widest">
+                <Button type="submit" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black text-xs uppercase tracking-widest">
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ListChecks className="h-4 w-4 mr-1.5" />}
                     Log MR Output
                 </Button>
