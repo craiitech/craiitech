@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -95,7 +96,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     const isCampusLevel = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
     const isUnitLevel = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
 
-    let outputs = rawOutputs.filter(output => {
+    return rawOutputs.filter(output => {
         const isAssigned = (output.assignments || []).some(a => {
             const isInstitutional = a.campusId === 'university-wide';
             const isMyCampus = a.campusId === userProfile.campusId;
@@ -123,8 +124,6 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
 
         return true;
     });
-
-    return outputs;
   }, [rawOutputs, userProfile, isAdmin, userRole, myUnit, selectedYear, reviewMap]);
 
   const form = useForm<z.infer<typeof updateSchema>>({
@@ -169,6 +168,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
           updateData.verificationDate = Timestamp.fromDate(new Date(values.verificationDate || new Date()));
           updateData.verifiedBy = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : 'Admin';
       } else {
+          // If not closed or not admin, we don't allow setting verification fields
           delete updateData.verificationRemarks;
           delete updateData.verificationDate;
       }
@@ -634,7 +634,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                         </div>
                     )}
 
-                    <DialogFooter className="pt-4 border-t gap-2 sm:gap-0">
+                    <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
                         <Button type="button" variant="outline" onClick={() => setIsUpdateDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
                         <Button type="submit" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black">
                             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4 mr-1.5" />}

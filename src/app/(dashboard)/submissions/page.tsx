@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter } from 'lucide-react';
@@ -353,7 +354,7 @@ export default function SubmissionsPage() {
                                                         sub.statusId === 'pending' && "bg-slate-500 text-white"
                                                     )}
                                                 >
-                                                    {sub.statusId === 'submitted' ? 'AWAITING APPROVAL' : sub.statusId.toUpperCase()}
+                                                    {sub.statusId === 'submitted' ? 'AWAITING APPROVAL' : (sub.statusId?.toUpperCase() || 'UNKNOWN')}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right space-x-2 whitespace-nowrap">

@@ -318,6 +318,7 @@ export default function SubmissionDetailPage() {
   };
   
   const getStatusText = (status: string) => {
+    if (!status) return 'UNKNOWN';
     return status === 'submitted' ? 'AWAITING APPROVAL' : status.toUpperCase();
   }
 

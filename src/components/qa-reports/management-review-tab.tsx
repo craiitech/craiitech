@@ -98,7 +98,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
     }
   });
 
-  const { fields, append, remove, replace } = useFieldArray({
+  const { fields, append, remove } = useFieldArray({
     control: outputForm.control,
     name: "assignments"
   });
@@ -450,8 +450,8 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                 <Presentation className="h-5 w-5" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Session Creation</span>
             </div>
-            <DialogTitle className="text-xl font-bold">New Management Review</DialogTitle>
-            <DialogDescription className="text-xs">Log an institutional review session into the registry.</DialogDescription>
+            <DialogTitle>New Management Review</DialogTitle>
+            <DialogDescription>Log an institutional review session into the registry.</DialogDescription>
           </DialogHeader>
           <Form {...mrForm}>
             <form onSubmit={mrForm.handleSubmit(handleMrSubmit)} className="space-y-4 pt-4">
@@ -497,8 +497,8 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                 <ListChecks className="h-5 w-5" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Action Registry</span>
             </div>
-            <DialogTitle className="text-xl font-bold">{editingOutput ? 'Edit' : 'Log'} Review Output</DialogTitle>
-            <DialogDescription className="text-xs">Assign decisions to specific campuses and units.</DialogDescription>
+            <DialogTitle>{editingOutput ? 'Edit' : 'Log'} Review Output</DialogTitle>
+            <DialogDescription>Assign decisions to specific campuses and units.</DialogDescription>
           </DialogHeader>
           <Form {...outputForm}>
             <form onSubmit={outputForm.handleSubmit(handleOutputSubmit)} className="flex-1 flex flex-col overflow-hidden">
