@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -59,9 +59,19 @@ const level34OptionalAreas = [
 ];
 
 export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
-  const { control, watch, setValue } = useFormContext();
-  const selectedLevel = watch('accreditation.level');
-  const existingAreas = watch('accreditation.areas');
+  const { control, setValue } = useFormContext();
+  
+  // Watch specifically for level changes
+  const selectedLevel = useWatch({ control, name: 'accreditation.level' });
+  
+  // Use Field Array for stable input identity
+  const { fields, replace } = useFieldArray({
+    control,
+    name: "accreditation.areas"
+  });
+
+  // Watch the specific areas array for live calculations
+  const watchedAreas = useWatch({ control, name: 'accreditation.areas' });
 
   const isLevel3Or4 = useMemo(() => {
     return selectedLevel?.includes('Level III') || selectedLevel?.includes('Level IV');
@@ -73,9 +83,9 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
            selectedLevel?.includes('Level II');
   }, [selectedLevel]);
 
-  // Synchronize area fields when level changes, but ONLY if we don't already have area data.
+  // Synchronize area fields when level changes, but ONLY if the registry is empty
   useEffect(() => {
-    if (!existingAreas || existingAreas.length === 0) {
+    if (!watchedAreas || watchedAreas.length === 0) {
         if (isPSVToLevel2) {
             const currentAreas = standardAreas.map(area => ({
                 areaCode: area.code,
@@ -86,7 +96,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                 mean: 0,
                 weightedMean: 0
             }));
-            setValue('accreditation.areas', currentAreas);
+            replace(currentAreas);
         } else if (isLevel3Or4) {
             const mandatory = level34MandatoryAreas.map(area => ({
                 areaCode: area.code,
@@ -106,38 +116,41 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                 mean: 0,
                 weightedMean: 0
             }));
-            setValue('accreditation.areas', [...mandatory, ...optional]);
+            replace([...mandatory, ...optional]);
         }
     }
-  }, [isPSVToLevel2, isLevel3Or4, setValue, existingAreas]);
+  }, [isPSVToLevel2, isLevel3Or4, replace, watchedAreas]);
 
-  // Auto-calculation for weighted means and grand total
+  // Automatic Calculation Logic
   useEffect(() => {
-    if (!existingAreas) return;
+    if (!watchedAreas || watchedAreas.length === 0) return;
 
-    let totalWeight = 0;
-    let totalWeightedMean = 0;
+    let grandTotalWeight = 0;
+    let grandTotalWeightedMean = 0;
 
-    existingAreas.forEach((area: any, index: number) => {
-        const weight = Number(area.weight) || 0;
-        const mean = Number(area.mean) || 0;
-        const weightedMean = parseFloat((weight * mean).toFixed(2));
+    watchedAreas.forEach((area: any, index: number) => {
+        const weight = parseFloat(area.weight) || 0;
+        const mean = parseFloat(area.mean) || 0;
+        const calculatedWeightedMean = parseFloat((weight * mean).toFixed(2));
 
-        if (area.weightedMean !== weightedMean) {
-            setValue(`accreditation.areas.${index}.weightedMean`, weightedMean);
+        // Update the weighted mean for this row if it differs (to avoid infinite loops)
+        if (area.weightedMean !== calculatedWeightedMean) {
+            setValue(`accreditation.areas.${index}.weightedMean`, calculatedWeightedMean);
         }
 
-        totalWeight += weight;
-        totalWeightedMean += weightedMean;
+        grandTotalWeight += weight;
+        grandTotalWeightedMean += calculatedWeightedMean;
     });
 
-    const grandMean = totalWeight > 0 ? parseFloat((totalWeightedMean / totalWeight).toFixed(2)) : 0;
+    const calculatedGrandMean = grandTotalWeight > 0 
+        ? parseFloat((grandTotalWeightedMean / grandTotalWeight).toFixed(2)) 
+        : 0;
 
-    setValue('accreditation.ratingsSummary.overallTotalWeight', totalWeight);
-    setValue('accreditation.ratingsSummary.overallTotalWeightedMean', parseFloat(totalWeightedMean.toFixed(2)));
-    setValue('accreditation.ratingsSummary.grandMean', grandMean);
+    setValue('accreditation.ratingsSummary.overallTotalWeight', parseFloat(grandTotalWeight.toFixed(2)));
+    setValue('accreditation.ratingsSummary.overallTotalWeightedMean', parseFloat(grandTotalWeightedMean.toFixed(2)));
+    setValue('accreditation.ratingsSummary.grandMean', calculatedGrandMean);
 
-  }, [existingAreas, setValue]);
+  }, [watchedAreas, setValue]);
 
   return (
     <div className="space-y-6">
@@ -312,26 +325,26 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {existingAreas?.map((area: any, index: number) => (
-                            <TableRow key={area.areaCode} className="hover:bg-muted/10 group">
+                        {fields.map((field, index) => (
+                            <TableRow key={field.id} className="hover:bg-muted/10 group">
                                 <TableCell className="py-2">
                                     <div className="flex items-center gap-2">
-                                        <Badge variant="secondary" className="h-5 text-[9px] font-bold shrink-0">{area.areaCode}</Badge>
-                                        <span className="text-xs font-bold text-slate-700 uppercase tracking-tight">{area.areaName}</span>
+                                        <Badge variant="secondary" className="h-5 text-[9px] font-bold shrink-0">{(field as any).areaCode}</Badge>
+                                        <span className="text-xs font-bold text-slate-700 uppercase tracking-tight">{(field as any).areaName}</span>
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-center">
                                     <FormField
                                         control={control}
                                         name={`accreditation.areas.${index}.weight`}
-                                        render={({ field }) => (
+                                        render={({ field: inputField }) => (
                                             <FormControl>
                                                 <Input 
                                                     type="number" 
                                                     step="0.01"
-                                                    {...field} 
+                                                    {...inputField} 
                                                     className="h-8 text-xs font-bold text-center bg-muted/5 group-hover:bg-white transition-colors" 
-                                                    disabled={!canEdit || area.areaCode === 'Area I'} 
+                                                    disabled={!canEdit} 
                                                 />
                                             </FormControl>
                                         )}
@@ -341,12 +354,12 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                                     <FormField
                                         control={control}
                                         name={`accreditation.areas.${index}.mean`}
-                                        render={({ field }) => (
+                                        render={({ field: inputField }) => (
                                             <FormControl>
                                                 <Input 
                                                     type="number" 
                                                     step="0.01"
-                                                    {...field} 
+                                                    {...inputField} 
                                                     className="h-8 text-xs font-bold text-center bg-muted/5 group-hover:bg-white transition-colors" 
                                                     disabled={!canEdit} 
                                                 />
@@ -356,7 +369,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="text-sm font-black tabular-nums text-primary pr-2">
-                                        {area.weightedMean || '---'}
+                                        {(watchedAreas?.[index] as any)?.weightedMean?.toFixed(2) || '0.00'}
                                     </div>
                                 </TableCell>
                             </TableRow>
@@ -365,7 +378,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                             <TableCell className="text-[10px] uppercase tracking-widest text-right pr-4">Overall Totals</TableCell>
                             <TableCell className="text-center">
                                 <div className="text-sm font-black tabular-nums text-slate-900 border-t-2 border-slate-900 pt-1">
-                                    {watch('accreditation.ratingsSummary.overallTotalWeight') || 0}
+                                    {useWatch({ control, name: 'accreditation.ratingsSummary.overallTotalWeight' }) || 0}
                                 </div>
                             </TableCell>
                             <TableCell className="text-center">
@@ -373,7 +386,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                             </TableCell>
                             <TableCell className="text-right">
                                 <div className="text-sm font-black tabular-nums text-primary border-t-2 border-primary pt-1 pr-2">
-                                    {watch('accreditation.ratingsSummary.overallTotalWeightedMean') || 0}
+                                    {useWatch({ control, name: 'accreditation.ratingsSummary.overallTotalWeightedMean' }) || 0}
                                 </div>
                             </TableCell>
                         </TableRow>
@@ -388,7 +401,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                             <div className="space-y-1">
                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Institutional Grand Mean</p>
                                 <div className="text-4xl font-black text-primary tabular-nums tracking-tighter">
-                                    {watch('accreditation.ratingsSummary.grandMean') || '0.00'}
+                                    {useWatch({ control, name: 'accreditation.ratingsSummary.grandMean' })?.toFixed(2) || '0.00'}
                                 </div>
                             </div>
                             <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
@@ -445,14 +458,14 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
             </CardHeader>
             <CardContent className="pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8">
-                    {watch('accreditation.areas')?.map((area: any, index: number) => {
-                        const isMandatory = isLevel3Or4 && (area.areaName === 'Instruction' || area.areaName === 'Extension');
+                    {fields.map((field: any, index: number) => {
+                        const isMandatory = isLevel3Or4 && (field.areaName === 'Instruction' || field.areaName === 'Extension');
                         return (
-                            <div key={area.areaCode} className="space-y-4 p-5 rounded-lg border bg-muted/5 relative group transition-all hover:border-primary/30 shadow-sm">
+                            <div key={field.id} className="space-y-4 p-5 rounded-lg border bg-muted/5 relative group transition-all hover:border-primary/30 shadow-sm">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <Badge variant="secondary" className="h-5 text-[10px] font-bold">{area.areaCode}</Badge>
-                                        <span className="text-sm font-black uppercase tracking-tight">{area.areaName}</span>
+                                        <Badge variant="secondary" className="h-5 text-[10px] font-bold">{field.areaCode}</Badge>
+                                        <span className="text-sm font-black uppercase tracking-tight">{field.areaName}</span>
                                     </div>
                                     {isMandatory && (
                                         <Badge variant="default" className="h-4 text-[8px] bg-green-600">MANDATORY</Badge>
@@ -463,15 +476,15 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                                     <FormField
                                         control={control}
                                         name={`accreditation.areas.${index}.taskForce`}
-                                        render={({ field }) => (
+                                        render={({ field: inputField }) => (
                                             <FormItem>
                                                 <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                                                     <Users className="h-3 w-3" /> Area Task Force / Head
                                                 </FormLabel>
                                                 <FormControl>
                                                     <Input 
-                                                        {...field} 
-                                                        value={field.value || ''}
+                                                        {...inputField} 
+                                                        value={inputField.value || ''}
                                                         placeholder="Assigned person(s) for this area" 
                                                         className="h-8 text-xs bg-background" 
                                                         disabled={!canEdit} 
@@ -483,15 +496,15 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                                     <FormField
                                         control={control}
                                         name={`accreditation.areas.${index}.googleDriveLink`}
-                                        render={({ field }) => (
+                                        render={({ field: inputField }) => (
                                             <FormItem>
                                                 <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                                                     <LinkIcon className="h-3 w-3" /> Documentation Link
                                                 </FormLabel>
                                                 <FormControl>
                                                     <Input 
-                                                        {...field} 
-                                                        value={field.value || ''}
+                                                        {...inputField} 
+                                                        value={inputField.value || ''}
                                                         placeholder="GDrive Folder/File Link" 
                                                         className="h-8 text-xs bg-background" 
                                                         disabled={!canEdit} 
