@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, ChevronRight, User, Globe, Building2, FileText, Presentation } from 'lucide-react';
+import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, ChevronRight, User, Globe, Building2, FileText, Presentation, Hash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -40,6 +41,7 @@ const mrSchema = z.object({
 const outputSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   initiator: z.string().min(1, 'Initiator is required'),
+  lineNumber: z.string().optional(),
   assignments: z.array(z.object({
     campusId: z.string().min(1, 'Campus is required'),
     unitId: z.string().min(1, 'Unit is required'),
@@ -84,6 +86,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
     defaultValues: { 
         description: '', 
         initiator: '', 
+        lineNumber: '',
         assignments: [{ campusId: '', unitId: '' }], 
         actionPlan: '', 
         followUpDate: '', 
@@ -120,7 +123,6 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
     if (!firestore || !selectedMr) return;
     setIsSubmitting(true);
     try {
-      // Logic for filtering
       const campusIds = Array.from(new Set(values.assignments.map(a => a.campusId)));
       const concernedUnitIds = Array.from(new Set(values.assignments.map(a => a.unitId)));
 
@@ -137,6 +139,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
       outputForm.reset({
         description: '', 
         initiator: '', 
+        lineNumber: '',
         assignments: [{ campusId: '', unitId: '' }], 
         actionPlan: '', 
         followUpDate: '', 
@@ -283,10 +286,20 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                             {outputs?.map(output => (
                                                 <TableRow key={output.id} className="hover:bg-muted/20 transition-colors">
                                                     <TableCell className="max-w-xs py-4">
-                                                        <p className="font-bold text-xs text-slate-800 leading-relaxed">{output.description}</p>
-                                                        <div className="flex items-center gap-1.5 mt-2 opacity-60">
-                                                            <User className="h-2.5 w-2.5" />
-                                                            <span className="text-[9px] font-bold uppercase tracking-tighter">Initiator: {output.initiator}</span>
+                                                        <div className="flex flex-col gap-1">
+                                                            <p className="font-bold text-xs text-slate-800 leading-relaxed">{output.description}</p>
+                                                            <div className="flex flex-wrap items-center gap-3 mt-2 opacity-60">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <User className="h-2.5 w-2.5" />
+                                                                    <span className="text-[9px] font-bold uppercase tracking-tighter">Initiator: {output.initiator}</span>
+                                                                </div>
+                                                                {output.lineNumber && (
+                                                                    <div className="flex items-center gap-1.5 text-primary">
+                                                                        <Hash className="h-2.5 w-2.5" />
+                                                                        <span className="text-[9px] font-black uppercase tracking-tighter">MR Minutes Line: {output.lineNumber}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
@@ -433,9 +446,24 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
             <form onSubmit={outputForm.handleSubmit(handleOutputSubmit)} className="flex-1 flex flex-col overflow-hidden">
               <ScrollArea className="flex-1">
                 <div className="p-8 space-y-8">
-                    <FormField control={outputForm.control} name="description" render={({ field }) => (
-                        <FormItem><FormLabel className="text-xs font-black uppercase text-slate-700">Decision Description / Statement</FormLabel><FormControl><Input {...field} placeholder="Summarize the decision or required action..." className="bg-slate-50 h-11" /></FormControl><FormMessage /></FormItem>
-                    )} />
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div className="md:col-span-3">
+                            <FormField control={outputForm.control} name="description" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-black uppercase text-slate-700">Decision Description / Statement</FormLabel><FormControl><Input {...field} placeholder="Summarize the decision or required action..." className="bg-slate-50 h-11" /></FormControl><FormMessage /></FormItem>
+                            )} />
+                        </div>
+                        <FormField control={outputForm.control} name="lineNumber" render={({ field }) => (
+                            <FormItem><FormLabel className="text-xs font-black uppercase text-primary">MR Line Number</FormLabel>
+                                <FormControl>
+                                    <div className="relative">
+                                        <Hash className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground opacity-50" />
+                                        <Input {...field} placeholder="e.g., 42" className="bg-slate-50 h-11 pl-9 font-mono" />
+                                    </div>
+                                </FormControl>
+                                <FormDescription className="text-[9px]">Reference line from minutes</FormDescription>
+                            </FormItem>
+                        )} />
+                    </div>
                     
                     <div className="grid grid-cols-2 gap-6">
                         <FormField control={outputForm.control} name="initiator" render={({ field }) => (

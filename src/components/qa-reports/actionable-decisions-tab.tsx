@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, ClipboardList, Send, Building2, ListChecks, History, Info, User, CheckCircle2 } from 'lucide-react';
+import { Loader2, Calendar, ClipboardList, Send, Building2, ListChecks, History, Info, User, CheckCircle2, Hash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -150,9 +150,17 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                         <TableCell>
                         <div className="flex flex-col gap-1 max-w-xs">
                             <span className="font-bold text-sm text-slate-900 leading-snug">{output.description}</span>
-                            <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
-                                <History className="h-2.5 w-2.5" />
-                                From: {reviewMap.get(output.mrId) || 'Management Review'}
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                                <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
+                                    <History className="h-2.5 w-2.5" />
+                                    From: {reviewMap.get(output.mrId) || 'Management Review'}
+                                </div>
+                                {output.lineNumber && (
+                                    <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-tighter bg-slate-100 px-1.5 py-0.5 rounded">
+                                        <Hash className="h-2 w-2" />
+                                        Line: {output.lineNumber}
+                                    </div>
+                                )}
                             </div>
                             {output.actionTakenBy && (
                                 <div className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-600 uppercase tracking-tighter">
@@ -240,7 +248,12 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
           </DialogHeader>
           
           <div className="p-4 bg-muted/30 rounded-lg border mb-4 space-y-2">
-            <p className="text-[10px] font-black text-primary uppercase tracking-widest">Management Decision</p>
+            <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black text-primary uppercase tracking-widest">Management Decision</p>
+                {selectedOutput?.lineNumber && (
+                    <Badge variant="outline" className="text-[9px] h-4 font-bold border-primary/30 text-primary uppercase">Minutes Line: {selectedOutput.lineNumber}</Badge>
+                )}
+            </div>
             <p className="text-sm font-bold leading-relaxed">{selectedOutput?.description}</p>
             <div className="flex items-center gap-4 pt-2">
                 <span className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">

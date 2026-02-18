@@ -470,6 +470,7 @@ export type ManagementReviewOutput = {
   createdAt: any; // Timestamp
   actionDate?: any; // New - when unit executed action
   actionTakenBy?: string; // New - who executed action
+  lineNumber?: string; // Line number from MR minutes
 };
 
 export type CorrectiveActionRequest = {
