@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -313,6 +314,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                     <Table>
                                         <TableHeader className="bg-muted/30 sticky top-0 z-10">
                                             <TableRow className="hover:bg-transparent">
+                                                <TableHead className="text-[10px] font-black uppercase py-2 w-[40px]">#</TableHead>
                                                 <TableHead className="text-[10px] font-black uppercase py-2">Decision / Description</TableHead>
                                                 <TableHead className="text-[10px] font-black uppercase py-2">Assigned Responsibilities</TableHead>
                                                 <TableHead className="text-[10px] font-black uppercase py-2 text-center">Follow-up</TableHead>
@@ -321,8 +323,9 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {outputs?.map(output => (
+                                            {outputs?.map((output, index) => (
                                                 <TableRow key={output.id} className="hover:bg-muted/20 transition-colors">
+                                                    <TableCell className="text-[10px] font-black text-muted-foreground text-center">{index + 1}</TableCell>
                                                     <TableCell className="max-w-xs py-4">
                                                         <div className="flex flex-col gap-1">
                                                             <p className="font-bold text-xs text-slate-800 leading-relaxed">{output.description}</p>
@@ -392,7 +395,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                             ))}
                                             {outputs?.length === 0 && (
                                                 <TableRow>
-                                                    <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
+                                                    <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
                                                         <div className="flex flex-col items-center gap-2 opacity-20">
                                                             <Presentation className="h-10 w-10" />
                                                             <p className="text-[10px] font-black uppercase tracking-widest">No decisions logged</p>

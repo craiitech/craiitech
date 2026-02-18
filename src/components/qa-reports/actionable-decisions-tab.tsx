@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -184,6 +185,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                 <Table>
                 <TableHeader className="bg-muted/50">
                     <TableRow>
+                    <TableHead className="font-bold text-[10px] uppercase w-[40px]">#</TableHead>
                     <TableHead className="font-bold text-[10px] uppercase">Decision & Source</TableHead>
                     <TableHead className="font-bold text-[10px] uppercase">Responsibility</TableHead>
                     <TableHead className="font-bold text-[10px] uppercase">Proposed Strategy</TableHead>
@@ -193,8 +195,9 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {filteredOutputs.map((output) => (
+                    {filteredOutputs.map((output, index) => (
                     <TableRow key={output.id} className="hover:bg-muted/30">
+                        <TableCell className="text-[10px] font-black text-muted-foreground text-center">{index + 1}</TableCell>
                         <TableCell>
                         <div className="flex flex-col gap-1 max-w-xs">
                             <span className="font-bold text-sm text-slate-900 leading-snug">{output.description}</span>
@@ -227,7 +230,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                         </Badge>
                                         <Badge variant="outline" className={cn(
                                             "text-[8px] h-4 font-bold border-muted-foreground/20",
-                                            a.unitId === ALL_ACADEMIC_ID ? "bg-blue-50 text-blue-700" :
+                                            a.unitId === ALL_UNITS_ID ? "bg-blue-50 text-blue-700" :
                                             a.unitId === ALL_ADMIN_ID ? "bg-slate-50 text-slate-700" :
                                             a.unitId === ALL_REDI_ID ? "bg-purple-50 text-purple-700" :
                                             "text-muted-foreground"
@@ -275,7 +278,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                     ))}
                     {!isLoadingOutputs && filteredOutputs.length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
+                        <TableCell colSpan={7} className="h-40 text-center text-muted-foreground">
                             <div className="flex flex-col items-center gap-2 opacity-20">
                                 <ListChecks className="h-10 w-10" />
                                 <p className="text-xs font-bold uppercase tracking-widest">No action items assigned to you</p>
