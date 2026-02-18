@@ -49,18 +49,18 @@ export default function ReportsPage() {
     }
   }, [isAdmin, userProfile]);
 
+  /**
+   * CAMPUSES QUERY
+   * Fixed: Removed the invalid where('id', '==', ...) filter which caused empty results
+   * for supervisors because doc ID is not a field named 'id'.
+   */
   const campusesQuery = useMemoFirebase(
     () => {
         if (!firestore || !canViewReports) return null;
-        if (isAdmin) {
-            return collection(firestore, 'campuses');
-        }
-        if (userProfile?.campusId) {
-            return query(collection(firestore, 'campuses'), where('id', '==', userProfile.campusId));
-        }
-        return null;
+        // Fetch all campuses; client-side logic will filter relevant ones.
+        return collection(firestore, 'campuses');
     },
-    [firestore, canViewReports, isAdmin, userProfile]
+    [firestore, canViewReports]
   );
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
@@ -190,7 +190,7 @@ export default function ReportsPage() {
   }, [allSubmissions, allUnits, allCampuses]);
 
   const matrixData = useMemo(() => {
-    if (!allSubmissions || !allCampuses || !allUnits) {
+    if (!allSubmissions || !allCampuses || !allUnits || isUserLoading) {
       return [];
     }
 
@@ -253,7 +253,7 @@ export default function ReportsPage() {
     .filter((c): c is NonNullable<typeof c> => c !== null)
     .sort((a, b) => a.campusName.localeCompare(b.campusName));
 
-  }, [allSubmissions, allCampuses, allUnits, selectedMatrixYear, isSupervisor, isAdmin, userProfile]);
+  }, [allSubmissions, allCampuses, allUnits, selectedMatrixYear, isSupervisor, isAdmin, userProfile, isUserLoading]);
 
   const isLoading = isUserLoading || isLoadingCampuses || isLoadingUnits || isLoadingSubmissions || isLoadingUsers || isLoadingCycles;
 

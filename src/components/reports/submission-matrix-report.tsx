@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -78,7 +79,7 @@ export function SubmissionMatrixReport({
       <CardContent>
         <Accordion type="multiple" className="w-full" defaultValue={matrixData.map(d => d.campusId)}>
           {matrixData.map(({ campusId, campusName, units }) => {
-            const cId = String(campusId).trim();
+            const cId = String(campusId).trim().toLowerCase();
             return (
                 <AccordionItem value={cId} key={cId}>
                 <AccordionTrigger className="hover:no-underline font-bold uppercase tracking-wider">{campusName}</AccordionTrigger>
@@ -103,14 +104,14 @@ export function SubmissionMatrixReport({
                         </TableHeader>
                         <TableBody>
                         {units.map(({ unitId, unitName, statuses }) => {
-                            const uId = String(unitId).trim();
+                            const uId = String(unitId).trim().toLowerCase();
                             return (
                                 <TableRow key={uId} className="hover:bg-muted/20">
                                 <TableCell className="font-medium sticky left-0 bg-background border-r z-10 text-xs">{unitName}</TableCell>
                                 {submissionTypes.map(type => {
-                                    // Ensure lookup keys match the lowercase normalization in the parent
-                                    const firstKey = `${cId}-${uId}-${type}-first`.toLowerCase();
-                                    const finalKey = `${cId}-${uId}-${type}-final`.toLowerCase();
+                                    // Construct lookup keys ensuring lowercase normalization
+                                    const firstKey = `${cId}-${uId}-${type}-${cycles[0]}`.toLowerCase();
+                                    const finalKey = `${cId}-${uId}-${type}-${cycles[1]}`.toLowerCase();
                                     
                                     return (
                                         <React.Fragment key={type}>
