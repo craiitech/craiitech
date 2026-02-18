@@ -37,6 +37,7 @@ import {
   BrainCircuit,
   Info,
   ClipboardCheck,
+  TrendingUp,
 } from 'lucide-react';
 import {
   useUser,
@@ -55,7 +56,7 @@ import {
   orderBy,
   limit,
 } from 'firebase/firestore';
-import type { Submission, User as AppUser, Unit, Campus, Cycle, Risk, UnitMonitoringRecord } from '@/lib/types';
+import type { Submission, User as AppUser, Unit, Campus, Cycle, Risk, ManagementReviewOutput } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle, AlertCloseButton } from '@/components/ui/alert';
@@ -94,6 +95,8 @@ import { RiskFunnel } from '@/components/dashboard/strategic/risk-funnel';
 import { CycleSubmissionBreakdown } from '@/components/dashboard/strategic/cycle-submission-breakdown';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ComplianceHeatmap } from '@/components/dashboard/strategic/compliance-heatmap';
+import { MaturityRadar } from '@/components/dashboard/strategic/maturity-radar';
 
 
 export const TOTAL_REPORTS_PER_CYCLE = 6;
@@ -184,6 +187,10 @@ export default function HomePage() {
   }, [firestore, userProfile, isAdmin, isSupervisor]);
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
+
+  // Fetch MR Outputs for Strategic Hub
+  const mrOutputsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'managementReviewOutputs') : null), [firestore]);
+  const { data: mrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
 
   // Fetch users based on role
   const usersQuery = useMemoFirebase(() => {
@@ -281,7 +288,6 @@ export default function HomePage() {
 
     if (!submissions || !userProfile) return defaultStats;
     
-    const userCount = allUsersMap.size;
     const yearSubmissions = submissions.filter((s) => s.year === selectedYear);
 
     if (isAdmin) {
@@ -298,13 +304,12 @@ export default function HomePage() {
         },
         stat3: {
           title: 'Total Users',
-          value: userCount,
+          value: allUsersMap.size,
           icon: <Users className="h-6 w-6 text-primary" />,
         },
       };
     } else if (isSupervisor) {
       const totalRequired = unitsInCampus.length * TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT;
-      // CRITICAL: Progress based on APPROVED documents
       const approvedSubmissionsCount = new Set(
         yearSubmissions
             .filter(s => s.statusId === 'approved')
@@ -313,21 +318,21 @@ export default function HomePage() {
 
       return {
         stat1: {
-          title: 'Verified Submissions',
-          value: `${approvedSubmissionsCount} of ${totalRequired}`,
-          description: `Across ${unitsInCampus.length} units in ${selectedYear}`,
+          title: 'Verified Maturity',
+          value: `${Math.round((approvedSubmissionsCount / (totalRequired || 1)) * 100)}%`,
+          description: `${approvedSubmissionsCount} of ${totalRequired} approved`,
           icon: <CheckCircle className="h-6 w-6 text-primary" />,
         },
         stat2: {
-          title: 'Campus Submissions',
+          title: 'Campus Activity',
           value: yearSubmissions.length,
-          description: `Total for your campus in ${selectedYear}`,
+          description: `Total uploads for ${selectedYear}`,
           icon: <FileText className="h-6 w-6 text-primary" />,
         },
         stat3: {
           title: 'Campus Users',
-          value: userCount,
-          description: `Users in your campus`,
+          value: allUsersMap.size,
+          description: `Total registered in campus`,
           icon: <Users className="h-6 w-6 text-primary" />,
         },
       };
@@ -345,22 +350,22 @@ export default function HomePage() {
         
         return {
             stat1: {
-              title: 'First Cycle (Verified)',
-              value: `${firstCycleCount} of ${requiredFirstCycle}`,
+              title: '1st Cycle (Verified)',
+              value: `${firstCycleCount} / ${requiredFirstCycle}`,
               description: `Approved docs for ${selectedYear}`,
               icon: <CheckCircle className="h-6 w-6 text-primary" />,
             },
             stat2: {
               title: 'Final Cycle (Verified)',
-              value: `${finalCycleCount} of ${requiredFinalCycle}`,
+              value: `${finalCycleCount} / ${requiredFinalCycle}`,
               description: `Approved docs for ${selectedYear}`,
               icon: <CheckCircle className="h-6 w-6 text-primary" />,
             },
             stat3: {
-              title: 'Total Submissions',
-              value: yearSubmissions.length,
-              description: `Total attempts in ${selectedYear}`,
-              icon: <FileText className="h-6 w-6 text-primary" />,
+              title: 'Overall Maturity',
+              value: `${Math.round(((firstCycleCount + finalCycleCount) / (requiredFirstCycle + requiredFinalCycle)) * 100)}%`,
+              description: `Verification index`,
+              icon: <TrendingUp className="h-6 w-6 text-primary" />,
             },
         };
     }
@@ -604,6 +609,7 @@ export default function HomePage() {
                     <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isSupervisor} selectedYear={selectedYear} />
                     <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
                 </div>
+                <ComplianceHeatmap units={unitsInCampus} submissions={submissions || []} selectedYear={selectedYear} />
                 <Card className="col-span-4"><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from your campus.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
             </div>
             <div className="lg:col-span-3 space-y-4">
@@ -623,6 +629,7 @@ export default function HomePage() {
         {isSupervisor && (<UnitUserOverview allUsers={Array.from(allUsersMap.values())} allUnits={allUnits} isLoading={isLoading} userProfile={userProfile} />)}
       </TabsContent>
        <TabsContent value="strategic" className="space-y-6">
+        <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={mrOutputs || []} selectedYear={selectedYear} />
         <ComplianceOverTime allSubmissions={submissions} allCycles={allCycles} allUnits={unitsInCampus} />
         <RiskMatrix allRisks={risks} selectedYear={selectedYear} />
         <RiskFunnel allRisks={risks} selectedYear={selectedYear} />
@@ -651,6 +658,7 @@ export default function HomePage() {
                     <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
                     <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
                 </div>
+                <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={mrOutputs || []} selectedYear={selectedYear} />
             </div>
              <div className="lg:col-span-1 space-y-4">
                 <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
