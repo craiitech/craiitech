@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, ClipboardList, Send, Building2, ListChecks, History, Info, User, CheckCircle2, Hash, ChevronRight, Eye, LayoutList, Target, ShieldCheck, Filter } from 'lucide-react';
+import { Loader2, Calendar, ClipboardList, Send, Building2, ListChecks, History, Info, User, CheckCircle2, Hash, ChevronRight, Eye, LayoutList, Target, ShieldCheck, Filter, BarChart3, List } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -23,6 +23,8 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DecisionAnalytics } from './decision-analytics';
 
 interface ActionableDecisionsTabProps {
   campuses: Campus[];
@@ -61,7 +63,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   const { data: rawOutputs, isLoading: isLoadingOutputs } = useCollection<ManagementReviewOutput>(outputsQuery);
 
   const reviewsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'managementReviews') : null), [firestore]);
-  const { data: reviews } = useCollection<ManagementReview>(reviewsQuery);
+  const { data: reviews, isLoading: isLoadingReviews } = useCollection<ManagementReview>(reviewsQuery);
 
   const myUnit = useMemo(() => {
     if (!userProfile?.unitId || !units) return null;
@@ -168,7 +170,6 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
           updateData.verificationDate = Timestamp.fromDate(new Date(values.verificationDate || new Date()));
           updateData.verifiedBy = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : 'Admin';
       } else {
-          // If not closed or not admin, we don't allow setting verification fields
           delete updateData.verificationRemarks;
           delete updateData.verificationDate;
       }
@@ -207,19 +208,22 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   const currentStatus = form.watch('status');
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-            <h3 className="text-lg font-black uppercase tracking-tight">Assigned MR Action Items</h3>
-            <p className="text-xs text-muted-foreground font-medium">Decisions from Management Reviews requiring action from your unit or campus.</p>
+            <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+                <ShieldCheck className="h-6 w-6 text-primary" />
+                Actionable Decisions Hub
+            </h3>
+            <p className="text-xs text-muted-foreground font-medium">Monitoring and implementation of institutional management directives.</p>
         </div>
         <div className="flex items-center gap-2">
             <div className="flex flex-col items-end">
                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 flex items-center gap-1">
-                    <Filter className="h-2.5 w-2.5" /> Filter by Review Year
+                    <Filter className="h-2.5 w-2.5" /> Review Year Filter
                 </label>
                 <Select value={selectedYear} onValueChange={setSelectedYear}>
-                    <SelectTrigger className="w-[140px] h-9 bg-white font-bold shadow-sm">
+                    <SelectTrigger className="w-[160px] h-9 bg-white font-bold shadow-sm">
                         <SelectValue placeholder="All Sessions" />
                     </SelectTrigger>
                     <SelectContent>
@@ -231,130 +235,156 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
         </div>
       </div>
 
-      <Card className="shadow-sm border-primary/10 overflow-hidden">
-        <CardContent className="p-0">
-          {isLoadingOutputs ? (
-            <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-          ) : (
-            <div className="overflow-x-auto">
-                <Table>
-                <TableHeader className="bg-muted/50">
-                    <TableRow>
-                    <TableHead className="font-bold text-[10px] uppercase w-[40px]">#</TableHead>
-                    <TableHead className="font-bold text-[10px] uppercase">Decision & Source</TableHead>
-                    <TableHead className="font-bold text-[10px] uppercase">Responsibility</TableHead>
-                    <TableHead className="font-bold text-[10px] uppercase text-center">Deadline</TableHead>
-                    <TableHead className="font-bold text-[10px] uppercase text-right">Status</TableHead>
-                    <TableHead className="text-right font-bold text-[10px] uppercase">Action</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {filteredOutputs.map((output, index) => (
-                    <TableRow 
-                        key={output.id} 
-                        className="hover:bg-muted/30 cursor-pointer transition-colors"
-                        onClick={() => setPreviewOutput(output)}
-                    >
-                        <TableCell className="text-[10px] font-black text-muted-foreground text-center">{index + 1}</TableCell>
-                        <TableCell>
-                        <div className="flex flex-col gap-1 max-w-xs">
-                            <span className="font-bold text-sm text-slate-900 leading-snug">{output.description}</span>
-                            <div className="flex flex-wrap items-center gap-2 mt-1">
-                                <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
-                                    <History className="h-2.5 w-2.5" />
-                                    From: {reviewMap.get(output.mrId)?.title || 'Management Review'}
-                                </div>
-                                {output.lineNumber && (
-                                    <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-tighter bg-slate-100 px-1.5 py-0.5 rounded">
-                                        <Hash className="h-2 w-2" />
-                                        Line: {output.lineNumber}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        </TableCell>
-                        <TableCell>
-                            <div className="flex flex-col gap-1">
-                                {(output.assignments || []).map((a, i) => (
-                                    <div key={i} className="flex items-center gap-1">
-                                        <Badge variant="secondary" className="text-[8px] h-4 font-black bg-primary/5 text-primary border-none">
-                                            {campusMap.get(a.campusId) || a.campusId}
-                                        </Badge>
-                                        <Badge variant="outline" className={cn(
-                                            "text-[8px] h-4 font-bold border-muted-foreground/20",
-                                            a.unitId === ALL_UNITS_ID ? "bg-blue-50 text-blue-700" :
-                                            a.unitId === ALL_ACADEMIC_ID ? "bg-slate-50 text-slate-700" :
-                                            a.unitId === ALL_ADMIN_ID ? "bg-slate-50 text-slate-700" :
-                                            a.unitId === ALL_REDI_ID ? "bg-purple-50 text-purple-700" :
-                                            "text-muted-foreground"
-                                        )}>
-                                            {unitMap.get(a.unitId) || a.unitId}
-                                        </Badge>
-                                    </div>
-                                ))}
-                            </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                            <div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600">
-                                <Calendar className="h-3 w-3 text-muted-foreground" />
-                                {safeFormatDate(output.followUpDate)}
-                            </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                            <Badge 
-                                className={cn(
-                                    "text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap",
-                                    output.status === 'Open' ? "bg-rose-600 text-white" : 
-                                    output.status === 'On-going' ? "bg-amber-500 text-amber-950" : 
-                                    output.status === 'Submit for Closure Verification' ? "bg-blue-600 text-white animate-pulse" :
-                                    "bg-emerald-600 text-white"
-                                )}
+      <Tabs defaultValue="insights" className="space-y-6">
+        <TabsList className="bg-muted p-1 border shadow-sm w-fit">
+            <TabsTrigger value="insights" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
+                <BarChart3 className="h-3.5 w-3.5" /> Strategic Insights
+            </TabsTrigger>
+            <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
+                <List className="h-3.5 w-3.5" /> Assignment Registry
+            </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="insights" className="animate-in fade-in duration-500">
+            <DecisionAnalytics 
+                outputs={filteredOutputs}
+                reviews={reviews || []}
+                campuses={campuses}
+                units={units}
+                isLoading={isLoadingOutputs || isLoadingReviews}
+                selectedYear={selectedYear}
+            />
+        </TabsContent>
+
+        <TabsContent value="registry" className="animate-in fade-in duration-500">
+            <Card className="shadow-sm border-primary/10 overflow-hidden">
+                <CardContent className="p-0">
+                {isLoadingOutputs ? (
+                    <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <Table>
+                        <TableHeader className="bg-muted/50">
+                            <TableRow>
+                            <TableHead className="font-bold text-[10px] uppercase w-[40px]">#</TableHead>
+                            <TableHead className="font-bold text-[10px] uppercase">Decision & Source</TableHead>
+                            <TableHead className="font-bold text-[10px] uppercase">Responsibility</TableHead>
+                            <TableHead className="font-bold text-[10px] uppercase text-center">Deadline</TableHead>
+                            <TableHead className="font-bold text-[10px] uppercase text-right">Status</TableHead>
+                            <TableHead className="text-right font-bold text-[10px] uppercase">Action</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredOutputs.map((output, index) => (
+                            <TableRow 
+                                key={output.id} 
+                                className="hover:bg-muted/30 cursor-pointer transition-colors"
+                                onClick={() => setPreviewOutput(output)}
                             >
-                                {output.status}
-                            </Badge>
-                        </TableCell>
-                        <TableCell className="text-right whitespace-nowrap">
-                            <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                                <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={() => setPreviewOutput(output)} 
-                                    className="h-8 text-[10px] font-bold uppercase tracking-widest gap-1.5"
-                                >
-                                    <Eye className="h-3.5 w-3.5" /> PREVIEW
-                                </Button>
-                                <Button 
-                                    variant="default" 
-                                    size="sm" 
-                                    onClick={() => handleOpenUpdate(output)} 
-                                    className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-lg shadow-primary/10"
-                                >
-                                    UPDATE
-                                </Button>
-                            </div>
-                        </TableCell>
-                    </TableRow>
-                    ))}
-                    {!isLoadingOutputs && filteredOutputs.length === 0 && (
-                    <TableRow>
-                        <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
-                            <div className="flex flex-col items-center gap-2 opacity-20">
-                                <ListChecks className="h-10 w-10" />
-                                <p className="text-xs font-bold uppercase tracking-widest">
-                                    {selectedYear === 'all' 
-                                        ? "No action items assigned to you" 
-                                        : `No action items found for review year ${selectedYear}`}
-                                </p>
-                            </div>
-                        </TableCell>
-                    </TableRow>
-                    )}
-                </TableBody>
-                </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                                <TableCell className="text-[10px] font-black text-muted-foreground text-center">{index + 1}</TableCell>
+                                <TableCell>
+                                <div className="flex flex-col gap-1 max-w-xs">
+                                    <span className="font-bold text-sm text-slate-900 leading-snug">{output.description}</span>
+                                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                                        <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
+                                            <History className="h-2.5 w-2.5" />
+                                            From: {reviewMap.get(output.mrId)?.title || 'Management Review'}
+                                        </div>
+                                        {output.lineNumber && (
+                                            <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-tighter bg-slate-100 px-1.5 py-0.5 rounded">
+                                                <Hash className="h-2 w-2" />
+                                                Line: {output.lineNumber}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex flex-col gap-1">
+                                        {(output.assignments || []).map((a, i) => (
+                                            <div key={i} className="flex items-center gap-1">
+                                                <Badge variant="secondary" className="text-[8px] h-4 font-black bg-primary/5 text-primary border-none">
+                                                    {campusMap.get(a.campusId) || a.campusId}
+                                                </Badge>
+                                                <Badge variant="outline" className={cn(
+                                                    "text-[8px] h-4 font-bold border-muted-foreground/20",
+                                                    a.unitId === ALL_UNITS_ID ? "bg-blue-50 text-blue-700" :
+                                                    a.unitId === ALL_ACADEMIC_ID ? "bg-slate-50 text-slate-700" :
+                                                    a.unitId === ALL_ADMIN_ID ? "bg-slate-50 text-slate-700" :
+                                                    a.unitId === ALL_REDI_ID ? "bg-purple-50 text-purple-700" :
+                                                    "text-muted-foreground"
+                                                )}>
+                                                    {unitMap.get(a.unitId) || a.unitId}
+                                                </Badge>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                    <div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600">
+                                        <Calendar className="h-3 w-3 text-muted-foreground" />
+                                        {safeFormatDate(output.followUpDate)}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <Badge 
+                                        className={cn(
+                                            "text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap",
+                                            output.status === 'Open' ? "bg-rose-600 text-white" : 
+                                            output.status === 'On-going' ? "bg-amber-500 text-amber-950" : 
+                                            output.status === 'Submit for Closure Verification' ? "bg-blue-600 text-white animate-pulse" :
+                                            "bg-emerald-600 text-white"
+                                        )}
+                                    >
+                                        {output.status}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-right whitespace-nowrap">
+                                    <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            onClick={() => setPreviewOutput(output)} 
+                                            className="h-8 text-[10px] font-bold uppercase tracking-widest gap-1.5"
+                                        >
+                                            <Eye className="h-3.5 w-3.5" /> PREVIEW
+                                        </Button>
+                                        <Button 
+                                            variant="default" 
+                                            size="sm" 
+                                            onClick={() => handleOpenUpdate(output)} 
+                                            className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-lg shadow-primary/10"
+                                        >
+                                            UPDATE
+                                        </Button>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                            ))}
+                            {!isLoadingOutputs && filteredOutputs.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
+                                    <div className="flex flex-col items-center gap-2 opacity-20">
+                                        <ListChecks className="h-10 w-10" />
+                                        <p className="text-xs font-bold uppercase tracking-widest">
+                                            {selectedYear === 'all' 
+                                                ? "No action items assigned to you" 
+                                                : `No action items found for review year ${selectedYear}`}
+                                        </p>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                            )}
+                        </TableBody>
+                        </Table>
+                    </div>
+                )}
+                </CardContent>
+            </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* --- Dialogs --- */}
 
       <Dialog open={!!previewOutput} onOpenChange={(open) => !open && setPreviewOutput(null)}>
         <DialogContent className="max-w-2xl overflow-hidden p-0 border-none shadow-2xl">
@@ -515,7 +545,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                 <Send className="h-5 w-5" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Decision Follow-up</span>
             </div>
-            <DialogTitle className="text-xl font-bold">Provide Action Update</DialogTitle>
+            <DialogTitle>Provide Action Update</DialogTitle>
             <DialogDescription className="text-xs">Update the status and provide progress notes for this assigned review output.</DialogDescription>
           </DialogHeader>
           
