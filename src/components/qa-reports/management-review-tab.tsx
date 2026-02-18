@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -121,7 +120,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
     if (!firestore || !selectedMr) return;
     setIsSubmitting(true);
     try {
-      // Legacy compatibility: Keep arrays populated for existing filtering logic
+      // Logic for filtering
       const campusIds = Array.from(new Set(values.assignments.map(a => a.campusId)));
       const concernedUnitIds = Array.from(new Set(values.assignments.map(a => a.unitId)));
 
@@ -326,13 +325,14 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                             ))}
                                             {outputs?.length === 0 && (
                                                 <TableRow>
-                                                    <TableCell colSpan={4} className="h-40 text-center">
+                                                    <TableCell colSpan={4} className="h-40 text-center text-muted-foreground">
                                                         <div className="flex flex-col items-center gap-2 opacity-20">
                                                             <Presentation className="h-10 w-10" />
                                                             <p className="text-[10px] font-black uppercase tracking-widest">No decisions logged</p>
                                                         </div>
-                                                    </TableRow>
-                                                )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
                                         </TableBody>
                                     </Table>
                                 )}
