@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, deleteDoc, doc, addDoc, serverTimestamp, where, Timestamp, updateDoc } from 'firebase/firestore';
-import type { ManagementReview, ManagementReviewOutput, Campus, Unit, MRAssignment } from '@/lib/types';
+import type { ManagementReview, ManagementReviewOutput, Campus, Unit, MRAssignment, ManagementReviewOutputStatus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -48,7 +48,7 @@ const outputSchema = z.object({
   })).min(1, 'At least one assignment is required'),
   actionPlan: z.string().optional(),
   followUpDate: z.string().min(1, 'Follow-up date is required'),
-  status: z.enum(['Open', 'On-going', 'Closed']),
+  status: z.enum(['Open', 'On-going', 'Submit for Closure Verification', 'Closed']),
 });
 
 const UNIVERSITY_WIDE_ID = 'university-wide';
@@ -372,9 +372,10 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                                     <TableCell className="text-right">
                                                         <Badge 
                                                             className={cn(
-                                                                "text-[9px] font-black uppercase border-none px-2 shadow-sm",
+                                                                "text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap",
                                                                 output.status === 'Open' ? "bg-rose-600 text-white" : 
                                                                 output.status === 'On-going' ? "bg-amber-500 text-amber-950" : 
+                                                                output.status === 'Submit for Closure Verification' ? "bg-blue-600 text-white" :
                                                                 "bg-emerald-600 text-white"
                                                             )}
                                                         >
@@ -614,7 +615,12 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                         <FormItem><FormLabel className="text-xs font-black uppercase text-primary">Initial Lifecycle Status</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl><SelectTrigger className="bg-primary/5 border-primary/20 font-black"><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent><SelectItem value="Open">Open</SelectItem><SelectItem value="On-going">On-going</SelectItem><SelectItem value="Closed">Closed</SelectItem></SelectContent>
+                            <SelectContent>
+                                <SelectItem value="Open">Open</SelectItem>
+                                <SelectItem value="On-going">On-going</SelectItem>
+                                <SelectItem value="Submit for Closure Verification">Submit for Closure Verification</SelectItem>
+                                <SelectItem value="Closed">Closed</SelectItem>
+                            </SelectContent>
                         </Select><FormMessage /></FormItem>
                     )} />
                 </div>

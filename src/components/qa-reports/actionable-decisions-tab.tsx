@@ -1,14 +1,15 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, orderBy, where, doc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import type { ManagementReviewOutput, Campus, Unit, ManagementReview } from '@/lib/types';
+import type { ManagementReviewOutput, Campus, Unit, ManagementReview, ManagementReviewOutputStatus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, ClipboardList, Send, Building2, ListChecks, History, Info, User, CheckCircle2, Hash, ChevronRight, Eye, LayoutList, Target } from 'lucide-react';
+import { Loader2, Calendar, ClipboardList, Send, Building2, ListChecks, History, Info, User, CheckCircle2, Hash, ChevronRight, Eye, LayoutList, Target, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -30,9 +31,11 @@ interface ActionableDecisionsTabProps {
 
 const updateSchema = z.object({
   followUpRemarks: z.string().min(5, 'Please provide a descriptive update on actions taken.'),
-  status: z.enum(['Open', 'On-going', 'Closed']),
+  status: z.enum(['Open', 'On-going', 'Submit for Closure Verification', 'Closed']),
   actionDate: z.string().min(1, 'Date of action is required.'),
   actionTakenBy: z.string().min(1, 'Name of the person who executed the action is required.'),
+  verificationRemarks: z.string().optional(),
+  verificationDate: z.string().optional(),
 });
 
 const ALL_UNITS_ID = 'all-units';
@@ -95,7 +98,14 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
 
   const form = useForm<z.infer<typeof updateSchema>>({
     resolver: zodResolver(updateSchema),
-    defaultValues: { status: 'Open', followUpRemarks: '', actionDate: format(new Date(), 'yyyy-MM-dd'), actionTakenBy: '' }
+    defaultValues: { 
+        status: 'Open', 
+        followUpRemarks: '', 
+        actionDate: format(new Date(), 'yyyy-MM-dd'), 
+        actionTakenBy: '',
+        verificationRemarks: '',
+        verificationDate: format(new Date(), 'yyyy-MM-dd')
+    }
   });
 
   const handleOpenUpdate = (output: ManagementReviewOutput) => {
@@ -106,7 +116,9 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
         status: output.status,
         followUpRemarks: output.followUpRemarks || '',
         actionDate: safeDate(output.actionDate),
-        actionTakenBy: output.actionTakenBy || (userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '')
+        actionTakenBy: output.actionTakenBy || (userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : ''),
+        verificationRemarks: output.verificationRemarks || '',
+        verificationDate: safeDate(output.verificationDate)
     });
     setIsUpdateDialogOpen(true);
   };
@@ -116,11 +128,23 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     setIsSubmitting(true);
     try {
       const docRef = doc(firestore, 'managementReviewOutputs', selectedOutput.id);
-      await updateDoc(docRef, {
+      
+      const updateData: any = {
         ...values,
         actionDate: Timestamp.fromDate(new Date(values.actionDate)),
         updatedAt: serverTimestamp(),
-      });
+      };
+
+      if (isAdmin && values.status === 'Closed') {
+          updateData.verificationDate = Timestamp.fromDate(new Date(values.verificationDate || new Date()));
+          updateData.verifiedBy = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : 'Admin';
+      } else {
+          // Ensure non-admins don't overwrite verification data
+          delete updateData.verificationRemarks;
+          delete updateData.verificationDate;
+      }
+
+      await updateDoc(docRef, updateData);
       toast({ title: 'Update Recorded', description: 'Your action update has been successfully logged.' });
       setIsUpdateDialogOpen(false);
     } catch (error) {
@@ -152,6 +176,8 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     const d = date instanceof Timestamp ? date.toDate() : new Date(date);
     return format(d, 'PP');
   };
+
+  const currentStatus = form.watch('status');
 
   return (
     <div className="space-y-4">
@@ -212,7 +238,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                         <Badge variant="outline" className={cn(
                                             "text-[8px] h-4 font-bold border-muted-foreground/20",
                                             a.unitId === ALL_UNITS_ID ? "bg-blue-50 text-blue-700" :
-                                            a.unitId === ALL_ADMIN_ID ? "bg-slate-50 text-slate-700" :
+                                            a.unitId === ALL_ACADEMIC_ID ? "bg-slate-50 text-slate-700" :
                                             a.unitId === ALL_REDI_ID ? "bg-purple-50 text-purple-700" :
                                             "text-muted-foreground"
                                         )}>
@@ -231,9 +257,10 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                         <TableCell className="text-right">
                             <Badge 
                                 className={cn(
-                                    "text-[9px] font-black uppercase border-none px-2 shadow-sm",
+                                    "text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap",
                                     output.status === 'Open' ? "bg-rose-600 text-white" : 
                                     output.status === 'On-going' ? "bg-amber-500 text-amber-950" : 
+                                    output.status === 'Submit for Closure Verification' ? "bg-blue-600 text-white animate-pulse" :
                                     "bg-emerald-600 text-white"
                                 )}
                             >
@@ -338,6 +365,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                                     "text-[9px] font-black uppercase border-none h-5 px-2 mt-1",
                                                     previewOutput.status === 'Open' ? "bg-rose-600 text-white" : 
                                                     previewOutput.status === 'On-going' ? "bg-amber-500 text-amber-950" : 
+                                                    previewOutput.status === 'Submit for Closure Verification' ? "bg-blue-600 text-white" :
                                                     "bg-emerald-600 text-white"
                                                 )}
                                             >
@@ -383,14 +411,29 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                             )}
 
                             {previewOutput.followUpRemarks && (
-                                <div className="bg-emerald-50 rounded-xl p-6 border border-emerald-100">
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700 mb-3">Implementation Progress</h4>
-                                    <p className="text-sm text-emerald-900 leading-relaxed whitespace-pre-wrap italic">
+                                <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-700 mb-3">Implementation Progress</h4>
+                                    <p className="text-sm text-slate-900 leading-relaxed whitespace-pre-wrap italic">
                                         "{previewOutput.followUpRemarks}"
                                     </p>
+                                    <div className="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between">
+                                        <span className="text-[10px] font-bold text-slate-700 uppercase">Action by: {previewOutput.actionTakenBy}</span>
+                                        <span className="text-[10px] font-bold text-slate-700 uppercase">{safeFormatDate(previewOutput.actionDate)}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {previewOutput.status === 'Closed' && previewOutput.verificationRemarks && (
+                                <div className="bg-emerald-50 rounded-xl p-6 border border-emerald-100">
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700 mb-3 flex items-center gap-2">
+                                        <ShieldCheck className="h-3.5 w-3.5" /> Institutional Verification
+                                    </h4>
+                                    <p className="text-sm text-emerald-900 leading-relaxed whitespace-pre-wrap">
+                                        {previewOutput.verificationRemarks}
+                                    </p>
                                     <div className="mt-4 pt-4 border-t border-emerald-200 flex items-center justify-between">
-                                        <span className="text-[10px] font-bold text-emerald-700 uppercase">Action by: {previewOutput.actionTakenBy}</span>
-                                        <span className="text-[10px] font-bold text-emerald-700 uppercase">{safeFormatDate(previewOutput.actionDate)}</span>
+                                        <span className="text-[10px] font-bold text-emerald-700 uppercase">Verified by: {previewOutput.verifiedBy}</span>
+                                        <span className="text-[10px] font-bold text-emerald-700 uppercase">{safeFormatDate(previewOutput.verificationDate)}</span>
                                     </div>
                                 </div>
                             )}
@@ -418,8 +461,8 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
 
       {/* --- UPDATE DIALOG --- */}
       <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-lg h-[80vh] flex flex-col p-0">
+          <DialogHeader className="p-6 border-b shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
                 <Send className="h-5 w-5" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Decision Follow-up</span>
@@ -428,81 +471,132 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
             <DialogDescription className="text-xs">Update the status and provide progress notes for this assigned review output.</DialogDescription>
           </DialogHeader>
           
-          <div className="p-4 bg-muted/30 rounded-lg border mb-4 space-y-2">
-            <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black text-primary uppercase tracking-widest">Management Decision</p>
-                {selectedOutput?.lineNumber && (
-                    <Badge variant="outline" className="text-[9px] h-4 font-bold border-primary/30 text-primary uppercase">Minutes Line: {selectedOutput.lineNumber}</Badge>
-                )}
+          <ScrollArea className="flex-1">
+            <div className="p-6 space-y-6">
+                <div className="p-4 bg-muted/30 rounded-lg border space-y-2">
+                    <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-black text-primary uppercase tracking-widest">Management Decision</p>
+                        {selectedOutput?.lineNumber && (
+                            <Badge variant="outline" className="text-[9px] h-4 font-bold border-primary/30 text-primary uppercase">Minutes Line: {selectedOutput.lineNumber}</Badge>
+                        )}
+                    </div>
+                    <p className="text-sm font-bold leading-relaxed">{selectedOutput?.description}</p>
+                    <div className="flex items-center gap-4 pt-2">
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                            <Info className="h-3 w-3" /> Target: {safeFormatDate(selectedOutput?.followUpDate)}
+                        </span>
+                    </div>
+                </div>
+
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <div className="space-y-4">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                            <History className="h-3 w-3" /> Unit Progress Details
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField control={form.control} name="actionDate" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-black uppercase">Date of Action</FormLabel>
+                                    <FormControl>
+                                        <Input type="date" {...field} className="bg-slate-50 h-9 text-xs" />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="actionTakenBy" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-black uppercase">Executed By</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} placeholder="Name of Person" className="bg-slate-50 h-9 text-xs font-bold" />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        </div>
+
+                        <FormField control={form.control} name="followUpRemarks" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-black uppercase">Action Taken / Unit Progress Summary</FormLabel>
+                                <FormControl>
+                                    <Textarea {...field} placeholder="Describe the steps taken by your unit to address this MR decision..." rows={4} className="bg-slate-50 text-xs" />
+                                </FormControl>
+                                <FormDescription className="text-[9px]">Provide evidence of completion or reasons for ongoing status.</FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-4">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                            <ClipboardList className="h-3 w-3" /> Workflow Transition
+                        </h4>
+                        <FormField control={form.control} name="status" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-black uppercase text-primary">Select Next Status</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger className="bg-primary/5 border-primary/20 font-black h-10"><SelectValue /></SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="Open">Open (No Action Yet)</SelectItem>
+                                        <SelectItem value="On-going">On-going (Implementation in progress)</SelectItem>
+                                        <SelectItem value="Submit for Closure Verification" className="font-bold text-blue-600">Submit for Closure Verification</SelectItem>
+                                        {isAdmin && <SelectItem value="Closed" className="font-bold text-emerald-600">Closed (Institutional Verification Complete)</SelectItem>}
+                                    </SelectContent>
+                                </Select>
+                                <FormDescription className="text-[9px]">
+                                    {isAdmin ? "Only administrators can move an item to 'Closed' status." : "Select 'Submit for Closure Verification' once your unit has completed the action."}
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    </div>
+
+                    {isAdmin && currentStatus === 'Closed' && (
+                        <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-700 flex items-center gap-2">
+                                <ShieldCheck className="h-3 w-3" /> Admin Verification Details
+                            </h4>
+                            <Card className="border-emerald-200 bg-emerald-50/20">
+                                <CardContent className="p-4 space-y-4">
+                                    <FormField control={form.control} name="verificationDate" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-[10px] font-black uppercase text-emerald-700">Verification Date</FormLabel>
+                                            <FormControl>
+                                                <Input type="date" {...field} className="bg-white h-9 text-xs border-emerald-100" />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="verificationRemarks" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-[10px] font-black uppercase text-emerald-700">Verification Findings / Description</FormLabel>
+                                            <FormControl>
+                                                <Textarea {...field} placeholder="Record findings from closure verification audit..." rows={3} className="bg-white text-xs border-emerald-100" />
+                                            </FormControl>
+                                            <FormDescription className="text-[9px] text-emerald-600/70">Required for official closure of institutional decision items.</FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
+
+                    <DialogFooter className="pt-4 border-t gap-2 sm:gap-0">
+                        <Button type="button" variant="outline" onClick={() => setIsUpdateDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
+                        <Button type="submit" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black">
+                            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4 mr-1.5" />}
+                            Log Progress
+                        </Button>
+                    </DialogFooter>
+                    </form>
+                </Form>
             </div>
-            <p className="text-sm font-bold leading-relaxed">{selectedOutput?.description}</p>
-            <div className="flex items-center gap-4 pt-2">
-                <span className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                    <Info className="h-3 w-3" /> Target: {safeFormatDate(selectedOutput?.followUpDate)}
-                </span>
-            </div>
-          </div>
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="actionDate" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase">Date of Action</FormLabel>
-                        <FormControl>
-                            <Input type="date" {...field} className="bg-slate-50" />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-                <FormField control={form.control} name="actionTakenBy" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase">Executed By</FormLabel>
-                        <FormControl>
-                            <Input {...field} placeholder="Name of Person" className="bg-slate-50 font-bold" />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-              </div>
-
-              <FormField control={form.control} name="followUpRemarks" render={({ field }) => (
-                <FormItem>
-                    <FormLabel className="text-xs font-bold uppercase">Action Taken / Unit Progress</FormLabel>
-                    <FormControl>
-                        <Textarea {...field} placeholder="Describe the steps taken by your unit to address this MR decision..." rows={5} className="bg-slate-50" />
-                    </FormControl>
-                    <FormDescription className="text-[10px]">Provide evidence of completion or reasons for ongoing status.</FormDescription>
-                    <FormMessage />
-                </FormItem>
-              )} />
-              
-              <FormField control={form.control} name="status" render={({ field }) => (
-                <FormItem>
-                    <FormLabel className="text-xs font-bold uppercase text-primary">Current Lifecycle Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                            <SelectTrigger className="bg-primary/5 border-primary/20 font-black"><SelectValue /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            <SelectItem value="Open">Open (No Action Yet)</SelectItem>
-                            <SelectItem value="On-going">On-going (Implementation in progress)</SelectItem>
-                            <SelectItem value="Closed">Closed (Implementation verified)</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                </FormItem>
-              )} />
-
-              <DialogFooter className="pt-4 border-t gap-2 sm:gap-0">
-                <Button type="button" variant="outline" onClick={() => setIsUpdateDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black">
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4 mr-1.5" />}
-                    Log Progress
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </div>

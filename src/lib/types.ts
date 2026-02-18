@@ -455,6 +455,8 @@ export type MRAssignment = {
   unitId: string;
 };
 
+export type ManagementReviewOutputStatus = 'Open' | 'On-going' | 'Submit for Closure Verification' | 'Closed';
+
 export type ManagementReviewOutput = {
   id: string;
   mrId: string; // Linked to ManagementReview
@@ -466,11 +468,16 @@ export type ManagementReviewOutput = {
   actionPlan?: string; 
   followUpDate: any; // Timestamp
   followUpRemarks?: string; 
-  status: 'Open' | 'On-going' | 'Closed';
+  status: ManagementReviewOutputStatus;
   createdAt: any; // Timestamp
   actionDate?: any; // New - when unit executed action
   actionTakenBy?: string; // New - who executed action
   lineNumber?: string; // Line number from MR minutes
+  
+  // Verification Fields (Admin Only)
+  verificationRemarks?: string;
+  verificationDate?: any; // Timestamp
+  verifiedBy?: string;
 };
 
 export type CorrectiveActionRequest = {
@@ -520,5 +527,5 @@ export type CorrectiveActionRequest = {
   
   status: 'Open' | 'In Progress' | 'Closed';
   createdAt: any; // Timestamp
-  updatedAt: any; // Timestamp
+  updatedAt: any; // serverTimestamp()
 };
