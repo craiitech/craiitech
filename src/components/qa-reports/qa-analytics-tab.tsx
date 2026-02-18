@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -30,9 +29,11 @@ import {
     ShieldAlert, 
     Activity,
     FileText,
-    CalendarCheck
+    CalendarCheck,
+    ListTodo
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Timestamp } from 'firebase/firestore';
 
 const CAR_STATUS_COLORS: Record<string, string> = {
   Open: 'hsl(var(--destructive))',
@@ -43,6 +44,12 @@ const CAR_STATUS_COLORS: Record<string, string> = {
 const FINDING_COLORS: Record<string, string> = {
   NC: 'hsl(var(--destructive))',
   OFI: 'hsl(var(--chart-3))',
+};
+
+const DECISION_STATUS_COLORS: Record<string, string> = {
+  Open: 'hsl(var(--destructive))',
+  'On-going': 'hsl(var(--amber-500))',
+  Closed: 'hsl(var(--emerald-600))',
 };
 
 export function QaAnalyticsTab() {
@@ -92,14 +99,29 @@ export function QaAnalyticsTab() {
     });
     const sourceData = Object.entries(sourceCounts).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
 
-    // 4. MR Output Status
-    const outputStatusCounts: Record<string, number> = { Open: 0, 'On-going': 0, Closed: 0 };
-    mrOutputs.forEach(o => {
-      if (outputStatusCounts[o.status] !== undefined) {
-        outputStatusCounts[o.status]++;
-      }
+    // 4. MR Output Status & Year Mapping
+    const mrYearMap = new Map<string, number>();
+    mrs.forEach(mr => {
+        const date = mr.startDate instanceof Timestamp ? mr.startDate.toDate() : new Date(mr.startDate);
+        mrYearMap.set(mr.id, date.getFullYear());
     });
-    const outputData = Object.entries(outputStatusCounts).map(([name, value]) => ({ name, value }));
+
+    const yearlyDecisionStats: Record<number, { year: number, Open: number, 'On-going': number, Closed: number }> = {};
+    
+    mrOutputs.forEach(output => {
+        const year = mrYearMap.get(output.mrId) || new Date().getFullYear();
+        if (!yearlyDecisionStats[year]) {
+            yearlyDecisionStats[year] = { year, Open: 0, 'On-going': 0, Closed: 0 };
+        }
+        if (output.status === 'Open') yearlyDecisionStats[year].Open++;
+        else if (output.status === 'On-going') yearlyDecisionStats[year]['On-going']++;
+        else if (output.status === 'Closed') yearlyDecisionStats[year].Closed++;
+    });
+
+    const decisionTrendData = Object.values(yearlyDecisionStats).sort((a, b) => a.year - b.year);
+
+    const closedOutputs = mrOutputs.filter(o => o.status === 'Closed').length;
+    const mrResolutionRate = mrOutputs.length > 0 ? Math.round((closedOutputs / mrOutputs.length) * 100) : 0;
 
     return {
       totalCars: cars.length,
@@ -107,15 +129,15 @@ export function QaAnalyticsTab() {
       closedCars: carStatusCounts.Closed,
       totalAudits: auditReports.length,
       totalMrSessions: mrs.length,
-      mrActionRate: mrOutputs.length > 0 ? Math.round((outputStatusCounts.Closed / mrOutputs.length) * 100) : 0,
+      totalDecisions: mrOutputs.length,
+      mrResolutionRate,
       carStatusData,
       findingData,
       sourceData,
-      outputData
+      decisionTrendData
     };
   }, [cars, mrOutputs, mrs, auditReports]);
 
-  // Determine if there is ANY data across all modules
   const hasData = useMemo(() => {
     if (!analytics) return false;
     return analytics.totalCars > 0 || analytics.totalAudits > 0 || analytics.totalMrSessions > 0;
@@ -143,7 +165,7 @@ export function QaAnalyticsTab() {
   return (
     <div className="space-y-6">
       {/* Executive KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 p-2 opacity-5"><ShieldAlert className="h-12 w-12" /></div>
           <CardHeader className="pb-2">
@@ -151,20 +173,20 @@ export function QaAnalyticsTab() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-primary tabular-nums">{analytics.openCars}</div>
-            <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">Requiring Institutional Action</p>
+            <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">Institutional Action items</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-green-50 border-green-100 shadow-sm relative overflow-hidden">
+        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 p-2 opacity-5"><CheckCircle2 className="h-12 w-12" /></div>
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-green-700">Audit Resolution</CardTitle>
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">CAR Resolution</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-green-600 tabular-nums">
+            <div className="text-3xl font-black text-emerald-600 tabular-nums">
                 {analytics.totalCars > 0 ? Math.round((analytics.closedCars / analytics.totalCars) * 100) : 0}%
             </div>
-            <p className="text-[9px] font-bold text-green-600/70 mt-1 uppercase tracking-tighter">CAR Closure Effectiveness Rate</p>
+            <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tighter">Correction Effectiveness</p>
           </CardContent>
         </Card>
 
@@ -175,7 +197,18 @@ export function QaAnalyticsTab() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-blue-600 tabular-nums">{analytics.totalAudits}</div>
-            <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase tracking-tighter">Total Formal IQA/EQA Reports</p>
+            <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase tracking-tighter">Total Formal Reports</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-indigo-50 border-indigo-100 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-2 opacity-5"><ListTodo className="h-12 w-12" /></div>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700">Decision Resolution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-black text-indigo-600 tabular-nums">{analytics.mrResolutionRate}%</div>
+            <p className="text-[9px] font-bold text-indigo-600/70 mt-1 uppercase tracking-tighter">MR Action Closure Rate</p>
           </CardContent>
         </Card>
 
@@ -186,18 +219,56 @@ export function QaAnalyticsTab() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-amber-600 tabular-nums">{analytics.totalMrSessions}</div>
-            <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tighter">Management Review Cycles</p>
+            <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tighter">Review Sessions Logged</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* MR Decision Trend Chart */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="bg-muted/10 border-b">
+            <div className="flex items-center gap-2">
+              <ListTodo className="h-5 w-5 text-indigo-600" />
+              <CardTitle className="text-sm font-black uppercase tracking-tight">Decision Implementation Trends by Review Year</CardTitle>
+            </div>
+            <CardDescription className="text-xs font-medium">Tracking the progression of Management Review outputs across academic cycles.</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            {analytics.totalDecisions > 0 ? (
+                <ChartContainer config={{
+                    Open: { label: 'Open', color: 'hsl(var(--destructive))' },
+                    'On-going': { label: 'On-going', color: 'hsl(var(--amber-500))' },
+                    Closed: { label: 'Closed', color: 'hsl(var(--emerald-600))' }
+                }} className="h-[350px] w-full">
+                    <ResponsiveContainer>
+                        <BarChart data={analytics.decisionTrendData}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
+                            <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
+                            <Tooltip content={<ChartTooltipContent />} />
+                            <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }} />
+                            <Bar dataKey="Open" stackId="a" fill="hsl(var(--destructive))" radius={[0, 0, 0, 0]} barSize={40} />
+                            <Bar dataKey="On-going" stackId="a" fill="hsl(var(--amber-500))" radius={[0, 0, 0, 0]} barSize={40} />
+                            <Bar dataKey="Closed" stackId="a" fill="hsl(var(--emerald-600))" radius={[4, 4, 0, 0]} barSize={40} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+            ) : (
+                <div className="h-[200px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+                    <ListTodo className="h-10 w-10 mb-2" />
+                    <p className="text-xs font-bold uppercase tracking-widest">No decision outputs logged yet</p>
+                </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* CAR Lifecycle Distribution */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <Activity className="h-5 w-5 text-primary" />
-              <CardTitle className="text-sm font-black uppercase tracking-tight">CAR Lifecycle Status</CardTitle>
+              <CardTitle className="text-sm font-black uppercase tracking-tight">CAR Lifecycle Profile</CardTitle>
             </div>
             <CardDescription className="text-xs font-medium">Real-time resolution status of issued requests.</CardDescription>
           </CardHeader>
@@ -263,43 +334,6 @@ export function QaAnalyticsTab() {
                 <div className="h-[250px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
                     <TrendingUp className="h-10 w-10 mb-2" />
                     <p className="text-xs font-bold uppercase tracking-widest">No finding data available</p>
-                </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Sources of CARs */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-primary" />
-              <CardTitle className="text-sm font-black uppercase tracking-tight">Origin of Compliance Issues</CardTitle>
-            </div>
-            <CardDescription className="text-xs font-medium">Identifying primary channels generating corrective requests.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {analytics.totalCars > 0 ? (
-                <ChartContainer config={{}} className="h-[300px] w-full">
-                    <ResponsiveContainer>
-                        <BarChart data={analytics.sourceData} layout="vertical" margin={{ left: 20, right: 40 }}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                            <XAxis type="number" hide />
-                            <YAxis 
-                                dataKey="name" 
-                                type="category" 
-                                tick={{ fontSize: 10, fontWeight: 700, fill: 'hsl(var(--muted-foreground))' }} 
-                                width={160}
-                                axisLine={false}
-                                tickLine={false}
-                            />
-                            <Tooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={16} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
-            ) : (
-                <div className="h-[100px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
-                    <p className="text-xs font-bold uppercase tracking-widest">Awaiting source identification data</p>
                 </div>
             )}
           </CardContent>
