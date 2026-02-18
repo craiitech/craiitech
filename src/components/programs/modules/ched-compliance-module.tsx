@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { FileText, Calendar, Link as LinkIcon, PlusCircle, Trash2 } from 'lucide-react';
+import { FileText, Calendar, Link as LinkIcon, PlusCircle, Trash2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
@@ -88,53 +88,72 @@ export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">GDrive Links: Contents Noted Proofs (PDF)</FormLabel>
+                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Proofs of Contents Noted (PDF Links)</FormLabel>
                 {canEdit && (
                     <Button 
                         type="button" 
                         variant="ghost" 
                         size="icon" 
                         className="h-6 w-6 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white"
-                        onClick={() => appendLink({ url: '' })}
+                        onClick={() => appendLink({ url: '', dateNoted: '' })}
                     >
                         <PlusCircle className="h-4 w-4" />
                     </Button>
                 )}
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
                 {notedLinksFields.map((field, index) => (
-                    <div key={field.id} className="flex gap-2 items-center">
-                        <FormField
-                            control={control}
-                            name={`ched.contentNotedLinks.${index}.url`}
-                            render={({ field: inputField }) => (
-                                <FormItem className="flex-1">
-                                    <FormControl>
-                                        <div className="relative">
-                                            <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                            <Input {...inputField} placeholder="https://drive.google.com/..." className="pl-9 h-10" disabled={!canEdit} />
-                                        </div>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                    <div key={field.id} className="relative p-4 rounded-lg border bg-muted/5 group space-y-3 transition-all hover:border-primary/20">
                         {canEdit && (
                             <Button 
                                 type="button" 
                                 variant="ghost" 
                                 size="icon" 
-                                className="text-destructive h-10 w-10"
+                                className="absolute top-2 right-2 text-destructive h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
                                 onClick={() => removeLink(index)}
                             >
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                                control={control}
+                                name={`ched.contentNotedLinks.${index}.url`}
+                                render={({ field: inputField }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Google Drive Link</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <LinkIcon className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                                                <Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="pl-9 h-9 text-xs" disabled={!canEdit} />
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={control}
+                                name={`ched.contentNotedLinks.${index}.dateNoted`}
+                                render={({ field: inputField }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Date Noted by CHED</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Calendar className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                                                <Input {...inputField} value={inputField.value || ''} placeholder="e.g., Oct 24, 2024" className="pl-9 h-9 text-xs font-bold" disabled={!canEdit} />
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
                     </div>
                 ))}
                 {notedLinksFields.length === 0 && (
-                    <div className="text-center py-6 border border-dashed rounded-lg text-muted-foreground text-[10px] italic">
-                        No links added. Click the "+" button to add proof files.
+                    <div className="text-center py-8 border border-dashed rounded-lg text-muted-foreground text-xs italic bg-muted/5">
+                        No notation records added. Use the "+" button above.
                     </div>
                 )}
             </div>

@@ -104,11 +104,12 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     if (record.ched?.contentNotedLinks) {
         record.ched.contentNotedLinks.forEach((link, index) => {
             if (link.url) {
+                const notationDateStr = link.dateNoted ? ` [Noted: ${link.dateNoted}]` : '';
                 baseDocs.push({
                     id: `noted-${index}`,
                     title: `Contents Noted Proof ${index + 1}`,
                     url: link.url,
-                    status: record.ched?.contentNoted ? 'Acknowledged' : 'Pending'
+                    status: `${record.ched?.contentNoted ? 'Acknowledged' : 'Pending'}${notationDateStr}`
                 });
             }
         });

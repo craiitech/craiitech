@@ -370,7 +370,7 @@ export type ProgramComplianceRecord = {
     copcStatus: 'With COPC' | 'No COPC' | 'In Progress';
     copcLink?: string; // GDrive PDF
     contentNoted: boolean;
-    contentNotedLinks?: { url: string }[];
+    contentNotedLinks?: { url: string; dateNoted?: string }[];
     rqatVisits?: RQATVisit[];
   };
 
