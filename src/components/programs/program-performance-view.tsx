@@ -94,12 +94,25 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
   const documents = useMemo(() => {
     if (!record) return [];
     
-    const baseDocs = [
+    const baseDocs: { id: string; title: string; url: string | undefined; status: string | undefined }[] = [
       { id: 'copc', title: 'CHED COPC', url: record.ched?.copcLink, status: record.ched?.copcStatus },
       { id: 'accreditation', title: 'Accreditation Certificate', url: record.accreditation?.certificateLink, status: record.accreditation?.level },
       { id: 'cmo', title: 'Program CMO', url: record.curriculum?.cmoLink, status: record.curriculum?.revisionNumber ? `Rev ${record.curriculum.revisionNumber}` : 'Current' },
-      { id: 'noted', title: 'Contents Noted Proof', url: record.ched?.contentNotedLink, status: record.ched?.contentNoted ? 'Acknowledged' : 'Pending' },
     ];
+
+    // Add multiple content noted links
+    if (record.ched?.contentNotedLinks) {
+        record.ched.contentNotedLinks.forEach((link, index) => {
+            if (link.url) {
+                baseDocs.push({
+                    id: `noted-${index}`,
+                    title: `Contents Noted Proof ${index + 1}`,
+                    url: link.url,
+                    status: record.ched?.contentNoted ? 'Acknowledged' : 'Pending'
+                });
+            }
+        });
+    }
 
     // Add RQAT reports from history
     if (record.ched?.rqatVisits) {
@@ -392,7 +405,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
       {program.isBoardProgram && (
         <Card className="border-green-100 shadow-inner">
             <CardHeader className="bg-green-50/50">
-                <CardTitle className="text-lg flex items-center gap-2">
+                <CardTitle className="text-lg flex items-gap-2">
                     <ShieldCheck className="h-5 w-5 text-green-600" />
                     Latest Board Performance
                     {analyticsData?.latestBoard && `: ${analyticsData.latestBoard.examDate}`}

@@ -14,9 +14,14 @@ import { Button } from '@/components/ui/button';
 export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
   const { control } = useFormContext();
   
-  const { fields, append, remove } = useFieldArray({
+  const { fields: rqatFields, append: appendRqat, remove: removeRqat } = useFieldArray({
     control,
     name: "ched.rqatVisits"
+  });
+
+  const { fields: notedLinksFields, append: appendLink, remove: removeLink } = useFieldArray({
+    control,
+    name: "ched.contentNotedLinks"
   });
 
   return (
@@ -81,22 +86,59 @@ export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
             />
           </div>
 
-          <FormField
-            control={control}
-            name="ched.contentNotedLink"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>GDrive Link: Contents Noted Proof (PDF)</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input {...field} placeholder="https://drive.google.com/..." className="pl-9" disabled={!canEdit} />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">GDrive Links: Contents Noted Proofs (PDF)</FormLabel>
+                {canEdit && (
+                    <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white"
+                        onClick={() => appendLink({ url: '' })}
+                    >
+                        <PlusCircle className="h-4 w-4" />
+                    </Button>
+                )}
+            </div>
+            <div className="space-y-3">
+                {notedLinksFields.map((field, index) => (
+                    <div key={field.id} className="flex gap-2 items-center">
+                        <FormField
+                            control={control}
+                            name={`ched.contentNotedLinks.${index}.url`}
+                            render={({ field: inputField }) => (
+                                <FormItem className="flex-1">
+                                    <FormControl>
+                                        <div className="relative">
+                                            <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                            <Input {...inputField} placeholder="https://drive.google.com/..." className="pl-9 h-10" disabled={!canEdit} />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        {canEdit && (
+                            <Button 
+                                type="button" 
+                                variant="ghost" 
+                                size="icon" 
+                                className="text-destructive h-10 w-10"
+                                onClick={() => removeLink(index)}
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
+                ))}
+                {notedLinksFields.length === 0 && (
+                    <div className="text-center py-6 border border-dashed rounded-lg text-muted-foreground text-[10px] italic">
+                        No links added. Click the "+" button to add proof files.
+                    </div>
+                )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -114,7 +156,7 @@ export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
                     <Button 
                         type="button" 
                         size="sm" 
-                        onClick={() => append({ date: '', result: '', nonCompliances: '', comments: '', reportLink: '' })}
+                        onClick={() => appendRqat({ date: '', result: '', nonCompliances: '', comments: '', reportLink: '' })}
                         className="h-8 gap-1"
                     >
                         <PlusCircle className="h-3.5 w-3.5" />
@@ -124,7 +166,7 @@ export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
             </CardHeader>
             <CardContent className="pt-6">
                 <div className="space-y-6">
-                    {fields.map((field, index) => (
+                    {rqatFields.map((field, index) => (
                         <div key={field.id} className="relative p-4 rounded-lg border bg-muted/10 space-y-4">
                             {canEdit && (
                                 <Button 
@@ -132,7 +174,7 @@ export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
                                     variant="ghost" 
                                     size="icon" 
                                     className="absolute top-2 right-2 text-destructive h-7 w-7" 
-                                    onClick={() => remove(index)}
+                                    onClick={() => removeRqat(index)}
                                 >
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -199,7 +241,7 @@ export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
                             />
                         </div>
                     ))}
-                    {fields.length === 0 && (
+                    {rqatFields.length === 0 && (
                         <div className="text-center py-12 border border-dashed rounded-lg text-muted-foreground text-sm">
                             No RQAT visit history recorded for this year.
                         </div>

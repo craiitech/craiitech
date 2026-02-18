@@ -370,7 +370,7 @@ export type ProgramComplianceRecord = {
     copcStatus: 'With COPC' | 'No COPC' | 'In Progress';
     copcLink?: string; // GDrive PDF
     contentNoted: boolean;
-    contentNotedLink?: string; // GDrive PDF
+    contentNotedLinks?: { url: string }[];
     rqatVisits?: RQATVisit[];
   };
 
@@ -497,7 +497,7 @@ export type CorrectiveActionRequest = {
   source: 'Audit Finding' | 'Legal Non-compliance' | 'Non-conforming Service' | 'Others';
   procedureTitle: string;
   initiator: string;
-  nature of finding: 'NC' | 'OFI';
+  natureOfFinding: 'NC' | 'OFI';
   concerningClause: string;
   timeLimitForReply?: any; // Timestamp
   unitId: string;

@@ -6,7 +6,7 @@ import type { AcademicProgram, ProgramComplianceRecord } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Loader2, Save, FileCheck, Users, BookOpen, BarChart3, ShieldCheck, Presentation, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -83,7 +83,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     resolver: zodResolver(complianceSchema),
     defaultValues: {
       academicYear: selectedAY,
-      ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', contentNotedLink: '', rqatVisits: [] },
+      ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', contentNotedLinks: [], rqatVisits: [] },
       accreditation: { level: 'Non Accredited', certificateLink: '', dateOfSurvey: '', statusValidityDate: '', dateOfAward: '', nextSchedule: '', overallTaskForceHead: '', taskForce: '', areas: [] },
       curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
       faculty: { 
@@ -116,7 +116,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     } else {
       methods.reset({
         academicYear: selectedAY,
-        ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', contentNotedLink: '', rqatVisits: [] },
+        ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', contentNotedLinks: [], rqatVisits: [] },
         accreditation: { level: 'Non Accredited', certificateLink: '', dateOfSurvey: '', statusValidityDate: '', dateOfAward: '', nextSchedule: '', overallTaskForceHead: '', taskForce: '', areas: [] },
         curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
         faculty: { 
