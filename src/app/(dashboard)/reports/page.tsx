@@ -322,7 +322,7 @@ export default function ReportsPage() {
   const campusMap = new Map(allCampuses?.map(c => [String(c.id).trim(), c.name]));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-full overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Reports</h2>
@@ -336,7 +336,7 @@ export default function ReportsPage() {
         )}
       </div>
       
-      <div className="printable-area space-y-8">
+      <div className="printable-area space-y-8 w-full">
         <div className="hidden print:block text-center mb-8">
             <h1 className="text-3xl font-bold">RSU EOMS - System Report</h1>
             <p className="text-muted-foreground">Generated on: {new Date().toLocaleDateString()}</p>
@@ -478,12 +478,14 @@ export default function ReportsPage() {
         </div>
 
         {(isAdmin || isSupervisor) && (
-            <SubmissionMatrixReport 
-                matrixData={matrixData}
-                allCycles={allCycles}
-                selectedYear={selectedMatrixYear}
-                onYearChange={setSelectedMatrixYear}
-            />
+            <div className="w-full overflow-hidden">
+                <SubmissionMatrixReport 
+                    matrixData={matrixData}
+                    allCycles={allCycles}
+                    selectedYear={selectedMatrixYear}
+                    onYearChange={setSelectedMatrixYear}
+                />
+            </div>
         )}
 
       </div>

@@ -57,15 +57,15 @@ export function SubmissionMatrixReport({
   };
 
   return (
-    <Card>
+    <Card className="max-w-full overflow-hidden">
       <CardHeader className="flex flex-row items-start justify-between">
-        <div>
+        <div className="min-w-0 pr-4">
           <CardTitle>Detailed Submission Matrix</CardTitle>
-          <CardDescription>
+          <CardDescription className="max-w-xl">
             An overview of submitted documents for each unit, per cycle for the selected year. <Check className="inline h-4 w-4 text-green-500" /> indicates submitted, <X className="inline h-4 w-4 text-red-500" /> indicates missing, and "N/A" indicates Not Applicable.
           </CardDescription>
         </div>
-        <div className="w-[120px]">
+        <div className="w-[120px] shrink-0">
           <Select value={String(selectedYear)} onValueChange={(v) => onYearChange(Number(v))}>
             <SelectTrigger>
               <SelectValue placeholder="Select Year" />
@@ -76,24 +76,25 @@ export function SubmissionMatrixReport({
           </Select>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="max-w-full overflow-hidden">
         <Accordion type="multiple" className="w-full" defaultValue={matrixData.map(d => d.campusId)}>
           {matrixData.map(({ campusId, campusName, units }) => {
             const cId = String(campusId).trim().toLowerCase();
             return (
-                <AccordionItem value={cId} key={cId}>
-                <AccordionTrigger className="hover:no-underline font-bold uppercase tracking-wider">{campusName}</AccordionTrigger>
-                <AccordionContent>
-                    <div className="relative overflow-x-auto rounded-md border">
+                <AccordionItem value={cId} key={cId} className="border-none mb-4">
+                <AccordionTrigger className="hover:no-underline font-bold uppercase tracking-wider bg-muted/20 px-4 rounded-t-lg">
+                    {campusName}
+                </AccordionTrigger>
+                <AccordionContent className="p-0 border rounded-b-lg">
                     <Table>
                         <TableHeader>
-                        <TableRow className="bg-muted/50">
-                            <TableHead rowSpan={2} className="sticky left-0 bg-muted border-r z-10 font-bold min-w-[200px]">UNIT NAME</TableHead>
+                        <TableRow className="bg-muted/50 hover:bg-muted/50">
+                            <TableHead rowSpan={2} className="sticky left-0 bg-muted border-r z-20 font-bold min-w-[200px] text-xs">UNIT NAME</TableHead>
                             {submissionTypes.map(type => (
                             <TableHead key={type} colSpan={2} className="text-center border-l font-bold text-[10px] uppercase">{type}</TableHead>
                             ))}
                         </TableRow>
-                        <TableRow className="bg-muted/30">
+                        <TableRow className="bg-muted/30 hover:bg-muted/30">
                             {submissionTypes.map(type => (
                             <React.Fragment key={type}>
                                 <TableHead className="text-center border-l text-[9px] font-semibold py-1">FIRST</TableHead>
@@ -106,8 +107,10 @@ export function SubmissionMatrixReport({
                         {units.map(({ unitId, unitName, statuses }) => {
                             const uId = String(unitId).trim().toLowerCase();
                             return (
-                                <TableRow key={uId} className="hover:bg-muted/20">
-                                <TableCell className="font-medium sticky left-0 bg-background border-r z-10 text-xs">{unitName}</TableCell>
+                                <TableRow key={uId} className="hover:bg-muted/10">
+                                <TableCell className="font-bold sticky left-0 bg-background border-r z-10 text-[11px] whitespace-nowrap">
+                                    {unitName}
+                                </TableCell>
                                 {submissionTypes.map(type => {
                                     // Construct lookup keys ensuring lowercase normalization
                                     const firstKey = `${cId}-${uId}-${type}-${cycles[0]}`.toLowerCase();
@@ -115,10 +118,10 @@ export function SubmissionMatrixReport({
                                     
                                     return (
                                         <React.Fragment key={type}>
-                                        <TableCell className="text-center border-l">
+                                        <TableCell className="text-center border-l bg-background/50">
                                             {renderCell(statuses[firstKey])}
                                         </TableCell>
-                                        <TableCell className="text-center border-r">
+                                        <TableCell className="text-center border-r bg-background/50">
                                             {renderCell(statuses[finalKey])}
                                         </TableCell>
                                         </React.Fragment>
@@ -129,20 +132,19 @@ export function SubmissionMatrixReport({
                         })}
                         {units.length === 0 && (
                             <TableRow>
-                            <TableCell colSpan={submissionTypes.length * 2 + 1} className="text-center h-24 text-muted-foreground">
+                            <TableCell colSpan={submissionTypes.length * 2 + 1} className="text-center h-24 text-muted-foreground italic text-xs">
                                 No units with submissions found for this campus in {selectedYear}.
                             </TableCell>
                             </TableRow>
                         )}
                         </TableBody>
                     </Table>
-                    </div>
                 </AccordionContent>
                 </AccordionItem>
             );
           })}
             {matrixData.length === 0 && (
-                <div className="text-center py-10 text-muted-foreground">
+                <div className="text-center py-10 text-muted-foreground border border-dashed rounded-lg">
                     No compliance data found for the selected year.
                 </div>
             )}
