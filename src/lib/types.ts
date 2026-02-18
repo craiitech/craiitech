@@ -377,7 +377,8 @@ export type ProgramComplianceRecord = {
   // Accreditation
   accreditation: {
     level: string; // Level 1, Level 2, etc.
-    dateOfVisit?: string;
+    dateOfSurvey?: string;
+    statusValidityDate?: string;
     dateOfAward?: string;
     nextSchedule: string;
     certificateLink?: string; // GDrive PDF
@@ -496,7 +497,7 @@ export type CorrectiveActionRequest = {
   source: 'Audit Finding' | 'Legal Non-compliance' | 'Non-conforming Service' | 'Others';
   procedureTitle: string;
   initiator: string;
-  natureOfFinding: 'NC' | 'OFI';
+  nature of finding: 'NC' | 'OFI';
   concerningClause: string;
   timeLimitForReply?: any; // Timestamp
   unitId: string;

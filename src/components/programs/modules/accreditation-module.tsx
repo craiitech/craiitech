@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShieldCheck, Calendar, Link as LinkIcon, Award, Users, FileText, CheckCircle2, UserCircle, Calculator, Info } from 'lucide-react';
+import { ShieldCheck, Calendar, Link as LinkIcon, Award, Users, FileText, CheckCircle2, UserCircle, Calculator, Info, TrendingUp } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useEffect, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -16,13 +16,21 @@ const accreditationLevels = [
   "Non Accredited",
   "Preliminary Survey Visit (PSV)",
   "Level I Accredited",
+  "Level I Re-accredited",
   "Level II Accredited",
+  "Level II Re-accredited",
   "Level III Accredited",
+  "Level III Re-accredited",
   "Level III - Phase 1 Accredited",
+  "Level III - Phase 1 Re-accredited",
   "Level III - Phase 2 Accredited",
+  "Level III - Phase 2 Re-accredited",
   "Level IV Accredited",
+  "Level IV Re-accredited",
   "Level IV - Phase 1 Accredited",
+  "Level IV - Phase 1 Re-accredited",
   "Level IV - Phase 2 Accredited",
+  "Level IV - Phase 2 Re-accredited",
 ];
 
 const standardAreas = [
@@ -61,8 +69,8 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
 
   const isPSVToLevel2 = useMemo(() => {
     return selectedLevel === 'Preliminary Survey Visit (PSV)' || 
-           selectedLevel === 'Level I Accredited' || 
-           selectedLevel === 'Level II Accredited';
+           selectedLevel?.includes('Level I') || 
+           selectedLevel?.includes('Level II');
   }, [selectedLevel]);
 
   // Synchronize area fields when level changes, but ONLY if we don't already have area data.
@@ -163,10 +171,10 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
             <div className="grid grid-cols-1 gap-4 pt-2">
                 <FormField
                     control={control}
-                    name="accreditation.dateOfVisit"
+                    name="accreditation.dateOfSurvey"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Date of Visit</FormLabel>
+                        <FormLabel>Date of Survey</FormLabel>
                         <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Oct 12-14, 2024" disabled={!canEdit} /></FormControl>
                         </FormItem>
                     )}
@@ -178,6 +186,17 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                         <FormItem>
                         <FormLabel>Date of Award</FormLabel>
                         <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Dec 20, 2024" disabled={!canEdit} /></FormControl>
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={control}
+                    name="accreditation.statusValidityDate"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Status Validity Date</FormLabel>
+                        <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Dec 20, 2028" disabled={!canEdit} /></FormControl>
+                        <FormDescription className="text-[10px]">Date until when the current status is valid.</FormDescription>
                         </FormItem>
                     )}
                 />

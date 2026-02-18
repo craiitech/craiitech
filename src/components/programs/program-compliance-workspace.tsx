@@ -84,7 +84,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     defaultValues: {
       academicYear: selectedAY,
       ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', contentNotedLink: '', rqatVisits: [] },
-      accreditation: { level: 'Non Accredited', certificateLink: '', dateOfVisit: '', dateOfAward: '', nextSchedule: '', overallTaskForceHead: '', taskForce: '', areas: [] },
+      accreditation: { level: 'Non Accredited', certificateLink: '', dateOfSurvey: '', statusValidityDate: '', dateOfAward: '', nextSchedule: '', overallTaskForceHead: '', taskForce: '', areas: [] },
       curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
       faculty: { 
         hasAssociateDean: false,
@@ -108,23 +108,6 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
   });
 
   useEffect(() => {
-    const subscription = methods.watch((value, { name }) => {
-      if (name === 'ched.contentNoted') {
-        const newValue = !!value.ched?.contentNoted;
-        if (methods.getValues('curriculum.isNotedByChed') !== newValue) {
-          methods.setValue('curriculum.isNotedByChed', newValue, { shouldDirty: true });
-        }
-      } else if (name === 'curriculum.isNotedByChed') {
-        const newValue = !!value.curriculum?.isNotedByChed;
-        if (methods.getValues('ched.contentNoted') !== newValue) {
-          methods.setValue('ched.contentNoted', newValue, { shouldDirty: true });
-        }
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [methods]);
-
-  useEffect(() => {
     if (activeRecord) {
       methods.reset({
         ...activeRecord,
@@ -134,7 +117,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       methods.reset({
         academicYear: selectedAY,
         ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', contentNotedLink: '', rqatVisits: [] },
-        accreditation: { level: 'Non Accredited', certificateLink: '', dateOfVisit: '', dateOfAward: '', nextSchedule: '', overallTaskForceHead: '', taskForce: '', areas: [] },
+        accreditation: { level: 'Non Accredited', certificateLink: '', dateOfSurvey: '', statusValidityDate: '', dateOfAward: '', nextSchedule: '', overallTaskForceHead: '', taskForce: '', areas: [] },
         curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
         faculty: { 
             hasAssociateDean: false,

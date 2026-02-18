@@ -145,7 +145,12 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <p className="text-[10px] text-muted-foreground italic">Valid as of {record.accreditation.dateOfAward || 'TBA'}</p>
+                <div className="flex flex-col gap-1">
+                    <p className="text-[10px] text-muted-foreground italic">Survey: {record.accreditation.dateOfSurvey || 'TBA'}</p>
+                    {record.accreditation.statusValidityDate && (
+                        <p className="text-[10px] font-bold text-blue-700/70">Valid until: {record.accreditation.statusValidityDate}</p>
+                    )}
+                </div>
             </CardContent>
         </Card>
 
