@@ -22,6 +22,7 @@ import { z } from 'zod';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
 
 interface ManagementReviewTabProps {
   campuses: Campus[];
@@ -330,9 +331,8 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                                             <Presentation className="h-10 w-10" />
                                                             <p className="text-[10px] font-black uppercase tracking-widest">No decisions logged</p>
                                                         </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            )}
+                                                    </TableRow>
+                                                )}
                                         </TableBody>
                                     </Table>
                                 )}
