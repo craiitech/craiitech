@@ -1,15 +1,14 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, orderBy, where, doc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import type { ManagementReviewOutput, Campus, Unit, ManagementReview, ManagementReviewOutputStatus } from '@/lib/types';
+import { collection, query, orderBy, doc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import type { ManagementReviewOutput, Campus, Unit, ManagementReview } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, ClipboardList, Send, Building2, ListChecks, History, Info, User, CheckCircle2, Hash, ChevronRight, Eye, LayoutList, Target, ShieldCheck } from 'lucide-react';
+import { Loader2, Calendar, ClipboardList, Send, Building2, ListChecks, History, Info, User, CheckCircle2, Hash, ChevronRight, Eye, LayoutList, Target, ShieldCheck, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -51,6 +50,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   const [previewOutput, setPreviewOutput] = useState<ManagementReviewOutput | null>(null);
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
 
   // Scoped Query - Fetch all outputs and filter in-memory for precision hierarchy
   const outputsQuery = useMemoFirebase(() => {
@@ -68,21 +68,43 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     return units.find(u => u.id === userProfile.unitId);
   }, [userProfile?.unitId, units]);
 
+  const reviewMap = useMemo(() => {
+    const map = new Map<string, { title: string; year: string }>();
+    reviews?.forEach(r => {
+      const date = r.startDate instanceof Timestamp ? r.startDate.toDate() : new Date(r.startDate);
+      map.set(r.id, { 
+        title: r.title, 
+        year: date.getFullYear().toString() 
+      });
+    });
+    return map;
+  }, [reviews]);
+
+  const availableYears = useMemo(() => {
+    if (!reviews) return [];
+    const years = new Set<string>();
+    reviews.forEach(r => {
+      const date = r.startDate instanceof Timestamp ? r.startDate.toDate() : new Date(r.startDate);
+      years.add(date.getFullYear().toString());
+    });
+    return Array.from(years).sort((a, b) => b.localeCompare(a));
+  }, [reviews]);
+
   const filteredOutputs = useMemo(() => {
     if (!rawOutputs || !userProfile) return [];
-    if (isAdmin) return rawOutputs;
-
+    
     const isCampusLevel = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
     const isUnitLevel = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
 
-    return rawOutputs.filter(output => {
-        return (output.assignments || []).some(a => {
+    let outputs = rawOutputs.filter(output => {
+        // Scoping Logic
+        const isAssigned = (output.assignments || []).some(a => {
             const isInstitutional = a.campusId === 'university-wide';
             const isMyCampus = a.campusId === userProfile.campusId;
             
             if (!isInstitutional && !isMyCampus) return false;
 
-            if (isCampusLevel) return true;
+            if (isCampusLevel || isAdmin) return true;
 
             if (isUnitLevel) {
                 if (a.unitId === ALL_UNITS_ID) return true;
@@ -93,8 +115,20 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
             }
             return true;
         });
+
+        if (!isAssigned && !isAdmin) return false;
+
+        // Year Filtering Logic
+        if (selectedYear !== 'all') {
+            const reviewData = reviewMap.get(output.mrId);
+            return reviewData?.year === selectedYear;
+        }
+
+        return true;
     });
-  }, [rawOutputs, userProfile, isAdmin, userRole, myUnit]);
+
+    return outputs;
+  }, [rawOutputs, userProfile, isAdmin, userRole, myUnit, selectedYear, reviewMap]);
 
   const form = useForm<z.infer<typeof updateSchema>>({
     resolver: zodResolver(updateSchema),
@@ -168,8 +202,6 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     map.set(ALL_REDI_ID, 'All REDi Units');
     return map;
   }, [units]);
-  
-  const reviewMap = new Map(reviews?.map(r => [r.id, r.title]));
 
   const safeFormatDate = (date: any) => {
     if (!date) return 'N/A';
@@ -181,9 +213,27 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1">
-        <h3 className="text-lg font-black uppercase tracking-tight">Assigned MR Action Items</h3>
-        <p className="text-xs text-muted-foreground font-medium">Decisions from Management Reviews requiring action from your unit or campus.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+            <h3 className="text-lg font-black uppercase tracking-tight">Assigned MR Action Items</h3>
+            <p className="text-xs text-muted-foreground font-medium">Decisions from Management Reviews requiring action from your unit or campus.</p>
+        </div>
+        <div className="flex items-center gap-2">
+            <div className="flex flex-col items-end">
+                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 flex items-center gap-1">
+                    <Filter className="h-2.5 w-2.5" /> Filter by Review Year
+                </label>
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger className="w-[140px] h-9 bg-white font-bold shadow-sm">
+                        <SelectValue placeholder="Select Year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Sessions</SelectItem>
+                        {availableYears.map(y => <SelectItem key={y} value={y}>Review Year {y}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
       </div>
 
       <Card className="shadow-sm border-primary/10 overflow-hidden">
@@ -217,7 +267,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                             <div className="flex flex-wrap items-center gap-2 mt-1">
                                 <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
                                     <History className="h-2.5 w-2.5" />
-                                    From: {reviewMap.get(output.mrId) || 'Management Review'}
+                                    From: {reviewMap.get(output.mrId)?.title || 'Management Review'}
                                 </div>
                                 {output.lineNumber && (
                                     <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-tighter bg-slate-100 px-1.5 py-0.5 rounded">
@@ -294,7 +344,11 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                         <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
                             <div className="flex flex-col items-center gap-2 opacity-20">
                                 <ListChecks className="h-10 w-10" />
-                                <p className="text-xs font-bold uppercase tracking-widest">No action items assigned to you</p>
+                                <p className="text-xs font-bold uppercase tracking-widest">
+                                    {selectedYear === 'all' 
+                                        ? "No action items assigned to you" 
+                                        : `No action items found for review year ${selectedYear}`}
+                                </p>
                             </div>
                         </TableCell>
                     </TableRow>
@@ -348,7 +402,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                         </div>
                                         <div>
                                             <p className="text-[9px] font-bold text-slate-400 uppercase">Source Session</p>
-                                            <p className="text-xs font-bold text-slate-700">{reviewMap.get(previewOutput.mrId) || 'Management Review'}</p>
+                                            <p className="text-xs font-bold text-slate-700">{reviewMap.get(previewOutput.mrId)?.title || 'Management Review'}</p>
                                         </div>
                                     </div>
                                 </div>
