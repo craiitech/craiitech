@@ -1,3 +1,4 @@
+'use server';
 
 'use client';
 
@@ -8,6 +9,7 @@ import type { ManagementReviewOutput, Campus, Unit, ManagementReview } from '@/l
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Loader2, Calendar, ClipboardList, Send, MapPin, Building2, ChevronRight, ListChecks, History, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
