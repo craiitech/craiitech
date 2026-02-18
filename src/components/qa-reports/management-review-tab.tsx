@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, deleteDoc, doc, addDoc, serverTimestamp, where, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, deleteDoc, doc, addDoc, serverTimestamp, where, Timestamp, updateDoc } from 'firebase/firestore';
 import type { ManagementReview, ManagementReviewOutput, Campus, Unit, MRAssignment } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, ChevronRight, User, Globe, Building2, FileText, Presentation, Hash } from 'lucide-react';
+import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, ChevronRight, User, Globe, Building2, FileText, Presentation, Hash, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -64,6 +64,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
   const [selectedMr, setSelectedMr] = useState<ManagementReview | null>(null);
   const [isMrDialogOpen, setIsMrDialogOpen] = useState(false);
   const [isOutputDialogOpen, setIsOutputDialogOpen] = useState(false);
+  const [editingOutput, setEditingOutput] = useState<ManagementReviewOutput | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const reviewsQuery = useMemoFirebase(
@@ -96,7 +97,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
     }
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control: outputForm.control,
     name: "assignments"
   });
@@ -128,31 +129,62 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
       const campusIds = Array.from(new Set(values.assignments.map(a => a.campusId)));
       const concernedUnitIds = Array.from(new Set(values.assignments.map(a => a.unitId)));
 
-      await addDoc(collection(firestore, 'managementReviewOutputs'), {
+      const dataToSave = {
         ...values,
         mrId: selectedMr.id,
         campusIds,
         concernedUnitIds,
         followUpDate: Timestamp.fromDate(new Date(values.followUpDate)),
-        createdAt: serverTimestamp(),
-      });
-      toast({ title: 'Success', description: 'MR Output added.' });
+        updatedAt: serverTimestamp(),
+      };
+
+      if (editingOutput) {
+        await updateDoc(doc(firestore, 'managementReviewOutputs', editingOutput.id), dataToSave);
+        toast({ title: 'Success', description: 'Decision updated.' });
+      } else {
+        await addDoc(collection(firestore, 'managementReviewOutputs'), {
+          ...dataToSave,
+          createdAt: serverTimestamp(),
+        });
+        toast({ title: 'Success', description: 'Decision logged.' });
+      }
+      
       setIsOutputDialogOpen(false);
-      outputForm.reset({
-        description: '', 
-        initiator: '', 
-        lineNumber: '',
-        assignments: [{ campusId: '', unitId: '' }], 
-        actionPlan: '', 
-        followUpDate: '', 
-        status: 'Open'
-      });
+      setEditingOutput(null);
+      outputForm.reset();
     } catch (error) {
       console.error(error);
-      toast({ title: 'Error', description: 'Failed to add output.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Failed to save output.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleOpenOutputDialog = (output: ManagementReviewOutput | null = null) => {
+    setEditingOutput(output);
+    if (output) {
+        const safeDate = (d: any) => d?.toDate ? format(d.toDate(), 'yyyy-MM-dd') : (d ? format(new Date(d), 'yyyy-MM-dd') : '');
+        outputForm.reset({
+            description: output.description,
+            initiator: output.initiator,
+            lineNumber: output.lineNumber || '',
+            assignments: output.assignments || [{ campusId: '', unitId: '' }],
+            actionPlan: output.actionPlan || '',
+            followUpDate: safeDate(output.followUpDate),
+            status: output.status
+        });
+    } else {
+        outputForm.reset({ 
+            description: '', 
+            initiator: '', 
+            lineNumber: '',
+            assignments: [{ campusId: '', unitId: '' }], 
+            actionPlan: '', 
+            followUpDate: '', 
+            status: 'Open' 
+        });
+    }
+    setIsOutputDialogOpen(true);
   };
 
   const campusMap = useMemo(() => {
@@ -268,7 +300,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                         <div className="p-4 border-b bg-muted/5 flex items-center justify-between shrink-0">
                             <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Decisions / Action Plans Registry</h4>
                             {canManage && (
-                                <Button onClick={() => setIsOutputDialogOpen(true)} size="sm" className="h-7 text-[9px] font-black uppercase shadow-lg shadow-primary/20">
+                                <Button onClick={() => handleOpenOutputDialog()} size="sm" className="h-7 text-[9px] font-black uppercase shadow-lg shadow-primary/20">
                                     <PlusCircle className="h-3 w-3 mr-1.5" /> LOG MR OUTPUT
                                 </Button>
                             )}
@@ -285,6 +317,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                                 <TableHead className="text-[10px] font-black uppercase py-2">Assigned Responsibilities</TableHead>
                                                 <TableHead className="text-[10px] font-black uppercase py-2 text-center">Follow-up</TableHead>
                                                 <TableHead className="text-[10px] font-black uppercase py-2 text-right">Status</TableHead>
+                                                <TableHead className="text-[10px] font-black uppercase py-2 text-right">Action</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -345,11 +378,21 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                                             {output.status}
                                                         </Badge>
                                                     </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="icon" 
+                                                            className="h-8 w-8 text-primary hover:bg-primary/5"
+                                                            onClick={() => handleOpenOutputDialog(output)}
+                                                        >
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                    </TableCell>
                                                 </TableRow>
                                             ))}
                                             {outputs?.length === 0 && (
                                                 <TableRow>
-                                                    <TableCell colSpan={4} className="h-40 text-center text-muted-foreground">
+                                                    <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
                                                         <div className="flex flex-col items-center gap-2 opacity-20">
                                                             <Presentation className="h-10 w-10" />
                                                             <p className="text-[10px] font-black uppercase tracking-widest">No decisions logged</p>
@@ -443,14 +486,14 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isOutputDialogOpen} onOpenChange={setIsOutputDialogOpen}>
+      <Dialog open={isOutputDialogOpen} onOpenChange={(open) => { setIsOutputDialogOpen(open); if (!open) setEditingOutput(null); }}>
         <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
                 <ListChecks className="h-5 w-5" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Action Registry</span>
             </div>
-            <DialogTitle className="text-xl font-bold">Log Review Output</DialogTitle>
+            <DialogTitle className="text-xl font-bold">{editingOutput ? 'Edit' : 'Log'} Review Output</DialogTitle>
             <DialogDescription className="text-xs">Assign decisions to specific campuses and units.</DialogDescription>
           </DialogHeader>
           <Form {...outputForm}>
@@ -578,7 +621,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                 <Button type="button" variant="outline" onClick={() => setIsOutputDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
                 <Button type="submit" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black text-xs uppercase tracking-widest">
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ListChecks className="h-4 w-4 mr-1.5" />}
-                    Log MR Output
+                    {editingOutput ? 'Update Decision' : 'Log MR Output'}
                 </Button>
               </DialogFooter>
             </form>
