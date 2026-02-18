@@ -17,7 +17,7 @@ import {
     Pie
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { 
     ListTodo, 
@@ -32,6 +32,15 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
+
+interface DecisionAnalyticsProps {
+  outputs: ManagementReviewOutput[];
+  reviews: ManagementReview[];
+  campuses: Campus[];
+  units: Unit[];
+  isLoading: boolean;
+  selectedYear: string;
+}
 
 const STATUS_COLORS: Record<string, string> = {
   'Open': 'hsl(var(--destructive))',
