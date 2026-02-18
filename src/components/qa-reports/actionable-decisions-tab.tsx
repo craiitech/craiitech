@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -9,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, ClipboardList, Send, Building2, ListChecks, History, Info, User, CheckCircle2, Hash, ChevronRight } from 'lucide-react';
+import { Loader2, Calendar, ClipboardList, Send, Building2, ListChecks, History, Info, User, CheckCircle2, Hash, ChevronRight, Eye, LayoutList, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -21,6 +20,8 @@ import { z } from 'zod';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 interface ActionableDecisionsTabProps {
   campuses: Campus[];
@@ -44,7 +45,8 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   const firestore = useFirestore();
   const { toast } = useToast();
   const [selectedOutput, setSelectedOutput] = useState<ManagementReviewOutput | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [previewOutput, setPreviewOutput] = useState<ManagementReviewOutput | null>(null);
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Scoped Query - Fetch all outputs and filter in-memory for precision hierarchy
@@ -67,43 +69,25 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     if (!rawOutputs || !userProfile) return [];
     if (isAdmin) return rawOutputs;
 
-    // Detection of user authority level
     const isCampusLevel = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
     const isUnitLevel = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
 
     return rawOutputs.filter(output => {
-        // Evaluate each assignment coupling (Campus + Unit)
         return (output.assignments || []).some(a => {
             const isInstitutional = a.campusId === 'university-wide';
             const isMyCampus = a.campusId === userProfile.campusId;
             
-            // Step 1: Scoped Site Check
-            // Both campus and unit levels can see university-wide assignments.
-            // Campus-specific assignments require a match with the user's registered site.
             if (!isInstitutional && !isMyCampus) return false;
 
-            // Step 2: Role-based filtering within the site
-            if (isCampusLevel) {
-                // Campus level users (Supervisors) see all tasks assigned to their campus, 
-                // including those assigned to specific units within their site.
-                return true;
-            }
+            if (isCampusLevel) return true;
 
             if (isUnitLevel) {
-                // Unit level users only see assignments matching their specific unit, 
-                // their category, or the "All Units" catch-all.
                 if (a.unitId === ALL_UNITS_ID) return true;
-                
-                // Categorical Matches
                 if (a.unitId === ALL_ACADEMIC_ID && myUnit?.category === 'Academic') return true;
                 if (a.unitId === ALL_ADMIN_ID && myUnit?.category === 'Administrative') return true;
                 if (a.unitId === ALL_REDI_ID && myUnit?.category === 'Research') return true;
-                
-                // Direct Unit Match
                 if (a.unitId === userProfile.unitId) return true;
             }
-
-            // Fallback for Auditors or special roles: visible if campus matches
             return true;
         });
     });
@@ -124,7 +108,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
         actionDate: safeDate(output.actionDate),
         actionTakenBy: output.actionTakenBy || (userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '')
     });
-    setIsDialogOpen(true);
+    setIsUpdateDialogOpen(true);
   };
 
   const onSubmit = async (values: z.infer<typeof updateSchema>) => {
@@ -138,7 +122,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
         updatedAt: serverTimestamp(),
       });
       toast({ title: 'Update Recorded', description: 'Your action update has been successfully logged.' });
-      setIsDialogOpen(false);
+      setIsUpdateDialogOpen(false);
     } catch (error) {
       toast({ title: 'Update Failed', description: 'Could not save the update.', variant: 'destructive' });
     } finally {
@@ -188,7 +172,6 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                     <TableHead className="font-bold text-[10px] uppercase w-[40px]">#</TableHead>
                     <TableHead className="font-bold text-[10px] uppercase">Decision & Source</TableHead>
                     <TableHead className="font-bold text-[10px] uppercase">Responsibility</TableHead>
-                    <TableHead className="font-bold text-[10px] uppercase">Proposed Strategy</TableHead>
                     <TableHead className="font-bold text-[10px] uppercase text-center">Deadline</TableHead>
                     <TableHead className="font-bold text-[10px] uppercase text-right">Status</TableHead>
                     <TableHead className="text-right font-bold text-[10px] uppercase">Action</TableHead>
@@ -196,7 +179,11 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                 </TableHeader>
                 <TableBody>
                     {filteredOutputs.map((output, index) => (
-                    <TableRow key={output.id} className="hover:bg-muted/30">
+                    <TableRow 
+                        key={output.id} 
+                        className="hover:bg-muted/30 cursor-pointer transition-colors"
+                        onClick={() => setPreviewOutput(output)}
+                    >
                         <TableCell className="text-[10px] font-black text-muted-foreground text-center">{index + 1}</TableCell>
                         <TableCell>
                         <div className="flex flex-col gap-1 max-w-xs">
@@ -213,12 +200,6 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                     </div>
                                 )}
                             </div>
-                            {output.actionTakenBy && (
-                                <div className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-600 uppercase tracking-tighter mt-1">
-                                    <CheckCircle2 className="h-2.5 w-2.5" />
-                                    Action by: {output.actionTakenBy} ({safeFormatDate(output.actionDate)})
-                                </div>
-                            )}
                         </div>
                         </TableCell>
                         <TableCell>
@@ -241,11 +222,6 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                 ))}
                             </div>
                         </TableCell>
-                        <TableCell className="max-w-xs">
-                            <p className="text-[11px] text-muted-foreground line-clamp-2 italic">
-                                {output.actionPlan ? `"${output.actionPlan}"` : "Unit defined plan"}
-                            </p>
-                        </TableCell>
                         <TableCell className="text-center">
                             <div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600">
                                 <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -265,20 +241,30 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                             </Badge>
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
-                        <Button 
-                            variant="default" 
-                            size="sm" 
-                            onClick={() => handleOpenUpdate(output)} 
-                            className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-lg shadow-primary/10"
-                        >
-                            UPDATE ACTION
-                        </Button>
+                            <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => setPreviewOutput(output)} 
+                                    className="h-8 text-[10px] font-bold uppercase tracking-widest gap-1.5"
+                                >
+                                    <Eye className="h-3.5 w-3.5" /> PREVIEW
+                                </Button>
+                                <Button 
+                                    variant="default" 
+                                    size="sm" 
+                                    onClick={() => handleOpenUpdate(output)} 
+                                    className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-lg shadow-primary/10"
+                                >
+                                    UPDATE
+                                </Button>
+                            </div>
                         </TableCell>
                     </TableRow>
                     ))}
                     {!isLoadingOutputs && filteredOutputs.length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={7} className="h-40 text-center text-muted-foreground">
+                        <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
                             <div className="flex flex-col items-center gap-2 opacity-20">
                                 <ListChecks className="h-10 w-10" />
                                 <p className="text-xs font-bold uppercase tracking-widest">No action items assigned to you</p>
@@ -293,7 +279,145 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
         </CardContent>
       </Card>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      {/* --- PREVIEW DIALOG --- */}
+      <Dialog open={!!previewOutput} onOpenChange={(open) => !open && setPreviewOutput(null)}>
+        <DialogContent className="max-w-2xl overflow-hidden p-0 border-none shadow-2xl">
+            {previewOutput && (
+                <>
+                    <DialogHeader className="p-6 bg-slate-50 border-b shrink-0">
+                        <div className="flex items-center gap-2 text-primary mb-1">
+                            <LayoutList className="h-5 w-5" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Management Decision Review</span>
+                        </div>
+                        <DialogTitle className="text-xl font-bold">Action Item Details</DialogTitle>
+                        <DialogDescription className="text-xs">Comprehensive view of the institutional requirement and assigned responsibilities.</DialogDescription>
+                    </DialogHeader>
+                    
+                    <ScrollArea className="max-h-[60vh]">
+                        <div className="p-8 space-y-8">
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Requirement Statement</h4>
+                                    {previewOutput.lineNumber && (
+                                        <Badge variant="outline" className="h-5 text-[9px] font-black border-primary/20 text-primary">
+                                            LINE NO: {previewOutput.lineNumber}
+                                        </Badge>
+                                    )}
+                                </div>
+                                <p className="text-lg font-bold text-slate-900 leading-relaxed italic">
+                                    "{previewOutput.description}"
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-4">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                        <User className="h-3 w-3" /> Origin & Authority
+                                    </h4>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase">Initiator</p>
+                                            <p className="text-xs font-bold text-slate-700">{previewOutput.initiator}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase">Source Session</p>
+                                            <p className="text-xs font-bold text-slate-700">{reviewMap.get(previewOutput.mrId) || 'Management Review'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                        <Target className="h-3 w-3" /> Targets & Deadlines
+                                    </h4>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase">Current Status</p>
+                                            <Badge 
+                                                className={cn(
+                                                    "text-[9px] font-black uppercase border-none h-5 px-2 mt-1",
+                                                    previewOutput.status === 'Open' ? "bg-rose-600 text-white" : 
+                                                    previewOutput.status === 'On-going' ? "bg-amber-500 text-amber-950" : 
+                                                    "bg-emerald-600 text-white"
+                                                )}
+                                            >
+                                                {previewOutput.status}
+                                            </Badge>
+                                        </div>
+                                        <div>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase">Follow-up Deadline</p>
+                                            <p className="text-xs font-black text-slate-700 uppercase tracking-tighter">
+                                                {safeFormatDate(previewOutput.followUpDate)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-4">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Accountability Matrix</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {(previewOutput.assignments || []).map((a, i) => (
+                                        <div key={i} className="flex items-center justify-between p-3 rounded-lg border bg-slate-50/50">
+                                            <div className="flex items-center gap-2">
+                                                <Building2 className="h-3.5 w-3.5 text-primary/60" />
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-black uppercase text-primary leading-none mb-1">{campusMap.get(a.campusId)}</span>
+                                                    <span className="text-[11px] font-bold text-slate-700 truncate max-w-[180px]">{unitMap.get(a.unitId)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {previewOutput.actionPlan && (
+                                <div className="bg-primary/5 rounded-xl p-6 border border-primary/10">
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-3">Proposed Action Strategy</h4>
+                                    <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                        {previewOutput.actionPlan}
+                                    </p>
+                                </div>
+                            )}
+
+                            {previewOutput.followUpRemarks && (
+                                <div className="bg-emerald-50 rounded-xl p-6 border border-emerald-100">
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700 mb-3">Implementation Progress</h4>
+                                    <p className="text-sm text-emerald-900 leading-relaxed whitespace-pre-wrap italic">
+                                        "{previewOutput.followUpRemarks}"
+                                    </p>
+                                    <div className="mt-4 pt-4 border-t border-emerald-200 flex items-center justify-between">
+                                        <span className="text-[10px] font-bold text-emerald-700 uppercase">Action by: {previewOutput.actionTakenBy}</span>
+                                        <span className="text-[10px] font-bold text-emerald-700 uppercase">{safeFormatDate(previewOutput.actionDate)}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </ScrollArea>
+
+                    <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
+                        <div className="flex w-full justify-between items-center">
+                            <Button variant="ghost" size="sm" onClick={() => setPreviewOutput(null)} className="text-[10px] font-bold uppercase tracking-widest">
+                                Close Preview
+                            </Button>
+                            <Button 
+                                size="sm" 
+                                onClick={() => { setPreviewOutput(null); handleOpenUpdate(previewOutput); }}
+                                className="shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest px-6"
+                            >
+                                <ClipboardList className="h-3.5 w-3.5 mr-1.5" /> UPDATE STATUS
+                            </Button>
+                        </div>
+                    </DialogFooter>
+                </>
+            )}
+        </DialogContent>
+      </Dialog>
+
+      {/* --- UPDATE DIALOG --- */}
+      <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <div className="flex items-center gap-2 text-primary mb-1">
@@ -371,7 +495,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
               )} />
 
               <DialogFooter className="pt-4 border-t gap-2 sm:gap-0">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => setIsUpdateDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
                 <Button type="submit" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black">
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4 mr-1.5" />}
                     Log Progress
