@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -34,20 +33,11 @@ import {
 import { cn } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
 
-interface DecisionAnalyticsProps {
-  outputs: ManagementReviewOutput[];
-  reviews: ManagementReview[];
-  campuses: Campus[];
-  units: Unit[];
-  isLoading: boolean;
-  selectedYear: string;
-}
-
 const STATUS_COLORS: Record<string, string> = {
   'Open': 'hsl(var(--destructive))',
-  'On-going': 'hsl(var(--amber-500))',
+  'On-going': 'hsl(48 96% 53%)', // Yellow
   'Submit for Closure Verification': 'hsl(var(--chart-1))',
-  'Closed': 'hsl(var(--emerald-600))',
+  'Closed': 'hsl(142 71% 45%)',   // Green
 };
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
@@ -192,9 +182,9 @@ export function DecisionAnalytics({ outputs, reviews, campuses, units, isLoading
           <CardContent className="pt-6">
             <ChartContainer config={{
                 'Open': { label: 'Open', color: 'hsl(var(--destructive))' },
-                'On-going': { label: 'On-going', color: 'hsl(var(--amber-500))' },
+                'On-going': { label: 'On-going', color: 'hsl(48 96% 53%)' },
                 'Pending Verification': { label: 'Pending Verification', color: 'hsl(var(--chart-1))' },
-                'Closed': { label: 'Closed', color: 'hsl(var(--emerald-600))' }
+                'Closed': { label: 'Closed', color: 'hsl(142 71% 45%)' }
             }} className="h-[350px] w-full">
                 <ResponsiveContainer>
                     <BarChart data={analytics.trendData}>
@@ -204,9 +194,9 @@ export function DecisionAnalytics({ outputs, reviews, campuses, units, isLoading
                         <Tooltip content={<ChartTooltipContent />} />
                         <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }} />
                         <Bar dataKey="Open" stackId="a" fill="hsl(var(--destructive))" barSize={40} />
-                        <Bar dataKey="On-going" stackId="a" fill="hsl(var(--amber-500))" barSize={40} />
+                        <Bar dataKey="On-going" stackId="a" fill="hsl(48 96% 53%)" barSize={40} />
                         <Bar dataKey="Pending Verification" stackId="a" fill="hsl(var(--chart-1))" barSize={40} />
-                        <Bar dataKey="Closed" stackId="a" fill="hsl(var(--emerald-600))" radius={[4, 4, 0, 0]} barSize={40} />
+                        <Bar dataKey="Closed" stackId="a" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} barSize={40} />
                     </BarChart>
                 </ResponsiveContainer>
             </ChartContainer>
