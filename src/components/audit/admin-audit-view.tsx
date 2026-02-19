@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, Database } from 'lucide-react';
+import { PlusCircle, Loader2, Database, LayoutList } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import type { AuditPlan, Campus, User, Unit, AuditSchedule, ISOClause } from '@/lib/types';
@@ -15,6 +14,10 @@ import { seedIsoClauses } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
+/**
+ * ADMIN AUDIT MANAGEMENT HUB
+ * The primary workspace for establishing institutional audit frameworks.
+ */
 export function AdminAuditView() {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -26,6 +29,7 @@ export function AdminAuditView() {
   
   const [isSeeding, setIsSeeding] = useState(false);
 
+  // Data Fetching
   const auditPlansQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'auditPlans')) : null, [firestore]);
   const { data: auditPlans, isLoading: isLoadingPlans } = useCollection<AuditPlan>(auditPlansQuery);
 
@@ -82,41 +86,48 @@ export function AdminAuditView() {
 
   return (
     <>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Internal Quality Audit Management</h2>
-            <p className="text-muted-foreground">Create and manage audit plans and schedules.</p>
+            <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                <LayoutList className="h-6 w-6 text-primary" />
+                IQA Strategic Planning
+            </h2>
+            <p className="text-muted-foreground font-medium">Create institutional audit frameworks and manage unit-level schedules.</p>
           </div>
-          <Button onClick={handleNewPlan} disabled={isLoadingClauses && !isoClauses}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Create Audit Plan
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={handleNewPlan} disabled={isLoadingClauses && !isoClauses} className="shadow-lg shadow-primary/20">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Create New Audit Plan
+            </Button>
+          </div>
         </div>
 
+        {/* Database Readiness Alert */}
         {!isLoadingClauses && (!isoClauses || isoClauses.length === 0) && (
-            <Alert>
-                <Database className="h-4 w-4" />
-                <AlertTitle>Initial Setup Required</AlertTitle>
-                <AlertDescription className="flex items-center justify-between">
-                    <span>The ISO Clause database is empty. Please seed the data to enable audit scheduling.</span>
-                    <Button onClick={handleSeedClauses} disabled={isSeeding}>
-                        {isSeeding && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                        Seed ISO Clauses
+            <Alert className="border-amber-200 bg-amber-50">
+                <Database className="h-4 w-4 text-amber-600" />
+                <AlertTitle className="text-amber-800 font-bold">Standard Clauses Missing</AlertTitle>
+                <AlertDescription className="flex flex-col md:flex-row md:items-center justify-between gap-4 text-amber-700 mt-2">
+                    <span>The ISO 21001:2018 Clause database is empty. You must seed the standard clauses before auditors can map findings during conduct.</span>
+                    <Button variant="outline" size="sm" onClick={handleSeedClauses} disabled={isSeeding} className="bg-white">
+                        {isSeeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Database className="mr-2 h-4 w-4"/>}
+                        Seed Standard Clauses
                     </Button>
                 </AlertDescription>
             </Alert>
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Audit Plans</CardTitle>
-            <CardDescription>A list of all created audit plans for all campuses.</CardDescription>
+        <Card className="shadow-md border-primary/10">
+          <CardHeader className="bg-muted/30 border-b">
+            <CardTitle>Institutional Audit Registry</CardTitle>
+            <CardDescription>Browse existing plans and manage the lifecycle of scheduled audits.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {isLoading ? (
-                <div className="flex justify-center items-center h-48">
-                    <Loader2 className="h-8 w-8 animate-spin" />
+                <div className="flex flex-col justify-center items-center h-64 gap-2">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Synchronizing Registry...</p>
                 </div>
             ) : (
                 <AuditPlanList 
@@ -149,7 +160,7 @@ export function AdminAuditView() {
             plan={selectedPlanForScheduling}
             auditors={users?.filter(u => u.role === 'Auditor') || []}
             allUnits={units || []}
-            topManagement={users?.filter(u => u.role?.toLowerCase().includes('president')) || []}
+            topManagement={users?.filter(u => u.role?.toLowerCase().includes('president') || u.role?.toLowerCase().includes('director')) || []}
         />
       )}
     </>
