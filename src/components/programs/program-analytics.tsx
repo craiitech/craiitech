@@ -3,12 +3,45 @@
 import { useMemo } from 'react';
 import type { AcademicProgram, ProgramComplianceRecord, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { 
+    BarChart, 
+    Bar, 
+    XAxis, 
+    YAxis, 
+    CartesianGrid, 
+    Tooltip, 
+    Legend, 
+    ResponsiveContainer, 
+    PieChart, 
+    Pie, 
+    Cell 
+} from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { ShieldCheck, Award, GraduationCap, Users, TrendingUp, AlertTriangle } from 'lucide-react';
+import { 
+    Table, 
+    TableBody, 
+    TableCell, 
+    TableHead, 
+    TableHeader, 
+    TableRow 
+} from '@/components/ui/table';
+import { 
+    ShieldCheck, 
+    Award, 
+    GraduationCap, 
+    TrendingUp, 
+    Activity, 
+    School, 
+    FileCheck,
+    CheckCircle2,
+    XCircle,
+    Clock,
+    LayoutList
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Progress } from '../ui/progress';
 
 interface ProgramAnalyticsProps {
   programs: AcademicProgram[];
@@ -22,10 +55,10 @@ const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3
 
 export function ProgramAnalytics({ programs, compliances, campuses, isLoading, selectedYear }: ProgramAnalyticsProps) {
   
+  const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
+
   const analytics = useMemo(() => {
     if (!programs.length) return null;
-
-    const campusMap = new Map(campuses.map(c => [c.id, c.name]));
 
     // 1. Accreditation Maturity Distribution
     const accreditationCounts: Record<string, number> = {};
@@ -34,7 +67,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
       accreditationCounts[level] = (accreditationCounts[level] || 0) + 1;
     });
     
-    // Fill in missing active programs that have no compliance record yet
     const programsWithRecords = new Set(compliances.map(c => c.programId));
     const noRecordCount = programs.filter(p => !programsWithRecords.has(p.id)).length;
     if (noRecordCount > 0) {
@@ -61,7 +93,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                 if (m.isAlignedWithCMO === 'Aligned') alignedFaculty++;
             });
         }
-        // Also check Dean and Chair
         if (c.faculty?.dean?.isAlignedWithCMO === 'Aligned') { totalFaculty++; alignedFaculty++; } else if (c.faculty?.dean) { totalFaculty++; }
         if (c.faculty?.programChair?.isAlignedWithCMO === 'Aligned') { totalFaculty++; alignedFaculty++; } else if (c.faculty?.programChair) { totalFaculty++; }
     });
@@ -69,13 +100,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
     const facultyAlignmentRate = totalFaculty > 0 ? (alignedFaculty / totalFaculty) * 100 : 0;
 
     // 4. Board Performance Aggregation
-    const boardPrograms = compliances.filter(c => c.boardPerformance && c.boardPerformance.overallPassRate > 0);
+    const boardPrograms = compliances.filter(c => c.boardPerformance && c.boardPerformance.length > 0);
     const averagePassRate = boardPrograms.length > 0 
-        ? boardPrograms.reduce((acc, c) => acc + (c.boardPerformance?.overallPassRate || 0), 0) / boardPrograms.length 
+        ? boardPrograms.reduce((acc, c) => acc + (c.boardPerformance?.[c.boardPerformance.length - 1]?.overallPassRate || 0), 0) / boardPrograms.length 
         : 0;
     
     const nationalAvgRate = boardPrograms.length > 0
-        ? boardPrograms.reduce((acc, c) => acc + (c.boardPerformance?.nationalPassingRate || 0), 0) / boardPrograms.length
+        ? boardPrograms.reduce((acc, c) => acc + (c.boardPerformance?.[c.boardPerformance.length - 1]?.nationalPassingRate || 0), 0) / boardPrograms.length
         : 0;
 
     const boardPerformanceData = [
@@ -106,15 +137,66 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         totalPrograms: programs.length,
         monitoredCount: compliances.length
     };
-  }, [programs, compliances, campuses, selectedYear]);
+  }, [programs, compliances, campusMap, selectedYear]);
+
+  /**
+   * COMPLIANCE SUMMARY CALCULATOR
+   * Heuristic score based on key encoded modules.
+   */
+  const complianceTableData = useMemo(() => {
+    return programs.map(program => {
+        const record = compliances.find(c => c.programId === program.id);
+        const campusName = campusMap.get(program.campusId) || 'Unknown';
+
+        let score = 0;
+        const weights = {
+            copc: 20,
+            accreditation: 20,
+            faculty: 20,
+            curriculum: 20,
+            outcomes: 20
+        };
+
+        if (record) {
+            // COPC Score
+            if (record.ched?.copcStatus === 'With COPC') score += weights.copc;
+            else if (record.ched?.copcStatus === 'In Progress') score += (weights.copc / 2);
+
+            // Accreditation Score
+            if (record.accreditation?.level && record.accreditation.level !== 'Non Accredited') score += weights.accreditation;
+
+            // Faculty Score
+            let totalF = (record.faculty?.members?.length || 0) + 2;
+            let alignedF = record.faculty?.members?.filter(m => m.isAlignedWithCMO === 'Aligned').length || 0;
+            if (record.faculty?.dean?.isAlignedWithCMO === 'Aligned') alignedF++;
+            if (record.faculty?.programChair?.isAlignedWithCMO === 'Aligned') alignedF++;
+            const fRate = totalF > 0 ? (alignedF / totalF) : 0;
+            score += (fRate * weights.faculty);
+
+            // Curriculum Score
+            if (record.curriculum?.cmoLink && record.curriculum?.isNotedByChed) score += weights.curriculum;
+            else if (record.curriculum?.cmoLink || record.curriculum?.isNotedByChed) score += (weights.curriculum / 2);
+
+            // Outcomes Score
+            if ((record.graduationRecords?.length || 0) > 0 || (record.tracerRecords?.length || 0) > 0) score += weights.outcomes;
+        }
+
+        return {
+            id: program.id,
+            name: program.name,
+            campusName,
+            copc: record?.ched?.copcStatus || 'No COPC',
+            accreditation: record?.accreditation?.level || 'Non Accredited',
+            contentNoted: record?.ched?.contentNoted ? 'Yes' : 'No',
+            compliancePercentage: Math.round(score)
+        };
+    }).sort((a, b) => a.campusName.localeCompare(b.campusName) || a.name.localeCompare(b.name));
+  }, [programs, compliances, campusMap]);
 
   if (isLoading) {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Skeleton className="h-[350px] w-full" />
-            <Skeleton className="h-[350px] w-full" />
-            <Skeleton className="h-[350px] w-full" />
-            <Skeleton className="h-[350px] w-full" />
+            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-[350px] w-full" />)}
         </div>
     );
   }
@@ -128,6 +210,14 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         </div>
     );
   }
+
+  const getCopcBadge = (status: string) => {
+    switch (status) {
+        case 'With COPC': return <Badge className="bg-emerald-600 text-white border-none h-5 text-[9px] font-black uppercase">Yes</Badge>;
+        case 'In Progress': return <Badge variant="outline" className="text-amber-600 border-amber-200 h-5 text-[9px] font-black uppercase bg-amber-50">On Process</Badge>;
+        default: return <Badge variant="destructive" className="h-5 text-[9px] font-black uppercase border-none">No</Badge>;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -172,6 +262,80 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             </CardContent>
         </Card>
       </div>
+
+      {/* --- PROGRAM COMPLIANCE SUMMARY TABLE (NEW) --- */}
+      <Card className="shadow-md border-primary/10 overflow-hidden">
+        <CardHeader className="bg-muted/10 border-b py-4">
+            <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                    <CardTitle className="text-lg flex items-center gap-2 font-black uppercase tracking-tight">
+                        <LayoutList className="h-5 w-5 text-primary" />
+                        Institutional Compliance Summary
+                    </CardTitle>
+                    <CardDescription className="text-xs">Consolidated maturity view of all registered degree programs for {selectedYear}.</CardDescription>
+                </div>
+                <Badge variant="outline" className="bg-white font-black text-[10px] uppercase">Registry View</Badge>
+            </div>
+        </CardHeader>
+        <CardContent className="p-0">
+            <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader className="bg-muted/50">
+                        <TableRow className="hover:bg-transparent">
+                            <TableHead className="font-black text-[10px] uppercase py-3 min-w-[150px]">Site / Campus</TableHead>
+                            <TableHead className="font-black text-[10px] uppercase py-3 min-w-[250px]">Program Offered</TableHead>
+                            <TableHead className="text-center font-black text-[10px] uppercase py-3">COPC</TableHead>
+                            <TableHead className="font-black text-[10px] uppercase py-3">Accreditation Level</TableHead>
+                            <TableHead className="text-center font-black text-[10px] uppercase py-3">Contents Noted</TableHead>
+                            <TableHead className="text-right font-black text-[10px] uppercase py-3 pr-6 min-w-[140px]">Maturity Score</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {complianceTableData.map((row) => (
+                            <TableRow key={row.id} className="hover:bg-muted/20 transition-colors">
+                                <TableCell className="py-2">
+                                    <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 uppercase">
+                                        <School className="h-3 w-3 opacity-50" />
+                                        {row.campusName}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="py-2">
+                                    <span className="text-xs font-black text-slate-900 tracking-tight">{row.name}</span>
+                                </TableCell>
+                                <TableCell className="text-center py-2">
+                                    {getCopcBadge(row.copc)}
+                                </TableCell>
+                                <TableCell className="py-2">
+                                    <div className="flex items-center gap-2">
+                                        <Award className="h-3.5 w-3.5 text-primary opacity-40" />
+                                        <span className="text-[11px] font-bold text-slate-700 whitespace-nowrap">{row.accreditation}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-center py-2">
+                                    {row.contentNoted === 'Yes' ? (
+                                        <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
+                                    ) : (
+                                        <XCircle className="h-4 w-4 text-rose-300 mx-auto" />
+                                    )}
+                                </TableCell>
+                                <TableCell className="text-right py-2 pr-6">
+                                    <div className="flex flex-col items-end gap-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-black tabular-nums">{row.compliancePercentage}%</span>
+                                            <div className="w-16">
+                                                <Progress value={row.compliancePercentage} className="h-1" />
+                                            </div>
+                                        </div>
+                                        <span className="text-[8px] font-bold uppercase text-muted-foreground opacity-60">Verified Maturity</span>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Accreditation Maturity Chart */}
