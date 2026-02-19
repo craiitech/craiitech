@@ -30,22 +30,22 @@ export function AdminAuditView() {
   const [isSeeding, setIsSeeding] = useState(false);
 
   // Data Fetching
-  const auditPlansQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'auditPlans')) : null, [firestore]);
+  const auditPlansQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'auditPlans')) : null), [firestore]);
   const { data: auditPlans, isLoading: isLoadingPlans } = useCollection<AuditPlan>(auditPlansQuery);
 
-  const schedulesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'auditSchedules')) : null, [firestore]);
+  const schedulesQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'auditSchedules')) : null), [firestore]);
   const { data: schedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(schedulesQuery);
   
-  const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses')) : null, [firestore]);
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
   
-  const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users')) : null, [firestore]);
+  const usersQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: users, isLoading: isLoadingUsers } = useCollection<User>(usersQuery);
 
-  const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units')) : null, [firestore]);
+  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
-  const isoClausesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'isoClauses')) : null, [firestore]);
+  const isoClausesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'isoClauses') : null), [firestore]);
   const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
 
   const handleNewPlan = () => {
