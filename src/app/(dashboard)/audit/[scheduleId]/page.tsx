@@ -1,13 +1,14 @@
+
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
-import { doc, collection, query, where, updateDoc } from 'firebase/firestore';
+import { doc, collection, query, where, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
 import type { AuditSchedule, AuditFinding, ISOClause } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Save, Clock, Building2, User } from 'lucide-react';
+import { Loader2, ArrowLeft, Save, Clock, Building2, User, PlusCircle, Database, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState } from 'react';
 import { AuditChecklist } from '@/components/audit/audit-checklist';
@@ -19,6 +20,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const LoadingSkeleton = () => (
   <div className="space-y-6">
@@ -47,6 +53,8 @@ export default function AuditExecutionPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSavingSummary, setIsSavingSummary] = useState(false);
+  const [isAddClauseOpen, setIsAddClauseOpen] = useState(false);
+  const [selectedNewClauses, setSelectedNewClauses] = useState<string[]>([]);
 
   const scheduleDocRef = useMemoFirebase(
     () => (firestore && scheduleId ? doc(firestore, 'auditSchedules', scheduleId as string) : null),
@@ -60,11 +68,22 @@ export default function AuditExecutionPage() {
   );
   const { data: findings, isLoading: isLoadingFindings } = useCollection<AuditFinding>(findingsQuery);
   
-  const isoClausesQuery = useMemoFirebase(() => {
-      if (!firestore || !schedule || !schedule.isoClausesToAudit || schedule.isoClausesToAudit.length === 0) return null;
-      return query(collection(firestore, 'isoClauses'), where('id', 'in', schedule.isoClausesToAudit));
-  }, [firestore, schedule]);
-  const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
+  // Fetch ALL clauses so we can manage unused ones
+  const allIsoClausesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'isoClauses') : null),
+    [firestore]
+  );
+  const { data: allIsoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(allIsoClausesQuery);
+
+  const clausesInScope = useMemo(() => {
+    if (!allIsoClauses || !schedule?.isoClausesToAudit) return [];
+    return allIsoClauses.filter(c => schedule.isoClausesToAudit.includes(c.id));
+  }, [allIsoClauses, schedule?.isoClausesToAudit]);
+
+  const unusedClauses = useMemo(() => {
+    if (!allIsoClauses || !schedule?.isoClausesToAudit) return [];
+    return allIsoClauses.filter(c => !schedule.isoClausesToAudit.includes(c.id));
+  }, [allIsoClauses, schedule?.isoClausesToAudit]);
 
   const form = useForm<z.infer<typeof summarySchema>>({
     resolver: zodResolver(summarySchema),
@@ -100,15 +119,37 @@ export default function AuditExecutionPage() {
     }
   };
 
-  const isLoading = isLoadingSchedule || isLoadingFindings || isLoadingClauses;
+  const handleAddClausesToScope = async () => {
+    if (!scheduleDocRef || selectedNewClauses.length === 0) return;
+    
+    setIsSavingSummary(true);
+    updateDoc(scheduleDocRef, {
+        isoClausesToAudit: arrayUnion(...selectedNewClauses)
+    })
+    .then(() => {
+        toast({ title: "Scope Expanded", description: `${selectedNewClauses.length} clauses added to the checklist.` });
+        setSelectedNewClauses([]);
+        setIsAddClauseOpen(false);
+    })
+    .catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: scheduleDocRef.path,
+            operation: 'update',
+            requestResourceData: { isoClausesToAudit: selectedNewClauses }
+        }));
+    })
+    .finally(() => {
+        setIsSavingSummary(false);
+    });
+  };
 
-  // Ensure sidebar clauses are sorted numerically
-  const sortedClausesInScope = useMemo(() => {
-    if (!schedule?.isoClausesToAudit) return [];
-    return [...schedule.isoClausesToAudit].sort((a, b) => 
-        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+  const toggleNewClauseSelection = (clauseId: string) => {
+    setSelectedNewClauses(prev => 
+        prev.includes(clauseId) ? prev.filter(id => id !== clauseId) : [...prev, clauseId]
     );
-  }, [schedule?.isoClausesToAudit]);
+  };
+
+  const isLoading = isLoadingSchedule || isLoadingFindings || isLoadingClauses;
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -155,7 +196,7 @@ export default function AuditExecutionPage() {
         <div className="lg:col-span-2 space-y-6">
             <AuditChecklist 
                 scheduleId={schedule.id}
-                clausesToAudit={isoClauses || []}
+                clausesToAudit={clausesInScope}
                 existingFindings={findings || []}
             />
 
@@ -242,11 +283,70 @@ export default function AuditExecutionPage() {
                     
                     <Separator />
 
-                    <div>
-                        <p className="text-[10px] font-black uppercase text-primary tracking-widest mb-3">Clauses in Scope</p>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <p className="text-[10px] font-black uppercase text-primary tracking-widest">Clauses in Scope</p>
+                            <Dialog open={isAddClauseOpen} onOpenChange={setIsAddClauseOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase gap-1 text-primary hover:bg-primary/5 p-0 px-2">
+                                        <PlusCircle className="h-3 w-3" /> Add More Clauses
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-md">
+                                    <DialogHeader>
+                                        <DialogTitle>Add Clauses to Scope</DialogTitle>
+                                        <DialogDescription>Select additional standard requirements to verify during this session.</DialogDescription>
+                                    </DialogHeader>
+                                    <div className="rounded-xl border shadow-sm overflow-hidden bg-background">
+                                        <Command className="bg-transparent" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
+                                            <div className="flex items-center border-b px-3 bg-white">
+                                                <CommandInput placeholder="Search unused clauses..." className="h-10 text-xs" />
+                                            </div>
+                                            <CommandList className="max-h-[300px]">
+                                                <CommandEmpty className="p-4 text-center">
+                                                    <Database className="h-8 w-8 mx-auto opacity-10 mb-2" />
+                                                    <p className="text-xs font-bold text-muted-foreground uppercase">No unused clauses found</p>
+                                                </CommandEmpty>
+                                                <CommandGroup>
+                                                    {unusedClauses.map(c => {
+                                                        const isSelected = selectedNewClauses.includes(c.id);
+                                                        return (
+                                                            <CommandItem
+                                                                key={c.id}
+                                                                value={`${c.id} ${c.title}`}
+                                                                onSelect={() => toggleNewClauseSelection(c.id)}
+                                                                className="flex items-center gap-3 px-4 py-3 cursor-pointer"
+                                                            >
+                                                                <div className={cn(
+                                                                    "h-4 w-4 border rounded flex items-center justify-center transition-colors shrink-0",
+                                                                    isSelected ? "bg-primary border-primary text-white" : "border-slate-300"
+                                                                )}>
+                                                                    {isSelected && <Check className="h-3 w-3" />}
+                                                                </div>
+                                                                <div className="min-w-0">
+                                                                    <p className="font-black text-[11px] leading-tight mb-0.5">Clause {c.id}</p>
+                                                                    <p className="text-[10px] text-muted-foreground truncate">{c.title}</p>
+                                                                </div>
+                                                            </CommandItem>
+                                                        );
+                                                    })}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </div>
+                                    <DialogFooter className="pt-4">
+                                        <Button variant="outline" size="sm" onClick={() => setIsAddClauseOpen(false)}>Cancel</Button>
+                                        <Button size="sm" onClick={handleAddClausesToScope} disabled={selectedNewClauses.length === 0 || isSavingSummary}>
+                                            {isSavingSummary && <Loader2 className="mr-2 h-3 w-3 animate-spin"/>}
+                                            Add {selectedNewClauses.length} Clause(s)
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
                         <div className="flex flex-wrap gap-1.5">
-                            {sortedClausesInScope.map(clauseId => (
-                                <Badge key={clauseId} variant="outline" className="font-mono text-[10px] border-primary/20 px-2">Clause {clauseId}</Badge>
+                            {schedule.isoClausesToAudit.sort((a,b) => a.localeCompare(b, undefined, { numeric: true })).map(clauseId => (
+                                <Badge key={clauseId} variant="outline" className="font-mono text-[10px] border-primary/20 px-2 bg-white">Clause {clauseId}</Badge>
                             ))}
                         </div>
                     </div>
