@@ -164,10 +164,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             else if (record.ched?.copcStatus === 'In Progress') score += (weights.copc / 2);
 
             // Accreditation Score
-            const milestone = record.accreditationRecords?.length ? record.accreditationRecords[record.accreditationRecords.length - 1] : null;
-            if (milestone?.level && milestone.level !== 'Non Accredited') {
+            const milestones = record.accreditationRecords || [];
+            const latest = milestones.length > 0 ? milestones[milestones.length - 1] : null;
+            if (latest?.level && latest.level !== 'Non Accredited') {
                 score += weights.accreditation;
-                currentLevel = milestone.level;
+                // If a manual "RESULT" is provided, prioritize showing that in the summary
+                currentLevel = latest.result || latest.level;
             }
 
             // Faculty Score
@@ -211,7 +213,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         <div className="flex flex-col items-center justify-center h-64 text-center border rounded-lg border-dashed">
             <TrendingUp className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
             <h3 className="text-lg font-medium">No Program Data Available</h3>
-            <p className="text-sm text-muted-foreground max-w-sm">Register programs and encode compliance records to view university-wide analytics.</p>
+            <p className="text-sm text-muted-foreground max-sm">Register programs and encode compliance records to view university-wide analytics.</p>
         </div>
     );
   }
@@ -289,7 +291,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                             <TableHead className="font-black text-[10px] uppercase py-3 min-w-[150px]">Site / Campus</TableHead>
                             <TableHead className="font-black text-[10px] uppercase py-3 min-w-[250px]">Program Offered</TableHead>
                             <TableHead className="text-center font-black text-[10px] uppercase py-3">COPC</TableHead>
-                            <TableHead className="font-black text-[10px] uppercase py-3">Accreditation Level</TableHead>
+                            <TableHead className="font-black text-[10px] uppercase py-3">Accreditation (Level/Result)</TableHead>
                             <TableHead className="text-center font-black text-[10px] uppercase py-3">Contents Noted</TableHead>
                             <TableHead className="text-right font-black text-[10px] uppercase py-3 pr-6 min-w-[140px]">Maturity Score</TableHead>
                         </TableRow>

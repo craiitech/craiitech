@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
@@ -5,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShieldCheck, Calendar, Link as LinkIcon, Award, Users, FileText, CheckCircle2, UserCircle, Calculator, Info, TrendingUp, PlusCircle, Trash2, Layers } from 'lucide-react';
+import { ShieldCheck, Calendar, Link as LinkIcon, Award, Users, FileText, CheckCircle2, UserCircle, Calculator, Info, TrendingUp, PlusCircle, Trash2, Layers, ClipboardList } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useEffect, useMemo, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -86,6 +87,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                     id: Math.random().toString(36).substr(2, 9),
                     level: 'Non Accredited',
                     typeOfVisit: '',
+                    result: '',
                     components: [],
                     lifecycleStatus: 'TBA',
                     areas: [],
@@ -121,9 +123,8 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
 }
 
 function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; canEdit: boolean; onRemove: () => void }) {
-    const { control, setValue, getValues } = useFormContext();
+    const { control, setValue } = useFormContext();
     
-    // Using targeted useWatch to prevent unnecessary infinite loops
     const selectedLevel = useWatch({ control, name: `accreditationRecords.${index}.level` });
     const watchedAreas = useWatch({ control, name: `accreditationRecords.${index}.areas` }) || [];
     const watchedSummary = useWatch({ control, name: `accreditationRecords.${index}.ratingsSummary` });
@@ -145,7 +146,6 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
 
     const lastInitializedLevelGroup = useRef<string | null>(null);
 
-    // Initializer for area fields based on level groups
     useEffect(() => {
         const currentGroup = isLevel3Or4 ? 'L34' : (isPSVToLevel2 ? 'PSV-L2' : 'NONE');
         if (lastInitializedLevelGroup.current === currentGroup) return;
@@ -176,23 +176,19 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
         lastInitializedLevelGroup.current = currentGroup;
     }, [selectedLevel, isPSVToLevel2, isLevel3Or4, index, setValue]);
 
-    // Calculation engine for ratings table
     useEffect(() => {
         if (!watchedAreas || watchedAreas.length === 0) return;
 
         let totalWeight = 0;
         let totalWeightedMean = 0;
-        let hasChanges = false;
 
         watchedAreas.forEach((area: any, areaIdx: number) => {
             const weight = parseFloat(area.weight) || 0;
             const mean = parseFloat(area.mean) || 0;
             const weightedMean = parseFloat((weight * mean).toFixed(2));
 
-            // Only update if value actually changed to prevent re-render loop
             if (area.weightedMean !== weightedMean) {
                 setValue(`accreditationRecords.${index}.areas.${areaIdx}.weightedMean`, weightedMean, { shouldValidate: false });
-                hasChanges = true;
             }
 
             totalWeight += weight;
@@ -203,7 +199,6 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
         const roundedTotalWeight = parseFloat(totalWeight.toFixed(2));
         const roundedTotalWM = parseFloat(totalWeightedMean.toFixed(2));
 
-        // Update summaries with change checks
         if (watchedSummary?.overallTotalWeight !== roundedTotalWeight) {
             setValue(`accreditationRecords.${index}.ratingsSummary.overallTotalWeight`, roundedTotalWeight, { shouldValidate: false });
         }
@@ -270,6 +265,25 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
                                             disabled={!canEdit} 
                                         />
                                     </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={control}
+                            name={`accreditationRecords.${index}.result`}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-black uppercase text-primary">Official Result</FormLabel>
+                                    <FormControl>
+                                        <Input 
+                                            {...field} 
+                                            value={field.value || ''} 
+                                            placeholder="e.g., Qualified for Level II" 
+                                            className="h-9 text-xs font-bold border-primary/20 bg-primary/5" 
+                                            disabled={!canEdit} 
+                                        />
+                                    </FormControl>
+                                    <FormDescription className="text-[9px]">This result will be displayed in the executive summary.</FormDescription>
                                 </FormItem>
                             )}
                         />
@@ -383,7 +397,6 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
                 </Card>
             </div>
 
-            {/* Area Ratings Section for this Milestone */}
             {(isPSVToLevel2 || isLevel3Or4) && (
                 <Card className="border-primary/20 shadow-md">
                     <CardHeader className="bg-primary/5 border-b py-4">

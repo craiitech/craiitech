@@ -366,6 +366,7 @@ export type AccreditationRecord = {
     id: string;
     level: string; // Level 1, Level 2, etc.
     typeOfVisit?: string;
+    result?: string;
     components?: { id: string; name: string }[];
     dateOfSurvey?: string;
     statusValidityDate?: string;
