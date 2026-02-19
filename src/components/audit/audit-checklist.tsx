@@ -19,6 +19,7 @@ import { useForm } from 'react-hook-form';
 import { Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
+import { Badge } from '../ui/badge';
 
 interface AuditChecklistProps {
   scheduleId: string;
@@ -33,117 +34,131 @@ interface ClauseFormData {
 
 const clauseQuestions: Record<string, string[]> = {
     "4.1": [
-        "Has the organization determined external and internal issues that are relevant to its purpose and strategic direction?",
-        "Is there evidence of regular monitoring and review of these issues?"
+        "Has the unit/office determined external and internal issues relevant to Romblon State University's purpose and strategic direction?",
+        "Is there evidence that these issues are regularly reviewed during unit planning or RSU Management Reviews?",
+        "Are context-related issues aligned with the University's current Strategic Plan?"
     ],
     "4.2": [
-        "Has the organization determined the interested parties (learners, staff, government, etc.) relevant to the EOMS?",
-        "Are the requirements of these interested parties identified and reviewed?"
+        "Are RSU's interested parties (students, faculty, alumni, CHED, DBM, local government) correctly identified for this unit?",
+        "Does the unit maintain records of the requirements and expectations of these RSU stakeholders?",
+        "Is there evidence that stakeholder needs are monitored and addressed in the unit's operational plan?"
     ],
     "4.3": [
-        "Is the scope of the EOMS clearly defined and available as documented information?",
-        "Does the scope cover all educational products and services offered?"
+        "Is the scope of the EOMS within the unit clearly defined and consistent with the University’s institutional scope?",
+        "Are all educational services or administrative supports offered by the unit covered in the EOMS scope?"
     ],
     "4.4": [
-        "Are the EOMS processes established, implemented, maintained, and continually improved?",
-        "Are the inputs, outputs, and sequence of these processes determined?"
+        "Has the unit established and maintained the processes required for the RSU EOMS?",
+        "Are the inputs, outputs, and sequence of university-level processes within the unit documented?",
+        "Are risks and opportunities associated with these unit processes determined and addressed?"
     ],
     "5.1": [
-        "Does top management demonstrate leadership by ensuring the EOMS policy and objectives are established?",
-        "Is there commitment to the integration of EOMS requirements into business processes?"
+        "Does the Unit Head/Director demonstrate leadership by establishing the unit’s quality objectives?",
+        "Is there evidence of active unit participation in RSU Management Reviews and QMS orientations?",
+        "Does the unit ensure the integration of RSU EOMS requirements into its daily operations?"
     ],
     "5.2": [
-        "Is the EOMS policy appropriate to the purpose and context of the university?",
-        "Is the policy communicated, understood, and applied within the unit?"
+        "Is the Romblon State University Quality Policy understood and applied within the unit?",
+        "Is the RSU Quality Policy visible in key areas of the unit (postings, logbooks, official docs)?",
+        "Can personnel explain how their work contributes to the RSU EOMS Policy?"
     ],
     "5.3": [
-        "Are responsibilities and authorities for relevant roles assigned and communicated?",
-        "Are these responsibilities and authorities understood within the organization?"
+        "Are the roles, responsibilities, and authorities for the RSU EOMS assigned and communicated within the unit?",
+        "Is the unit's organizational structure updated and officially approved by University management?",
+        "Do staff members understand their specific accountabilities in the EOMS hierarchy?"
     ],
     "6.1": [
-        "Does the planning process for the EOMS consider internal and external issues (4.1)?",
-        "Does it consider the requirements of interested parties (4.2)?",
-        "Is there a process to determine and address risks and opportunities?"
+        "Does the unit utilize the RSU Risk and Opportunity Register to plan for potential issues?",
+        "Are the actions taken to address risks appropriate to the potential impact on the quality of university services?",
+        "Is there evidence of follow-up on the effectiveness of implemented risk treatments?"
     ],
     "6.2": [
-        "Are EOMS objectives established at relevant functions and levels?",
-        "Are the objectives measurable and consistent with the EOMS policy?",
-        "Is there planning in place to achieve these objectives?"
+        "Are the unit's quality objectives measurable and aligned with RSU's institutional performance targets?",
+        "Is there a clear plan (Operational Plan) on how the unit will achieve these objectives?",
+        "Are the objectives regularly monitored and updated based on actual performance data?"
     ],
     "6.3": [
-        "Are changes to the EOMS carried out in a planned manner?",
-        "Is the integrity of the EOMS maintained during changes?"
+        "Are changes to the unit’s processes or structure carried out in a planned manner as per RSU protocols?",
+        "Is the integrity of the EOMS maintained whenever changes occur within the unit?"
     ],
     "7.1": [
-        "Are necessary resources (human, infrastructure, environment) for the EOMS determined and provided?",
-        "Is there evidence of maintenance and monitoring of these resources?"
+        "Has the unit determined and provided the human resources needed for effective EOMS implementation?",
+        "Are classroom facilities, offices, and IT infrastructure (e.g., RSU portal access) maintained and fit for purpose?",
+        "Is there evidence of regular inventory and maintenance of unit equipment?"
     ],
     "7.2": [
-        "Has the organization determined the necessary competence for persons affecting EOMS performance?",
-        "Are actions taken to acquire competence (training, hiring) and evaluate its effectiveness?"
+        "Are personnel in the unit competent based on appropriate education, training, and experience (aligned with RSU HR policies)?",
+        "Are faculty/staff credentials updated and on file within the unit/HRMO?",
+        "Is there evidence of training or professional development provided to address competency gaps?"
     ],
     "7.3": [
-        "Are persons doing work under the organization’s control aware of the EOMS policy and objectives?",
-        "Do they understand their contribution and the implications of non-conformance?"
+        "Are unit employees aware of the RSU Vision, Mission, and Quality Policy?",
+        "Do employees understand the implications of not conforming to EOMS requirements in their specific tasks?"
     ],
     "7.4": [
-        "Has the organization determined the internal and external communications relevant to the EOMS?",
-        "Is it clear what, when, with whom, and how to communicate?"
+        "Are internal and external communications relevant to the RSU EOMS established (e.g., unit meetings, official RSU emails)?",
+        "Does the unit effectively communicate performance results to students and relevant stakeholders?"
     ],
     "7.5": [
-        "Does the EOMS include all documented information required by the ISO 21001 standard?",
-        "Is there a process for creating, updating, and controlling documented information?"
+        "Does the unit use official RSU EOMS forms and templates for its records?",
+        "Is there a controlled system for creating, updating, and storing documented information within the unit?",
+        "Are records easily retrievable and protected from unauthorized access or damage?"
     ],
     "8.1": [
-        "Are processes for providing educational products and services planned, implemented, and controlled?",
-        "Are criteria for the processes and acceptance of products/services established?"
+        "Does the unit plan and control its operational processes to meet RSU service requirements?",
+        "Is there evidence of Complete Staff Work (CSW) in the planning and execution of unit activities?",
+        "Are criteria for process performance and service acceptance established and followed?"
     ],
     "8.2": [
-        "Is there a process for communicating with interested parties about products, services, and feedback?",
-        "Are requirements for products and services determined and reviewed before commitment?"
+        "Are learner/beneficiary requirements for RSU services clearly determined before service delivery?",
+        "Is there a mechanism for communicating with RSU students regarding course requirements or service updates?"
     ],
     "8.3": [
-        "Is there a design and development process for educational products/services (curriculum development)?",
-        "Are there controls for design and development planning, inputs, outputs, and changes?"
+        "Does the development of new curricula or academic programs follow CHED and RSU BOR standards?",
+        "Are the inputs, controls, and outputs of the design process documented (e.g., syllabus review, curriculum mapping)?",
+        "Are changes to program designs reviewed and approved by the RSU Academic Council/BOR?"
     ],
     "8.4": [
-        "Are externally provided processes, products, and services (outsourcing) controlled?",
-        "Is the type and extent of control defined and applied to suppliers?"
+        "Are externally provided services (e.g., outsourced security, janitorial, or IT tools) controlled by the unit as per RSU standards?",
+        "Is the performance of external providers monitored and evaluated by the unit?"
     ],
     "8.5": [
-        "Is the provision of educational products and services implemented under controlled conditions?",
-        "Does this include control of infrastructure, monitoring, and release of products/services?"
+        "Is the provision of instruction or administrative support implemented under controlled conditions (e.g., class observations, service logs)?",
+        "Is there evidence of the implementation of the RSU Student Handbook and Student Manual in unit operations?"
     ],
     "8.6": [
-        "Are planned arrangements in place to verify that requirements have been met before release?",
-        "Is there documented information on the release of products/services?"
+        "Are arrangements in place to verify that service requirements have been met before the release of final results (e.g., grade verification)?",
+        "Is documented information on the release of RSU products/services maintained?"
     ],
     "8.7": [
-        "Are nonconforming outputs identified and controlled to prevent unintended use?",
-        "Is there documented information on nonconformities and actions taken?"
+        "Are nonconforming services (e.g., late grading, service delays) identified and controlled?",
+        "Does the unit take appropriate action to correct nonconformities and prevent their unintended delivery?"
     ],
     "9.1": [
-        "Has the organization determined what needs to be monitored and measured?",
-        "Are methods for monitoring, measurement, analysis, and evaluation established and used?",
-        "Is learner and other beneficiary satisfaction monitored?"
+        "Does the unit measure and monitor student/client satisfaction through the RSU Client Satisfaction Measurement (CSM)?",
+        "Are methods for monitoring, measurement, analysis, and evaluation established and used by the unit?",
+        "Is the data analyzed to determine the effectiveness of the unit’s EOMS performance?"
     ],
     "9.2": [
-        "Are internal audits conducted at planned intervals?",
-        "Are audit results reported to relevant management?"
+        "Are internal quality audits conducted at planned intervals within the unit as per the RSU IQA Plan?",
+        "Are the results of previous IQA findings addressed and verified for closure by the unit?"
     ],
     "9.3": [
-        "Does top management review the organization’s EOMS at planned intervals?",
-        "Does the review consider changes in issues, performance, and opportunities for improvement?"
+        "Is data from the unit's performance presented during RSU Management Reviews?",
+        "Does the unit head review the unit's EOMS at planned intervals to ensure its continuing suitability?"
     ],
     "10.1": [
-        "Is there a process to react to nonconformities, correct them, and deal with consequences?",
-        "Does the organization evaluate the need for action to eliminate the cause of the nonconformity?"
+        "Does the unit react to nonconformities and take immediate actions to control or correct them?",
+        "Is there evidence of root cause analysis for significant nonconformities identified in the unit?",
+        "Are corrective actions taken to prevent the recurrence of issues?"
     ],
     "10.2": [
-        "Does the organization continually improve the suitability, adequacy, and effectiveness of the EOMS?"
+        "Is there evidence of continual improvement activities within the unit's operations?",
+        "Does the unit use audit findings, CSM results, and risk registry data to drive improvement?"
     ],
     "10.3": [
-        "Does the organization actively seek and identify opportunities for improvement?"
+        "Does the unit proactively seek and identify opportunities for improvement in RSU services?",
+        "Are innovative practices or new efficiency measures implemented and documented by the unit?"
     ]
 };
 
@@ -204,8 +219,8 @@ function ClauseForm({ scheduleId, clause, finding, onSave }: { scheduleId: strin
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div>
-            <Label className="font-semibold text-primary">Audit Questions / Guide</Label>
-            <ul className="list-disc space-y-1 pl-5 mt-2 text-xs text-muted-foreground italic leading-relaxed">
+            <Label className="font-black text-[10px] uppercase tracking-widest text-primary mb-3 block">RSU Institutional Audit Guide</Label>
+            <ul className="list-disc space-y-2 pl-5 mt-2 text-xs text-muted-foreground font-medium leading-relaxed bg-primary/5 p-4 rounded-lg border border-primary/10 italic">
                 {(clauseQuestions[clause.id] || []).map((q, i) => <li key={i}>{q}</li>)}
             </ul>
         </div>
@@ -214,9 +229,9 @@ function ClauseForm({ scheduleId, clause, finding, onSave }: { scheduleId: strin
           name="evidence"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="font-semibold">Audit Evidence / Findings</FormLabel>
+              <FormLabel className="font-bold text-xs uppercase tracking-wider">Objective Audit Evidence / Verified Observations</FormLabel>
               <FormControl>
-                <Textarea {...field} rows={5} placeholder="Record objective, verifiable observations here (documents reviewed, interviews, records examined)..." />
+                <Textarea {...field} rows={6} placeholder="Record verifiable observations (documents reviewed, RSU forms examined, interviews, site inspections)..." className="bg-white border-slate-200 shadow-inner" />
               </FormControl>
             </FormItem>
           )}
@@ -226,30 +241,30 @@ function ClauseForm({ scheduleId, clause, finding, onSave }: { scheduleId: strin
           name="type"
           render={({ field }) => (
             <FormItem>
-                <FormLabel className="font-semibold">Verification Finding</FormLabel>
+                <FormLabel className="font-bold text-xs uppercase tracking-wider">Audit Verification Result</FormLabel>
                  <FormControl>
-                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-4">
+                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-4 pt-2">
                         <FormItem className="flex items-center space-x-2 space-y-0">
                             <FormControl><RadioGroupItem value="Commendation" /></FormControl>
-                            <Label className="font-normal text-xs">Commendation (C)</Label>
+                            <Label className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer">Commendation (C)</Label>
                         </FormItem>
                         <FormItem className="flex items-center space-x-2 space-y-0">
                             <FormControl><RadioGroupItem value="Observation for Improvement" /></FormControl>
-                            <Label className="font-normal text-xs">Opportunity for Improvement (OFI)</Label>
+                            <Label className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer">Opportunity for Improvement (OFI)</Label>
                         </FormItem>
                          <FormItem className="flex items-center space-x-2 space-y-0">
                             <FormControl><RadioGroupItem value="Non-Conformance" /></FormControl>
-                            <Label className="font-normal text-xs">Non-Conformance (NC)</Label>
+                            <Label className="font-bold text-[10px] uppercase tracking-tighter text-destructive cursor-pointer">Non-Conformance (NC)</Label>
                         </FormItem>
                     </RadioGroup>
                 </FormControl>
             </FormItem>
           )}
         />
-         <div className="flex justify-end">
-            <Button type="submit" disabled={isSubmitting} className="h-8 text-xs">
+         <div className="flex justify-end pt-2">
+            <Button type="submit" disabled={isSubmitting} className="h-9 px-6 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/10">
                 {isSubmitting && <Loader2 className="mr-2 h-3 w-3 animate-spin"/>}
-                Save Finding for Clause {clause.id}
+                Commit Finding for Clause {clause.id}
             </Button>
         </div>
       </form>
@@ -259,17 +274,7 @@ function ClauseForm({ scheduleId, clause, finding, onSave }: { scheduleId: strin
 
 
 export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings }: AuditChecklistProps) {
-  const [findings, setFindings] = useState(existingFindings);
-
-  useEffect(() => {
-    setFindings(existingFindings);
-  }, [existingFindings]);
-
-  const handleSave = () => {
-    // Parent components handle state synchronization via real-time hooks
-  }
-  
-  const findingsMap = new Map(findings.map(f => [f.isoClause, f]));
+  const findingsMap = useMemo(() => new Map(existingFindings.map(f => [f.isoClause, f])), [existingFindings]);
 
   const sortedClauses = useMemo(() => {
     return [...clausesToAudit].sort((a, b) => 
@@ -277,13 +282,24 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings }:
     );
   }, [clausesToAudit]);
 
+  const handleSave = () => {
+    // Parent components handle state synchronization via real-time hooks
+  }
+
   return (
-    <Card className="shadow-md">
-      <CardHeader className="bg-primary/5 border-b">
-        <CardTitle className="text-lg">Audit Checklist & Evidence Log</CardTitle>
-        <CardDescription>
-          Sequentially verify each clause. Progress is automatically synchronized with the institutional registry.
-        </CardDescription>
+    <Card className="shadow-2xl border-primary/10 overflow-hidden">
+      <CardHeader className="bg-muted/30 border-b py-6">
+        <div className="flex items-center justify-between">
+            <div className="space-y-1">
+                <CardTitle className="text-xl font-black uppercase tracking-tight">Institutional Audit Evidence Log</CardTitle>
+                <CardDescription className="font-medium">
+                Sequentially verify RSU compliance against ISO 21001:2018 standards.
+                </CardDescription>
+            </div>
+            <Badge variant="outline" className="h-6 font-black text-[10px] border-primary/20 bg-primary/5 text-primary uppercase">
+                {sortedClauses.length} CLAUSES IN SCOPE
+            </Badge>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         <Accordion type="single" collapsible className="w-full">
@@ -292,24 +308,33 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings }:
             const findingType = findingsMap.get(clause.id)?.type;
 
             return (
-              <AccordionItem value={clause.id} key={clause.id} className="px-6 border-b last:border-0">
-                <AccordionTrigger className="hover:no-underline">
-                  <div className="flex items-center justify-between w-full pr-4 text-left">
-                    <span className="text-sm font-black text-slate-800 uppercase tracking-tight">
-                      Clause {clause.id}: {clause.title}
-                    </span>
+              <AccordionItem value={clause.id} key={clause.id} className="px-8 border-b last:border-0 hover:bg-slate-50/50 transition-colors">
+                <AccordionTrigger className="hover:no-underline py-6">
+                  <div className="flex items-center justify-between w-full pr-6 text-left">
+                    <div className="flex items-center gap-4">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 font-black text-primary text-[10px]">
+                            {clause.id}
+                        </div>
+                        <span className="text-sm font-black text-slate-800 uppercase tracking-tighter">
+                            {clause.title}
+                        </span>
+                    </div>
                     {hasFinding && (
                         <Badge 
-                            variant={findingType === 'Non-Conformance' ? 'destructive' : 'secondary'}
-                            className="h-5 text-[9px] font-black uppercase shadow-none border-none ml-4"
+                            className={cn(
+                                "h-5 text-[9px] font-black uppercase shadow-none border-none ml-4 transition-all scale-110",
+                                findingType === 'Commendation' ? 'bg-emerald-600 text-white' : 
+                                findingType === 'Non-Conformance' ? 'bg-destructive text-white' : 
+                                'bg-amber-500 text-amber-950'
+                            )}
                         >
                             {findingType === 'Commendation' ? 'C' : findingType === 'Non-Conformance' ? 'NC' : 'OFI'} RECORDED
                         </Badge>
                     )}
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="pb-6">
-                  <div className="rounded-lg border bg-muted/10 p-6">
+                <AccordionContent className="pb-8">
+                  <div className="rounded-xl border bg-white p-8 shadow-sm ring-1 ring-slate-200/50">
                     <ClauseForm 
                         scheduleId={scheduleId}
                         clause={clause}
