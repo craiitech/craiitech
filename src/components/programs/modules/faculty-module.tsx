@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFormContext, useFieldArray } from 'react-hook-form';
@@ -10,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { User, UserPlus, Trash2, ShieldCheck, Info, UserCircle2, UserCheck, GraduationCap, Layers } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import type { AcademicProgram } from '@/lib/types';
 
 interface FacultyModuleProps {

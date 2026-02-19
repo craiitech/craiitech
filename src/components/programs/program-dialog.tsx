@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -38,6 +37,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { AcademicProgram, Campus, Unit } from '@/lib/types';
 import { Loader2, GraduationCap, PlusCircle, Trash2, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface ProgramDialogProps {
   isOpen: boolean;
