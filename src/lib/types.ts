@@ -362,23 +362,8 @@ export type FacultyLeadershipMember = {
   sex: 'Male' | 'Female';
 };
 
-export type ProgramComplianceRecord = {
-  id: string;
-  programId: string;
-  campusId: string;
-  academicYear: number;
-  
-  // CHED Compliance
-  ched: {
-    copcStatus: 'With COPC' | 'No COPC' | 'In Progress';
-    copcLink?: string; // GDrive PDF
-    contentNoted: boolean;
-    contentNotedLinks?: { url: string; dateNoted?: string }[];
-    rqatVisits?: RQATVisit[];
-  };
-
-  // Accreditation
-  accreditation: {
+export type AccreditationRecord = {
+    id: string;
     level: string; // Level 1, Level 2, etc.
     dateOfSurvey?: string;
     statusValidityDate?: string;
@@ -394,7 +379,27 @@ export type ProgramComplianceRecord = {
         grandMean: number;
         descriptiveRating: string;
     };
+    lifecycleStatus?: 'Current' | 'Undergoing' | 'Completed' | 'TBA';
+};
+
+export type ProgramComplianceRecord = {
+  id: string;
+  programId: string;
+  campusId: string;
+  academicYear: number;
+  
+  // CHED Compliance
+  ched: {
+    copcStatus: 'With COPC' | 'No COPC' | 'In Progress';
+    copcLink?: string; // GDrive PDF
+    contentNoted: boolean;
+    contentNotedLinks?: { url: string; dateNoted?: string }[];
+    rqatVisits?: RQATVisit[];
   };
+
+  // Accreditation (Array for history/lifecycle tracking)
+  accreditation: AccreditationRecord; // Legacy support
+  accreditationRecords?: AccreditationRecord[];
 
   // Curriculum
   curriculum: {

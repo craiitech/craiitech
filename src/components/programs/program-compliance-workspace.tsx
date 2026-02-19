@@ -28,9 +28,6 @@ interface ProgramComplianceWorkspaceProps {
   campusId: string;
 }
 
-const currentYear = new Date().getFullYear();
-const academicYears = Array.from({ length: 5 }, (_, i) => currentYear - i);
-
 const complianceSchema = z.record(z.any());
 
 function sanitizeForFirestore(obj: any): any {
@@ -66,7 +63,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
   const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [selectedAY, setSelectedAY] = useState<number>(currentYear);
+  const [selectedAY, setSelectedAY] = useState<number>(new Date().getFullYear());
   const [isSaving, setIsSaving] = useState(false);
 
   const canEdit = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || (userProfile?.campusId === campusId && (userRole?.toLowerCase().includes('coordinator') || userRole?.toLowerCase().includes('odimo')));
@@ -84,7 +81,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     defaultValues: {
       academicYear: selectedAY,
       ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', contentNotedLinks: [], rqatVisits: [] },
-      accreditation: { level: 'Non Accredited', certificateLink: '', dateOfSurvey: '', statusValidityDate: '', dateOfAward: '', nextSchedule: '', overallTaskForceHead: '', taskForce: '', areas: [] },
+      accreditationRecords: [],
       curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
       faculty: { 
         hasAssociateDean: false,
@@ -117,7 +114,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       methods.reset({
         academicYear: selectedAY,
         ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', contentNotedLinks: [], rqatVisits: [] },
-        accreditation: { level: 'Non Accredited', certificateLink: '', dateOfSurvey: '', statusValidityDate: '', dateOfAward: '', nextSchedule: '', overallTaskForceHead: '', taskForce: '', areas: [] },
+        accreditationRecords: [],
         curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
         faculty: { 
             hasAssociateDean: false,
@@ -174,6 +171,8 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     }
   };
 
+  const academicYears = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+
   return (
     <FormProvider {...methods}>
       <form onSubmit={methods.handleSubmit(onSave)} className="space-y-6">
@@ -226,7 +225,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
               </TabsContent>
               <TabsContent value="ched"><ChedComplianceModule canEdit={canEdit} /></TabsContent>
               <TabsContent value="accreditation"><AccreditationModule canEdit={canEdit} /></TabsContent>
-              <TabsContent value="faculty"><FacultyModule canEdit={canEdit} /></TabsContent>
+              <TabsContent value="faculty"><FacultyModule canEdit={canEdit} program={program} /></TabsContent>
               <TabsContent value="curriculum"><CurriculumModule canEdit={canEdit} /></TabsContent>
               <TabsContent value="outcomes"><OutcomesModule canEdit={canEdit} isBoardProgram={program.isBoardProgram} /></TabsContent>
             </div>

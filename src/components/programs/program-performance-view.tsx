@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AcademicProgram, ProgramComplianceRecord, ProgramFacultyMember } from '@/lib/types';
+import type { AcademicProgram, ProgramComplianceRecord, ProgramFacultyMember, AccreditationRecord } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,11 @@ import {
     AlertCircle,
     Calculator,
     Layers,
-    UserCheck
+    UserCheck,
+    History,
+    Calendar,
+    ChevronRight,
+    MapPin
 } from 'lucide-react';
 import { 
     BarChart, 
@@ -36,6 +41,7 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 interface ProgramPerformanceViewProps {
   program: AcademicProgram;
@@ -49,7 +55,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
   const analyticsData = useMemo(() => {
     if (!record) return null;
 
-    // Enrollment Chart Data (Aggregated Semester Comparison)
+    // Enrollment Chart Data
     const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
     const levelLabels: Record<string, string> = { firstYear: '1st Yr', secondYear: '2nd Yr', thirdYear: '3rd Yr', fourthYear: '4th Yr' };
 
@@ -65,7 +71,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         };
     });
 
-    // Graduation Trends (from dynamic records)
+    // Graduation Trends
     const successTrends = (record.graduationRecords || []).map(g => ({
         period: `${g.semester} ${g.year}`,
         graduates: g.count,
@@ -102,7 +108,11 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         if (facultyPerSpec[specId]) facultyPerSpec[specId].push(m);
     });
 
-    return { enrollmentData, successTrends, alignmentRate, totalFaculty, latestBoard, facultyPerSpec, specMap };
+    // Pick the most advanced accreditation level for the summary
+    const milestones = record.accreditationRecords || [];
+    const latestAccreditation = milestones.length > 0 ? milestones[milestones.length - 1] : null;
+
+    return { enrollmentData, successTrends, alignmentRate, totalFaculty, latestBoard, facultyPerSpec, specMap, milestones, latestAccreditation };
   }, [record, program]);
 
   const documents = useMemo(() => {
@@ -110,9 +120,20 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     
     const baseDocs: { id: string; title: string; url: string | undefined; status: string | undefined }[] = [
       { id: 'copc', title: 'CHED COPC', url: record.ched?.copcLink, status: record.ched?.copcStatus },
-      { id: 'accreditation', title: 'Accreditation Certificate', url: record.accreditation?.certificateLink, status: record.accreditation?.level },
       { id: 'cmo', title: 'Program CMO', url: record.curriculum?.cmoLink, status: record.curriculum?.revisionNumber ? `Rev ${record.curriculum.revisionNumber}` : 'Current' },
     ];
+
+    // Add all accreditation milestone certificates
+    (record.accreditationRecords || []).forEach((acc, idx) => {
+        if (acc.certificateLink) {
+            baseDocs.push({
+                id: `acc-${idx}`,
+                title: `Certificate: ${acc.level}`,
+                url: acc.certificateLink,
+                status: acc.lifecycleStatus || 'Verified'
+            });
+        }
+    });
 
     if (record.ched?.contentNotedLinks) {
         record.ched.contentNotedLinks.forEach((link, index) => {
@@ -164,17 +185,17 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-100">
             <CardHeader className="pb-2">
-                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-blue-600">Accreditation Standing</CardDescription>
+                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-blue-600">Accreditation Milestone</CardDescription>
                 <CardTitle className="text-xl flex items-center gap-2">
                     <Award className="h-5 w-5 text-blue-600" />
-                    {record.accreditation.level}
+                    {analyticsData?.latestAccreditation?.level || 'Non Accredited'}
                 </CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="flex flex-col gap-1">
-                    <p className="text-[10px] text-muted-foreground italic">Survey: {record.accreditation.dateOfSurvey || 'TBA'}</p>
-                    {record.accreditation.statusValidityDate && (
-                        <p className="text-[10px] font-bold text-blue-700/70">Valid until: {record.accreditation.statusValidityDate}</p>
+                    <p className="text-[10px] text-muted-foreground italic">Latest Survey: {analyticsData?.latestAccreditation?.dateOfSurvey || 'TBA'}</p>
+                    {analyticsData?.latestAccreditation?.statusValidityDate && (
+                        <p className="text-[10px] font-bold text-blue-700/70 uppercase">Valid until: {analyticsData.latestAccreditation.statusValidityDate}</p>
                     )}
                 </div>
             </CardContent>
@@ -222,6 +243,61 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+            {/* Accreditation Milestone Timeline */}
+            <Card className="border-primary/10 shadow-sm overflow-hidden">
+                <CardHeader className="bg-muted/10 border-b py-4">
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                            <CardTitle className="text-base flex items-center gap-2 font-black uppercase tracking-tight">
+                                <History className="h-4 w-4 text-primary" />
+                                Accreditation Lifecycle Timeline
+                            </CardTitle>
+                            <CardDescription className="text-xs">Summary of survey visits and institutional milestones.</CardDescription>
+                        </div>
+                        <Badge variant="outline" className="bg-white font-black text-[9px] uppercase tracking-widest">{analyticsData?.milestones.length} EVENTS</Badge>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <ScrollArea className="max-h-[300px]">
+                        <div className="divide-y">
+                            {analyticsData?.milestones.map((milestone, idx) => (
+                                <div key={idx} className="p-4 flex items-start gap-4 hover:bg-muted/30 transition-colors">
+                                    <div className="flex flex-col items-center shrink-0 pt-1">
+                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-[10px]">
+                                            {idx + 1}
+                                        </div>
+                                        {idx < (analyticsData.milestones.length - 1) && <div className="w-px h-full bg-border mt-2" />}
+                                    </div>
+                                    <div className="flex-1 space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <p className="font-black text-sm text-slate-900 tracking-tight uppercase">{milestone.level}</p>
+                                            <Badge className={cn(
+                                                "text-[8px] h-4 font-black uppercase border-none px-1.5",
+                                                milestone.lifecycleStatus === 'Current' ? "bg-emerald-600 text-white" :
+                                                milestone.lifecycleStatus === 'Undergoing' ? "bg-amber-500 text-amber-950 animate-pulse" :
+                                                "bg-slate-500 text-white"
+                                            )}>
+                                                {milestone.lifecycleStatus}
+                                            </Badge>
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                            <div className="flex items-center gap-1.5"><Calendar className="h-3 w-3" /> Survey: {milestone.dateOfSurvey || 'TBA'}</div>
+                                            <div className="flex items-center gap-1.5"><ShieldCheck className="h-3 w-3" /> Valid: {milestone.statusValidityDate || 'TBA'}</div>
+                                            {milestone.ratingsSummary?.grandMean && (
+                                                <div className="flex items-center gap-1.5 text-primary"><TrendingUp className="h-3 w-3" /> Mean: {milestone.ratingsSummary.grandMean.toFixed(2)}</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            {analyticsData?.milestones.length === 0 && (
+                                <div className="p-8 text-center text-muted-foreground italic text-xs">No accreditation milestones logged.</div>
+                            )}
+                        </div>
+                    </ScrollArea>
+                </CardContent>
+            </Card>
+
             <Card>
                 <CardHeader>
                     <div>
@@ -229,7 +305,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                             <Users className="h-5 w-5 text-primary" />
                             Academic Year Enrollment Trends
                         </CardTitle>
-                        <CardDescription>Aggregate student counts comparing 1st Sem, 2nd Sem, and Mid-Year terms in AY {selectedYear}</CardDescription>
+                        <CardDescription>Aggregate student counts for Academic Year {selectedYear}</CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -254,7 +330,6 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                 </CardContent>
             </Card>
 
-            {/* Specialization Coverage Hub */}
             {program.hasSpecializations && (
                 <Card className="border-blue-200 bg-blue-50/5 shadow-md">
                     <CardHeader className="bg-blue-50 border-b py-4">
@@ -336,44 +411,46 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                     <CardDescription>Official compliance proofs & certifications.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 p-4">
-                    <div className="space-y-3">
-                        {documents.map(doc => (
-                            <div key={doc.id} className="group p-4 rounded-xl border bg-background hover:border-primary/50 hover:shadow-md transition-all">
-                                <div className="flex flex-col gap-4">
-                                    <div className="space-y-1 min-w-0">
-                                        <p className="font-bold text-sm truncate">{doc.title}</p>
-                                        <p className="text-[10px] text-muted-foreground uppercase tracking-tighter">{doc.status}</p>
-                                    </div>
-                                    <div className="flex gap-2 w-full">
-                                        <Button 
-                                            variant="outline" 
-                                            size="sm" 
-                                            className="h-8 text-[10px] font-black uppercase tracking-widest border-primary/20 hover:bg-primary/5 text-primary flex-1"
-                                            onClick={() => setPreviewDoc({ title: doc.title, url: getEmbedUrl(doc.url!) })}
-                                        >
-                                            VIEW DOCUMENT
-                                        </Button>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="h-8 w-8 text-muted-foreground hover:bg-muted"
-                                            asChild
-                                        >
-                                            <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                                                <ExternalLink className="h-4 w-4" />
-                                            </a>
-                                        </Button>
+                    <ScrollArea className="h-full">
+                        <div className="space-y-3">
+                            {documents.map(doc => (
+                                <div key={doc.id} className="group p-4 rounded-xl border bg-background hover:border-primary/50 hover:shadow-md transition-all">
+                                    <div className="flex flex-col gap-4">
+                                        <div className="space-y-1 min-w-0">
+                                            <p className="font-bold text-sm truncate">{doc.title}</p>
+                                            <p className="text-[10px] text-muted-foreground uppercase tracking-tighter">{doc.status}</p>
+                                        </div>
+                                        <div className="flex gap-2 w-full">
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                className="h-8 text-[10px] font-black uppercase tracking-widest border-primary/20 hover:bg-primary/5 text-primary flex-1"
+                                                onClick={() => setPreviewDoc({ title: doc.title, url: getEmbedUrl(doc.url!) })}
+                                            >
+                                                VIEW DOCUMENT
+                                            </Button>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-8 w-8 text-muted-foreground hover:bg-muted"
+                                                asChild
+                                            >
+                                                <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                                                    <ExternalLink className="h-4 w-4" />
+                                                </a>
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
-                        {documents.length === 0 && (
-                            <div className="py-12 text-center text-muted-foreground border border-dashed rounded-xl">
-                                <FileText className="h-10 w-10 mx-auto opacity-10 mb-2" />
-                                <p className="text-xs">No documents linked yet.</p>
-                            </div>
-                        )}
-                    </div>
+                            ))}
+                            {documents.length === 0 && (
+                                <div className="py-12 text-center text-muted-foreground border border-dashed rounded-xl">
+                                    <FileText className="h-10 w-10 mx-auto opacity-10 mb-2" />
+                                    <p className="text-xs">No documents linked yet.</p>
+                                </div>
+                            )}
+                        </div>
+                    </ScrollArea>
                 </CardContent>
                 <div className="p-4 border-t bg-muted/10">
                     <p className="text-[9px] text-muted-foreground leading-relaxed italic">
@@ -383,147 +460,6 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
             </Card>
         </div>
       </div>
-
-      {/* Accreditation Ratings Summary View */}
-      {record.accreditation?.ratingsSummary && (
-        <Card className="border-primary/20 shadow-sm overflow-hidden">
-            <CardHeader className="bg-primary/5 border-b py-4">
-                <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                            <Calculator className="h-5 w-5 text-primary" />
-                            Summary of Accreditation Ratings
-                        </CardTitle>
-                        <CardDescription>Verified area scores from the latest survey visit.</CardDescription>
-                    </div>
-                    <Badge className="bg-primary text-white font-black text-[10px] uppercase h-5 px-3">
-                        {record.accreditation.ratingsSummary.descriptiveRating || 'N/A'}
-                    </Badge>
-                </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                    <div className="lg:col-span-2 overflow-x-auto rounded-lg border">
-                        <Table>
-                            <TableHeader className="bg-muted/50">
-                                <TableRow>
-                                    <TableHead className="text-[10px] font-black uppercase">Area</TableHead>
-                                    <TableHead className="text-center text-[10px] font-black uppercase">Weight</TableHead>
-                                    <TableHead className="text-center text-[10px] font-black uppercase">Mean</TableHead>
-                                    <TableHead className="text-right text-[10px] font-black uppercase">Weighted Mean</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {record.accreditation.areas?.map((area) => (
-                                    <TableRow key={area.areaCode} className="hover:bg-muted/5">
-                                        <TableCell className="text-xs font-bold py-2">
-                                            <span className="text-muted-foreground mr-2">{area.areaCode}</span>
-                                            {area.areaName}
-                                        </TableCell>
-                                        <TableCell className="text-center text-xs tabular-nums">{area.weight || '---'}</TableCell>
-                                        <TableCell className="text-center text-xs tabular-nums font-medium">{area.mean || '0.00'}</TableCell>
-                                        <TableCell className="text-right text-xs tabular-nums font-black text-primary pr-4">{area.weightedMean || '---'}</TableCell>
-                                    </TableRow>
-                                ))}
-                                <TableRow className="bg-muted/30 font-black border-t-2 border-primary">
-                                    <TableCell className="text-[10px] uppercase tracking-wider text-right pr-4">Overall Totals</TableCell>
-                                    <TableCell className="text-center text-sm tabular-nums">{record.accreditation.ratingsSummary.overallTotalWeight}</TableCell>
-                                    <TableCell className="text-center text-[9px] text-muted-foreground">---</TableCell>
-                                    <TableCell className="text-right text-sm tabular-nums text-primary pr-4">{record.accreditation.ratingsSummary.overallTotalWeightedMean}</TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                    </div>
-                    <div className="lg:col-span-1 space-y-4">
-                        <div className="p-6 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-xl">
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 mb-2">Grand Mean Score</p>
-                            <div className="flex items-end justify-between">
-                                <span className="text-5xl font-black tracking-tighter tabular-nums">
-                                    {record.accreditation.ratingsSummary.grandMean.toFixed(2)}
-                                </span>
-                                <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
-                                    <TrendingUp className="h-6 w-6" />
-                                </div>
-                            </div>
-                            <p className="mt-4 text-xs font-bold bg-white/10 p-2 rounded text-center border border-white/20">
-                                {record.accreditation.ratingsSummary.descriptiveRating}
-                            </p>
-                        </div>
-                        <div className="p-4 rounded-xl border border-dashed border-primary/30 bg-primary/5">
-                            <p className="text-[9px] text-muted-foreground leading-relaxed italic">
-                                These scores are institutionalized records reflecting the program's maturity according to the Quality Assurance standards.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-      )}
-
-      {program.isBoardProgram && (
-        <Card className="border-green-100 shadow-inner">
-            <CardHeader className="bg-green-50/50">
-                <CardTitle className="text-lg flex items-gap-2">
-                    <ShieldCheck className="h-5 w-5 text-green-600" />
-                    Latest Board Performance
-                    {analyticsData?.latestBoard && `: ${analyticsData.latestBoard.examDate}`}
-                </CardTitle>
-                <CardDescription>Performance breakdown for the most recent licensure examination.</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-                {analyticsData?.latestBoard ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-4 rounded-lg bg-background border shadow-sm">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">First Takers Rate</p>
-                                    <p className="text-2xl font-black text-primary">{analyticsData.latestBoard.firstTakersPassRate}%</p>
-                                    <p className="text-[10px] text-muted-foreground mt-1">({analyticsData.latestBoard.firstTakersPassed} of {analyticsData.latestBoard.firstTakersCount})</p>
-                                </div>
-                                <div className="p-4 rounded-lg bg-background border shadow-sm">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Retakers Rate</p>
-                                    <p className="text-2xl font-black text-muted-foreground">{analyticsData.latestBoard.retakersPassRate}%</p>
-                                    <p className="text-[10px] text-muted-foreground mt-1">({analyticsData.latestBoard.retakersPassed} of {analyticsData.latestBoard.retakersCount})</p>
-                                </div>
-                            </div>
-                            <div className="p-6 rounded-xl bg-primary text-primary-foreground shadow-lg flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs font-bold uppercase tracking-widest opacity-80">Overall RSU Passing Rate</p>
-                                    <p className="text-4xl font-black">{analyticsData.latestBoard.overallPassRate}%</p>
-                                </div>
-                                <div className="h-16 w-16 rounded-full bg-white/20 flex items-center justify-center">
-                                    <CheckCircle2 className="h-8 w-8" />
-                                </div>
-                            </div>
-                        </div>
-                        <ChartContainer config={{}} className="h-[200px] w-full">
-                            <ResponsiveContainer>
-                                <BarChart data={[
-                                    { name: 'RSU Rate', rate: analyticsData.latestBoard.overallPassRate, fill: 'hsl(var(--primary))' },
-                                    { name: 'National Avg', rate: analyticsData.latestBoard.nationalPassingRate, fill: '#cbd5e1' }
-                                ]}>
-                                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                                    <YAxis domain={[0, 100]} axisLine={false} tickLine={false} />
-                                    <Tooltip content={<ChartTooltipContent />} />
-                                    <Bar dataKey="rate" radius={[4, 4, 0, 0]} barSize={60}>
-                                        <Cell fill="hsl(var(--primary))" />
-                                        <Cell fill="#cbd5e1" />
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center justify-center py-10 text-center space-y-2">
-                        <TrendingUp className="h-10 w-10 text-muted-foreground opacity-20" />
-                        <p className="text-sm font-medium text-muted-foreground">Awaiting Board Performance Data</p>
-                        <p className="text-xs text-muted-foreground max-w-xs">Licensure examination results for this academic year have not been encoded yet.</p>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-      )}
 
       <Dialog open={!!previewDoc} onOpenChange={() => setPreviewDoc(null)}>
         <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">

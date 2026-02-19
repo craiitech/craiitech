@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -60,10 +61,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
   const analytics = useMemo(() => {
     if (!programs.length) return null;
 
-    // 1. Accreditation Maturity Distribution
+    // 1. Accreditation Maturity Distribution (Taking the latest record for each program)
     const accreditationCounts: Record<string, number> = {};
     compliances.forEach(c => {
-      const level = c.accreditation?.level || 'Not Accredited';
+      const records = c.accreditationRecords || [];
+      const latest = records.length > 0 ? records[records.length - 1] : null;
+      const level = latest?.level || 'Not Accredited';
       accreditationCounts[level] = (accreditationCounts[level] || 0) + 1;
     });
     
@@ -139,10 +142,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
     };
   }, [programs, compliances, campusMap, selectedYear]);
 
-  /**
-   * COMPLIANCE SUMMARY CALCULATOR
-   * Heuristic score based on key encoded modules.
-   */
   const complianceTableData = useMemo(() => {
     return programs.map(program => {
         const record = compliances.find(c => c.programId === program.id);
@@ -157,13 +156,19 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             outcomes: 20
         };
 
+        let currentLevel = 'Not Accredited';
+
         if (record) {
             // COPC Score
             if (record.ched?.copcStatus === 'With COPC') score += weights.copc;
             else if (record.ched?.copcStatus === 'In Progress') score += (weights.copc / 2);
 
             // Accreditation Score
-            if (record.accreditation?.level && record.accreditation.level !== 'Non Accredited') score += weights.accreditation;
+            const milestone = record.accreditationRecords?.length ? record.accreditationRecords[record.accreditationRecords.length - 1] : null;
+            if (milestone?.level && milestone.level !== 'Non Accredited') {
+                score += weights.accreditation;
+                currentLevel = milestone.level;
+            }
 
             // Faculty Score
             let totalF = (record.faculty?.members?.length || 0) + 2;
@@ -186,7 +191,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             name: program.name,
             campusName,
             copc: record?.ched?.copcStatus || 'No COPC',
-            accreditation: record?.accreditation?.level || 'Non Accredited',
+            accreditation: currentLevel,
             contentNoted: record?.ched?.contentNoted ? 'Yes' : 'No',
             compliancePercentage: Math.round(score)
         };
@@ -263,7 +268,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         </Card>
       </div>
 
-      {/* --- PROGRAM COMPLIANCE SUMMARY TABLE (NEW) --- */}
       <Card className="shadow-md border-primary/10 overflow-hidden">
         <CardHeader className="bg-muted/10 border-b py-4">
             <div className="flex items-center justify-between">
@@ -338,14 +342,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Accreditation Maturity Chart */}
         <Card>
             <CardHeader>
                 <div className="flex items-center gap-2">
                     <Award className="h-5 w-5 text-primary" />
                     <CardTitle>Accreditation Maturity</CardTitle>
                 </div>
-                <CardDescription>Distribution of academic programs by accreditation level.</CardDescription>
+                <CardDescription>Distribution of academic programs by latest accreditation achievement.</CardDescription>
             </CardHeader>
             <CardContent>
                 <ChartContainer config={{}} className="h-[300px] w-full">
@@ -372,7 +375,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             </CardContent>
         </Card>
 
-        {/* Board Performance Chart */}
         <Card>
             <CardHeader>
                 <div className="flex items-center gap-2">
@@ -390,30 +392,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                             <YAxis domain={[0, 100]} unit="%" />
                             <Tooltip content={<ChartTooltipContent />} />
                             <Bar dataKey="rate" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} label={{ position: 'top', formatter: (v: number) => `${v}%` }} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
-            </CardContent>
-        </Card>
-
-        {/* Campus Compliance Comparison */}
-        <Card className="lg:col-span-2">
-            <CardHeader>
-                <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-5 w-5 text-primary" />
-                    <CardTitle>COPC Compliance by Campus</CardTitle>
-                </div>
-                <CardDescription>Percentage of degree programs with active COPC certification per site.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <ChartContainer config={{}} className="h-[350px] w-full">
-                    <ResponsiveContainer>
-                        <BarChart data={analytics.campusChartData} layout="vertical" margin={{ left: 40 }}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis type="number" domain={[0, 100]} unit="%" />
-                            <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={120} />
-                            <Tooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="rate" fill="hsl(var(--accent))" radius={[0, 4, 4, 0]} label={{ position: 'right', formatter: (v: number) => `${v}%` }} />
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
