@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -97,7 +96,7 @@ export function SidebarNav({
       href: '/software-quality',
       label: 'Software Quality',
       active: pathname.startsWith('/software-quality'),
-      roles: ['Admin', 'Auditor'],
+      roles: ['Admin'],
       icon: <MonitorCheck />,
     },
      {
