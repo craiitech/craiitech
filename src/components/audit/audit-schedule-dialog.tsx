@@ -33,7 +33,7 @@ import { doc, addDoc, collection, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useMemo, useState } from 'react';
 import type { AuditPlan, User, Unit, ISOClause } from '@/lib/types';
-import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock } from 'lucide-react';
+import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
@@ -42,6 +42,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { Input } from '../ui/input';
+import { Textarea } from '../ui/textarea';
 
 interface AuditScheduleDialogProps {
   isOpen: boolean;
@@ -54,12 +55,12 @@ interface AuditScheduleDialogProps {
 
 const formSchema = z.object({
   targetId: z.string().min(1, 'Auditee is required'),
+  procedureDescription: z.string().min(5, 'Procedure detail is required.'),
   scheduledDate: z.date({ required_error: 'A date is required.'}),
   startTime: z.string().min(1, 'Start time is required'),
   endTime: z.string().min(1, 'End time is required'),
   isoClausesToAudit: z.array(z.string()).min(1, 'Select at least one standard clause.'),
 }).refine(data => {
-    // Basic validation to ensure end time is after start time
     return data.endTime > data.startTime;
 }, {
     message: "End time must be after start time",
@@ -81,11 +82,6 @@ export function AuditScheduleDialog({
   const isoClausesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'isoClauses') : null, [firestore]);
   const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
 
-  /**
-   * SITE-STRICT FILTERING
-   * Ensures the admin can only select Units/Offices that actually belong to the campus
-   * targeted in the Audit Plan.
-   */
   const auditees = useMemo(() => {
     if (plan.auditeeType === 'Management Processes') {
         return topManagement.filter(u => u.campusId === plan.campusId)
@@ -105,6 +101,7 @@ export function AuditScheduleDialog({
       isoClausesToAudit: [],
       startTime: '09:00',
       endTime: '12:00',
+      procedureDescription: '',
     }
   });
 
@@ -122,7 +119,6 @@ export function AuditScheduleDialog({
         targetName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
     }
 
-    // Combine date and times
     const [sHours, sMinutes] = values.startTime.split(':').map(Number);
     const startDateTime = new Date(values.scheduledDate);
     startDateTime.setHours(sHours, sMinutes, 0, 0);
@@ -138,6 +134,7 @@ export function AuditScheduleDialog({
       targetId: values.targetId,
       targetType: isUnit ? 'Unit' : 'User',
       targetName,
+      procedureDescription: values.procedureDescription,
       scheduledDate: Timestamp.fromDate(startDateTime),
       endScheduledDate: Timestamp.fromDate(endDateTime),
       isoClausesToAudit: values.isoClausesToAudit,
@@ -146,11 +143,11 @@ export function AuditScheduleDialog({
 
     try {
         await addDoc(collection(firestore, 'auditSchedules'), scheduleData);
-        toast({ title: 'Session Scheduled', description: `${targetName} queued for ${format(startDateTime, 'MM/dd/yyyy')}.` });
+        toast({ title: 'Session Provisioned', description: `Itinerary updated for ${targetName}.` });
         onOpenChange(false);
     } catch (error) {
         console.error('Error scheduling audit:', error);
-        toast({ title: 'Scheduling Failed', description: 'Could not create schedule.', variant: 'destructive'});
+        toast({ title: 'Provisioning Failed', description: 'Could not create itinerary entry.', variant: 'destructive'});
     } finally {
         setIsSubmitting(false);
     }
@@ -160,67 +157,43 @@ export function AuditScheduleDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl">
+      <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
         <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
           <div className="flex items-center gap-2 text-primary mb-1">
-            <CalendarIcon className="h-5 w-5" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Schedule Provisioning</span>
+            <ListChecks className="h-5 w-5" />
+            <span className="text-[10px] font-black uppercase tracking-widest">Itinerary Provisioning</span>
           </div>
-          <DialogTitle>Provision Session: "{plan.title}"</DialogTitle>
+          <DialogTitle>Provision Itinerary Entry: "{plan.title}"</DialogTitle>
           <DialogDescription className="text-xs">
-            Site: <strong>{plan.campusId}</strong> &bull; Group: <strong>{plan.auditeeType}</strong>
+            Define the specific procedure, audit focus, and time slot for this session.
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 bg-white">
             <Form {...form}>
-                <form id="schedule-form" onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-8">
-                    <div className="grid grid-cols-1 gap-6">
-                        <FormField
-                            control={form.control}
-                            name="targetId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[10px] font-bold uppercase">Target UNIT/OFFICE</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger className="h-11 font-bold">
-                                                <SelectValue placeholder={`Select a ${plan.auditeeType === 'Management Processes' ? 'Officer' : 'Unit/Office'} from ${plan.campusId}`}/>
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {auditees.map(a => (
-                                                <SelectItem key={a.id} value={a.id}>
-                                                    {'name' in a ? a.name : `${a.firstName} ${a.lastName}`}
-                                                </SelectItem>
-                                            ))}
-                                            {auditees.length === 0 && (
-                                                <div className="p-4 text-[10px] text-muted-foreground italic text-center">No matching entities found for this site and process group.</div>
-                                            )}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        
+                <form id="schedule-form" onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-10">
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-2 border-b pb-2">
+                            <Clock className="h-4 w-4 text-primary" />
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800">1. Timeline & Target</h4>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <FormField
                                 control={form.control}
                                 name="scheduledDate"
                                 render={({ field }) => (
                                     <FormItem className="flex flex-col">
-                                        <FormLabel className="text-[10px] font-bold uppercase mb-2">Conduct Date (MM/DD/YYYY)</FormLabel>
+                                        <FormLabel className="text-[10px] font-bold uppercase mb-2">Conduct Date</FormLabel>
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <FormControl>
-                                                    <Button variant="outline" className={cn("h-11 pl-3 text-left font-bold border-slate-200", !field.value && "text-muted-foreground")}>
-                                                        {field.value ? format(field.value, "MM/dd/yyyy") : (<span>Date</span>)}
+                                                    <Button variant="outline" className={cn("h-11 pl-3 text-left font-bold border-slate-200 shadow-sm", !field.value && "text-muted-foreground")}>
+                                                        {field.value ? format(field.value, "MM/dd/yyyy") : (<span>Select Date</span>)}
                                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                     </Button>
                                                 </FormControl>
                                             </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0 shadow-xl" align="start">
+                                            <PopoverContent className="w-auto p-0 shadow-2xl border-none" align="start">
                                                 <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
                                             </PopoverContent>
                                         </Popover>
@@ -233,13 +206,8 @@ export function AuditScheduleDialog({
                                 name="startTime"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase mb-2">Start Time (HH:MM)</FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <Clock className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground opacity-50" />
-                                                <Input type="time" {...field} className="h-11 pl-9 font-bold" />
-                                            </div>
-                                        </FormControl>
+                                        <FormLabel className="text-[10px] font-bold uppercase mb-2">Start Time</FormLabel>
+                                        <FormControl><Input type="time" {...field} className="h-11 font-bold shadow-sm" /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -249,49 +217,78 @@ export function AuditScheduleDialog({
                                 name="endTime"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase mb-2">End Time (HH:MM)</FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <Clock className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground opacity-50" />
-                                                <Input type="time" {...field} className="h-11 pl-9 font-bold" />
-                                            </div>
-                                        </FormControl>
+                                        <FormLabel className="text-[10px] font-bold uppercase mb-2">End Time</FormLabel>
+                                        <FormControl><Input type="time" {...field} className="h-11 font-bold shadow-sm" /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
                         </div>
+                        <FormField
+                            control={form.control}
+                            name="targetId"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-bold uppercase">Auditee Unit / Office (Site Strictly Restricted)</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger className="h-11 font-bold bg-muted/5">
+                                                <SelectValue placeholder={`Select a unit from ${plan.campusId}`}/>
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {auditees.map(a => (
+                                                <SelectItem key={a.id} value={a.id}>
+                                                    {'name' in a ? a.name : `${a.firstName} ${a.lastName}`}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </div>
 
-                    <FormField
-                        control={form.control}
-                        name="isoClausesToAudit"
-                        render={({ field }) => (
-                            <FormItem className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <FormLabel className="text-[10px] font-black uppercase text-primary flex items-center gap-2">
-                                            <ShieldCheck className="h-4 w-4" />
-                                            Standard Clauses in Scope
-                                        </FormLabel>
-                                        <FormDescription className="text-[9px]">Select which ISO 21001:2018 clauses apply to this session.</FormDescription>
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-2 border-b pb-2">
+                            <ShieldCheck className="h-4 w-4 text-primary" />
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800">2. Procedure & Scoping</h4>
+                        </div>
+                        <FormField
+                            control={form.control}
+                            name="procedureDescription"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-bold uppercase">Procedure / Audit Focus Area</FormLabel>
+                                    <FormControl>
+                                        <Textarea {...field} placeholder="Specify the procedures to be audited (e.g., Business Planning, Strategic Directions, Resource Management)..." rows={4} className="bg-slate-50 italic text-xs leading-relaxed" />
+                                    </FormControl>
+                                    <FormDescription className="text-[9px]">Describe the organizational processes covered in this session.</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="isoClausesToAudit"
+                            render={({ field }) => (
+                                <FormItem className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <FormLabel className="text-[10px] font-black uppercase text-primary">ISO 21001:2018 Clauses in Scope</FormLabel>
+                                        <Badge variant="secondary" className="font-mono h-5 text-[10px]">{selectedClauses.length} CLS</Badge>
                                     </div>
-                                    <Badge variant="secondary" className="font-mono h-5 text-[10px]">{selectedClauses.length} Selected</Badge>
-                                </div>
-                                
-                                <div className="rounded-lg border bg-muted/5 shadow-inner">
-                                    <Command className="bg-transparent">
-                                        <div className="flex items-center border-b px-3 bg-white">
-                                            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                                            <CommandInput placeholder="Search standard clauses..." className="h-10 text-xs" />
-                                        </div>
-                                        <CommandList className="max-h-[300px]">
-                                            <CommandEmpty>No matching clauses found.</CommandEmpty>
-                                            <CommandGroup>
-                                                {isLoadingClauses ? (
-                                                    <div className="p-4 text-center"><Loader2 className="h-4 w-4 animate-spin mx-auto text-primary" /></div>
-                                                ) : (
-                                                    isoClauses?.map(c => {
+                                    <div className="rounded-xl border shadow-sm overflow-hidden">
+                                        <Command className="bg-transparent">
+                                            <div className="flex items-center border-b px-3 bg-white">
+                                                <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                                                <CommandInput placeholder="Map clauses to itinerary..." className="h-10 text-xs" />
+                                            </div>
+                                            <CommandList className="max-h-[250px]">
+                                                <CommandEmpty>No matching clauses found.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {isoClauses?.map(c => {
                                                         const isSelected = selectedClauses.includes(c.id);
                                                         return (
                                                             <CommandItem
@@ -317,25 +314,25 @@ export function AuditScheduleDialog({
                                                                 </div>
                                                             </CommandItem>
                                                         );
-                                                    })
-                                                )}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </div>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                                                    })}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
                 </form>
             </Form>
         </ScrollArea>
 
         <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
-            <Button type="submit" form="schedule-form" disabled={isSubmitting} className="min-w-[160px] shadow-xl shadow-primary/20">
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Schedule
+            <Button type="submit" form="schedule-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-xs">
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ListChecks className="mr-2 h-4 w-4 mr-1.5" />}
+                Register Itinerary
             </Button>
         </DialogFooter>
       </DialogContent>

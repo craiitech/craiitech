@@ -149,11 +149,18 @@ export type AuditGroup = 'Management Processes' | 'Operation Processes' | 'Suppo
 
 export type AuditPlan = {
     id: string;
+    auditNumber: string; // e.g. 2025-001
+    auditType: 'Regular Audit' | 'Special Audit';
     title: string;
     year: number;
     campusId: string;
     auditeeType: AuditGroup;
     scope: string;
+    leadAuditorId: string;
+    leadAuditorName: string;
+    openingMeetingDate: any; // Timestamp
+    closingMeetingDate: any; // Timestamp
+    referenceDocument: string; // e.g. ISO 21001:2018 / EOMS Standard
     createdAt: any; // serverTimestamp()
 };
 
@@ -165,6 +172,7 @@ export type AuditSchedule = {
     targetId: string; // unitId or userId
     targetType: 'Unit' | 'User';
     targetName: string; // unit name or user name
+    procedureDescription: string; // The "Procedure" column text
     scheduledDate: any; // Timestamp (Start)
     endScheduledDate: any; // Timestamp (End)
     isoClausesToAudit: string[];
