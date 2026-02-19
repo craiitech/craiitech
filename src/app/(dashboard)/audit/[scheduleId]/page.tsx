@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
@@ -208,24 +209,40 @@ export default function AuditExecutionPage() {
 
   const handleFindingSync = (finding: any) => {
     const clauseId = finding.isoClause;
-    const textToCopy = `[Clause ${clauseId}] ${finding.description || finding.ncStatement}`;
+    const type = finding.type;
+    // Extract the exact user text from the relevant textbox
+    const actualText = type === 'Non-Conformance' ? (finding.ncStatement || finding.description) : finding.description;
     
-    if (finding.type === 'Commendation') {
-        const current = form.getValues('summaryCommendablePractices') || '';
-        if (!current.includes(`[Clause ${clauseId}]`)) {
-            form.setValue('summaryCommendablePractices', current + (current ? '\n' : '') + textToCopy);
+    if (!actualText) return;
+
+    const formattedEntry = `[Clause ${clauseId}]: ${actualText}`;
+    
+    const summaryFields: (keyof z.infer<typeof summarySchema>)[] = [
+        'summaryCommendablePractices',
+        'summaryOFI',
+        'summaryNC'
+    ];
+
+    let targetFieldName: keyof z.infer<typeof summarySchema> | null = null;
+    if (type === 'Commendation') targetFieldName = 'summaryCommendablePractices';
+    else if (type === 'Observation for Improvement') targetFieldName = 'summaryOFI';
+    else if (type === 'Non-Conformance') targetFieldName = 'summaryNC';
+
+    if (!targetFieldName) return;
+
+    // Remove any existing entry for this clause from ALL fields to handle re-categorization
+    summaryFields.forEach(fName => {
+        const val = form.getValues(fName) || '';
+        const lines = val.split('\n').filter(l => l.trim() !== '');
+        const updatedLines = lines.filter(l => !l.startsWith(`[Clause ${clauseId}]`));
+        
+        // If this is the destination field, add the new/updated entry in toto
+        if (fName === targetFieldName) {
+            updatedLines.push(formattedEntry);
         }
-    } else if (finding.type === 'Observation for Improvement') {
-        const current = form.getValues('summaryOFI') || '';
-        if (!current.includes(`[Clause ${clauseId}]`)) {
-            form.setValue('summaryOFI', current + (current ? '\n' : '') + textToCopy);
-        }
-    } else if (finding.type === 'Non-Conformance') {
-        const current = form.getValues('summaryNC') || '';
-        if (!current.includes(`[Clause ${clauseId}]`)) {
-            form.setValue('summaryNC', current + (current ? '\n' : '') + textToCopy);
-        }
-    }
+        
+        form.setValue(fName, updatedLines.join('\n'));
+    });
   };
 
   const isLoading = isLoadingSchedule || isLoadingFindings || isLoadingClauses;
@@ -423,7 +440,7 @@ export default function AuditExecutionPage() {
                                     <DialogFooter className="pt-4">
                                         <Button variant="outline" size="sm" onClick={() => setIsAddClauseOpen(false)}>Cancel</Button>
                                         <Button size="sm" onClick={handleAddClausesToScope} disabled={selectedNewClauses.length === 0 || isSavingSummary}>
-                                            {isSavingSummary && <Loader2 className="mr-2 h-3 w-3 animate-spin"/>}
+                                            {isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                                             Add {selectedNewClauses.length} Clause(s)
                                         </Button>
                                     </DialogFooter>
