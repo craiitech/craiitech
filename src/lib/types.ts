@@ -376,6 +376,8 @@ export type AccreditationRecord = {
     overallTaskForceHead?: string;
     taskForce?: string;
     areas?: AccreditationArea[];
+    mandatoryRequirements?: string;
+    enhancementRecommendations?: string;
     ratingsSummary?: {
         overallTotalWeight: number;
         overallTotalWeightedMean: number;

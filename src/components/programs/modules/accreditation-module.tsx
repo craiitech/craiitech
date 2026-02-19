@@ -5,10 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShieldCheck, Calendar, Link as LinkIcon, Award, Layers, PlusCircle, Trash2, Calculator, Check } from 'lucide-react';
+import { ShieldCheck, Calendar, Link as LinkIcon, Award, Layers, PlusCircle, Trash2, Calculator, Check, ClipboardList } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 
 const accreditationLevels = [
@@ -238,6 +239,33 @@ function AccreditationRecordCard({
                         </div>
                     </CardContent>
                 </Card>
+
+                <Card className="col-span-full border-primary/10 shadow-sm overflow-hidden">
+                    <CardHeader className="bg-muted/30 border-b">
+                        <CardTitle className="flex items-center gap-2 text-sm">
+                            <ClipboardList className="h-4 w-4 text-primary" />
+                            Accreditor's Recommendations & Compliance Status
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-6 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <FormField control={control} name={`accreditationRecords.${index}.mandatoryRequirements`} render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-black uppercase text-destructive">1. Mandatory Requirements (to be complied with before the award)</FormLabel>
+                                    <FormControl><Textarea {...field} value={field.value || ''} placeholder="List critical deficiencies that must be addressed immediately..." rows={4} className="bg-slate-50 text-xs" disabled={!canEdit} /></FormControl>
+                                    <FormDescription className="text-[9px]">Critical items requiring resolution for certification.</FormDescription>
+                                </FormItem>
+                            )} />
+                            <FormField control={control} name={`accreditationRecords.${index}.enhancementRecommendations`} render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-black uppercase text-blue-700">2. Enhancement Recommendations (may be complied with after the award)</FormLabel>
+                                    <FormControl><Textarea {...field} value={field.value || ''} placeholder="List opportunities for continuous improvement during the accreditation cycle..." rows={4} className="bg-slate-50 text-xs" disabled={!canEdit} /></FormControl>
+                                    <FormDescription className="text-[9px]">Suggestions for qualitative growth post-survey.</FormDescription>
+                                </FormItem>
+                            )} />
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );
@@ -273,7 +301,9 @@ export function AccreditationModule({ canEdit, programSpecializations }: { canEd
                     components: [],
                     lifecycleStatus: 'TBA',
                     areas: standardAreas.map(area => ({ areaCode: area.code, areaName: area.name, googleDriveLink: '', taskForce: '' })),
-                    ratingsSummary: { grandMean: 0, descriptiveRating: '' }
+                    ratingsSummary: { grandMean: 0, descriptiveRating: '' },
+                    mandatoryRequirements: '',
+                    enhancementRecommendations: ''
                 })}
                 className="shadow-lg shadow-primary/20"
             >
