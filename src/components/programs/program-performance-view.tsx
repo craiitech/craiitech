@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -24,7 +23,9 @@ import {
     Activity,
     PieChart as PieIcon,
     BookOpen,
-    ShieldAlert
+    ShieldAlert,
+    GraduationCap,
+    School
 } from 'lucide-react';
 import { 
     PieChart, 
@@ -73,7 +74,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         };
     });
 
-    // 2. Faculty Alignment
+    // 2. Faculty Alignment (Strict Check)
     let totalFaculty = 0;
     let alignedFaculty = 0;
     const countMember = (m: any) => {
@@ -126,7 +127,9 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     // 7. Gaps
     const gaps = [];
     if (record.ched?.copcStatus !== 'With COPC') gaps.push({ type: 'Institutional', msg: 'No COPC found.' });
-    if (totalFaculty === 0) gaps.push({ type: 'Faculty', msg: 'Faculty registry is empty.' });
+    if (totalFaculty === 0) gaps.push({ type: 'Faculty', msg: 'Faculty registry is incomplete for this year.' });
+    else if (alignmentRate < 100) gaps.push({ type: 'Faculty', msg: `${totalFaculty - alignedFaculty} faculty members are not aligned with CMO requirements.` });
+    
     if (program.hasSpecializations) {
         program.specializations?.forEach(spec => {
             if (!currentAccreditationByMajor[spec.id]) {
@@ -144,6 +147,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
   const categorizedDocs = useMemo(() => {
     if (!record) return { governance: [], accreditation: [], curriculum: [], monitoring: [] };
     const docs = { governance: [] as any[], accreditation: [] as any[], curriculum: [] as any[], monitoring: [] as any[] };
+    
     if (record.ched?.boardApprovalLink) docs.governance.push({ id: 'bor', title: 'BOR Resolution', url: record.ched.boardApprovalLink, status: 'Active' });
     if (record.ched?.copcLink) docs.governance.push({ id: 'copc', title: 'CHED COPC', url: record.ched.copcLink, status: record.ched.copcStatus });
     
@@ -166,46 +170,48 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative group overflow-hidden">
             <div className="absolute -top-4 -right-4 h-24 w-24 bg-primary/10 rounded-full" />
-            <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-primary/60">Institutional Maturity</CardDescription><CardTitle className="text-3xl font-black text-primary tabular-nums">{analyticsData.overallScore}%</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-primary/60">Program Maturity</CardDescription><CardTitle className="text-3xl font-black text-primary tabular-nums">{analyticsData.overallScore}%</CardTitle></CardHeader>
             <CardContent><div className="space-y-1.5"><Progress value={analyticsData.overallScore} className="h-1" /><p className="text-[9px] font-bold text-muted-foreground uppercase">Verified Compliance Index</p></div></CardContent>
         </Card>
-        <Card className="bg-emerald-50/50 border-emerald-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Accreditation</CardDescription><CardTitle className="text-lg font-black text-slate-900 truncate">{analyticsData.latestAccreditation?.level || 'Non Accredited'}</CardTitle></CardHeader><CardContent><Badge variant="outline" className="bg-white text-emerald-700 border-emerald-200 text-[9px] font-black uppercase">{analyticsData.latestAccreditation?.result || 'Ongoing'}</Badge></CardContent></Card>
-        <Card className="bg-blue-50/50 border-blue-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-blue-600">Faculty Alignment</CardDescription><CardTitle className="text-3xl font-black text-blue-700 tabular-nums">{analyticsData.alignmentRate}%</CardTitle></CardHeader><CardContent><p className="text-[10px] text-blue-800/60 font-bold uppercase">{analyticsData.totalFaculty} Members Registered</p></CardContent></Card>
-        <Card className="bg-amber-50/50 border-amber-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-amber-600">CHED Program Contents</CardDescription><CardTitle className="text-lg font-black text-amber-700 truncate">{record.curriculumRecords?.length || 0} Registered Curricula</CardTitle></CardHeader><CardContent><Badge variant="outline" className="bg-white text-amber-700 border-amber-200 text-[9px] font-black uppercase">{record.curriculumRecords?.some(c => c.isNotedByChed) ? 'Officially Noted' : 'Pending Notation'}</Badge></CardContent></Card>
+        <Card className="bg-emerald-50/50 border-emerald-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Global Accreditation</CardDescription><CardTitle className="text-lg font-black text-slate-900 truncate">{analyticsData.latestAccreditation?.level || 'Non Accredited'}</CardTitle></CardHeader><CardContent><Badge variant="outline" className="bg-white text-emerald-700 border-emerald-200 text-[9px] font-black uppercase">{analyticsData.latestAccreditation?.result || 'Ongoing'}</Badge></CardContent></Card>
+        <Card className="bg-blue-50/50 border-blue-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-blue-600">Faculty Alignment</CardDescription><CardTitle className="text-3xl font-black text-blue-700 tabular-nums">{analyticsData.alignmentRate}%</CardTitle></CardHeader><CardContent><p className="text-[10px] text-blue-800/60 font-bold uppercase">{analyticsData.totalFaculty} Members Named</p></CardContent></Card>
+        <Card className="bg-amber-50/50 border-amber-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-amber-600">CHED Program Contents</CardDescription><CardTitle className="text-lg font-black text-amber-700 truncate">{record.curriculumRecords?.length || 0} Tracks Profiled</CardTitle></CardHeader><CardContent><Badge variant="outline" className="bg-white text-amber-700 border-amber-200 text-[9px] font-black uppercase">{record.curriculumRecords?.some(c => c.isNotedByChed) ? 'Officially Noted' : 'Pending Notation'}</Badge></CardContent></Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
             
-            {/* Major-Specific Curriculum & Content Profile */}
+            {/* Major-Specific Accreditation Profile */}
             <Card className="border-primary/10 shadow-sm overflow-hidden">
                 <CardHeader className="bg-muted/10 border-b py-4">
                     <div className="flex items-center gap-2">
-                        <BookOpen className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-sm font-black uppercase tracking-tight">Curriculum & Program Content Profile</CardTitle>
+                        <Award className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-sm font-black uppercase tracking-tight">Major-Specific Accreditation Registry</CardTitle>
                     </div>
                 </CardHeader>
                 <CardContent className="pt-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {program.specializations && program.specializations.length > 0 ? (
                             program.specializations.map(spec => {
-                                const curr = analyticsData.curriculaByMajor[spec.id] || analyticsData.curriculaByMajor['General'];
+                                const acc = analyticsData.currentAccreditationByMajor[spec.id];
                                 return (
                                     <div key={spec.id} className="p-4 rounded-xl border bg-muted/5 space-y-3">
                                         <div className="flex items-center justify-between">
                                             <p className="text-[10px] font-black uppercase text-primary tracking-widest">{spec.name}</p>
-                                            <Badge variant={curr?.isNotedByChed ? "default" : "outline"} className={cn("text-[8px] h-4 font-black uppercase", curr?.isNotedByChed ? "bg-emerald-600" : "opacity-50")}>
-                                                {curr?.isNotedByChed ? "Noted by CHED" : "Pending Notation"}
-                                            </Badge>
+                                            {acc ? (
+                                                <Badge className="bg-emerald-600 text-white h-4 text-[8px] font-black uppercase">Current Track Status</Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="text-[8px] h-4 font-black uppercase opacity-50">Pending Eval</Badge>
+                                            )}
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-xs font-black text-slate-800">Revision: {curr?.revisionNumber || 'Not Set'}</p>
-                                            <p className="text-[9px] font-bold text-muted-foreground uppercase">Impl: {curr?.dateImplemented || 'TBA'}</p>
+                                            <p className="text-xs font-black text-slate-800">{acc?.level || 'Non Accredited'}</p>
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase">{acc?.result || 'Outcome Pending'}</p>
                                         </div>
-                                        {curr?.dateNoted && (
-                                            <div className="flex items-center gap-1.5 text-[8px] font-black text-emerald-700 bg-emerald-50 w-fit px-2 py-0.5 rounded border border-emerald-100">
-                                                <CheckCircle2 className="h-2.5 w-2.5" />
-                                                NOTED ON: {curr.dateNoted}
+                                        {acc?.statusValidityDate && (
+                                            <div className="flex items-center gap-1.5 text-[8px] font-black text-blue-700 bg-blue-50 w-fit px-2 py-0.5 rounded border border-blue-100">
+                                                <Calendar className="h-2.5 w-2.5" />
+                                                VALID UNTIL: {acc.statusValidityDate}
                                             </div>
                                         )}
                                     </div>
@@ -214,12 +220,10 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                         ) : (
                             <div className="md:col-span-2 p-4 rounded-xl border bg-primary/5 flex items-center justify-between">
                                 <div>
-                                    <p className="text-[10px] font-black uppercase text-primary tracking-widest">General Program Curriculum</p>
-                                    <p className="text-xs font-black text-slate-800 mt-1">Revision: {analyticsData.curriculaByMajor['General']?.revisionNumber || 'Not Set'}</p>
+                                    <p className="text-[10px] font-black uppercase text-primary tracking-widest">Institutional Program Level</p>
+                                    <p className="text-xs font-black text-slate-800 mt-1">{analyticsData.latestAccreditation?.level || 'Non Accredited'}</p>
                                 </div>
-                                <Badge variant={analyticsData.curriculaByMajor['General']?.isNotedByChed ? "default" : "outline"} className="h-5 text-[9px] font-black uppercase">
-                                    {analyticsData.curriculaByMajor['General']?.isNotedByChed ? "Noted" : "Unnoted"}
-                                </Badge>
+                                <Badge variant="outline" className="h-5 text-[9px] font-black uppercase border-primary/20 text-primary">Global Scope</Badge>
                             </div>
                         )}
                     </div>
@@ -232,7 +236,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                     <CardHeader className="py-3 px-4 bg-destructive/10 border-b">
                         <div className="flex items-center gap-2 text-destructive">
                             <ShieldAlert className="h-4 w-4" />
-                            <CardTitle className="text-xs font-black uppercase tracking-widest">Critical Compliance Gaps</CardTitle>
+                            <CardTitle className="text-xs font-black uppercase tracking-widest">Quality Assurance Gaps</CardTitle>
                         </div>
                     </CardHeader>
                     <CardContent className="p-4 space-y-3">
@@ -240,7 +244,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                             <div key={i} className="flex items-start gap-3 bg-white p-3 rounded-lg border border-destructive/10 shadow-sm">
                                 <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                                 <div className="min-w-0">
-                                    <p className="text-[10px] font-black text-destructive uppercase tracking-tighter mb-0.5">{gap.type}</p>
+                                    <p className="text-[10px] font-black text-destructive uppercase tracking-tighter mb-0.5">{gap.type} Audit</p>
                                     <p className="text-xs font-bold text-slate-700 leading-snug">{gap.msg}</p>
                                 </div>
                             </div>
@@ -252,7 +256,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
             {/* Pillar Scoring */}
             <Card className="border-primary/10 shadow-sm overflow-hidden">
                 <CardHeader className="bg-muted/10 border-b py-4">
-                    <div className="flex items-center gap-2"><Calculator className="h-4 w-4 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Maturity Pillar Breakdown</CardTitle></div>
+                    <div className="flex items-center gap-2"><Calculator className="h-4 w-4 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Maturity Profiling</CardTitle></div>
                 </CardHeader>
                 <CardContent className="pt-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -296,6 +300,12 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                                     </div>
                                 )
                             ))}
+                            {Object.values(categorizedDocs).every(arr => arr.length === 0) && (
+                                <div className="py-20 text-center space-y-2 opacity-20">
+                                    <FileText className="h-12 w-12 mx-auto" />
+                                    <p className="text-xs font-bold uppercase">No Evidence Found</p>
+                                </div>
+                            )}
                         </div>
                     </ScrollArea>
                 </CardContent>
