@@ -19,6 +19,157 @@ interface CurriculumModuleProps {
   programSpecializations?: { id: string, name: string }[];
 }
 
+/**
+ * SUB-COMPONENT: CurriculumRecordCard
+ * Handles individual curriculum records. 
+ * Necessary to call hooks (useWatch) at the top level per item.
+ */
+function CurriculumRecordCard({ 
+  index, 
+  control, 
+  canEdit, 
+  onRemove, 
+  programSpecializations 
+}: { 
+  index: number; 
+  control: any; 
+  canEdit: boolean; 
+  onRemove: () => void; 
+  programSpecializations?: { id: string, name: string }[] 
+}) {
+  const isNotedByChed = useWatch({ control, name: `curriculumRecords.${index}.isNotedByChed` });
+
+  return (
+    <Card className="border-primary/10 shadow-sm overflow-hidden relative group">
+      {canEdit && (
+        <Button 
+          type="button" 
+          variant="ghost" 
+          size="icon" 
+          onClick={onRemove}
+          className="absolute top-2 right-2 text-destructive h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      )}
+      <CardHeader className="bg-muted/30 py-3 border-b">
+        <CardTitle className="text-xs font-black uppercase text-primary flex items-center gap-2">
+          <Layers className="h-3.5 w-3.5" />
+          Curriculum Record #{index + 1}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-6 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={control}
+            name={`curriculumRecords.${index}.majorId`}
+            render={({ field: inputField }) => (
+              <FormItem>
+                <FormLabel className="text-[10px] font-bold uppercase">Associated Major / Track</FormLabel>
+                <Select onValueChange={inputField.onChange} value={inputField.value} disabled={!canEdit}>
+                  <FormControl><SelectTrigger className="h-9"><SelectValue /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    <SelectItem value="General" className="font-bold">General Program / All Tracks</SelectItem>
+                    {programSpecializations?.map(spec => (
+                      <SelectItem key={spec.id} value={spec.id}>{spec.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={control}
+            name={`curriculumRecords.${index}.revisionNumber`}
+            render={({ field: inputField }) => (
+              <FormItem>
+                <FormLabel className="text-[10px] font-bold uppercase">Revision Number</FormLabel>
+                <FormControl><Input {...inputField} placeholder="e.g. 2024-Rev01" className="h-9 text-xs" disabled={!canEdit} /></FormControl>
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={control}
+            name={`curriculumRecords.${index}.dateImplemented`}
+            render={({ field: inputField }) => (
+              <FormItem>
+                <FormLabel className="text-[10px] font-bold uppercase">Implementation Date</FormLabel>
+                <FormControl><Input {...inputField} placeholder="e.g. 1st Sem 2024" className="h-9 text-xs" disabled={!canEdit} /></FormControl>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={control}
+            name={`curriculumRecords.${index}.cmoLink`}
+            render={({ field: inputField }) => (
+              <FormItem>
+                <FormLabel className="text-[10px] font-bold uppercase flex items-center gap-1.5">
+                  <LinkIcon className="h-2.5 w-2.5" /> CMO Reference (PDF)
+                </FormLabel>
+                <FormControl><Input {...inputField} placeholder="GDrive Link..." className="h-9 text-xs" disabled={!canEdit} /></FormControl>
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <Separator />
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <FormLabel className="text-xs font-black uppercase text-blue-800">CHED Program Notation Status</FormLabel>
+              <p className="text-[9px] text-muted-foreground">Is this curriculum version officially acknowledged by CHED?</p>
+            </div>
+            <FormField
+              control={control}
+              name={`curriculumRecords.${index}.isNotedByChed`}
+              render={({ field: inputField }) => (
+                <FormControl><Switch checked={inputField.value} onCheckedChange={inputField.onChange} disabled={!canEdit} /></FormControl>
+              )}
+            />
+          </div>
+
+          <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl border bg-blue-50/20 transition-all duration-500", !isNotedByChed && "opacity-30 grayscale pointer-events-none")}>
+            <FormField
+              control={control}
+              name={`curriculumRecords.${index}.notationProofLink`}
+              render={({ field: inputField }) => (
+                <FormItem>
+                  <FormLabel className="text-[9px] font-black uppercase text-blue-700">Proof of Content Noted (PDF)</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <CheckCircle2 className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-blue-400" />
+                      <Input {...inputField} value={inputField.value || ''} placeholder="GDrive Proof Link..." className="pl-8 h-8 text-[10px] bg-white border-blue-100" disabled={!canEdit} />
+                    </div>
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={control}
+              name={`curriculumRecords.${index}.dateNoted`}
+              render={({ field: inputField }) => (
+                <FormItem>
+                  <FormLabel className="text-[9px] font-black uppercase text-blue-700">Date of CHED Notation</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Calendar className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-blue-400" />
+                      <Input {...inputField} value={inputField.value || ''} placeholder="e.g. Oct 24, 2024" className="pl-8 h-8 text-[10px] bg-white border-blue-100 font-bold" disabled={!canEdit} />
+                    </div>
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function CurriculumModule({ canEdit, programSpecializations }: CurriculumModuleProps) {
   const { control, setValue, watch } = useFormContext();
   const enrollment = watch('stats.enrollment');
@@ -130,133 +281,14 @@ export function CurriculumModule({ canEdit, programSpecializations }: Curriculum
 
         <div className="space-y-6">
             {fields.map((field, index) => (
-                <Card key={field.id} className="border-primary/10 shadow-sm overflow-hidden relative group">
-                    {canEdit && (
-                        <Button 
-                            type="button" 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => remove(index)}
-                            className="absolute top-2 right-2 text-destructive h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                    )}
-                    <CardHeader className="bg-muted/30 py-3 border-b">
-                        <CardTitle className="text-xs font-black uppercase text-primary flex items-center gap-2">
-                            <Layers className="h-3.5 w-3.5" />
-                            Curriculum Record #{index + 1}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-6 space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                                control={control}
-                                name={`curriculumRecords.${index}.majorId`}
-                                render={({ field: inputField }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase">Associated Major / Track</FormLabel>
-                                        <Select onValueChange={inputField.onChange} value={inputField.value} disabled={!canEdit}>
-                                            <FormControl><SelectTrigger className="h-9"><SelectValue /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="General" className="font-bold">General Program / All Tracks</SelectItem>
-                                                {programSpecializations?.map(spec => (
-                                                    <SelectItem key={spec.id} value={spec.id}>{spec.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={control}
-                                name={`curriculumRecords.${index}.revisionNumber`}
-                                render={({ field: inputField }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase">Revision Number</FormLabel>
-                                        <FormControl><Input {...inputField} placeholder="e.g. 2024-Rev01" className="h-9 text-xs" disabled={!canEdit} /></FormControl>
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                                control={control}
-                                name={`curriculumRecords.${index}.dateImplemented`}
-                                render={({ field: inputField }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase">Implementation Date</FormLabel>
-                                        <FormControl><Input {...inputField} placeholder="e.g. 1st Sem 2024" className="h-9 text-xs" disabled={!canEdit} /></FormControl>
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={control}
-                                name={`curriculumRecords.${index}.cmoLink`}
-                                render={({ field: inputField }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase flex items-center gap-1.5">
-                                            <LinkIcon className="h-2.5 w-2.5" /> CMO Reference (PDF)
-                                        </FormLabel>
-                                        <FormControl><Input {...inputField} placeholder="GDrive Link..." className="h-9 text-xs" disabled={!canEdit} /></FormControl>
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        <Separator />
-
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-0.5">
-                                    <FormLabel className="text-xs font-black uppercase text-blue-800">CHED Program Notation Status</FormLabel>
-                                    <p className="text-[9px] text-muted-foreground">Is this curriculum version officially acknowledged by CHED?</p>
-                                </div>
-                                <FormField
-                                    control={control}
-                                    name={`curriculumRecords.${index}.isNotedByChed`}
-                                    render={({ field: inputField }) => (
-                                        <FormControl><Switch checked={inputField.value} onCheckedChange={inputField.onChange} disabled={!canEdit} /></FormControl>
-                                    )}
-                                />
-                            </div>
-
-                            <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl border bg-blue-50/20 transition-all duration-500", !useWatch({ control, name: `curriculumRecords.${index}.isNotedByChed` }) && "opacity-30 grayscale pointer-events-none")}>
-                                <FormField
-                                    control={control}
-                                    name={`curriculumRecords.${index}.notationProofLink`}
-                                    render={({ field: inputField }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-[9px] font-black uppercase text-blue-700">Proof of Content Noted (PDF)</FormLabel>
-                                            <FormControl>
-                                                <div className="relative">
-                                                    <CheckCircle2 className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-blue-400" />
-                                                    <Input {...inputField} value={inputField.value || ''} placeholder="GDrive Proof Link..." className="pl-8 h-8 text-[10px] bg-white border-blue-100" disabled={!canEdit} />
-                                                </div>
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={control}
-                                    name={`curriculumRecords.${index}.dateNoted`}
-                                    render={({ field: inputField }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-[9px] font-black uppercase text-blue-700">Date of CHED Notation</FormLabel>
-                                            <FormControl>
-                                                <div className="relative">
-                                                    <Calendar className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-blue-400" />
-                                                    <Input {...inputField} value={inputField.value || ''} placeholder="e.g. Oct 24, 2024" className="pl-8 h-8 text-[10px] bg-white border-blue-100 font-bold" disabled={!canEdit} />
-                                                </div>
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                <CurriculumRecordCard 
+                  key={field.id} 
+                  index={index} 
+                  control={control} 
+                  canEdit={canEdit} 
+                  onRemove={() => remove(index)} 
+                  programSpecializations={programSpecializations} 
+                />
             ))}
             {fields.length === 0 && (
                 <div className="text-center py-16 border border-dashed rounded-2xl bg-muted/5">

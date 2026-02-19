@@ -6,7 +6,6 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescripti
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ShieldCheck, Calendar, Link as LinkIcon, Award, Layers, PlusCircle, Trash2, Calculator, Check } from 'lucide-react';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -46,18 +45,6 @@ const standardAreas = [
   { code: 'Area X', name: 'Administration' },
 ];
 
-const level34MandatoryAreas = [
-  { code: 'Area III', name: 'Instruction' },
-  { code: 'Area VI', name: 'Extension' },
-];
-
-const level34OptionalAreas = [
-  { code: 'Area V', name: 'Research' },
-  { code: 'Area XI', name: 'Licensure Examination Performance' },
-  { code: 'Area XII', name: 'Faculty Development' },
-  { code: 'Area XIII', name: 'Linkages' },
-];
-
 export function AccreditationModule({ canEdit, programSpecializations }: { canEdit: boolean, programSpecializations?: { id: string, name: string }[] }) {
   const { control } = useFormContext();
   
@@ -87,7 +74,7 @@ export function AccreditationModule({ canEdit, programSpecializations }: { canEd
                     result: '',
                     components: [],
                     lifecycleStatus: 'TBA',
-                    areas: [],
+                    areas: standardAreas.map(area => ({ areaCode: area.code, areaName: area.name, googleDriveLink: '', taskForce: '' })),
                     ratingsSummary: { grandMean: 0, descriptiveRating: '' }
                 })}
                 className="shadow-lg shadow-primary/20"
@@ -103,6 +90,7 @@ export function AccreditationModule({ canEdit, programSpecializations }: { canEd
             <AccreditationRecordCard 
                 key={field.id} 
                 index={index} 
+                control={control}
                 canEdit={canEdit} 
                 onRemove={() => remove(index)}
                 programSpecializations={programSpecializations}
@@ -120,24 +108,25 @@ export function AccreditationModule({ canEdit, programSpecializations }: { canEd
   );
 }
 
-function AccreditationRecordCard({ index, canEdit, onRemove, programSpecializations }: { index: number; canEdit: boolean; onRemove: () => void, programSpecializations?: { id: string, name: string }[] }) {
-    const { control, setValue } = useFormContext();
+function AccreditationRecordCard({ 
+  index, 
+  control,
+  canEdit, 
+  onRemove, 
+  programSpecializations 
+}: { 
+  index: number; 
+  control: any;
+  canEdit: boolean; 
+  onRemove: () => void, 
+  programSpecializations?: { id: string, name: string }[] 
+}) {
+    const { setValue } = useFormContext();
     
+    // Call hooks at the top level of the sub-component
     const selectedLevel = useWatch({ control, name: `accreditationRecords.${index}.level` });
     const selectedComponents = useWatch({ control, name: `accreditationRecords.${index}.components` }) || [];
-
-    const isLevel3Or4 = selectedLevel?.includes('Level III') || selectedLevel?.includes('Level IV');
-    const isPSVToLevel2 = selectedLevel === 'Preliminary Survey Visit (PSV)' || selectedLevel?.includes('Level I') || selectedLevel?.includes('Level II');
-
-    useEffect(() => {
-        if (isPSVToLevel2) {
-            const initial = standardAreas.map(area => ({ areaCode: area.code, areaName: area.name, googleDriveLink: '', taskForce: '' }));
-            setValue(`accreditationRecords.${index}.areas`, initial);
-        } else if (isLevel3Or4) {
-            const initial = [...level34MandatoryAreas, ...level34OptionalAreas].map(area => ({ areaCode: area.code, areaName: area.name, googleDriveLink: '', taskForce: '' }));
-            setValue(`accreditationRecords.${index}.areas`, initial);
-        }
-    }, [selectedLevel, isPSVToLevel2, isLevel3Or4, index, setValue]);
+    const areas = useWatch({ control, name: `accreditationRecords.${index}.areas` }) || [];
 
     const toggleMajor = (spec: { id: string, name: string }) => {
         const current = [...selectedComponents];
@@ -230,7 +219,7 @@ function AccreditationRecordCard({ index, canEdit, onRemove, programSpecializati
                             <div className="flex flex-wrap gap-2">
                                 {programSpecializations && programSpecializations.length > 0 ? (
                                     programSpecializations.map(spec => {
-                                        const isSelected = selectedComponents.some(c => c.id === spec.id);
+                                        const isSelected = selectedComponents.some((c: any) => c.id === spec.id);
                                         return (
                                             <Button 
                                                 key={spec.id} 
@@ -264,7 +253,7 @@ function AccreditationRecordCard({ index, canEdit, onRemove, programSpecializati
                                 <Calendar className="h-4 w-4" /> Milestone Accountability
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                {(useWatch({ control, name: `accreditationRecords.${index}.areas` }) || []).map((area: any, areaIdx: number) => (
+                                {areas.map((area: any, areaIdx: number) => (
                                     <div key={areaIdx} className="p-2 rounded-lg border bg-muted/5 flex items-center justify-between gap-2">
                                         <div className="min-w-0 flex-1">
                                             <p className="text-[9px] font-black text-primary leading-none mb-1">{area.areaCode}</p>
