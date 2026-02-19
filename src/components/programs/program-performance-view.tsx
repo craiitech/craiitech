@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -97,20 +98,22 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     // 3. Faculty Alignment & Specialization Stats
     let totalFaculty = 0;
     let alignedFaculty = 0;
+
+    const countMember = (m: any) => {
+        if (!m || !m.name || m.name.trim() === '') return;
+        totalFaculty++;
+        if (m.isAlignedWithCMO === 'Aligned') alignedFaculty++;
+    };
+
     if (record.faculty?.members) {
-        record.faculty.members.forEach(m => {
-            totalFaculty++;
-            if (m.isAlignedWithCMO === 'Aligned') alignedFaculty++;
-        });
+        record.faculty.members.forEach(m => countMember(m));
     }
-    if (record.faculty?.dean) { 
-        totalFaculty++; 
-        if (record.faculty.dean.isAlignedWithCMO === 'Aligned') alignedFaculty++; 
+    
+    countMember(record.faculty?.dean);
+    if (record.faculty?.hasAssociateDean) {
+        countMember(record.faculty?.associateDean);
     }
-    if (record.faculty?.programChair) { 
-        totalFaculty++; 
-        if (record.faculty.programChair.isAlignedWithCMO === 'Aligned') alignedFaculty++; 
-    }
+    countMember(record.faculty?.programChair);
 
     const alignmentRate = totalFaculty > 0 ? Math.round((alignedFaculty / totalFaculty) * 100) : 0;
 
@@ -122,6 +125,9 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     }
     
     record.faculty?.members?.forEach(m => {
+        // Only count members with names in specialization distribution
+        if (!m.name || m.name.trim() === '') return;
+        
         const specId = m.specializationAssignment || 'General';
         if (facultyPerSpec[specId]) {
             facultyPerSpec[specId].push(m);
@@ -143,7 +149,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     const pillarScores = {
         ched: record.ched?.copcStatus === 'With COPC' ? 20 : (record.ched?.copcStatus === 'In Progress' ? 10 : 0),
         accreditation: (latestAccreditation?.level && latestAccreditation.level !== 'Non Accredited') ? 20 : 0,
-        faculty: (alignmentRate / 100) * 20,
+        faculty: totalFaculty > 0 ? (alignmentRate / 100) * 20 : 0,
         curriculum: record.curriculum?.cmoLink && record.curriculum?.isNotedByChed ? 20 : (record.curriculum?.cmoLink || record.curriculum?.isNotedByChed ? 10 : 0),
         outcomes: ((record.graduationRecords?.length || 0) > 0 || (record.tracerRecords?.length || 0) > 0) ? 20 : 0
     };
@@ -155,7 +161,13 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     if (record.ched?.copcStatus !== 'With COPC') gaps.push({ type: 'Institutional', msg: 'Missing Certificate of Program Compliance (COPC).' });
     if (!record.ched?.boardApprovalLink) gaps.push({ type: 'Governance', msg: 'Missing Board of Regents (BOR) Resolution link.' });
     if (!latestAccreditation || latestAccreditation.level === 'Non Accredited') gaps.push({ type: 'Accreditation', msg: 'Program is currently Non-Accredited.' });
-    if (alignmentRate < 100) gaps.push({ type: 'Faculty', msg: `Faculty alignment is at ${alignmentRate}%. ${totalFaculty - alignedFaculty} member(s) do not meet CMO qualifications.` });
+    
+    if (totalFaculty === 0) {
+        gaps.push({ type: 'Faculty', msg: 'No faculty members or leadership have been registered for this program.' });
+    } else if (alignmentRate < 100) {
+        gaps.push({ type: 'Faculty', msg: `Faculty alignment is at ${alignmentRate}%. ${totalFaculty - alignedFaculty} member(s) do not meet CMO qualifications.` });
+    }
+
     if (!record.curriculum?.isNotedByChed) gaps.push({ type: 'Curriculum', msg: 'Curriculum revision not yet noted by CHED.' });
     if (!record.graduationRecords?.length) gaps.push({ type: 'Outcomes', msg: 'No graduation outcome records for this year.' });
 
