@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -28,7 +27,8 @@ import {
     FileWarning,
     Activity,
     ArrowUpRight,
-    PieChart as PieIcon
+    PieChart as PieIcon,
+    UserCircle2
 } from 'lucide-react';
 import { 
     BarChart, 
@@ -103,16 +103,31 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
             if (m.isAlignedWithCMO === 'Aligned') alignedFaculty++;
         });
     }
-    if (record.faculty?.dean) { totalFaculty++; if (record.faculty.dean.isAlignedWithCMO === 'Aligned') alignedFaculty++; }
-    if (record.faculty?.programChair) { totalFaculty++; if (record.faculty.programChair.isAlignedWithCMO === 'Aligned') alignedFaculty++; }
+    if (record.faculty?.dean) { 
+        totalFaculty++; 
+        if (record.faculty.dean.isAlignedWithCMO === 'Aligned') alignedFaculty++; 
+    }
+    if (record.faculty?.programChair) { 
+        totalFaculty++; 
+        if (record.faculty.programChair.isAlignedWithCMO === 'Aligned') alignedFaculty++; 
+    }
 
     const alignmentRate = totalFaculty > 0 ? Math.round((alignedFaculty / totalFaculty) * 100) : 0;
 
     const facultyPerSpec: Record<string, ProgramFacultyMember[]> = { 'General': [] };
-    program.specializations?.forEach(s => facultyPerSpec[s.id] = []);
+    if (program.specializations) {
+        program.specializations.forEach(s => {
+            facultyPerSpec[s.id] = [];
+        });
+    }
+    
     record.faculty?.members?.forEach(m => {
         const specId = m.specializationAssignment || 'General';
-        if (facultyPerSpec[specId]) facultyPerSpec[specId].push(m);
+        if (facultyPerSpec[specId]) {
+            facultyPerSpec[specId].push(m);
+        } else {
+            facultyPerSpec['General'].push(m);
+        }
     });
 
     // 4. Board Performance
@@ -149,6 +164,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         successTrends, 
         alignmentRate, 
         totalFaculty, 
+        alignedFaculty,
         latestBoard, 
         facultyPerSpec, 
         milestones, 
@@ -326,12 +342,98 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                 </CardContent>
             </Card>
 
-            {/* 4. ENROLLMENT & OUTCOMES ANALYTICS */}
+            {/* 4. FACULTY ALIGNMENT & QUALIFICATION PROFILE */}
+            <Card className="border-primary/10 shadow-sm overflow-hidden">
+                <CardHeader className="bg-muted/10 border-b py-4">
+                    <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-sm font-black uppercase tracking-tight">Faculty Alignment &amp; Qualification Profile</CardTitle>
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Alignment Stats */}
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">CMO Alignment Index</p>
+                                    <p className="text-3xl font-black text-primary tabular-nums">{analyticsData?.alignmentRate}%</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Total Staffing</p>
+                                    <p className="text-xl font-black text-slate-700 tabular-nums">{analyticsData?.totalFaculty}</p>
+                                </div>
+                            </div>
+                            <Progress value={analyticsData?.alignmentRate} className="h-2" />
+                            
+                            <div className="grid grid-cols-1 gap-2 mt-4">
+                                <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 border border-green-100">
+                                    <div className="flex items-center gap-2">
+                                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                        <span className="text-[10px] font-bold uppercase text-green-700">Aligned with Standard</span>
+                                    </div>
+                                    <span className="text-sm font-black text-green-700 tabular-nums">
+                                        {analyticsData?.alignedFaculty}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between p-3 rounded-lg bg-rose-50 border border-rose-100">
+                                    <div className="flex items-center gap-2">
+                                        <AlertCircle className="h-4 w-4 text-rose-600" />
+                                        <span className="text-[10px] font-bold uppercase text-rose-700">Alignment Gaps</span>
+                                    </div>
+                                    <span className="text-sm font-black text-rose-700 tabular-nums">
+                                        {(analyticsData?.totalFaculty || 0) - (analyticsData?.alignedFaculty || 0)}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Specialization Distribution */}
+                        <div className="space-y-4">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                <Layers className="h-3 w-3" /> Specialization Coverage Audit
+                            </h4>
+                            <div className="space-y-2">
+                                {program.hasSpecializations ? (
+                                    program.specializations?.map(spec => {
+                                        const members = analyticsData?.facultyPerSpec[spec.id] || [];
+                                        const aligned = members.filter(m => m.isAlignedWithCMO === 'Aligned').length;
+                                        return (
+                                            <div key={spec.id} className="p-3 rounded-lg border bg-muted/5 flex items-center justify-between group hover:bg-muted/10 transition-colors">
+                                                <div className="space-y-0.5 min-w-0">
+                                                    <p className="text-[10px] font-bold uppercase text-slate-700 truncate" title={spec.name}>{spec.name}</p>
+                                                    <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-tighter">Pool: {members.length} member(s)</p>
+                                                </div>
+                                                <Badge 
+                                                    variant={aligned > 0 ? "outline" : "destructive"} 
+                                                    className={cn(
+                                                        "h-5 text-[8px] font-black uppercase",
+                                                        aligned > 0 ? "bg-green-50 text-green-700 border-green-200" : ""
+                                                    )}
+                                                >
+                                                    {aligned > 0 ? `${aligned} ALIGNED` : "GAP DETECTED"}
+                                                </Badge>
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="p-8 text-center border border-dashed rounded-lg bg-muted/5">
+                                        <UserCircle2 className="h-6 w-6 mx-auto text-muted-foreground opacity-20 mb-2" />
+                                        <p className="text-[10px] text-muted-foreground italic">Standard Program: Faculty assigned to core instructional areas.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* 5. ENROLLMENT & OUTCOMES ANALYTICS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="shadow-sm">
+                <Card className="shadow-sm border-primary/5">
                     <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                            <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Enrollment Trends</CardTitle>
+                            <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Enrollment Analysis</CardTitle>
                             <Users className="h-4 w-4 text-primary/40" />
                         </div>
                     </CardHeader>
@@ -354,10 +456,10 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                     </CardContent>
                 </Card>
 
-                <Card className="shadow-sm">
+                <Card className="shadow-sm border-primary/5">
                     <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                            <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Employment Velocity</CardTitle>
+                            <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Employment Trends</CardTitle>
                             <TrendingUp className="h-4 w-4 text-emerald-500/40" />
                         </div>
                     </CardHeader>
@@ -377,7 +479,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                 </Card>
             </div>
 
-            {/* 5. ACCREDITATION TIMELINE */}
+            {/* 6. ACCREDITATION TIMELINE */}
             <Card className="border-primary/10 shadow-sm overflow-hidden">
                 <CardHeader className="bg-muted/10 border-b py-4">
                     <div className="flex items-center gap-2">
@@ -399,7 +501,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                                     </div>
                                     <div className="text-right">
                                         <Badge variant="outline" className="h-5 text-[9px] font-black border-primary/20 text-primary uppercase">{m.lifecycleStatus}</Badge>
-                                        <p className="text-[9px] text-muted-foreground mt-1">Survey: {m.dateOfSurvey || 'TBA'}</p>
+                                        <p className="text-[9px] text-muted-foreground mt-1 uppercase font-bold tabular-nums tracking-tighter">Survey: {m.dateOfSurvey || 'TBA'}</p>
                                     </div>
                                 </div>
                             ))}
@@ -409,7 +511,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
             </Card>
         </div>
 
-        {/* 6. RIGHT SIDEBAR: DOCUMENTS & BOARD PERFORMANCE */}
+        {/* 7. RIGHT SIDEBAR: DOCUMENTS & BOARD PERFORMANCE */}
         <div className="lg:col-span-1 space-y-6">
             
             {/* BOARD PERFORMANCE SCORECARD */}
@@ -417,13 +519,13 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                 <Card className="border-primary/30 bg-primary/5 shadow-md overflow-hidden">
                     <CardHeader className="bg-primary border-b py-4">
                         <CardTitle className="text-white text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                            <Activity className="h-4 w-4" /> Board Performance Benchmarking
+                            <Activity className="h-4 w-4" /> Board Benchmarking
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-6 space-y-6">
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
-                                <p className="text-[9px] font-black uppercase text-primary/60">Institutional Performance</p>
+                                <p className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Institutional Rate</p>
                                 <p className="text-4xl font-black text-primary tabular-nums tracking-tighter">{analyticsData.latestBoard.overallPassRate}%</p>
                             </div>
                             <div className="h-12 w-12 rounded-full border-4 border-primary/20 flex items-center justify-center">
@@ -433,14 +535,14 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                         <div className="space-y-3">
                             <div className="space-y-1.5">
                                 <div className="flex justify-between text-[10px] font-bold uppercase">
-                                    <span>School Passing Rate</span>
+                                    <span>Program Passing Rate</span>
                                     <span>{analyticsData.latestBoard.overallPassRate}%</span>
                                 </div>
                                 <Progress value={analyticsData.latestBoard.overallPassRate} className="h-1.5" />
                             </div>
                             <div className="space-y-1.5 opacity-60">
                                 <div className="flex justify-between text-[10px] font-bold uppercase">
-                                    <span>National Passing Rate</span>
+                                    <span>National Average</span>
                                     <span>{analyticsData.latestBoard.nationalPassingRate}%</span>
                                 </div>
                                 <Progress value={analyticsData.latestBoard.nationalPassingRate} className="h-1.5 bg-muted" />
@@ -533,4 +635,3 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
       </Dialog>
     </div>
   );
-}
