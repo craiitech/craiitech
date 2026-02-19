@@ -7,7 +7,7 @@ import type { AuditSchedule, AuditFinding, ISOClause, CorrectiveActionPlan } fro
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Save } from 'lucide-react';
+import { Loader2, ArrowLeft, Save, Clock, Building2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState } from 'react';
 import { AuditChecklist } from '@/components/audit/audit-checklist';
@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 const LoadingSkeleton = () => (
   <div className="space-y-6">
@@ -88,8 +89,8 @@ export default function AuditExecutionPage() {
     if (!scheduleDocRef) return;
     setIsSavingSummary(true);
     try {
-        await updateDoc(scheduleDocRef, values);
-        toast({ title: "Success", description: "Audit summary has been saved." });
+        await updateDoc(scheduleDocRef, { ...values, status: 'Completed' });
+        toast({ title: "Success", description: "Audit summary saved and marked as Completed." });
     } catch(error) {
         console.error("Error saving summary:", error);
         toast({ title: "Error", description: "Could not save summary.", variant: 'destructive' });
@@ -119,18 +120,26 @@ export default function AuditExecutionPage() {
     );
   }
 
+  const conductDate = schedule.scheduledDate.toDate();
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">IQA - Evidence Log Sheet</h2>
-          <p className="text-muted-foreground">
-            {schedule.targetName} &bull; {format(schedule.scheduledDate.toDate(), 'PPP')}
-          </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+            <h2 className="text-2xl font-bold tracking-tight">IQA - Evidence Log Sheet</h2>
+            <p className="text-muted-foreground flex items-center gap-2">
+                <Building2 className="h-3.5 w-3.5" />
+                {schedule.targetName} &bull; {format(conductDate, 'PPP')} @ {format(conductDate, 'hh:mm a')}
+            </p>
+            </div>
         </div>
+        <Badge variant={schedule.status === 'Completed' ? 'default' : 'secondary'} className="h-7 px-4 font-black uppercase">
+            {schedule.status}
+        </Badge>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -143,8 +152,8 @@ export default function AuditExecutionPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Audit Summary</CardTitle>
-                    <CardDescription>Consolidate your findings into a high-level summary.</CardDescription>
+                    <CardTitle>Audit Summary & Final Report</CardTitle>
+                    <CardDescription>Consolidate your findings into a high-level summary. Saving this will mark the audit as Completed.</CardDescription>
                 </CardHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(handleSaveSummary)}>
@@ -154,7 +163,7 @@ export default function AuditExecutionPage() {
                                 name="summaryCommendablePractices"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>List of Commendable Practices (C)</FormLabel>
+                                        <FormLabel className="text-xs font-black uppercase text-emerald-700">List of Commendable Practices (C)</FormLabel>
                                         <FormControl><Textarea {...field} rows={4} placeholder="Summarize all commendable practices..." /></FormControl>
                                     </FormItem>
                                 )}
@@ -164,7 +173,7 @@ export default function AuditExecutionPage() {
                                 name="summaryOFI"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Opportunities for Improvement (OFI)</FormLabel>
+                                        <FormLabel className="text-xs font-black uppercase text-amber-700">Opportunities for Improvement (OFI)</FormLabel>
                                         <FormControl><Textarea {...field} rows={4} placeholder="Summarize all opportunities for improvement..."/></FormControl>
                                     </FormItem>
                                 )}
@@ -174,17 +183,17 @@ export default function AuditExecutionPage() {
                                 name="summaryNC"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Non-Compliance / Non-Conformance (NC)</FormLabel>
+                                        <FormLabel className="text-xs font-black uppercase text-destructive">Non-Compliance / Non-Conformance (NC)</FormLabel>
                                         <FormControl><Textarea {...field} rows={4} placeholder="Summarize all non-conformances..."/></FormControl>
                                     </FormItem>
                                 )}
                             />
                         </CardContent>
                         <CardFooter>
-                            <Button type="submit" disabled={isSavingSummary}>
+                            <Button type="submit" disabled={isSavingSummary} className="shadow-lg shadow-primary/20 font-black uppercase tracking-widest">
                                 {isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                                 <Save className="mr-2 h-4 w-4"/>
-                                Save Audit Summary
+                                Finalize Audit Report
                             </Button>
                         </CardFooter>
                     </form>
@@ -193,20 +202,44 @@ export default function AuditExecutionPage() {
 
         </div>
         <div className="lg:col-span-1">
-            <Card className="sticky top-20">
-                <CardHeader>
-                    <CardTitle>Audit Details</CardTitle>
+            <Card className="sticky top-20 shadow-md border-primary/10">
+                <CardHeader className="bg-muted/30 border-b">
+                    <CardTitle className="text-sm font-black uppercase tracking-widest">Session Dossier</CardTitle>
                 </CardHeader>
-                 <CardContent className="space-y-2 text-sm">
-                    <p><strong className="font-medium">Auditor:</strong> {schedule.auditorName || 'Not Assigned'}</p>
-                    <p><strong className="font-medium">Auditee:</strong> {schedule.targetName}</p>
-                    <p><strong className="font-medium">Date:</strong> {format(schedule.scheduledDate.toDate(), 'PPP')}</p>
-                    <p><strong className="font-medium">Status:</strong> {schedule.status}</p>
+                 <CardContent className="space-y-6 pt-6">
+                    <div className="space-y-3">
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Assigned Auditor</p>
+                            <div className="flex items-center gap-2">
+                                <User className="h-4 w-4 text-primary" />
+                                <span className="text-sm font-bold">{schedule.auditorName || 'Not Assigned'}</span>
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Target Auditee</p>
+                            <div className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4 text-primary" />
+                                <span className="text-sm font-bold">{schedule.targetName}</span>
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Conduct Schedule</p>
+                            <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-primary" />
+                                <span className="text-sm font-bold">{format(conductDate, 'PPp')}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <Separator />
+
                     <div>
-                        <strong className="font-medium">Clauses in Scope:</strong>
-                        <ul className="list-disc pl-5 mt-1">
-                            {schedule.isoClausesToAudit.map(clauseId => <li key={clauseId}>{clauseId}</li>)}
-                        </ul>
+                        <p className="text-[10px] font-black uppercase text-primary tracking-widest mb-3">Clauses in Scope</p>
+                        <div className="flex flex-wrap gap-1.5">
+                            {schedule.isoClausesToAudit.map(clauseId => (
+                                <Badge key={clauseId} variant="outline" className="font-mono text-[10px] border-primary/20 px-2">Clause {clauseId}</Badge>
+                            ))}
+                        </div>
                     </div>
                  </CardContent>
             </Card>
