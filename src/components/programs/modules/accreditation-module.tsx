@@ -6,14 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShieldCheck, Calendar, Link as LinkIcon, Award, Users, FileText, CheckCircle2, UserCircle, Calculator, Info, TrendingUp, PlusCircle, Trash2, Layers, ClipboardList } from 'lucide-react';
+import { ShieldCheck, Calendar, Link as LinkIcon, Award, Layers, PlusCircle, Trash2, UserCircle, Calculator } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useEffect, useMemo, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
 
 const accreditationLevels = [
   "Non Accredited",
@@ -126,9 +124,6 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
     const { control, setValue } = useFormContext();
     
     const selectedLevel = useWatch({ control, name: `accreditationRecords.${index}.level` });
-    const watchedAreas = useWatch({ control, name: `accreditationRecords.${index}.areas` }) || [];
-    const watchedSummary = useWatch({ control, name: `accreditationRecords.${index}.ratingsSummary` });
-
     const { fields: componentFields, append: appendComponent, remove: removeComponent } = useFieldArray({
         control,
         name: `accreditationRecords.${index}.components`
@@ -156,9 +151,6 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
                 areaName: area.name,
                 googleDriveLink: '',
                 taskForce: '',
-                weight: 0,
-                mean: 0,
-                weightedMean: 0
             }));
             setValue(`accreditationRecords.${index}.areas`, initial, { shouldDirty: false });
         } else if (isLevel3Or4) {
@@ -167,49 +159,11 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
                 areaName: area.name,
                 googleDriveLink: '',
                 taskForce: '',
-                weight: 0,
-                mean: 0,
-                weightedMean: 0
             }));
             setValue(`accreditationRecords.${index}.areas`, initial, { shouldDirty: false });
         }
         lastInitializedLevelGroup.current = currentGroup;
     }, [selectedLevel, isPSVToLevel2, isLevel3Or4, index, setValue]);
-
-    useEffect(() => {
-        if (!watchedAreas || watchedAreas.length === 0) return;
-
-        let totalWeight = 0;
-        let totalWeightedMean = 0;
-
-        watchedAreas.forEach((area: any, areaIdx: number) => {
-            const weight = parseFloat(area.weight) || 0;
-            const mean = parseFloat(area.mean) || 0;
-            const weightedMean = parseFloat((weight * mean).toFixed(2));
-
-            if (area.weightedMean !== weightedMean) {
-                setValue(`accreditationRecords.${index}.areas.${areaIdx}.weightedMean`, weightedMean, { shouldValidate: false });
-            }
-
-            totalWeight += weight;
-            totalWeightedMean += weightedMean;
-        });
-
-        const grandMean = totalWeight > 0 ? parseFloat((totalWeightedMean / totalWeight).toFixed(2)) : 0;
-        const roundedTotalWeight = parseFloat(totalWeight.toFixed(2));
-        const roundedTotalWM = parseFloat(totalWeightedMean.toFixed(2));
-
-        if (watchedSummary?.overallTotalWeight !== roundedTotalWeight) {
-            setValue(`accreditationRecords.${index}.ratingsSummary.overallTotalWeight`, roundedTotalWeight, { shouldValidate: false });
-        }
-        if (watchedSummary?.overallTotalWeightedMean !== roundedTotalWM) {
-            setValue(`accreditationRecords.${index}.ratingsSummary.overallTotalWeightedMean`, roundedTotalWM, { shouldValidate: false });
-        }
-        if (watchedSummary?.grandMean !== grandMean) {
-            setValue(`accreditationRecords.${index}.ratingsSummary.grandMean`, grandMean, { shouldValidate: false });
-        }
-
-    }, [watchedAreas, index, setValue, watchedSummary]);
 
     return (
         <div className="space-y-6 animate-in slide-in-from-top-4 duration-500">
@@ -397,104 +351,67 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
                 </Card>
             </div>
 
-            {(isPSVToLevel2 || isLevel3Or4) && (
-                <Card className="border-primary/20 shadow-md">
-                    <CardHeader className="bg-primary/5 border-b py-4">
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                                <CardTitle className="text-base flex items-center gap-2">
-                                    <Calculator className="h-4 w-4 text-primary" />
-                                    Ratings Summary & Area Distribution
-                                </CardTitle>
-                                <CardDescription className="text-xs">Milestone scores for {selectedLevel}.</CardDescription>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">Grand Mean</p>
-                                <p className="text-2xl font-black text-primary tabular-nums tracking-tighter">
-                                    {watchedSummary?.grandMean?.toFixed(2) || '0.00'}
-                                </p>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                        <div className="overflow-x-auto rounded-lg border">
-                            <Table>
-                                <TableHeader className="bg-muted/50">
-                                    <TableRow className="hover:bg-transparent">
-                                        <TableHead className="text-[10px] font-black uppercase py-2">Evaluation Area</TableHead>
-                                        <TableHead className="text-center text-[10px] font-black uppercase py-2 w-[100px]">Weight</TableHead>
-                                        <TableHead className="text-center text-[10px] font-black uppercase py-2 w-[100px]">Mean</TableHead>
-                                        <TableHead className="text-right text-[10px] font-black uppercase py-2 w-[120px]">Weighted Mean</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {watchedAreas.map((area: any, areaIdx: number) => (
-                                        <TableRow key={areaIdx} className="hover:bg-muted/10 group">
-                                            <TableCell className="py-2">
-                                                <div className="flex items-center gap-2">
-                                                    <Badge variant="outline" className="h-4 text-[8px] font-black">{area.areaCode}</Badge>
-                                                    <span className="text-[11px] font-bold text-slate-700">{area.areaName}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                <FormField control={control} name={`accreditationRecords.${index}.areas.${areaIdx}.weight`} render={({ field: inputField }) => (
-                                                    <FormControl><Input type="number" step="0.01" {...inputField} className="h-7 text-[10px] font-bold text-center bg-muted/5" disabled={!canEdit} /></FormControl>
-                                                )} />
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                <FormField control={control} name={`accreditationRecords.${index}.areas.${areaIdx}.mean`} render={({ field: inputField }) => (
-                                                    <FormControl><Input type="number" step="0.01" {...inputField} className="h-7 text-[10px] font-bold text-center bg-muted/5" disabled={!canEdit} /></FormControl>
-                                                )} />
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="text-[11px] font-black tabular-nums text-primary pr-2">
-                                                    {area.weightedMean?.toFixed(2) || '0.00'}
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                        
-                        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-4">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Milestone Accountability</h4>
-                                <div className="grid grid-cols-1 gap-2">
-                                    {watchedAreas.map((area: any, areaIdx: number) => (
-                                        <div key={areaIdx} className="p-3 rounded-lg border bg-muted/5 flex items-center justify-between">
-                                            <span className="text-[10px] font-bold uppercase truncate max-w-[150px]">{area.areaName}</span>
-                                            <div className="flex items-center gap-2">
-                                                <FormField control={control} name={`accreditationRecords.${index}.areas.${areaIdx}.taskForce`} render={({ field: inputField }) => (
-                                                    <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="Head" className="h-7 text-[9px] w-24 bg-white" disabled={!canEdit} /></FormControl>
-                                                )} />
-                                                <FormField control={control} name={`accreditationRecords.${index}.areas.${areaIdx}.googleDriveLink`} render={({ field: inputField }) => (
-                                                    <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="Link" className="h-7 text-[9px] w-24 bg-white" disabled={!canEdit} /></FormControl>
-                                                )} />
-                                            </div>
+            <Card className="border-primary/20 shadow-md">
+                <CardHeader className="bg-primary/5 border-b py-4">
+                    <CardTitle className="text-base flex items-center gap-2">
+                        <Calculator className="h-4 w-4 text-primary" />
+                        Final Assessment Summary
+                    </CardTitle>
+                    <CardDescription className="text-xs">Record the verified scores and accountability links for AY {selectedLevel}.</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Milestone Accountability</h4>
+                            <div className="grid grid-cols-1 gap-2">
+                                {useWatch({ control, name: `accreditationRecords.${index}.areas` })?.map((area: any, areaIdx: number) => (
+                                    <div key={areaIdx} className="p-3 rounded-lg border bg-muted/5 flex items-center justify-between gap-4">
+                                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                                            <Badge variant="outline" className="h-4 text-[8px] font-black shrink-0">{area.areaCode}</Badge>
+                                            <span className="text-[10px] font-bold uppercase truncate text-slate-700">{area.areaName}</span>
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="space-y-4">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Final Descriptive Profile</h4>
-                                <div className="p-6 rounded-xl bg-slate-50 border border-slate-200 shadow-inner">
-                                    <FormField control={control} name={`accreditationRecords.${index}.ratingsSummary.descriptiveRating`} render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-[9px] font-black uppercase text-slate-500">Official Rating String</FormLabel>
-                                            <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Very Satisfactory" className="h-12 text-lg font-black uppercase tracking-tight bg-white" disabled={!canEdit} /></FormControl>
-                                        </FormItem>
-                                    )} />
-                                    <div className="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/10 flex items-center gap-3">
-                                        <TrendingUp className="h-5 w-5 text-primary" />
-                                        <p className="text-[10px] text-primary/70 leading-relaxed font-bold uppercase italic">Verified result for milestone #{index + 1}.</p>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <FormField control={control} name={`accreditationRecords.${index}.areas.${areaIdx}.taskForce`} render={({ field: inputField }) => (
+                                                <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="Head" className="h-7 text-[9px] w-24 bg-white" disabled={!canEdit} /></FormControl>
+                                            )} />
+                                            <FormField control={control} name={`accreditationRecords.${index}.areas.${areaIdx}.googleDriveLink`} render={({ field: inputField }) => (
+                                                <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="GDrive Link" className="h-7 text-[9px] w-24 bg-white" disabled={!canEdit} /></FormControl>
+                                            )} />
+                                        </div>
                                     </div>
-                                </div>
+                                ))}
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
-            )}
+                        <div className="space-y-6">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Final Descriptive Profile</h4>
+                            <div className="p-6 rounded-xl bg-slate-50 border border-slate-200 shadow-inner space-y-6">
+                                <FormField control={control} name={`accreditationRecords.${index}.ratingsSummary.grandMean`} render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[9px] font-black uppercase text-primary">Grand Mean (Overall Score)</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                type="number" 
+                                                step="0.01" 
+                                                {...field} 
+                                                value={field.value || 0} 
+                                                className="h-14 text-2xl font-black tabular-nums bg-white border-primary/20" 
+                                                disabled={!canEdit} 
+                                            />
+                                        </FormControl>
+                                        <FormDescription className="text-[9px]">Manually encode the verified average score from the survey result.</FormDescription>
+                                    </FormItem>
+                                )} />
+                                <FormField control={control} name={`accreditationRecords.${index}.ratingsSummary.descriptiveRating`} render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[9px] font-black uppercase text-slate-500">Official Descriptive Rating</FormLabel>
+                                        <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Very Satisfactory" className="h-10 text-sm font-bold uppercase tracking-tight bg-white" disabled={!canEdit} /></FormControl>
+                                    </FormItem>
+                                )} />
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }
