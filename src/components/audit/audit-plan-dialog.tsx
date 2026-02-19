@@ -38,6 +38,7 @@ import type { AuditPlan, Campus } from '@/lib/types';
 import { Loader2, LayoutList, ShieldCheck } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface AuditPlanDialogProps {
   isOpen: boolean;
@@ -53,7 +54,7 @@ const formSchema = z.object({
   title: z.string().min(5, 'Title must be descriptive (min 5 chars).'),
   year: z.number(),
   campusId: z.string().min(1, 'Target campus site is required.'),
-  auditeeType: z.enum(['Units', 'Top Management']),
+  auditeeType: z.enum(['Management Processes', 'Operation Processes', 'Support Processes']),
   scope: z.string().min(10, 'Please provide a clear scope statement.'),
 });
 
@@ -66,7 +67,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
     resolver: zodResolver(formSchema),
     defaultValues: {
       year: currentYear,
-      auditeeType: 'Units',
+      auditeeType: 'Operation Processes',
     },
   });
 
@@ -78,7 +79,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
         title: '',
         year: currentYear,
         campusId: '',
-        auditeeType: 'Units',
+        auditeeType: 'Operation Processes',
         scope: '',
       });
     }
@@ -114,7 +115,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md h-[80vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+      <DialogContent className="max-w-md h-[85vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
         <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
           <div className="flex items-center gap-2 text-primary mb-1">
             <LayoutList className="h-5 w-5" />
@@ -176,16 +177,20 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                             name="auditeeType"
                             render={({ field }) => (
                                 <FormItem className="space-y-3">
-                                    <FormLabel className="text-[10px] font-black uppercase text-primary">Auditee Grouping</FormLabel>
+                                    <FormLabel className="text-[10px] font-black uppercase text-primary">Process Audit Group</FormLabel>
                                     <FormControl>
                                         <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-col space-y-1">
                                             <div className="flex items-center space-x-2 p-3 rounded-lg border bg-muted/5">
-                                                <RadioGroupItem value="Units" id="group-units" />
-                                                <Label htmlFor="group-units" className="text-xs font-bold cursor-pointer">Offices & Academic Units</Label>
+                                                <RadioGroupItem value="Management Processes" id="group-mgmt" />
+                                                <Label htmlFor="group-mgmt" className="text-xs font-bold cursor-pointer">Management Processes</Label>
                                             </div>
                                             <div className="flex items-center space-x-2 p-3 rounded-lg border bg-muted/5">
-                                                <RadioGroupItem value="Top Management" id="group-mgmt" />
-                                                <Label htmlFor="group-mgmt" className="text-xs font-bold cursor-pointer">Top Management / Governance</Label>
+                                                <RadioGroupItem value="Operation Processes" id="group-ops" />
+                                                <Label htmlFor="group-ops" className="text-xs font-bold cursor-pointer">Operation Processes</Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2 p-3 rounded-lg border bg-muted/5">
+                                                <RadioGroupItem value="Support Processes" id="group-support" />
+                                                <Label htmlFor="group-support" className="text-xs font-bold cursor-pointer">Support Processes</Label>
                                             </div>
                                         </RadioGroup>
                                     </FormControl>

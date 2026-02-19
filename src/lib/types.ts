@@ -145,12 +145,14 @@ export type ISOClause = {
     description: string;
 };
 
+export type AuditGroup = 'Management Processes' | 'Operation Processes' | 'Support Processes';
+
 export type AuditPlan = {
     id: string;
     title: string;
     year: number;
     campusId: string;
-    auditeeType: 'Units' | 'Top Management';
+    auditeeType: AuditGroup;
     scope: string;
     createdAt: any; // serverTimestamp()
 };

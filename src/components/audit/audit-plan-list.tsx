@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import type { AuditPlan, AuditSchedule, Campus, User, Unit } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, FileText } from 'lucide-react';
+import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, FileText, Settings2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -67,7 +67,7 @@ export function AuditPlanList({ plans, schedules, campuses, users, units, onEdit
                         </div>
                         <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                             <span className="flex items-center gap-1.5"><Building2 className="h-3 w-3" /> {campusMap.get(plan.campusId) || '...'}</span>
-                            <span className="flex items-center gap-1.5"><UserCheck className="h-3 w-3" /> Focus: {plan.auditeeType}</span>
+                            <span className="flex items-center gap-1.5"><Settings2 className="h-3 w-3" /> {plan.auditeeType}</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-6 shrink-0">

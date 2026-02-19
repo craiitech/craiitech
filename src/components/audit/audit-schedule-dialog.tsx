@@ -72,10 +72,23 @@ export function AuditScheduleDialog({
   const isoClausesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'isoClauses') : null, [firestore]);
   const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
 
+  /**
+   * INTELLIGENT AUDITEE FILTERING
+   * Maps the chosen Audit Process Group to the relevant organizational entities.
+   */
   const auditees = useMemo(() => {
-    return plan.auditeeType === 'Units' 
-        ? allUnits.filter(u => u.campusIds?.includes(plan.campusId)).sort((a,b) => a.name.localeCompare(b.name))
-        : topManagement.sort((a,b) => a.firstName.localeCompare(b.firstName));
+    if (plan.auditeeType === 'Management Processes') {
+        // Management processes typically target Top Management (Users with leadership roles)
+        return topManagement.sort((a,b) => a.firstName.localeCompare(b.firstName));
+    } else if (plan.auditeeType === 'Operation Processes') {
+        // Operation processes typically target Academic Units (Colleges/Institutes)
+        return allUnits.filter(u => u.campusIds?.includes(plan.campusId) && u.category === 'Academic')
+            .sort((a,b) => a.name.localeCompare(b.name));
+    } else {
+        // Support processes target Administrative, Research, and Support units
+        return allUnits.filter(u => u.campusIds?.includes(plan.campusId) && u.category !== 'Academic')
+            .sort((a,b) => a.name.localeCompare(b.name));
+    }
   }, [plan, allUnits, topManagement]);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -90,7 +103,9 @@ export function AuditScheduleDialog({
     setIsSubmitting(true);
     
     let targetName = 'Unknown';
-    if (plan.auditeeType === 'Units') {
+    const isUnit = plan.auditeeType !== 'Management Processes';
+
+    if (isUnit) {
         targetName = allUnits.find(u => u.id === values.targetId)?.name || 'Unknown Unit';
     } else {
         const user = topManagement.find(u => u.id === values.targetId);
@@ -102,7 +117,7 @@ export function AuditScheduleDialog({
       auditorId: null, // Left null for auditor pool to claim
       auditorName: null,
       targetId: values.targetId,
-      targetType: plan.auditeeType === 'Units' ? 'Unit' : 'User',
+      targetType: isUnit ? 'Unit' : 'User',
       targetName,
       scheduledDate: Timestamp.fromDate(values.scheduledDate),
       isoClausesToAudit: values.isoClausesToAudit,
@@ -133,7 +148,7 @@ export function AuditScheduleDialog({
           </div>
           <DialogTitle>Add Session to "{plan.title}"</DialogTitle>
           <DialogDescription className="text-xs">
-            Map a unit to a specific conduct date and standard clauses.
+            Targeting auditees within the <strong>{plan.auditeeType}</strong> group.
           </DialogDescription>
         </DialogHeader>
         
@@ -146,11 +161,11 @@ export function AuditScheduleDialog({
                             name="targetId"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[10px] font-bold uppercase">Assign Auditee (Unit/Person)</FormLabel>
+                                    <FormLabel className="text-[10px] font-bold uppercase">Select Auditee ({plan.auditeeType === 'Management Processes' ? 'Officer' : 'Unit'})</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger className="h-11 font-bold">
-                                                <SelectValue placeholder={`Select a ${plan.auditeeType === 'Units' ? 'Unit' : 'Officer'}`}/>
+                                                <SelectValue placeholder={`Select a ${plan.auditeeType === 'Management Processes' ? 'Management Officer' : 'Unit'}`}/>
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
@@ -161,6 +176,7 @@ export function AuditScheduleDialog({
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                    <FormDescription className="text-[9px]">The list is automatically filtered by the chosen process group.</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
