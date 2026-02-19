@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -17,6 +16,7 @@ import {
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
+import { Timestamp } from 'firebase/firestore';
 
 interface AuditPlanListProps {
   plans: AuditPlan[];
@@ -40,16 +40,23 @@ export function AuditPlanList({ plans, schedules, campuses, users, units, onEdit
     return [...plans].sort((a,b) => b.year - a.year || a.title.localeCompare(b.title));
   }, [plans]);
 
-  const safeFormatDate = (d: any) => {
-      if (!d) return 'TBA';
-      const date = d.toDate ? d.toDate() : new Date(d);
-      if (isNaN(date.getTime())) return 'TBA';
-      return format(date, 'MM/dd/yyyy');
-  };
-
   const safeFormatDateTime = (d: any) => {
       if (!d) return 'TBA';
-      const date = d.toDate ? d.toDate() : new Date(d);
+      
+      let date: Date;
+      // Handle Firestore Timestamp object
+      if (d && typeof d.toDate === 'function') {
+          date = d.toDate();
+      } 
+      // Handle serialized timestamp {seconds, nanoseconds}
+      else if (d && typeof d.seconds === 'number') {
+          date = new Date(d.seconds * 1000);
+      }
+      // Handle standard Date or ISO string
+      else {
+          date = new Date(d);
+      }
+
       if (isNaN(date.getTime())) return 'TBA';
       return format(date, 'MM/dd/yyyy | hh:mm a');
   };
@@ -78,7 +85,7 @@ export function AuditPlanList({ plans, schedules, campuses, users, units, onEdit
                     <div className="space-y-2 min-w-0">
                         <div className="flex items-center gap-3">
                             <Badge variant="outline" className="font-mono text-primary border-primary/30 h-6 px-2 text-[10px] font-black uppercase bg-primary/5">
-                                NO: {plan.auditNumber}
+                                NO: {plan.auditNumber || '--'}
                             </Badge>
                             <p className="font-black text-lg text-slate-900 uppercase tracking-tight truncate">{plan.title}</p>
                         </div>
@@ -135,7 +142,7 @@ export function AuditPlanList({ plans, schedules, campuses, users, units, onEdit
                             <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Audit Reference Document</p>
                             <div className="flex items-center gap-3 bg-primary/5 p-3 rounded-lg border border-primary/10">
                                 <ShieldCheck className="h-5 w-5 text-primary" />
-                                <p className="text-xs font-black text-primary">{plan.referenceDocument}</p>
+                                <p className="text-xs font-black text-primary">{plan.referenceDocument || 'ISO 21001:2018'}</p>
                             </div>
                         </div>
                         <div className="space-y-1">

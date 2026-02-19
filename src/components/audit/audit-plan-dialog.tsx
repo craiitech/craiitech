@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -34,7 +33,7 @@ import { z } from 'zod';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection, query, where, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type { AuditPlan, Campus, User } from '@/lib/types';
 import { Loader2, LayoutList, ShieldCheck, FileText, CalendarCheck } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
@@ -69,9 +68,17 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch Auditors for Lead Auditor Selection
-  const auditorsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users'), where('role', '==', 'Auditor')) : null, [firestore]);
-  const { data: auditors } = useCollection<User>(auditorsQuery);
+  // Fetch all users to find potential auditors (more resilient than role string exact match)
+  const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+  const { data: allUsers } = useCollection<User>(usersQuery);
+
+  const auditors = useMemo(() => {
+    if (!allUsers) return [];
+    return allUsers.filter(u => 
+        u.role?.toLowerCase().includes('auditor') || 
+        u.role?.toLowerCase().includes('admin')
+    ).sort((a, b) => a.firstName.localeCompare(b.firstName));
+  }, [allUsers]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -94,9 +101,12 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
     if (plan && isOpen) {
       const safeDate = (d: any) => {
           if (!d) return '';
-          const date = d.toDate ? d.toDate() : new Date(d);
+          let date: Date;
+          if (d.toDate && typeof d.toDate === 'function') date = d.toDate();
+          else if (d.seconds) date = new Date(d.seconds * 1000);
+          else date = new Date(d);
+          
           if (isNaN(date.getTime())) return '';
-          // datetime-local input expects YYYY-MM-DDTHH:mm
           return format(date, "yyyy-MM-dd'T'HH:mm");
       };
 
@@ -137,23 +147,29 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
     const id = plan ? plan.id : doc(collection(firestore, 'dummy')).id;
     const planRef = doc(firestore, 'auditPlans', id);
 
-    const leadAuditor = auditors?.find(a => a.id === values.leadAuditorId);
+    const leadAuditor = auditors.find(a => a.id === values.leadAuditorId);
 
+    // Explicitly define save object to ensure Timestamps overwrite form strings
     const planData: any = {
-      ...values,
       id,
-      leadAuditorName: leadAuditor ? `${leadAuditor.firstName} ${leadAuditor.lastName}` : '',
+      auditNumber: values.auditNumber,
+      auditType: values.auditType,
+      title: values.title,
+      year: values.year,
+      campusId: values.campusId,
+      auditeeType: values.auditeeType,
+      scope: values.scope,
+      leadAuditorId: values.leadAuditorId,
+      leadAuditorName: leadAuditor ? `${leadAuditor.firstName} ${leadAuditor.lastName}` : (plan?.leadAuditorName || 'Unknown Auditor'),
+      referenceDocument: values.referenceDocument,
       openingMeetingDate: Timestamp.fromDate(new Date(values.openingMeetingDate)),
       closingMeetingDate: Timestamp.fromDate(new Date(values.closingMeetingDate)),
+      updatedAt: serverTimestamp(),
     };
     
     try {
-        if (plan) {
-            await setDoc(planRef, planData, { merge: true });
-        } else {
-            await setDoc(planRef, { ...planData, createdAt: serverTimestamp() });
-        }
-        toast({ title: 'Plan Established', description: `Institutional Audit Plan ${values.auditNumber} has been recorded.` });
+        await setDoc(planRef, planData, { merge: true });
+        toast({ title: 'Plan Saved', description: `Institutional Audit Plan ${values.auditNumber} has been updated.` });
         onOpenChange(false);
     } catch (error) {
         console.error('Error saving audit plan:', error);
@@ -280,7 +296,8 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl><SelectTrigger className="h-11 font-bold bg-primary/5 border-primary/20"><SelectValue placeholder="Designate Lead Auditor" /></SelectTrigger></FormControl>
                                     <SelectContent>
-                                        {auditors?.map(a => <SelectItem key={a.id} value={a.id}>{a.firstName} {a.lastName}</SelectItem>)}
+                                        {auditors.map(a => <SelectItem key={a.id} value={a.id}>{a.firstName} {a.lastName}</SelectItem>)}
+                                        {auditors.length === 0 && <div className="p-4 text-xs italic text-muted-foreground">No qualified auditors found.</div>}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
