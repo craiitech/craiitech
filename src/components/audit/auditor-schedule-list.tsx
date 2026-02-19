@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { AuditSchedule, Campus, Unit } from '@/lib/types';
@@ -61,17 +60,17 @@ export function AuditorScheduleList({ schedules, campuses, units, isClaimView, o
       <TableBody>
         {sortedSchedules.map(schedule => (
             <TableRow key={schedule.id}>
-                <TableCell>{format(schedule.scheduledDate.toDate(), 'PPP')}</TableCell>
+                <TableCell>{format(schedule.scheduledDate.toDate(), 'PP')}</TableCell>
                 <TableCell>{getAuditeeName(schedule)}</TableCell>
-                <TableCell><Badge>{schedule.status}</Badge></TableCell>
+                <TableCell><Badge variant="secondary">{schedule.status}</Badge></TableCell>
                 <TableCell className="text-right">
                     {isClaimView ? (
                         <Button variant="default" size="sm" onClick={() => onClaimAudit?.(schedule.id)}>
-                            <Check className="mr-2 h-4 w-4" /> Claim Audit
+                            <Check className="h-4 w-4 mr-2" /> Claim Audit
                         </Button>
                     ) : (
                         <Button variant="outline" onClick={() => router.push(`/audit/${schedule.id}`)}>
-                            Start Audit
+                            Conduct Audit
                         </Button>
                     )}
                 </TableCell>

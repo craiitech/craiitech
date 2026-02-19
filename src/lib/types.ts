@@ -158,8 +158,8 @@ export type AuditPlan = {
 export type AuditSchedule = {
     id: string;
     auditPlanId: string;
-    auditorId: string;
-    auditorName: string;
+    auditorId: string | null;
+    auditorName: string | null;
     targetId: string; // unitId or userId
     targetType: 'Unit' | 'User';
     targetName: string; // unit name or user name
@@ -175,7 +175,7 @@ export type AuditFinding = {
     id: string;
     auditScheduleId: string;
     isoClause: string;
-    type: 'Non-Conformance' | 'Observation for Improvement' | 'Commendation';
+    type: 'Commendation' | 'Observation for Improvement' | 'Non-Conformance';
     description: string;
     evidence: string;
     createdAt: any; // serverTimestamp()

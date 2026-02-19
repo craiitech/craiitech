@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -28,8 +27,13 @@ export function AuditorAuditView() {
   const unitsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'units')) : null, [firestore]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
-  const mySchedules = allSchedules?.filter(s => s.auditorId === user?.uid) || [];
-  const availableSchedules = allSchedules?.filter(s => s.auditorId === null) || [];
+  const mySchedules = useMemo(() => 
+    allSchedules?.filter(s => s.auditorId === user?.uid) || []
+  , [allSchedules, user?.uid]);
+
+  const availableSchedules = useMemo(() => 
+    allSchedules?.filter(s => s.auditorId === null) || []
+  , [allSchedules]);
 
   const handleClaimAudit = async (scheduleId: string) => {
     if (!firestore || !user || !userProfile) return;

@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -56,7 +55,7 @@ import {
   orderBy,
   limit,
 } from 'firebase/firestore';
-import type { Submission, User as AppUser, Unit, Campus, Cycle, Risk, ManagementReviewOutput } from '@/lib/types';
+import type { Submission, User as AppUser, Unit, Campus, Cycle, Risk, ManagementReviewOutput, AuditSchedule } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle, AlertCloseButton } from '@/components/ui/alert';
@@ -267,6 +266,12 @@ export default function HomePage() {
 
     const isCampusSupervisor = isSupervisor && !isAdmin;
 
+  const schedulesQuery = useMemoFirebase(() => {
+    if (!firestore || userRole !== 'Auditor' || !user) return null;
+    return query(collection(firestore, 'auditSchedules'), where('auditorId', '==', user.uid));
+  }, [firestore, userRole, user]);
+  const { data: mySchedules } = useCollection<AuditSchedule>(schedulesQuery);
+
   const isLoading =
     isUserLoading ||
     isLoadingSubmissions ||
@@ -336,6 +341,27 @@ export default function HomePage() {
           icon: <Users className="h-6 w-6 text-primary" />,
         },
       };
+    } else if (userRole === 'Auditor') {
+        return {
+            stat1: {
+                title: 'My Audits',
+                value: mySchedules?.length || 0,
+                description: 'Active and assigned schedules',
+                icon: <ClipboardCheck className="h-6 w-6 text-primary" />,
+            },
+            stat2: {
+                title: 'Completed',
+                value: mySchedules?.filter(s => s.status === 'Completed').length || 0,
+                description: 'Finalized audit reports',
+                icon: <CheckCircle className="h-6 w-6 text-primary" />,
+            },
+            stat3: {
+                title: 'In Progress',
+                value: mySchedules?.filter(s => s.status === 'In Progress').length || 0,
+                description: 'Ongoing conduct',
+                icon: <Clock className="h-6 w-6 text-primary" />,
+            },
+        };
     } else {
         const firstCycleApproved = yearSubmissions.filter(s => s.cycleId === 'first' && s.statusId === 'approved');
         const firstCycleRegistry = yearSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
@@ -369,7 +395,7 @@ export default function HomePage() {
             },
         };
     }
-  }, [submissions, isSupervisor, isAdmin, allUsersMap, userProfile, unitsInCampus, selectedYear]);
+  }, [submissions, isSupervisor, isAdmin, allUsersMap, userProfile, unitsInCampus, selectedYear, userRole, mySchedules]);
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
     const emptyResult = { firstCycleStatusMap: new Map<string, Submission>(), finalCycleStatusMap: new Map<string, Submission>() };
@@ -586,6 +612,57 @@ export default function HomePage() {
     </Tabs>
   );};
 
+  const renderAuditorHome = () => (
+    <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-3">
+            {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
+            {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
+            {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
+        </div>
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between border-b">
+                <div>
+                    <CardTitle className="flex items-center gap-2"><ClipboardCheck className="text-primary" /> Active Audit Conduct</CardTitle>
+                    <CardDescription>Your claimed and upcoming internal quality audit schedules.</CardDescription>
+                </div>
+                <Button onClick={() => router.push('/audit')}>Manage Full Audit Hub</Button>
+            </CardHeader>
+            <CardContent className="pt-6">
+                {mySchedules && mySchedules.length > 0 ? (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Auditee</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {mySchedules.slice(0, 5).map(s => (
+                                <TableRow key={s.id}>
+                                    <TableCell className="font-bold">{s.targetName}</TableCell>
+                                    <TableCell>{format(s.scheduledDate.toDate(), 'PP')}</TableCell>
+                                    <TableCell><Badge variant="secondary">{s.status}</Badge></TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="outline" size="sm" onClick={() => router.push(`/audit/${s.id}`)}>
+                                            Conduct Audit
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                ) : (
+                    <div className="py-12 text-center text-muted-foreground border border-dashed rounded-lg">
+                        <p>No audit schedules claimed yet. Go to the IQA Hub to find available schedules.</p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    </div>
+  );
+
   const renderSupervisorHome = () => (
     <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="grid grid-cols-2 lg:inline-flex lg:h-10 lg:w-auto h-auto">
@@ -686,6 +763,7 @@ export default function HomePage() {
   const renderHomeContent = () => {
     if (isLoading) return (<div className="space-y-4"><div className="grid gap-4 md:grid-cols-3"><Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" /></div><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7"><Skeleton className="col-span-4 h-80" /><Skeleton className="col-span-3 h-80" /></div></div>);
     if (isAdmin) return renderAdminHome();
+    if (userRole === 'Auditor') return renderAuditorHome();
     if (isSupervisor) return renderSupervisorHome();
     return renderUnitUserHome();
   };
