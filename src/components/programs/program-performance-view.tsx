@@ -49,6 +49,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
+import { Timestamp } from 'firebase/firestore';
 
 interface ProgramPerformanceViewProps {
   program: AcademicProgram;
@@ -497,7 +498,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                                     </div>
                                 );
                             })}
-                            {documents.length === 0 && (
+                            {Object.values(categorizedDocs).every(arr => arr.length === 0) && (
                                 <div className="py-20 text-center space-y-2 opacity-20">
                                     <FileText className="h-12 w-12 mx-auto" />
                                     <p className="text-xs font-bold uppercase">No Evidence Found</p>
