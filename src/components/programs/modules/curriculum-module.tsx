@@ -22,7 +22,7 @@ interface CurriculumModuleProps {
 
 /**
  * SUB-COMPONENT: CurriculumRecordCard
- * Handles major-specific noted curricula. 
+ * Handles specialization/major-specific noted curricula. 
  */
 function CurriculumRecordCard({ 
   index, 
@@ -55,7 +55,7 @@ function CurriculumRecordCard({
       <CardHeader className="bg-muted/30 py-3 border-b">
         <CardTitle className="text-xs font-black uppercase text-primary flex items-center gap-2">
           <Layers className="h-3.5 w-3.5" />
-          Major Curriculum & Notation Record #{index + 1}
+          Specialization/Major Curriculum & Notation Record #{index + 1}
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-6 space-y-6">
@@ -65,11 +65,11 @@ function CurriculumRecordCard({
             name={`curriculumRecords.${index}.majorId`}
             render={({ field: inputField }) => (
               <FormItem>
-                <FormLabel className="text-[10px] font-bold uppercase">Associated Major / Track</FormLabel>
+                <FormLabel className="text-[10px] font-bold uppercase">Associated Specialization/Major</FormLabel>
                 <Select onValueChange={inputField.onChange} value={inputField.value} disabled={!canEdit}>
                   <FormControl><SelectTrigger className="h-9"><SelectValue /></SelectTrigger></FormControl>
                   <SelectContent>
-                    <SelectItem value="General" className="font-bold">General Program / All Tracks</SelectItem>
+                    <SelectItem value="General" className="font-bold">General Program / All Specializations</SelectItem>
                     {programSpecializations?.map(spec => (
                       <SelectItem key={spec.id} value={spec.id}>{spec.name}</SelectItem>
                     ))}
@@ -107,7 +107,7 @@ function CurriculumRecordCard({
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <FormLabel className="text-xs font-black uppercase text-blue-800">CHED Program Notation Status</FormLabel>
-              <p className="text-[9px] text-muted-foreground">Is this track's curriculum officially acknowledged by CHED?</p>
+              <p className="text-[9px] text-muted-foreground">Is this specialization/major's curriculum officially acknowledged by CHED?</p>
             </div>
             <FormField
               control={control}
@@ -255,7 +255,7 @@ export function CurriculumModule({ canEdit, programSpecializations }: Curriculum
                                     <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9" disabled={!canEdit} />
                                 </div>
                             </FormControl>
-                            <FormDescription className="text-[9px]">A single institutional standard reference for all program majors.</FormDescription>
+                            <FormDescription className="text-[9px]">A single institutional standard reference for all program specializations.</FormDescription>
                         </FormItem>
                     )}
                 />
@@ -268,7 +268,7 @@ export function CurriculumModule({ canEdit, programSpecializations }: Curriculum
                     <Layers className="h-4 w-4" />
                     Major-Specific Curriculum Registry
                 </h3>
-                <p className="text-[10px] text-muted-foreground font-medium">Log notation status and implementation details per track.</p>
+                <p className="text-[10px] text-muted-foreground font-medium">Log notation status and implementation details per specialization/major.</p>
             </div>
             {canEdit && (
                 <Button 
@@ -285,7 +285,7 @@ export function CurriculumModule({ canEdit, programSpecializations }: Curriculum
                     })}
                     className="shadow-lg shadow-primary/20 h-8 text-[10px] font-bold"
                 >
-                    <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Track
+                    <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Specialization/Major
                 </Button>
             )}
         </div>
@@ -305,7 +305,7 @@ export function CurriculumModule({ canEdit, programSpecializations }: Curriculum
                 <div className="text-center py-16 border border-dashed rounded-2xl bg-muted/5">
                     <Layers className="h-10 w-10 mx-auto text-muted-foreground opacity-20 mb-3" />
                     <p className="text-xs font-bold text-muted-foreground uppercase">No Major Records Logged</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">Register individual curricula notation status per major.</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">Register individual curricula notation status per specialization/major.</p>
                 </div>
             )}
         </div>

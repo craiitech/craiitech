@@ -137,9 +137,9 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                 gaps.push({ type: 'Accreditation', msg: `Missing current accreditation record for major: ${spec.name}` });
             }
             if (!curriculaByMajor[spec.id] && !curriculaByMajor['General']) {
-                gaps.push({ type: 'Curriculum', msg: `Missing curriculum record for major: ${spec.name}` });
+                gaps.push({ type: 'Curriculum', msg: `Missing curriculum record for specialization/major: ${spec.name}` });
             } else if (curriculaByMajor[spec.id] && !curriculaByMajor[spec.id].isNotedByChed) {
-                gaps.push({ type: 'Notation', msg: `Curriculum for major "${spec.name}" is not yet officially noted by CHED.` });
+                gaps.push({ type: 'Notation', msg: `Curriculum for specialization/major "${spec.name}" is not yet officially noted by CHED.` });
             }
         });
     }
@@ -178,18 +178,18 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         </Card>
         <Card className="bg-emerald-50/50 border-emerald-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Global Accreditation</CardDescription><CardTitle className="text-lg font-black text-slate-900 truncate">{analyticsData.latestAccreditation?.level || 'Non Accredited'}</CardTitle></CardHeader><CardContent><Badge variant="outline" className="bg-white text-emerald-700 border-emerald-200 text-[9px] font-black uppercase">{analyticsData.latestAccreditation?.result || 'Ongoing'}</Badge></CardContent></Card>
         <Card className="bg-blue-50/50 border-blue-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-blue-600">Faculty Alignment</CardDescription><CardTitle className="text-3xl font-black text-blue-700 tabular-nums">{analyticsData.alignmentRate}%</CardTitle></CardHeader><CardContent><p className="text-[10px] text-blue-800/60 font-bold uppercase">{analyticsData.totalFaculty} Members Named</p></CardContent></Card>
-        <Card className="bg-amber-50/50 border-amber-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-amber-600">Program Contents</CardDescription><CardTitle className="text-lg font-black text-amber-700 truncate">{record.curriculumRecords?.length || 0} Tracks Noted</CardTitle></CardHeader><CardContent><Badge variant="outline" className="bg-white text-amber-700 border-amber-200 text-[9px] font-black uppercase">{record.curriculumRecords?.some(c => c.isNotedByChed) ? 'Officially Noted' : 'Pending'}</Badge></CardContent></Card>
+        <Card className="bg-amber-50/50 border-amber-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-amber-600">Program Contents</CardDescription><CardTitle className="text-lg font-black text-amber-700 truncate">{record.curriculumRecords?.length || 0} Specializations Noted</CardTitle></CardHeader><CardContent><Badge variant="outline" className="bg-white text-amber-700 border-amber-200 text-[9px] font-black uppercase">{record.curriculumRecords?.some(c => c.isNotedByChed) ? 'Officially Noted' : 'Pending'}</Badge></CardContent>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
             
-            {/* Unified Major-Specific Quality Profile */}
+            {/* Unified Specialization/Major-Specific Quality Profile */}
             <Card className="border-primary/10 shadow-sm overflow-hidden">
                 <CardHeader className="bg-muted/10 border-b py-4">
                     <div className="flex items-center gap-2">
                         <Layers className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-sm font-black uppercase tracking-tight">Major-Specific Quality Profile</CardTitle>
+                        <CardTitle className="text-sm font-black uppercase tracking-tight">Specialization/Major-Specific Quality Profile</CardTitle>
                     </div>
                 </CardHeader>
                 <CardContent className="pt-6">
@@ -202,7 +202,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                                     <div key={spec.id} className="p-4 rounded-xl border bg-muted/5 space-y-4">
                                         <div className="flex items-center justify-between">
                                             <p className="text-[10px] font-black uppercase text-primary tracking-widest">{spec.name}</p>
-                                            <Badge variant="outline" className="text-[8px] h-4 font-black uppercase border-primary/20 text-primary">Track Status</Badge>
+                                            <Badge variant="outline" className="text-[8px] h-4 font-black uppercase border-primary/20 text-primary">Specialization/Major Status</Badge>
                                         </div>
                                         
                                         <div className="space-y-2">
