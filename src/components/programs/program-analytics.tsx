@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -13,9 +12,9 @@ import {
     Tooltip, 
     Legend, 
     ResponsiveContainer, 
-    PieChart, 
-    Pie, 
-    Cell 
+    Cell,
+    PieChart,
+    Pie 
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,16 +28,12 @@ import {
     TableRow 
 } from '@/components/ui/table';
 import { 
-    ShieldCheck, 
     Award, 
-    GraduationCap, 
     TrendingUp, 
     Activity, 
     School, 
-    FileCheck,
     CheckCircle2,
     XCircle,
-    Clock,
     LayoutList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -61,7 +56,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
   const analytics = useMemo(() => {
     if (!programs.length) return null;
 
-    // 1. Accreditation Maturity Distribution (Taking the latest record for each program)
     const accreditationCounts: Record<string, number> = {};
     compliances.forEach(c => {
       const records = c.accreditationRecords || [];
@@ -70,39 +64,15 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
       accreditationCounts[level] = (accreditationCounts[level] || 0) + 1;
     });
     
-    const programsWithRecords = new Set(compliances.map(c => c.programId));
-    const noRecordCount = programs.filter(p => !programsWithRecords.has(p.id)).length;
-    if (noRecordCount > 0) {
-        accreditationCounts['Not Monitored'] = (accreditationCounts['Not Monitored'] || 0) + noRecordCount;
-    }
-
     const accreditationData = Object.entries(accreditationCounts).map(([name, value]) => ({ name, value }));
 
-    // 2. CHED COPC Status
     const copcCounts = {
         'With COPC': compliances.filter(c => c.ched?.copcStatus === 'With COPC').length,
-        'No COPC': compliances.filter(c => c.ched?.copcStatus === 'No COPC').length + noRecordCount,
+        'No COPC': programs.length - compliances.filter(c => c.ched?.copcStatus === 'With COPC').length,
         'In Progress': compliances.filter(c => c.ched?.copcStatus === 'In Progress').length,
     };
     const copcData = Object.entries(copcCounts).map(([name, value]) => ({ name, value }));
 
-    // 3. Faculty Alignment Index
-    let totalFaculty = 0;
-    let alignedFaculty = 0;
-    compliances.forEach(c => {
-        if (c.faculty?.members) {
-            c.faculty.members.forEach(m => {
-                totalFaculty++;
-                if (m.isAlignedWithCMO === 'Aligned') alignedFaculty++;
-            });
-        }
-        if (c.faculty?.dean?.isAlignedWithCMO === 'Aligned') { totalFaculty++; alignedFaculty++; } else if (c.faculty?.dean) { totalFaculty++; }
-        if (c.faculty?.programChair?.isAlignedWithCMO === 'Aligned') { totalFaculty++; alignedFaculty++; } else if (c.faculty?.programChair) { totalFaculty++; }
-    });
-
-    const facultyAlignmentRate = totalFaculty > 0 ? (alignedFaculty / totalFaculty) * 100 : 0;
-
-    // 4. Board Performance Aggregation
     const boardPrograms = compliances.filter(c => c.boardPerformance && c.boardPerformance.length > 0);
     const averagePassRate = boardPrograms.length > 0 
         ? boardPrograms.reduce((acc, c) => acc + (c.boardPerformance?.[c.boardPerformance.length - 1]?.overallPassRate || 0), 0) / boardPrograms.length 
@@ -117,7 +87,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         { name: 'National Average', rate: parseFloat(nationalAvgRate.toFixed(2)) }
     ];
 
-    // 5. Campus Compliance Comparison
     const campusPerf: Record<string, { total: number, copc: number }> = {};
     programs.forEach(p => {
         if (!campusPerf[p.campusId]) campusPerf[p.campusId] = { total: 0, copc: 0 };
@@ -131,15 +100,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         rate: Math.round((data.copc / data.total) * 100)
     })).sort((a, b) => b.rate - a.rate);
 
-    return {
-        accreditationData,
-        copcData,
-        facultyAlignmentRate,
-        boardPerformanceData,
-        campusChartData,
-        totalPrograms: programs.length,
-        monitoredCount: compliances.length
-    };
+    return { accreditationData, copcData, boardPerformanceData, campusChartData, totalPrograms: programs.length, monitoredCount: compliances.length };
   }, [programs, compliances, campusMap, selectedYear]);
 
   const complianceTableData = useMemo(() => {
@@ -148,44 +109,33 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         const campusName = campusMap.get(program.campusId) || 'Unknown';
 
         let score = 0;
-        const weights = {
-            copc: 20,
-            accreditation: 20,
-            faculty: 20,
-            curriculum: 20,
-            outcomes: 20
-        };
-
-        let currentLevel = 'Not Accredited';
+        let accreditationDisplay = 'Not Accredited';
 
         if (record) {
-            // COPC Score
-            if (record.ched?.copcStatus === 'With COPC') score += weights.copc;
-            else if (record.ched?.copcStatus === 'In Progress') score += (weights.copc / 2);
+            if (record.ched?.copcStatus === 'With COPC') score += 20;
+            else if (record.ched?.copcStatus === 'In Progress') score += 10;
 
-            // Accreditation Score
             const milestones = record.accreditationRecords || [];
-            const latest = milestones.length > 0 ? milestones[milestones.length - 1] : null;
-            if (latest?.level && latest.level !== 'Non Accredited') {
-                score += weights.accreditation;
-                // If a manual "RESULT" is provided, prioritize showing that in the summary
-                currentLevel = latest.result || latest.level;
+            
+            // LOGIC: Map accreditation to results by major
+            if (program.hasSpecializations && program.specializations) {
+                const majorResults = program.specializations.map(spec => {
+                    const milestone = milestones.find(m => m.lifecycleStatus === 'Current' && m.components?.some(c => c.id === spec.id));
+                    return milestone ? `${spec.name}: ${milestone.result || milestone.level}` : `${spec.name}: Non Accredited`;
+                });
+                accreditationDisplay = majorResults.join('; ');
+                if (milestones.some(m => m.level !== 'Non Accredited')) score += 20;
+            } else {
+                const latest = milestones.length > 0 ? milestones[milestones.length - 1] : null;
+                if (latest?.level && latest.level !== 'Non Accredited') {
+                    score += 20;
+                    accreditationDisplay = latest.result || latest.level;
+                }
             }
 
-            // Faculty Score
-            let totalF = (record.faculty?.members?.length || 0) + 2;
-            let alignedF = record.faculty?.members?.filter(m => m.isAlignedWithCMO === 'Aligned').length || 0;
-            if (record.faculty?.dean?.isAlignedWithCMO === 'Aligned') alignedF++;
-            if (record.faculty?.programChair?.isAlignedWithCMO === 'Aligned') alignedF++;
-            const fRate = totalF > 0 ? (alignedF / totalF) : 0;
-            score += (fRate * weights.faculty);
-
-            // Curriculum Score
-            if (record.curriculum?.cmoLink && record.curriculum?.isNotedByChed) score += weights.curriculum;
-            else if (record.curriculum?.cmoLink || record.curriculum?.isNotedByChed) score += (weights.curriculum / 2);
-
-            // Outcomes Score
-            if ((record.graduationRecords?.length || 0) > 0 || (record.tracerRecords?.length || 0) > 0) score += weights.outcomes;
+            if (record.faculty?.members?.length > 0) score += 20;
+            if (record.curriculum?.cmoLink && record.curriculum?.isNotedByChed) score += 20;
+            if (record.graduationRecords?.length > 0) score += 20;
         }
 
         return {
@@ -193,7 +143,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             name: program.name,
             campusName,
             copc: record?.ched?.copcStatus || 'No COPC',
-            accreditation: currentLevel,
+            accreditation: accreditationDisplay,
             contentNoted: record?.ched?.contentNoted ? 'Yes' : 'No',
             compliancePercentage: Math.round(score)
         };
@@ -208,16 +158,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
     );
   }
 
-  if (!analytics) {
-    return (
-        <div className="flex flex-col items-center justify-center h-64 text-center border rounded-lg border-dashed">
-            <TrendingUp className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
-            <h3 className="text-lg font-medium">No Program Data Available</h3>
-            <p className="text-sm text-muted-foreground max-sm">Register programs and encode compliance records to view university-wide analytics.</p>
-        </div>
-    );
-  }
-
   const getCopcBadge = (status: string) => {
     switch (status) {
         case 'With COPC': return <Badge className="bg-emerald-600 text-white border-none h-5 text-[9px] font-black uppercase">Yes</Badge>;
@@ -228,59 +168,18 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
 
   return (
     <div className="space-y-6">
-      {/* Strategic KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/10">
-            <CardHeader className="pb-2">
-                <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Offerings Registered</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="text-3xl font-bold">{analytics.totalPrograms}</div>
-                <p className="text-[10px] text-muted-foreground mt-1">Total academic degree programs</p>
-            </CardContent>
-        </Card>
-        <Card className="bg-green-50 border-green-100">
-            <CardHeader className="pb-2">
-                <CardTitle className="text-xs uppercase tracking-wider text-green-700 font-bold">Faculty Alignment</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="text-3xl font-bold text-green-600">{Math.round(analytics.facultyAlignmentRate)}%</div>
-                <p className="text-[10px] text-green-600/70 mt-1">Faculty meeting CMO qualifications</p>
-            </CardContent>
-        </Card>
-        <Card className="bg-amber-50 border-amber-100">
-            <CardHeader className="pb-2">
-                <CardTitle className="text-xs uppercase tracking-wider text-amber-700 font-bold">Monitoring Coverage</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="text-3xl font-bold text-amber-600">{analytics.monitoredCount}</div>
-                <p className="text-[10px] text-amber-600/70 mt-1">Programs with records for {selectedYear}</p>
-            </CardContent>
-        </Card>
-        <Card className="bg-blue-50 border-blue-100">
-            <CardHeader className="pb-2">
-                <CardTitle className="text-xs uppercase tracking-wider text-blue-700 font-bold">COPC Rate</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="text-3xl font-bold text-blue-600">
-                    {Math.round((analytics.copcData.find(d => d.name === 'With COPC')?.value || 0) / (analytics.totalPrograms || 1) * 100)}%
-                </div>
-                <p className="text-[10px] text-blue-600/70 mt-1">University-wide COPC compliance</p>
-            </CardContent>
-        </Card>
+        <Card className="bg-primary/5 border-primary/10"><CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Offerings Registered</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{analytics?.totalPrograms}</div></CardContent></Card>
+        <Card className="bg-green-50 border-green-100"><CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-wider text-green-700 font-bold">Monitoring Coverage</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold text-green-600">{analytics?.monitoredCount}</div></CardContent></Card>
       </div>
 
       <Card className="shadow-md border-primary/10 overflow-hidden">
         <CardHeader className="bg-muted/10 border-b py-4">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <CardTitle className="text-lg flex items-center gap-2 font-black uppercase tracking-tight">
-                        <LayoutList className="h-5 w-5 text-primary" />
-                        Institutional Compliance Summary
-                    </CardTitle>
-                    <CardDescription className="text-xs">Consolidated maturity view of all registered degree programs for {selectedYear}.</CardDescription>
+                    <CardTitle className="text-lg flex items-center gap-2 font-black uppercase tracking-tight"><LayoutList className="h-5 w-5 text-primary" />Institutional Compliance Summary</CardTitle>
+                    <CardDescription className="text-xs">Maturity view across all degree programs and majors for {selectedYear}.</CardDescription>
                 </div>
-                <Badge variant="outline" className="bg-white font-black text-[10px] uppercase">Registry View</Badge>
             </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -291,48 +190,28 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                             <TableHead className="font-black text-[10px] uppercase py-3 min-w-[150px]">Site / Campus</TableHead>
                             <TableHead className="font-black text-[10px] uppercase py-3 min-w-[250px]">Program Offered</TableHead>
                             <TableHead className="text-center font-black text-[10px] uppercase py-3">COPC</TableHead>
-                            <TableHead className="font-black text-[10px] uppercase py-3">Accreditation (Level/Result)</TableHead>
+                            <TableHead className="font-black text-[10px] uppercase py-3">Accreditation Result (by Major)</TableHead>
                             <TableHead className="text-center font-black text-[10px] uppercase py-3">Contents Noted</TableHead>
-                            <TableHead className="text-right font-black text-[10px] uppercase py-3 pr-6 min-w-[140px]">Maturity Score</TableHead>
+                            <TableHead className="text-right font-black text-[10px] uppercase py-3 pr-6">Score</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {complianceTableData.map((row) => (
                             <TableRow key={row.id} className="hover:bg-muted/20 transition-colors">
-                                <TableCell className="py-2">
-                                    <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 uppercase">
-                                        <School className="h-3 w-3 opacity-50" />
-                                        {row.campusName}
-                                    </div>
-                                </TableCell>
-                                <TableCell className="py-2">
-                                    <span className="text-xs font-black text-slate-900 tracking-tight">{row.name}</span>
-                                </TableCell>
-                                <TableCell className="text-center py-2">
-                                    {getCopcBadge(row.copc)}
-                                </TableCell>
+                                <TableCell className="py-2"><div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 uppercase"><School className="h-3 w-3 opacity-50" />{row.campusName}</div></TableCell>
+                                <TableCell className="py-2"><span className="text-xs font-black text-slate-900 tracking-tight">{row.name}</span></TableCell>
+                                <TableCell className="text-center py-2">{getCopcBadge(row.copc)}</TableCell>
                                 <TableCell className="py-2">
                                     <div className="flex items-center gap-2">
-                                        <Award className="h-3.5 w-3.5 text-primary opacity-40" />
-                                        <span className="text-[11px] font-bold text-slate-700 whitespace-nowrap">{row.accreditation}</span>
+                                        <Award className="h-3.5 w-3.5 text-primary opacity-40 shrink-0" />
+                                        <span className="text-[10px] font-bold text-slate-700 leading-snug">{row.accreditation}</span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="text-center py-2">
-                                    {row.contentNoted === 'Yes' ? (
-                                        <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
-                                    ) : (
-                                        <XCircle className="h-4 w-4 text-rose-300 mx-auto" />
-                                    )}
-                                </TableCell>
+                                <TableCell className="text-center py-2">{row.contentNoted === 'Yes' ? <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" /> : <XCircle className="h-4 w-4 text-rose-300 mx-auto" />}</TableCell>
                                 <TableCell className="text-right py-2 pr-6">
                                     <div className="flex flex-col items-end gap-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-black tabular-nums">{row.compliancePercentage}%</span>
-                                            <div className="w-16">
-                                                <Progress value={row.compliancePercentage} className="h-1" />
-                                            </div>
-                                        </div>
-                                        <span className="text-[8px] font-bold uppercase text-muted-foreground opacity-60">Verified Maturity</span>
+                                        <span className="text-[10px] font-black tabular-nums">{row.compliancePercentage}%</span>
+                                        <div className="w-16"><Progress value={row.compliancePercentage} className="h-1" /></div>
                                     </div>
                                 </TableCell>
                             </TableRow>
@@ -342,64 +221,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             </div>
         </CardContent>
       </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-            <CardHeader>
-                <div className="flex items-center gap-2">
-                    <Award className="h-5 w-5 text-primary" />
-                    <CardTitle>Accreditation Maturity</CardTitle>
-                </div>
-                <CardDescription>Distribution of academic programs by latest accreditation achievement.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <ChartContainer config={{}} className="h-[300px] w-full">
-                    <ResponsiveContainer>
-                        <PieChart>
-                            <Tooltip content={<ChartTooltipContent />} />
-                            <Pie
-                                data={analytics.accreditationData}
-                                dataKey="value"
-                                nameKey="name"
-                                cx="50%"
-                                cy="50%"
-                                outerRadius={80}
-                                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                            >
-                                {analytics.accreditationData.map((_, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Pie>
-                            <Legend />
-                        </PieChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
-            </CardContent>
-        </Card>
-
-        <Card>
-            <CardHeader>
-                <div className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                    <CardTitle>Board Performance Benchmark</CardTitle>
-                </div>
-                <CardDescription>Comparison of RSU's average passing rate vs. national averages.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <ChartContainer config={{}} className="h-[300px] w-full">
-                    <ResponsiveContainer>
-                        <BarChart data={analytics.boardPerformanceData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis domain={[0, 100]} unit="%" />
-                            <Tooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="rate" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} label={{ position: 'top', formatter: (v: number) => `${v}%` }} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
-            </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

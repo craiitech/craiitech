@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
@@ -8,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { Loader2, Save, FileCheck, Users, BookOpen, BarChart3, ShieldCheck, Presentation, AlertCircle } from 'lucide-react';
+import { Loader2, Save, FileCheck, Users, BookOpen, BarChart3, ShieldCheck, Presentation } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,30 +22,15 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 
-interface ProgramComplianceWorkspaceProps {
-  program: AcademicProgram;
-  campusId: string;
-}
-
 const complianceSchema = z.record(z.any());
 
 function sanitizeForFirestore(obj: any): any {
   if (obj === null || obj === undefined) return null;
-  
   if (typeof obj !== 'object') return obj;
-
-  if (obj instanceof Date || (obj && typeof obj.toDate === 'function')) {
-    return obj;
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map(sanitizeForFirestore);
-  }
-
+  if (obj instanceof Date || (obj && typeof obj.toDate === 'function')) return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeForFirestore);
   const sanitized: any = {};
-  for (const [key, value] of Object.entries(obj)) {
-    sanitized[key] = sanitizeForFirestore(value);
-  }
+  for (const [key, value] of Object.entries(obj)) sanitized[key] = sanitizeForFirestore(value);
   return sanitized;
 }
 
@@ -83,65 +67,29 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', boardApprovalLink: '', contentNotedLinks: [], rqatVisits: [] },
       accreditationRecords: [],
       curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
-      faculty: { 
-        hasAssociateDean: false,
-        dean: { ...emptyLeadership }, 
-        associateDean: { ...emptyLeadership },
-        programChair: { ...emptyLeadership }, 
-        members: [] 
-      },
-      stats: { 
-        enrollment: { 
-            firstSemester: { ...emptyYearLevelEnrollment },
-            secondSemester: { ...emptyYearLevelEnrollment },
-            midYearTerm: { ...emptyYearLevelEnrollment }
-        }, 
-        graduationCount: 0 
-      },
-      graduationRecords: [],
-      tracerRecords: [],
-      boardPerformance: []
+      faculty: { hasAssociateDean: false, dean: { ...emptyLeadership }, associateDean: { ...emptyLeadership }, programChair: { ...emptyLeadership }, members: [] },
+      stats: { enrollment: { firstSemester: { ...emptyYearLevelEnrollment }, secondSemester: { ...emptyYearLevelEnrollment }, midYearTerm: { ...emptyYearLevelEnrollment } }, graduationCount: 0 },
+      graduationRecords: [], tracerRecords: [], boardPerformance: []
     },
   });
 
   const lastResetId = useRef<string | null>(null);
 
   useEffect(() => {
-    // Unique ID combining the specific document ID and the selected year
     const currentId = activeRecord ? `${activeRecord.id}-${selectedAY}` : `null-${selectedAY}`;
-    
-    // BREAK THE LOOP: Stop if we've already reset for this specific data context
     if (currentId === lastResetId.current) return;
 
     if (activeRecord) {
-      methods.reset({
-        ...activeRecord,
-        academicYear: selectedAY,
-      });
+      methods.reset({ ...activeRecord, academicYear: selectedAY });
     } else {
       methods.reset({
         academicYear: selectedAY,
         ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', boardApprovalLink: '', contentNotedLinks: [], rqatVisits: [] },
         accreditationRecords: [],
         curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
-        faculty: { 
-            hasAssociateDean: false,
-            dean: { ...emptyLeadership }, 
-            associateDean: { ...emptyLeadership },
-            programChair: { ...emptyLeadership }, 
-            members: [] 
-        },
-        stats: { 
-            enrollment: { 
-                firstSemester: { ...emptyYearLevelEnrollment },
-                secondSemester: { ...emptyYearLevelEnrollment },
-                midYearTerm: { ...emptyYearLevelEnrollment }
-            }, 
-            graduationCount: 0 
-        },
-        graduationRecords: [],
-        tracerRecords: [],
-        boardPerformance: []
+        faculty: { hasAssociateDean: false, dean: { ...emptyLeadership }, associateDean: { ...emptyLeadership }, programChair: { ...emptyLeadership }, members: [] },
+        stats: { enrollment: { firstSemester: { ...emptyYearLevelEnrollment }, secondSemester: { ...emptyYearLevelEnrollment }, midYearTerm: { ...emptyYearLevelEnrollment } }, graduationCount: 0 },
+        graduationRecords: [], tracerRecords: [], boardPerformance: []
       });
     }
     lastResetId.current = currentId;
@@ -154,27 +102,13 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     const recordId = activeRecord?.id || `${program.id}-${selectedAY}`;
     const docRef = doc(firestore, 'programCompliances', recordId);
     
-    const fullData = {
-        ...values,
-        academicYear: selectedAY,
-        programId: program.id,
-        campusId: campusId,
-    };
-
-    const sanitizedData = sanitizeForFirestore(fullData);
+    const sanitizedData = sanitizeForFirestore({ ...values, academicYear: selectedAY, programId: program.id, campusId });
 
     try {
-      await setDoc(docRef, {
-        ...sanitizedData,
-        id: recordId,
-        updatedAt: serverTimestamp(),
-        updatedBy: userProfile.id,
-      }, { merge: true });
-
-      toast({ title: 'Compliance Updated', description: `Record for AY ${selectedAY} has been saved successfully.` });
+      await setDoc(docRef, { ...sanitizedData, id: recordId, updatedAt: serverTimestamp(), updatedBy: userProfile.id }, { merge: true });
+      toast({ title: 'Compliance Updated', description: `Record for AY ${selectedAY} has been saved.` });
     } catch (error) {
-      console.error('Compliance save error:', error);
-      toast({ title: 'Save Failed', description: 'Could not update record. Please check your connection.', variant: 'destructive' });
+      toast({ title: 'Save Failed', description: 'Could not update record.', variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
@@ -190,36 +124,25 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
             <ShieldCheck className="h-5 w-5 text-primary" />
             <span className="text-sm font-semibold uppercase tracking-wider">Academic Monitoring System</span>
             <Select value={String(selectedAY)} onValueChange={(v) => setSelectedAY(Number(v))}>
-              <SelectTrigger className="w-[180px] h-9">
-                <SelectValue placeholder="Academic Year" />
-              </SelectTrigger>
-              <SelectContent>
-                {academicYears.map(year => (
-                  <SelectItem key={year} value={String(year)}>Academic Year {year}</SelectItem>
-                ))}
-              </SelectContent>
+              <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Academic Year" /></SelectTrigger>
+              <SelectContent>{academicYears.map(year => <SelectItem key={year} value={String(year)}>AY {year}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="flex items-center gap-2">
-            {!canEdit && (
-              <Badge variant="outline" className="h-9 px-4 text-xs font-medium bg-background">Read-Only</Badge>
-            )}
+            {!canEdit && <Badge variant="outline" className="h-9 px-4 text-xs font-medium bg-background">Read-Only</Badge>}
             {canEdit && (
               <Button type="submit" disabled={isSaving} className="shadow-lg shadow-primary/20">
-                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Save Compliance Record
+                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save Compliance Record
               </Button>
             )}
           </div>
         </div>
 
         {isLoadingRecords ? (
-          <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
-          </div>
+          <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
         ) : (
           <Tabs defaultValue="performance" className="w-full">
-            <TabsList className={cn("grid h-auto w-full grid-cols-2 md:grid-cols-6")}>
+            <TabsList className="grid h-auto w-full grid-cols-2 md:grid-cols-6">
               <TabsTrigger value="performance" className="py-2 bg-primary/5 data-[state=active]:bg-primary data-[state=active]:text-white"><Presentation className="mr-2 h-4 w-4" /> Performance</TabsTrigger>
               <TabsTrigger value="ched" className="py-2"><FileCheck className="mr-2 h-4 w-4" /> CHED & RQAT</TabsTrigger>
               <TabsTrigger value="accreditation" className="py-2"><ShieldCheck className="mr-2 h-4 w-4" /> Accreditation</TabsTrigger>
@@ -229,11 +152,9 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
             </TabsList>
 
             <div className="mt-6">
-              <TabsContent value="performance">
-                <ProgramPerformanceView program={program} record={activeRecord} selectedYear={selectedAY} />
-              </TabsContent>
+              <TabsContent value="performance"><ProgramPerformanceView program={program} record={activeRecord} selectedYear={selectedAY} /></TabsContent>
               <TabsContent value="ched"><ChedComplianceModule canEdit={canEdit} /></TabsContent>
-              <TabsContent value="accreditation"><AccreditationModule canEdit={canEdit} /></TabsContent>
+              <TabsContent value="accreditation"><AccreditationModule canEdit={canEdit} programSpecializations={program.specializations} /></TabsContent>
               <TabsContent value="faculty"><FacultyModule canEdit={canEdit} program={program} /></TabsContent>
               <TabsContent value="curriculum"><CurriculumModule canEdit={canEdit} /></TabsContent>
               <TabsContent value="outcomes"><OutcomesModule canEdit={canEdit} isBoardProgram={program.isBoardProgram} /></TabsContent>
