@@ -10,7 +10,7 @@ import type { AuditPlan, Campus, User, Unit, AuditSchedule, ISOClause } from '@/
 import { AuditPlanDialog } from './audit-plan-dialog';
 import { AuditScheduleDialog } from './audit-schedule-dialog';
 import { AuditPlanList } from './audit-plan-list';
-import { seedIsoClauses } from '@/lib/actions';
+import { seedIsoClausesClient } from '@/lib/iso-seeder';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -36,16 +36,16 @@ export function AdminAuditView() {
   const schedulesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'auditSchedules')) : null, [firestore]);
   const { data: schedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(schedulesQuery);
   
-  const campusesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'campuses')) : null, [firestore]);
+  const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses')) : null, [firestore]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
   
-  const usersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users')) : null, [firestore]);
+  const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users')) : null, [firestore]);
   const { data: users, isLoading: isLoadingUsers } = useCollection<User>(usersQuery);
 
-  const unitsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'units')) : null, [firestore]);
+  const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units')) : null, [firestore]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
-  const isoClausesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'isoClauses')) : null, [firestore]);
+  const isoClausesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'isoClauses')) : null, [firestore]);
   const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
 
   const handleNewPlan = () => {
@@ -64,9 +64,10 @@ export function AdminAuditView() {
   };
   
   const handleSeedClauses = async () => {
+    if (!firestore) return;
     setIsSeeding(true);
     try {
-        const result = await seedIsoClauses();
+        const result = await seedIsoClausesClient(firestore);
         toast({
             title: 'Seeding Complete',
             description: result.message,
@@ -74,7 +75,7 @@ export function AdminAuditView() {
     } catch(error) {
          toast({
             title: 'Seeding Failed',
-            description: error instanceof Error ? error.message : 'An unknown error occurred.',
+            description: 'Please trigger the seeding again. Ensure you have an active internet connection.',
             variant: 'destructive',
         });
     } finally {

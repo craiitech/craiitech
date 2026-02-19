@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -42,7 +41,6 @@ import { Label } from '../ui/label';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { saveRiskAdmin } from '@/lib/actions';
 import { ScrollArea } from '../ui/scroll-area';
 import { suggestRiskTreatment } from '@/ai/flows/suggest-treatment-flow';
 
@@ -252,12 +250,13 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
           treatmentAction: values.treatmentAction || '',
           responsiblePersonId: values.responsiblePersonId || '',
           responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : '',
-          targetDate: targetDateISO, 
+          targetDate: targetDateISO ? Timestamp.fromDate(new Date(targetDateISO)) : null,
           oapNo: values.oapNo || '',
           resourcesNeeded: values.resourcesNeeded || '',
           updates: values.updates || '',
           preparedBy: values.preparedBy || '',
           approvedBy: values.approvedBy || '',
+          updatedAt: serverTimestamp(),
         };
 
         if (values.status === 'Closed' && values.postTreatmentLikelihood && values.postTreatmentConsequence) {
@@ -271,34 +270,19 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
             };
         }
 
-        if (isAdmin) {
-            const sanitizedData = JSON.parse(JSON.stringify(riskData));
-            const result = await saveRiskAdmin(sanitizedData, risk?.id);
-            if (result.success) {
-                toast({ title: 'Success', description: 'Entry saved.' });
-                onOpenChange(false);
-            } else {
-                toast({ title: 'Error', description: result.error || 'Server error.', variant: 'destructive' });
-            }
+        if (risk) {
+            const riskRef = doc(firestore, 'risks', risk.id);
+            await setDoc(riskRef, riskData, { merge: true });
+            toast({ title: 'Success', description: 'Entry updated.' });
         } else {
-            const finalData = { 
-              ...riskData, 
-              targetDate: targetDateISO ? Timestamp.fromDate(new Date(targetDateISO)) : null, 
-              updatedAt: serverTimestamp() 
-            };
-            if (risk) {
-                const riskRef = doc(firestore, 'risks', risk.id);
-                await setDoc(riskRef, finalData, { merge: true });
-                onOpenChange(false);
-            } else {
-                const riskColRef = collection(firestore, 'risks');
-                await addDoc(riskColRef, { ...finalData, createdAt: serverTimestamp() });
-                onOpenChange(false);
-            }
+            const riskColRef = collection(firestore, 'risks');
+            await addDoc(riskColRef, { ...riskData, createdAt: serverTimestamp() });
+            toast({ title: 'Success', description: 'Entry registered.' });
         }
+        onOpenChange(false);
     } catch (error) {
         console.error("Error:", error);
-        toast({ title: 'Error', description: 'Could not save.', variant: 'destructive'});
+        toast({ title: 'Error', description: 'Could not save the assessment record.', variant: 'destructive'});
     } finally {
         setIsSubmitting(false);
     }
