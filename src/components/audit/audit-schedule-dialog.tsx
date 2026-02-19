@@ -35,7 +35,7 @@ import { doc, addDoc, collection, Timestamp, setDoc, updateDoc } from 'firebase/
 import { useToast } from '@/hooks/use-toast';
 import { useMemo, useState, useEffect } from 'react';
 import type { AuditPlan, User, Unit, ISOClause, AuditSchedule, UnitCategory } from '@/lib/types';
-import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database } from 'lucide-react';
+import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { Badge } from '../ui/badge';
@@ -61,6 +61,7 @@ const formSchema = z.object({
   startTime: z.string().min(1, 'Start time is required'),
   endTime: z.string().min(1, 'End time is required'),
   isoClausesToAudit: z.array(z.string()).min(1, 'Select at least one standard clause.'),
+  auditorId: z.string().optional().nullable(),
 }).refine(data => {
     return data.endTime > data.startTime;
 }, {
@@ -119,6 +120,7 @@ export function AuditScheduleDialog({
       startTime: '09:00',
       endTime: '12:00',
       procedureDescription: '',
+      auditorId: '',
     }
   });
 
@@ -134,8 +136,9 @@ export function AuditScheduleDialog({
             endTime: format(end, 'HH:mm'),
             procedureDescription: schedule.procedureDescription || '',
             isoClausesToAudit: schedule.isoClausesToAudit || [],
+            auditorId: schedule.auditorId || '',
         });
-    } else {
+    } else if (!schedule && isOpen) {
         form.reset({
             targetId: '',
             scheduledDate: '',
@@ -143,6 +146,7 @@ export function AuditScheduleDialog({
             startTime: '09:00',
             endTime: '12:00',
             procedureDescription: '',
+            auditorId: '',
         });
     }
   }, [schedule, isOpen, form]);
@@ -165,6 +169,9 @@ export function AuditScheduleDialog({
         const endDateTime = new Date(year, month - 1, day);
         endDateTime.setHours(eHours, eMinutes, 0, 0);
 
+        const selectedAuditor = auditors.find(a => a.id === values.auditorId);
+        const auditorName = selectedAuditor ? `${selectedAuditor.firstName} ${selectedAuditor.lastName}` : null;
+
         const scheduleData = {
           auditPlanId: plan.id,
           targetId: values.targetId,
@@ -175,8 +182,8 @@ export function AuditScheduleDialog({
           endScheduledDate: Timestamp.fromDate(endDateTime),
           isoClausesToAudit: values.isoClausesToAudit,
           status: schedule?.status || 'Scheduled',
-          auditorId: schedule?.auditorId || null,
-          auditorName: schedule?.auditorName || null,
+          auditorId: values.auditorId || null,
+          auditorName: auditorName,
         };
 
         if (schedule) {
@@ -377,6 +384,39 @@ export function AuditScheduleDialog({
                                             </CommandList>
                                         </Command>
                                     </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-2 border-b pb-2">
+                            <UserCheck className="h-4 w-4 text-primary" />
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800">3. Team Assignment</h4>
+                        </div>
+                        <FormField
+                            control={form.control}
+                            name="auditorId"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-bold uppercase">Assign Auditor</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                                        <FormControl>
+                                            <SelectTrigger className="h-11 font-bold bg-muted/5">
+                                                <SelectValue placeholder="Select Auditor for this session" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="unassigned" className="italic text-muted-foreground">None (Available for Claiming)</SelectItem>
+                                            {auditors.map(auditor => (
+                                                <SelectItem key={auditor.id} value={auditor.id}>
+                                                    {auditor.firstName} {auditor.lastName}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormDescription className="text-[9px]">Assign a specific auditor now, or leave unassigned to allow auditors to claim it themselves.</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
