@@ -79,7 +79,7 @@ const safeFormatDate = (date: any) => {
 };
 
 export default function SubmissionsPage() {
-  const { user, userProfile, isAdmin, isSupervisor, isUserLoading } = useUser();
+  const { user, userProfile, isAdmin, isAuditor, isSupervisor, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -98,12 +98,14 @@ export default function SubmissionsPage() {
 
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
-    if (isAdmin) return collection(firestore, 'submissions');
+    // Institutional View: Admins and Auditors see everything.
+    if (isAdmin || isAuditor) return collection(firestore, 'submissions');
+    
     if (isSupervisor && userProfile.campusId) {
       return query(collection(firestore, 'submissions'), where('campusId', '==', userProfile.campusId));
     }
     return query(collection(firestore, 'submissions'), where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
-  }, [firestore, isAdmin, isSupervisor, userProfile, isUserLoading]);
+  }, [firestore, isAdmin, isAuditor, isSupervisor, userProfile, isUserLoading]);
 
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
@@ -111,8 +113,8 @@ export default function SubmissionsPage() {
   const { data: cycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
 
   const usersQuery = useMemoFirebase(
-    () => (firestore && (isAdmin || isSupervisor) ? collection(firestore, 'users') : null),
-    [firestore, isAdmin, isSupervisor]
+    () => (firestore && (isAdmin || isSupervisor || isAuditor) ? collection(firestore, 'users') : null),
+    [firestore, isAdmin, isSupervisor, isAuditor]
   );
   const { data: allUsers } = useCollection<AppUser>(usersQuery);
 
@@ -214,7 +216,7 @@ export default function SubmissionsPage() {
                     </SelectContent>
                 </Select>
             </div>
-            {!isSupervisor && (
+            {!isSupervisor && !isAuditor && (
                 <div className="pt-5">
                     <Button 
                         onClick={() => router.push('/submissions/new')}
@@ -236,7 +238,7 @@ export default function SubmissionsPage() {
                     <List className="h-4 w-4" /> Submission Log
                 </TabsTrigger>
                 {isSupervisor && !isAdmin && <TabsTrigger value="by-unit" className="data-[state=active]:shadow-sm">Unit Explorer</TabsTrigger>}
-                {isAdmin && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm">Campus Matrix</TabsTrigger>}
+                {(isAdmin || isAuditor) && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm">Campus Matrix</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="visual-insights">
@@ -405,7 +407,7 @@ export default function SubmissionsPage() {
                 </TabsContent>
             )}
             
-            {isAdmin && (
+            {(isAdmin || isAuditor) && (
                 <TabsContent value="by-campus">
                     <CampusSubmissionsView 
                         allSubmissions={dashboardSubmissions} 

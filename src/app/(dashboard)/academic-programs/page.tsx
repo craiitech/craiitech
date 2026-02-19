@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -15,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProgramAnalytics } from '@/components/programs/program-analytics';
 
 export default function AcademicProgramsPage() {
-  const { user, userProfile, isAdmin, userRole, isUserLoading, isVp } = useUser();
+  const { user, userProfile, isAdmin, isAuditor, userRole, isUserLoading, isVp } = useUser();
   const firestore = useFirestore();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<AcademicProgram | null>(null);
@@ -24,8 +25,8 @@ export default function AcademicProgramsPage() {
   const [unitFilter, setUnitFilter] = useState<string>('all');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-  // Role Detection for Scoping
-  const isGlobalViewer = isAdmin || isVp;
+  // Institutional Oversight roles see everything.
+  const isGlobalViewer = isAdmin || isVp || isAuditor;
   const isCampusViewer = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
   const isUnitViewer = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
 
@@ -132,30 +133,39 @@ export default function AcademicProgramsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                <SelectTrigger className="w-[140px] h-10">
-                    <SelectValue placeholder="Year" />
-                </SelectTrigger>
-                <SelectContent>
-                    {academicYears.map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
-                </SelectContent>
-            </Select>
+            <div className="flex flex-col items-end">
+                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5">Compliance Year</label>
+                <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                    <SelectTrigger className="w-[140px] h-9">
+                        <SelectValue placeholder="Year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {academicYears.map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
             {canManage && (
-            <Button onClick={handleNewProgram}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Register Program
-            </Button>
+            <div className="pt-4">
+                <Button onClick={handleNewProgram} size="sm" className="h-9 font-bold uppercase tracking-tight">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Register Program
+                </Button>
+            </div>
             )}
         </div>
       </div>
 
       <Tabs defaultValue="analytics" className="space-y-6">
-        <TabsList>
-            <TabsTrigger value="analytics" className="gap-2"><BarChart3 className="h-4 w-4" /> Decision Support</TabsTrigger>
-            <TabsTrigger value="registry" className="gap-2"><Layers className="h-4 w-4" /> Program Registry</TabsTrigger>
+        <TabsList className="bg-muted p-1 border shadow-sm">
+            <TabsTrigger value="analytics" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
+                <BarChart3 className="h-4 w-4" /> Decision Support
+            </TabsTrigger>
+            <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
+                <Layers className="h-4 w-4" /> Program Registry
+            </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="analytics">
+        <TabsContent value="analytics" className="animate-in fade-in duration-500">
             <ProgramAnalytics 
                 programs={programs}
                 compliances={rawCompliances || []}
@@ -165,7 +175,7 @@ export default function AcademicProgramsPage() {
             />
         </TabsContent>
 
-        <TabsContent value="registry" className="space-y-4">
+        <TabsContent value="registry" className="space-y-4 animate-in fade-in duration-500">
             <Card>
                 <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4">
                     <div className="flex-1 w-full space-y-1.5">
@@ -176,7 +186,7 @@ export default function AcademicProgramsPage() {
                                 placeholder="Search by name or initials..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-9"
+                                className="pl-9 h-9 text-xs"
                             />
                         </div>
                     </div>
@@ -184,7 +194,7 @@ export default function AcademicProgramsPage() {
                         <div className="w-full md:w-64 space-y-1.5">
                             <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Campus Site Filter</label>
                             <Select value={campusFilter} onValueChange={(val) => { setCampusFilter(val); setUnitFilter('all'); }}>
-                                <SelectTrigger>
+                                <SelectTrigger className="h-9 text-xs">
                                     <SelectValue placeholder="All Campuses" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -198,7 +208,7 @@ export default function AcademicProgramsPage() {
                         <div className="w-full md:w-64 space-y-1.5">
                             <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Academic Unit Filter</label>
                             <Select value={unitFilter} onValueChange={setUnitFilter}>
-                                <SelectTrigger>
+                                <SelectTrigger className="h-9 text-xs">
                                     <SelectValue placeholder="All Units" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -214,7 +224,7 @@ export default function AcademicProgramsPage() {
             <div>
                 {isLoading ? (
                     <div className="flex h-64 items-center justify-center">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
                     </div>
                 ) : (
                     <ProgramRegistry 

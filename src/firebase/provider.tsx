@@ -43,6 +43,7 @@ export interface FirebaseContextState {
   isAdminLoading: boolean;
   userRole: string | null;
   isSupervisor: boolean;
+  isAuditor: boolean;
   isVp: boolean;
   isMainCampusCoordinator: boolean;
 }
@@ -62,6 +63,7 @@ export interface FirebaseServicesAndUser {
   isAdminLoading: boolean;
   userRole: string | null;
   isSupervisor: boolean;
+  isAuditor: boolean;
   isVp: boolean;
   isMainCampusCoordinator: boolean;
 }
@@ -73,6 +75,7 @@ export interface UserHookResult {
   isUserLoading: boolean; // Combines auth and profile loading
   userError: Error | null;
   isAdmin: boolean;
+  isAuditor: boolean;
   userRole: string | null;
   isSupervisor: boolean;
   isVp: boolean;
@@ -164,6 +167,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const isAdmin = !!adminRoleDoc || (userRole ? userRole.toLowerCase().includes('admin') : false);
     
     const isVp = !!userRole?.toLowerCase().includes('vice president');
+    const isAuditor = !!userRole?.toLowerCase().includes('auditor');
     
     // CRITICAL: Aligned with Firestore Security Rules Regex: (?i).*(director|odimo|admin|vice president).*
     const supervisorRolesRegex = /(director|odimo|admin|vice president)/i;
@@ -192,6 +196,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       userProfile,
       isProfileLoading,
       isAdmin,
+      isAuditor,
       isAdminLoading: isAdminRoleLoading,
       userRole,
       isSupervisor,
@@ -257,6 +262,7 @@ export const useFirebase = (): FirebaseServicesAndUser | { areServicesAvailable:
     userProfile: context.userProfile,
     isProfileLoading: context.isProfileLoading,
     isAdmin: context.isAdmin,
+    isAuditor: context.isAuditor,
     isAdminLoading: context.isAdminLoading,
     userRole: context.userRole,
     isSupervisor: context.isSupervisor,
@@ -300,8 +306,8 @@ export const useFirebaseApp = (): FirebaseApp | null => {
 export const useUser = (): UserHookResult => { 
   const context = useFirebase();
    if (!context.areServicesAvailable) {
-      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, userRole: null, isSupervisor: false, isVp: false, isMainCampusCoordinator: false, firestore: null };
+      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, isAuditor: false, userRole: null, isSupervisor: false, isVp: false, isMainCampusCoordinator: false, firestore: null };
   }
-  const { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator } = context; 
-  return { user, userProfile, isUserLoading, userError, isAdmin, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator };
+  const { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator } = context; 
+  return { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator };
 };
