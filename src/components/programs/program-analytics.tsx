@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -42,7 +41,8 @@ import {
     FileWarning,
     Briefcase,
     LayoutGrid,
-    Search
+    Search,
+    Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
@@ -70,25 +70,46 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
     if (!programs.length) return null;
 
     // 1. Accreditation Level Summary
-    const accreditationMap: Record<string, number> = {};
-    const compliantProgramIds = new Set(compliances.map(c => c.programId));
+    const accreditationMap: Record<string, number> = {
+        'Level IV Re-accredited': 0, 'Level IV Accredited': 0,
+        'Level III Re-accredited': 0, 'Level III Accredited': 0,
+        'Level II Re-accredited': 0, 'Level II Accredited': 0,
+        'Level I Re-accredited': 0, 'Level I Accredited': 0,
+        'PSV': 0, 'Non Accredited': 0, 'Not Yet Subject': 0
+    };
     
-    compliances.forEach(c => {
-        const milestones = c.accreditationRecords || [];
+    programs.forEach(p => {
+        if (p.isNewProgram) {
+            accreditationMap['Not Yet Subject']++;
+            return;
+        }
+
+        const record = compliances.find(c => c.programId === p.id);
+        if (!record || !record.accreditationRecords || record.accreditationRecords.length === 0) {
+            accreditationMap['Non Accredited']++;
+            return;
+        }
+
+        const milestones = record.accreditationRecords;
         const latest = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
-        const level = latest?.level || 'Non Accredited';
-        accreditationMap[level] = (accreditationMap[level] || 0) + 1;
+        
+        let level = latest?.level || 'Non Accredited';
+        if (level.includes('Preliminary Survey Visit')) level = 'PSV';
+        
+        if (accreditationMap[level] !== undefined) {
+            accreditationMap[level]++;
+        } else {
+            accreditationMap['Non Accredited']++;
+        }
     });
 
-    // Add programs that don't have compliance records for this year
-    const unmonitoredCount = programs.filter(p => !compliantProgramIds.has(p.id)).length;
-    accreditationMap['Non Accredited'] = (accreditationMap['Non Accredited'] || 0) + unmonitoredCount;
-
-    const accreditationSummary = Object.entries(accreditationMap).map(([level, count]) => ({
-        level,
-        count,
-        percentage: Math.round((count / programs.length) * 100)
-    })).sort((a, b) => b.count - a.count);
+    const accreditationSummary = Object.entries(accreditationMap)
+        .filter(([_, count]) => count > 0)
+        .map(([level, count]) => ({
+            level,
+            count,
+            percentage: Math.round((count / programs.length) * 100)
+        })).sort((a, b) => b.count - a.count);
 
     // 2. COPC Percentage Summary
     const copcWith = compliances.filter(c => c.ched?.copcStatus === 'With COPC').length;
@@ -124,7 +145,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         } else {
             if (record.ched?.copcStatus !== 'With COPC') items.push("COPC Certificate");
             if (!record.ched?.programCmoLink) items.push("Official CMO Link");
-            if (!record.accreditationRecords || record.accreditationRecords.length === 0) items.push("Accreditation Milestone");
+            
+            // Only flag missing accreditation if NOT a new program
+            if (!p.isNewProgram) {
+                if (!record.accreditationRecords || record.accreditationRecords.length === 0) items.push("Accreditation Milestone");
+            }
+            
             if (!record.faculty?.members || record.faculty.members.length === 0) items.push("Faculty Staffing List");
             if (!record.graduationRecords || record.graduationRecords.length === 0) items.push("Graduation Outcome Data");
         }
@@ -150,7 +176,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         const campusName = campusMap.get(program.campusId) || 'Unknown';
 
         let score = 0;
-        let accreditationDisplay = 'Not Accredited';
+        let accreditationDisplay = program.isNewProgram ? 'Not Yet Subject' : 'Not Accredited';
 
         if (record) {
             if (record.ched?.copcStatus === 'With COPC') score += 20;
@@ -161,15 +187,21 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             if (program.hasSpecializations && program.specializations) {
                 const majorResults = program.specializations.map(spec => {
                     const milestone = milestones.find(m => m.lifecycleStatus === 'Current' && m.components?.some(c => c.id === spec.id));
-                    return milestone ? `${spec.name}: ${milestone.result || milestone.level}` : `${spec.name}: Non Accredited`;
+                    if (milestone) return `${spec.name}: ${milestone.result || milestone.level}`;
+                    return program.isNewProgram ? `${spec.name}: Not Yet Subject` : `${spec.name}: Non Accredited`;
                 });
                 accreditationDisplay = majorResults.join('; ');
-                if (milestones.some(m => m.level !== 'Non Accredited')) score += 20;
+                
+                // Score accreditation
+                if (program.isNewProgram) score += 20; // Auto-pass for new programs
+                else if (milestones.some(m => m.level !== 'Non Accredited')) score += 20;
             } else {
                 const latest = milestones.length > 0 ? milestones[milestones.length - 1] : null;
                 if (latest?.level && latest.level !== 'Non Accredited') {
                     score += 20;
                     accreditationDisplay = latest.result || latest.level;
+                } else if (program.isNewProgram) {
+                    score += 20;
                 }
             }
 
@@ -178,6 +210,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             
             if (record.ched?.programCmoLink) score += 20;
             if (record.graduationRecords && record.graduationRecords.length > 0) score += 20;
+        } else if (program.isNewProgram) {
+            // New programs get base scores for missing eligibility areas if record exists, 
+            // but if no record exists at all for the year, they stay at 0.
         }
 
         return {
@@ -186,7 +221,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             campusName,
             copc: record?.ched?.copcStatus || 'No COPC',
             accreditation: accreditationDisplay,
-            compliancePercentage: Math.round(score)
+            compliancePercentage: Math.round(score),
+            isNew: program.isNewProgram
         };
     }).sort((a, b) => a.campusName.localeCompare(b.campusName) || a.name.localeCompare(b.name));
   }, [programs, compliances, campusMap]);
@@ -257,7 +293,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             </CardHeader>
             <CardContent>
                 <div className="text-3xl font-black text-amber-600 tabular-nums">
-                    {analytics?.accreditationSummary.find(s => s.level === 'Level I Accredited')?.count || 0}
+                    {analytics?.accreditationSummary.find(s => s.level.includes('Level I'))?.count || 0}
                 </div>
             </CardContent>
         </Card>
@@ -296,12 +332,17 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                     <TableBody>
                         {analytics?.accreditationSummary.map((item) => (
                             <TableRow key={item.level}>
-                                <TableCell className="text-xs font-bold text-slate-700 py-3">{item.level}</TableCell>
+                                <TableCell className="text-xs font-bold text-slate-700 py-3">
+                                    <div className="flex items-center gap-2">
+                                        {item.level === 'Not Yet Subject' ? <Clock className="h-3 w-3 text-amber-500" /> : <ShieldCheck className="h-3 w-3 text-primary" />}
+                                        {item.level}
+                                    </div>
+                                </TableCell>
                                 <TableCell className="text-center font-black tabular-nums text-primary">{item.count}</TableCell>
                                 <TableCell className="text-right pr-6">
                                     <div className="flex flex-col items-end gap-1">
                                         <span className="text-[10px] font-black">{item.percentage}%</span>
-                                        <div className="w-16"><Progress value={item.percentage} className="h-1" /></div>
+                                        <div className="w-16"><Progress value={item.percentage} className={cn("h-1", item.level === 'Not Yet Subject' ? "bg-amber-100" : "")} /></div>
                                     </div>
                                 </TableCell>
                             </TableRow>
@@ -373,7 +414,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                             {complianceTableData.map((row) => (
                                 <TableRow key={row.id} className="hover:bg-muted/20 transition-colors">
                                     <TableCell className="py-2"><div className="flex items-center gap-2 text-[10px] font-bold text-slate-600 uppercase"><School className="h-3 w-3 opacity-50" />{row.campusName}</div></TableCell>
-                                    <TableCell className="py-2"><span className="text-xs font-black text-slate-900 tracking-tight">{row.name}</span></TableCell>
+                                    <TableCell className="py-2">
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-black text-slate-900 tracking-tight">{row.name}</span>
+                                            {row.isNew && <span className="text-[8px] font-black text-amber-600 uppercase tracking-tighter">New Program Offering</span>}
+                                        </div>
+                                    </TableCell>
                                     <TableCell className="text-center py-2">{getCopcBadge(row.copc)}</TableCell>
                                     <TableCell className="text-right py-2 pr-6">
                                         <div className="flex flex-col items-end gap-1">

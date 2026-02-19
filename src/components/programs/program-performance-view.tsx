@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -31,7 +30,8 @@ import {
     AlertTriangle,
     Info,
     ArrowUpRight,
-    UserCircle
+    UserCircle,
+    Clock
 } from 'lucide-react';
 import { 
     PieChart, 
@@ -161,7 +161,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     // 6. Maturity Radar Calculation
     const pillarScores = {
         ched: record.ched?.copcStatus === 'With COPC' ? 20 : (record.ched?.copcStatus === 'In Progress' ? 10 : 0),
-        accreditation: (latestAccreditation?.level && latestAccreditation.level !== 'Non Accredited') ? 20 : 0,
+        accreditation: program.isNewProgram ? 20 : ((latestAccreditation?.level && latestAccreditation.level !== 'Non Accredited') ? 20 : 0),
         faculty: totalFaculty > 0 ? (alignmentRate / 100) * 20 : 0,
         curriculum: (curriculumRecords.some(c => c.isNotedByChed)) ? 20 : 10,
         outcomes: ((record.graduationRecords?.length || 0) > 0) ? 20 : 0
@@ -183,11 +183,22 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     if (totalFaculty === 0) gaps.push({ type: 'Resource Quality', msg: 'Faculty registry is incomplete for the current AY.', priority: 'High' });
     else if (alignmentRate < 100) gaps.push({ type: 'Resource Quality', msg: `${totalFaculty - alignedFaculty} faculty members do not meet CMO qualification requirements.`, priority: 'Medium' });
     
+    // Accreditation Gaps - Only for non-new programs
+    if (!program.isNewProgram) {
+        if (program.hasSpecializations) {
+            program.specializations?.forEach(spec => {
+                if (!currentAccreditationByMajor[spec.id] && !currentAccreditationByMajor['General']) {
+                    gaps.push({ type: 'Academic Quality', msg: `Missing accreditation record for major: ${spec.name}`, priority: 'Medium' });
+                }
+            });
+        } else if (!latestAccreditation || latestAccreditation.level === 'Non Accredited') {
+            gaps.push({ type: 'Academic Quality', msg: 'No active accreditation status recorded.', priority: 'Medium' });
+        }
+    }
+
+    // Curriculum Gaps
     if (program.hasSpecializations) {
         program.specializations?.forEach(spec => {
-            if (!currentAccreditationByMajor[spec.id] && !currentAccreditationByMajor['General']) {
-                gaps.push({ type: 'Academic Quality', msg: `Missing accreditation record for major: ${spec.name}`, priority: 'Medium' });
-            }
             if (!curriculaByMajor[spec.id] && !curriculaByMajor['General']) {
                 gaps.push({ type: 'Compliance', msg: `No curriculum notation evidence found for major: ${spec.name}`, priority: 'Medium' });
             }
@@ -287,13 +298,21 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         <Card className="bg-emerald-50/50 border-emerald-100 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-5"><Award className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
-                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Accreditation Result</CardDescription>
-                <CardTitle className="text-lg font-black text-slate-900 truncate">{analyticsData.latestAccreditation?.level || 'Non Accredited'}</CardTitle>
+                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Accreditation Status</CardDescription>
+                <CardTitle className="text-lg font-black text-slate-900 truncate">
+                    {program.isNewProgram ? 'Not Yet Subject' : (analyticsData.latestAccreditation?.level || 'Non Accredited')}
+                </CardTitle>
             </CardHeader>
             <CardContent>
-                <Badge variant="outline" className="bg-white text-emerald-700 border-emerald-200 text-[9px] font-black uppercase shadow-sm">
-                    {analyticsData.latestAccreditation?.result || 'Outcome Pending'}
-                </Badge>
+                {program.isNewProgram ? (
+                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-black uppercase gap-1">
+                        <Clock className="h-2 w-2" /> New Offering
+                    </Badge>
+                ) : (
+                    <Badge variant="outline" className="bg-white text-emerald-700 border-emerald-200 text-[9px] font-black uppercase shadow-sm">
+                        {analyticsData.latestAccreditation?.result || 'Outcome Pending'}
+                    </Badge>
+                )}
             </CardContent>
         </Card>
         <Card className="bg-blue-50/50 border-blue-100 shadow-sm relative overflow-hidden">
@@ -362,7 +381,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                                             <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{key}</span>
                                             <span className="text-xs font-black tabular-nums">{Math.round(percentage)}%</span>
                                         </div>
-                                        <Progress value={percentage} className="h-1" />
+                                        <Progress value={percentage} className={cn("h-1", key === 'accreditation' && program.isNewProgram ? "bg-amber-100" : "")} />
                                     </div>
                                 );
                             })}

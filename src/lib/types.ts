@@ -268,6 +268,7 @@ export type AcademicProgram = {
   collegeId: string; // e.g., 'CET', 'CAS'
   level: 'Undergraduate' | 'Graduate' | 'TVET';
   isBoardProgram: boolean;
+  isNewProgram: boolean; // Flag for programs not yet subject to accreditation
   hasSpecializations: boolean;
   specializations?: { id: string; name: string }[];
   isActive: boolean;

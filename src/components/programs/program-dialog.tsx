@@ -53,6 +53,7 @@ const formSchema = z.object({
   collegeId: z.string().min(1, 'Please select the parent Academic Unit.'),
   level: z.enum(['Undergraduate', 'Graduate', 'TVET']),
   isBoardProgram: z.boolean().default(false),
+  isNewProgram: z.boolean().default(false),
   hasSpecializations: z.boolean().default(false),
   specializations: z.array(z.object({
     id: z.string(),
@@ -78,6 +79,7 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: Progr
       collegeId: '',
       level: 'Undergraduate',
       isBoardProgram: false,
+      isNewProgram: false,
       hasSpecializations: false,
       specializations: [],
       isActive: true,
@@ -105,6 +107,7 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: Progr
       form.reset({
         ...program,
         isBoardProgram: program.isBoardProgram ?? false,
+        isNewProgram: program.isNewProgram ?? false,
         hasSpecializations: program.hasSpecializations ?? false,
         specializations: program.specializations || []
       });
@@ -116,6 +119,7 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: Progr
         collegeId: '',
         level: 'Undergraduate',
         isBoardProgram: false,
+        isNewProgram: false,
         hasSpecializations: false,
         specializations: [],
         isActive: true,
@@ -232,6 +236,16 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: Progr
                             <div className="space-y-0.5">
                             <FormLabel className="text-primary font-bold text-xs uppercase tracking-tight">Board Program</FormLabel>
                             <FormDescription className="text-[10px]">Does this program have a professional board licensure exam?</FormDescription>
+                            </div>
+                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                        </FormItem>
+                        )} />
+
+                        <FormField control={form.control} name="isNewProgram" render={({ field }) => (
+                        <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm bg-emerald-50 border-emerald-100">
+                            <div className="space-y-0.5">
+                            <FormLabel className="text-emerald-800 font-bold text-xs uppercase tracking-tight">New Program Offering</FormLabel>
+                            <FormDescription className="text-[10px]">Enable this if the program is not yet subject to accreditation.</FormDescription>
                             </div>
                             <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                         </FormItem>
