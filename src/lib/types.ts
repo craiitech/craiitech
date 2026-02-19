@@ -154,7 +154,7 @@ export type AuditPlan = {
     title: string;
     year: number;
     campusId: string;
-    auditeeType: AuditGroup;
+    auditeeType: AuditGroup[]; // Changed to array for multiple selection
     scope: string;
     leadAuditorId: string;
     leadAuditorName: string;

@@ -27,14 +27,15 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, query, where, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState, useMemo } from 'react';
-import type { AuditPlan, Campus, User } from '@/lib/types';
+import type { AuditPlan, Campus, User, AuditGroup } from '@/lib/types';
 import { Loader2, LayoutList, ShieldCheck, FileText, CalendarCheck } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { format } from 'date-fns';
@@ -47,7 +48,9 @@ interface AuditPlanDialogProps {
 }
 
 const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
+const yearsList = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
+
+const auditGroups: AuditGroup[] = ['Management Processes', 'Operation Processes', 'Support Processes'];
 
 const formSchema = z.object({
   auditNumber: z.string().min(1, 'Audit Number is required (e.g. 2025-001).'),
@@ -55,7 +58,7 @@ const formSchema = z.object({
   title: z.string().min(5, 'Title must be descriptive.'),
   year: z.number(),
   campusId: z.string().min(1, 'Target campus site is required.'),
-  auditeeType: z.enum(['Management Processes', 'Operation Processes', 'Support Processes']),
+  auditeeType: z.array(z.string()).min(1, 'Select at least one process group.'),
   scope: z.string().min(10, 'Please provide a clear scope statement.'),
   leadAuditorId: z.string().min(1, 'Please designate a Lead Auditor.'),
   referenceDocument: z.string().min(1, 'Reference document is required.'),
@@ -68,8 +71,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch all users to find potential auditors (more resilient than role string exact match)
-  const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+  const usersQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: allUsers } = useCollection<User>(usersQuery);
 
   const auditors = useMemo(() => {
@@ -88,7 +90,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
       title: '',
       year: currentYear,
       campusId: '',
-      auditeeType: 'Operation Processes',
+      auditeeType: [],
       scope: '',
       leadAuditorId: '',
       referenceDocument: 'ISO 21001:2018 / EOMS Standard',
@@ -116,7 +118,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
         title: plan.title || '',
         year: plan.year || currentYear,
         campusId: plan.campusId || '',
-        auditeeType: plan.auditeeType || 'Operation Processes',
+        auditeeType: plan.auditeeType || [],
         scope: plan.scope || '',
         leadAuditorId: plan.leadAuditorId || '',
         referenceDocument: plan.referenceDocument || 'ISO 21001:2018 / EOMS Standard',
@@ -130,7 +132,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
             title: '',
             year: currentYear,
             campusId: '',
-            auditeeType: 'Operation Processes',
+            auditeeType: [],
             scope: '',
             leadAuditorId: '',
             referenceDocument: 'ISO 21001:2018 / EOMS Standard',
@@ -149,7 +151,6 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
 
     const leadAuditor = auditors.find(a => a.id === values.leadAuditorId);
 
-    // Explicitly define save object to ensure Timestamps overwrite form strings
     const planData: any = {
       id,
       auditNumber: values.auditNumber,
@@ -189,7 +190,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
           </div>
           <DialogTitle>{plan ? 'Modify' : 'Establish'} Detailed Audit Plan</DialogTitle>
           <DialogDescription className="text-xs">
-            Configure institutional parameters, audit team, and meeting milestones.
+            Configure institutional parameters, process groups, and meeting milestones.
           </DialogDescription>
         </DialogHeader>
         
@@ -227,7 +228,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                                     <FormLabel className="text-[10px] font-bold uppercase">Academic Year</FormLabel>
                                     <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
                                         <FormControl><SelectTrigger className="h-10 font-bold"><SelectValue /></SelectTrigger></FormControl>
-                                        <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+                                        <SelectContent>{yearsList.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </FormItem>
                             )} />
@@ -256,17 +257,49 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                                     </Select>
                                 </FormItem>
                             )} />
-                            <FormField control={form.control} name="auditeeType" render={({ field }) => (
+                            
+                            <FormField control={form.control} name="auditeeType" render={() => (
                                 <FormItem>
-                                    <FormLabel className="text-[10px] font-bold uppercase">Audit Process Group</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl><SelectTrigger className="h-10"><SelectValue /></SelectTrigger></FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="Management Processes">Management Processes</SelectItem>
-                                            <SelectItem value="Operation Processes">Operation Processes</SelectItem>
-                                            <SelectItem value="Support Processes">Support Processes</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="mb-4">
+                                        <FormLabel className="text-[10px] font-black uppercase text-primary">Audit Process Groups (Multi-Select)</FormLabel>
+                                        <FormDescription className="text-[9px]">Select all organizational process areas covered by this plan.</FormDescription>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {auditGroups.map((group) => (
+                                            <FormField
+                                                key={group}
+                                                control={form.control}
+                                                name="auditeeType"
+                                                render={({ field }) => {
+                                                    return (
+                                                        <FormItem
+                                                            key={group}
+                                                            className="flex flex-row items-start space-x-3 space-y-0 p-3 rounded-lg border bg-muted/5 hover:bg-muted/10 transition-colors"
+                                                        >
+                                                            <FormControl>
+                                                                <Checkbox
+                                                                    checked={field.value?.includes(group)}
+                                                                    onCheckedChange={(checked) => {
+                                                                        return checked
+                                                                            ? field.onChange([...field.value, group])
+                                                                            : field.onChange(
+                                                                                field.value?.filter(
+                                                                                    (value) => value !== group
+                                                                                )
+                                                                            )
+                                                                    }}
+                                                                />
+                                                            </FormControl>
+                                                            <FormLabel className="text-xs font-bold cursor-pointer">
+                                                                {group}
+                                                            </FormLabel>
+                                                        </FormItem>
+                                                    )
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                    <FormMessage />
                                 </FormItem>
                             )} />
                         </div>

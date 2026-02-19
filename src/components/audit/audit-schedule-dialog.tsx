@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -24,6 +23,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
+  SelectLabel,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { useForm } from 'react-hook-form';
@@ -33,7 +34,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { doc, addDoc, collection, Timestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useMemo, useState, useEffect } from 'react';
-import type { AuditPlan, User, Unit, ISOClause, AuditSchedule } from '@/lib/types';
+import type { AuditPlan, User, Unit, ISOClause, AuditSchedule, UnitCategory } from '@/lib/types';
 import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
@@ -82,9 +83,28 @@ export function AuditScheduleDialog({
   const isoClausesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'isoClauses') : null, [firestore]);
   const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
 
-  const auditees = useMemo(() => {
-    return allUnits.filter(u => u.campusIds?.includes(plan.campusId))
-        .sort((a,b) => a.name.localeCompare(b.name));
+  const auditeesByCategory = useMemo(() => {
+    const campusUnits = allUnits.filter(u => u.campusIds?.includes(plan.campusId));
+    
+    const groups: Record<UnitCategory, Unit[]> = {
+        'Academic': [],
+        'Administrative': [],
+        'Research': [],
+        'Support': []
+    };
+
+    campusUnits.forEach(unit => {
+        const cat = unit.category || 'Administrative';
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(unit);
+    });
+
+    // Sort units within each category
+    Object.keys(groups).forEach(cat => {
+        groups[cat as UnitCategory].sort((a, b) => a.name.localeCompare(b.name));
+    });
+
+    return groups;
   }, [plan, allUnits]);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -251,10 +271,17 @@ export function AuditScheduleDialog({
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {auditees.map(u => (
-                                                <SelectItem key={u.id} value={u.id}>
-                                                    {u.name}
-                                                </SelectItem>
+                                            {Object.entries(auditeesByCategory).map(([category, unitList]) => (
+                                                unitList.length > 0 && (
+                                                    <SelectGroup key={category}>
+                                                        <SelectLabel className="text-[9px] font-black uppercase tracking-widest text-primary pt-4 pb-1 border-b mb-2">{category} Group</SelectLabel>
+                                                        {unitList.map(u => (
+                                                            <SelectItem key={u.id} value={u.id}>
+                                                                {u.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectGroup>
+                                                )
                                             ))}
                                         </SelectContent>
                                     </Select>

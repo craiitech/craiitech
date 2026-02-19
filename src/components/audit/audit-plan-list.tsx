@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -32,10 +31,6 @@ interface AuditPlanListProps {
   onDeleteSchedule: (schedule: AuditSchedule) => void;
 }
 
-/**
- * INSTITUTIONAL AUDIT REGISTRY
- * Displays detailed audit plans mapped to the RSU template.
- */
 export function AuditPlanList({ 
     plans, 
     schedules, 
@@ -101,7 +96,16 @@ export function AuditPlanList({
                         </div>
                         <div className="flex items-center gap-6 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                             <span className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5 text-primary" /> {campusMap.get(plan.campusId) || '...'}</span>
-                            <span className="flex items-center gap-1.5"><Settings2 className="h-3.5 w-3.5 text-primary" /> {plan.auditeeType}</span>
+                            <div className="flex flex-wrap items-center gap-1">
+                                <Settings2 className="h-3.5 w-3.5 text-primary mr-1" />
+                                {Array.isArray(plan.auditeeType) ? (
+                                    plan.auditeeType.map(type => (
+                                        <Badge key={type} variant="secondary" className="h-4 px-1.5 text-[8px] font-black uppercase bg-primary/10 text-primary border-none">{type}</Badge>
+                                    ))
+                                ) : (
+                                    <Badge variant="secondary" className="h-4 px-1.5 text-[8px] font-black uppercase bg-primary/10 text-primary border-none">{plan.auditeeType}</Badge>
+                                )}
+                            </div>
                             <span className="flex items-center gap-1.5"><Flag className="h-3.5 w-3.5 text-primary" /> {plan.auditType}</span>
                         </div>
                     </div>
@@ -120,7 +124,6 @@ export function AuditPlanList({
             </AccordionTrigger>
             <AccordionContent className="p-0 bg-white">
               <div className="p-8 space-y-10">
-                {/* --- Template-Aligned Header Section --- */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-slate-200 border rounded-xl overflow-hidden shadow-sm">
                     <div className="bg-white p-5 space-y-4">
                         <div className="space-y-1">

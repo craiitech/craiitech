@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -21,6 +20,7 @@ import { CycleManagement } from '@/components/admin/cycle-management';
 import { ErrorReportManagement } from '@/components/admin/error-report-management';
 import { ProcedureManualManagement } from '@/components/admin/procedure-manual-management';
 import { EomsPolicyManualManagement } from '@/components/admin/eoms-policy-manual-management';
+import { UnitGroupingExplorer } from '@/components/admin/unit-grouping-explorer';
 
 
 export default function SettingsPage() {
@@ -55,6 +55,7 @@ export default function SettingsPage() {
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="campuses">Campuses</TabsTrigger>
             <TabsTrigger value="units">Units</TabsTrigger>
+            <TabsTrigger value="unit-grouping">Unit Explorer</TabsTrigger>
             <TabsTrigger value="roles">Roles</TabsTrigger>
             <TabsTrigger value="procedure-manuals">Procedure Manuals</TabsTrigger>
             <TabsTrigger value="eoms-policy-manual">RSU EOMS Manual</TabsTrigger>
@@ -70,6 +71,9 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="units" className="space-y-4">
             <AdminUnitManagement />
+          </TabsContent>
+          <TabsContent value="unit-grouping" className="space-y-4">
+            <UnitGroupingExplorer />
           </TabsContent>
           <TabsContent value="roles" className="space-y-4">
             <RoleManagement />
@@ -96,7 +100,6 @@ export default function SettingsPage() {
     );
   }
   
-  // For Campus Directors only
   if (userRole === 'Campus Director') {
       return (
          <div className="space-y-6">
