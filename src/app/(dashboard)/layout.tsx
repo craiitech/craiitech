@@ -142,9 +142,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const campusName = allCampuses.find(c => c.id === userProfile.campusId)?.name;
     const unitName = allUnits.find(u => u.id === userProfile.unitId)?.name;
     let location = campusName || '';
-    if (unitName && !isSupervisor) location += ` / ${unitName}`;
+    if (unitName && !isSupervisor && userRole !== 'Auditor') location += ` / ${unitName}`;
     return location;
-  }, [userProfile, allCampuses, allUnits, isSupervisor]);
+  }, [userProfile, allCampuses, allUnits, isSupervisor, userRole]);
 
   const displayName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : user?.displayName;
   const displayAvatar = userProfile?.avatar || user?.photoURL;
@@ -157,12 +157,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (pathname === '/complete-registration' || pathname === '/awaiting-verification') return;
     if (!user) { redirect('/login'); return; }
     if (isAdmin) return;
+    
     if (userProfile) {
         if (!userProfile.verified) { redirect('/awaiting-verification'); return; }
-        const isCampusLevelUser = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
-        const isProfileIncomplete = isCampusLevelUser
+        
+        const roleLower = userRole?.toLowerCase() || '';
+        const isUnitOptionalUser = 
+            roleLower === 'campus director' || 
+            roleLower === 'campus odimo' || 
+            roleLower === 'auditor' || 
+            roleLower.includes('vice president');
+
+        const isProfileIncomplete = isUnitOptionalUser
             ? !userProfile.campusId || !userProfile.roleId
             : !userProfile.campusId || !userProfile.roleId || !userProfile.unitId;
+            
         if (isProfileIncomplete) redirect('/complete-registration');
     } else {
       redirect('/complete-registration');
