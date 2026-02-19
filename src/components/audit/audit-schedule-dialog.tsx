@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -29,15 +28,12 @@ import { Button } from '@/components/ui/button';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, addDoc, collection, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useMemo, useState } from 'react';
 import type { AuditPlan, User, Unit, ISOClause } from '@/lib/types';
 import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2 } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Calendar } from '../ui/calendar';
-import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { Badge } from '../ui/badge';
@@ -57,7 +53,7 @@ interface AuditScheduleDialogProps {
 const formSchema = z.object({
   targetId: z.string().min(1, 'Auditee Unit/Office is required'),
   procedureDescription: z.string().min(5, 'Procedure detail is required.'),
-  scheduledDate: z.date({ required_error: 'A date is required.'}),
+  scheduledDate: z.string().regex(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/, 'Date must be in MM/DD/YYYY format'),
   startTime: z.string().min(1, 'Start time is required'),
   endTime: z.string().min(1, 'End time is required'),
   isoClausesToAudit: z.array(z.string()).min(1, 'Select at least one standard clause.'),
@@ -83,12 +79,7 @@ export function AuditScheduleDialog({
   const isoClausesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'isoClauses') : null, [firestore]);
   const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
 
-  /**
-   * Filtered Auditees (UNITS/OFFICES ONLY)
-   * Focuses on the Unit Name as the primary target for the schedule.
-   */
   const auditees = useMemo(() => {
-    // Only return Units assigned to the planned campus
     return allUnits.filter(u => u.campusIds?.includes(plan.campusId))
         .sort((a,b) => a.name.localeCompare(b.name));
   }, [plan, allUnits]);
@@ -97,6 +88,7 @@ export function AuditScheduleDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       targetId: '',
+      scheduledDate: '',
       isoClausesToAudit: [],
       startTime: '09:00',
       endTime: '12:00',
@@ -108,32 +100,34 @@ export function AuditScheduleDialog({
     if (!firestore) return;
     setIsSubmitting(true);
     
-    const targetUnit = allUnits.find(u => u.id === values.targetId);
-    const targetName = targetUnit?.name || 'Unknown Unit';
-
-    const [sHours, sMinutes] = values.startTime.split(':').map(Number);
-    const startDateTime = new Date(values.scheduledDate);
-    startDateTime.setHours(sHours, sMinutes, 0, 0);
-
-    const [eHours, eMinutes] = values.endTime.split(':').map(Number);
-    const endDateTime = new Date(values.scheduledDate);
-    endDateTime.setHours(eHours, eMinutes, 0, 0);
-
-    const scheduleData = {
-      auditPlanId: plan.id,
-      auditorId: null, 
-      auditorName: null,
-      targetId: values.targetId,
-      targetType: 'Unit',
-      targetName,
-      procedureDescription: values.procedureDescription,
-      scheduledDate: Timestamp.fromDate(startDateTime),
-      endScheduledDate: Timestamp.fromDate(endDateTime),
-      isoClausesToAudit: values.isoClausesToAudit,
-      status: 'Scheduled',
-    };
-
     try {
+        const targetUnit = allUnits.find(u => u.id === values.targetId);
+        const targetName = targetUnit?.name || 'Unknown Unit';
+
+        const [month, day, year] = values.scheduledDate.split('/').map(Number);
+        
+        const [sHours, sMinutes] = values.startTime.split(':').map(Number);
+        const startDateTime = new Date(year, month - 1, day);
+        startDateTime.setHours(sHours, sMinutes, 0, 0);
+
+        const [eHours, eMinutes] = values.endTime.split(':').map(Number);
+        const endDateTime = new Date(year, month - 1, day);
+        endDateTime.setHours(eHours, eMinutes, 0, 0);
+
+        const scheduleData = {
+          auditPlanId: plan.id,
+          auditorId: null, 
+          auditorName: null,
+          targetId: values.targetId,
+          targetType: 'Unit',
+          targetName,
+          procedureDescription: values.procedureDescription,
+          scheduledDate: Timestamp.fromDate(startDateTime),
+          endScheduledDate: Timestamp.fromDate(endDateTime),
+          isoClausesToAudit: values.isoClausesToAudit,
+          status: 'Scheduled',
+        };
+
         await addDoc(collection(firestore, 'auditSchedules'), scheduleData);
         toast({ title: 'Session Provisioned', description: `Itinerary entry for ${targetName} registered.` });
         onOpenChange(false);
@@ -176,23 +170,13 @@ export function AuditScheduleDialog({
                                 render={({ field }) => (
                                     <FormItem className="flex flex-col">
                                         <FormLabel className="text-[10px] font-bold uppercase mb-2">Conduct Date</FormLabel>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button 
-                                                        type="button"
-                                                        variant="outline" 
-                                                        className={cn("h-11 pl-3 text-left font-bold border-slate-200 shadow-sm", !field.value && "text-muted-foreground")}
-                                                    >
-                                                        {field.value ? format(field.value, "MM/dd/yyyy") : (<span>Select Date</span>)}
-                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0 shadow-2xl border-none" align="start">
-                                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                            </PopoverContent>
-                                        </Popover>
+                                        <FormControl>
+                                            <Input 
+                                                {...field} 
+                                                placeholder="MM/DD/YYYY" 
+                                                className="h-11 font-bold border-slate-200 shadow-sm"
+                                            />
+                                        </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -326,11 +310,16 @@ export function AuditScheduleDialog({
         </ScrollArea>
 
         <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
-            <Button type="submit" form="schedule-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-xs">
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ListChecks className="mr-2 h-4 w-4 mr-1.5" />}
-                Register Itinerary
-            </Button>
+            <div className="flex w-full items-center justify-between">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase">RSU Quality Management System | Itinerary v2.0</p>
+                <div className="flex gap-2">
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
+                    <Button type="submit" form="schedule-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black text-xs uppercase tracking-widest">
+                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ListChecks className="mr-2 h-4 w-4 mr-1.5" />}
+                        Register Itinerary
+                    </Button>
+                </div>
+            </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
