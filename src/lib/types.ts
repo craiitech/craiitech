@@ -269,6 +269,8 @@ export type AcademicProgram = {
   collegeId: string; // e.g., 'CET', 'CAS'
   level: 'Undergraduate' | 'Graduate' | 'TVET';
   isBoardProgram: boolean;
+  hasSpecializations: boolean;
+  specializations?: { id: string; name: string }[];
   isActive: boolean;
   createdAt: any;
 };
@@ -284,6 +286,7 @@ export type ProgramFacultyMember = {
   category: FacultyCategory;
   isAlignedWithCMO: FacultyAlignment;
   sex: 'Male' | 'Female';
+  specializationAssignment?: string; // Linked to a specialization.id
 };
 
 export type GraduationOutcome = {

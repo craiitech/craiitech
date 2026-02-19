@@ -44,7 +44,7 @@ export function ProgramRegistry({ programs, campuses, units, onEdit, canManage }
               <TableHead>Program Name</TableHead>
               <TableHead>Campus</TableHead>
               <TableHead>College / Unit</TableHead>
-              <TableHead>Type</TableHead>
+              <TableHead>Majors / Type</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -71,15 +71,28 @@ export function ProgramRegistry({ programs, campuses, units, onEdit, canManage }
                   </div>
                 </TableCell>
                 <TableCell>
-                    {program.isBoardProgram ? (
-                        <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 gap-1 h-5 text-[9px] uppercase font-black">
-                            <ShieldCheck className="h-2.5 w-2.5" /> Board
-                        </Badge>
-                    ) : (
-                        <Badge variant="outline" className="text-muted-foreground gap-1 h-5 text-[9px] uppercase font-bold border-dashed">
-                            <ShieldAlert className="h-2.5 w-2.5" /> Non-Board
-                        </Badge>
-                    )}
+                    <div className="flex flex-col gap-1.5">
+                        <div className="flex flex-wrap gap-1">
+                            {program.hasSpecializations ? (
+                                program.specializations?.map(spec => (
+                                    <Badge key={spec.id} variant="secondary" className="text-[8px] h-3.5 bg-blue-50 text-blue-700 border-blue-100 font-bold">{spec.name}</Badge>
+                                ))
+                            ) : (
+                                <Badge variant="outline" className="text-[8px] h-3.5 text-muted-foreground font-medium">Standard</Badge>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                            {program.isBoardProgram ? (
+                                <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 border-indigo-200 gap-1 h-4 text-[8px] uppercase font-black px-1.5">
+                                    <ShieldCheck className="h-2 w-2" /> Board
+                                </Badge>
+                            ) : (
+                                <Badge variant="outline" className="text-muted-foreground gap-1 h-4 text-[8px] uppercase font-bold border-dashed px-1.5">
+                                    <ShieldAlert className="h-2 w-2" /> Non-Board
+                                </Badge>
+                            )}
+                        </div>
+                    </div>
                 </TableCell>
                 <TableCell>
                   {program.isActive ? (
@@ -90,7 +103,7 @@ export function ProgramRegistry({ programs, campuses, units, onEdit, canManage }
                     <Badge variant="secondary" className="h-5 text-[9px] uppercase tracking-tighter font-black bg-slate-200">Inactive</Badge>
                   )}
                 </TableCell>
-                <TableCell className="text-right space-x-2">
+                <TableCell className="text-right space-x-2 whitespace-nowrap">
                   <Button 
                     size="sm" 
                     variant="default" 

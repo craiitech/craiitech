@@ -7,9 +7,15 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescripti
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { User, UserPlus, Trash2, ShieldCheck, Info, UserCircle2, UserCheck, GraduationCap } from 'lucide-react';
+import { User, UserPlus, Trash2, ShieldCheck, Info, UserCircle2, UserCheck, GraduationCap, Layers } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
+import type { AcademicProgram } from '@/lib/types';
+
+interface FacultyModuleProps {
+  canEdit: boolean;
+  program: AcademicProgram;
+}
 
 const academicRanks = {
   nonPermanent: [
@@ -43,7 +49,7 @@ const academicRanks = {
   ]
 };
 
-export function FacultyModule({ canEdit }: { canEdit: boolean }) {
+export function FacultyModule({ canEdit, program }: FacultyModuleProps) {
   const { control, watch } = useFormContext();
   const hasAssociateDean = watch('faculty.hasAssociateDean');
 
@@ -51,6 +57,8 @@ export function FacultyModule({ canEdit }: { canEdit: boolean }) {
     control,
     name: "faculty.members"
   });
+
+  const hasSpecializations = program?.hasSpecializations && (program?.specializations?.length || 0) > 0;
 
   const FacultyForm = ({ prefix, label, desc, icon }: { prefix: string, label: string, desc: string, icon?: React.ReactNode }) => (
     <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 rounded-lg border bg-card shadow-sm relative overflow-hidden">
@@ -151,7 +159,7 @@ export function FacultyModule({ canEdit }: { canEdit: boolean }) {
             <CardDescription>Register and categorize all faculty members teaching in this program.</CardDescription>
           </div>
           {canEdit && (
-            <Button type="button" size="sm" onClick={() => append({ id: Math.random().toString(36).substr(2, 9), name: '', sex: 'Female', highestEducation: '', academicRank: 'Instructor 1', category: 'Core', isAlignedWithCMO: 'Aligned' })}>
+            <Button type="button" size="sm" onClick={() => append({ id: Math.random().toString(36).substr(2, 9), name: '', sex: 'Female', highestEducation: '', academicRank: 'Instructor 1', category: 'Core', isAlignedWithCMO: 'Aligned', specializationAssignment: 'General' })}>
               Add Faculty Member
             </Button>
           )}
@@ -159,12 +167,27 @@ export function FacultyModule({ canEdit }: { canEdit: boolean }) {
         <CardContent className="pt-6">
           <div className="space-y-4">
             {fields.map((field, index) => (
-              <div key={field.id} className="grid grid-cols-1 md:grid-cols-7 gap-3 p-4 rounded-lg border bg-muted/5 items-end transition-colors hover:bg-muted/10 shadow-sm relative group">
+              <div key={field.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 p-4 rounded-lg border bg-muted/5 items-end transition-colors hover:bg-muted/10 shadow-sm relative group">
                 <FormField control={control} name={`faculty.members.${index}.name`} render={({ field }) => (
-                  <FormItem className="md:col-span-1"><FormLabel className="text-[9px] uppercase font-bold">Name</FormLabel><FormControl><Input {...field} className="h-8 text-xs bg-background" disabled={!canEdit} /></FormControl></FormItem>
+                  <FormItem className="md:col-span-2"><FormLabel className="text-[9px] uppercase font-bold">Name</FormLabel><FormControl><Input {...field} className="h-8 text-xs bg-background" disabled={!canEdit} /></FormControl></FormItem>
                 )} />
+                
+                {hasSpecializations && (
+                    <FormField control={control} name={`faculty.members.${index}.specializationAssignment`} render={({ field }) => (
+                        <FormItem className="md:col-span-2"><FormLabel className="text-[9px] uppercase font-bold text-blue-700 flex items-center gap-1"><Layers className="h-2 w-2" /> Major Assignment</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
+                                <FormControl><SelectTrigger className="h-8 text-[10px] bg-blue-50 border-blue-200"><SelectValue placeholder="General" /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                    <SelectItem value="General">General / All Majors</SelectItem>
+                                    {program.specializations?.map(spec => <SelectItem key={spec.id} value={spec.id}>{spec.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </FormItem>
+                    )} />
+                )}
+
                 <FormField control={control} name={`faculty.members.${index}.sex`} render={({ field }) => (
-                  <FormItem><FormLabel className="text-[9px] uppercase font-bold">Sex</FormLabel>
+                  <FormItem className={hasSpecializations ? 'md:col-span-1' : 'md:col-span-1'}><FormLabel className="text-[9px] uppercase font-bold">Sex</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
                       <FormControl><SelectTrigger className="h-8 text-xs bg-background"><SelectValue /></SelectTrigger></FormControl>
                       <SelectContent>
@@ -175,7 +198,7 @@ export function FacultyModule({ canEdit }: { canEdit: boolean }) {
                   </FormItem>
                 )} />
                 <FormField control={control} name={`faculty.members.${index}.academicRank`} render={({ field }) => (
-                  <FormItem className="md:col-span-1"><FormLabel className="text-[9px] uppercase font-bold">Rank</FormLabel>
+                  <FormItem className="md:col-span-2"><FormLabel className="text-[9px] uppercase font-bold">Rank</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
                       <FormControl><SelectTrigger className="h-8 text-xs bg-background px-2"><SelectValue placeholder="Rank" /></SelectTrigger></FormControl>
                       <SelectContent>
@@ -192,33 +215,33 @@ export function FacultyModule({ canEdit }: { canEdit: boolean }) {
                   </FormItem>
                 )} />
                 <FormField control={control} name={`faculty.members.${index}.highestEducation`} render={({ field }) => (
-                  <FormItem className="md:col-span-1"><FormLabel className="text-[9px] uppercase font-bold">Degree</FormLabel><FormControl><Input {...field} className="h-8 text-xs bg-background" disabled={!canEdit} /></FormControl></FormItem>
+                  <FormItem className="md:col-span-2"><FormLabel className="text-[9px] uppercase font-bold">Degree</FormLabel><FormControl><Input {...field} className="h-8 text-xs bg-background" disabled={!canEdit} /></FormControl></FormItem>
                 )} />
                 <FormField control={control} name={`faculty.members.${index}.category`} render={({ field }) => (
-                  <FormItem><FormLabel className="text-[9px] uppercase font-bold">Category</FormLabel>
+                  <FormItem className="md:col-span-1"><FormLabel className="text-[9px] uppercase font-bold">Cat.</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
-                      <FormControl><SelectTrigger className="h-8 text-xs bg-background"><SelectValue /></SelectTrigger></FormControl>
+                      <FormControl><SelectTrigger className="h-8 text-[10px] bg-background"><SelectValue /></SelectTrigger></FormControl>
                       <SelectContent>
-                        <SelectItem value="Core">Core Faculty</SelectItem>
-                        <SelectItem value="Professional Special">Professional Special</SelectItem>
-                        <SelectItem value="General Education">General Education</SelectItem>
-                        <SelectItem value="Staff">Support Staff</SelectItem>
+                        <SelectItem value="Core">Core</SelectItem>
+                        <SelectItem value="Professional Special">Prof. Spec.</SelectItem>
+                        <SelectItem value="General Education">Gen. Ed.</SelectItem>
+                        <SelectItem value="Staff">Staff</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormItem>
                 )} />
                 <FormField control={control} name={`faculty.members.${index}.isAlignedWithCMO`} render={({ field }) => (
-                  <FormItem><FormLabel className="text-[9px] uppercase font-bold">Alignment</FormLabel>
+                  <FormItem className="md:col-span-1"><FormLabel className="text-[9px] uppercase font-bold">CMO</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
-                      <FormControl><SelectTrigger className="h-8 text-xs bg-background"><SelectValue /></SelectTrigger></FormControl>
+                      <FormControl><SelectTrigger className="h-8 text-[10px] bg-background"><SelectValue /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="Aligned">Aligned</SelectItem>
-                        <SelectItem value="Not Aligned">Not Aligned</SelectItem>
+                        <SelectItem value="Not Aligned">NA</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormItem>
                 )} />
-                <div className="flex justify-end h-10 items-center">
+                <div className="flex justify-end h-10 items-center md:col-span-1">
                   {canEdit && (
                     <Button type="button" variant="ghost" size="icon" className="text-destructive h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => remove(index)}>
                       <Trash2 className="h-4 w-4" />
@@ -236,11 +259,11 @@ export function FacultyModule({ canEdit }: { canEdit: boolean }) {
         </CardContent>
       </Card>
 
-      <Alert className="bg-primary/5 border-primary/20">
+      <Alert className="bg-primary/5 border-primary/20 shadow-sm">
         <Info className="h-4 w-4 text-primary" />
-        <AlertTitle className="text-xs font-bold uppercase tracking-widest">CMO Compliance Requirement</AlertTitle>
-        <AlertDescription className="text-[10px] leading-relaxed">
-          As per CHED Memorandum Orders, Core and Professional Special faculty must have advanced degrees (Masters or Doctorate) in fields directly related to the program curriculum.
+        <AlertTitle className="text-xs font-black uppercase tracking-widest">Specialization-Based Faculty Distribution</AlertTitle>
+        <AlertDescription className="text-[10px] leading-relaxed font-medium">
+          Under CHED standards for programs with multiple majors, there must be a distinct set of **Core Faculty** qualified for each specialization track. Ensure that each Major listed in the Registry is assigned sufficient faculty with relevant academic degrees or professional certifications.
         </AlertDescription>
       </Alert>
     </div>

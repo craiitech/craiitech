@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AcademicProgram, ProgramComplianceRecord } from '@/lib/types';
+import type { AcademicProgram, ProgramComplianceRecord, ProgramFacultyMember } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,8 @@ import {
     CheckCircle2, 
     AlertCircle,
     Calculator,
+    Layers,
+    UserCheck
 } from 'lucide-react';
 import { 
     BarChart, 
@@ -88,8 +90,20 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         ? record.boardPerformance[record.boardPerformance.length - 1] 
         : null;
 
-    return { enrollmentData, successTrends, alignmentRate, totalFaculty, latestBoard };
-  }, [record]);
+    // Specialization Statistics
+    const specMap = new Map<string, string>();
+    program.specializations?.forEach(s => specMap.set(s.id, s.name));
+
+    const facultyPerSpec: Record<string, ProgramFacultyMember[]> = { 'General': [] };
+    program.specializations?.forEach(s => facultyPerSpec[s.id] = []);
+
+    record.faculty?.members?.forEach(m => {
+        const specId = m.specializationAssignment || 'General';
+        if (facultyPerSpec[specId]) facultyPerSpec[specId].push(m);
+    });
+
+    return { enrollmentData, successTrends, alignmentRate, totalFaculty, latestBoard, facultyPerSpec, specMap };
+  }, [record, program]);
 
   const documents = useMemo(() => {
     if (!record) return [];
@@ -100,7 +114,6 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
       { id: 'cmo', title: 'Program CMO', url: record.curriculum?.cmoLink, status: record.curriculum?.revisionNumber ? `Rev ${record.curriculum.revisionNumber}` : 'Current' },
     ];
 
-    // Add multiple content noted links
     if (record.ched?.contentNotedLinks) {
         record.ched.contentNotedLinks.forEach((link, index) => {
             if (link.url) {
@@ -115,7 +128,6 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         });
     }
 
-    // Add RQAT reports from history
     if (record.ched?.rqatVisits) {
         record.ched.rqatVisits.forEach((visit, index) => {
             if (visit.reportLink) {
@@ -241,6 +253,51 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                     </ChartContainer>
                 </CardContent>
             </Card>
+
+            {/* Specialization Coverage Hub */}
+            {program.hasSpecializations && (
+                <Card className="border-blue-200 bg-blue-50/5 shadow-md">
+                    <CardHeader className="bg-blue-50 border-b py-4">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <CardTitle className="text-lg flex items-center gap-2 text-blue-800">
+                                    <Layers className="h-5 w-5" />
+                                    Specialization (Majors) Coverage
+                                </CardTitle>
+                                <CardDescription className="text-xs">Faculty distribution per registered major track.</CardDescription>
+                            </div>
+                            <Badge variant="outline" className="bg-white border-blue-200 text-blue-700 font-black h-5 text-[9px] uppercase tracking-widest">{program.specializations?.length} TRACKS</Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="divide-y divide-blue-100">
+                            {program.specializations?.map(spec => {
+                                const specFaculty = analyticsData?.facultyPerSpec[spec.id] || [];
+                                const coreCount = specFaculty.filter(f => f.category === 'Core').length;
+                                return (
+                                    <div key={spec.id} className="p-4 flex items-center justify-between hover:bg-blue-50/50 transition-colors">
+                                        <div className="space-y-1 min-w-0 pr-4">
+                                            <p className="font-black text-sm text-slate-900 tracking-tight">{spec.name}</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {specFaculty.slice(0, 3).map(f => (
+                                                    <span key={f.id} className="text-[10px] text-muted-foreground bg-white border px-1.5 rounded flex items-center gap-1">
+                                                        <UserCheck className="h-2.5 w-2.5" /> {f.name}
+                                                    </span>
+                                                ))}
+                                                {specFaculty.length > 3 && <span className="text-[10px] text-muted-foreground">+{specFaculty.length - 3} more</span>}
+                                            </div>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                            <div className="text-lg font-black text-blue-700 leading-none">{coreCount}</div>
+                                            <p className="text-[8px] font-bold uppercase text-blue-600/60">Core Faculty</p>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             <Card>
                 <CardHeader>
@@ -469,7 +526,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
       )}
 
       <Dialog open={!!previewDoc} onOpenChange={() => setPreviewDoc(null)}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
             <DialogHeader className="p-4 border-b shrink-0">
                 <DialogTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5 text-primary" />
