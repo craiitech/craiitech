@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
@@ -8,10 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ShieldCheck, Calendar, Link as LinkIcon, Award, Users, FileText, CheckCircle2, UserCircle, Calculator, Info, TrendingUp, PlusCircle, Trash2, Layers } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
 const accreditationLevels = [
@@ -93,7 +93,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                 onClick={() => append({ 
                     id: Math.random().toString(36).substr(2, 9),
                     level: 'Non Accredited',
-                    typeOfVisit: 'Preliminary Survey',
+                    typeOfVisit: 'Formal Visit',
                     components: [],
                     lifecycleStatus: 'TBA',
                     areas: [],
@@ -129,14 +129,12 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
 }
 
 function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; canEdit: boolean; onRemove: () => void }) {
-    const { control, setValue } = useFormContext();
+    const { control, setValue, getValues } = useFormContext();
     
-    // Watch fields for this specific record
-    const watchedRecord = useWatch({ control, name: `accreditationRecords.${index}` });
-    const selectedLevel = watchedRecord?.level;
-    const watchedAreas = watchedRecord?.areas || [];
+    const selectedLevel = useWatch({ control, name: `accreditationRecords.${index}.level` });
+    const watchedAreas = useWatch({ control, name: `accreditationRecords.${index}.areas` }) || [];
+    const watchedSummary = useWatch({ control, name: `accreditationRecords.${index}.ratingsSummary` });
 
-    // Field array for components/majors
     const { fields: componentFields, append: appendComponent, remove: removeComponent } = useFieldArray({
         control,
         name: `accreditationRecords.${index}.components`
@@ -152,50 +150,44 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
                selectedLevel?.includes('Level II');
     }, [selectedLevel]);
 
-    // Area Initialization per card
+    const lastInitializedLevelGroup = useRef<string | null>(null);
+
     useEffect(() => {
-        if (!watchedAreas || watchedAreas.length === 0) {
-            if (isPSVToLevel2) {
-                const initial = standardAreas.map(area => ({
-                    areaCode: area.code,
-                    areaName: area.name,
-                    googleDriveLink: '',
-                    taskForce: '',
-                    weight: 0,
-                    mean: 0,
-                    weightedMean: 0
-                }));
-                setValue(`accreditationRecords.${index}.areas`, initial);
-            } else if (isLevel3Or4) {
-                const mandatory = level34MandatoryAreas.map(area => ({
-                    areaCode: area.code,
-                    areaName: area.name,
-                    googleDriveLink: '',
-                    taskForce: '',
-                    weight: 0,
-                    mean: 0,
-                    weightedMean: 0
-                }));
-                const optional = level34OptionalAreas.map(area => ({
-                    areaCode: area.code,
-                    areaName: area.name,
-                    googleDriveLink: '',
-                    taskForce: '',
-                    weight: 0,
-                    mean: 0,
-                    weightedMean: 0
-                }));
-                setValue(`accreditationRecords.${index}.areas`, [...mandatory, ...optional]);
-            }
+        const currentGroup = isLevel3Or4 ? 'L34' : (isPSVToLevel2 ? 'PSV-L2' : 'NONE');
+        if (lastInitializedLevelGroup.current === currentGroup) return;
+
+        if (isPSVToLevel2) {
+            const initial = standardAreas.map(area => ({
+                areaCode: area.code,
+                areaName: area.name,
+                googleDriveLink: '',
+                taskForce: '',
+                weight: 0,
+                mean: 0,
+                weightedMean: 0
+            }));
+            setValue(`accreditationRecords.${index}.areas`, initial, { shouldDirty: false });
+        } else if (isLevel3Or4) {
+            const initial = [...level34MandatoryAreas, ...level34OptionalAreas].map(area => ({
+                areaCode: area.code,
+                areaName: area.name,
+                googleDriveLink: '',
+                taskForce: '',
+                weight: 0,
+                mean: 0,
+                weightedMean: 0
+            }));
+            setValue(`accreditationRecords.${index}.areas`, initial, { shouldDirty: false });
         }
+        lastInitializedLevelGroup.current = currentGroup;
     }, [selectedLevel, isPSVToLevel2, isLevel3Or4, index, setValue]);
 
-    // Local Score Engine for this card
     useEffect(() => {
         if (!watchedAreas || watchedAreas.length === 0) return;
 
         let totalWeight = 0;
         let totalWeightedMean = 0;
+        let updates = false;
 
         watchedAreas.forEach((area: any, areaIdx: number) => {
             const weight = parseFloat(area.weight) || 0;
@@ -203,7 +195,8 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
             const weightedMean = parseFloat((weight * mean).toFixed(2));
 
             if (area.weightedMean !== weightedMean) {
-                setValue(`accreditationRecords.${index}.areas.${areaIdx}.weightedMean`, weightedMean);
+                setValue(`accreditationRecords.${index}.areas.${areaIdx}.weightedMean`, weightedMean, { shouldValidate: false });
+                updates = true;
             }
 
             totalWeight += weight;
@@ -211,12 +204,20 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
         });
 
         const grandMean = totalWeight > 0 ? parseFloat((totalWeightedMean / totalWeight).toFixed(2)) : 0;
+        const finalWeight = parseFloat(totalWeight.toFixed(2));
+        const finalWeightedMean = parseFloat(totalWeightedMean.toFixed(2));
 
-        setValue(`accreditationRecords.${index}.ratingsSummary.overallTotalWeight`, parseFloat(totalWeight.toFixed(2)));
-        setValue(`accreditationRecords.${index}.ratingsSummary.overallTotalWeightedMean`, parseFloat(totalWeightedMean.toFixed(2)));
-        setValue(`accreditationRecords.${index}.ratingsSummary.grandMean`, grandMean);
+        if (watchedSummary?.overallTotalWeight !== finalWeight) {
+            setValue(`accreditationRecords.${index}.ratingsSummary.overallTotalWeight`, finalWeight, { shouldValidate: false });
+        }
+        if (watchedSummary?.overallTotalWeightedMean !== finalWeightedMean) {
+            setValue(`accreditationRecords.${index}.ratingsSummary.overallTotalWeightedMean`, finalWeightedMean, { shouldValidate: false });
+        }
+        if (watchedSummary?.grandMean !== grandMean) {
+            setValue(`accreditationRecords.${index}.ratingsSummary.grandMean`, grandMean, { shouldValidate: false });
+        }
 
-    }, [watchedAreas, index, setValue]);
+    }, [watchedAreas, index, setValue, watchedSummary]);
 
     return (
         <div className="space-y-6 animate-in slide-in-from-top-4 duration-500">
@@ -397,7 +398,7 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
                             <div className="text-right">
                                 <p className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">Grand Mean</p>
                                 <p className="text-2xl font-black text-primary tabular-nums tracking-tighter">
-                                    {watchedRecord?.ratingsSummary?.grandMean?.toFixed(2) || '0.00'}
+                                    {watchedSummary?.grandMean?.toFixed(2) || '0.00'}
                                 </p>
                             </div>
                         </div>

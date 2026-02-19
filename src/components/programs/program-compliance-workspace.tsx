@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import type { AcademicProgram, ProgramComplianceRecord } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -104,7 +103,15 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     },
   });
 
+  const lastResetId = useRef<string | null>(null);
+
   useEffect(() => {
+    // Unique ID combining the specific document ID and the selected year
+    const currentId = activeRecord ? `${activeRecord.id}-${selectedAY}` : `null-${selectedAY}`;
+    
+    // BREAK THE LOOP: Stop if we've already reset for this specific data context
+    if (currentId === lastResetId.current) return;
+
     if (activeRecord) {
       methods.reset({
         ...activeRecord,
@@ -136,6 +143,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         boardPerformance: []
       });
     }
+    lastResetId.current = currentId;
   }, [activeRecord, selectedAY, methods]);
 
   const onSave = async (values: any) => {
