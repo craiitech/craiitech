@@ -7,7 +7,7 @@ import type { AuditSchedule, AuditFinding, ISOClause, AuditPlan } from '@/lib/ty
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Save, Clock, Building2, User, PlusCircle, Database, Check, Printer, FileText } from 'lucide-react';
+import { Loader2, ArrowLeft, Save, Clock, Building2, User, PlusCircle, Database, Check, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState } from 'react';
 import { AuditChecklist } from '@/components/audit/audit-checklist';
@@ -206,6 +206,28 @@ export default function AuditExecutionPage() {
     );
   };
 
+  const handleFindingSync = (finding: any) => {
+    const clauseId = finding.isoClause;
+    const textToCopy = `[Clause ${clauseId}] ${finding.description || finding.ncStatement}`;
+    
+    if (finding.type === 'Commendation') {
+        const current = form.getValues('summaryCommendablePractices') || '';
+        if (!current.includes(`[Clause ${clauseId}]`)) {
+            form.setValue('summaryCommendablePractices', current + (current ? '\n' : '') + textToCopy);
+        }
+    } else if (finding.type === 'Observation for Improvement') {
+        const current = form.getValues('summaryOFI') || '';
+        if (!current.includes(`[Clause ${clauseId}]`)) {
+            form.setValue('summaryOFI', current + (current ? '\n' : '') + textToCopy);
+        }
+    } else if (finding.type === 'Non-Conformance') {
+        const current = form.getValues('summaryNC') || '';
+        if (!current.includes(`[Clause ${clauseId}]`)) {
+            form.setValue('summaryNC', current + (current ? '\n' : '') + textToCopy);
+        }
+    }
+  };
+
   const isLoading = isLoadingSchedule || isLoadingFindings || isLoadingClauses;
 
   if (isLoading) {
@@ -261,12 +283,13 @@ export default function AuditExecutionPage() {
                 scheduleId={schedule.id}
                 clausesToAudit={clausesInScope}
                 existingFindings={findings || []}
+                onFindingSaved={handleFindingSync}
             />
 
             <Card>
                 <CardHeader>
                     <CardTitle>Audit Summary & Final Report</CardTitle>
-                    <CardDescription>Consolidate your findings into a high-level summary. Saving this will mark the audit as Completed.</CardDescription>
+                    <CardDescription>Consolidate your findings into a high-level summary. Findings are automatically copied here when committed above.</CardDescription>
                 </CardHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(handleSaveSummary)}>

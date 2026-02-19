@@ -16,7 +16,7 @@ import type { AuditFinding, ISOClause } from '@/lib/types';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import { Loader2, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
@@ -27,6 +27,7 @@ interface AuditChecklistProps {
   scheduleId: string;
   clausesToAudit: ISOClause[];
   existingFindings: AuditFinding[];
+  onFindingSaved?: (finding: any) => void;
 }
 
 interface ClauseFormData {
@@ -36,7 +37,17 @@ interface ClauseFormData {
   type: 'Commendation' | 'Observation for Improvement' | 'Non-Conformance' | '';
 }
 
-function ClauseForm({ scheduleId, clause, finding, onSave }: { scheduleId: string; clause: ISOClause; finding: AuditFinding | undefined, onSave: () => void }) {
+function ClauseForm({ 
+  scheduleId, 
+  clause, 
+  finding, 
+  onSave 
+}: { 
+  scheduleId: string; 
+  clause: ISOClause; 
+  finding: AuditFinding | undefined, 
+  onSave: (data: any) => void 
+}) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -62,6 +73,7 @@ function ClauseForm({ scheduleId, clause, finding, onSave }: { scheduleId: strin
       })
   }, [finding, form]);
 
+  // When NC is selected, auto-fill the template if empty
   useEffect(() => {
     if (watchType === 'Non-Conformance' && !form.getValues('ncStatement')) {
         const template = `It was observed that ISO 21001:2018 Clause ${clause.id} requirement regarding [Specific Requirement Name] was not fully implemented in the [Unit Name]. \n\nSpecifically, the unit [Description of the Gap/Failure]. \n\nThis resulted in [Impact/Risk to the Management System].`;
@@ -97,7 +109,7 @@ function ClauseForm({ scheduleId, clause, finding, onSave }: { scheduleId: strin
     try {
         await setDoc(findingRef, findingData, { merge: true });
         toast({ title: "Saved", description: `Finding for clause ${clause.id} has been saved.`});
-        onSave(); 
+        onSave(findingData); 
     } catch(error) {
         console.error("Error saving finding: ", error);
         toast({ title: "Error", description: "Could not save finding.", variant: 'destructive' });
@@ -208,7 +220,7 @@ function ClauseForm({ scheduleId, clause, finding, onSave }: { scheduleId: strin
 }
 
 
-export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings }: AuditChecklistProps) {
+export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, onFindingSaved }: AuditChecklistProps) {
   const findingsMap = useMemo(() => new Map(existingFindings.map(f => [f.isoClause, f])), [existingFindings]);
 
   const sortedClauses = useMemo(() => {
@@ -216,10 +228,6 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings }:
         a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' })
     );
   }, [clausesToAudit]);
-
-  const handleSave = () => {
-    // Parent components handle state synchronization via real-time hooks
-  }
 
   return (
     <Card className="shadow-2xl border-primary/10 overflow-hidden">
@@ -274,7 +282,7 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings }:
                         scheduleId={scheduleId}
                         clause={clause}
                         finding={findingsMap.get(clause.id)}
-                        onSave={handleSave}
+                        onSave={(data) => onFindingSaved?.(data)}
                     />
                   </div>
                 </AccordionContent>
