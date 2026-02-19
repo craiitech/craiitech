@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -76,10 +77,17 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      auditNumber: '',
       auditType: 'Regular Audit',
+      title: '',
       year: currentYear,
+      campusId: '',
       auditeeType: 'Operation Processes',
+      scope: '',
+      leadAuditorId: '',
       referenceDocument: 'ISO 21001:2018 / EOMS Standard',
+      openingMeetingDate: '',
+      closingMeetingDate: '',
     },
   });
 
