@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import type { AuditPlan, AuditSchedule, Campus, User, Unit } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, FileText, Settings2, User as UserIcon, Calendar, ArrowRight, ShieldCheck, Flag } from 'lucide-react';
+import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, FileText, Settings2, User as UserIcon, Calendar, ArrowRight, ShieldCheck, Flag, ListChecks } from 'lucide-react';
 import {
   Table,
   TableBody,
