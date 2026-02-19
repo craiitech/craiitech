@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -34,10 +35,14 @@ import {
     School, 
     CheckCircle2,
     XCircle,
-    LayoutList
+    LayoutList,
+    ShieldCheck,
+    Info,
+    UserCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
+import { useUser } from '@/firebase';
 
 interface ProgramAnalyticsProps {
   programs: AcademicProgram[];
@@ -50,8 +55,11 @@ interface ProgramAnalyticsProps {
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
 export function ProgramAnalytics({ programs, compliances, campuses, isLoading, selectedYear }: ProgramAnalyticsProps) {
-  
+  const { isAdmin, userRole } = useUser();
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
+
+  const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+  const isUnitViewer = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
 
   const analytics = useMemo(() => {
     if (!programs.length) return null;
@@ -117,7 +125,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
 
             const milestones = record.accreditationRecords || [];
             
-            // LOGIC: Map accreditation to results by major
             if (program.hasSpecializations && program.specializations) {
                 const majorResults = program.specializations.map(spec => {
                     const milestone = milestones.find(m => m.lifecycleStatus === 'Current' && m.components?.some(c => c.id === spec.id));
@@ -133,8 +140,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                 }
             }
 
-            if (record.faculty?.members?.length > 0) score += 20;
-            if (record.curriculum?.cmoLink && record.curriculum?.isNotedByChed) score += 20;
+            // Faculty check: must have named members
+            const hasFaculty = (record.faculty?.members?.length || 0) > 0 || (record.faculty?.dean?.name);
+            if (hasFaculty) score += 20;
+            
+            if (record.ched?.programCmoLink) score += 20;
             if (record.graduationRecords?.length > 0) score += 20;
         }
 
@@ -144,7 +154,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             campusName,
             copc: record?.ched?.copcStatus || 'No COPC',
             accreditation: accreditationDisplay,
-            contentNoted: record?.ched?.contentNoted ? 'Yes' : 'No',
             compliancePercentage: Math.round(score)
         };
     }).sort((a, b) => a.campusName.localeCompare(b.campusName) || a.name.localeCompare(b.name));
@@ -168,17 +177,58 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
 
   return (
     <div className="space-y-6">
+      {/* --- USER-CENTERED DECISION CONTEXT --- */}
+      <Card className="border-primary/20 bg-primary/5 shadow-sm overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center">
+            <div className="p-6 flex items-center gap-4 bg-primary text-white md:w-72 shrink-0">
+                <UserCircle className="h-10 w-10 opacity-80" />
+                <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-70">User Perspective</p>
+                    <p className="font-bold text-sm">{isAdmin ? 'Institutional Admin' : isCampusSupervisor ? 'Campus Director' : 'Unit Coordinator'}</p>
+                </div>
+            </div>
+            <div className="p-6 flex-1 bg-white/50 backdrop-blur-sm">
+                <div className="flex items-start gap-3">
+                    <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                        <p className="text-xs font-black uppercase text-primary tracking-tight">Strategic Decision Support Hub</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                            {isAdmin && "University-wide overview focused on quality parity. Monitor cross-campus metrics to identify systemic accreditation gaps or regulatory non-compliances."}
+                            {isCampusSupervisor && "Site-specific monitoring. Focus on the compliance scores of academic units within your campus to ensure resource sufficiency and accreditation health."}
+                            {isUnitViewer && "Unit-level operations. Track your program's verified status against institutional targets. Ensure all evidence documents are updated for audit cycles."}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </Card>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/10"><CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Offerings Registered</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold">{analytics?.totalPrograms}</div></CardContent></Card>
-        <Card className="bg-green-50 border-green-100"><CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-wider text-green-700 font-bold">Monitoring Coverage</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold text-green-600">{analytics?.monitoredCount}</div></CardContent></Card>
+        <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-2 opacity-5"><Activity className="h-12 w-12" /></div>
+            <CardHeader className="pb-2">
+                <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Offerings Registered</CardTitle>
+            </CardHeader>
+            <CardContent><div className="text-3xl font-black text-primary tabular-nums">{analytics?.totalPrograms}</div></CardContent>
+        </Card>
+        <Card className="bg-green-50 border-green-100 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-2 opacity-5"><CheckCircle2 className="h-12 w-12" /></div>
+            <CardHeader className="pb-2">
+                <CardTitle className="text-xs uppercase tracking-wider text-green-700 font-bold">Monitoring Coverage</CardTitle>
+            </CardHeader>
+            <CardContent><div className="text-3xl font-black text-green-600 tabular-nums">{analytics?.monitoredCount}</div></CardContent>
+        </Card>
       </div>
 
       <Card className="shadow-md border-primary/10 overflow-hidden">
         <CardHeader className="bg-muted/10 border-b py-4">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <CardTitle className="text-lg flex items-center gap-2 font-black uppercase tracking-tight"><LayoutList className="h-5 w-5 text-primary" />Institutional Compliance Summary</CardTitle>
-                    <CardDescription className="text-xs">Maturity view across all degree programs and majors for {selectedYear}.</CardDescription>
+                    <CardTitle className="text-lg flex items-center gap-2 font-black uppercase tracking-tight">
+                        <LayoutList className="h-5 w-5 text-primary" />
+                        {isAdmin ? 'University Strategic Compliance Matrix' : isCampusSupervisor ? 'Campus Quality Monitoring Matrix' : 'Unit Performance Scorecard'}
+                    </CardTitle>
+                    <CardDescription className="text-xs font-medium">Verified maturity index across all degree programs for {selectedYear}.</CardDescription>
                 </div>
             </div>
         </CardHeader>
@@ -190,9 +240,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                             <TableHead className="font-black text-[10px] uppercase py-3 min-w-[150px]">Site / Campus</TableHead>
                             <TableHead className="font-black text-[10px] uppercase py-3 min-w-[250px]">Program Offered</TableHead>
                             <TableHead className="text-center font-black text-[10px] uppercase py-3">COPC</TableHead>
-                            <TableHead className="font-black text-[10px] uppercase py-3">Accreditation Result (by Major)</TableHead>
-                            <TableHead className="text-center font-black text-[10px] uppercase py-3">Contents Noted</TableHead>
-                            <TableHead className="text-right font-black text-[10px] uppercase py-3 pr-6">Score</TableHead>
+                            <TableHead className="font-black text-[10px] uppercase py-3">Accreditation Results</TableHead>
+                            <TableHead className="text-right font-black text-[10px] uppercase py-3 pr-6">Maturity Score</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -207,7 +256,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                                         <span className="text-[10px] font-bold text-slate-700 leading-snug">{row.accreditation}</span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="text-center py-2">{row.contentNoted === 'Yes' ? <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" /> : <XCircle className="h-4 w-4 text-rose-300 mx-auto" />}</TableCell>
                                 <TableCell className="text-right py-2 pr-6">
                                     <div className="flex flex-col items-end gap-1">
                                         <span className="text-[10px] font-black tabular-nums">{row.compliancePercentage}%</span>

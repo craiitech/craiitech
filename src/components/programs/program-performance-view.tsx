@@ -30,7 +30,8 @@ import {
     BarChart3,
     AlertTriangle,
     Info,
-    ArrowUpRight
+    ArrowUpRight,
+    UserCircle
 } from 'lucide-react';
 import { 
     PieChart, 
@@ -56,6 +57,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
 import { Timestamp } from 'firebase/firestore';
+import { useUser } from '@/firebase';
 
 interface ProgramPerformanceViewProps {
   program: AcademicProgram;
@@ -71,16 +73,21 @@ const PILLAR_WEIGHTS = {
     outcomes: 20
 };
 
-const PILLAR_COLORS = {
-    ched: 'hsl(var(--chart-1))',
-    accreditation: 'hsl(var(--chart-2))',
-    faculty: 'hsl(var(--chart-3))',
-    curriculum: 'hsl(var(--chart-4))',
-    outcomes: 'hsl(var(--chart-5))'
+const COLORS: Record<string, string> = {
+    'Aligned': 'hsl(var(--chart-2))',
+    'Needs Correction': 'hsl(var(--destructive))',
+    'Approved': 'hsl(var(--chart-2))',
+    'Awaiting Approval': 'hsl(var(--chart-1))',
+    'Rejected': 'hsl(var(--chart-3))',
+    'Missing': 'hsl(var(--muted-foreground))'
 };
 
 export function ProgramPerformanceView({ program, record, selectedYear }: ProgramPerformanceViewProps) {
+  const { isAdmin, userRole } = useUser();
   const [previewDoc, setPreviewDoc] = useState<{ title: string; url: string } | null>(null);
+
+  const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+  const isUnitViewer = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
 
   const analyticsData = useMemo(() => {
     if (!record) return null;
@@ -99,18 +106,20 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         };
     });
 
-    // 2. Faculty Alignment Analysis (Pie)
+    // 2. Faculty Alignment Analysis (Pie) - Only counting named members
     let totalFaculty = 0;
     let alignedFaculty = 0;
-    const countMember = (m: any) => {
+    
+    const checkAlignment = (m: any) => {
         if (!m || !m.name || m.name.trim() === '') return;
         totalFaculty++;
         if (m.isAlignedWithCMO === 'Aligned') alignedFaculty++;
     };
-    if (record.faculty?.members) record.faculty.members.forEach(countMember);
-    countMember(record.faculty?.dean);
-    if (record.faculty?.hasAssociateDean) countMember(record.faculty?.associateDean);
-    countMember(record.faculty?.programChair);
+
+    if (record.faculty?.members) record.faculty.members.forEach(checkAlignment);
+    checkAlignment(record.faculty?.dean);
+    if (record.faculty?.hasAssociateDean) checkAlignment(record.faculty?.associateDean);
+    checkAlignment(record.faculty?.programChair);
     
     const alignmentRate = totalFaculty > 0 ? Math.round((alignedFaculty / totalFaculty) * 100) : 0;
     const facultyPieData = [
@@ -133,7 +142,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     const currentAccreditationByMajor: Record<string, AccreditationRecord> = {};
     milestones.filter(m => m.lifecycleStatus === 'Current').forEach(m => {
         if (!m.components || m.components.length === 0) {
-            currentAccreditationByMajor['program-wide'] = m;
+            currentAccreditationByMajor['General'] = m;
         } else {
             m.components.forEach(comp => {
                 currentAccreditationByMajor[comp.id] = m;
@@ -176,7 +185,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     
     if (program.hasSpecializations) {
         program.specializations?.forEach(spec => {
-            if (!currentAccreditationByMajor[spec.id]) {
+            if (!currentAccreditationByMajor[spec.id] && !currentAccreditationByMajor['General']) {
                 gaps.push({ type: 'Academic Quality', msg: `Missing accreditation record for major: ${spec.name}`, priority: 'Medium' });
             }
             if (!curriculaByMajor[spec.id] && !curriculaByMajor['General']) {
@@ -233,6 +242,33 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+      
+      {/* --- USER-CENTERED DECISION CONTEXT --- */}
+      <Card className="border-primary/20 bg-primary/5 shadow-sm overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center">
+            <div className="p-6 flex items-center gap-4 bg-primary text-white md:w-72 shrink-0">
+                <UserCircle className="h-10 w-10 opacity-80" />
+                <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-70">User Perspective</p>
+                    <p className="font-bold text-sm">{isAdmin ? 'Institutional Admin' : isCampusSupervisor ? 'Campus Director' : 'Unit Coordinator'}</p>
+                </div>
+            </div>
+            <div className="p-6 flex-1 bg-white/50 backdrop-blur-sm">
+                <div className="flex items-start gap-3">
+                    <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                        <p className="text-xs font-black uppercase text-primary tracking-tight">Strategic Guidance for Decision Making</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                            {isAdmin && "Oversee university-wide parity. Ensure this program meets institutional quality benchmarks and CHED CMO standards across all registered campuses."}
+                            {isCampusSupervisor && "Monitor local program health. Focus on resource sufficiency (Faculty) and ensuring accreditation milestones are current for this campus site."}
+                            {isUnitViewer && "Execute local compliance. Maintain accuracy in student stats and finalize CHED curriculum notation proofs to avoid institutional flags."}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </Card>
+
       {/* --- EXECUTIVE KPI PANEL --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
@@ -400,16 +436,20 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                 </Card>
             </div>
 
-            {/* --- STRATEGIC GAP ANALYSIS (MANAGEMENT ACTION PANEL) --- */}
+            {/* --- USER-CENTERED ACTION REGISTRY --- */}
             <Card className="border-destructive/30 shadow-xl overflow-hidden bg-destructive/5 relative">
                 <div className="absolute top-0 left-0 w-1.5 h-full bg-destructive opacity-50" />
                 <CardHeader className="bg-destructive/10 border-b py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-destructive">
                             <ShieldAlert className="h-5 w-5" />
-                            <CardTitle className="text-sm font-black uppercase tracking-tight">Administrative Action Registry</CardTitle>
+                            <CardTitle className="text-sm font-black uppercase tracking-tight">
+                                {isAdmin ? 'Institutional Strategic Risk Register' : isCampusSupervisor ? 'Campus Quality & Oversight Alerts' : 'Operational Correction & Compliance List'}
+                            </CardTitle>
                         </div>
-                        <Badge variant="destructive" className="animate-pulse shadow-sm h-5 text-[9px] font-black uppercase">Requires Management Intervention</Badge>
+                        <Badge variant="destructive" className="animate-pulse shadow-sm h-5 text-[9px] font-black uppercase">
+                            {isAdmin ? 'University Risks' : isCampusSupervisor ? 'Site Deficiencies' : 'Task Required'}
+                        </Badge>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -521,7 +561,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                     <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 flex items-start gap-2">
                         <Info className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
                         <p className="text-[9px] text-blue-800 leading-relaxed font-medium italic">
-                            All documents listed here undergo institutional verification by the Quality Assurance Office to ensure validity and compliance.
+                            Evidence integrity is verified institutionally. Only validated records contribute to the program maturity profile.
                         </p>
                     </div>
                 </div>
