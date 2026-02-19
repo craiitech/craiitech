@@ -23,7 +23,8 @@ import {
     Calendar,
     ChevronRight,
     MapPin,
-    Target
+    Target,
+    Gavel
 } from 'lucide-react';
 import { 
     BarChart, 
@@ -120,6 +121,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     if (!record) return [];
     
     const baseDocs: { id: string; title: string; url: string | undefined; status: string | undefined }[] = [
+      { id: 'bor', title: 'Board Approval Certificate', url: record.ched?.boardApprovalLink, status: 'BOR Resolution' },
       { id: 'copc', title: 'CHED COPC', url: record.ched?.copcLink, status: record.ched?.copcStatus },
       { id: 'cmo', title: 'Program CMO', url: record.curriculum?.cmoLink, status: record.curriculum?.revisionNumber ? `Rev ${record.curriculum.revisionNumber}` : 'Current' },
     ];
@@ -434,7 +436,10 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                                 <div key={doc.id} className="group p-4 rounded-xl border bg-background hover:border-primary/50 hover:shadow-md transition-all">
                                     <div className="flex flex-col gap-4">
                                         <div className="space-y-1 min-w-0">
-                                            <p className="font-bold text-sm truncate">{doc.title}</p>
+                                            <div className="flex items-center gap-2">
+                                                {doc.id === 'bor' && <Gavel className="h-3 w-3 text-primary" />}
+                                                <p className="font-bold text-sm truncate">{doc.title}</p>
+                                            </div>
                                             <p className="text-[10px] text-muted-foreground uppercase tracking-tighter">{doc.status}</p>
                                         </div>
                                         <div className="flex gap-2 w-full">

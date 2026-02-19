@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
@@ -79,7 +80,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     resolver: zodResolver(complianceSchema),
     defaultValues: {
       academicYear: selectedAY,
-      ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', contentNotedLinks: [], rqatVisits: [] },
+      ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', boardApprovalLink: '', contentNotedLinks: [], rqatVisits: [] },
       accreditationRecords: [],
       curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
       faculty: { 
@@ -120,7 +121,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     } else {
       methods.reset({
         academicYear: selectedAY,
-        ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', contentNotedLinks: [], rqatVisits: [] },
+        ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', boardApprovalLink: '', contentNotedLinks: [], rqatVisits: [] },
         accreditationRecords: [],
         curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
         faculty: { 
@@ -148,7 +149,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
 
   const onSave = async (values: any) => {
     if (!firestore || !userProfile) return;
-    setIsSaving(true);
+    setIsSubmitting(true);
 
     const recordId = activeRecord?.id || `${program.id}-${selectedAY}`;
     const docRef = doc(firestore, 'programCompliances', recordId);

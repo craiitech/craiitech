@@ -8,10 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { FileText, Calendar, Link as LinkIcon, PlusCircle, Trash2, CheckCircle2 } from 'lucide-react';
+import { FileText, Calendar, Link as LinkIcon, PlusCircle, Trash2, CheckCircle2, Gavel } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
+export function ChedComplianceModule({ canEdit }: { boolean }) {
   const { control } = useFormContext();
   
   const { fields: rqatFields, append: appendRqat, remove: removeRqat } = useFieldArray({
@@ -30,9 +30,9 @@ export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            Basic CHED Compliance
+            Basic Institutional Compliance
           </CardTitle>
-          <CardDescription>Status of COPC and Contents Noted by CHED.</CardDescription>
+          <CardDescription>Official authority to operate and CHED recognition status.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <FormField
@@ -66,7 +66,28 @@ export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
                     <Input {...field} placeholder="https://drive.google.com/..." className="pl-9" disabled={!canEdit} />
                   </div>
                 </FormControl>
-                <FormDescription className="text-[10px]">Ensure sharing is 'Anyone with the link can view'.</FormDescription>
+                <FormDescription className="text-[10px]">Official CHED certification for the program.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={control}
+            name="ched.boardApprovalLink"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-2">
+                    <Gavel className="h-3.5 w-3.5 text-primary" />
+                    Board Approval Certificate (BOR Resolution)
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9" disabled={!canEdit} />
+                  </div>
+                </FormControl>
+                <FormDescription className="text-[10px]">Link to the BOR Resolution approving the program creation or revision.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}

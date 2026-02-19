@@ -394,6 +394,7 @@ export type ProgramComplianceRecord = {
   ched: {
     copcStatus: 'With COPC' | 'No COPC' | 'In Progress';
     copcLink?: string; // GDrive PDF
+    boardApprovalLink?: string; // Added: BOR Resolution Link
     contentNoted: boolean;
     contentNotedLinks?: { url: string; dateNoted?: string }[];
     rqatVisits?: RQATVisit[];
