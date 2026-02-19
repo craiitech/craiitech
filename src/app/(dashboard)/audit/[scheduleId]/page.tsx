@@ -1,14 +1,13 @@
-
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
 import { doc, collection, query, where, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
-import type { AuditSchedule, AuditFinding, ISOClause } from '@/lib/types';
+import type { AuditSchedule, AuditFinding, ISOClause, AuditPlan } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Save, Clock, Building2, User, PlusCircle, Database, Check } from 'lucide-react';
+import { Loader2, ArrowLeft, Save, Clock, Building2, User, PlusCircle, Database, Check, Printer, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState } from 'react';
 import { AuditChecklist } from '@/components/audit/audit-checklist';
@@ -25,6 +24,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from '@/lib/utils';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { AuditPrintTemplate } from '@/components/audit/audit-print-template';
 
 const LoadingSkeleton = () => (
   <div className="space-y-6">
@@ -62,13 +63,18 @@ export default function AuditExecutionPage() {
   );
   const { data: schedule, isLoading: isLoadingSchedule } = useDoc<AuditSchedule>(scheduleDocRef);
 
+  const planRef = useMemoFirebase(
+    () => (firestore && schedule?.auditPlanId ? doc(firestore, 'auditPlans', schedule.auditPlanId) : null),
+    [firestore, schedule?.auditPlanId]
+  );
+  const { data: plan } = useDoc<AuditPlan>(planRef);
+
   const findingsQuery = useMemoFirebase(
     () => (firestore && scheduleId ? query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', scheduleId)) : null),
     [firestore, scheduleId]
   );
   const { data: findings, isLoading: isLoadingFindings } = useCollection<AuditFinding>(findingsQuery);
   
-  // Fetch ALL clauses so we can manage unused ones
   const allIsoClausesQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'isoClauses') : null),
     [firestore]
@@ -143,6 +149,57 @@ export default function AuditExecutionPage() {
     });
   };
 
+  const handlePrintLog = () => {
+    if (!schedule || !findings || !allIsoClauses) return;
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <AuditPrintTemplate 
+                schedule={schedule}
+                findings={findings}
+                clauses={clausesInScope}
+                plan={plan || undefined}
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>IQA Evidence Log - ${schedule.targetName}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @media print { 
+                            body { margin: 0; padding: 0; background: white; } 
+                            .no-print { display: none !important; }
+                            table { page-break-inside: auto; }
+                            tr { page-break-inside: avoid; page-break-after: auto; }
+                        }
+                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                        .text-center { text-align: center; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print IQA Report</button>
+                    </div>
+                    <div id="print-content">
+                        ${reportHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) {
+        console.error("Print error:", err);
+        toast({ title: "Print Failed", description: "Could not generate the print template.", variant: "destructive" });
+    }
+  };
+
   const toggleNewClauseSelection = (clauseId: string) => {
     setSelectedNewClauses(prev => 
         prev.includes(clauseId) ? prev.filter(id => id !== clauseId) : [...prev, clauseId]
@@ -187,9 +244,15 @@ export default function AuditExecutionPage() {
             </p>
             </div>
         </div>
-        <Badge variant={schedule.status === 'Completed' ? 'default' : 'secondary'} className="h-7 px-4 font-black uppercase">
-            {schedule.status}
-        </Badge>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handlePrintLog} className="bg-white shadow-sm font-bold h-9">
+                <Printer className="mr-2 h-4 w-4" />
+                Print Evidence Log
+            </Button>
+            <Badge variant={schedule.status === 'Completed' ? 'default' : 'secondary'} className="h-9 px-4 font-black uppercase tracking-widest border-none shadow-sm">
+                {schedule.status}
+            </Badge>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -259,21 +322,21 @@ export default function AuditExecutionPage() {
                  <CardContent className="space-y-6 pt-6">
                     <div className="space-y-3">
                         <div className="space-y-1">
-                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Assigned Auditor</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Assigned Auditor</p>
                             <div className="flex items-center gap-2">
                                 <User className="h-4 w-4 text-primary" />
                                 <span className="text-sm font-bold">{schedule.auditorName || 'Not Assigned'}</span>
                             </div>
                         </div>
                         <div className="space-y-1">
-                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Target Auditee</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Target Auditee</p>
                             <div className="flex items-center gap-2">
                                 <Building2 className="h-4 w-4 text-primary" />
                                 <span className="text-sm font-bold">{schedule.targetName}</span>
                             </div>
                         </div>
                         <div className="space-y-1">
-                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Conduct Schedule</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Conduct Schedule</p>
                             <div className="flex items-center gap-2">
                                 <Clock className="h-4 w-4 text-primary" />
                                 <span className="text-sm font-bold">{format(conductDate, 'PPp')}</span>
