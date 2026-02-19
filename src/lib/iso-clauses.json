@@ -1,99 +1,33 @@
 {
   "clauses": [
-    {
-      "id": "5.3",
-      "title": "Organizational roles, responsibilities and authorities",
-      "description": "Top management shall ensure that the responsibilities and authorities for relevant roles are assigned, communicated and understood within the organization."
-    },
-    {
-      "id": "6.1",
-      "title": "Actions to address risks and opportunities",
-      "description": "When planning for the EOMS, the organization shall consider the issues referred to in 4.1 and the requirements referred to in 4.2 and determine the risks and opportunities that need to be addressed."
-    },
-    {
-      "id": "6.2",
-      "title": "Objectives of the EOMS and planning to achieve them",
-      "description": "The organization shall establish objectives for the EOMS at relevant functions and levels. The objectives shall be consistent with the EOMS policy, be measurable, take into account applicable requirements, and be relevant to conformity of products and services and enhancement of satisfaction."
-    },
-    {
-      "id": "7.1",
-      "title": "Resources",
-      "description": "The organization shall determine and provide the resources needed for the establishment, implementation, maintenance and continual improvement of the EOMS."
-    },
-    {
-      "id": "7.2",
-      "title": "Competence",
-      "description": "The organization shall determine the necessary competence of person(s) doing work under its control that affects its EOMS performance and take actions to acquire necessary competence."
-    },
-    {
-      "id": "7.3",
-      "title": "Awareness",
-      "description": "Persons doing work under the organization’s control shall be aware of the EOMS policy, relevant EOMS objectives, their contribution to the effectiveness of the EOMS, and the implications of not conforming with the EOMS requirements."
-    },
-    {
-      "id": "7.4",
-      "title": "Communication",
-      "description": "The organization shall determine the internal and external communications relevant to the EOMS including: on what it will communicate; when to communicate; with whom to communicate; and how to communicate."
-    },
-    {
-      "id": "7.5",
-      "title": "Documented information",
-      "description": "The organization’s EOMS shall include documented information required by this document and documented information determined by the organization as being necessary for the effectiveness of the EOMS."
-    },
-    {
-      "id": "8.1",
-      "title": "Operational planning and control",
-      "description": "The organization shall plan, implement and control the processes needed to meet requirements for the provision of educational products and services."
-    },
-    {
-      "id": "8.2",
-      "title": "Requirements for educational products and services",
-      "description": "The organization shall establish, implement and maintain a process to communicate with interested parties in relation to information on educational products and services, handling enquiries, contracts or orders, and obtaining their views, perceptions, complaints and feedback."
-    },
-    {
-      "id": "8.3",
-      "title": "Design and development of educational products and services",
-      "description": "The organization shall establish, implement and maintain a design and development process that is appropriate to ensure the subsequent provision of educational products and services."
-    },
-    {
-      "id": "8.4",
-      "title": "Control of externally provided processes, products and services",
-      "description": "The organization shall ensure that externally provided processes, products and services conform to requirements."
-    },
-    {
-      "id": "8.5",
-      "title": "Provision of educational products and services",
-      "description": "The organization shall implement the provision of educational products and services under controlled conditions."
-    },
-    {
-      "id": "8.6",
-      "title": "Release of educational products and services",
-      "description": "The organization shall implement planned arrangements at appropriate stages to verify that the educational product and service requirements have been met."
-    },
-    {
-      "id": "8.7",
-      "title": "Control of nonconforming educational outputs",
-      "description": "The organization shall ensure that outputs that do not conform to their requirements are identified and controlled to prevent their unintended use or delivery."
-    },
-    {
-      "id": "9.1",
-      "title": "Monitoring, measurement, analysis and evaluation",
-      "description": "The organization shall determine what needs to be monitored and measured, the methods for monitoring, measurement, analysis and evaluation, when they shall be performed, and when the results shall be analysed and evaluated."
-    },
-    {
-      "id": "10.1",
-      "title": "Nonconformity and corrective action",
-      "description": "When a nonconformity occurs, the organization shall react to the nonconformity and, as applicable take action to control and correct it and deal with the consequences."
-    },
-    {
-      "id": "10.2",
-      "title": "Continual improvement",
-      "description": "The organization shall continually improve the suitability, adequacy and effectiveness of the EOMS."
-    },
-    {
-      "id": "10.3",
-      "title": "Opportunities for improvement",
-      "description": "The organization shall actively seek and identify opportunities for improvement of its EOMS."
-    }
+    { "id": "4.1", "title": "Understanding the organization and its context", "description": "Determining external and internal issues relevant to the EOMS purpose and strategic direction." },
+    { "id": "4.2", "title": "Needs and expectations of interested parties", "description": "Determining requirements of learners, other beneficiaries, and staff." },
+    { "id": "4.3", "title": "Scope of the EOMS", "description": "Determining the boundaries and applicability of the management system." },
+    { "id": "4.4", "title": "EOMS and its processes", "description": "Establishing, implementing, maintaining and continually improving the EOMS." },
+    { "id": "5.1", "title": "Leadership and commitment", "description": "Demonstrating leadership and commitment with respect to the EOMS." },
+    { "id": "5.1.2", "title": "Focus on learners and other beneficiaries", "description": "Ensuring needs of learners and beneficiaries are met." },
+    { "id": "5.2", "title": "Policy", "description": "Establishing and communicating the EOMS policy." },
+    { "id": "5.3", "title": "Organizational roles, responsibilities and authorities", "description": "Ensuring responsibilities are assigned, communicated and understood." },
+    { "id": "6.1", "title": "Actions to address risks and opportunities", "description": "Planning for issues and requirements to ensure the EOMS can achieve results." },
+    { "id": "6.2", "title": "Objectives of the EOMS", "description": "Establishing measurable objectives at relevant functions and levels." },
+    { "id": "6.3", "title": "Planning of changes", "description": "Carrying out changes to the EOMS in a planned manner." },
+    { "id": "7.1", "title": "Resources", "description": "Providing human resources, infrastructure, and environment for operations." },
+    { "id": "7.2", "title": "Competence", "description": "Determining and ensuring necessary competence of personnel." },
+    { "id": "7.3", "title": "Awareness", "description": "Ensuring personnel are aware of the EOMS policy and their contribution." },
+    { "id": "7.4", "title": "Communication", "description": "Determining internal and external communications relevant to the EOMS." },
+    { "id": "7.5", "title": "Documented information", "description": "Creating, updating, and controlling required documentation." },
+    { "id": "8.1", "title": "Operational planning and control", "description": "Planning and implementing processes needed to meet requirements." },
+    { "id": "8.2", "title": "Requirements for educational products and services", "description": "Communicating with interested parties and determining requirements." },
+    { "id": "8.3", "title": "Design and development", "description": "Establishing a process for design and development of products/services." },
+    { "id": "8.4", "title": "Control of externally provided processes", "description": "Ensuring externally provided products and services conform to requirements." },
+    { "id": "8.5", "title": "Provision of educational products and services", "description": "Implementing operations under controlled conditions." },
+    { "id": "8.6", "title": "Release of educational products and services", "description": "Verifying that requirements have been met before delivery." },
+    { "id": "8.7", "title": "Control of nonconforming outputs", "description": "Identifying and controlling nonconforming educational outputs." },
+    { "id": "9.1", "title": "Monitoring, measurement, analysis and evaluation", "description": "Determining what needs to be monitored and evaluated." },
+    { "id": "9.2", "title": "Internal audit", "description": "Conducting internal audits at planned intervals." },
+    { "id": "9.3", "title": "Management review", "description": "Reviewing the organization's EOMS to ensure suitability and effectiveness." },
+    { "id": "10.1", "title": "Nonconformity and corrective action", "description": "Reacting to nonconformity and taking action to control it." },
+    { "id": "10.2", "title": "Continual improvement", "description": "Continually improving the suitability and adequacy of the EOMS." },
+    { "id": "10.3", "title": "Opportunities for improvement", "description": "Actively seeking and identifying opportunities for improvement." }
   ]
 }
