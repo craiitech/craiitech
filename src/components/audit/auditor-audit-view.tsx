@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
 import type { AuditSchedule, Campus, Unit } from '@/lib/types';
