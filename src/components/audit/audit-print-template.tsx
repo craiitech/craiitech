@@ -5,6 +5,8 @@ import type { AuditSchedule, AuditFinding, ISOClause, AuditPlan } from '@/lib/ty
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { clauseQuestions } from '@/lib/audit-questions';
+import { CheckCircle2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface AuditPrintTemplateProps {
   schedule: AuditSchedule;
@@ -108,8 +110,8 @@ export function AuditPrintTemplate({ schedule, findings, clauses, plan }: AuditP
                   {finding ? (
                       <span className={cn(
                           "text-sm",
-                          finding.type === 'Non-Conformance' ? 'text-red-600' : 
-                          finding.type === 'Commendation' ? 'text-green-600' : 'text-amber-600'
+                          finding.type === 'Non-Conformance' ? "text-red-600" : 
+                          finding.type === 'Commendation' ? "text-green-600" : "text-amber-600"
                       )}>
                           {finding.type === 'Commendation' ? 'C' : 
                            finding.type === 'Non-Conformance' ? 'NC' : 'OFI'}
