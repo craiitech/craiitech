@@ -35,14 +35,6 @@ const accreditationLevels = [
   "Level IV - Phase 2 Re-accredited",
 ];
 
-const visitTypes = [
-  "Preliminary Survey",
-  "Formal Visit",
-  "Re-survey",
-  "Compliance Visit",
-  "Special Visit",
-];
-
 const standardAreas = [
   { code: 'Area I', name: 'Vision, Mission, Goals and Objectives' },
   { code: 'Area II', name: 'Faculty' },
@@ -93,7 +85,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                 onClick={() => append({ 
                     id: Math.random().toString(36).substr(2, 9),
                     level: 'Non Accredited',
-                    typeOfVisit: 'Formal Visit',
+                    typeOfVisit: '',
                     components: [],
                     lifecycleStatus: 'TBA',
                     areas: [],
@@ -131,6 +123,7 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
 function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; canEdit: boolean; onRemove: () => void }) {
     const { control, setValue, getValues } = useFormContext();
     
+    // Using targeted useWatch to prevent unnecessary infinite loops
     const selectedLevel = useWatch({ control, name: `accreditationRecords.${index}.level` });
     const watchedAreas = useWatch({ control, name: `accreditationRecords.${index}.areas` }) || [];
     const watchedSummary = useWatch({ control, name: `accreditationRecords.${index}.ratingsSummary` });
@@ -152,6 +145,7 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
 
     const lastInitializedLevelGroup = useRef<string | null>(null);
 
+    // Initializer for area fields based on level groups
     useEffect(() => {
         const currentGroup = isLevel3Or4 ? 'L34' : (isPSVToLevel2 ? 'PSV-L2' : 'NONE');
         if (lastInitializedLevelGroup.current === currentGroup) return;
@@ -182,21 +176,23 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
         lastInitializedLevelGroup.current = currentGroup;
     }, [selectedLevel, isPSVToLevel2, isLevel3Or4, index, setValue]);
 
+    // Calculation engine for ratings table
     useEffect(() => {
         if (!watchedAreas || watchedAreas.length === 0) return;
 
         let totalWeight = 0;
         let totalWeightedMean = 0;
-        let updates = false;
+        let hasChanges = false;
 
         watchedAreas.forEach((area: any, areaIdx: number) => {
             const weight = parseFloat(area.weight) || 0;
             const mean = parseFloat(area.mean) || 0;
             const weightedMean = parseFloat((weight * mean).toFixed(2));
 
+            // Only update if value actually changed to prevent re-render loop
             if (area.weightedMean !== weightedMean) {
                 setValue(`accreditationRecords.${index}.areas.${areaIdx}.weightedMean`, weightedMean, { shouldValidate: false });
-                updates = true;
+                hasChanges = true;
             }
 
             totalWeight += weight;
@@ -204,14 +200,15 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
         });
 
         const grandMean = totalWeight > 0 ? parseFloat((totalWeightedMean / totalWeight).toFixed(2)) : 0;
-        const finalWeight = parseFloat(totalWeight.toFixed(2));
-        const finalWeightedMean = parseFloat(totalWeightedMean.toFixed(2));
+        const roundedTotalWeight = parseFloat(totalWeight.toFixed(2));
+        const roundedTotalWM = parseFloat(totalWeightedMean.toFixed(2));
 
-        if (watchedSummary?.overallTotalWeight !== finalWeight) {
-            setValue(`accreditationRecords.${index}.ratingsSummary.overallTotalWeight`, finalWeight, { shouldValidate: false });
+        // Update summaries with change checks
+        if (watchedSummary?.overallTotalWeight !== roundedTotalWeight) {
+            setValue(`accreditationRecords.${index}.ratingsSummary.overallTotalWeight`, roundedTotalWeight, { shouldValidate: false });
         }
-        if (watchedSummary?.overallTotalWeightedMean !== finalWeightedMean) {
-            setValue(`accreditationRecords.${index}.ratingsSummary.overallTotalWeightedMean`, finalWeightedMean, { shouldValidate: false });
+        if (watchedSummary?.overallTotalWeightedMean !== roundedTotalWM) {
+            setValue(`accreditationRecords.${index}.ratingsSummary.overallTotalWeightedMean`, roundedTotalWM, { shouldValidate: false });
         }
         if (watchedSummary?.grandMean !== grandMean) {
             setValue(`accreditationRecords.${index}.ratingsSummary.grandMean`, grandMean, { shouldValidate: false });
@@ -264,12 +261,15 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-[10px] font-bold uppercase">Type of Visit</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
-                                        <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Visit Type" /></SelectTrigger></FormControl>
-                                        <SelectContent>
-                                            {visitTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
+                                    <FormControl>
+                                        <Input 
+                                            {...field} 
+                                            value={field.value || ''} 
+                                            placeholder="e.g., Formal Visit" 
+                                            className="h-9 text-xs" 
+                                            disabled={!canEdit} 
+                                        />
+                                    </FormControl>
                                 </FormItem>
                             )}
                         />
