@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -7,7 +6,7 @@ import { collection, query, where } from 'firebase/firestore';
 import type { AcademicProgram, Campus, ProgramComplianceRecord, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, GraduationCap, Filter, BarChart3, Layers, ShieldCheck, Search } from 'lucide-react';
+import { PlusCircle, Loader2, GraduationCap, Filter, BarChart3, Layers, ShieldCheck, Search, Building } from 'lucide-react';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
 import { Input } from '@/components/ui/input';
@@ -22,6 +21,7 @@ export default function AcademicProgramsPage() {
   const [editingProgram, setEditingProgram] = useState<AcademicProgram | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [campusFilter, setCampusFilter] = useState<string>('all');
+  const [unitFilter, setUnitFilter] = useState<string>('all');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   // Role Detection for Scoping
@@ -34,7 +34,6 @@ export default function AcademicProgramsPage() {
   /**
    * SCOPED PROGRAM QUERY
    * Restricts data fetch based on the user's role to ensure privacy and focus.
-   * Removed orderBy to avoid Firestore Composite Index requirements.
    */
   const programsQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !userProfile) return null;
@@ -54,7 +53,6 @@ export default function AcademicProgramsPage() {
 
   /**
    * SCOPED COMPLIANCE QUERY
-   * Syncs the compliance records with the user's authorized scope.
    */
   const compliancesQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !userProfile) return null;
@@ -66,8 +64,6 @@ export default function AcademicProgramsPage() {
         return query(baseRef, where('academicYear', '==', selectedYear), where('campusId', '==', userProfile.campusId));
     }
     if (isUnitViewer && userProfile.unitId) {
-        // Compliance records don't have collegeId directly, but we can filter programs first or rely on programId
-        // For simplicity and security alignment, we fetch by campus if unit-level, then filter in-memory.
         return query(baseRef, where('academicYear', '==', selectedYear), where('campusId', '==', userProfile.campusId));
     }
     return null;
@@ -86,17 +82,10 @@ export default function AcademicProgramsPage() {
       const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            p.abbreviation.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCampus = campusFilter === 'all' || p.campusId === campusFilter;
-      return matchesSearch && matchesCampus;
+      const matchesUnit = unitFilter === 'all' || p.collegeId === unitFilter;
+      return matchesSearch && matchesCampus && matchesUnit;
     });
-  }, [programs, searchTerm, campusFilter]);
-
-  // Contextual Header Subtitle
-  const scopeDescription = useMemo(() => {
-    if (isGlobalViewer) return "University-wide Monitoring Registry";
-    if (isCampusViewer) return `Monitoring Programs for your assigned Campus`;
-    if (isUnitViewer) return `Monitoring Programs for your Academic Unit`;
-    return "Academic Program Monitoring";
-  }, [isGlobalViewer, isCampusViewer, isUnitViewer]);
+  }, [programs, searchTerm, campusFilter, unitFilter]);
 
   const campusesQuery = useMemoFirebase(
     () => (firestore && !isUserLoading && userProfile ? collection(firestore, 'campuses') : null),
@@ -109,6 +98,12 @@ export default function AcademicProgramsPage() {
     [firestore, isUserLoading, userProfile]
   );
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+
+  const filteredUnitsList = useMemo(() => {
+    if (!units) return [];
+    if (campusFilter === 'all') return units.filter(u => u.category === 'Academic');
+    return units.filter(u => u.category === 'Academic' && u.campusIds?.includes(campusFilter));
+  }, [units, campusFilter]);
 
   const handleNewProgram = () => {
     setEditingProgram(null);
@@ -133,7 +128,7 @@ export default function AcademicProgramsPage() {
           </h2>
           <p className="text-muted-foreground flex items-center gap-2">
             <ShieldCheck className="h-3 w-3" />
-            {scopeDescription}
+            Decision Support System
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -188,13 +183,27 @@ export default function AcademicProgramsPage() {
                     {isGlobalViewer && (
                         <div className="w-full md:w-64 space-y-1.5">
                             <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Campus Site Filter</label>
-                            <Select value={campusFilter} onValueChange={setCampusFilter}>
+                            <Select value={campusFilter} onValueChange={(val) => { setCampusFilter(val); setUnitFilter('all'); }}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="All Campuses" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Campuses</SelectItem>
                                     {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+                    {(isGlobalViewer || isCampusViewer) && (
+                        <div className="w-full md:w-64 space-y-1.5">
+                            <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Academic Unit Filter</label>
+                            <Select value={unitFilter} onValueChange={setUnitFilter}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="All Units" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Units</SelectItem>
+                                    {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>
