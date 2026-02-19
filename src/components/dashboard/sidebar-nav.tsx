@@ -27,6 +27,7 @@ export function SidebarNav({
     router.push('/logout');
   };
 
+  // Reordered and refined routes for optimal workflow
   const allRoutes = [
     {
       href: '/dashboard',
@@ -35,8 +36,29 @@ export function SidebarNav({
       icon: <LayoutDashboard />,
     },
     {
+      href: '/audit',
+      label: userRole === 'Auditor' ? 'IQA Conduct' : 'Internal Quality Audit',
+      active: pathname.startsWith('/audit'),
+      roles: ['Admin', 'Auditor'],
+      icon: <ClipboardList />,
+    },
+    {
+      href: '/monitoring',
+      label: 'Unit Monitoring',
+      active: pathname.startsWith('/monitoring'),
+      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Vice President', 'Unit Coordinator', 'Unit ODIMO'],
+      icon: <ClipboardCheck />,
+    },
+    {
+      href: '/academic-programs',
+      label: 'Program Monitoring',
+      active: pathname.startsWith('/academic-programs'),
+      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Unit Coordinator', 'Unit ODIMO'],
+      icon: <GraduationCap />,
+    },
+    {
       href: '/submissions',
-      label: 'Submissions',
+      label: 'Submissions Hub',
       active: pathname.startsWith('/submissions'),
       icon: <FileText />,
     },
@@ -66,31 +88,10 @@ export function SidebarNav({
       icon: <ShieldCheck />,
     },
     {
-      href: '/academic-programs',
-      label: 'Program Monitoring',
-      active: pathname.startsWith('/academic-programs'),
-      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Unit Coordinator', 'Unit ODIMO'],
-      icon: <GraduationCap />,
-    },
-    {
-      href: '/monitoring',
-      label: 'Unit Monitoring',
-      active: pathname.startsWith('/monitoring'),
-      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Vice President', 'Unit Coordinator', 'Unit ODIMO'],
-      icon: <ClipboardCheck />,
-    },
-    {
       href: '/qa-reports',
-      label: 'QA Reports',
+      label: 'QA Reports & CARs',
       active: pathname.startsWith('/qa-reports'),
       icon: <FolderKanban />,
-    },
-    {
-      href: '/audit',
-      label: 'Internal Quality Audit',
-      active: pathname.startsWith('/audit'),
-      roles: ['Admin', 'Auditor'],
-      icon: <ClipboardList />,
     },
     {
       href: '/software-quality',
@@ -115,7 +116,7 @@ export function SidebarNav({
     },
     {
       href: '/audit-log',
-      label: 'Audit Log',
+      label: 'System Audit Log',
       active: pathname.startsWith('/audit-log'),
       roles: ['Admin'],
       icon: <History />,
