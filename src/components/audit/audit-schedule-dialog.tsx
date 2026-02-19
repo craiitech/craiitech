@@ -84,7 +84,10 @@ export function AuditScheduleDialog({
   const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
 
   const auditeesByCategory = useMemo(() => {
-    const campusUnits = allUnits.filter(u => u.campusIds?.includes(plan.campusId));
+    // If university-wide, show all units. Otherwise, filter by campus site defined in the plan.
+    const campusUnits = plan.campusId === 'university-wide'
+        ? allUnits
+        : allUnits.filter(u => u.campusIds?.includes(plan.campusId));
     
     const groups: Record<UnitCategory, Unit[]> = {
         'Academic': [],

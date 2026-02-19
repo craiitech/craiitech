@@ -36,7 +36,7 @@ import { doc, setDoc, serverTimestamp, collection, Timestamp } from 'firebase/fi
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState, useMemo } from 'react';
 import type { AuditPlan, Campus, User, AuditGroup } from '@/lib/types';
-import { Loader2, LayoutList, ShieldCheck, FileText, CalendarCheck } from 'lucide-react';
+import { Loader2, LayoutList, ShieldCheck, FileText, CalendarCheck, Globe } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { format } from 'date-fns';
 
@@ -79,7 +79,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
     return allUsers.filter(u => 
         u.role?.toLowerCase().includes('auditor') || 
         u.role?.toLowerCase().includes('admin')
-    ).sort((a, b) => a.firstName.localeCompare(b.firstName));
+    ).sort((a, b) => (a.firstName || '').localeCompare(b.firstName || ''));
   }, [allUsers]);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -253,7 +253,15 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                                     <FormLabel className="text-[10px] font-bold uppercase">Target Site / Campus</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl><SelectTrigger className="h-10"><SelectValue placeholder="Select Site" /></SelectTrigger></FormControl>
-                                        <SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                        <SelectContent>
+                                            <SelectItem value="university-wide" className="font-bold text-primary italic">
+                                                <div className="flex items-center gap-2">
+                                                    <Globe className="h-3 w-3" />
+                                                    University-Wide Audit
+                                                </div>
+                                            </SelectItem>
+                                            {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                        </SelectContent>
                                     </Select>
                                 </FormItem>
                             )} />

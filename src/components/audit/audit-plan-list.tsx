@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import type { AuditPlan, AuditSchedule, Campus, User, Unit } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2 } from 'lucide-react';
+import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -42,7 +42,11 @@ export function AuditPlanList({
     onDeleteSchedule
 }: AuditPlanListProps) {
     
-  const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
+  const campusMap = useMemo(() => {
+    const map = new Map(campuses.map(c => [c.id, c.name]));
+    map.set('university-wide', 'University-Wide Audit');
+    return map;
+  }, [campuses]);
   
   const sortedPlans = useMemo(() => {
     return [...plans].sort((a,b) => b.year - a.year || a.title.localeCompare(b.title));
@@ -95,12 +99,15 @@ export function AuditPlanList({
                             <p className="font-black text-lg text-slate-900 uppercase tracking-tight truncate">{plan.title}</p>
                         </div>
                         <div className="flex items-center gap-6 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                            <span className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5 text-primary" /> {campusMap.get(plan.campusId) || '...'}</span>
+                            <span className="flex items-center gap-1.5">
+                                {plan.campusId === 'university-wide' ? <Globe className="h-3.5 w-3.5 text-primary" /> : <Building2 className="h-3.5 w-3.5 text-primary" />} 
+                                {campusMap.get(plan.campusId) || '...'}
+                            </span>
                             <div className="flex flex-wrap items-center gap-1">
                                 <Settings2 className="h-3.5 w-3.5 text-primary mr-1" />
                                 {Array.isArray(plan.auditeeType) ? (
-                                    plan.auditeeType.map(type => (
-                                        <Badge key={type} variant="secondary" className="h-4 px-1.5 text-[8px] font-black uppercase bg-primary/10 text-primary border-none">{type}</Badge>
+                                    plan.auditeeType.map((type, idx) => (
+                                        <Badge key={`${plan.id}-${type}-${idx}`} variant="secondary" className="h-4 px-1.5 text-[8px] font-black uppercase bg-primary/10 text-primary border-none">{type}</Badge>
                                     ))
                                 ) : (
                                     <Badge variant="secondary" className="h-4 px-1.5 text-[8px] font-black uppercase bg-primary/10 text-primary border-none">{plan.auditeeType}</Badge>
@@ -232,8 +239,8 @@ export function AuditPlanList({
                                     </TableCell>
                                     <TableCell className="py-6">
                                         <div className="flex flex-wrap gap-1 max-w-[180px]">
-                                            {schedule.isoClausesToAudit.map(cls => (
-                                                <Badge key={cls} variant="outline" className="text-[9px] font-black bg-white border-slate-200 h-4 px-1">{cls}</Badge>
+                                            {schedule.isoClausesToAudit.map((cls, clsIdx) => (
+                                                <Badge key={`${schedule.id}-${cls}-${clsIdx}`} variant="outline" className="text-[9px] font-black bg-white border-slate-200 h-4 px-1">{cls}</Badge>
                                             ))}
                                         </div>
                                     </TableCell>
