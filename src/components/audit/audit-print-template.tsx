@@ -111,9 +111,9 @@ export function AuditPrintTemplate({ schedule, findings, clauses, plan }: AuditP
                       <span className={cn(
                           "text-sm",
                           finding.type === 'Non-Conformance' ? "text-red-600" : 
-                          finding.type === 'Commendation' ? "text-green-600" : "text-amber-600"
+                          finding.type === 'Compliance' ? "text-green-600" : "text-amber-600"
                       )}>
-                          {finding.type === 'Commendation' ? 'C' : 
+                          {finding.type === 'Compliance' ? 'C' : 
                            finding.type === 'Non-Conformance' ? 'NC' : 'OFI'}
                       </span>
                   ) : '--'}
@@ -133,8 +133,8 @@ export function AuditPrintTemplate({ schedule, findings, clauses, plan }: AuditP
         
         <div className="grid grid-cols-1 border-2 border-black divide-y-2 divide-black text-[10px]">
             <div className="p-3">
-                <h4 className="font-black uppercase text-green-700 mb-1">List of Commendable Practices (C)</h4>
-                <div className="min-h-[40px] whitespace-pre-wrap italic">{schedule.summaryCommendablePractices || 'None recorded.'}</div>
+                <h4 className="font-black uppercase text-green-700 mb-1">Summary of Compliance (C)</h4>
+                <div className="min-h-[40px] whitespace-pre-wrap italic">{schedule.summaryCompliance || 'None recorded.'}</div>
             </div>
             <div className="p-3">
                 <h4 className="font-black uppercase text-amber-700 mb-1">Opportunities for Improvement (OFI)</h4>

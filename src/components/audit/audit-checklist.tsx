@@ -34,7 +34,7 @@ interface ClauseFormData {
   evidence: string;
   description: string;
   ncStatement: string;
-  type: 'Commendation' | 'Observation for Improvement' | 'Non-Conformance' | '';
+  type: 'Compliance' | 'Observation for Improvement' | 'Non-Conformance' | '';
 }
 
 function ClauseForm({ 
@@ -137,8 +137,8 @@ function ClauseForm({
                  <FormControl>
                     <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-4 pt-2" disabled={isSubmitting}>
                         <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Commendation" id={`c-${clause.id}`} />
-                            <Label htmlFor={`c-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer">Commendation (C)</Label>
+                            <RadioGroupItem value="Compliance" id={`c-${clause.id}`} />
+                            <Label htmlFor={`c-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer">Compliance (C)</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                             <RadioGroupItem value="Observation for Improvement" id={`ofi-${clause.id}`} />
@@ -266,12 +266,12 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, o
                         <Badge 
                             className={cn(
                                 "h-5 text-[9px] font-black uppercase shadow-none border-none ml-4 transition-all scale-110",
-                                findingType === 'Commendation' ? 'bg-emerald-600 text-white' : 
+                                findingType === 'Compliance' ? 'bg-emerald-600 text-white' : 
                                 findingType === 'Non-Conformance' ? 'bg-destructive text-white' : 
                                 'bg-amber-500 text-amber-950'
                             )}
                         >
-                            {findingType === 'Commendation' ? 'C' : findingType === 'Non-Conformance' ? 'NC' : 'OFI'} RECORDED
+                            {findingType === 'Compliance' ? 'C' : findingType === 'Non-Conformance' ? 'NC' : 'OFI'} RECORDED
                         </Badge>
                     )}
                   </div>

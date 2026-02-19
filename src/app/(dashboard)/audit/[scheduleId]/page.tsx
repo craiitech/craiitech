@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
@@ -43,7 +42,7 @@ const LoadingSkeleton = () => (
 );
 
 const summarySchema = z.object({
-  summaryCommendablePractices: z.string().optional(),
+  summaryCompliance: z.string().optional(),
   summaryOFI: z.string().optional(),
   summaryNC: z.string().optional(),
 });
@@ -95,7 +94,7 @@ export default function AuditExecutionPage() {
   const form = useForm<z.infer<typeof summarySchema>>({
     resolver: zodResolver(summarySchema),
     defaultValues: {
-      summaryCommendablePractices: schedule?.summaryCommendablePractices || '',
+      summaryCompliance: schedule?.summaryCompliance || '',
       summaryOFI: schedule?.summaryOFI || '',
       summaryNC: schedule?.summaryNC || '',
     },
@@ -104,7 +103,7 @@ export default function AuditExecutionPage() {
   useState(() => {
       if (schedule) {
           form.reset({
-            summaryCommendablePractices: schedule.summaryCommendablePractices || '',
+            summaryCompliance: schedule.summaryCompliance || '',
             summaryOFI: schedule.summaryOFI || '',
             summaryNC: schedule.summaryNC || '',
           });
@@ -218,13 +217,13 @@ export default function AuditExecutionPage() {
     const formattedEntry = `[Clause ${clauseId}]: ${actualText}`;
     
     const summaryFields: (keyof z.infer<typeof summarySchema>)[] = [
-        'summaryCommendablePractices',
+        'summaryCompliance',
         'summaryOFI',
         'summaryNC'
     ];
 
     let targetFieldName: keyof z.infer<typeof summarySchema> | null = null;
-    if (type === 'Commendation') targetFieldName = 'summaryCommendablePractices';
+    if (type === 'Compliance') targetFieldName = 'summaryCompliance';
     else if (type === 'Observation for Improvement') targetFieldName = 'summaryOFI';
     else if (type === 'Non-Conformance') targetFieldName = 'summaryNC';
 
@@ -313,11 +312,11 @@ export default function AuditExecutionPage() {
                         <CardContent className="space-y-4">
                             <FormField
                                 control={form.control}
-                                name="summaryCommendablePractices"
+                                name="summaryCompliance"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-xs font-black uppercase text-emerald-700">List of Commendable Practices (C)</FormLabel>
-                                        <FormControl><Textarea {...field} rows={4} placeholder="Summarize all commendable practices..." /></FormControl>
+                                        <FormLabel className="text-xs font-black uppercase text-emerald-700">Summary of Compliance (C)</FormLabel>
+                                        <FormControl><Textarea {...field} rows={4} placeholder="Summarize all instances of standard compliance..." /></FormControl>
                                     </FormItem>
                                 )}
                             />

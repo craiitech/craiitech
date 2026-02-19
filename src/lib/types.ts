@@ -177,7 +177,7 @@ export type AuditSchedule = {
     endScheduledDate: any; // Timestamp (End)
     isoClausesToAudit: string[];
     status: 'Scheduled' | 'In Progress' | 'Completed';
-    summaryCommendablePractices?: string;
+    summaryCompliance?: string;
     summaryOFI?: string;
     summaryNC?: string;
 };
@@ -186,8 +186,8 @@ export type AuditFinding = {
     id: string;
     auditScheduleId: string;
     isoClause: string;
-    type: 'Commendation' | 'Observation for Improvement' | 'Non-Conformance';
-    description: string; // Used for general description or Commendation/OFI notes
+    type: 'Compliance' | 'Observation for Improvement' | 'Non-Conformance';
+    description: string; // Used for general description or Compliance/OFI notes
     evidence: string;
     ncStatement?: string; // New: Formal statement for Non-Conformance
     createdAt: any; // serverTimestamp()

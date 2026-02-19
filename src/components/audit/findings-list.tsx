@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -24,7 +23,7 @@ interface FindingsListProps {
 const typeVariant: Record<string, 'default' | 'secondary' | 'destructive'> = {
   'Non-Conformance': 'destructive',
   'Observation for Improvement': 'secondary',
-  'Commendation': 'default',
+  'Compliance': 'default',
 };
 
 export function FindingsList({ findings, schedules, correctiveActionPlans, isAuditor }: FindingsListProps) {
@@ -38,9 +37,7 @@ export function FindingsList({ findings, schedules, correctiveActionPlans, isAud
         .sort((a,b) => b.scheduledDate.toMillis() - a.scheduledDate.toMillis());
     }, [schedules, findings]);
 
-    const capMap = useMemo(() => {
-        return new Map(correctiveActionPlans.map(c => [c.findingId, c]));
-    }, [correctiveActionPlans]);
+    const findCap = (findingId: string) => correctiveActionPlans.find(c => c.findingId === findingId);
     
     if (findingsBySchedule.length === 0) {
         return <div className="text-center text-muted-foreground py-10">No audit findings recorded yet.</div>;
@@ -62,7 +59,7 @@ export function FindingsList({ findings, schedules, correctiveActionPlans, isAud
           </AccordionTrigger>
           <AccordionContent className="space-y-4">
             {schedule.findings.map(finding => {
-                const cap = capMap.get(finding.id);
+                const cap = findCap(finding.id);
                 return (
                     <div key={finding.id} className="rounded-lg border p-4">
                         <div className="flex justify-between items-start">
