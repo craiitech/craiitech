@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -33,7 +34,7 @@ import { doc, addDoc, collection, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useMemo, useState } from 'react';
 import type { AuditPlan, User, Unit, ISOClause } from '@/lib/types';
-import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks } from 'lucide-react';
+import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
@@ -54,7 +55,7 @@ interface AuditScheduleDialogProps {
 }
 
 const formSchema = z.object({
-  targetId: z.string().min(1, 'Auditee is required'),
+  targetId: z.string().min(1, 'Auditee Unit/Office is required'),
   procedureDescription: z.string().min(5, 'Procedure detail is required.'),
   scheduledDate: z.date({ required_error: 'A date is required.'}),
   startTime: z.string().min(1, 'Start time is required'),
@@ -82,22 +83,20 @@ export function AuditScheduleDialog({
   const isoClausesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'isoClauses') : null, [firestore]);
   const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
 
+  /**
+   * Filtered Auditees (UNITS/OFFICES ONLY)
+   * Focuses on the Unit Name as the primary target for the schedule.
+   */
   const auditees = useMemo(() => {
-    if (plan.auditeeType === 'Management Processes') {
-        return topManagement.filter(u => u.campusId === plan.campusId)
-            .sort((a,b) => a.firstName.localeCompare(b.firstName));
-    } else if (plan.auditeeType === 'Operation Processes') {
-        return allUnits.filter(u => u.campusIds?.includes(plan.campusId) && u.category === 'Academic')
-            .sort((a,b) => a.name.localeCompare(b.name));
-    } else {
-        return allUnits.filter(u => u.campusIds?.includes(plan.campusId) && u.category !== 'Academic')
-            .sort((a,b) => a.name.localeCompare(b.name));
-    }
-  }, [plan, allUnits, topManagement]);
+    // Only return Units assigned to the planned campus
+    return allUnits.filter(u => u.campusIds?.includes(plan.campusId))
+        .sort((a,b) => a.name.localeCompare(b.name));
+  }, [plan, allUnits]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      targetId: '',
       isoClausesToAudit: [],
       startTime: '09:00',
       endTime: '12:00',
@@ -109,15 +108,8 @@ export function AuditScheduleDialog({
     if (!firestore) return;
     setIsSubmitting(true);
     
-    let targetName = 'Unknown';
-    const isUnit = plan.auditeeType !== 'Management Processes';
-
-    if (isUnit) {
-        targetName = allUnits.find(u => u.id === values.targetId)?.name || 'Unknown Unit';
-    } else {
-        const user = topManagement.find(u => u.id === values.targetId);
-        targetName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
-    }
+    const targetUnit = allUnits.find(u => u.id === values.targetId);
+    const targetName = targetUnit?.name || 'Unknown Unit';
 
     const [sHours, sMinutes] = values.startTime.split(':').map(Number);
     const startDateTime = new Date(values.scheduledDate);
@@ -132,7 +124,7 @@ export function AuditScheduleDialog({
       auditorId: null, 
       auditorName: null,
       targetId: values.targetId,
-      targetType: isUnit ? 'Unit' : 'User',
+      targetType: 'Unit',
       targetName,
       procedureDescription: values.procedureDescription,
       scheduledDate: Timestamp.fromDate(startDateTime),
@@ -143,7 +135,7 @@ export function AuditScheduleDialog({
 
     try {
         await addDoc(collection(firestore, 'auditSchedules'), scheduleData);
-        toast({ title: 'Session Provisioned', description: `Itinerary updated for ${targetName}.` });
+        toast({ title: 'Session Provisioned', description: `Itinerary entry for ${targetName} registered.` });
         onOpenChange(false);
     } catch (error) {
         console.error('Error scheduling audit:', error);
@@ -175,7 +167,7 @@ export function AuditScheduleDialog({
                     <div className="space-y-6">
                         <div className="flex items-center gap-2 border-b pb-2">
                             <Clock className="h-4 w-4 text-primary" />
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800">1. Timeline & Target</h4>
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800">1. Timeline & Target Unit</h4>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <FormField
@@ -229,17 +221,17 @@ export function AuditScheduleDialog({
                             name="targetId"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[10px] font-bold uppercase">Auditee Unit / Office (Site Strictly Restricted)</FormLabel>
+                                    <FormLabel className="text-[10px] font-bold uppercase">Auditee Unit / Office Name</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger className="h-11 font-bold bg-muted/5">
-                                                <SelectValue placeholder={`Select a unit from ${plan.campusId}`}/>
+                                                <SelectValue placeholder="Select Unit/Office to Audit" />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {auditees.map(a => (
-                                                <SelectItem key={a.id} value={a.id}>
-                                                    {'name' in a ? a.name : `${a.firstName} ${a.lastName}`}
+                                            {auditees.map(u => (
+                                                <SelectItem key={u.id} value={u.id}>
+                                                    {u.name}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -262,7 +254,7 @@ export function AuditScheduleDialog({
                                 <FormItem>
                                     <FormLabel className="text-[10px] font-bold uppercase">Procedure / Audit Focus Area</FormLabel>
                                     <FormControl>
-                                        <Textarea {...field} placeholder="Specify the procedures to be audited (e.g., Business Planning, Strategic Directions, Resource Management)..." rows={4} className="bg-slate-50 italic text-xs leading-relaxed" />
+                                        <Textarea {...field} placeholder="Specify the procedures to be audited (e.g., Business Planning, Strategic Directions)..." rows={4} className="bg-slate-50 italic text-xs leading-relaxed" />
                                     </FormControl>
                                     <FormDescription className="text-[9px]">Describe the organizational processes covered in this session.</FormDescription>
                                     <FormMessage />

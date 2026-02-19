@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -42,13 +43,15 @@ export function AuditPlanList({ plans, schedules, campuses, users, units, onEdit
   const safeFormatDate = (d: any) => {
       if (!d) return 'TBA';
       const date = d.toDate ? d.toDate() : new Date(d);
+      if (isNaN(date.getTime())) return 'TBA';
       return format(date, 'MM/dd/yyyy');
   };
 
   const safeFormatDateTime = (d: any) => {
       if (!d) return 'TBA';
       const date = d.toDate ? d.toDate() : new Date(d);
-      return format(date, 'MM/dd/yyyy | h:mma');
+      if (isNaN(date.getTime())) return 'TBA';
+      return format(date, 'MM/dd/yyyy | hh:mm a');
   };
 
   if (plans.length === 0) {

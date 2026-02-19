@@ -32,14 +32,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, query, where } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, query, where, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { AuditPlan, Campus, User } from '@/lib/types';
 import { Loader2, LayoutList, ShieldCheck, FileText, CalendarCheck } from 'lucide-react';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
+import { format } from 'date-fns';
 
 interface AuditPlanDialogProps {
   isOpen: boolean;
@@ -92,26 +91,44 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
   });
 
   useEffect(() => {
-    if (plan) {
+    if (plan && isOpen) {
       const safeDate = (d: any) => {
           if (!d) return '';
           const date = d.toDate ? d.toDate() : new Date(d);
-          return formatLocalISO(date);
+          if (isNaN(date.getTime())) return '';
+          // datetime-local input expects YYYY-MM-DDTHH:mm
+          return format(date, "yyyy-MM-dd'T'HH:mm");
       };
 
       form.reset({
-        ...plan,
+        auditNumber: plan.auditNumber || '',
+        auditType: plan.auditType || 'Regular Audit',
+        title: plan.title || '',
+        year: plan.year || currentYear,
+        campusId: plan.campusId || '',
+        auditeeType: plan.auditeeType || 'Operation Processes',
+        scope: plan.scope || '',
+        leadAuditorId: plan.leadAuditorId || '',
+        referenceDocument: plan.referenceDocument || 'ISO 21001:2018 / EOMS Standard',
         openingMeetingDate: safeDate(plan.openingMeetingDate),
         closingMeetingDate: safeDate(plan.closingMeetingDate),
       });
+    } else if (!plan && isOpen) {
+        form.reset({
+            auditNumber: '',
+            auditType: 'Regular Audit',
+            title: '',
+            year: currentYear,
+            campusId: '',
+            auditeeType: 'Operation Processes',
+            scope: '',
+            leadAuditorId: '',
+            referenceDocument: 'ISO 21001:2018 / EOMS Standard',
+            openingMeetingDate: '',
+            closingMeetingDate: '',
+        });
     }
   }, [plan, isOpen, form]);
-
-  const formatLocalISO = (date: Date) => {
-    const tzoffset = date.getTimezoneOffset() * 60000; 
-    const localISOTime = (new Date(date.getTime() - tzoffset)).toISOString().slice(0, 16);
-    return localISOTime;
-  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!firestore) return;
@@ -126,8 +143,8 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
       ...values,
       id,
       leadAuditorName: leadAuditor ? `${leadAuditor.firstName} ${leadAuditor.lastName}` : '',
-      openingMeetingDate: serverTimestamp.fromDate ? serverTimestamp.fromDate(new Date(values.openingMeetingDate)) : new Date(values.openingMeetingDate),
-      closingMeetingDate: serverTimestamp.fromDate ? serverTimestamp.fromDate(new Date(values.closingMeetingDate)) : new Date(values.closingMeetingDate),
+      openingMeetingDate: Timestamp.fromDate(new Date(values.openingMeetingDate)),
+      closingMeetingDate: Timestamp.fromDate(new Date(values.closingMeetingDate)),
     };
     
     try {
@@ -164,7 +181,6 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
             <Form {...form}>
                 <form id="plan-form" onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-10">
                     
-                    {/* --- Admin Section --- */}
                     <div className="space-y-6">
                         <div className="flex items-center gap-2 border-b pb-2">
                             <FileText className="h-4 w-4 text-primary" />
@@ -209,7 +225,6 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                         )} />
                     </div>
 
-                    {/* --- Site & Scoping --- */}
                     <div className="space-y-6">
                         <div className="flex items-center gap-2 border-b pb-2">
                             <ShieldCheck className="h-4 w-4 text-primary" />
@@ -254,7 +269,6 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                         )} />
                     </div>
 
-                    {/* --- Team & Milestones --- */}
                     <div className="space-y-6">
                         <div className="flex items-center gap-2 border-b pb-2">
                             <CalendarCheck className="h-4 w-4 text-primary" />
