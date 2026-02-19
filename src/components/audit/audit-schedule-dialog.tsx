@@ -179,7 +179,11 @@ export function AuditScheduleDialog({
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <FormControl>
-                                                    <Button variant="outline" className={cn("h-11 pl-3 text-left font-bold border-slate-200 shadow-sm", !field.value && "text-muted-foreground")}>
+                                                    <Button 
+                                                        type="button"
+                                                        variant="outline" 
+                                                        className={cn("h-11 pl-3 text-left font-bold border-slate-200 shadow-sm", !field.value && "text-muted-foreground")}
+                                                    >
                                                         {field.value ? format(field.value, "MM/dd/yyyy") : (<span>Select Date</span>)}
                                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                     </Button>
@@ -285,6 +289,7 @@ export function AuditScheduleDialog({
                                                         return (
                                                             <CommandItem
                                                                 key={c.id}
+                                                                value={`${c.id} ${c.title}`}
                                                                 onSelect={() => {
                                                                     const current = selectedClauses;
                                                                     const next = current.includes(c.id)
