@@ -192,11 +192,13 @@ function ClauseForm({ scheduleId, clause, finding, onSave }: { scheduleId: strin
       })
   }, [finding, form]);
 
-  const ncPlaceholder = `It was observed that ISO 21001:2018 Clause ${clause.id} requirement regarding [Specific Requirement Name] was not fully implemented in the [Unit Name]. 
-
-Specifically, the unit [Description of the Gap/Failure]. 
-
-This resulted in [Impact/Risk to the Management System].`;
+  // When type changes to Non-Conformance, populate the statement with template if empty
+  useEffect(() => {
+    if (watchType === 'Non-Conformance' && !form.getValues('ncStatement')) {
+        const template = `It was observed that ISO 21001:2018 Clause ${clause.id} requirement regarding [Specific Requirement Name] was not fully implemented in the [Unit Name]. \n\nSpecifically, the unit [Description of the Gap/Failure]. \n\nThis resulted in [Impact/Risk to the Management System].`;
+        form.setValue('ncStatement', template);
+    }
+  }, [watchType, clause.id, form]);
 
   const onSubmit = async (values: ClauseFormData) => {
     if (!firestore || !user || !values.type) {
@@ -252,7 +254,7 @@ This resulted in [Impact/Risk to the Management System].`;
             <FormItem className="space-y-3">
                 <FormLabel className="font-bold text-xs uppercase tracking-wider">Audit Verification Result</FormLabel>
                  <FormControl>
-                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-4 pt-2">
+                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-4 pt-2" disabled={isSubmitting}>
                         <div className="flex items-center space-x-2">
                             <RadioGroupItem value="Commendation" id={`c-${clause.id}`} />
                             <Label htmlFor={`c-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer">Commendation (C)</Label>
@@ -284,12 +286,13 @@ This resulted in [Impact/Risk to the Management System].`;
                         <FormControl>
                             <Textarea 
                                 {...field} 
-                                rows={5} 
-                                placeholder={ncPlaceholder} 
+                                rows={6} 
+                                placeholder="Edit the template below to reflect your findings..." 
                                 className="bg-destructive/5 border-destructive/20 text-xs font-medium leading-relaxed italic" 
+                                disabled={isSubmitting}
                             />
                         </FormControl>
-                        <FormDescription className="text-[9px]">State the requirement, the specific gap observed, and the impact.</FormDescription>
+                        <FormDescription className="text-[9px]">The template above is pre-populated. Please edit the bracketed [ ] sections to specify the gap.</FormDescription>
                     </FormItem>
                 )}
             />
@@ -302,7 +305,7 @@ This resulted in [Impact/Risk to the Management System].`;
             <FormItem>
               <FormLabel className="font-bold text-xs uppercase tracking-wider">Objective Audit Evidence / Verified Observations</FormLabel>
               <FormControl>
-                <Textarea {...field} rows={4} placeholder="Record verifiable observations (documents reviewed, RSU forms examined, interviews, site inspections)..." className="bg-white border-slate-200 shadow-inner text-xs" />
+                <Textarea {...field} rows={4} placeholder="Record verifiable observations (documents reviewed, RSU forms examined, interviews, site inspections)..." className="bg-white border-slate-200 shadow-inner text-xs" disabled={isSubmitting} />
               </FormControl>
               <FormDescription className="text-[9px]">Document the specific evidence that supports the finding.</FormDescription>
             </FormItem>
@@ -317,7 +320,7 @@ This resulted in [Impact/Risk to the Management System].`;
                     <FormItem>
                         <FormLabel className="font-bold text-xs uppercase tracking-wider">Detailed Description of Finding</FormLabel>
                         <FormControl>
-                            <Textarea {...field} rows={3} placeholder="Provide further context or notes regarding this finding..." className="bg-white border-slate-200 text-xs" />
+                            <Textarea {...field} rows={3} placeholder="Provide further context or notes regarding this finding..." className="bg-white border-slate-200 text-xs" disabled={isSubmitting} />
                         </FormControl>
                     </FormItem>
                 )}
