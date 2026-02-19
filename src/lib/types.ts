@@ -165,7 +165,8 @@ export type AuditSchedule = {
     targetId: string; // unitId or userId
     targetType: 'Unit' | 'User';
     targetName: string; // unit name or user name
-    scheduledDate: any; // Timestamp
+    scheduledDate: any; // Timestamp (Start)
+    endScheduledDate: any; // Timestamp (End)
     isoClausesToAudit: string[];
     status: 'Scheduled' | 'In Progress' | 'Completed';
     summaryCommendablePractices?: string;

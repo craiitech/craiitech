@@ -31,7 +31,7 @@ import { z } from 'zod';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, addDoc, collection, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { AuditPlan, User, Unit, ISOClause } from '@/lib/types';
 import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -55,8 +55,15 @@ interface AuditScheduleDialogProps {
 const formSchema = z.object({
   targetId: z.string().min(1, 'Auditee is required'),
   scheduledDate: z.date({ required_error: 'A date is required.'}),
-  scheduledTime: z.string().min(1, 'Time is required'),
+  startTime: z.string().min(1, 'Start time is required'),
+  endTime: z.string().min(1, 'End time is required'),
   isoClausesToAudit: z.array(z.string()).min(1, 'Select at least one standard clause.'),
+}).refine(data => {
+    // Basic validation to ensure end time is after start time
+    return data.endTime > data.startTime;
+}, {
+    message: "End time must be after start time",
+    path: ["endTime"]
 });
 
 export function AuditScheduleDialog({
@@ -74,9 +81,15 @@ export function AuditScheduleDialog({
   const isoClausesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'isoClauses') : null, [firestore]);
   const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
 
+  /**
+   * SITE-STRICT FILTERING
+   * Ensures the admin can only select Units/Offices that actually belong to the campus
+   * targeted in the Audit Plan.
+   */
   const auditees = useMemo(() => {
     if (plan.auditeeType === 'Management Processes') {
-        return topManagement.sort((a,b) => a.firstName.localeCompare(b.firstName));
+        return topManagement.filter(u => u.campusId === plan.campusId)
+            .sort((a,b) => a.firstName.localeCompare(b.firstName));
     } else if (plan.auditeeType === 'Operation Processes') {
         return allUnits.filter(u => u.campusIds?.includes(plan.campusId) && u.category === 'Academic')
             .sort((a,b) => a.name.localeCompare(b.name));
@@ -90,7 +103,8 @@ export function AuditScheduleDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       isoClausesToAudit: [],
-      scheduledTime: '09:00',
+      startTime: '09:00',
+      endTime: '12:00',
     }
   });
 
@@ -108,10 +122,14 @@ export function AuditScheduleDialog({
         targetName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
     }
 
-    // Combine date and time
-    const [hours, minutes] = values.scheduledTime.split(':').map(Number);
-    const scheduledDateTime = new Date(values.scheduledDate);
-    scheduledDateTime.setHours(hours, minutes, 0, 0);
+    // Combine date and times
+    const [sHours, sMinutes] = values.startTime.split(':').map(Number);
+    const startDateTime = new Date(values.scheduledDate);
+    startDateTime.setHours(sHours, sMinutes, 0, 0);
+
+    const [eHours, eMinutes] = values.endTime.split(':').map(Number);
+    const endDateTime = new Date(values.scheduledDate);
+    endDateTime.setHours(eHours, eMinutes, 0, 0);
 
     const scheduleData = {
       auditPlanId: plan.id,
@@ -120,14 +138,15 @@ export function AuditScheduleDialog({
       targetId: values.targetId,
       targetType: isUnit ? 'Unit' : 'User',
       targetName,
-      scheduledDate: Timestamp.fromDate(scheduledDateTime),
+      scheduledDate: Timestamp.fromDate(startDateTime),
+      endScheduledDate: Timestamp.fromDate(endDateTime),
       isoClausesToAudit: values.isoClausesToAudit,
       status: 'Scheduled',
     };
 
     try {
         await addDoc(collection(firestore, 'auditSchedules'), scheduleData);
-        toast({ title: 'Session Scheduled', description: `${targetName} has been queued for audit on ${format(scheduledDateTime, 'PPp')}.` });
+        toast({ title: 'Session Scheduled', description: `${targetName} queued for ${format(startDateTime, 'MM/dd/yyyy')}.` });
         onOpenChange(false);
     } catch (error) {
         console.error('Error scheduling audit:', error);
@@ -147,7 +166,7 @@ export function AuditScheduleDialog({
             <CalendarIcon className="h-5 w-5" />
             <span className="text-[10px] font-black uppercase tracking-widest">Schedule Provisioning</span>
           </div>
-          <DialogTitle>Add Session to "{plan.title}"</DialogTitle>
+          <DialogTitle>Provision Session: "{plan.title}"</DialogTitle>
           <DialogDescription className="text-xs">
             Site: <strong>{plan.campusId}</strong> &bull; Group: <strong>{plan.auditeeType}</strong>
           </DialogDescription>
@@ -156,17 +175,17 @@ export function AuditScheduleDialog({
         <ScrollArea className="flex-1">
             <Form {...form}>
                 <form id="schedule-form" onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-6">
                         <FormField
                             control={form.control}
                             name="targetId"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[10px] font-bold uppercase">Target Unit/Office</FormLabel>
+                                    <FormLabel className="text-[10px] font-bold uppercase">Target UNIT/OFFICE</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger className="h-11 font-bold">
-                                                <SelectValue placeholder={`Select a ${plan.auditeeType === 'Management Processes' ? 'Management Officer' : 'Unit'}`}/>
+                                                <SelectValue placeholder={`Select a ${plan.auditeeType === 'Management Processes' ? 'Officer' : 'Unit/Office'} from ${plan.campusId}`}/>
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
@@ -175,24 +194,28 @@ export function AuditScheduleDialog({
                                                     {'name' in a ? a.name : `${a.firstName} ${a.lastName}`}
                                                 </SelectItem>
                                             ))}
+                                            {auditees.length === 0 && (
+                                                <div className="p-4 text-[10px] text-muted-foreground italic text-center">No matching entities found for this site and process group.</div>
+                                            )}
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
-                        <div className="grid grid-cols-2 gap-4">
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <FormField
                                 control={form.control}
                                 name="scheduledDate"
                                 render={({ field }) => (
                                     <FormItem className="flex flex-col">
-                                        <FormLabel className="text-[10px] font-bold uppercase mb-2">Conduct Date</FormLabel>
+                                        <FormLabel className="text-[10px] font-bold uppercase mb-2">Conduct Date (MM/DD/YYYY)</FormLabel>
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <FormControl>
                                                     <Button variant="outline" className={cn("h-11 pl-3 text-left font-bold border-slate-200", !field.value && "text-muted-foreground")}>
-                                                        {field.value ? format(field.value, "PP") : (<span>Date</span>)}
+                                                        {field.value ? format(field.value, "MM/dd/yyyy") : (<span>Date</span>)}
                                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                     </Button>
                                                 </FormControl>
@@ -207,10 +230,26 @@ export function AuditScheduleDialog({
                             />
                             <FormField
                                 control={form.control}
-                                name="scheduledTime"
+                                name="startTime"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase mb-2">Conduct Time</FormLabel>
+                                        <FormLabel className="text-[10px] font-bold uppercase mb-2">Start Time (HH:MM)</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Clock className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground opacity-50" />
+                                                <Input type="time" {...field} className="h-11 pl-9 font-bold" />
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="endTime"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-bold uppercase mb-2">End Time (HH:MM)</FormLabel>
                                         <FormControl>
                                             <div className="relative">
                                                 <Clock className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground opacity-50" />

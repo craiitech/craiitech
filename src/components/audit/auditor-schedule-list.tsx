@@ -51,10 +51,10 @@ export function AuditorScheduleList({ schedules, campuses, units, isClaimView, o
     <Table>
       <TableHeader>
         <TableRow>
-            <TableHead>Conduct Schedule</TableHead>
-            <TableHead>Auditee</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Action</TableHead>
+            <TableHead className="text-[10px] font-black uppercase">Conduct Schedule</TableHead>
+            <TableHead className="text-[10px] font-black uppercase">Auditee Unit/Office</TableHead>
+            <TableHead className="text-[10px] font-black uppercase">Status</TableHead>
+            <TableHead className="text-right text-[10px] font-black uppercase">Action</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -62,23 +62,28 @@ export function AuditorScheduleList({ schedules, campuses, units, isClaimView, o
             <TableRow key={schedule.id}>
                 <TableCell>
                     <div className="flex flex-col">
-                        <span className="font-bold text-xs">{format(schedule.scheduledDate.toDate(), 'PP')}</span>
-                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <span className="font-black text-xs text-slate-700">{format(schedule.scheduledDate.toDate(), 'MM/dd/yyyy')}</span>
+                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
                             <Clock className="h-2.5 w-2.5" />
                             {format(schedule.scheduledDate.toDate(), 'hh:mm a')}
+                            {schedule.endScheduledDate && ` - ${format(schedule.endScheduledDate.toDate(), 'hh:mm a')}`}
                         </span>
                     </div>
                 </TableCell>
-                <TableCell className="text-xs font-medium">{getAuditeeName(schedule)}</TableCell>
-                <TableCell><Badge variant="secondary" className="text-[10px] uppercase font-black">{schedule.status}</Badge></TableCell>
+                <TableCell className="text-xs font-bold text-slate-800">{getAuditeeName(schedule)}</TableCell>
+                <TableCell>
+                    <Badge variant="secondary" className="text-[9px] uppercase font-black px-2 shadow-none border-none">
+                        {schedule.status}
+                    </Badge>
+                </TableCell>
                 <TableCell className="text-right">
                     {isClaimView ? (
-                        <Button variant="default" size="sm" onClick={() => onClaimAudit?.(schedule.id)} className="h-8 text-[10px] font-black uppercase">
+                        <Button variant="default" size="sm" onClick={() => onClaimAudit?.(schedule.id)} className="h-8 text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/10">
                             <Check className="h-3.5 w-3.5 mr-1.5" /> Claim Audit
                         </Button>
                     ) : (
-                        <Button variant="outline" size="sm" onClick={() => router.push(`/audit/${schedule.id}`)} className="h-8 text-[10px] font-black uppercase">
-                            Conduct Audit
+                        <Button variant="outline" size="sm" onClick={() => router.push(`/audit/${schedule.id}`)} className="h-8 text-[10px] font-black uppercase tracking-widest bg-white">
+                            Open Evidence Log
                         </Button>
                     )}
                 </TableCell>

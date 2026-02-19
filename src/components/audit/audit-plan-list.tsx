@@ -109,7 +109,7 @@ export function AuditPlanList({ plans, schedules, campuses, users, units, onEdit
                             <TableRow className="hover:bg-transparent">
                                 <TableHead className="text-[10px] font-black uppercase py-2">Auditee (Unit/Office)</TableHead>
                                 <TableHead className="text-[10px] font-black uppercase py-2">Provisioned Auditor</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase py-2 text-center">Date & Time</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase py-2 text-center">Conduct Schedule</TableHead>
                                 <TableHead className="text-[10px] font-black uppercase py-2 text-right">Status</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -133,11 +133,12 @@ export function AuditPlanList({ plans, schedules, campuses, users, units, onEdit
                                     <TableCell className="text-center py-3">
                                         <div className="flex flex-col items-center justify-center gap-0.5">
                                             <div className="flex items-center gap-1.5 text-xs font-black text-slate-600 uppercase tracking-tighter">
-                                                {format(schedule.scheduledDate.toDate(), 'MMM dd, yyyy')}
+                                                {format(schedule.scheduledDate.toDate(), 'MM/dd/yyyy')}
                                             </div>
                                             <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
                                                 <Clock className="h-2.5 w-2.5" />
                                                 {format(schedule.scheduledDate.toDate(), 'hh:mm a')}
+                                                {schedule.endScheduledDate && ` - ${format(schedule.endScheduledDate.toDate(), 'hh:mm a')}`}
                                             </div>
                                         </div>
                                     </TableCell>
