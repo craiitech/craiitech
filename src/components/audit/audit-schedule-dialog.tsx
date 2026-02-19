@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -33,7 +34,7 @@ import { doc, addDoc, collection, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useMemo, useState } from 'react';
 import type { AuditPlan, User, Unit, ISOClause } from '@/lib/types';
-import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2 } from 'lucide-react';
+import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { Badge } from '../ui/badge';
@@ -260,43 +261,56 @@ export function AuditScheduleDialog({
                                         <Badge variant="secondary" className="font-mono h-5 text-[10px]">{selectedClauses.length} CLS</Badge>
                                     </div>
                                     <div className="rounded-xl border shadow-sm overflow-hidden">
-                                        <Command className="bg-transparent">
+                                        <Command className="bg-transparent" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
                                             <div className="flex items-center border-b px-3 bg-white">
-                                                <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                                                 <CommandInput placeholder="Map clauses to itinerary..." className="h-10 text-xs" />
                                             </div>
                                             <CommandList className="max-h-[250px]">
-                                                <CommandEmpty>No matching clauses found.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {isoClauses?.map(c => {
-                                                        const isSelected = selectedClauses.includes(c.id);
-                                                        return (
-                                                            <CommandItem
-                                                                key={c.id}
-                                                                value={`${c.id} ${c.title}`}
-                                                                onSelect={() => {
-                                                                    const current = selectedClauses;
-                                                                    const next = current.includes(c.id)
-                                                                        ? current.filter(id => id !== c.id)
-                                                                        : [...current, c.id];
-                                                                    field.onChange(next);
-                                                                }}
-                                                                className="flex items-center gap-3 px-4 py-3 cursor-pointer"
-                                                            >
-                                                                <div className={cn(
-                                                                    "h-4 w-4 border rounded flex items-center justify-center transition-colors shrink-0",
-                                                                    isSelected ? "bg-primary border-primary text-white" : "border-slate-300"
-                                                                )}>
-                                                                    {isSelected && <Check className="h-3 w-3" />}
-                                                                </div>
-                                                                <div className="min-w-0">
-                                                                    <p className="font-black text-[11px] leading-tight mb-0.5">Clause {c.id}</p>
-                                                                    <p className="text-[10px] text-muted-foreground truncate">{c.title}</p>
-                                                                </div>
-                                                            </CommandItem>
-                                                        );
-                                                    })}
-                                                </CommandGroup>
+                                                {isLoadingClauses ? (
+                                                    <div className="p-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                                                        <Loader2 className="h-3 w-3 animate-spin" /> Synchronizing Standard...
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <CommandEmpty className="p-4 text-center">
+                                                            <div className="flex flex-col items-center gap-2">
+                                                                <Database className="h-8 w-8 opacity-10" />
+                                                                <p className="text-xs font-bold text-muted-foreground uppercase">No clauses found in database</p>
+                                                                <p className="text-[10px] text-muted-foreground max-w-[200px]">Ensure you have clicked 'Seed Standard Clauses' in the Audit Hub.</p>
+                                                            </div>
+                                                        </CommandEmpty>
+                                                        <CommandGroup>
+                                                            {isoClauses?.map(c => {
+                                                                const isSelected = selectedClauses.includes(c.id);
+                                                                return (
+                                                                    <CommandItem
+                                                                        key={c.id}
+                                                                        value={`${c.id} ${c.title}`}
+                                                                        onSelect={() => {
+                                                                            const current = selectedClauses;
+                                                                            const next = current.includes(c.id)
+                                                                                ? current.filter(id => id !== c.id)
+                                                                                : [...current, c.id];
+                                                                            field.onChange(next);
+                                                                        }}
+                                                                        className="flex items-center gap-3 px-4 py-3 cursor-pointer"
+                                                                    >
+                                                                        <div className={cn(
+                                                                            "h-4 w-4 border rounded flex items-center justify-center transition-colors shrink-0",
+                                                                            isSelected ? "bg-primary border-primary text-white" : "border-slate-300"
+                                                                        )}>
+                                                                            {isSelected && <Check className="h-3 w-3" />}
+                                                                        </div>
+                                                                        <div className="min-w-0">
+                                                                            <p className="font-black text-[11px] leading-tight mb-0.5">Clause {c.id}</p>
+                                                                            <p className="text-[10px] text-muted-foreground truncate">{c.title}</p>
+                                                                        </div>
+                                                                    </CommandItem>
+                                                                );
+                                                            })}
+                                                        </CommandGroup>
+                                                    </>
+                                                )}
                                             </CommandList>
                                         </Command>
                                     </div>
