@@ -407,7 +407,9 @@ export type ProgramComplianceRecord = {
   ched: {
     copcStatus: 'With COPC' | 'No COPC' | 'In Progress';
     copcLink?: string; // GDrive PDF
-    boardApprovalLink?: string; // BOR Resolution Link
+    boardApprovalMode?: 'sole' | 'per-major';
+    boardApprovalLink?: string; // Single BOR resolution link
+    majorBoardApprovals?: { majorId: string; link: string }[]; // Major-specific links
     programCmoLink?: string; // ADDED: Shared Program CMO
     rqatVisits?: RQATVisit[];
   };

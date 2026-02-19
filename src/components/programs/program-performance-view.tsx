@@ -31,7 +31,8 @@ import {
     Info,
     ArrowUpRight,
     UserCircle,
-    Clock
+    Clock,
+    Gavel
 } from 'lucide-react';
 import { 
     PieChart, 
@@ -188,7 +189,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         if (program.hasSpecializations) {
             program.specializations?.forEach(spec => {
                 if (!currentAccreditationByMajor[spec.id] && !currentAccreditationByMajor['General']) {
-                    gaps.push({ type: 'Academic Quality', msg: `Missing accreditation record for major: ${spec.name}`, priority: 'Medium' });
+                    gaps.push({ type: 'Academic Quality', msg: `Missing accreditation record for specialization: ${spec.name}`, priority: 'Medium' });
                 }
             });
         } else if (!latestAccreditation || latestAccreditation.level === 'Non Accredited') {
@@ -200,7 +201,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     if (program.hasSpecializations) {
         program.specializations?.forEach(spec => {
             if (!curriculaByMajor[spec.id] && !curriculaByMajor['General']) {
-                gaps.push({ type: 'Compliance', msg: `No curriculum notation evidence found for major: ${spec.name}`, priority: 'Medium' });
+                gaps.push({ type: 'Compliance', msg: `No curriculum notation evidence found for specialization: ${spec.name}`, priority: 'Medium' });
             }
         });
     }
@@ -227,17 +228,39 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     if (!record) return { governance: [], accreditation: [], curriculum: [], monitoring: [] };
     const docs = { governance: [] as any[], accreditation: [] as any[], curriculum: [] as any[], monitoring: [] as any[] };
     
-    if (record.ched?.boardApprovalLink) docs.governance.push({ id: 'bor', title: 'BOR Resolution', url: record.ched.boardApprovalLink, status: 'Active' });
+    // Governance / Authority Docs
+    if (record.ched?.boardApprovalMode === 'per-major') {
+        (record.ched.majorBoardApprovals || []).forEach((ma) => {
+            if (ma.link) {
+                const majorName = program.specializations?.find(s => s.id === ma.majorId)?.name || ma.majorId;
+                docs.governance.push({ id: `bor-${ma.majorId}`, title: `BOR Resolution: ${majorName}`, url: ma.link, status: 'Active' });
+            }
+        });
+    } else if (record.ched?.boardApprovalLink) {
+        docs.governance.push({ id: 'bor', title: 'BOR Resolution (Sole)', url: record.ched.boardApprovalLink, status: 'Active' });
+    }
+
     if (record.ched?.copcLink) docs.governance.push({ id: 'copc', title: 'CHED COPC', url: record.ched.copcLink, status: record.ched.copcStatus });
     if (record.ched?.programCmoLink) docs.governance.push({ id: 'cmo-global', title: 'Program CMO Reference', url: record.ched.programCmoLink, status: 'Standard' });
     
+    // Curriculum Docs
     (record.curriculumRecords || []).forEach((curr, idx) => {
-        if (curr.notationProofLink) docs.curriculum.push({ id: `note-${idx}`, title: `Notation: ${curr.majorId === 'General' ? 'Program' : curr.majorId}`, url: curr.notationProofLink, status: curr.dateNoted });
+        if (curr.notationProofLink) {
+            const majorName = program.specializations?.find(s => s.id === curr.majorId)?.name || 'General';
+            docs.curriculum.push({ id: `note-${idx}`, title: `Notation: ${majorName}`, url: curr.notationProofLink, status: curr.dateNoted });
+        }
     });
 
+    // Accreditation Docs
     (record.accreditationRecords || []).forEach((acc, idx) => { if (acc.certificateLink) docs.accreditation.push({ id: `acc-${idx}`, title: `${acc.level} Certificate`, url: acc.certificateLink, status: acc.lifecycleStatus }); });
+    
+    // Monitoring Docs
+    (record.ched?.rqatVisits || []).forEach((visit, idx) => {
+        if (visit.reportLink) docs.monitoring.push({ id: `rqat-${idx}`, title: `RQAT Report: ${visit.date}`, url: visit.reportLink, status: visit.result });
+    });
+
     return docs;
-  }, [record]);
+  }, [record, program]);
 
   if (!record || !analyticsData) {
     return (
@@ -538,7 +561,10 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                                                 <div key={doc.id} className="p-3.5 rounded-xl border bg-background hover:border-primary/40 hover:shadow-md transition-all group border-primary/5">
                                                     <div className="flex flex-col gap-3">
                                                         <div className="space-y-1 min-w-0">
-                                                            <p className="font-black text-[11px] text-slate-800 leading-tight group-hover:text-primary transition-colors">{doc.title}</p>
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                {doc.id.startsWith('bor') && <Gavel className="h-3 w-3 text-primary opacity-50" />}
+                                                                <p className="font-black text-[11px] text-slate-800 leading-tight group-hover:text-primary transition-colors">{doc.title}</p>
+                                                            </div>
                                                             <div className="flex items-center gap-2">
                                                                 <Badge variant="secondary" className="text-[8px] h-3.5 px-1.5 font-bold uppercase border-none bg-muted text-muted-foreground">{doc.status}</Badge>
                                                             </div>

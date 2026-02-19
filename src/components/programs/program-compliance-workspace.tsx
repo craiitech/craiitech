@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -68,7 +67,15 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     resolver: zodResolver(complianceSchema),
     defaultValues: {
       academicYear: selectedAY,
-      ched: { copcStatus: 'In Progress', copcLink: '', boardApprovalLink: '', programCmoLink: '', rqatVisits: [] },
+      ched: { 
+        copcStatus: 'In Progress', 
+        copcLink: '', 
+        boardApprovalMode: 'sole',
+        boardApprovalLink: '', 
+        majorBoardApprovals: [],
+        programCmoLink: '', 
+        rqatVisits: [] 
+      },
       accreditationRecords: [],
       curriculumRecords: [],
       faculty: { hasAssociateDean: false, dean: { ...emptyLeadership }, associateDean: { ...emptyLeadership }, programChair: { ...emptyLeadership }, members: [] },
@@ -92,7 +99,15 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     } else {
       methods.reset({
         academicYear: selectedAY,
-        ched: { copcStatus: 'In Progress', copcLink: '', boardApprovalLink: '', programCmoLink: '', rqatVisits: [] },
+        ched: { 
+            copcStatus: 'In Progress', 
+            copcLink: '', 
+            boardApprovalMode: 'sole',
+            boardApprovalLink: '', 
+            majorBoardApprovals: [],
+            programCmoLink: '', 
+            rqatVisits: [] 
+        },
         accreditationRecords: [],
         curriculumRecords: [],
         faculty: { hasAssociateDean: false, dean: { ...emptyLeadership }, associateDean: { ...emptyLeadership }, programChair: { ...emptyLeadership }, members: [] },
@@ -110,6 +125,14 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     const recordId = activeRecord?.id || `${program.id}-${selectedAY}`;
     const docRef = doc(firestore, 'programCompliances', recordId);
     
+    // Explicitly sync major IDs if per-major mode is used
+    if (values.ched?.boardApprovalMode === 'per-major' && program.specializations) {
+        values.ched.majorBoardApprovals = values.ched.majorBoardApprovals?.map((a: any, idx: number) => ({
+            ...a,
+            majorId: program.specializations![idx]?.id
+        })) || [];
+    }
+
     const sanitizedData = sanitizeForFirestore({ ...values, academicYear: selectedAY, programId: program.id, campusId });
 
     try {
@@ -161,7 +184,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
 
             <div className="mt-6">
               <TabsContent value="performance"><ProgramPerformanceView program={program} record={activeRecord} selectedYear={selectedAY} /></TabsContent>
-              <TabsContent value="ched"><ChedComplianceModule canEdit={canEdit} /></TabsContent>
+              <TabsContent value="ched"><ChedComplianceModule canEdit={canEdit} program={program} /></TabsContent>
               <TabsContent value="accreditation"><AccreditationModule canEdit={canEdit} programSpecializations={program.specializations} /></TabsContent>
               <TabsContent value="faculty"><FacultyModule canEdit={canEdit} program={program} /></TabsContent>
               <TabsContent value="curriculum"><CurriculumModule canEdit={canEdit} programSpecializations={program.specializations} /></TabsContent>
