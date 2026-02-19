@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
@@ -21,8 +22,7 @@ interface CurriculumModuleProps {
 
 /**
  * SUB-COMPONENT: CurriculumRecordCard
- * Handles individual curriculum records. 
- * Necessary to call hooks (useWatch) at the top level per item.
+ * Handles major-specific noted curricula. 
  */
 function CurriculumRecordCard({ 
   index, 
@@ -55,7 +55,7 @@ function CurriculumRecordCard({
       <CardHeader className="bg-muted/30 py-3 border-b">
         <CardTitle className="text-xs font-black uppercase text-primary flex items-center gap-2">
           <Layers className="h-3.5 w-3.5" />
-          Curriculum Record #{index + 1}
+          Major Curriculum & Notation Record #{index + 1}
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-6 space-y-6">
@@ -90,30 +90,16 @@ function CurriculumRecordCard({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
+        <FormField
             control={control}
             name={`curriculumRecords.${index}.dateImplemented`}
             render={({ field: inputField }) => (
-              <FormItem>
-                <FormLabel className="text-[10px] font-bold uppercase">Implementation Date</FormLabel>
+                <FormItem>
+                <FormLabel className="text-[10px] font-bold uppercase">Date Implemented</FormLabel>
                 <FormControl><Input {...inputField} placeholder="e.g. 1st Sem 2024" className="h-9 text-xs" disabled={!canEdit} /></FormControl>
-              </FormItem>
+                </FormItem>
             )}
-          />
-          <FormField
-            control={control}
-            name={`curriculumRecords.${index}.cmoLink`}
-            render={({ field: inputField }) => (
-              <FormItem>
-                <FormLabel className="text-[10px] font-bold uppercase flex items-center gap-1.5">
-                  <LinkIcon className="h-2.5 w-2.5" /> CMO Reference (PDF)
-                </FormLabel>
-                <FormControl><Input {...inputField} placeholder="GDrive Link..." className="h-9 text-xs" disabled={!canEdit} /></FormControl>
-              </FormItem>
-            )}
-          />
-        </div>
+        />
 
         <Separator />
 
@@ -121,7 +107,7 @@ function CurriculumRecordCard({
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <FormLabel className="text-xs font-black uppercase text-blue-800">CHED Program Notation Status</FormLabel>
-              <p className="text-[9px] text-muted-foreground">Is this curriculum version officially acknowledged by CHED?</p>
+              <p className="text-[9px] text-muted-foreground">Is this track's curriculum officially acknowledged by CHED?</p>
             </div>
             <FormField
               control={control}
@@ -178,8 +164,6 @@ export function CurriculumModule({ canEdit, programSpecializations }: Curriculum
     control,
     name: "curriculumRecords"
   });
-
-  const hasSpecializations = programSpecializations && programSpecializations.length > 0;
 
   // Auto-calculate totals for each year level in all terms
   useEffect(() => {
@@ -250,13 +234,41 @@ export function CurriculumModule({ canEdit, programSpecializations }: Curriculum
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="space-y-6">
-        <div className="flex items-center justify-between bg-primary/5 p-4 rounded-xl border border-primary/10 shadow-sm">
+        <Card className="border-primary/20 shadow-sm overflow-hidden">
+            <CardHeader className="bg-primary/5 border-b py-4">
+                <CardTitle className="text-xs font-black uppercase text-primary flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" />
+                    Program Standard Reference
+                </CardTitle>
+                <CardDescription className="text-[10px]">The CHED Memorandum Order (CMO) that governs this entire degree program.</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+                <FormField
+                    control={control}
+                    name="ched.programCmoLink"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-[10px] font-bold uppercase">CHED Memorandum Order (CMO) Link</FormLabel>
+                            <FormControl>
+                                <div className="relative">
+                                    <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                    <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9" disabled={!canEdit} />
+                                </div>
+                            </FormControl>
+                            <FormDescription className="text-[9px]">A single institutional standard reference for all program majors.</FormDescription>
+                        </FormItem>
+                    )}
+                />
+            </CardContent>
+        </Card>
+
+        <div className="flex items-center justify-between bg-muted p-4 rounded-xl border border-primary/10 shadow-sm">
             <div className="space-y-1">
                 <h3 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                    <BookOpen className="h-4 w-4" />
-                    Curriculum & CHED Program Contents
+                    <Layers className="h-4 w-4" />
+                    Major-Specific Curriculum Registry
                 </h3>
-                <p className="text-[10px] text-muted-foreground font-medium">Register the official curriculum and its proof of notation by CHED.</p>
+                <p className="text-[10px] text-muted-foreground font-medium">Log notation status and implementation details per track.</p>
             </div>
             {canEdit && (
                 <Button 
@@ -268,13 +280,12 @@ export function CurriculumModule({ canEdit, programSpecializations }: Curriculum
                         revisionNumber: '',
                         dateImplemented: '',
                         isNotedByChed: false,
-                        cmoLink: '',
                         notationProofLink: '',
                         dateNoted: ''
                     })}
                     className="shadow-lg shadow-primary/20 h-8 text-[10px] font-bold"
                 >
-                    <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Curriculum
+                    <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Track
                 </Button>
             )}
         </div>
@@ -292,9 +303,9 @@ export function CurriculumModule({ canEdit, programSpecializations }: Curriculum
             ))}
             {fields.length === 0 && (
                 <div className="text-center py-16 border border-dashed rounded-2xl bg-muted/5">
-                    <BookOpen className="h-10 w-10 mx-auto text-muted-foreground opacity-20 mb-3" />
-                    <p className="text-xs font-bold text-muted-foreground uppercase">No Curricula Logged</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">Register the program or major curricula to ensure alignment.</p>
+                    <Layers className="h-10 w-10 mx-auto text-muted-foreground opacity-20 mb-3" />
+                    <p className="text-xs font-bold text-muted-foreground uppercase">No Major Records Logged</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">Register individual curricula notation status per major.</p>
                 </div>
             )}
         </div>

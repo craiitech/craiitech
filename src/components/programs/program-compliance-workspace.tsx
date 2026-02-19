@@ -68,7 +68,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     resolver: zodResolver(complianceSchema),
     defaultValues: {
       academicYear: selectedAY,
-      ched: { copcStatus: 'In Progress', copcLink: '', boardApprovalLink: '', rqatVisits: [] },
+      ched: { copcStatus: 'In Progress', copcLink: '', boardApprovalLink: '', programCmoLink: '', rqatVisits: [] },
       accreditationRecords: [],
       curriculumRecords: [],
       faculty: { hasAssociateDean: false, dean: { ...emptyLeadership }, associateDean: { ...emptyLeadership }, programChair: { ...emptyLeadership }, members: [] },
@@ -92,7 +92,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     } else {
       methods.reset({
         academicYear: selectedAY,
-        ched: { copcStatus: 'In Progress', copcLink: '', boardApprovalLink: '', rqatVisits: [] },
+        ched: { copcStatus: 'In Progress', copcLink: '', boardApprovalLink: '', programCmoLink: '', rqatVisits: [] },
         accreditationRecords: [],
         curriculumRecords: [],
         faculty: { hasAssociateDean: false, dean: { ...emptyLeadership }, associateDean: { ...emptyLeadership }, programChair: { ...emptyLeadership }, members: [] },

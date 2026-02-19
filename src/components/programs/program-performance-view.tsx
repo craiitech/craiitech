@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -107,7 +108,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     });
     const latestAccreditation = milestones.length > 0 ? milestones[milestones.length - 1] : null;
 
-    // 5. Major-Specific Curriculum Logic
+    // 5. Major-Specific Curriculum Notation Logic
     const curriculumRecords = record.curriculumRecords || [];
     const curriculaByMajor: Record<string, CurriculumRecord> = {};
     curriculumRecords.forEach(c => {
@@ -137,6 +138,8 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
             }
             if (!curriculaByMajor[spec.id] && !curriculaByMajor['General']) {
                 gaps.push({ type: 'Curriculum', msg: `Missing curriculum record for major: ${spec.name}` });
+            } else if (curriculaByMajor[spec.id] && !curriculaByMajor[spec.id].isNotedByChed) {
+                gaps.push({ type: 'Notation', msg: `Curriculum for major "${spec.name}" is not yet officially noted by CHED.` });
             }
         });
     }
@@ -150,9 +153,9 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     
     if (record.ched?.boardApprovalLink) docs.governance.push({ id: 'bor', title: 'BOR Resolution', url: record.ched.boardApprovalLink, status: 'Active' });
     if (record.ched?.copcLink) docs.governance.push({ id: 'copc', title: 'CHED COPC', url: record.ched.copcLink, status: record.ched.copcStatus });
+    if (record.ched?.programCmoLink) docs.governance.push({ id: 'cmo-global', title: 'Program CMO Reference', url: record.ched.programCmoLink, status: 'Standard' });
     
     (record.curriculumRecords || []).forEach((curr, idx) => {
-        if (curr.cmoLink) docs.curriculum.push({ id: `cmo-${idx}`, title: `CMO: ${curr.majorId === 'General' ? 'Program' : curr.majorId}`, url: curr.cmoLink, status: `Rev ${curr.revisionNumber}` });
         if (curr.notationProofLink) docs.curriculum.push({ id: `note-${idx}`, title: `Notation: ${curr.majorId === 'General' ? 'Program' : curr.majorId}`, url: curr.notationProofLink, status: curr.dateNoted });
     });
 
@@ -175,18 +178,18 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         </Card>
         <Card className="bg-emerald-50/50 border-emerald-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Global Accreditation</CardDescription><CardTitle className="text-lg font-black text-slate-900 truncate">{analyticsData.latestAccreditation?.level || 'Non Accredited'}</CardTitle></CardHeader><CardContent><Badge variant="outline" className="bg-white text-emerald-700 border-emerald-200 text-[9px] font-black uppercase">{analyticsData.latestAccreditation?.result || 'Ongoing'}</Badge></CardContent></Card>
         <Card className="bg-blue-50/50 border-blue-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-blue-600">Faculty Alignment</CardDescription><CardTitle className="text-3xl font-black text-blue-700 tabular-nums">{analyticsData.alignmentRate}%</CardTitle></CardHeader><CardContent><p className="text-[10px] text-blue-800/60 font-bold uppercase">{analyticsData.totalFaculty} Members Named</p></CardContent></Card>
-        <Card className="bg-amber-50/50 border-amber-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-amber-600">CHED Program Contents</CardDescription><CardTitle className="text-lg font-black text-amber-700 truncate">{record.curriculumRecords?.length || 0} Tracks Profiled</CardTitle></CardHeader><CardContent><Badge variant="outline" className="bg-white text-amber-700 border-amber-200 text-[9px] font-black uppercase">{record.curriculumRecords?.some(c => c.isNotedByChed) ? 'Officially Noted' : 'Pending Notation'}</Badge></CardContent></Card>
+        <Card className="bg-amber-50/50 border-amber-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-amber-600">Program Contents</CardDescription><CardTitle className="text-lg font-black text-amber-700 truncate">{record.curriculumRecords?.length || 0} Tracks Noted</CardTitle></CardHeader><CardContent><Badge variant="outline" className="bg-white text-amber-700 border-amber-200 text-[9px] font-black uppercase">{record.curriculumRecords?.some(c => c.isNotedByChed) ? 'Officially Noted' : 'Pending'}</Badge></CardContent></Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
             
-            {/* Major-Specific Accreditation Profile */}
+            {/* Unified Major-Specific Quality Profile */}
             <Card className="border-primary/10 shadow-sm overflow-hidden">
                 <CardHeader className="bg-muted/10 border-b py-4">
                     <div className="flex items-center gap-2">
-                        <Award className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-sm font-black uppercase tracking-tight">Major-Specific Accreditation Registry</CardTitle>
+                        <Layers className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-sm font-black uppercase tracking-tight">Major-Specific Quality Profile</CardTitle>
                     </div>
                 </CardHeader>
                 <CardContent className="pt-6">
@@ -194,34 +197,41 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                         {program.specializations && program.specializations.length > 0 ? (
                             program.specializations.map(spec => {
                                 const acc = analyticsData.currentAccreditationByMajor[spec.id];
+                                const curr = analyticsData.curriculaByMajor[spec.id] || analyticsData.curriculaByMajor['General'];
                                 return (
-                                    <div key={spec.id} className="p-4 rounded-xl border bg-muted/5 space-y-3">
+                                    <div key={spec.id} className="p-4 rounded-xl border bg-muted/5 space-y-4">
                                         <div className="flex items-center justify-between">
                                             <p className="text-[10px] font-black uppercase text-primary tracking-widest">{spec.name}</p>
-                                            {acc ? (
-                                                <Badge className="bg-emerald-600 text-white h-4 text-[8px] font-black uppercase">Current Track Status</Badge>
-                                            ) : (
-                                                <Badge variant="outline" className="text-[8px] h-4 font-black uppercase opacity-50">Pending Eval</Badge>
-                                            )}
+                                            <Badge variant="outline" className="text-[8px] h-4 font-black uppercase border-primary/20 text-primary">Track Status</Badge>
                                         </div>
-                                        <div className="space-y-1">
-                                            <p className="text-xs font-black text-slate-800">{acc?.level || 'Non Accredited'}</p>
-                                            <p className="text-[10px] font-bold text-muted-foreground uppercase">{acc?.result || 'Outcome Pending'}</p>
-                                        </div>
-                                        {acc?.statusValidityDate && (
-                                            <div className="flex items-center gap-1.5 text-[8px] font-black text-blue-700 bg-blue-50 w-fit px-2 py-0.5 rounded border border-blue-100">
-                                                <Calendar className="h-2.5 w-2.5" />
-                                                VALID UNTIL: {acc.statusValidityDate}
+                                        
+                                        <div className="space-y-2">
+                                            <div className="flex items-start gap-2">
+                                                <Award className="h-3.5 w-3.5 text-primary opacity-40 shrink-0 mt-0.5" />
+                                                <div className="space-y-0.5">
+                                                    <p className="text-[10px] font-bold text-slate-800 leading-none">{acc?.level || 'Non Accredited'}</p>
+                                                    <p className="text-[8px] font-bold text-muted-foreground uppercase">{acc?.result || 'Outcome Pending'}</p>
+                                                </div>
                                             </div>
-                                        )}
+                                            <div className="flex items-start gap-2">
+                                                <BookOpen className="h-3.5 w-3.5 text-blue-600 opacity-40 shrink-0 mt-0.5" />
+                                                <div className="space-y-0.5">
+                                                    <p className="text-[10px] font-bold text-slate-800 leading-none">Curriculum Rev: {curr?.revisionNumber || 'Not Logged'}</p>
+                                                    <Badge variant={curr?.isNotedByChed ? 'default' : 'secondary'} className={cn("text-[8px] h-3.5 font-black uppercase", curr?.isNotedByChed ? "bg-emerald-600" : "opacity-50")}>
+                                                        {curr?.isNotedByChed ? 'Officially Noted' : 'Pending Notation'}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 );
                             })
                         ) : (
                             <div className="md:col-span-2 p-4 rounded-xl border bg-primary/5 flex items-center justify-between">
-                                <div>
+                                <div className="space-y-2">
                                     <p className="text-[10px] font-black uppercase text-primary tracking-widest">Institutional Program Level</p>
-                                    <p className="text-xs font-black text-slate-800 mt-1">{analyticsData.latestAccreditation?.level || 'Non Accredited'}</p>
+                                    <p className="text-xs font-black text-slate-800">{analyticsData.latestAccreditation?.level || 'Non Accredited'}</p>
+                                    <p className="text-[9px] font-bold text-muted-foreground uppercase">CHED Content Noted: {analyticsData.curriculaByMajor['General']?.isNotedByChed ? 'YES' : 'NO'}</p>
                                 </div>
                                 <Badge variant="outline" className="h-5 text-[9px] font-black uppercase border-primary/20 text-primary">Global Scope</Badge>
                             </div>

@@ -391,7 +391,6 @@ export type CurriculumRecord = {
   revisionNumber: string;
   dateImplemented: string;
   isNotedByChed: boolean;
-  cmoLink?: string; // GDrive PDF (Program CMO)
   notationProofLink?: string; // Proof of notation PDF
   dateNoted?: string;
 };
@@ -407,6 +406,7 @@ export type ProgramComplianceRecord = {
     copcStatus: 'With COPC' | 'No COPC' | 'In Progress';
     copcLink?: string; // GDrive PDF
     boardApprovalLink?: string; // BOR Resolution Link
+    programCmoLink?: string; // ADDED: Shared Program CMO
     rqatVisits?: RQATVisit[];
   };
 
