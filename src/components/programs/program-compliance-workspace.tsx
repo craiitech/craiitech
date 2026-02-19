@@ -1,11 +1,11 @@
+
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { AcademicProgram, ProgramComplianceRecord } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Loader2, Save, FileCheck, Users, BookOpen, BarChart3, ShieldCheck, Presentation } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -20,7 +20,6 @@ import { OutcomesModule } from './modules/outcomes-module';
 import { ProgramPerformanceView } from './program-performance-view';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { cn } from '@/lib/utils';
 
 const complianceSchema = z.record(z.any());
 
@@ -43,6 +42,11 @@ const emptyYearLevelEnrollment = {
 };
 const emptyLeadership = { name: '', academicRank: '', highestEducation: '', isAlignedWithCMO: 'Aligned' as const, sex: 'Female' as const };
 
+interface ProgramComplianceWorkspaceProps {
+    program: AcademicProgram;
+    campusId: string;
+}
+
 export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplianceWorkspaceProps) {
   const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
@@ -64,9 +68,9 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     resolver: zodResolver(complianceSchema),
     defaultValues: {
       academicYear: selectedAY,
-      ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', boardApprovalLink: '', contentNotedLinks: [], rqatVisits: [] },
+      ched: { copcStatus: 'In Progress', copcLink: '', boardApprovalLink: '', rqatVisits: [] },
       accreditationRecords: [],
-      curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
+      curriculumRecords: [],
       faculty: { hasAssociateDean: false, dean: { ...emptyLeadership }, associateDean: { ...emptyLeadership }, programChair: { ...emptyLeadership }, members: [] },
       stats: { enrollment: { firstSemester: { ...emptyYearLevelEnrollment }, secondSemester: { ...emptyYearLevelEnrollment }, midYearTerm: { ...emptyYearLevelEnrollment } }, graduationCount: 0 },
       graduationRecords: [], tracerRecords: [], boardPerformance: []
@@ -80,13 +84,17 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     if (currentId === lastResetId.current) return;
 
     if (activeRecord) {
-      methods.reset({ ...activeRecord, academicYear: selectedAY });
+      methods.reset({ 
+        ...activeRecord, 
+        academicYear: selectedAY,
+        curriculumRecords: activeRecord.curriculumRecords || [] 
+      });
     } else {
       methods.reset({
         academicYear: selectedAY,
-        ched: { copcStatus: 'In Progress', contentNoted: false, copcLink: '', boardApprovalLink: '', contentNotedLinks: [], rqatVisits: [] },
+        ched: { copcStatus: 'In Progress', copcLink: '', boardApprovalLink: '', rqatVisits: [] },
         accreditationRecords: [],
-        curriculum: { revisionNumber: '0', isNotedByChed: false, cmoLink: '', dateImplemented: '' },
+        curriculumRecords: [],
         faculty: { hasAssociateDean: false, dean: { ...emptyLeadership }, associateDean: { ...emptyLeadership }, programChair: { ...emptyLeadership }, members: [] },
         stats: { enrollment: { firstSemester: { ...emptyYearLevelEnrollment }, secondSemester: { ...emptyYearLevelEnrollment }, midYearTerm: { ...emptyYearLevelEnrollment } }, graduationCount: 0 },
         graduationRecords: [], tracerRecords: [], boardPerformance: []
@@ -156,7 +164,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
               <TabsContent value="ched"><ChedComplianceModule canEdit={canEdit} /></TabsContent>
               <TabsContent value="accreditation"><AccreditationModule canEdit={canEdit} programSpecializations={program.specializations} /></TabsContent>
               <TabsContent value="faculty"><FacultyModule canEdit={canEdit} program={program} /></TabsContent>
-              <TabsContent value="curriculum"><CurriculumModule canEdit={canEdit} /></TabsContent>
+              <TabsContent value="curriculum"><CurriculumModule canEdit={canEdit} programSpecializations={program.specializations} /></TabsContent>
               <TabsContent value="outcomes"><OutcomesModule canEdit={canEdit} isBoardProgram={program.isBoardProgram} /></TabsContent>
             </div>
           </Tabs>

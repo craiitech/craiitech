@@ -1,14 +1,14 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AcademicProgram, ProgramComplianceRecord, ProgramFacultyMember, AccreditationRecord } from '@/lib/types';
+import type { AcademicProgram, ProgramComplianceRecord, AccreditationRecord, CurriculumRecord } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
     FileText, 
     ExternalLink, 
-    BarChart3, 
     Users, 
     Award, 
     ShieldCheck, 
@@ -20,31 +20,24 @@ import {
     History,
     Calendar,
     ChevronRight,
-    MapPin,
     Target,
     Activity,
-    ArrowUpRight,
     PieChart as PieIcon,
-    UserCircle2
+    BookOpen,
+    ShieldAlert
 } from 'lucide-react';
 import { 
-    BarChart, 
-    Bar, 
-    XAxis, 
-    YAxis, 
-    CartesianGrid, 
-    Tooltip, 
+    PieChart, 
+    Pie, 
+    Cell, 
     ResponsiveContainer, 
-    Cell,
-    LineChart,
-    Line
+    Tooltip
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
-import { Timestamp } from 'firebase/firestore';
 
 interface ProgramPerformanceViewProps {
   program: AcademicProgram;
@@ -80,14 +73,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         };
     });
 
-    // 2. Success Trends
-    const successTrends = (record.graduationRecords || []).map(g => ({
-        period: `${g.semester} ${g.year}`,
-        graduates: g.count,
-        employment: record.tracerRecords?.find(t => t.year === g.year && t.semester === g.semester)?.employmentRate || 0
-    })).sort((a, b) => a.period.localeCompare(b.period));
-
-    // 3. Faculty Alignment
+    // 2. Faculty Alignment
     let totalFaculty = 0;
     let alignedFaculty = 0;
     const countMember = (m: any) => {
@@ -101,19 +87,16 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     countMember(record.faculty?.programChair);
     const alignmentRate = totalFaculty > 0 ? Math.round((alignedFaculty / totalFaculty) * 100) : 0;
 
-    // 4. Board Performance
+    // 3. Board Performance
     const latestBoard = record.boardPerformance && record.boardPerformance.length > 0 
         ? record.boardPerformance[record.boardPerformance.length - 1] 
         : null;
 
-    // 5. Major-Specific Accreditation Logic
+    // 4. Major-Specific Accreditation Logic
     const milestones = record.accreditationRecords || [];
     const currentAccreditationByMajor: Record<string, AccreditationRecord> = {};
-    
-    // Find "Current" milestones for each major
     milestones.filter(m => m.lifecycleStatus === 'Current').forEach(m => {
         if (!m.components || m.components.length === 0) {
-            // General program record
             currentAccreditationByMajor['program-wide'] = m;
         } else {
             m.components.forEach(comp => {
@@ -121,15 +104,21 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
             });
         }
     });
-
     const latestAccreditation = milestones.length > 0 ? milestones[milestones.length - 1] : null;
+
+    // 5. Major-Specific Curriculum Logic
+    const curriculumRecords = record.curriculumRecords || [];
+    const curriculaByMajor: Record<string, CurriculumRecord> = {};
+    curriculumRecords.forEach(c => {
+        curriculaByMajor[c.majorId] = c;
+    });
 
     // 6. Maturity Score
     const pillarScores = {
         ched: record.ched?.copcStatus === 'With COPC' ? 20 : (record.ched?.copcStatus === 'In Progress' ? 10 : 0),
         accreditation: (latestAccreditation?.level && latestAccreditation.level !== 'Non Accredited') ? 20 : 0,
         faculty: totalFaculty > 0 ? (alignmentRate / 100) * 20 : 0,
-        curriculum: record.curriculum?.cmoLink && record.curriculum?.isNotedByChed ? 20 : 10,
+        curriculum: (curriculumRecords.some(c => c.isNotedByChed)) ? 20 : 10,
         outcomes: ((record.graduationRecords?.length || 0) > 0) ? 20 : 0
     };
     const overallScore = Math.round(Object.values(pillarScores).reduce((a, b) => a + b, 0));
@@ -143,10 +132,13 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
             if (!currentAccreditationByMajor[spec.id]) {
                 gaps.push({ type: 'Accreditation', msg: `Missing current accreditation record for major: ${spec.name}` });
             }
+            if (!curriculaByMajor[spec.id] && !curriculaByMajor['General']) {
+                gaps.push({ type: 'Curriculum', msg: `Missing curriculum record for major: ${spec.name}` });
+            }
         });
     }
 
-    return { enrollmentData, successTrends, alignmentRate, totalFaculty, latestBoard, milestones, latestAccreditation, currentAccreditationByMajor, overallScore, pillarScores, gaps };
+    return { enrollmentData, alignmentRate, totalFaculty, latestBoard, milestones, latestAccreditation, currentAccreditationByMajor, curriculaByMajor, overallScore, pillarScores, gaps };
   }, [record, program]);
 
   const categorizedDocs = useMemo(() => {
@@ -154,7 +146,12 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     const docs = { governance: [] as any[], accreditation: [] as any[], curriculum: [] as any[], monitoring: [] as any[] };
     if (record.ched?.boardApprovalLink) docs.governance.push({ id: 'bor', title: 'BOR Resolution', url: record.ched.boardApprovalLink, status: 'Active' });
     if (record.ched?.copcLink) docs.governance.push({ id: 'copc', title: 'CHED COPC', url: record.ched.copcLink, status: record.ched.copcStatus });
-    if (record.curriculum?.cmoLink) docs.curriculum.push({ id: 'cmo', title: 'Program CMO', url: record.curriculum.cmoLink, status: `Rev ${record.curriculum.revisionNumber}` });
+    
+    (record.curriculumRecords || []).forEach((curr, idx) => {
+        if (curr.cmoLink) docs.curriculum.push({ id: `cmo-${idx}`, title: `CMO: ${curr.majorId === 'General' ? 'Program' : curr.majorId}`, url: curr.cmoLink, status: `Rev ${curr.revisionNumber}` });
+        if (curr.notationProofLink) docs.curriculum.push({ id: `note-${idx}`, title: `Notation: ${curr.majorId === 'General' ? 'Program' : curr.majorId}`, url: curr.notationProofLink, status: curr.dateNoted });
+    });
+
     (record.accreditationRecords || []).forEach((acc, idx) => { if (acc.certificateLink) docs.accreditation.push({ id: `acc-${idx}`, title: `${acc.level} Certificate`, url: acc.certificateLink, status: acc.lifecycleStatus }); });
     return docs;
   }, [record]);
@@ -165,6 +162,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+      {/* Top Level KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative group overflow-hidden">
             <div className="absolute -top-4 -right-4 h-24 w-24 bg-primary/10 rounded-full" />
@@ -173,46 +171,80 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         </Card>
         <Card className="bg-emerald-50/50 border-emerald-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Accreditation</CardDescription><CardTitle className="text-lg font-black text-slate-900 truncate">{analyticsData.latestAccreditation?.level || 'Non Accredited'}</CardTitle></CardHeader><CardContent><Badge variant="outline" className="bg-white text-emerald-700 border-emerald-200 text-[9px] font-black uppercase">{analyticsData.latestAccreditation?.result || 'Ongoing'}</Badge></CardContent></Card>
         <Card className="bg-blue-50/50 border-blue-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-blue-600">Faculty Alignment</CardDescription><CardTitle className="text-3xl font-black text-blue-700 tabular-nums">{analyticsData.alignmentRate}%</CardTitle></CardHeader><CardContent><p className="text-[10px] text-blue-800/60 font-bold uppercase">{analyticsData.totalFaculty} Members Registered</p></CardContent></Card>
-        <Card className="bg-amber-50/50 border-amber-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-amber-600">Board Performance</CardDescription><CardTitle className="text-3xl font-black text-amber-700 tabular-nums">{analyticsData.latestBoard?.overallPassRate || '0'}%</CardTitle></CardHeader><CardContent><p className="text-[10px] text-amber-800/60 font-bold uppercase">Latest Result</p></CardContent></Card>
+        <Card className="bg-amber-50/50 border-amber-100 shadow-sm"><CardHeader className="pb-2"><CardDescription className="text-[10px] font-black uppercase tracking-widest text-amber-600">CHED Program Contents</CardDescription><CardTitle className="text-lg font-black text-amber-700 truncate">{record.curriculumRecords?.length || 0} Registered Curricula</CardTitle></CardHeader><CardContent><Badge variant="outline" className="bg-white text-amber-700 border-amber-200 text-[9px] font-black uppercase">{record.curriculumRecords?.some(c => c.isNotedByChed) ? 'Officially Noted' : 'Pending Notation'}</Badge></CardContent></Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-            {/* Major-Specific Profile */}
-            {program.hasSpecializations && (
-                <Card className="border-primary/10 shadow-sm overflow-hidden">
-                    <CardHeader className="bg-muted/10 border-b py-4">
-                        <div className="flex items-center gap-2">
-                            <Layers className="h-4 w-4 text-primary" />
-                            <CardTitle className="text-sm font-black uppercase tracking-tight">Major-Specific Accreditation Profile</CardTitle>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {program.specializations?.map(spec => {
-                                const acc = analyticsData.currentAccreditationByMajor[spec.id];
+            
+            {/* Major-Specific Curriculum & Content Profile */}
+            <Card className="border-primary/10 shadow-sm overflow-hidden">
+                <CardHeader className="bg-muted/10 border-b py-4">
+                    <div className="flex items-center gap-2">
+                        <BookOpen className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-sm font-black uppercase tracking-tight">Curriculum & Program Content Profile</CardTitle>
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {program.specializations && program.specializations.length > 0 ? (
+                            program.specializations.map(spec => {
+                                const curr = analyticsData.curriculaByMajor[spec.id] || analyticsData.curriculaByMajor['General'];
                                 return (
                                     <div key={spec.id} className="p-4 rounded-xl border bg-muted/5 space-y-3">
                                         <div className="flex items-center justify-between">
                                             <p className="text-[10px] font-black uppercase text-primary tracking-widest">{spec.name}</p>
-                                            <Badge variant={acc ? "default" : "outline"} className={cn("text-[8px] h-4 font-black uppercase", acc ? "bg-emerald-600" : "opacity-50")}>
-                                                {acc ? "Accredited" : "Status Unknown"}
+                                            <Badge variant={curr?.isNotedByChed ? "default" : "outline"} className={cn("text-[8px] h-4 font-black uppercase", curr?.isNotedByChed ? "bg-emerald-600" : "opacity-50")}>
+                                                {curr?.isNotedByChed ? "Noted by CHED" : "Pending Notation"}
                                             </Badge>
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-xs font-black text-slate-800">{acc?.level || 'Non Accredited'}</p>
-                                            <p className="text-[9px] font-bold text-muted-foreground uppercase">{acc?.result || 'Pending evaluation result'}</p>
+                                            <p className="text-xs font-black text-slate-800">Revision: {curr?.revisionNumber || 'Not Set'}</p>
+                                            <p className="text-[9px] font-bold text-muted-foreground uppercase">Impl: {curr?.dateImplemented || 'TBA'}</p>
                                         </div>
-                                        {acc?.statusValidityDate && (
+                                        {curr?.dateNoted && (
                                             <div className="flex items-center gap-1.5 text-[8px] font-black text-emerald-700 bg-emerald-50 w-fit px-2 py-0.5 rounded border border-emerald-100">
-                                                <Calendar className="h-2.5 w-2.5" />
-                                                VALID UNTIL: {acc.statusValidityDate}
+                                                <CheckCircle2 className="h-2.5 w-2.5" />
+                                                NOTED ON: {curr.dateNoted}
                                             </div>
                                         )}
                                     </div>
                                 );
-                            })}
+                            })
+                        ) : (
+                            <div className="md:col-span-2 p-4 rounded-xl border bg-primary/5 flex items-center justify-between">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase text-primary tracking-widest">General Program Curriculum</p>
+                                    <p className="text-xs font-black text-slate-800 mt-1">Revision: {analyticsData.curriculaByMajor['General']?.revisionNumber || 'Not Set'}</p>
+                                </div>
+                                <Badge variant={analyticsData.curriculaByMajor['General']?.isNotedByChed ? "default" : "outline"} className="h-5 text-[9px] font-black uppercase">
+                                    {analyticsData.curriculaByMajor['General']?.isNotedByChed ? "Noted" : "Unnoted"}
+                                </Badge>
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Strategic Gaps Analysis */}
+            {analyticsData.gaps.length > 0 && (
+                <Card className="border-destructive/20 shadow-sm overflow-hidden bg-destructive/5">
+                    <CardHeader className="py-3 px-4 bg-destructive/10 border-b">
+                        <div className="flex items-center gap-2 text-destructive">
+                            <ShieldAlert className="h-4 w-4" />
+                            <CardTitle className="text-xs font-black uppercase tracking-widest">Critical Compliance Gaps</CardTitle>
                         </div>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-3">
+                        {analyticsData.gaps.map((gap, i) => (
+                            <div key={i} className="flex items-start gap-3 bg-white p-3 rounded-lg border border-destructive/10 shadow-sm">
+                                <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                                <div className="min-w-0">
+                                    <p className="text-[10px] font-black text-destructive uppercase tracking-tighter mb-0.5">{gap.type}</p>
+                                    <p className="text-xs font-bold text-slate-700 leading-snug">{gap.msg}</p>
+                                </div>
+                            </div>
+                        ))}
                     </CardContent>
                 </Card>
             )}
@@ -239,29 +271,9 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                     </div>
                 </CardContent>
             </Card>
-
-            <Card className="border-primary/10 shadow-sm overflow-hidden">
-                <CardHeader className="bg-muted/10 border-b py-4"><div className="flex items-center gap-2"><History className="h-4 w-4 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Timeline</CardTitle></div></CardHeader>
-                <CardContent className="p-0">
-                    <ScrollArea className="max-h-[300px]">
-                        <div className="divide-y">
-                            {analyticsData.milestones.map((m, idx) => (
-                                <div key={idx} className="p-4 flex items-center justify-between hover:bg-muted/20 transition-colors">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-[10px]">{idx + 1}</div>
-                                        <div className="space-y-0.5"><p className="text-xs font-black uppercase text-slate-900 leading-none">{m.level}</p><p className="text-[10px] text-muted-foreground font-medium">{m.result || 'Ongoing Survey'}</p></div>
-                                    </div>
-                                    <div className="text-right"><Badge variant="outline" className="h-5 text-[9px] font-black border-primary/20 text-primary uppercase">{m.lifecycleStatus}</Badge><p className="text-[9px] text-muted-foreground mt-1 uppercase font-bold tracking-tighter">Survey: {m.dateOfSurvey || 'TBA'}</p></div>
-                                </div>
-                            ))}
-                        </div>
-                    </ScrollArea>
-                </CardContent>
-            </Card>
         </div>
 
         <div className="lg:col-span-1 space-y-6">
-            {/* DOCUMENT VAULT */}
             <Card className="shadow-lg border-primary/10 flex flex-col">
                 <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2"><FileText className="h-4 w-4 text-primary" />Verification Vault</CardTitle></CardHeader>
                 <CardContent className="p-0">

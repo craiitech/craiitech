@@ -385,33 +385,36 @@ export type AccreditationRecord = {
     lifecycleStatus?: 'Current' | 'Undergoing' | 'Completed' | 'TBA';
 };
 
+export type CurriculumRecord = {
+  id: string;
+  majorId: string; // 'General' or specific specialization id
+  revisionNumber: string;
+  dateImplemented: string;
+  isNotedByChed: boolean;
+  cmoLink?: string; // GDrive PDF (Program CMO)
+  notationProofLink?: string; // Proof of notation PDF
+  dateNoted?: string;
+};
+
 export type ProgramComplianceRecord = {
   id: string;
   programId: string;
   campusId: string;
   academicYear: number;
   
-  // CHED Compliance
+  // CHED Institutional Compliance (Registry strictly for authority)
   ched: {
     copcStatus: 'With COPC' | 'No COPC' | 'In Progress';
     copcLink?: string; // GDrive PDF
-    boardApprovalLink?: string; // Added: BOR Resolution Link
-    contentNoted: boolean;
-    contentNotedLinks?: { url: string; dateNoted?: string }[];
+    boardApprovalLink?: string; // BOR Resolution Link
     rqatVisits?: RQATVisit[];
   };
 
   // Accreditation (Array for history/lifecycle tracking)
-  accreditation: AccreditationRecord; // Legacy support
   accreditationRecords?: AccreditationRecord[];
 
-  // Curriculum
-  curriculum: {
-    revisionNumber: string;
-    dateImplemented: any;
-    isNotedByChed: boolean;
-    cmoLink?: string; // GDrive PDF (Program CMO)
-  };
+  // Unified Curriculum & Content Noted Registry
+  curriculumRecords?: CurriculumRecord[];
 
   // Faculty/Staff
   faculty: {
@@ -443,111 +446,4 @@ export type ProgramComplianceRecord = {
 
   updatedAt: any;
   updatedBy: string;
-};
-
-// --- QA REPORTS MODULE TYPES ---
-
-export type QaAuditReport = {
-  id: string;
-  type: 'IQA' | 'EQA';
-  title: string;
-  startDate: any; // Timestamp
-  endDate: any; // Timestamp
-  googleDriveLink: string;
-  campusId: string;
-  createdAt: any; // Timestamp
-  // EQA specific fields
-  eqaCategory?: 'Certification / Re-Certification Audit' | 'Surveillance Audit';
-  certifyingBody?: string;
-  standard?: 'ISO 9001:2015' | 'ISO 21001:2018';
-};
-
-export type ManagementReview = {
-  id: string;
-  title: string;
-  startDate: any; // Timestamp
-  endDate: any; // Timestamp
-  minutesLink: string;
-  campusId: string;
-  createdAt: any; // Timestamp
-};
-
-export type MRAssignment = {
-  campusId: string;
-  unitId: string;
-};
-
-export type ManagementReviewOutputStatus = 'Open' | 'On-going' | 'Submit for Closure Verification' | 'Closed';
-
-export type ManagementReviewOutput = {
-  id: string;
-  mrId: string; // Linked to ManagementReview
-  description: string;
-  initiator: string;
-  assignments: MRAssignment[];
-  concernedUnitIds: string[]; // Legacy - kept for backward compatibility if needed
-  campusIds: string[]; // Legacy - kept for backward compatibility if needed
-  actionPlan?: string; 
-  followUpDate: any; // Timestamp
-  followUpRemarks?: string; 
-  status: ManagementReviewOutputStatus;
-  createdAt: any; // Timestamp
-  actionDate?: any; // New - when unit executed action
-  actionTakenBy?: string; // New - who executed action
-  lineNumber?: string; // Line number from MR minutes
-  
-  // Verification Fields (Admin Only)
-  verificationRemarks?: string;
-  verificationDate?: any; // Timestamp
-  verifiedBy?: string;
-};
-
-export type CorrectiveActionRequest = {
-  id: string;
-  carNumber: string;
-  ncReportNumber?: string;
-  source: 'Audit Finding' | 'Legal Non-compliance' | 'Non-conforming Service' | 'Others';
-  procedureTitle: string;
-  initiator: string;
-  natureOfFinding: 'NC' | 'OFI';
-  concerningClause: string;
-  timeLimitForReply?: any; // Timestamp
-  unitId: string;
-  campusId: string;
-  unitHead: string;
-  descriptionOfNonconformance: string;
-  requestDate: any; // Timestamp
-  preparedBy: string;
-  approvedBy: string;
-  
-  // Root Cause
-  rootCauseAnalysis?: string;
-  
-  // Actions
-  immediateCorrection?: string;
-  immediateCompletionDate?: any; // Timestamp
-  correctiveAction?: string;
-  correctiveCompletionDate?: any; // Timestamp
-  
-  // Follow up
-  followUpResult?: string;
-  followUpRemarks?: string;
-  followUpVerifiedBy?: string;
-  followUpVerificationDate?: any; // Timestamp
-  followUpApprovedBy?: string;
-  
-  // Effectiveness
-  effectivenessVerification?: string;
-  effectivenessRemarks?: string;
-  effectivenessVerifiedBy?: string;
-  effectivenessVerificationDate?: any; // Timestamp
-  effectivenessApprovedBy?: string;
-  
-  // Filing
-  receivedBy?: string;
-  receivedDate?: any; // Timestamp
-  
-  status: 'Open' | 'In Progress' | 'Closed';
-  createdAt: any; // Timestamp
-  updatedAt: any; // serverTimestamp()
 };

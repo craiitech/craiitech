@@ -6,10 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { FileText, Calendar, Link as LinkIcon, PlusCircle, Trash2, CheckCircle2, Gavel } from 'lucide-react';
+import { FileText, Calendar, Link as LinkIcon, PlusCircle, Trash2, Gavel } from 'lucide-center';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 
 export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
   const { control } = useFormContext();
@@ -19,18 +18,13 @@ export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
     name: "ched.rqatVisits"
   });
 
-  const { fields: notedLinksFields, append: appendLink, remove: removeLink } = useFieldArray({
-    control,
-    name: "ched.contentNotedLinks"
-  });
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            Basic Institutional Compliance
+            Basic Institutional Authority
           </CardTitle>
           <CardDescription>Official authority to operate and CHED recognition status.</CardDescription>
         </CardHeader>
@@ -92,93 +86,6 @@ export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
               </FormItem>
             )}
           />
-
-          <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/20">
-            <div className="space-y-0.5">
-              <FormLabel>Content Noted by CHED</FormLabel>
-              <FormDescription className="text-[10px]">Whether the program contents have been officially acknowledged.</FormDescription>
-            </div>
-            <FormField
-              control={control}
-              name="ched.contentNoted"
-              render={({ field }) => (
-                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={!canEdit} /></FormControl>
-              )}
-            />
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Proofs of Contents Noted (PDF Links)</FormLabel>
-                {canEdit && (
-                    <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-6 w-6 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white"
-                        onClick={() => appendLink({ url: '', dateNoted: '' })}
-                    >
-                        <PlusCircle className="h-4 w-4" />
-                    </Button>
-                )}
-            </div>
-            <div className="space-y-4">
-                {notedLinksFields.map((field, index) => (
-                    <div key={field.id} className="relative p-4 rounded-lg border bg-muted/5 group space-y-3 transition-all hover:border-primary/20">
-                        {canEdit && (
-                            <Button 
-                                type="button" 
-                                variant="ghost" 
-                                size="icon" 
-                                className="absolute top-2 right-2 text-destructive h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => removeLink(index)}
-                            >
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        )}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                                control={control}
-                                name={`ched.contentNotedLinks.${index}.url`}
-                                render={({ field: inputField }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Google Drive Link</FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <LinkIcon className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                                                <Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="pl-9 h-9 text-xs" disabled={!canEdit} />
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={control}
-                                name={`ched.contentNotedLinks.${index}.dateNoted`}
-                                render={({ field: inputField }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Date Noted by CHED</FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <Calendar className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                                                <Input {...inputField} value={inputField.value || ''} placeholder="e.g., Oct 24, 2024" className="pl-9 h-9 text-xs font-bold" disabled={!canEdit} />
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                    </div>
-                ))}
-                {notedLinksFields.length === 0 && (
-                    <div className="text-center py-8 border border-dashed rounded-lg text-muted-foreground text-xs italic bg-muted/5">
-                        No notation records added. Use the "+" button above.
-                    </div>
-                )}
-            </div>
-          </div>
         </CardContent>
       </Card>
 
@@ -283,7 +190,7 @@ export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
                     ))}
                     {rqatFields.length === 0 && (
                         <div className="text-center py-12 border border-dashed rounded-lg text-muted-foreground text-sm">
-                            No RQAT visit history recorded for this year.
+                            No RQAT visit history recorded.
                         </div>
                     )}
                 </div>
