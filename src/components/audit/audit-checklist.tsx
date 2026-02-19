@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
 import type { AuditFinding, ISOClause } from '@/lib/types';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -91,13 +91,13 @@ function ClauseForm({ scheduleId, clause, finding, onSave }: { scheduleId: strin
             isoClause: clause.id,
             type: values.type,
             description: values.evidence,
-            evidence: values.evidence, // Using description as evidence for now
+            evidence: values.evidence, 
             authorId: user.uid,
             createdAt: serverTimestamp(),
         }, { merge: true });
 
         toast({ title: "Saved", description: `Finding for clause ${clause.id} has been saved.`});
-        onSave(); // Notify parent to refetch
+        onSave(); 
     } catch(error) {
         console.error("Error saving finding: ", error);
         toast({ title: "Error", description: "Could not save finding.", variant: 'destructive' });
@@ -171,14 +171,18 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings }:
     setFindings(existingFindings);
   }, [existingFindings]);
 
-  // This function would be called to refetch the findings from the parent.
-  // For now, we'll just simulate an update.
   const handleSave = () => {
-    // In a real app, you would trigger a refetch here.
-    // For now, we don't need to do anything as the form state is self-contained.
+    // Parent components handle state synchronization
   }
   
   const findingsMap = new Map(findings.map(f => [f.isoClause, f]));
+
+  // Ensure clauses are displayed in ascending numerical order
+  const sortedClauses = useMemo(() => {
+    return [...clausesToAudit].sort((a, b) => 
+        a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' })
+    );
+  }, [clausesToAudit]);
 
   return (
     <Card>
@@ -190,7 +194,7 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings }:
       </CardHeader>
       <CardContent>
         <Accordion type="single" collapsible className="w-full">
-          {clausesToAudit.map((clause) => (
+          {sortedClauses.map((clause) => (
             <AccordionItem value={clause.id} key={clause.id}>
               <AccordionTrigger className="text-base font-semibold">
                 Clause {clause.id}: {clause.title}

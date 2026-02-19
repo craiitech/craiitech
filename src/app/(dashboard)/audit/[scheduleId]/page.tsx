@@ -1,9 +1,9 @@
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
-import { doc, collection, query, where, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, collection, query, where, updateDoc } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
-import type { AuditSchedule, AuditFinding, ISOClause, CorrectiveActionPlan } from '@/lib/types';
+import type { AuditSchedule, AuditFinding, ISOClause } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
@@ -102,6 +102,14 @@ export default function AuditExecutionPage() {
 
   const isLoading = isLoadingSchedule || isLoadingFindings || isLoadingClauses;
 
+  // Ensure sidebar clauses are sorted numerically
+  const sortedClausesInScope = useMemo(() => {
+    if (!schedule?.isoClausesToAudit) return [];
+    return [...schedule.isoClausesToAudit].sort((a, b) => 
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+    );
+  }, [schedule?.isoClausesToAudit]);
+
   if (isLoading) {
     return <LoadingSkeleton />;
   }
@@ -111,7 +119,7 @@ export default function AuditExecutionPage() {
       <div className="text-center">
         <h2 className="text-2xl font-bold">Audit Schedule Not Found</h2>
         <p className="text-muted-foreground">The schedule you are looking for does not exist.</p>
-        <Button asChild className="mt-4" onClick={() => router.back()}>
+        <Button className="mt-4" onClick={() => router.back()}>
           <span>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
@@ -237,7 +245,7 @@ export default function AuditExecutionPage() {
                     <div>
                         <p className="text-[10px] font-black uppercase text-primary tracking-widest mb-3">Clauses in Scope</p>
                         <div className="flex flex-wrap gap-1.5">
-                            {schedule.isoClausesToAudit.map(clauseId => (
+                            {sortedClausesInScope.map(clauseId => (
                                 <Badge key={clauseId} variant="outline" className="font-mono text-[10px] border-primary/20 px-2">Clause {clauseId}</Badge>
                             ))}
                         </div>
