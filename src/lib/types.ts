@@ -187,8 +187,9 @@ export type AuditFinding = {
     auditScheduleId: string;
     isoClause: string;
     type: 'Commendation' | 'Observation for Improvement' | 'Non-Conformance';
-    description: string;
+    description: string; // Used for general description or Commendation/OFI notes
     evidence: string;
+    ncStatement?: string; // New: Formal statement for Non-Conformance
     createdAt: any; // serverTimestamp()
     authorId: string;
 };

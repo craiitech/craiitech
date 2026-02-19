@@ -7,7 +7,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -16,10 +16,11 @@ import type { AuditFinding, ISOClause } from '@/lib/types';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
+import { cn } from '@/lib/utils';
 
 interface AuditChecklistProps {
   scheduleId: string;
@@ -29,6 +30,8 @@ interface AuditChecklistProps {
 
 interface ClauseFormData {
   evidence: string;
+  description: string;
+  ncStatement: string;
   type: 'Commendation' | 'Observation for Improvement' | 'Non-Conformance' | '';
 }
 
@@ -171,17 +174,29 @@ function ClauseForm({ scheduleId, clause, finding, onSave }: { scheduleId: strin
 
   const form = useForm<ClauseFormData>({
     defaultValues: {
-      evidence: finding?.description || '',
+      evidence: finding?.evidence || '',
+      description: finding?.description || '',
+      ncStatement: finding?.ncStatement || '',
       type: finding?.type || '',
     },
   });
 
+  const watchType = form.watch('type');
+
   useEffect(() => {
       form.reset({
-        evidence: finding?.description || '',
+        evidence: finding?.evidence || '',
+        description: finding?.description || '',
+        ncStatement: finding?.ncStatement || '',
         type: finding?.type || '',
       })
   }, [finding, form]);
+
+  const ncPlaceholder = `It was observed that ISO 21001:2018 Clause ${clause.id} requirement regarding [Specific Requirement Name] was not fully implemented in the [Unit Name]. 
+
+Specifically, the unit [Description of the Gap/Failure]. 
+
+This resulted in [Impact/Risk to the Management System].`;
 
   const onSubmit = async (values: ClauseFormData) => {
     if (!firestore || !user || !values.type) {
@@ -193,18 +208,23 @@ function ClauseForm({ scheduleId, clause, finding, onSave }: { scheduleId: strin
     const findingId = `${scheduleId}-${clause.id}`;
     const findingRef = doc(firestore, 'auditFindings', findingId);
 
-    try {
-        await setDoc(findingRef, {
-            id: findingId,
-            auditScheduleId: scheduleId,
-            isoClause: clause.id,
-            type: values.type,
-            description: values.evidence,
-            evidence: values.evidence, 
-            authorId: user.uid,
-            createdAt: serverTimestamp(),
-        }, { merge: true });
+    const findingData: any = {
+        id: findingId,
+        auditScheduleId: scheduleId,
+        isoClause: clause.id,
+        type: values.type,
+        description: values.description || (values.type === 'Non-Conformance' ? values.ncStatement : ''),
+        evidence: values.evidence,
+        authorId: user.uid,
+        createdAt: serverTimestamp(),
+    };
 
+    if (values.type === 'Non-Conformance') {
+        findingData.ncStatement = values.ncStatement;
+    }
+
+    try {
+        await setDoc(findingRef, findingData, { merge: true });
         toast({ title: "Saved", description: `Finding for clause ${clause.id} has been saved.`});
         onSave(); 
     } catch(error) {
@@ -217,13 +237,64 @@ function ClauseForm({ scheduleId, clause, finding, onSave }: { scheduleId: strin
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div>
             <Label className="font-black text-[10px] uppercase tracking-widest text-primary mb-3 block">RSU Institutional Audit Guide</Label>
             <ul className="list-disc space-y-2 pl-5 mt-2 text-xs text-muted-foreground font-medium leading-relaxed bg-primary/5 p-4 rounded-lg border border-primary/10 italic">
                 {(clauseQuestions[clause.id] || []).map((q, i) => <li key={i}>{q}</li>)}
             </ul>
         </div>
+
+        <FormField
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+                <FormLabel className="font-bold text-xs uppercase tracking-wider">Audit Verification Result</FormLabel>
+                 <FormControl>
+                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-4 pt-2">
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="Commendation" id={`c-${clause.id}`} />
+                            <Label htmlFor={`c-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer">Commendation (C)</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="Observation for Improvement" id={`ofi-${clause.id}`} />
+                            <Label htmlFor={`ofi-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer">Opportunity for Improvement (OFI)</Label>
+                        </div>
+                         <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="Non-Conformance" id={`nc-${clause.id}`} />
+                            <Label htmlFor={`nc-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter text-destructive cursor-pointer">Non-Conformance (NC)</Label>
+                        </div>
+                    </RadioGroup>
+                </FormControl>
+            </FormItem>
+          )}
+        />
+
+        {watchType === 'Non-Conformance' && (
+            <FormField
+                control={form.control}
+                name="ncStatement"
+                render={({ field }) => (
+                    <FormItem className="animate-in slide-in-from-top-2 duration-300">
+                        <div className="flex items-center gap-2 mb-2">
+                            <AlertTriangle className="h-4 w-4 text-destructive" />
+                            <FormLabel className="font-black text-[10px] uppercase text-destructive tracking-widest">Formal Non-Conformance Statement</FormLabel>
+                        </div>
+                        <FormControl>
+                            <Textarea 
+                                {...field} 
+                                rows={5} 
+                                placeholder={ncPlaceholder} 
+                                className="bg-destructive/5 border-destructive/20 text-xs font-medium leading-relaxed italic" 
+                            />
+                        </FormControl>
+                        <FormDescription className="text-[9px]">State the requirement, the specific gap observed, and the impact.</FormDescription>
+                    </FormItem>
+                )}
+            />
+        )}
+
         <FormField
           control={form.control}
           name="evidence"
@@ -231,36 +302,28 @@ function ClauseForm({ scheduleId, clause, finding, onSave }: { scheduleId: strin
             <FormItem>
               <FormLabel className="font-bold text-xs uppercase tracking-wider">Objective Audit Evidence / Verified Observations</FormLabel>
               <FormControl>
-                <Textarea {...field} rows={6} placeholder="Record verifiable observations (documents reviewed, RSU forms examined, interviews, site inspections)..." className="bg-white border-slate-200 shadow-inner" />
+                <Textarea {...field} rows={4} placeholder="Record verifiable observations (documents reviewed, RSU forms examined, interviews, site inspections)..." className="bg-white border-slate-200 shadow-inner text-xs" />
               </FormControl>
+              <FormDescription className="text-[9px]">Document the specific evidence that supports the finding.</FormDescription>
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="type"
-          render={({ field }) => (
-            <FormItem>
-                <FormLabel className="font-bold text-xs uppercase tracking-wider">Audit Verification Result</FormLabel>
-                 <FormControl>
-                    <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-4 pt-2">
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl><RadioGroupItem value="Commendation" /></FormControl>
-                            <Label className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer">Commendation (C)</Label>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl><RadioGroupItem value="Observation for Improvement" /></FormControl>
-                            <Label className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer">Opportunity for Improvement (OFI)</Label>
-                        </FormItem>
-                         <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormControl><RadioGroupItem value="Non-Conformance" /></FormControl>
-                            <Label className="font-bold text-[10px] uppercase tracking-tighter text-destructive cursor-pointer">Non-Conformance (NC)</Label>
-                        </FormItem>
-                    </RadioGroup>
-                </FormControl>
-            </FormItem>
-          )}
-        />
+
+        {watchType !== 'Non-Conformance' && watchType !== '' && (
+            <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="font-bold text-xs uppercase tracking-wider">Detailed Description of Finding</FormLabel>
+                        <FormControl>
+                            <Textarea {...field} rows={3} placeholder="Provide further context or notes regarding this finding..." className="bg-white border-slate-200 text-xs" />
+                        </FormControl>
+                    </FormItem>
+                )}
+            />
+        )}
+
          <div className="flex justify-end pt-2">
             <Button type="submit" disabled={isSubmitting} className="h-9 px-6 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/10">
                 {isSubmitting && <Loader2 className="mr-2 h-3 w-3 animate-spin"/>}
