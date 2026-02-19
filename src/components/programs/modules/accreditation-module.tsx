@@ -126,6 +126,7 @@ function AccreditationRecordCard({
                                         <SelectItem value="TBA">Archive / Historical</SelectItem>
                                         <SelectItem value="Undergoing">Ongoing Survey</SelectItem>
                                         <SelectItem value="Completed">Recently Completed</SelectItem>
+                                        <SelectItem value="Waiting for Official Result">Waiting for Official Result</SelectItem>
                                         <SelectItem value="Current" className="font-bold text-primary">Official Current Level</SelectItem>
                                     </SelectContent>
                                 </Select>

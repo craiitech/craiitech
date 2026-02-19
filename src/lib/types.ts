@@ -1,4 +1,3 @@
-
 export type Role = {
   id: string;
   name: string;
@@ -382,7 +381,7 @@ export type AccreditationRecord = {
         grandMean: number;
         descriptiveRating: string;
     };
-    lifecycleStatus?: 'Current' | 'Undergoing' | 'Completed' | 'TBA';
+    lifecycleStatus?: 'Current' | 'Undergoing' | 'Completed' | 'TBA' | 'Waiting for Official Result';
 };
 
 export type CurriculumRecord = {
