@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { FileText, Calendar, Link as LinkIcon, PlusCircle, Trash2, CheckCircle2, Gavel } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export function ChedComplianceModule({ canEdit }: { boolean }) {
+export function ChedComplianceModule({ canEdit }: { canEdit: boolean }) {
   const { control } = useFormContext();
   
   const { fields: rqatFields, append: appendRqat, remove: removeRqat } = useFieldArray({

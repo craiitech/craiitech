@@ -57,7 +57,7 @@ const emptyYearLevelEnrollment = {
     thirdYear: { ...emptyEnrollment }, 
     fourthYear: { ...emptyEnrollment } 
 };
-const emptyLeadership = { name: '', academicRank: '', highestEducation: '', isAlignedWithCMO: 'Aligned', sex: 'Female' };
+const emptyLeadership = { name: '', academicRank: '', highestEducation: '', isAlignedWithCMO: 'Aligned' as const, sex: 'Female' as const };
 
 export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplianceWorkspaceProps) {
   const { userProfile, isAdmin, userRole } = useUser();
@@ -149,7 +149,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
 
   const onSave = async (values: any) => {
     if (!firestore || !userProfile) return;
-    setIsSubmitting(true);
+    setIsSaving(true);
 
     const recordId = activeRecord?.id || `${program.id}-${selectedAY}`;
     const docRef = doc(firestore, 'programCompliances', recordId);
