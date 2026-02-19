@@ -22,7 +22,8 @@ import {
     History,
     Calendar,
     ChevronRight,
-    MapPin
+    MapPin,
+    Target
 } from 'lucide-react';
 import { 
     BarChart, 
@@ -183,7 +184,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-100">
+        <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-100 shadow-sm">
             <CardHeader className="pb-2">
                 <CardDescription className="text-[10px] font-black uppercase tracking-widest text-blue-600">Accreditation Milestone</CardDescription>
                 <CardTitle className="text-xl flex items-center gap-2">
@@ -201,7 +202,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
             </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-white border-green-100">
+        <Card className="bg-gradient-to-br from-green-50 to-white border-green-100 shadow-sm">
             <CardHeader className="pb-2">
                 <CardDescription className="text-[10px] font-black uppercase tracking-widest text-green-600">CHED COPC Compliance</CardDescription>
                 <CardTitle className="text-xl flex items-center gap-2">
@@ -210,13 +211,13 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <Badge variant={record.ched.contentNoted ? 'default' : 'secondary'} className="text-[9px] h-4">
+                <Badge variant={record.ched.contentNoted ? 'default' : 'secondary'} className="text-[9px] h-4 font-black">
                     {record.ched.contentNoted ? 'CONTENT NOTED' : 'PENDING NOTATION'}
                 </Badge>
             </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-100">
+        <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-100 shadow-sm">
             <CardHeader className="pb-2">
                 <CardDescription className="text-[10px] font-black uppercase tracking-widest text-purple-600">Faculty Alignment</CardDescription>
                 <CardTitle className="text-3xl font-black text-purple-700">
@@ -228,7 +229,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
             </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-amber-50 to-white border-amber-100">
+        <Card className="bg-gradient-to-br from-amber-50 to-white border-amber-100 shadow-sm">
             <CardHeader className="pb-2">
                 <CardDescription className="text-[10px] font-black uppercase tracking-widest text-amber-600">Graduate Output</CardDescription>
                 <CardTitle className="text-3xl font-black text-amber-700">
@@ -258,29 +259,45 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <ScrollArea className="max-h-[300px]">
+                    <ScrollArea className="max-h-[400px]">
                         <div className="divide-y">
                             {analyticsData?.milestones.map((milestone, idx) => (
-                                <div key={idx} className="p-4 flex items-start gap-4 hover:bg-muted/30 transition-colors">
+                                <div key={idx} className="p-6 flex items-start gap-4 hover:bg-muted/30 transition-colors">
                                     <div className="flex flex-col items-center shrink-0 pt-1">
                                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-[10px]">
                                             {idx + 1}
                                         </div>
                                         {idx < (analyticsData.milestones.length - 1) && <div className="w-px h-full bg-border mt-2" />}
                                     </div>
-                                    <div className="flex-1 space-y-2">
+                                    <div className="flex-1 space-y-3">
                                         <div className="flex items-center justify-between">
-                                            <p className="font-black text-sm text-slate-900 tracking-tight uppercase">{milestone.level}</p>
-                                            <Badge className={cn(
-                                                "text-[8px] h-4 font-black uppercase border-none px-1.5",
-                                                milestone.lifecycleStatus === 'Current' ? "bg-emerald-600 text-white" :
-                                                milestone.lifecycleStatus === 'Undergoing' ? "bg-amber-500 text-amber-950 animate-pulse" :
-                                                "bg-slate-500 text-white"
-                                            )}>
-                                                {milestone.lifecycleStatus}
-                                            </Badge>
+                                            <div className="space-y-1">
+                                                <p className="font-black text-sm text-slate-900 tracking-tight uppercase">{milestone.level}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100 text-[8px] h-4 font-black px-1.5">{milestone.typeOfVisit || 'Formal Visit'}</Badge>
+                                                    <Badge className={cn(
+                                                        "text-[8px] h-4 font-black uppercase border-none px-1.5",
+                                                        milestone.lifecycleStatus === 'Current' ? "bg-emerald-600 text-white" :
+                                                        milestone.lifecycleStatus === 'Undergoing' ? "bg-amber-500 text-amber-950 animate-pulse" :
+                                                        "bg-slate-500 text-white"
+                                                    )}>
+                                                        {milestone.lifecycleStatus}
+                                                    </Badge>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+
+                                        {/* Components / Majors associated with this milestone */}
+                                        {milestone.components && milestone.components.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5 pt-1">
+                                                <Target className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
+                                                {milestone.components.map((comp, cIdx) => (
+                                                    <Badge key={cIdx} variant="outline" className="text-[8px] h-4 font-bold border-muted-foreground/20 text-muted-foreground uppercase">{comp.name}</Badge>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-t pt-3 mt-2">
                                             <div className="flex items-center gap-1.5"><Calendar className="h-3 w-3" /> Survey: {milestone.dateOfSurvey || 'TBA'}</div>
                                             <div className="flex items-center gap-1.5"><ShieldCheck className="h-3 w-3" /> Valid: {milestone.statusValidityDate || 'TBA'}</div>
                                             {milestone.ratingsSummary?.grandMean && (

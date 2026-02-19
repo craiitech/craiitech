@@ -365,6 +365,8 @@ export type FacultyLeadershipMember = {
 export type AccreditationRecord = {
     id: string;
     level: string; // Level 1, Level 2, etc.
+    typeOfVisit?: string;
+    components?: { id: string; name: string }[];
     dateOfSurvey?: string;
     statusValidityDate?: string;
     dateOfAward?: string;

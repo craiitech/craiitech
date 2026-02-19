@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShieldCheck, Calendar, Link as LinkIcon, Award, Users, FileText, CheckCircle2, UserCircle, Calculator, Info, TrendingUp, PlusCircle, Trash2 } from 'lucide-react';
+import { ShieldCheck, Calendar, Link as LinkIcon, Award, Users, FileText, CheckCircle2, UserCircle, Calculator, Info, TrendingUp, PlusCircle, Trash2, Layers } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useEffect, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +33,14 @@ const accreditationLevels = [
   "Level IV - Phase 1 Re-accredited",
   "Level IV - Phase 2 Accredited",
   "Level IV - Phase 2 Re-accredited",
+];
+
+const visitTypes = [
+  "Preliminary Survey",
+  "Formal Visit",
+  "Re-survey",
+  "Compliance Visit",
+  "Special Visit",
 ];
 
 const standardAreas = [
@@ -85,6 +93,8 @@ export function AccreditationModule({ canEdit }: { canEdit: boolean }) {
                 onClick={() => append({ 
                     id: Math.random().toString(36).substr(2, 9),
                     level: 'Non Accredited',
+                    typeOfVisit: 'Preliminary Survey',
+                    components: [],
                     lifecycleStatus: 'TBA',
                     areas: [],
                     ratingsSummary: { overallTotalWeight: 0, overallTotalWeightedMean: 0, grandMean: 0, descriptiveRating: '' }
@@ -125,6 +135,12 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
     const watchedRecord = useWatch({ control, name: `accreditationRecords.${index}` });
     const selectedLevel = watchedRecord?.level;
     const watchedAreas = watchedRecord?.areas || [];
+
+    // Field array for components/majors
+    const { fields: componentFields, append: appendComponent, remove: removeComponent } = useFieldArray({
+        control,
+        name: `accreditationRecords.${index}.components`
+    });
 
     const isLevel3Or4 = useMemo(() => {
         return selectedLevel?.includes('Level III') || selectedLevel?.includes('Level IV');
@@ -243,6 +259,21 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
                         />
                         <FormField
                             control={control}
+                            name={`accreditationRecords.${index}.typeOfVisit`}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-bold uppercase">Type of Visit</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
+                                        <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Visit Type" /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            {visitTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={control}
                             name={`accreditationRecords.${index}.lifecycleStatus`}
                             render={({ field }) => (
                                 <FormItem>
@@ -275,25 +306,78 @@ function AccreditationRecordCard({ index, canEdit, onRemove }: { index: number; 
                     </CardContent>
                 </Card>
 
-                <Card className="lg:col-span-2 border-primary/10 shadow-sm overflow-hidden">
+                <Card className="lg:col-span-2 border-primary/10 shadow-sm overflow-hidden flex flex-col">
                     <CardHeader className="bg-muted/30 border-b">
                         <CardTitle className="flex items-center gap-2 text-sm">
-                            <Calendar className="h-4 w-4 text-primary" />
-                            Task Force & Preparations
+                            <Layers className="h-4 w-4 text-primary" />
+                            Components / Majors Concerned
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-6 pt-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormField control={control} name={`accreditationRecords.${index}.nextSchedule`} render={({ field }) => (
-                                <FormItem><FormLabel className="text-[10px] font-bold uppercase">Upcoming Survey Plan</FormLabel><FormControl><Input {...field} value={field.value || ''} className="h-9" disabled={!canEdit} /></FormControl></FormItem>
-                            )} />
-                            <FormField control={control} name={`accreditationRecords.${index}.overallTaskForceHead`} render={({ field }) => (
-                                <FormItem><FormLabel className="text-[10px] font-bold uppercase">Milestone Lead / Head</FormLabel><FormControl><Input {...field} value={field.value || ''} className="h-9" disabled={!canEdit} /></FormControl></FormItem>
+                    <CardContent className="flex-1 space-y-4 pt-6">
+                        <div className="flex items-center justify-between border-b pb-2">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Majors Evaluated</span>
+                            {canEdit && (
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => appendComponent({ id: Math.random().toString(36).substr(2, 9), name: '' })}
+                                    className="h-7 text-[9px] font-black uppercase gap-1.5"
+                                >
+                                    <PlusCircle className="h-3 w-3" /> Add Component
+                                </Button>
+                            )}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {componentFields.map((comp, compIdx) => (
+                                <div key={comp.id} className="flex items-center gap-2 animate-in fade-in duration-300">
+                                    <FormField
+                                        control={control}
+                                        name={`accreditationRecords.${index}.components.${compIdx}.name`}
+                                        render={({ field }) => (
+                                            <FormControl>
+                                                <Input {...field} placeholder="e.g., Major in Network Systems" className="h-9 text-xs font-bold" disabled={!canEdit} />
+                                            </FormControl>
+                                        )}
+                                    />
+                                    {canEdit && (
+                                        <Button 
+                                            type="button" 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-9 w-9 shrink-0 text-destructive hover:bg-destructive/10"
+                                            onClick={() => removeComponent(compIdx)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                </div>
+                            ))}
+                            {componentFields.length === 0 && (
+                                <div className="md:col-span-2 py-8 text-center border border-dashed rounded-lg bg-muted/5">
+                                    <p className="text-[10px] text-muted-foreground italic">No specific components or majors registered for this milestone.</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <Separator className="my-4" />
+
+                        <div className="space-y-6 pt-2">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                <Calendar className="h-4 w-4" /> Task Force & Preparations
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <FormField control={control} name={`accreditationRecords.${index}.nextSchedule`} render={({ field }) => (
+                                    <FormItem><FormLabel className="text-[10px] font-bold uppercase">Upcoming Survey Plan</FormLabel><FormControl><Input {...field} value={field.value || ''} className="h-9" disabled={!canEdit} /></FormControl></FormItem>
+                                )} />
+                                <FormField control={control} name={`accreditationRecords.${index}.overallTaskForceHead`} render={({ field }) => (
+                                    <FormItem><FormLabel className="text-[10px] font-bold uppercase">Milestone Lead / Head</FormLabel><FormControl><Input {...field} value={field.value || ''} className="h-9" disabled={!canEdit} /></FormControl></FormItem>
+                                )} />
+                            </div>
+                            <FormField control={control} name={`accreditationRecords.${index}.taskForce`} render={({ field }) => (
+                                <FormItem><FormLabel className="text-[10px] font-bold uppercase">General Milestone Task Force</FormLabel><FormControl><Textarea {...field} value={field.value || ''} rows={3} disabled={!canEdit} /></FormControl></FormItem>
                             )} />
                         </div>
-                        <FormField control={control} name={`accreditationRecords.${index}.taskForce`} render={({ field }) => (
-                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">General Milestone Task Force</FormLabel><FormControl><Textarea {...field} value={field.value || ''} rows={3} disabled={!canEdit} /></FormControl></FormItem>
-                        )} />
                     </CardContent>
                 </Card>
             </div>
