@@ -174,10 +174,26 @@ service cloud.firestore {
     match /procedureManuals/{unitId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /eomsPolicyManuals/{docId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /isoClauses/{clauseId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /auditPlans/{planId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /auditSchedules/{scheduleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /auditFindings/{findingId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /correctiveActionPlans/{planId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    
+    // IQA STRATEGIC PLANNING & AUDIT CONDUCT
+    match /auditPlans/{planId} { 
+      allow read: if isSignedIn(); 
+      allow write: if isAdmin(); 
+    }
+    match /auditSchedules/{scheduleId} { 
+      allow read: if isSignedIn(); 
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (isAuditor() && (resource.data.auditorId == request.auth.uid || resource.data.auditorId == null));
+    }
+    match /auditFindings/{findingId} { 
+      allow read: if isSignedIn(); 
+      allow create, update, delete: if isAdmin() || isAuditor(); 
+    }
+    match /correctiveActionPlans/{planId} { 
+      allow read: if isSignedIn(); 
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin(); 
+    }
     
     match /campusSettings/{settingId} {
       allow read: if isSignedIn();
