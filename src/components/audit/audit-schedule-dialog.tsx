@@ -30,10 +30,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, addDoc, collection, Timestamp } from 'firebase/firestore';
+import { doc, addDoc, collection, Timestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useMemo, useState } from 'react';
-import type { AuditPlan, User, Unit, ISOClause } from '@/lib/types';
+import { useMemo, useState, useEffect } from 'react';
+import type { AuditPlan, User, Unit, ISOClause, AuditSchedule } from '@/lib/types';
 import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
@@ -41,11 +41,13 @@ import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
+import { format } from 'date-fns';
 
 interface AuditScheduleDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   plan: AuditPlan;
+  schedule: AuditSchedule | null;
   auditors: User[];
   allUnits: Unit[];
   topManagement: User[];
@@ -69,9 +71,9 @@ export function AuditScheduleDialog({
   isOpen,
   onOpenChange,
   plan,
+  schedule,
   auditors,
   allUnits,
-  topManagement
 }: AuditScheduleDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -97,6 +99,31 @@ export function AuditScheduleDialog({
     }
   });
 
+  useEffect(() => {
+    if (schedule && isOpen) {
+        const start = schedule.scheduledDate?.toDate?.() || new Date();
+        const end = schedule.endScheduledDate?.toDate?.() || new Date();
+        
+        form.reset({
+            targetId: schedule.targetId,
+            scheduledDate: format(start, 'MM/dd/yyyy'),
+            startTime: format(start, 'HH:mm'),
+            endTime: format(end, 'HH:mm'),
+            procedureDescription: schedule.procedureDescription || '',
+            isoClausesToAudit: schedule.isoClausesToAudit || [],
+        });
+    } else {
+        form.reset({
+            targetId: '',
+            scheduledDate: '',
+            isoClausesToAudit: [],
+            startTime: '09:00',
+            endTime: '12:00',
+            procedureDescription: '',
+        });
+    }
+  }, [schedule, isOpen, form]);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!firestore) return;
     setIsSubmitting(true);
@@ -117,8 +144,6 @@ export function AuditScheduleDialog({
 
         const scheduleData = {
           auditPlanId: plan.id,
-          auditorId: null, 
-          auditorName: null,
           targetId: values.targetId,
           targetType: 'Unit',
           targetName,
@@ -126,15 +151,23 @@ export function AuditScheduleDialog({
           scheduledDate: Timestamp.fromDate(startDateTime),
           endScheduledDate: Timestamp.fromDate(endDateTime),
           isoClausesToAudit: values.isoClausesToAudit,
-          status: 'Scheduled',
+          status: schedule?.status || 'Scheduled',
+          auditorId: schedule?.auditorId || null,
+          auditorName: schedule?.auditorName || null,
         };
 
-        await addDoc(collection(firestore, 'auditSchedules'), scheduleData);
-        toast({ title: 'Session Provisioned', description: `Itinerary entry for ${targetName} registered.` });
+        if (schedule) {
+            await updateDoc(doc(firestore, 'auditSchedules', schedule.id), scheduleData);
+            toast({ title: 'Entry Updated', description: `Itinerary entry for ${targetName} has been updated.` });
+        } else {
+            await addDoc(collection(firestore, 'auditSchedules'), scheduleData);
+            toast({ title: 'Session Provisioned', description: `Itinerary entry for ${targetName} registered.` });
+        }
+        
         onOpenChange(false);
     } catch (error) {
         console.error('Error scheduling audit:', error);
-        toast({ title: 'Provisioning Failed', description: 'Could not create itinerary entry.', variant: 'destructive'});
+        toast({ title: 'Operation Failed', description: 'Could not save itinerary entry.', variant: 'destructive'});
     } finally {
         setIsSubmitting(false);
     }
@@ -150,7 +183,7 @@ export function AuditScheduleDialog({
             <ListChecks className="h-5 w-5" />
             <span className="text-[10px] font-black uppercase tracking-widest">Itinerary Provisioning</span>
           </div>
-          <DialogTitle>Provision Itinerary Entry: "{plan.title}"</DialogTitle>
+          <DialogTitle>{schedule ? 'Modify' : 'Provision'} Itinerary Entry: "{plan.title}"</DialogTitle>
           <DialogDescription className="text-xs">
             Define the specific procedure, audit focus, and time slot for this session.
           </DialogDescription>
@@ -330,7 +363,7 @@ export function AuditScheduleDialog({
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
                     <Button type="submit" form="schedule-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black text-xs uppercase tracking-widest">
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ListChecks className="mr-2 h-4 w-4 mr-1.5" />}
-                        Register Itinerary
+                        {schedule ? 'Update Entry' : 'Register Entry'}
                     </Button>
                 </div>
             </div>

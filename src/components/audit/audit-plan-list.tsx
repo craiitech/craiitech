@@ -1,10 +1,11 @@
+
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { AuditPlan, AuditSchedule, Campus, User, Unit } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, FileText, Settings2, User as UserIcon, Calendar, ArrowRight, ShieldCheck, Flag, ListChecks } from 'lucide-react';
+import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -25,14 +26,26 @@ interface AuditPlanListProps {
   users: User[];
   units: Unit[];
   onEditPlan: (plan: AuditPlan) => void;
+  onDeletePlan: (plan: AuditPlan) => void;
   onScheduleAudit: (plan: AuditPlan) => void;
+  onEditSchedule: (plan: AuditPlan, schedule: AuditSchedule) => void;
+  onDeleteSchedule: (schedule: AuditSchedule) => void;
 }
 
 /**
  * INSTITUTIONAL AUDIT REGISTRY
  * Displays detailed audit plans mapped to the RSU template.
  */
-export function AuditPlanList({ plans, schedules, campuses, users, units, onEditPlan, onScheduleAudit }: AuditPlanListProps) {
+export function AuditPlanList({ 
+    plans, 
+    schedules, 
+    campuses, 
+    onEditPlan, 
+    onDeletePlan,
+    onScheduleAudit, 
+    onEditSchedule,
+    onDeleteSchedule
+}: AuditPlanListProps) {
     
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
   
@@ -44,15 +57,12 @@ export function AuditPlanList({ plans, schedules, campuses, users, units, onEdit
       if (!d) return 'TBA';
       
       let date: Date;
-      // Handle Firestore Timestamp object
       if (d && typeof d.toDate === 'function') {
           date = d.toDate();
       } 
-      // Handle serialized timestamp {seconds, nanoseconds}
       else if (d && typeof d.seconds === 'number') {
           date = new Date(d.seconds * 1000);
       }
-      // Handle standard Date or ISO string
       else {
           date = new Date(d);
       }
@@ -160,11 +170,29 @@ export function AuditPlanList({ plans, schedules, campuses, users, units, onEdit
                         <h4 className="text-sm font-black uppercase tracking-widest text-slate-900">Audit Itinerary Entries</h4>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onEditPlan(plan); }} className="h-9 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm gap-2">
-                            <Settings2 className="h-3.5 w-3.5"/> Plan Config
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={(e) => { e.stopPropagation(); onEditPlan(plan); }} 
+                            className="h-9 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm gap-2"
+                        >
+                            <Edit className="h-3.5 w-3.5"/> Edit Plan
                         </Button>
-                        <Button variant="default" size="sm" onClick={(e) => { e.stopPropagation(); onScheduleAudit(plan); }} className="h-9 text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 gap-2">
-                            <CalendarPlus className="h-3.5 w-3.5"/> Add Itinerary Entry
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={(e) => { e.stopPropagation(); onDeletePlan(plan); }} 
+                            className="h-9 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm gap-2 text-destructive border-destructive/20 hover:bg-destructive/5"
+                        >
+                            <Trash2 className="h-3.5 w-3.5"/> Delete
+                        </Button>
+                        <Button 
+                            variant="default" 
+                            size="sm" 
+                            onClick={(e) => { e.stopPropagation(); onScheduleAudit(plan); }} 
+                            className="h-9 text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 gap-2"
+                        >
+                            <CalendarPlus className="h-3.5 w-3.5"/> Add Entry
                         </Button>
                     </div>
                 </div>
@@ -177,7 +205,7 @@ export function AuditPlanList({ plans, schedules, campuses, users, units, onEdit
                                 <TableHead className="text-[10px] font-black uppercase py-4 pl-8">Timeline & Itinerary Focus</TableHead>
                                 <TableHead className="text-[10px] font-black uppercase py-4">ISO Clauses</TableHead>
                                 <TableHead className="text-[10px] font-black uppercase py-4">Procedure / Personnel</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase py-4 text-right pr-8">Lifecycle Status</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase py-4 text-right pr-8">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -231,16 +259,36 @@ export function AuditPlanList({ plans, schedules, campuses, users, units, onEdit
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right py-6 pr-8">
-                                        <Badge 
-                                            className={cn(
-                                                "text-[9px] font-black uppercase border-none px-3 shadow-sm",
-                                                schedule.status === 'Scheduled' && "bg-amber-100 text-amber-700",
-                                                schedule.status === 'In Progress' && "bg-blue-600 text-white animate-pulse",
-                                                schedule.status === 'Completed' && "bg-emerald-600 text-white"
-                                            )}
-                                        >
-                                            {schedule.status}
-                                        </Badge>
+                                        <div className="flex flex-col items-end gap-2">
+                                            <Badge 
+                                                className={cn(
+                                                    "text-[9px] font-black uppercase border-none px-3 shadow-sm mb-2",
+                                                    schedule.status === 'Scheduled' && "bg-amber-100 text-amber-700",
+                                                    schedule.status === 'In Progress' && "bg-blue-600 text-white animate-pulse",
+                                                    schedule.status === 'Completed' && "bg-emerald-600 text-white"
+                                                )}
+                                            >
+                                                {schedule.status}
+                                            </Badge>
+                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-7 w-7 text-primary hover:bg-primary/5"
+                                                    onClick={() => onEditSchedule(plan, schedule)}
+                                                >
+                                                    <Edit className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-7 w-7 text-destructive hover:bg-destructive/5"
+                                                    onClick={() => onDeleteSchedule(schedule)}
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}

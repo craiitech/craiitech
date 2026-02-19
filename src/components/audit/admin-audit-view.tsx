@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -5,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Loader2, Database, LayoutList } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, doc, deleteDoc } from 'firebase/firestore';
 import type { AuditPlan, Campus, User, Unit, AuditSchedule, ISOClause } from '@/lib/types';
 import { AuditPlanDialog } from './audit-plan-dialog';
 import { AuditScheduleDialog } from './audit-schedule-dialog';
@@ -13,6 +14,16 @@ import { AuditPlanList } from './audit-plan-list';
 import { seedIsoClausesClient } from '@/lib/iso-seeder';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 /**
  * ADMIN AUDIT MANAGEMENT HUB
@@ -21,11 +32,17 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 export function AdminAuditView() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  
   const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<AuditPlan | null>(null);
 
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [selectedPlanForScheduling, setSelectedPlanForScheduling] = useState<AuditPlan | null>(null);
+  const [editingSchedule, setEditingSchedule] = useState<AuditSchedule | null>(null);
+
+  const [deletingPlan, setDeletingPlan] = useState<AuditPlan | null>(null);
+  const [deletingSchedule, setDeletingSchedule] = useState<AuditSchedule | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const [isSeeding, setIsSeeding] = useState(false);
 
@@ -60,7 +77,42 @@ export function AdminAuditView() {
 
   const handleScheduleAudit = (plan: AuditPlan) => {
     setSelectedPlanForScheduling(plan);
+    setEditingSchedule(null);
     setIsScheduleDialogOpen(true);
+  };
+
+  const handleEditSchedule = (plan: AuditPlan, schedule: AuditSchedule) => {
+    setSelectedPlanForScheduling(plan);
+    setEditingSchedule(schedule);
+    setIsScheduleDialogOpen(true);
+  };
+
+  const handleDeletePlan = async () => {
+    if (!firestore || !deletingPlan) return;
+    setIsProcessing(true);
+    try {
+        await deleteDoc(doc(firestore, 'auditPlans', deletingPlan.id));
+        toast({ title: 'Plan Removed', description: 'Institutional audit plan has been deleted.' });
+        setDeletingPlan(null);
+    } catch (e) {
+        toast({ title: 'Error', description: 'Could not delete plan.', variant: 'destructive' });
+    } finally {
+        setIsProcessing(false);
+    }
+  };
+
+  const handleDeleteSchedule = async () => {
+    if (!firestore || !deletingSchedule) return;
+    setIsProcessing(true);
+    try {
+        await deleteDoc(doc(firestore, 'auditSchedules', deletingSchedule.id));
+        toast({ title: 'Entry Removed', description: 'Itinerary entry has been deleted.' });
+        setDeletingSchedule(null);
+    } catch (e) {
+        toast({ title: 'Error', description: 'Could not delete entry.', variant: 'destructive' });
+    } finally {
+        setIsProcessing(false);
+    }
   };
   
   const handleSeedClauses = async () => {
@@ -138,7 +190,10 @@ export function AdminAuditView() {
                     users={users || []}
                     units={units || []}
                     onEditPlan={handleEditPlan}
+                    onDeletePlan={setDeletingPlan}
                     onScheduleAudit={handleScheduleAudit}
+                    onEditSchedule={handleEditSchedule}
+                    onDeleteSchedule={setDeletingSchedule}
                 />
             )}
           </CardContent>
@@ -159,11 +214,52 @@ export function AdminAuditView() {
             isOpen={isScheduleDialogOpen}
             onOpenChange={setIsScheduleDialogOpen}
             plan={selectedPlanForScheduling}
+            schedule={editingSchedule}
             auditors={users?.filter(u => u.role === 'Auditor') || []}
             allUnits={units || []}
             topManagement={users?.filter(u => u.role?.toLowerCase().includes('president') || u.role?.toLowerCase().includes('director')) || []}
         />
       )}
+
+      {/* Delete Plan Confirm */}
+      <AlertDialog open={!!deletingPlan} onOpenChange={(open) => !open && setDeletingPlan(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Remove Audit Plan?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This will permanently delete the institutional plan <strong>"{deletingPlan?.title}"</strong>. 
+                    Warning: This action will not automatically delete the itinerary entries (schedules) but will leave them without a parent plan.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Abort</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeletePlan} className="bg-destructive text-white" disabled={isProcessing}>
+                    {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                    Confirm Delete
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Schedule Confirm */}
+      <AlertDialog open={!!deletingSchedule} onOpenChange={(open) => !open && setDeletingSchedule(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Delete Itinerary Entry?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    You are about to delete the audit session for <strong>{deletingSchedule?.targetName}</strong> scheduled on {deletingSchedule?.scheduledDate?.toDate?.() ? format(deletingSchedule.scheduledDate.toDate(), 'MM/dd/yyyy') : '...'}. 
+                    This action cannot be undone.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Abort</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteSchedule} className="bg-destructive text-white" disabled={isProcessing}>
+                    {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                    Delete Session
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
