@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -259,6 +258,9 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         gaps.push({ type: 'Institutional Data', msg: 'Graduation outcome registry is empty.', priority: 'Medium', target: 'outcomes' });
     }
 
+    // Next Schedule Date logic with New Program handling
+    const nextScheduleDate = program.isNewProgram ? 'NEW PROGRAM' : (latestAccreditation?.statusValidityDate || 'TBA');
+
     return { 
         enrollmentData, 
         alignmentRate, 
@@ -271,7 +273,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         latestAccreditation, 
         currentAccreditationByMajor, 
         curriculaByMajor, 
-        nextScheduleDate: latestAccreditation?.statusValidityDate || 'TBA',
+        nextScheduleDate,
         overallScore, 
         pillarScores, 
         radarData,
@@ -436,10 +438,14 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
             <div className="absolute top-0 right-0 p-2 opacity-5"><CalendarDays className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
                 <CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Next Target Schedule</CardDescription>
-                <CardTitle className="text-lg font-black truncate uppercase text-slate-900">{analyticsData.nextScheduleDate}</CardTitle>
+                <CardTitle className={cn("text-lg font-black truncate uppercase text-slate-900", program.isNewProgram && "text-amber-600")}>
+                    {analyticsData.nextScheduleDate}
+                </CardTitle>
             </CardHeader>
             <CardContent>
-                <Badge variant="outline" className="bg-white text-emerald-700 border-emerald-200 text-[9px] font-black uppercase shadow-sm">VALIDATED SCHEDULE</Badge>
+                <Badge variant="outline" className={cn("bg-white text-[9px] font-black uppercase shadow-sm", program.isNewProgram ? "text-amber-700 border-amber-200" : "text-emerald-700 border-emerald-200")}>
+                    {program.isNewProgram ? 'NEW PROGRAM OFFERING' : 'VALIDATED SCHEDULE'}
+                </Badge>
             </CardContent>
         </Card>
 
