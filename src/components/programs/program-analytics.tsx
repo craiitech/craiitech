@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -213,9 +212,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         const yearMatch = validity.match(/\d{4}/);
         const year = yearMatch ? parseInt(yearMatch[0]) : 0;
         
-        const months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+        const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
         let month = 0;
-        months.forEach((m, idx) => {
+        monthNames.forEach((m, idx) => {
             if (validity.toLowerCase().includes(m)) month = idx + 1;
         });
         
@@ -249,10 +248,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                 level,
                 validityText: validity || 'No schedule set',
                 status,
-                sortValue: val
+                sortValue: val || 999999 // Push unscheduled to the end
             };
         };
 
+        // Filter out "Not Yet Subject"
         if (p.isNewProgram) return [];
 
         if (!record || !record.accreditationRecords || record.accreditationRecords.length === 0) {
@@ -283,9 +283,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         return [getEntryData(latest?.level || 'Non Accredited', latest?.statusValidityDate || 'No schedule set')];
     })
     .sort((a, b) => {
-        // Strict chronological sort: Newest (Latest) to Oldest (Earliest)
+        // Strict chronological sort: Oldest (Earliest) to Newest (Latest)
         if (a.sortValue !== b.sortValue) {
-            return b.sortValue - a.sortValue;
+            return a.sortValue - b.sortValue;
         }
         return a.name.localeCompare(b.name);
     });
