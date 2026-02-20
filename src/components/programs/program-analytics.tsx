@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -504,7 +503,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                                 <TableCell className="text-center py-3">
                                     <div className="flex flex-col">
                                         <span className="text-sm font-black text-primary tabular-nums uppercase">{item.validityText}</span>
-                                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tighter">Planned Horizon</span>
                                     </div>
                                 </TableCell>
                                 <TableCell className="py-3 text-right pr-6">
