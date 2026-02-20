@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -205,50 +206,63 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
     const now = new Date();
     const currentYear = now.getFullYear();
 
-    const roadmapData = programs.map(p => {
+    const roadmapData = programs.flatMap(p => {
         const record = compliances.find(c => c.programId === p.id);
         const campusName = campusMap.get(p.campusId) || 'Unknown';
         
-        if (!record || !record.accreditationRecords || record.accreditationRecords.length === 0) {
-            return {
-                id: p.id,
-                name: p.name,
-                campusName,
-                level: p.isNewProgram ? 'Not Yet Subject' : 'Non Accredited',
-                validityText: 'No schedule logged',
-                status: 'Unscheduled',
-                year: 0
-            };
-        }
-
-        const latest = record.accreditationRecords.find(m => m.lifecycleStatus === 'Current') || record.accreditationRecords[record.accreditationRecords.length - 1];
-        
-        // Automated Warning: Try to parse year from validity text
-        const yearMatch = latest.statusValidityDate?.match(/\d{4}/);
-        const detectedYear = yearMatch ? parseInt(yearMatch[0]) : 0;
-
-        let status = 'Scheduled';
-        if (detectedYear > 0) {
-            if (detectedYear < currentYear) {
-                status = 'Overdue';
-            } else if (detectedYear === currentYear) {
-                status = 'Upcoming';
+        const getEntryData = (level: string, validity: string, suffix?: string) => {
+            const yearMatch = validity?.match(/\d{4}/);
+            const detectedYear = yearMatch ? parseInt(yearMatch[0]) : 0;
+            let status = 'Scheduled';
+            if (detectedYear > 0) {
+                if (detectedYear < currentYear) status = 'Overdue';
+                else if (detectedYear === currentYear) status = 'Upcoming';
+            } else {
+                status = 'Unscheduled';
             }
-        } else {
-            status = 'Unscheduled';
+            return {
+                id: `${p.id}-${suffix || 'base'}`,
+                name: suffix ? `${p.name} (${suffix})` : p.name,
+                campusName,
+                level,
+                validityText: validity || 'No schedule set',
+                status,
+                year: detectedYear
+            };
+        };
+
+        if (p.isNewProgram) return []; // Filter out "Not Yet Subject" as requested
+
+        if (!record || !record.accreditationRecords || record.accreditationRecords.length === 0) {
+            return [getEntryData('Non Accredited', 'No schedule logged')];
         }
 
-        return {
-            id: p.id,
-            name: p.name,
-            campusName,
-            level: latest.level, 
-            validityText: latest.statusValidityDate || 'No schedule set',
-            status,
-            year: detectedYear
-        };
+        const milestones = record.accreditationRecords;
+
+        // If program has specializations, we expand the roster
+        if (p.hasSpecializations && p.specializations && p.specializations.length > 0) {
+            return p.specializations.map(spec => {
+                // Find current accreditation for THIS major
+                const currentMilestone = milestones.find(m => 
+                    m.lifecycleStatus === 'Current' && 
+                    m.components?.some(c => c.id === spec.id)
+                ) || milestones.find(m => 
+                    m.lifecycleStatus === 'Current' && 
+                    (!m.components || m.components.length === 0)
+                ) || milestones[milestones.length - 1];
+
+                return getEntryData(
+                    currentMilestone?.level || 'Non Accredited', 
+                    currentMilestone?.statusValidityDate || 'No schedule set',
+                    spec.name
+                );
+            });
+        }
+
+        // Standard single-milestone program
+        const latest = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
+        return [getEntryData(latest?.level || 'Non Accredited', latest?.statusValidityDate || 'No schedule set')];
     })
-    .filter(item => item.level !== 'Not Yet Subject')
     .sort((a, b) => {
         const statusPriority: Record<string, number> = { 'Overdue': 0, 'Upcoming': 1, 'Scheduled': 2, 'Unscheduled': 3 };
         const pA = statusPriority[a.status] ?? 4;
@@ -256,7 +270,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
 
         if (pA !== pB) return pA - pB;
         
-        // If both have the same status priority, sort by year
         if (a.year !== b.year) {
             return a.year - b.year; 
         }
@@ -471,7 +484,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                 </div>
                 <Badge variant="outline" className="bg-white border-primary/20 text-primary font-black text-[9px] uppercase">Strategic Timeline</Badge>
             </div>
-            <CardDescription className="text-xs">Timeline of target survey dates across all sites to facilitate audit planning and budgetary decisions. Sorted by Overdue first, then by year.</CardDescription>
+            <CardDescription className="text-xs">Timeline of target survey dates across all sites to facilitate audit planning. Specializations with separate tracks are expanded for transparency.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -479,7 +492,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                     <TableHeader className="bg-muted/50">
                         <TableRow>
                             <TableHead className="font-black text-[10px] uppercase py-3 pl-6">Campus / Site</TableHead>
-                            <TableHead className="font-black text-[10px] uppercase py-3">Academic Program</TableHead>
+                            <TableHead className="font-black text-[10px] uppercase py-3">Academic Program Offering</TableHead>
                             <TableHead className="font-black text-[10px] uppercase py-3">Current Level</TableHead>
                             <TableHead className="font-black text-[10px] uppercase py-3 text-center">Next Target Schedule</TableHead>
                             <TableHead className="font-black text-[10px] uppercase py-3 text-right pr-6">Status</TableHead>

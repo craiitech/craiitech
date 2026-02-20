@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -112,7 +113,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         };
     });
 
-    // 2. Faculty Alignment Analysis (Pie) - Only counting named members
+    // 2. Faculty Alignment Analysis (Pie)
     let totalFaculty = 0;
     let alignedFaculty = 0;
     const auditFacultyList: any[] = [];
@@ -139,7 +140,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         { name: 'Needs Correction', value: totalFaculty - alignedFaculty, fill: 'hsl(var(--destructive))' }
     ].filter(d => d.value > 0);
 
-    // 3. Board Performance (Comparative Bar)
+    // 3. Board Performance
     const latestBoard = record.boardPerformance && record.boardPerformance.length > 0 
         ? record.boardPerformance[record.boardPerformance.length - 1] 
         : null;
@@ -161,15 +162,11 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
             });
         }
     });
-    const latestAccreditation = milestones.length > 0 ? milestones[milestones.length - 1] : null;
+    const latestAccreditation = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
 
-    // Smart Accreditation Schedule Check: Parse year from text
     const now = new Date();
     const currentYear = now.getFullYear();
-    const yearMatch = latestAccreditation?.statusValidityDate?.match(/\d{4}/);
-    const detectedYear = yearMatch ? parseInt(yearMatch[0]) : 0;
-    const isAccreditationOverdue = detectedYear > 0 && detectedYear < currentYear;
-
+    
     // 5. Major-Specific Curriculum Notation Logic
     const curriculumRecords = record.curriculumRecords || [];
     const curriculaByMajor: Record<string, CurriculumRecord> = {};
@@ -196,19 +193,46 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
 
     const overallScore = Math.round(Object.values(pillarScores).reduce((a, b) => a + b, 0));
 
-    // 7. Actionable Gaps with Target Tabs
+    // 7. Actionable Gaps
     const gaps = [];
     if (record.ched?.copcStatus !== 'With COPC') {
         gaps.push({ type: 'Institutional Authority', msg: 'Program is operating without an active COPC.', priority: 'High', target: 'ched' });
     }
     
-    if (isAccreditationOverdue) {
-        gaps.push({ 
-            type: 'Institutional Compliance', 
-            msg: `Program has an OVERDUE accreditation schedule (Detected year: ${detectedYear}). Update status or plan for survey.`, 
-            priority: 'High', 
-            target: 'accreditation' 
-        });
+    // Enhanced Overdue Check for Majors
+    if (!program.isNewProgram) {
+        if (program.hasSpecializations) {
+            program.specializations?.forEach(spec => {
+                const m = currentAccreditationByMajor[spec.id] || currentAccreditationByMajor['General'];
+                if (!m || m.level === 'Non Accredited') {
+                    gaps.push({ type: 'Academic Quality', msg: `Missing accreditation record for specialization: ${spec.name}`, priority: 'Medium', target: 'accreditation' });
+                } else {
+                    const yearMatch = m.statusValidityDate?.match(/\d{4}/);
+                    const dYear = yearMatch ? parseInt(yearMatch[0]) : 0;
+                    if (dYear > 0 && dYear < currentYear) {
+                        gaps.push({ 
+                            type: 'Institutional Compliance', 
+                            msg: `OVERDUE accreditation for ${spec.name} (Validity expired: ${m.statusValidityDate}).`, 
+                            priority: 'High', 
+                            target: 'accreditation' 
+                        });
+                    }
+                }
+            });
+        } else if (!latestAccreditation || latestAccreditation.level === 'Non Accredited') {
+            gaps.push({ type: 'Academic Quality', msg: 'No active accreditation status recorded.', priority: 'Medium', target: 'accreditation' });
+        } else {
+            const yearMatch = latestAccreditation.statusValidityDate?.match(/\d{4}/);
+            const dYear = yearMatch ? parseInt(yearMatch[0]) : 0;
+            if (dYear > 0 && dYear < currentYear) {
+                gaps.push({ 
+                    type: 'Institutional Compliance', 
+                    msg: `Program accreditation is OVERDUE (Expired: ${latestAccreditation.statusValidityDate}).`, 
+                    priority: 'High', 
+                    target: 'accreditation' 
+                });
+            }
+        }
     }
 
     if (totalFaculty === 0) {
@@ -217,18 +241,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         gaps.push({ type: 'Resource Quality', msg: `${totalFaculty - alignedFaculty} faculty members do not meet CMO qualification requirements.`, priority: 'Medium', target: 'faculty' });
     }
     
-    if (!program.isNewProgram) {
-        if (program.hasSpecializations) {
-            program.specializations?.forEach(spec => {
-                if (!currentAccreditationByMajor[spec.id] && !currentAccreditationByMajor['General']) {
-                    gaps.push({ type: 'Academic Quality', msg: `Missing accreditation record for specialization: ${spec.name}`, priority: 'Medium', target: 'accreditation' });
-                }
-            });
-        } else if (!latestAccreditation || latestAccreditation.level === 'Non Accredited') {
-            gaps.push({ type: 'Academic Quality', msg: 'No active accreditation status recorded.', priority: 'Medium', target: 'accreditation' });
-        }
-    }
-
     if (program.hasSpecializations) {
         program.specializations?.forEach(spec => {
             if (!curriculaByMajor[spec.id] && !curriculaByMajor['General']) {
@@ -237,25 +249,14 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         });
     }
 
-    // Outcomes Focus: Board Performance vs Graduation
     if (program.isBoardProgram) {
         if (!record.boardPerformance || record.boardPerformance.length === 0) {
-            gaps.push({ 
-                type: 'Professional Outcomes', 
-                msg: 'Mandatory Board Licensure Performance results are missing for the current period.', 
-                priority: 'High', 
-                target: 'outcomes' 
-            });
+            gaps.push({ type: 'Professional Outcomes', msg: 'Mandatory Board Licensure Performance results are missing.', priority: 'High', target: 'outcomes' });
         }
     }
 
     if (!record.graduationRecords || record.graduationRecords.length === 0) {
-        gaps.push({ 
-            type: 'Institutional Data', 
-            msg: 'Graduation outcome registry is empty for this period.', 
-            priority: 'Medium', 
-            target: 'outcomes' 
-        });
+        gaps.push({ type: 'Institutional Data', msg: 'Graduation outcome registry is empty.', priority: 'Medium', target: 'outcomes' });
     }
 
     return { 
@@ -270,7 +271,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         latestAccreditation, 
         currentAccreditationByMajor, 
         curriculaByMajor, 
-        isAccreditationOverdue,
         nextScheduleDate: latestAccreditation?.statusValidityDate || 'TBA',
         overallScore, 
         pillarScores, 
@@ -332,7 +332,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       
-      {/* --- USER-CENTERED DECISION CONTEXT --- */}
+      {/* --- USER PERSPECTIVE --- */}
       <Card className="border-primary/20 bg-primary/5 shadow-sm overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center">
             <div className="p-6 flex items-center gap-4 bg-primary text-white md:w-72 shrink-0">
@@ -358,7 +358,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         </div>
       </Card>
 
-      {/* --- INSTITUTIONAL STRATEGIC RISK REGISTER (TOP MOST) --- */}
+      {/* --- STRATEGIC RISK REGISTER --- */}
       <Card className="border-destructive/30 shadow-xl overflow-hidden bg-destructive/5 relative">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-destructive opacity-50" />
           <CardHeader className="bg-destructive/10 border-b py-4">
@@ -366,12 +366,10 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                   <div className="flex items-center gap-2 text-destructive">
                       <ShieldAlert className="h-5 w-5 text-destructive" />
                       <CardTitle className="text-sm font-black uppercase tracking-tight">
-                          {isAdmin ? 'Institutional Strategic Risk Register' : isCampusSupervisor ? 'Campus Quality & Oversight Alerts' : 'Operational Correction & Compliance List'}
+                          Institutional Strategic Risk Register
                       </CardTitle>
                   </div>
-                  <Badge variant="destructive" className="animate-pulse shadow-sm h-5 text-[9px] font-black uppercase">
-                      {isAdmin ? 'University Risks' : isCampusSupervisor ? 'Site Deficiencies' : 'Task Required'}
-                  </Badge>
+                  <Badge variant="destructive" className="animate-pulse shadow-sm h-5 text-[9px] font-black uppercase">SYSTEM ALERTS</Badge>
               </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -409,7 +407,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                               </div>
                               <div className="space-y-1">
                                   <h4 className="font-black text-slate-900 uppercase text-sm">Quality Shield Maintained</h4>
-                                  <p className="text-xs text-muted-foreground">This program meets all institutional and regulatory compliance criteria for {selectedYear}.</p>
+                                  <p className="text-xs text-muted-foreground">This program meets all institutional compliance criteria for {selectedYear}.</p>
                               </div>
                           </div>
                       )}
@@ -418,7 +416,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
           </CardContent>
       </Card>
 
-      {/* --- EXECUTIVE KPI PANEL --- */}
+      {/* --- KPI PANEL --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-5"><ShieldCheck className="h-12 w-12" /></div>
@@ -434,23 +432,14 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
             </CardContent>
         </Card>
         
-        {/* KPI: Next Accreditation Schedule */}
-        <Card className={cn("shadow-sm relative overflow-hidden", analyticsData.isAccreditationOverdue ? "bg-rose-50 border-rose-100" : "bg-emerald-50/50 border-emerald-100")}>
+        <Card className="bg-emerald-50/50 border-emerald-100 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-5"><CalendarDays className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
-                <CardDescription className={cn("text-[10px] font-black uppercase tracking-widest", analyticsData.isAccreditationOverdue ? "text-rose-700" : "text-emerald-600")}>
-                    Next Target Schedule
-                </CardDescription>
-                <CardTitle className={cn("text-lg font-black truncate uppercase", analyticsData.isAccreditationOverdue ? "text-rose-600" : "text-slate-900")}>
-                    {analyticsData.nextScheduleDate}
-                </CardTitle>
+                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Next Target Schedule</CardDescription>
+                <CardTitle className="text-lg font-black truncate uppercase text-slate-900">{analyticsData.nextScheduleDate}</CardTitle>
             </CardHeader>
             <CardContent>
-                {analyticsData.isAccreditationOverdue ? (
-                    <Badge variant="destructive" className="animate-pulse text-[9px] font-black uppercase h-5">OVERDUE MILESTONE</Badge>
-                ) : (
-                    <Badge variant="outline" className="bg-white text-emerald-700 border-emerald-200 text-[9px] font-black uppercase shadow-sm">VALIDATED SCHEDULE</Badge>
-                )}
+                <Badge variant="outline" className="bg-white text-emerald-700 border-emerald-200 text-[9px] font-black uppercase shadow-sm">VALIDATED SCHEDULE</Badge>
             </CardContent>
         </Card>
 
@@ -464,6 +453,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                 <p className="text-[10px] text-blue-800/60 font-bold uppercase tracking-tight">{analyticsData.totalFaculty} Qualified Members Named</p>
             </CardContent>
         </Card>
+        
         <Card className="bg-amber-50/50 border-amber-100 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-5"><BarChart3 className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
@@ -529,7 +519,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                 </CardContent>
             </Card>
 
-            {/* --- FACULTY RESOURCE AUDIT REGISTRY --- */}
+            {/* --- FACULTY RESOURCE AUDIT --- */}
             <Card className="border-primary/10 shadow-lg overflow-hidden">
                 <CardHeader className="bg-muted/10 border-b py-4">
                     <div className="flex items-center justify-between">
@@ -602,7 +592,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                             {analyticsData.auditFacultyList.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic text-xs">
-                                        No personnel recorded in the faculty module.
+                                        No personnel recorded.
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -749,7 +739,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                     <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 flex items-start gap-2">
                         <Info className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
                         <p className="text-[9px] text-blue-800 leading-relaxed font-medium italic">
-                            Evidence integrity is verified institutionally. Only validated records contribute to the program maturity profile.
+                            Evidence integrity is verified institutionally.
                         </p>
                     </div>
                 </div>
