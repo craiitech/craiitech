@@ -535,7 +535,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                 </CardContent>
             </Card>
 
-            {/* --- FACULTY RESOURCE AUDIT TABLE --- */}
+            {/* --- FACULTY RESOURCE AUDIT REGISTRY --- */}
             <Card className="border-primary/10 shadow-lg overflow-hidden">
                 <CardHeader className="bg-muted/10 border-b py-4">
                     <div className="flex items-center justify-between">

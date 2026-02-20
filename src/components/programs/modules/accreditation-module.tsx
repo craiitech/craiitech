@@ -123,7 +123,7 @@ function AccreditationRecordCard({
                             <FormItem><FormLabel className="text-[10px] font-bold uppercase">Type of Visit</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Formal Visit" className="h-9 text-xs" disabled={!canEdit} /></FormControl></FormItem>
                         )} />
                         <FormField control={control} name={`accreditationRecords.${index}.result`} render={({ field }) => (
-                            <FormItem><FormLabel className="text-[10px] font-black uppercase text-primary">Official Result / Outcome</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Passed Level II" className="h-9 text-xs font-bold border-primary/20 bg-primary/5" disabled={!canEdit} /></FormControl><FormDescription className="text-[9px]">The actual result text displayed in institutional summaries.</FormDescription></FormItem>
+                            <FormItem><FormLabel className="text-[10px] font-black uppercase text-primary">Official Result / Outcome</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Passed Level II" className="h-9 text-xs font-bold border-primary/20 bg-primary/5" disabled={!canEdit} /></FormControl><FormDescription className="text-[9px]">The specific text detailing the survey outcome.</FormDescription></FormItem>
                         )} />
                         <FormField control={control} name={`accreditationRecords.${index}.lifecycleStatus`} render={({ field }) => (
                             <FormItem><FormLabel className="text-[10px] font-bold uppercase">Milestone Validity</FormLabel>
@@ -140,18 +140,23 @@ function AccreditationRecordCard({
                                 <FormDescription className="text-[9px]">Mark 'Current' to show this result in strategic dashboards.</FormDescription>
                             </FormItem>
                         )} />
+                        
                         <div className="grid grid-cols-1 gap-4 pt-2">
                             <FormField control={control} name={`accreditationRecords.${index}.dateOfSurvey`} render={({ field }) => (
                                 <FormItem><FormLabel className="text-[10px] font-bold uppercase">Date of Survey</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="Oct 12-14, 2024" className="h-9 text-xs" disabled={!canEdit} /></FormControl></FormItem>
                             )} />
                             <FormField control={control} name={`accreditationRecords.${index}.statusValidityDate`} render={({ field }) => (
-                                <FormItem><FormLabel className="text-[10px] font-bold uppercase">Validity Period</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="Valid until..." className="h-9 text-xs" disabled={!canEdit} /></FormControl></FormItem>
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-bold uppercase">Validity Period (Text)</FormLabel>
+                                    <FormControl><Input {...field} value={field.value || ''} placeholder="Valid until Oct 2028" className="h-9 text-xs" disabled={!canEdit} /></FormControl>
+                                    <FormDescription className="text-[9px]">Describe the full validity range.</FormDescription>
+                                </FormItem>
                             )} />
                         </div>
 
                         <Separator />
 
-                        <div className="space-y-4">
+                        <div className="space-y-4 bg-primary/5 p-4 rounded-lg border border-primary/10">
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
                                 <Clock className="h-4 w-4" /> Next Accreditation Schedule
                             </h4>
@@ -160,7 +165,7 @@ function AccreditationRecordCard({
                                     <FormItem>
                                         <FormLabel className="text-[9px] uppercase font-bold text-slate-500">Target Month</FormLabel>
                                         <Select onValueChange={(v) => field.onChange(Number(v))} value={field.value !== undefined ? String(field.value) : undefined} disabled={!canEdit}>
-                                            <FormControl><SelectTrigger className="h-8 text-xs bg-slate-50"><SelectValue placeholder="Select Month" /></SelectTrigger></FormControl>
+                                            <FormControl><SelectTrigger className="h-8 text-xs bg-white"><SelectValue placeholder="Month" /></SelectTrigger></FormControl>
                                             <SelectContent>{months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </FormItem>
@@ -169,13 +174,15 @@ function AccreditationRecordCard({
                                     <FormItem>
                                         <FormLabel className="text-[9px] uppercase font-bold text-slate-500">Target Year</FormLabel>
                                         <Select onValueChange={(v) => field.onChange(Number(v))} value={field.value !== undefined ? String(field.value) : undefined} disabled={!canEdit}>
-                                            <FormControl><SelectTrigger className="h-8 text-xs bg-slate-50"><SelectValue placeholder="Year" /></SelectTrigger></FormControl>
+                                            <FormControl><SelectTrigger className="h-8 text-xs bg-white"><SelectValue placeholder="Year" /></SelectTrigger></FormControl>
                                             <SelectContent>{yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </FormItem>
                                 )} />
                             </div>
-                            <FormDescription className="text-[9px] italic">Setting this allows institutional tracking of upcoming surveys and missed deadlines.</FormDescription>
+                            <FormDescription className="text-[9px] italic font-medium leading-relaxed">
+                                <strong>Required:</strong> This structured date enables automated warnings for missed surveys and roadmap plotting.
+                            </FormDescription>
                         </div>
 
                         <Separator />

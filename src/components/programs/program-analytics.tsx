@@ -45,7 +45,8 @@ import {
     Search,
     Clock,
     BarChart3,
-    CalendarDays
+    CalendarDays,
+    AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
@@ -242,7 +243,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             id: p.id,
             name: p.name,
             campusName,
-            level: latest.result || latest.level,
+            level: latest.level, // Prioritize Accreditation Level over Result string
             nextYear: nextY,
             nextMonth: nextM,
             status
@@ -284,7 +285,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             if (program.hasSpecializations && program.specializations) {
                 const majorResults = program.specializations.map(spec => {
                     const milestone = milestones.find(m => m.lifecycleStatus === 'Current' && m.components?.some(c => c.id === spec.id));
-                    if (milestone) return `${spec.name}: ${milestone.result || milestone.level}`;
+                    if (milestone) return `${spec.name}: ${milestone.level}`;
                     return program.isNewProgram ? `${spec.name}: Not Yet Subject` : `${spec.name}: Non Accredited`;
                 });
                 accreditationDisplay = majorResults.join('; ');
@@ -295,7 +296,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                 const latest = milestones.length > 0 ? milestones[milestones.length - 1] : null;
                 if (latest?.level && latest.level !== 'Non Accredited') {
                     score += 20;
-                    accreditationDisplay = latest.result || latest.level;
+                    accreditationDisplay = latest.level;
                 } else if (program.isNewProgram) {
                     score += 20;
                 }
@@ -453,7 +454,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         </CardContent>
       </Card>
 
-      {/* --- INSTITUTIONAL ACCREDITATION ROADMAP (NEW) --- */}
       <Card className="shadow-lg border-primary/10 overflow-hidden">
         <CardHeader className="bg-primary/5 border-b py-4">
             <div className="flex items-center justify-between">
