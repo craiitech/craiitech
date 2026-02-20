@@ -437,7 +437,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         <Card className="bg-emerald-50/50 border-emerald-100 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-5"><CalendarDays className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
-                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Next Target Schedule</CardDescription>
+                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Next Accreditation (AACCUP) Schedule</CardDescription>
                 <CardTitle className={cn("text-lg font-black truncate uppercase text-slate-900", program.isNewProgram && "text-amber-600")}>
                     {analyticsData.nextScheduleDate}
                 </CardTitle>
