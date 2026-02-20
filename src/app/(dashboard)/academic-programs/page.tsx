@@ -362,6 +362,7 @@ export default function AcademicProgramsPage() {
                 ) : (
                     <ProgramRegistry 
                         programs={filteredPrograms} 
+                        compliances={rawCompliances || []}
                         campuses={campuses || []} 
                         units={units || []} 
                         onEdit={handleEditProgram}
