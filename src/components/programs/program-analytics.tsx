@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -245,7 +246,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             validityText: latest.statusValidityDate || 'No schedule set',
             status
         };
-    }).sort((a, b) => {
+    })
+    .filter(item => item.level !== 'Not Yet Subject')
+    .sort((a, b) => {
         if (a.status === 'Overdue' && b.status !== 'Overdue') return -1;
         if (b.status === 'Overdue' && a.status !== 'Overdue') return 1;
         return a.name.localeCompare(b.name);
