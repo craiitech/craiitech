@@ -217,7 +217,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                 campusName,
                 level: p.isNewProgram ? 'Not Yet Subject' : 'Non Accredited',
                 validityText: 'No schedule logged',
-                status: 'Unscheduled'
+                status: 'Unscheduled',
+                year: 0
             };
         }
 
@@ -244,13 +245,23 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             campusName,
             level: latest.level, 
             validityText: latest.statusValidityDate || 'No schedule set',
-            status
+            status,
+            year: detectedYear
         };
     })
     .filter(item => item.level !== 'Not Yet Subject')
     .sort((a, b) => {
-        if (a.status === 'Overdue' && b.status !== 'Overdue') return -1;
-        if (b.status === 'Overdue' && a.status !== 'Overdue') return 1;
+        const statusPriority: Record<string, number> = { 'Overdue': 0, 'Upcoming': 1, 'Scheduled': 2, 'Unscheduled': 3 };
+        const pA = statusPriority[a.status] ?? 4;
+        const pB = statusPriority[b.status] ?? 4;
+
+        if (pA !== pB) return pA - pB;
+        
+        // If both have the same status priority, sort by year
+        if (a.year !== b.year) {
+            return a.year - b.year; 
+        }
+
         return a.name.localeCompare(b.name);
     });
 
@@ -461,7 +472,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                 </div>
                 <Badge variant="outline" className="bg-white border-primary/20 text-primary font-black text-[9px] uppercase">Strategic Timeline</Badge>
             </div>
-            <CardDescription className="text-xs">Timeline of target survey dates across all sites to facilitate audit planning and budgetary decisions.</CardDescription>
+            <CardDescription className="text-xs">Timeline of target survey dates across all sites to facilitate audit planning and budgetary decisions. Sorted by Overdue first, then by year.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
             <div className="overflow-x-auto">
