@@ -221,8 +221,25 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         });
     }
 
+    // Outcomes Focus: Board Performance vs Graduation
+    if (program.isBoardProgram) {
+        if (!record.boardPerformance || record.boardPerformance.length === 0) {
+            gaps.push({ 
+                type: 'Professional Outcomes', 
+                msg: 'Mandatory Board Licensure Performance results are missing for the current period.', 
+                priority: 'High', 
+                target: 'outcomes' 
+            });
+        }
+    }
+
     if (!record.graduationRecords || record.graduationRecords.length === 0) {
-        gaps.push({ type: 'Institutional Data', msg: 'Graduation outcome registry is empty for this period.', priority: 'Medium', target: 'outcomes' });
+        gaps.push({ 
+            type: 'Institutional Data', 
+            msg: 'Graduation outcome registry is empty for this period.', 
+            priority: 'Medium', 
+            target: 'outcomes' 
+        });
     }
 
     return { 
