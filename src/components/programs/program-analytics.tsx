@@ -62,6 +62,24 @@ interface ProgramAnalyticsProps {
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
+/**
+ * YEAR COLOR SCHEMA
+ * Consistent colors used for both header badges and row highlighting.
+ */
+const YEAR_COLORS: Record<string, { bg: string, text: string, border: string, row: string }> = {
+    '2024': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', row: 'bg-blue-50/30' },
+    '2025': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200', row: 'bg-green-50/30' },
+    '2026': { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200', row: 'bg-amber-50/30' },
+    '2027': { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200', row: 'bg-purple-50/30' },
+    '2028': { bg: 'bg-rose-100', text: 'text-rose-700', border: 'border-rose-200', row: 'bg-rose-50/30' },
+    'Default': { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200', row: 'bg-transparent' }
+};
+
+const getYearStyle = (year: string) => {
+    if (Number(year) <= 2024) return YEAR_COLORS['2024'];
+    return YEAR_COLORS[year] || YEAR_COLORS['Default'];
+};
+
 export function ProgramAnalytics({ programs, compliances, campuses, isLoading, selectedYear }: ProgramAnalyticsProps) {
   const { userRole, isAdmin } = useUser();
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
@@ -247,6 +265,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                 campusName,
                 level,
                 validityText: validity || 'No schedule set',
+                year: detectedYear > 0 ? detectedYear.toString() : 'Other',
                 status,
                 sortValue: val || 999999 // Push unscheduled to the end
             };
@@ -290,6 +309,17 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         return a.name.localeCompare(b.name);
     });
 
+    // 7. Yearly Distribution for Header
+    const yearlyDistribution: Record<string, number> = {};
+    roadmapData.forEach(item => {
+        if (item.year !== 'Other') {
+            yearlyDistribution[item.year] = (yearlyDistribution[item.year] || 0) + 1;
+        }
+    });
+    const distributionSummary = Object.entries(yearlyDistribution)
+        .map(([year, count]) => ({ year, count }))
+        .sort((a, b) => a.year.localeCompare(b.year));
+
     return { 
         accreditationSummary, 
         copcPercentage, 
@@ -297,6 +327,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         campusPerformanceData,
         missingDocs,
         roadmapData,
+        distributionSummary,
         totalPrograms: programs.length, 
         monitoredCount: compliances.length 
     };
@@ -490,14 +521,29 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
 
       <Card className="shadow-lg border-primary/10 overflow-hidden">
         <CardHeader className="bg-primary/5 border-b py-4">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <CalendarDays className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Accreditation Roadmap</CardTitle>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                        <CalendarDays className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Accreditation Roadmap</CardTitle>
+                    </div>
+                    <CardDescription className="text-xs">Strategic chronological timeline of target survey dates across all sites.</CardDescription>
                 </div>
-                <Badge variant="outline" className="bg-white border-primary/20 text-primary font-black text-[9px] uppercase">Strategic Timeline</Badge>
+                <div className="flex flex-wrap gap-2">
+                    {analytics?.distributionSummary.map((item) => {
+                        const style = getYearStyle(item.year);
+                        return (
+                            <Badge 
+                                key={item.year} 
+                                variant="outline" 
+                                className={cn("h-6 px-3 text-[10px] font-black uppercase border shadow-sm transition-transform hover:scale-105", style.bg, style.text, style.border)}
+                            >
+                                {item.year}: {item.count} PROGRAMS
+                            </Badge>
+                        );
+                    })}
+                </div>
             </div>
-            <CardDescription className="text-xs">Timeline of target survey dates across all sites to facilitate audit planning. Specializations with separate tracks are expanded for transparency.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -512,39 +558,42 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {analytics?.roadmapData.map((item: any) => (
-                            <TableRow key={item.id} className="hover:bg-muted/20 transition-colors">
-                                <TableCell className="py-3 pl-6">
-                                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase">
-                                        <School className="h-3 w-3 opacity-40" />
-                                        {item.campusName}
-                                    </div>
-                                </TableCell>
-                                <TableCell className="py-3">
-                                    <span className="text-xs font-bold text-slate-800">{item.name}</span>
-                                </TableCell>
-                                <TableCell className="py-3">
-                                    <Badge variant="secondary" className="bg-muted text-[10px] font-medium border-none">{item.level}</Badge>
-                                </TableCell>
-                                <TableCell className="text-center py-3">
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-black text-primary tabular-nums uppercase">{item.validityText}</span>
-                                    </div>
-                                </TableCell>
-                                <TableCell className="py-3 text-right pr-6">
-                                    <Badge 
-                                        className={cn(
-                                            "text-[9px] font-black uppercase h-5 px-2 border-none shadow-sm",
-                                            item.status === 'Overdue' ? "bg-rose-600 text-white animate-pulse" : 
-                                            item.status === 'Upcoming' ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-600"
-                                        )}
-                                    >
-                                        {item.status === 'Overdue' && <AlertTriangle className="h-2 w-2 mr-1" />}
-                                        {item.status}
-                                    </Badge>
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                        {analytics?.roadmapData.map((item: any) => {
+                            const yearStyle = getYearStyle(item.year);
+                            return (
+                                <TableRow key={item.id} className={cn("transition-colors", yearStyle.row)}>
+                                    <TableCell className="py-3 pl-6">
+                                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase">
+                                            <School className="h-3 w-3 opacity-40" />
+                                            {item.campusName}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="py-3">
+                                        <span className="text-xs font-bold text-slate-800">{item.name}</span>
+                                    </TableCell>
+                                    <TableCell className="py-3">
+                                        <Badge variant="secondary" className="bg-muted text-[10px] font-medium border-none">{item.level}</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-center py-3">
+                                        <div className="flex flex-col">
+                                            <span className={cn("text-sm font-black tabular-nums uppercase", yearStyle.text)}>{item.validityText}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="py-3 text-right pr-6">
+                                        <Badge 
+                                            className={cn(
+                                                "text-[9px] font-black uppercase h-5 px-2 border-none shadow-sm",
+                                                item.status === 'Overdue' ? "bg-rose-600 text-white animate-pulse" : 
+                                                item.status === 'Upcoming' ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-600"
+                                            )}
+                                        >
+                                            {item.status === 'Overdue' && <AlertTriangle className="h-2 w-2 mr-1" />}
+                                            {item.status}
+                                        </Badge>
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })}
                     </TableBody>
                 </Table>
             </div>
