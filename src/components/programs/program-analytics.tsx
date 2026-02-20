@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -63,10 +62,8 @@ interface ProgramAnalyticsProps {
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
-const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
 export function ProgramAnalytics({ programs, compliances, campuses, isLoading, selectedYear }: ProgramAnalyticsProps) {
-  const { isAdmin, userRole } = useUser();
+  const { userRole, isAdmin } = useUser();
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
 
   const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
@@ -206,7 +203,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
 
     // 6. Accreditation Roadmap Calculation
     const now = new Date();
-    const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
     const roadmapData = programs.map(p => {
@@ -219,22 +215,23 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                 name: p.name,
                 campusName,
                 level: p.isNewProgram ? 'Not Yet Subject' : 'Non Accredited',
-                validityText: 'No validity period logged',
-                nextYear: 0,
-                nextMonth: 0,
+                validityText: 'No schedule logged',
                 status: 'Unscheduled'
             };
         }
 
         const latest = record.accreditationRecords.find(m => m.lifecycleStatus === 'Current') || record.accreditationRecords[record.accreditationRecords.length - 1];
         
-        const nextY = latest.nextScheduleYear || 0;
-        const nextM = latest.nextScheduleMonth !== undefined ? latest.nextScheduleMonth : -1;
+        // Automated Warning: Try to parse year from validity text
+        const yearMatch = latest.statusValidityDate?.match(/\d{4}/);
+        const detectedYear = yearMatch ? parseInt(yearMatch[0]) : 0;
 
-        let status = 'Upcoming';
-        if (nextY > 0) {
-            if (nextY < currentYear || (nextY === currentYear && nextM < currentMonth)) {
+        let status = 'Scheduled';
+        if (detectedYear > 0) {
+            if (detectedYear < currentYear) {
                 status = 'Overdue';
+            } else if (detectedYear === currentYear) {
+                status = 'Upcoming';
             }
         } else {
             status = 'Unscheduled';
@@ -246,16 +243,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             campusName,
             level: latest.level, 
             validityText: latest.statusValidityDate || 'No schedule set',
-            nextYear: nextY,
-            nextMonth: nextM,
             status
         };
     }).sort((a, b) => {
         if (a.status === 'Overdue' && b.status !== 'Overdue') return -1;
         if (b.status === 'Overdue' && a.status !== 'Overdue') return 1;
-        if (a.nextYear === 0) return 1;
-        if (b.nextYear === 0) return -1;
-        return (a.nextYear - b.nextYear) || (a.nextMonth - b.nextMonth);
+        return a.name.localeCompare(b.name);
     });
 
     return { 

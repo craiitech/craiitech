@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -89,8 +88,6 @@ const COLORS: Record<string, string> = {
     'Missing': 'hsl(var(--muted-foreground))'
 };
 
-const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
 export function ProgramPerformanceView({ program, record, selectedYear, onResolveDeficiency }: ProgramPerformanceViewProps) {
   const { isAdmin, userRole } = useUser();
   const [previewDoc, setPreviewDoc] = useState<{ title: string; url: string } | null>(null);
@@ -166,15 +163,12 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
     });
     const latestAccreditation = milestones.length > 0 ? milestones[milestones.length - 1] : null;
 
-    // Accreditation Schedule Check
+    // Smart Accreditation Schedule Check: Parse year from text
     const now = new Date();
     const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-    
-    const nextY = latestAccreditation?.nextScheduleYear || 0;
-    const nextM = latestAccreditation?.nextScheduleMonth !== undefined ? latestAccreditation.nextScheduleMonth : -1;
-    
-    const isAccreditationOverdue = nextY > 0 && (nextY < currentYear || (nextY === currentYear && nextM < currentMonth));
+    const yearMatch = latestAccreditation?.statusValidityDate?.match(/\d{4}/);
+    const detectedYear = yearMatch ? parseInt(yearMatch[0]) : 0;
+    const isAccreditationOverdue = detectedYear > 0 && detectedYear < currentYear;
 
     // 5. Major-Specific Curriculum Notation Logic
     const curriculumRecords = record.curriculumRecords || [];
@@ -211,7 +205,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
     if (isAccreditationOverdue) {
         gaps.push({ 
             type: 'Institutional Compliance', 
-            msg: `Program has a MISSED accreditation schedule (Planned for ${latestAccreditation?.statusValidityDate || 'specified date'}). Please coordinate with AACCUP/QAO immediately.`, 
+            msg: `Program has an OVERDUE accreditation schedule (Detected year: ${detectedYear}). Update status or plan for survey.`, 
             priority: 'High', 
             target: 'accreditation' 
         });

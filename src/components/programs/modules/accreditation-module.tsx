@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
@@ -46,15 +45,6 @@ const standardAreas = [
   { code: 'Area IX', name: 'Laboratories' },
   { code: 'Area X', name: 'Administration' },
 ];
-
-const months = [
-  { value: 0, label: 'January' }, { value: 1, label: 'February' }, { value: 2, label: 'March' },
-  { value: 3, label: 'April' }, { value: 4, label: 'May' }, { value: 5, label: 'June' },
-  { value: 6, label: 'July' }, { value: 7, label: 'August' }, { value: 8, label: 'September' },
-  { value: 9, label: 'October' }, { value: 10, label: 'November' }, { value: 11, label: 'December' },
-];
-
-const yearsList = Array.from({ length: 20 }, (_, i) => 2024 + i);
 
 function AccreditationRecordCard({ 
   index, 
@@ -127,38 +117,9 @@ function AccreditationRecordCard({
                                     {validityTextVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}
                                 </FormLabel>
                                 <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Oct 2025" className="h-10 text-sm font-bold border-primary/20 bg-primary/5" disabled={!canEdit} /></FormControl>
-                                <FormDescription className="text-[9px]">Enter the text to be displayed as the Next Accreditation Schedule.</FormDescription>
+                                <FormDescription className="text-[9px]">Enter the official accreditation schedule or validity text.</FormDescription>
                             </FormItem>
                         )} />
-
-                        <div className="space-y-4 bg-primary/5 p-4 rounded-lg border border-primary/10">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                                <Clock className="h-4 w-4" /> System Alert Mapping
-                            </h4>
-                            <div className="grid grid-cols-2 gap-3">
-                                <FormField control={control} name={`accreditationRecords.${index}.nextScheduleMonth`} render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[9px] uppercase font-bold text-slate-500">Target Month</FormLabel>
-                                        <Select onValueChange={(v) => field.onChange(Number(v))} value={field.value !== undefined ? String(field.value) : undefined} disabled={!canEdit}>
-                                            <FormControl><SelectTrigger className="h-8 text-xs bg-white"><SelectValue placeholder="Month" /></SelectTrigger></FormControl>
-                                            <SelectContent>{months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent>
-                                        </Select>
-                                    </FormItem>
-                                )} />
-                                <FormField control={control} name={`accreditationRecords.${index}.nextScheduleYear`} render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[9px] uppercase font-bold text-slate-500">Target Year</FormLabel>
-                                        <Select onValueChange={(v) => field.onChange(Number(v))} value={field.value !== undefined ? String(field.value) : undefined} disabled={!canEdit}>
-                                            <FormControl><SelectTrigger className="h-8 text-xs bg-white"><SelectValue placeholder="Year" /></SelectTrigger></FormControl>
-                                            <SelectContent>{yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-                                        </Select>
-                                    </FormItem>
-                                )} />
-                            </div>
-                            <FormDescription className="text-[9px] italic font-medium leading-relaxed">
-                                <strong>Required:</strong> These fields enable the automated 'Overdue' warnings. Please align them with the text provided above.
-                            </FormDescription>
-                        </div>
 
                         <Separator />
 
@@ -354,8 +315,6 @@ export function AccreditationModule({ canEdit, programSpecializations }: { canEd
                     ratingsSummary: { grandMean: 0, descriptiveRating: '' },
                     mandatoryRequirements: '',
                     enhancementRecommendations: '',
-                    nextScheduleMonth: new Date().getMonth(),
-                    nextScheduleYear: new Date().getFullYear() + 3
                 })}
                 className="shadow-lg shadow-primary/20"
             >
