@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -313,6 +314,61 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         </div>
       </Card>
 
+      {/* --- INSTITUTIONAL STRATEGIC RISK REGISTER (TOP MOST) --- */}
+      <Card className="border-destructive/30 shadow-xl overflow-hidden bg-destructive/5 relative">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-destructive opacity-50" />
+          <CardHeader className="bg-destructive/10 border-b py-4">
+              <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-destructive">
+                      <ShieldAlert className="h-5 w-5 text-destructive" />
+                      <CardTitle className="text-sm font-black uppercase tracking-tight">
+                          {isAdmin ? 'Institutional Strategic Risk Register' : isCampusSupervisor ? 'Campus Quality & Oversight Alerts' : 'Operational Correction & Compliance List'}
+                      </CardTitle>
+                  </div>
+                  <Badge variant="destructive" className="animate-pulse shadow-sm h-5 text-[9px] font-black uppercase">
+                      {isAdmin ? 'University Risks' : isCampusSupervisor ? 'Site Deficiencies' : 'Task Required'}
+                  </Badge>
+              </div>
+          </CardHeader>
+          <CardContent className="p-0">
+              <ScrollArea className="max-h-[400px]">
+                  <div className="p-6 space-y-4">
+                      {analyticsData.gaps.length > 0 ? (
+                          analyticsData.gaps.map((gap, i) => (
+                              <div key={i} className="flex items-start gap-4 bg-white p-4 rounded-xl border border-destructive/10 shadow-sm transition-all hover:border-destructive/30 group">
+                                  <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                      <div className="flex items-center justify-between gap-2 mb-1">
+                                          <p className="text-[10px] font-black text-destructive uppercase tracking-[0.1em]">{gap.type}</p>
+                                          <Badge variant="outline" className="h-4 text-[8px] border-destructive/20 text-destructive font-black uppercase">{gap.priority} PRIORITY</Badge>
+                                      </div>
+                                      <p className="text-sm font-bold text-slate-800 leading-snug">{gap.msg}</p>
+                                      <div className="mt-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                          <Button variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase text-primary gap-1 p-0 px-2">
+                                              Resolve Deficiency <ChevronRight className="h-3 w-3" />
+                                          </Button>
+                                      </div>
+                                  </div>
+                              </div>
+                          ))
+                      ) : (
+                          <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
+                              <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center">
+                                  <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+                              </div>
+                              <div className="space-y-1">
+                                  <h4 className="font-black text-slate-900 uppercase text-sm">Quality Shield Maintained</h4>
+                                  <p className="text-xs text-muted-foreground">This program meets all institutional and regulatory compliance criteria for {selectedYear}.</p>
+                              </div>
+                          </div>
+                      )}
+                  </div>
+              </ScrollArea>
+          </CardContent>
+      </Card>
+
       {/* --- EXECUTIVE KPI PANEL --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
@@ -569,61 +625,6 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                     </CardContent>
                 </Card>
             </div>
-
-            {/* --- USER-CENTERED ACTION REGISTRY --- */}
-            <Card className="border-destructive/30 shadow-xl overflow-hidden bg-destructive/5 relative">
-                <div className="absolute top-0 left-0 w-1.5 h-full bg-destructive opacity-50" />
-                <CardHeader className="bg-destructive/10 border-b py-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-destructive">
-                            <ShieldAlert className="h-5 w-5 text-destructive" />
-                            <CardTitle className="text-sm font-black uppercase tracking-tight">
-                                {isAdmin ? 'Institutional Strategic Risk Register' : isCampusSupervisor ? 'Campus Quality & Oversight Alerts' : 'Operational Correction & Compliance List'}
-                            </CardTitle>
-                        </div>
-                        <Badge variant="destructive" className="animate-pulse shadow-sm h-5 text-[9px] font-black uppercase">
-                            {isAdmin ? 'University Risks' : isCampusSupervisor ? 'Site Deficiencies' : 'Task Required'}
-                        </Badge>
-                    </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <ScrollArea className="max-h-[400px]">
-                        <div className="p-6 space-y-4">
-                            {analyticsData.gaps.length > 0 ? (
-                                analyticsData.gaps.map((gap, i) => (
-                                    <div key={i} className="flex items-start gap-4 bg-white p-4 rounded-xl border border-destructive/10 shadow-sm transition-all hover:border-destructive/30 group">
-                                        <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                            <AlertTriangle className="h-5 w-5 text-destructive" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between gap-2 mb-1">
-                                                <p className="text-[10px] font-black text-destructive uppercase tracking-[0.1em]">{gap.type}</p>
-                                                <Badge variant="outline" className="h-4 text-[8px] border-destructive/20 text-destructive font-black uppercase">{gap.priority} PRIORITY</Badge>
-                                            </div>
-                                            <p className="text-sm font-bold text-slate-800 leading-snug">{gap.msg}</p>
-                                            <div className="mt-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Button variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase text-primary gap-1 p-0 px-2">
-                                                    Resolve Deficiency <ChevronRight className="h-3 w-3" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
-                                    <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center">
-                                        <CheckCircle2 className="h-8 w-8 text-emerald-600" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <h4 className="font-black text-slate-900 uppercase text-sm">Quality Shield Maintained</h4>
-                                        <p className="text-xs text-muted-foreground">This program meets all institutional and regulatory compliance criteria for {selectedYear}.</p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </ScrollArea>
-                </CardContent>
-            </Card>
         </div>
 
         {/* --- EVIDENCE & VERIFICATION SIDEBAR --- */}
