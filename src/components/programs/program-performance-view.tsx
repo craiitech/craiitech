@@ -211,7 +211,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
     if (isAccreditationOverdue) {
         gaps.push({ 
             type: 'Institutional Compliance', 
-            msg: `Program has a MISSED accreditation schedule (Planned for ${monthNames[nextM]} ${nextY}). Please coordinate with AACCUP/QAO immediately.`, 
+            msg: `Program has a MISSED accreditation schedule (Planned for ${latestAccreditation?.statusValidityDate || 'specified date'}). Please coordinate with AACCUP/QAO immediately.`, 
             priority: 'High', 
             target: 'accreditation' 
         });
@@ -277,7 +277,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         currentAccreditationByMajor, 
         curriculaByMajor, 
         isAccreditationOverdue,
-        nextScheduleDate: nextY > 0 ? `${monthNames[nextM]} ${nextY}` : 'TBA',
+        nextScheduleDate: latestAccreditation?.statusValidityDate || 'TBA',
         overallScore, 
         pillarScores, 
         radarData,
@@ -440,22 +440,22 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
             </CardContent>
         </Card>
         
-        {/* New KPI: Accreditation Timeline */}
+        {/* KPI: Next Accreditation Schedule */}
         <Card className={cn("shadow-sm relative overflow-hidden", analyticsData.isAccreditationOverdue ? "bg-rose-50 border-rose-100" : "bg-emerald-50/50 border-emerald-100")}>
             <div className="absolute top-0 right-0 p-2 opacity-5"><CalendarDays className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
                 <CardDescription className={cn("text-[10px] font-black uppercase tracking-widest", analyticsData.isAccreditationOverdue ? "text-rose-700" : "text-emerald-600")}>
-                    {analyticsData.isAccreditationOverdue ? 'Overdue Survey' : 'Target Schedule'}
+                    Next Target Schedule
                 </CardDescription>
-                <CardTitle className={cn("text-lg font-black truncate", analyticsData.isAccreditationOverdue ? "text-rose-600" : "text-slate-900")}>
+                <CardTitle className={cn("text-lg font-black truncate uppercase", analyticsData.isAccreditationOverdue ? "text-rose-600" : "text-slate-900")}>
                     {analyticsData.nextScheduleDate}
                 </CardTitle>
             </CardHeader>
             <CardContent>
                 {analyticsData.isAccreditationOverdue ? (
-                    <Badge variant="destructive" className="animate-pulse text-[9px] font-black uppercase h-5">MISSED MILESTONE</Badge>
+                    <Badge variant="destructive" className="animate-pulse text-[9px] font-black uppercase h-5">OVERDUE MILESTONE</Badge>
                 ) : (
-                    <Badge variant="outline" className="bg-white text-emerald-700 border-emerald-200 text-[9px] font-black uppercase shadow-sm">UPCOMING</Badge>
+                    <Badge variant="outline" className="bg-white text-emerald-700 border-emerald-200 text-[9px] font-black uppercase shadow-sm">VALIDATED SCHEDULE</Badge>
                 )}
             </CardContent>
         </Card>

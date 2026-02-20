@@ -219,6 +219,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                 name: p.name,
                 campusName,
                 level: p.isNewProgram ? 'Not Yet Subject' : 'Non Accredited',
+                validityText: 'No validity period logged',
                 nextYear: 0,
                 nextMonth: 0,
                 status: 'Unscheduled'
@@ -243,7 +244,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             id: p.id,
             name: p.name,
             campusName,
-            level: latest.level, // Prioritize Accreditation Level over Result string
+            level: latest.level, 
+            validityText: latest.statusValidityDate || 'No schedule set',
             nextYear: nextY,
             nextMonth: nextM,
             status
@@ -492,15 +494,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                                 <TableCell className="py-3">
                                     <Badge variant="secondary" className="bg-muted text-[10px] font-medium border-none">{item.level}</Badge>
                                 </TableCell>
-                                <TableCell className="py-3 text-center">
-                                    {item.nextYear > 0 ? (
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-black text-primary tabular-nums">{months[item.nextMonth] || 'TBA'} {item.nextYear}</span>
-                                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tighter">Planned Horizon</span>
-                                        </div>
-                                    ) : (
-                                        <span className="text-[10px] text-muted-foreground italic">No schedule set</span>
-                                    )}
+                                <TableCell className="text-center py-3">
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-black text-primary tabular-nums uppercase">{item.validityText}</span>
+                                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tighter">Planned Horizon</span>
+                                    </div>
                                 </TableCell>
                                 <TableCell className="py-3 text-right pr-6">
                                     <Badge 

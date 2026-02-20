@@ -74,6 +74,7 @@ function AccreditationRecordCard({
     const selectedComponents = useWatch({ control, name: `accreditationRecords.${index}.components` }) || [];
     const areas = useWatch({ control, name: `accreditationRecords.${index}.areas` }) || [];
     const certificateLinkVal = useWatch({ control, name: `accreditationRecords.${index}.certificateLink` });
+    const validityTextVal = useWatch({ control, name: `accreditationRecords.${index}.statusValidityDate` });
 
     const toggleMajor = (spec: { id: string, name: string }) => {
         const current = [...selectedComponents];
@@ -106,7 +107,7 @@ function AccreditationRecordCard({
                     <CardHeader className="bg-muted/30 border-b">
                         <CardTitle className="flex items-center gap-2 text-sm">
                             <Award className="h-4 w-4 text-primary" />
-                            Target Level & Result
+                            Target Level & Schedule
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4 pt-6">
@@ -118,46 +119,21 @@ function AccreditationRecordCard({
                                 </Select>
                             </FormItem>
                         )} />
-                        <FormField control={control} name={`accreditationRecords.${index}.typeOfVisit`} render={({ field }) => (
-                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Type of Visit</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Formal Visit" className="h-9 text-xs" disabled={!canEdit} /></FormControl></FormItem>
-                        )} />
-                        <FormField control={control} name={`accreditationRecords.${index}.result`} render={({ field }) => (
-                            <FormItem><FormLabel className="text-[10px] font-black uppercase text-primary">Official Result / Outcome</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Passed Level II" className="h-9 text-xs font-bold border-primary/20 bg-primary/5" disabled={!canEdit} /></FormControl><FormDescription className="text-[9px]">The specific text detailing the survey outcome.</FormDescription></FormItem>
-                        )} />
-                        <FormField control={control} name={`accreditationRecords.${index}.lifecycleStatus`} render={({ field }) => (
-                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Milestone Validity</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
-                                    <FormControl><SelectTrigger className="h-9"><SelectValue /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="TBA">Archive / Historical</SelectItem>
-                                        <SelectItem value="Undergoing">Ongoing Survey</SelectItem>
-                                        <SelectItem value="Completed">Recently Completed</SelectItem>
-                                        <SelectItem value="Waiting for Official Result">Waiting for Official Result</SelectItem>
-                                        <SelectItem value="Current" className="font-bold text-primary">Official Current Level</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormDescription className="text-[9px]">Mark 'Current' to show this result in strategic dashboards.</FormDescription>
+                        
+                        <FormField control={control} name={`accreditationRecords.${index}.statusValidityDate`} render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-black uppercase text-primary flex items-center gap-2">
+                                    Next Schedule / Validity Period
+                                    {validityTextVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                                </FormLabel>
+                                <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Oct 2025" className="h-10 text-sm font-bold border-primary/20 bg-primary/5" disabled={!canEdit} /></FormControl>
+                                <FormDescription className="text-[9px]">Enter the text to be displayed as the Next Accreditation Schedule.</FormDescription>
                             </FormItem>
                         )} />
-                        
-                        <div className="grid grid-cols-1 gap-4 pt-2">
-                            <FormField control={control} name={`accreditationRecords.${index}.dateOfSurvey`} render={({ field }) => (
-                                <FormItem><FormLabel className="text-[10px] font-bold uppercase">Date of Survey</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="Oct 12-14, 2024" className="h-9 text-xs" disabled={!canEdit} /></FormControl></FormItem>
-                            )} />
-                            <FormField control={control} name={`accreditationRecords.${index}.statusValidityDate`} render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[10px] font-bold uppercase">Validity Period (Text)</FormLabel>
-                                    <FormControl><Input {...field} value={field.value || ''} placeholder="Valid until Oct 2028" className="h-9 text-xs" disabled={!canEdit} /></FormControl>
-                                    <FormDescription className="text-[9px]">Describe the full validity range.</FormDescription>
-                                </FormItem>
-                            )} />
-                        </div>
-
-                        <Separator />
 
                         <div className="space-y-4 bg-primary/5 p-4 rounded-lg border border-primary/10">
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                                <Clock className="h-4 w-4" /> Next Accreditation Schedule
+                                <Clock className="h-4 w-4" /> System Alert Mapping
                             </h4>
                             <div className="grid grid-cols-2 gap-3">
                                 <FormField control={control} name={`accreditationRecords.${index}.nextScheduleMonth`} render={({ field }) => (
@@ -180,11 +156,30 @@ function AccreditationRecordCard({
                                 )} />
                             </div>
                             <FormDescription className="text-[9px] italic font-medium leading-relaxed">
-                                <strong>Required:</strong> This structured date enables automated warnings for missed surveys and roadmap plotting.
+                                <strong>Required:</strong> These fields enable the automated 'Overdue' warnings. Please align them with the text provided above.
                             </FormDescription>
                         </div>
 
                         <Separator />
+
+                        <FormField control={control} name={`accreditationRecords.${index}.lifecycleStatus`} render={({ field }) => (
+                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Milestone Status</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
+                                    <FormControl><SelectTrigger className="h-9"><SelectValue /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="TBA">Archive / Historical</SelectItem>
+                                        <SelectItem value="Undergoing">Ongoing Survey</SelectItem>
+                                        <SelectItem value="Completed">Recently Completed</SelectItem>
+                                        <SelectItem value="Waiting for Official Result">Waiting for Official Result</SelectItem>
+                                        <SelectItem value="Current" className="font-bold text-primary">Official Current Level</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </FormItem>
+                        )} />
+                        
+                        <FormField control={control} name={`accreditationRecords.${index}.dateOfSurvey`} render={({ field }) => (
+                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Date of Survey</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="Oct 12-14, 2024" className="h-9 text-xs" disabled={!canEdit} /></FormControl></FormItem>
+                        )} />
 
                         <FormField control={control} name={`accreditationRecords.${index}.certificateLink`} render={({ field }) => (
                             <FormItem>
@@ -286,7 +281,7 @@ function AccreditationRecordCard({
                                 )} />
                                 <FormField control={control} name={`accreditationRecords.${index}.ratingsSummary.descriptiveRating`} render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[9px] font-black uppercase text-slate-500">Official Status String</FormLabel>
+                                        <FormLabel className="text-[9px] font-black uppercase text-slate-500">Official Result String</FormLabel>
                                         <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Highly Satisfactory" className="h-9 text-xs font-bold uppercase bg-slate-50" disabled={!canEdit} /></FormControl>
                                     </FormItem>
                                 )} />
