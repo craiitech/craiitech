@@ -54,8 +54,7 @@ const months = [
   { value: 9, label: 'October' }, { value: 10, label: 'November' }, { value: 11, label: 'December' },
 ];
 
-const currentYear = new Date().getFullYear();
-const yearsList = Array.from({ length: 15 }, (_, i) => currentYear + i);
+const yearsList = Array.from({ length: 20 }, (_, i) => 2024 + i);
 
 function AccreditationRecordCard({ 
   index, 
