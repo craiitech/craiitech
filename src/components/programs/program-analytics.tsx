@@ -205,21 +205,43 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
     // 6. Accreditation Roadmap Calculation
     const now = new Date();
     const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
+    const getSortValue = (validity: string) => {
+        if (!validity || validity.toLowerCase().includes('no schedule')) return 0;
+        
+        const yearMatch = validity.match(/\d{4}/);
+        const year = yearMatch ? parseInt(yearMatch[0]) : 0;
+        
+        const months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+        let month = 0;
+        months.forEach((m, idx) => {
+            if (validity.toLowerCase().includes(m)) month = idx + 1;
+        });
+        
+        return year * 100 + month;
+    };
 
     const roadmapData = programs.flatMap(p => {
         const record = compliances.find(c => c.programId === p.id);
         const campusName = campusMap.get(p.campusId) || 'Unknown';
         
         const getEntryData = (level: string, validity: string, suffix?: string) => {
-            const yearMatch = validity?.match(/\d{4}/);
-            const detectedYear = yearMatch ? parseInt(yearMatch[0]) : 0;
+            const val = getSortValue(validity);
+            const detectedYear = Math.floor(val / 100);
+            const detectedMonth = val % 100;
+
             let status = 'Scheduled';
             if (detectedYear > 0) {
-                if (detectedYear < currentYear) status = 'Overdue';
-                else if (detectedYear === currentYear) status = 'Upcoming';
+                if (detectedYear < currentYear || (detectedYear === currentYear && detectedMonth < currentMonth && detectedMonth > 0)) {
+                    status = 'Overdue';
+                } else if (detectedYear === currentYear) {
+                    status = 'Upcoming';
+                }
             } else {
                 status = 'Unscheduled';
             }
+
             return {
                 id: `${p.id}-${suffix || 'base'}`,
                 name: suffix ? `${p.name} (${suffix})` : p.name,
@@ -227,7 +249,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                 level,
                 validityText: validity || 'No schedule set',
                 status,
-                year: detectedYear
+                sortValue: val
             };
         };
 
@@ -261,19 +283,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         return [getEntryData(latest?.level || 'Non Accredited', latest?.statusValidityDate || 'No schedule set')];
     })
     .sort((a, b) => {
-        // Sort by date (year) from oldest to latest
-        // Treat 0 (unscheduled) as high value to push to bottom
-        const yearA = a.year === 0 ? 9999 : a.year;
-        const yearB = b.year === 0 ? 9999 : b.year;
-
-        if (yearA !== yearB) return yearA - yearB;
-        
-        // If years are same, use status priority as secondary sort
-        const statusPriority: Record<string, number> = { 'Overdue': 0, 'Upcoming': 1, 'Scheduled': 2, 'Unscheduled': 3 };
-        const pA = statusPriority[a.status] ?? 4;
-        const pB = statusPriority[b.status] ?? 4;
-        if (pA !== pB) return pA - pB;
-
+        // Strict chronological sort: Newest (Latest) to Oldest (Earliest)
+        if (a.sortValue !== b.sortValue) {
+            return b.sortValue - a.sortValue;
+        }
         return a.name.localeCompare(b.name);
     });
 
