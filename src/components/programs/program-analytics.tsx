@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -274,14 +275,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         // Filter out "Not Yet Subject"
         if (p.isNewProgram) return [];
 
-        if (!record || !record.accreditationRecords || record.accreditationRecords.length === 0) {
-            return [getEntryData('Non Accredited', 'No schedule logged')];
-        }
-
-        const milestones = record.accreditationRecords;
+        const milestones = record?.accreditationRecords || [];
 
         if (p.hasSpecializations && p.specializations && p.specializations.length > 0) {
-            return p.specializations.map(spec => {
+            // Group majors by their unique accreditation level + validity text
+            const groups: Record<string, { level: string, validity: string, majorNames: string[] }> = {};
+
+            p.specializations.forEach(spec => {
                 const currentMilestone = milestones.find(m => 
                     m.lifecycleStatus === 'Current' && 
                     m.components?.some(c => c.id === spec.id)
@@ -290,11 +290,20 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                     (!m.components || m.components.length === 0)
                 ) || milestones[milestones.length - 1];
 
-                return getEntryData(
-                    currentMilestone?.level || 'Non Accredited', 
-                    currentMilestone?.statusValidityDate || 'No schedule set',
-                    spec.name
-                );
+                const level = currentMilestone?.level || 'Non Accredited';
+                const validity = currentMilestone?.statusValidityDate || 'No schedule set';
+                const key = `${level}|${validity}`;
+
+                if (!groups[key]) {
+                    groups[key] = { level, validity, majorNames: [] };
+                }
+                groups[key].majorNames.push(spec.name);
+            });
+
+            // Convert groups to roadmap entries
+            return Object.values(groups).map(group => {
+                const suffix = group.majorNames.join(', ');
+                return getEntryData(group.level, group.validity, suffix);
             });
         }
 
