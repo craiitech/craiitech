@@ -7,7 +7,21 @@ import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
 import type { AcademicProgram, Campus, ProgramComplianceRecord, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, GraduationCap, Filter, BarChart3, Layers, ShieldCheck, Search, Building, Trash2 } from 'lucide-react';
+import { 
+    PlusCircle, 
+    Loader2, 
+    GraduationCap, 
+    Filter, 
+    BarChart3, 
+    Layers, 
+    ShieldCheck, 
+    Search, 
+    Building, 
+    Trash2,
+    Award,
+    CheckCircle2,
+    Briefcase
+} from 'lucide-react';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
 import { Input } from '@/components/ui/input';
@@ -102,6 +116,43 @@ export default function AcademicProgramsPage() {
       return matchesSearch && matchesCampus && matchesUnit;
     });
   }, [programs, searchTerm, campusFilter, unitFilter]);
+
+  /**
+   * CALCULATE REGISTRY SUMMARY STATS (Reacts to filters)
+   */
+  const summaryStats = useMemo(() => {
+    const total = filteredPrograms.length;
+    if (total === 0) return { total: 0, accreditedRate: 0, copcRate: 0, boardCount: 0 };
+
+    let accreditedCount = 0;
+    let copcCount = 0;
+    let boardCount = 0;
+
+    filteredPrograms.forEach(p => {
+        if (p.isBoardProgram) boardCount++;
+        
+        const record = rawCompliances?.find(c => c.programId === p.id);
+        if (record) {
+            if (record.ched?.copcStatus === 'With COPC') copcCount++;
+            
+            // Only count programs that are not "New" and have achieved Level I or above
+            if (!p.isNewProgram) {
+                const milestones = record.accreditationRecords || [];
+                const current = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
+                if (current && current.level !== 'Non Accredited' && !current.level.includes('PSV')) {
+                    accreditedCount++;
+                }
+            }
+        }
+    });
+
+    return {
+        total,
+        accreditedRate: Math.round((accreditedCount / total) * 100),
+        copcRate: Math.round((copcCount / total) * 100),
+        boardCount
+    };
+  }, [filteredPrograms, rawCompliances]);
 
   const campusesQuery = useMemoFirebase(
     () => (firestore && !isUserLoading && userProfile ? collection(firestore, 'campuses') : null),
@@ -204,26 +255,77 @@ export default function AcademicProgramsPage() {
             />
         </TabsContent>
 
-        <TabsContent value="registry" className="space-y-4 animate-in fade-in duration-500">
-            <Card>
-                <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4">
+        <TabsContent value="registry" className="space-y-6 animate-in fade-in duration-500">
+            {/* Dynamic Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Scope Portfolio</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-black text-primary tabular-nums">{summaryStats.total}</div>
+                        <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">Active Programs in View</p>
+                    </CardContent>
+                    <div className="absolute top-0 right-0 p-2 opacity-5"><Layers className="h-12 w-12" /></div>
+                </Card>
+
+                <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Accreditation Maturity</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-black text-emerald-600 tabular-nums">{summaryStats.accreditedRate}%</div>
+                        <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tight">Level I or Higher (Min.)</p>
+                    </CardContent>
+                    <div className="absolute top-0 right-0 p-2 opacity-5"><Award className="h-12 w-12 text-emerald-600" /></div>
+                </Card>
+
+                <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">COPC Compliance</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-black text-blue-600 tabular-nums">{summaryStats.copcRate}%</div>
+                        <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase tracking-tight">Institutional Authorities</p>
+                    </CardContent>
+                    <div className="absolute top-0 right-0 p-2 opacity-5"><CheckCircle2 className="h-12 w-12 text-blue-600" /></div>
+                </Card>
+
+                <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">Professional Readiness</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-black text-amber-600 tabular-nums">{summaryStats.boardCount}</div>
+                        <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tight">Board-Regulated Programs</p>
+                    </CardContent>
+                    <div className="absolute top-0 right-0 p-2 opacity-5"><Briefcase className="h-12 w-12 text-amber-600" /></div>
+                </Card>
+            </div>
+
+            <Card className="shadow-md border-primary/10">
+                <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4 bg-muted/10">
                     <div className="flex-1 w-full space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Search Registry</label>
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                            <Search className="h-2.5 w-2.5" /> Search Registry
+                        </label>
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                                 placeholder="Search by name or initials..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-9 h-9 text-xs"
+                                className="pl-9 h-9 text-xs bg-white"
                             />
                         </div>
                     </div>
                     {isGlobalViewer && (
                         <div className="w-full md:w-64 space-y-1.5">
-                            <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Campus Site Filter</label>
+                            <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                                <Building className="h-2.5 w-2.5" /> Campus Site Filter
+                            </label>
                             <Select value={campusFilter} onValueChange={(val) => { setCampusFilter(val); setUnitFilter('all'); }}>
-                                <SelectTrigger className="h-9 text-xs">
+                                <SelectTrigger className="h-9 text-xs bg-white">
                                     <SelectValue placeholder="All Campuses" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -235,9 +337,11 @@ export default function AcademicProgramsPage() {
                     )}
                     {(isGlobalViewer || isCampusViewer) && (
                         <div className="w-full md:w-64 space-y-1.5">
-                            <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Academic Unit Filter</label>
+                            <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                                <Layers className="h-2.5 w-2.5" /> Academic Unit Filter
+                            </label>
                             <Select value={unitFilter} onValueChange={setUnitFilter}>
-                                <SelectTrigger className="h-9 text-xs">
+                                <SelectTrigger className="h-9 text-xs bg-white">
                                     <SelectValue placeholder="All Units" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -258,8 +362,8 @@ export default function AcademicProgramsPage() {
                 ) : (
                     <ProgramRegistry 
                         programs={filteredPrograms} 
-                        campuses={campuses || []}
-                        units={units || []}
+                        campuses={campuses || []} 
+                        units={units || []} 
                         onEdit={handleEditProgram}
                         onDelete={setDeletingProgram}
                         canManage={canManage}
