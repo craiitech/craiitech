@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -52,6 +53,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
   const { toast } = useToast();
   const [selectedAY, setSelectedAY] = useState<number>(new Date().getFullYear());
   const [isSaving, setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState("performance");
 
   const canEdit = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO' || (userProfile?.campusId === campusId && (userRole?.toLowerCase().includes('coordinator') || userRole?.toLowerCase().includes('odimo')));
 
@@ -172,9 +174,9 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         {isLoadingRecords ? (
           <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
         ) : (
-          <Tabs defaultValue="performance" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid h-auto w-full grid-cols-2 md:grid-cols-6">
-              <TabsTrigger value="performance" className="py-2 bg-primary/5 data-[state=active]:bg-primary data-[state=active]:text-white"><Presentation className="mr-2 h-4 w-4" /> Performance</TabsTrigger>
+              <TabsTrigger value="performance" className="py-2"><Presentation className="mr-2 h-4 w-4" /> Performance</TabsTrigger>
               <TabsTrigger value="ched" className="py-2"><FileCheck className="mr-2 h-4 w-4" /> CHED & RQAT</TabsTrigger>
               <TabsTrigger value="accreditation" className="py-2"><ShieldCheck className="mr-2 h-4 w-4" /> Accreditation</TabsTrigger>
               <TabsTrigger value="faculty" className="py-2"><Users className="mr-2 h-4 w-4" /> Faculty</TabsTrigger>
@@ -183,7 +185,14 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
             </TabsList>
 
             <div className="mt-6">
-              <TabsContent value="performance"><ProgramPerformanceView program={program} record={activeRecord} selectedYear={selectedAY} /></TabsContent>
+              <TabsContent value="performance">
+                <ProgramPerformanceView 
+                    program={program} 
+                    record={activeRecord} 
+                    selectedYear={selectedAY} 
+                    onResolveDeficiency={(tab) => setActiveTab(tab)}
+                />
+              </TabsContent>
               <TabsContent value="ched"><ChedComplianceModule canEdit={canEdit} program={program} /></TabsContent>
               <TabsContent value="accreditation"><AccreditationModule canEdit={canEdit} programSpecializations={program.specializations} /></TabsContent>
               <TabsContent value="faculty"><FacultyModule canEdit={canEdit} program={program} /></TabsContent>

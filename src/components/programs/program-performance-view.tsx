@@ -68,6 +68,7 @@ interface ProgramPerformanceViewProps {
   program: AcademicProgram;
   record: ProgramComplianceRecord | null;
   selectedYear: number;
+  onResolveDeficiency?: (tab: string) => void;
 }
 
 const PILLAR_WEIGHTS = {
@@ -87,7 +88,7 @@ const COLORS: Record<string, string> = {
     'Missing': 'hsl(var(--muted-foreground))'
 };
 
-export function ProgramPerformanceView({ program, record, selectedYear }: ProgramPerformanceViewProps) {
+export function ProgramPerformanceView({ program, record, selectedYear, onResolveDeficiency }: ProgramPerformanceViewProps) {
   const { isAdmin, userRole } = useUser();
   const [previewDoc, setPreviewDoc] = useState<{ title: string; url: string } | null>(null);
 
@@ -188,32 +189,40 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
 
     const overallScore = Math.round(Object.values(pillarScores).reduce((a, b) => a + b, 0));
 
-    // 7. Actionable Gaps
+    // 7. Actionable Gaps with Target Tabs
     const gaps = [];
-    if (record.ched?.copcStatus !== 'With COPC') gaps.push({ type: 'Institutional Authority', msg: 'Program is operating without an active COPC.', priority: 'High' });
-    if (totalFaculty === 0) gaps.push({ type: 'Resource Quality', msg: 'Faculty registry is incomplete for the current AY.', priority: 'High' });
-    else if (alignmentRate < 100) gaps.push({ type: 'Resource Quality', msg: `${totalFaculty - alignedFaculty} faculty members do not meet CMO qualification requirements.`, priority: 'Medium' });
+    if (record.ched?.copcStatus !== 'With COPC') {
+        gaps.push({ type: 'Institutional Authority', msg: 'Program is operating without an active COPC.', priority: 'High', target: 'ched' });
+    }
     
-    // Accreditation Gaps - Only for non-new programs
+    if (totalFaculty === 0) {
+        gaps.push({ type: 'Resource Quality', msg: 'Faculty registry is incomplete for the current AY.', priority: 'High', target: 'faculty' });
+    } else if (alignmentRate < 100) {
+        gaps.push({ type: 'Resource Quality', msg: `${totalFaculty - alignedFaculty} faculty members do not meet CMO qualification requirements.`, priority: 'Medium', target: 'faculty' });
+    }
+    
     if (!program.isNewProgram) {
         if (program.hasSpecializations) {
             program.specializations?.forEach(spec => {
                 if (!currentAccreditationByMajor[spec.id] && !currentAccreditationByMajor['General']) {
-                    gaps.push({ type: 'Academic Quality', msg: `Missing accreditation record for specialization: ${spec.name}`, priority: 'Medium' });
+                    gaps.push({ type: 'Academic Quality', msg: `Missing accreditation record for specialization: ${spec.name}`, priority: 'Medium', target: 'accreditation' });
                 }
             });
         } else if (!latestAccreditation || latestAccreditation.level === 'Non Accredited') {
-            gaps.push({ type: 'Academic Quality', msg: 'No active accreditation status recorded.', priority: 'Medium' });
+            gaps.push({ type: 'Academic Quality', msg: 'No active accreditation status recorded.', priority: 'Medium', target: 'accreditation' });
         }
     }
 
-    // Curriculum Gaps
     if (program.hasSpecializations) {
         program.specializations?.forEach(spec => {
             if (!curriculaByMajor[spec.id] && !curriculaByMajor['General']) {
-                gaps.push({ type: 'Compliance', msg: `No curriculum notation evidence found for specialization: ${spec.name}`, priority: 'Medium' });
+                gaps.push({ type: 'Compliance', msg: `No curriculum notation evidence found for specialization: ${spec.name}`, priority: 'Medium', target: 'curriculum' });
             }
         });
+    }
+
+    if (!record.graduationRecords || record.graduationRecords.length === 0) {
+        gaps.push({ type: 'Institutional Data', msg: 'Graduation outcome registry is empty for this period.', priority: 'Medium', target: 'outcomes' });
     }
 
     return { 
@@ -345,8 +354,13 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                                           <Badge variant="outline" className="h-4 text-[8px] border-destructive/20 text-destructive font-black uppercase">{gap.priority} PRIORITY</Badge>
                                       </div>
                                       <p className="text-sm font-bold text-slate-800 leading-snug">{gap.msg}</p>
-                                      <div className="mt-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                          <Button variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase text-primary gap-1 p-0 px-2">
+                                      <div className="mt-3 flex items-center gap-2">
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            onClick={() => onResolveDeficiency?.(gap.target)}
+                                            className="h-6 text-[9px] font-black uppercase text-primary gap-1 p-0 px-2 hover:bg-primary/5"
+                                          >
                                               Resolve Deficiency <ChevronRight className="h-3 w-3" />
                                           </Button>
                                       </div>
