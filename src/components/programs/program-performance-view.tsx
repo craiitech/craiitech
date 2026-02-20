@@ -32,7 +32,9 @@ import {
     ArrowUpRight,
     UserCircle,
     Clock,
-    Gavel
+    Gavel,
+    UserCheck,
+    Briefcase
 } from 'lucide-react';
 import { 
     PieChart, 
@@ -55,6 +57,7 @@ import {
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
 import { Timestamp } from 'firebase/firestore';
@@ -110,17 +113,23 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
     // 2. Faculty Alignment Analysis (Pie) - Only counting named members
     let totalFaculty = 0;
     let alignedFaculty = 0;
+    const auditFacultyList: any[] = [];
     
-    const checkAlignment = (m: any) => {
+    const checkAlignment = (m: any, roleLabel?: string) => {
         if (!m || !m.name || m.name.trim() === '') return;
         totalFaculty++;
         if (m.isAlignedWithCMO === 'Aligned') alignedFaculty++;
+        
+        auditFacultyList.push({
+            ...m,
+            role: roleLabel || (m.category === 'Core' ? 'Core Faculty' : 'Teaching Staff')
+        });
     };
 
-    if (record.faculty?.members) record.faculty.members.forEach(checkAlignment);
-    checkAlignment(record.faculty?.dean);
-    if (record.faculty?.hasAssociateDean) checkAlignment(record.faculty?.associateDean);
-    checkAlignment(record.faculty?.programChair);
+    checkAlignment(record.faculty?.dean, 'Dean / Director');
+    if (record.faculty?.hasAssociateDean) checkAlignment(record.faculty?.associateDean, 'Associate Dean');
+    checkAlignment(record.faculty?.programChair, 'Program Chair');
+    if (record.faculty?.members) record.faculty.members.forEach(m => checkAlignment(m));
     
     const alignmentRate = totalFaculty > 0 ? Math.round((alignedFaculty / totalFaculty) * 100) : 0;
     const facultyPieData = [
@@ -211,6 +220,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
         alignmentRate, 
         totalFaculty, 
         facultyPieData,
+        auditFacultyList,
         latestBoard, 
         boardComparisonData,
         milestones, 
@@ -413,6 +423,88 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                 </CardContent>
             </Card>
 
+            {/* --- FACULTY RESOURCE AUDIT TABLE --- */}
+            <Card className="border-primary/10 shadow-lg overflow-hidden">
+                <CardHeader className="bg-muted/10 border-b py-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Briefcase className="h-5 w-5 text-primary" />
+                            <CardTitle className="text-sm font-black uppercase tracking-tight">Faculty Resource Audit Registry</CardTitle>
+                        </div>
+                        <Badge variant="outline" className="h-5 text-[9px] font-black bg-white">{analyticsData.totalFaculty} MEMBERS</Badge>
+                    </div>
+                    <CardDescription className="text-xs">Detailed audit of personnel qualifications and specialization assignments.</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader className="bg-muted/50">
+                            <TableRow className="hover:bg-transparent">
+                                <TableHead className="text-[10px] font-black uppercase py-3 pl-6">Member & Designation</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase py-3">Academic Rank</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase py-3">Qualification</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase py-3">Specialization</TableHead>
+                                <TableHead className="text-right text-[10px] font-black uppercase py-3 pr-6">Alignment</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {analyticsData.auditFacultyList.map((faculty, idx) => {
+                                const specName = faculty.specializationAssignment === 'General' 
+                                    ? 'Institutional' 
+                                    : (program.specializations?.find(s => s.id === faculty.specializationAssignment)?.name || 'General');
+                                
+                                return (
+                                    <TableRow key={idx} className="hover:bg-muted/20 transition-colors">
+                                        <TableCell className="py-3 pl-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                                    <UserCircle className="h-4 w-4 text-primary" />
+                                                </div>
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="text-xs font-bold text-slate-900 truncate">{faculty.name}</span>
+                                                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-tighter">{faculty.role}</span>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="py-3">
+                                            <span className="text-[10px] font-bold text-slate-600">{faculty.academicRank || 'TBA'}</span>
+                                        </TableCell>
+                                        <TableCell className="py-3">
+                                            <div className="flex items-center gap-1.5">
+                                                <GraduationCap className="h-3 w-3 text-muted-foreground" />
+                                                <span className="text-[10px] font-medium truncate max-w-[120px]">{faculty.highestEducation}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="py-3">
+                                            <Badge variant="secondary" className="text-[8px] h-4 py-0 font-black bg-blue-50 text-blue-700 border-blue-100 uppercase truncate max-w-[100px]">
+                                                {specName}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right py-3 pr-6">
+                                            <Badge 
+                                                variant={faculty.isAlignedWithCMO === 'Aligned' ? 'default' : 'destructive'} 
+                                                className={cn(
+                                                    "text-[9px] font-black h-5 py-0 uppercase border-none shadow-sm",
+                                                    faculty.isAlignedWithCMO === 'Aligned' ? "bg-emerald-600" : "bg-rose-600"
+                                                )}
+                                            >
+                                                {faculty.isAlignedWithCMO === 'Aligned' ? 'ALIGNED' : 'GAP'}
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                            {analyticsData.auditFacultyList.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic text-xs">
+                                        No personnel recorded in the faculty module.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+
             {/* --- ENROLLMENT & BOARD DYNAMICS --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card className="border-primary/10 shadow-md">
@@ -484,7 +576,7 @@ export function ProgramPerformanceView({ program, record, selectedYear }: Progra
                 <CardHeader className="bg-destructive/10 border-b py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-destructive">
-                            <ShieldAlert className="h-5 w-5" />
+                            <ShieldAlert className="h-5 w-5 text-destructive" />
                             <CardTitle className="text-sm font-black uppercase tracking-tight">
                                 {isAdmin ? 'Institutional Strategic Risk Register' : isCampusSupervisor ? 'Campus Quality & Oversight Alerts' : 'Operational Correction & Compliance List'}
                             </CardTitle>
