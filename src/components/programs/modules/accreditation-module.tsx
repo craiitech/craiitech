@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
@@ -5,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShieldCheck, Calendar, Link as LinkIcon, Award, Layers, PlusCircle, Trash2, Calculator, Check, ClipboardList } from 'lucide-react';
+import { ShieldCheck, Calendar, Link as LinkIcon, Award, Layers, PlusCircle, Trash2, Calculator, Check, ClipboardList, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -46,11 +47,6 @@ const standardAreas = [
   { code: 'Area X', name: 'Administration' },
 ];
 
-/**
- * SUB-COMPONENT: AccreditationRecordCard
- * Handles individual accreditation milestone records.
- * Extracts hooks into a stable component to avoid Rules of Hooks violations.
- */
 function AccreditationRecordCard({ 
   index, 
   control,
@@ -66,9 +62,9 @@ function AccreditationRecordCard({
 }) {
     const { setValue } = useFormContext();
     
-    // Hooks must be called at the top level of this sub-component
     const selectedComponents = useWatch({ control, name: `accreditationRecords.${index}.components` }) || [];
     const areas = useWatch({ control, name: `accreditationRecords.${index}.areas` }) || [];
+    const certificateLinkVal = useWatch({ control, name: `accreditationRecords.${index}.certificateLink` });
 
     const toggleMajor = (spec: { id: string, name: string }) => {
         const current = [...selectedComponents];
@@ -143,9 +139,15 @@ function AccreditationRecordCard({
                             )} />
                         </div>
                         <FormField control={control} name={`accreditationRecords.${index}.certificateLink`} render={({ field }) => (
-                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">GDrive Certificate Link</FormLabel><FormControl>
-                                <div className="relative"><LinkIcon className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" /><Input {...field} value={field.value || ''} className="pl-9 h-9 text-xs" disabled={!canEdit} /></div>
-                            </FormControl></FormItem>
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-bold uppercase flex items-center gap-2">
+                                    GDrive Certificate Link
+                                    {certificateLinkVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                                </FormLabel>
+                                <FormControl>
+                                    <div className="relative"><LinkIcon className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" /><Input {...field} value={field.value || ''} className="pl-9 h-9 text-xs" disabled={!canEdit} /></div>
+                                </FormControl>
+                            </FormItem>
                         )} />
                     </CardContent>
                 </Card>
@@ -208,7 +210,12 @@ function AccreditationRecordCard({
                                                 <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="Head" className="h-7 text-[9px] w-20 bg-white" disabled={!canEdit} /></FormControl>
                                             )} />
                                             <FormField control={control} name={`accreditationRecords.${index}.areas.${areaIdx}.googleDriveLink`} render={({ field: inputField }) => (
-                                                <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="GDrive" className="h-7 text-[9px] w-20 bg-white" disabled={!canEdit} /></FormControl>
+                                                <FormControl>
+                                                    <div className="relative">
+                                                        <Input {...inputField} value={inputField.value || ''} placeholder="GDrive" className={cn("h-7 text-[9px] w-20 bg-white pr-5", inputField.value && "border-green-200")} disabled={!canEdit} />
+                                                        {inputField.value && <CheckCircle2 className="absolute right-1.5 top-2 h-2.5 w-2.5 text-green-500" />}
+                                                    </div>
+                                                </FormControl>
                                             )} />
                                         </div>
                                     </div>

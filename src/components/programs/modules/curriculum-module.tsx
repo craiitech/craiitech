@@ -20,10 +20,6 @@ interface CurriculumModuleProps {
   programSpecializations?: { id: string, name: string }[];
 }
 
-/**
- * SUB-COMPONENT: CurriculumRecordCard
- * Handles specialization/major-specific noted curricula. 
- */
 function CurriculumRecordCard({ 
   index, 
   control, 
@@ -38,6 +34,7 @@ function CurriculumRecordCard({
   programSpecializations?: { id: string, name: string }[] 
 }) {
   const isNotedByChed = useWatch({ control, name: `curriculumRecords.${index}.isNotedByChed` });
+  const notationProofLinkVal = useWatch({ control, name: `curriculumRecords.${index}.notationProofLink` });
 
   return (
     <Card className="border-primary/10 shadow-sm overflow-hidden relative group">
@@ -124,10 +121,13 @@ function CurriculumRecordCard({
               name={`curriculumRecords.${index}.notationProofLink`}
               render={({ field: inputField }) => (
                 <FormItem>
-                  <FormLabel className="text-[9px] font-black uppercase text-blue-700">Proof of Content Noted (PDF)</FormLabel>
+                  <FormLabel className="text-[9px] font-black uppercase text-blue-700 flex items-center gap-2">
+                    Proof of Content Noted (PDF)
+                    {notationProofLinkVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                  </FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <CheckCircle2 className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-blue-400" />
+                      <LinkIcon className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-blue-400" />
                       <Input {...inputField} value={inputField.value || ''} placeholder="GDrive Proof Link..." className="pl-8 h-8 text-[10px] bg-white border-blue-100" disabled={!canEdit} />
                     </div>
                   </FormControl>
@@ -159,13 +159,13 @@ function CurriculumRecordCard({
 export function CurriculumModule({ canEdit, programSpecializations }: CurriculumModuleProps) {
   const { control, setValue, watch } = useFormContext();
   const enrollment = watch('stats.enrollment');
+  const programCmoLinkVal = watch('ched.programCmoLink');
 
   const { fields, append, remove } = useFieldArray({
     control,
     name: "curriculumRecords"
   });
 
-  // Auto-calculate totals for each year level in all terms
   useEffect(() => {
     const terms = ['firstSemester', 'secondSemester', 'midYearTerm'];
     const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'];
@@ -248,7 +248,10 @@ export function CurriculumModule({ canEdit, programSpecializations }: Curriculum
                     name="ched.programCmoLink"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="text-[10px] font-bold uppercase">CHED Memorandum Order (CMO) Link</FormLabel>
+                            <FormLabel className="text-[10px] font-bold uppercase flex items-center gap-2">
+                                CHED Memorandum Order (CMO) Link
+                                {programCmoLinkVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                            </FormLabel>
                             <FormControl>
                                 <div className="relative">
                                     <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />

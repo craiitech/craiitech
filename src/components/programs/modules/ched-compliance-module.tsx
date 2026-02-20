@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
@@ -5,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Calendar, Link as LinkIcon, PlusCircle, Trash2, Gavel, Layers, Info } from 'lucide-react';
+import { FileText, Calendar, Link as LinkIcon, PlusCircle, Trash2, Gavel, Layers, Info, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -22,6 +23,8 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
   const { control } = useFormContext();
   
   const boardApprovalMode = useWatch({ control, name: "ched.boardApprovalMode" }) || 'sole';
+  const copcLinkVal = useWatch({ control, name: "ched.copcLink" });
+  const boardApprovalLinkVal = useWatch({ control, name: "ched.boardApprovalLink" });
 
   const { fields: rqatFields, append: appendRqat, remove: removeRqat } = useFieldArray({
     control,
@@ -66,7 +69,10 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
               name="ched.copcLink"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[10px] font-bold uppercase tracking-wider">GDrive Link: COPC Certificate (PDF)</FormLabel>
+                  <FormLabel className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
+                    GDrive Link: COPC Certificate (PDF)
+                    {copcLinkVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                  </FormLabel>
                   <FormControl>
                     <div className="relative">
                       <LinkIcon className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground" />
@@ -128,7 +134,10 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                         name="ched.boardApprovalLink"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-[10px] font-bold uppercase tracking-wider">BOR Resolution GDrive Link</FormLabel>
+                                <FormLabel className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
+                                    BOR Resolution GDrive Link
+                                    {boardApprovalLinkVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                                </FormLabel>
                                 <FormControl>
                                     <div className="relative">
                                         <LinkIcon className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground" />
@@ -154,6 +163,10 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                         name={`ched.majorBoardApprovals.${idx}.link`}
                                         render={({ field: inputField }) => (
                                             <FormItem>
+                                                <FormLabel className="text-[9px] font-bold uppercase flex items-center gap-2 mb-1">
+                                                    Resolution Link
+                                                    {inputField.value && <CheckCircle2 className="h-2.5 w-2.5 text-green-500" />}
+                                                </FormLabel>
                                                 <FormControl>
                                                     <div className="relative">
                                                         <LinkIcon className="absolute left-2.5 top-2.5 h-3 w-3 text-muted-foreground" />
@@ -251,6 +264,7 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                         <FormLabel className="text-[10px] font-bold uppercase flex items-center gap-2">
                                             <LinkIcon className="h-3 w-3 text-primary" />
                                             RQAT Report Link (Google Drive)
+                                            {inputField.value && <CheckCircle2 className="h-3 w-3 text-green-500" />}
                                         </FormLabel>
                                         <FormControl>
                                             <Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="h-9 text-xs" disabled={!canEdit} />

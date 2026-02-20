@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -35,15 +36,17 @@ import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { AcademicProgram, Campus, Unit } from '@/lib/types';
-import { Loader2, GraduationCap, PlusCircle, Trash2, Layers } from 'lucide-react';
+import { Loader2, GraduationCap, PlusCircle, Trash2, Layers, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface ProgramDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   program: AcademicProgram | null;
   campuses: Campus[];
+  existingPrograms: AcademicProgram[];
 }
 
 const formSchema = z.object({
@@ -62,10 +65,11 @@ const formSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
-export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: ProgramDialogProps) {
+export function ProgramDialog({ isOpen, onOpenChange, program, campuses, existingPrograms }: ProgramDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [duplicationError, setDuplicationError] = useState<string | null>(null);
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
@@ -91,6 +95,8 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: Progr
     name: "specializations"
   });
 
+  const watchName = form.watch('name');
+  const watchAbbreviation = form.watch('abbreviation');
   const selectedCampusId = form.watch('campusId');
   const hasSpecializations = form.watch('hasSpecializations');
 
@@ -125,10 +131,32 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: Progr
         isActive: true,
       });
     }
+    setDuplicationError(null);
   }, [program, isOpen, form]);
+
+  // Duplication check logic
+  useEffect(() => {
+    if (!watchName || !selectedCampusId || !existingPrograms || program) {
+        setDuplicationError(null);
+        return;
+    }
+
+    const isDuplicate = existingPrograms.some(p => 
+        p.campusId === selectedCampusId && 
+        (p.name.toLowerCase() === watchName.toLowerCase() || p.abbreviation.toLowerCase() === watchAbbreviation.toLowerCase())
+    );
+
+    if (isDuplicate) {
+        setDuplicationError(`A program with this name or abbreviation is already registered at the selected campus.`);
+    } else {
+        setDuplicationError(null);
+    }
+  }, [watchName, watchAbbreviation, selectedCampusId, existingPrograms, program]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!firestore) return;
+    if (duplicationError) return;
+
     setIsSubmitting(true);
     
     const id = program ? program.id : doc(collection(firestore, 'dummy')).id;
@@ -170,6 +198,14 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: Progr
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-hidden flex flex-col">
             <ScrollArea className="flex-1 p-6">
                 <div className="space-y-6">
+                    {duplicationError && (
+                        <Alert variant="destructive" className="animate-in slide-in-from-top-2">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Registry Conflict</AlertTitle>
+                            <AlertDescription className="text-xs font-medium">{duplicationError}</AlertDescription>
+                        </Alert>
+                    )}
+
                     <FormField control={form.control} name="name" render={({ field }) => (
                     <FormItem>
                         <FormLabel className="text-[10px] font-bold uppercase">Full Program Name</FormLabel>
@@ -315,7 +351,7 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses }: Progr
 
             <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button type="submit" disabled={isSubmitting} className="min-w-[140px] shadow-lg shadow-primary/20">
+              <Button type="submit" disabled={isSubmitting || !!duplicationError} className="min-w-[140px] shadow-lg shadow-primary/20">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {program ? 'Update Registry' : 'Register Program'}
               </Button>

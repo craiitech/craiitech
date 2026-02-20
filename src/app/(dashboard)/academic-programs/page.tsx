@@ -3,23 +3,39 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
 import type { AcademicProgram, Campus, ProgramComplianceRecord, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, GraduationCap, Filter, BarChart3, Layers, ShieldCheck, Search, Building } from 'lucide-react';
+import { PlusCircle, Loader2, GraduationCap, Filter, BarChart3, Layers, ShieldCheck, Search, Building, Trash2 } from 'lucide-react';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProgramAnalytics } from '@/components/programs/program-analytics';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function AcademicProgramsPage() {
   const { user, userProfile, isAdmin, isAuditor, userRole, isUserLoading, isVp } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<AcademicProgram | null>(null);
+  const [deletingProgram, setDeletingProgram] = useState<AcademicProgram | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [campusFilter, setCampusFilter] = useState<string>('all');
   const [unitFilter, setUnitFilter] = useState<string>('all');
@@ -34,7 +50,6 @@ export default function AcademicProgramsPage() {
 
   /**
    * SCOPED PROGRAM QUERY
-   * Restricts data fetch based on the user's role to ensure privacy and focus.
    */
   const programsQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !userProfile) return null;
@@ -114,6 +129,20 @@ export default function AcademicProgramsPage() {
   const handleEditProgram = (program: AcademicProgram) => {
     setEditingProgram(program);
     setIsDialogOpen(true);
+  };
+
+  const handleDeleteProgram = async () => {
+    if (!firestore || !deletingProgram) return;
+    setIsDeleting(true);
+    try {
+        await deleteDoc(doc(firestore, 'academicPrograms', deletingProgram.id));
+        toast({ title: 'Program Deleted', description: 'The academic program has been removed from the registry.' });
+        setDeletingProgram(null);
+    } catch (e) {
+        toast({ title: 'Error', description: 'Could not delete program.', variant: 'destructive' });
+    } finally {
+        setIsDeleting(false);
+    }
   };
 
   const isLoading = isUserLoading || isLoadingPrograms || isLoadingCampuses || isLoadingCompliances || isLoadingUnits;
@@ -232,6 +261,7 @@ export default function AcademicProgramsPage() {
                         campuses={campuses || []}
                         units={units || []}
                         onEdit={handleEditProgram}
+                        onDelete={setDeletingProgram}
                         canManage={canManage}
                     />
                 )}
@@ -244,7 +274,26 @@ export default function AcademicProgramsPage() {
         onOpenChange={setIsDialogOpen}
         program={editingProgram}
         campuses={campuses || []}
+        existingPrograms={rawPrograms || []}
       />
+
+      <AlertDialog open={!!deletingProgram} onOpenChange={(open) => !open && setDeletingProgram(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Remove Program from Registry?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    You are about to delete <strong>{deletingProgram?.name}</strong>. This action is irreversible and will orphan any existing compliance records for this program.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteProgram} className="bg-destructive text-white" disabled={isDeleting}>
+                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                    Delete Program
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

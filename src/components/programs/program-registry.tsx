@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit, School, Layers, Activity, ShieldCheck, ShieldAlert, BookOpen } from 'lucide-react';
+import { Edit, School, Layers, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface ProgramRegistryProps {
@@ -15,10 +15,11 @@ interface ProgramRegistryProps {
   campuses: Campus[];
   units: Unit[];
   onEdit: (program: AcademicProgram) => void;
+  onDelete: (program: AcademicProgram) => void;
   canManage: boolean;
 }
 
-export function ProgramRegistry({ programs, campuses, units, onEdit, canManage }: ProgramRegistryProps) {
+export function ProgramRegistry({ programs, campuses, units, onEdit, onDelete, canManage }: ProgramRegistryProps) {
   const router = useRouter();
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
@@ -113,9 +114,14 @@ export function ProgramRegistry({ programs, campuses, units, onEdit, canManage }
                     Compliance Workspace
                   </Button>
                   {canManage && (
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/5" onClick={() => onEdit(program)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                    <div className="inline-flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/5" onClick={() => onEdit(program)}>
+                            <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/5" onClick={() => onDelete(program)}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
                   )}
                 </TableCell>
               </TableRow>
