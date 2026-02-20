@@ -42,7 +42,8 @@ import {
     Briefcase,
     LayoutGrid,
     Search,
-    Clock
+    Clock,
+    BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
@@ -133,7 +134,44 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
     const facultyRankSummary = Object.entries(rankMap).map(([rank, count]) => ({ rank, count }))
         .sort((a, b) => b.count - a.count);
 
-    // 4. Missing Document Audit
+    // 4. Campus Performance Aggregation
+    const campusPerformanceData = campuses.map(campus => {
+        const campusPrograms = programs.filter(p => p.campusId === campus.id);
+        const total = campusPrograms.length;
+        
+        if (total === 0) return null;
+
+        let accreditedCount = 0;
+        let copcCount = 0;
+
+        campusPrograms.forEach(p => {
+            const record = compliances.find(c => c.programId === p.id);
+            if (record) {
+                if (record.ched?.copcStatus === 'With COPC') copcCount++;
+
+                if (!p.isNewProgram) {
+                    const milestones = record.accreditationRecords || [];
+                    const current = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
+                    if (current && current.level !== 'Non Accredited' && current.level !== 'Preliminary Survey Visit (PSV)') {
+                        accreditedCount++;
+                    }
+                }
+            }
+        });
+
+        const campusCopcPercentage = total > 0 ? Math.round((copcCount / total) * 100) : 0;
+
+        return {
+            id: campus.id,
+            name: campus.name,
+            offeringCount: total,
+            accreditedCount,
+            copcCount,
+            copcPercentage: campusCopcPercentage
+        };
+    }).filter(Boolean).sort((a: any, b: any) => b.offeringCount - a.offeringCount);
+
+    // 5. Missing Document Audit
     const missingDocs: { programName: string, campusName: string, items: string[] }[] = [];
     programs.forEach(p => {
         const record = compliances.find(c => c.programId === p.id);
@@ -146,7 +184,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             if (record.ched?.copcStatus !== 'With COPC') items.push("COPC Certificate");
             if (!record.ched?.programCmoLink) items.push("Official CMO Link");
             
-            // Only flag missing accreditation if NOT a new program
             if (!p.isNewProgram) {
                 if (!record.accreditationRecords || record.accreditationRecords.length === 0) items.push("Accreditation Milestone");
             }
@@ -164,11 +201,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         accreditationSummary, 
         copcPercentage, 
         facultyRankSummary, 
+        campusPerformanceData,
         missingDocs,
         totalPrograms: programs.length, 
         monitoredCount: compliances.length 
     };
-  }, [programs, compliances, campusMap, selectedYear]);
+  }, [programs, compliances, campusMap, selectedYear, campuses]);
 
   const complianceTableData = useMemo(() => {
     return programs.map(program => {
@@ -192,8 +230,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                 });
                 accreditationDisplay = majorResults.join('; ');
                 
-                // Score accreditation
-                if (program.isNewProgram) score += 20; // Auto-pass for new programs
+                if (program.isNewProgram) score += 20;
                 else if (milestones.some(m => m.level !== 'Non Accredited')) score += 20;
             } else {
                 const latest = milestones.length > 0 ? milestones[milestones.length - 1] : null;
@@ -210,9 +247,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             
             if (record.ched?.programCmoLink) score += 20;
             if (record.graduationRecords && record.graduationRecords.length > 0) score += 20;
-        } else if (program.isNewProgram) {
-            // New programs get base scores for missing eligibility areas if record exists, 
-            // but if no record exists at all for the year, they stay at 0.
         }
 
         return {
@@ -245,7 +279,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
 
   return (
     <div className="space-y-6">
-      {/* --- USER-CENTERED DECISION CONTEXT --- */}
       <Card className="border-primary/20 bg-primary/5 shadow-sm overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center">
             <div className="p-6 flex items-center gap-4 bg-primary text-white md:w-72 shrink-0">
@@ -293,7 +326,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             </CardHeader>
             <CardContent>
                 <div className="text-3xl font-black text-amber-600 tabular-nums">
-                    {analytics?.accreditationSummary.find(s => s.level.includes('Level I'))?.count || 0}
+                    {analytics?.accreditationSummary.filter(s => s.level.includes('Level')).reduce((acc, curr) => acc + curr.count, 0)}
                 </div>
             </CardContent>
         </Card>
@@ -310,8 +343,59 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         </Card>
       </div>
 
+      {/* --- NEW: CAMPUS PERFORMANCE MATRIX --- */}
+      <Card className="shadow-md border-primary/10 overflow-hidden">
+        <CardHeader className="bg-muted/10 border-b py-4">
+            <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                <CardTitle className="text-sm font-black uppercase tracking-tight">Campus Performance Matrix</CardTitle>
+            </div>
+            <CardDescription className="text-xs">Institutional parity overview across university campuses.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+            <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader className="bg-muted/50">
+                        <TableRow>
+                            <TableHead className="font-black text-[10px] uppercase py-3 pl-6">Site / Campus</TableHead>
+                            <TableHead className="text-center font-black text-[10px] uppercase py-3"># of Program Offerings</TableHead>
+                            <TableHead className="text-center font-black text-[10px] uppercase py-3"># of Accredited Programs</TableHead>
+                            <TableHead className="text-right font-black text-[10px] uppercase py-3 pr-6">COPC Compliance</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {analytics?.campusPerformanceData.map((campus: any) => (
+                            <TableRow key={campus.id} className="hover:bg-muted/20 transition-colors">
+                                <TableCell className="py-3 pl-6">
+                                    <div className="flex items-center gap-2">
+                                        <School className="h-4 w-4 text-primary opacity-60" />
+                                        <span className="text-xs font-black text-slate-800 uppercase tracking-tight">{campus.name}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                    <Badge variant="outline" className="font-black text-slate-600 border-slate-200">{campus.offeringCount}</Badge>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                    <div className="flex flex-col items-center gap-1">
+                                        <span className="text-xs font-black text-primary">{campus.accreditedCount} / {campus.offeringCount}</span>
+                                        <div className="w-16"><Progress value={(campus.accreditedCount / campus.offeringCount) * 100} className="h-1" /></div>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-right pr-6">
+                                    <div className="flex flex-col items-end gap-1">
+                                        <span className="text-xs font-black text-emerald-600">{campus.copcCount} ({campus.copcPercentage}%)</span>
+                                        <div className="w-16"><Progress value={campus.copcPercentage} className="h-1" /></div>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Accreditation Summary */}
         <Card className="shadow-md border-primary/10">
             <CardHeader className="bg-muted/10 border-b py-4">
                 <div className="flex items-center gap-2">
@@ -352,7 +436,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             </CardContent>
         </Card>
 
-        {/* Faculty Information by Rank */}
         <Card className="shadow-md border-primary/10">
             <CardHeader className="bg-muted/10 border-b py-4">
                 <div className="flex items-center gap-2">
@@ -390,7 +473,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Compliance Table */}
         <Card className="lg:col-span-2 shadow-md border-primary/10 overflow-hidden">
             <CardHeader className="bg-muted/10 border-b py-4">
                 <CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
@@ -435,7 +517,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             </CardContent>
         </Card>
 
-        {/* Missing Documentation Registry */}
         <Card className="shadow-md border-destructive/30 bg-destructive/5 overflow-hidden">
             <CardHeader className="bg-destructive/10 border-b py-4">
                 <div className="flex items-center gap-2">
@@ -464,7 +545,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                             </div>
                         ))}
                         {analytics?.missingDocs.length === 0 && (
-                            <div className="py-20 text-center px-6">
+                            <div className="py-24 text-center px-6">
                                 <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto opacity-20 mb-3" />
                                 <p className="text-xs font-black uppercase text-slate-400">All Requirements Met</p>
                                 <p className="text-[10px] text-muted-foreground mt-1">No missing documentation detected across all active academic offerings.</p>
