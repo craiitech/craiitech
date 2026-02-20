@@ -384,6 +384,8 @@ export type AccreditationRecord = {
     statusValidityDate?: string;
     dateOfAward?: string;
     nextSchedule: string;
+    nextScheduleYear?: number;
+    nextScheduleMonth?: number;
     certificateLink?: string; // GDrive PDF
     overallTaskForceHead?: string;
     taskForce?: string;

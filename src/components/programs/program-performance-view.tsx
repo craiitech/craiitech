@@ -35,7 +35,8 @@ import {
     Clock,
     Gavel,
     UserCheck,
-    Briefcase
+    Briefcase,
+    CalendarDays
 } from 'lucide-react';
 import { 
     PieChart, 
@@ -87,6 +88,8 @@ const COLORS: Record<string, string> = {
     'Rejected': 'hsl(var(--chart-3))',
     'Missing': 'hsl(var(--muted-foreground))'
 };
+
+const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 export function ProgramPerformanceView({ program, record, selectedYear, onResolveDeficiency }: ProgramPerformanceViewProps) {
   const { isAdmin, userRole } = useUser();
@@ -163,6 +166,16 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
     });
     const latestAccreditation = milestones.length > 0 ? milestones[milestones.length - 1] : null;
 
+    // Accreditation Schedule Check
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    
+    const nextY = latestAccreditation?.nextScheduleYear || 0;
+    const nextM = latestAccreditation?.nextScheduleMonth !== undefined ? latestAccreditation.nextScheduleMonth : -1;
+    
+    const isAccreditationOverdue = nextY > 0 && (nextY < currentYear || (nextY === currentYear && nextM < currentMonth));
+
     // 5. Major-Specific Curriculum Notation Logic
     const curriculumRecords = record.curriculumRecords || [];
     const curriculaByMajor: Record<string, CurriculumRecord> = {};
@@ -195,6 +208,15 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         gaps.push({ type: 'Institutional Authority', msg: 'Program is operating without an active COPC.', priority: 'High', target: 'ched' });
     }
     
+    if (isAccreditationOverdue) {
+        gaps.push({ 
+            type: 'Institutional Compliance', 
+            msg: `Program has a MISSED accreditation schedule (Planned for ${monthNames[nextM]} ${nextY}). Please coordinate with AACCUP/QAO immediately.`, 
+            priority: 'High', 
+            target: 'accreditation' 
+        });
+    }
+
     if (totalFaculty === 0) {
         gaps.push({ type: 'Resource Quality', msg: 'Faculty registry is incomplete for the current AY.', priority: 'High', target: 'faculty' });
     } else if (alignmentRate < 100) {
@@ -254,6 +276,8 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         latestAccreditation, 
         currentAccreditationByMajor, 
         curriculaByMajor, 
+        isAccreditationOverdue,
+        nextScheduleDate: nextY > 0 ? `${monthNames[nextM]} ${nextY}` : 'TBA',
         overallScore, 
         pillarScores, 
         radarData,
@@ -415,26 +439,27 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                 </div>
             </CardContent>
         </Card>
-        <Card className="bg-emerald-50/50 border-emerald-100 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-2 opacity-5"><Award className="h-12 w-12" /></div>
+        
+        {/* New KPI: Accreditation Timeline */}
+        <Card className={cn("shadow-sm relative overflow-hidden", analyticsData.isAccreditationOverdue ? "bg-rose-50 border-rose-100" : "bg-emerald-50/50 border-emerald-100")}>
+            <div className="absolute top-0 right-0 p-2 opacity-5"><CalendarDays className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
-                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Accreditation Status</CardDescription>
-                <CardTitle className="text-lg font-black text-slate-900 truncate">
-                    {program.isNewProgram ? 'Not Yet Subject' : (analyticsData.latestAccreditation?.level || 'Non Accredited')}
+                <CardDescription className={cn("text-[10px] font-black uppercase tracking-widest", analyticsData.isAccreditationOverdue ? "text-rose-700" : "text-emerald-600")}>
+                    {analyticsData.isAccreditationOverdue ? 'Overdue Survey' : 'Target Schedule'}
+                </CardDescription>
+                <CardTitle className={cn("text-lg font-black truncate", analyticsData.isAccreditationOverdue ? "text-rose-600" : "text-slate-900")}>
+                    {analyticsData.nextScheduleDate}
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                {program.isNewProgram ? (
-                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[9px] font-black uppercase gap-1">
-                        <Clock className="h-2 w-2" /> New Offering
-                    </Badge>
+                {analyticsData.isAccreditationOverdue ? (
+                    <Badge variant="destructive" className="animate-pulse text-[9px] font-black uppercase h-5">MISSED MILESTONE</Badge>
                 ) : (
-                    <Badge variant="outline" className="bg-white text-emerald-700 border-emerald-200 text-[9px] font-black uppercase shadow-sm">
-                        {analyticsData.latestAccreditation?.result || 'Outcome Pending'}
-                    </Badge>
+                    <Badge variant="outline" className="bg-white text-emerald-700 border-emerald-200 text-[9px] font-black uppercase shadow-sm">UPCOMING</Badge>
                 )}
             </CardContent>
         </Card>
+
         <Card className="bg-blue-50/50 border-blue-100 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-5"><Users className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
@@ -525,7 +550,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader className="bg-muted/50">
-                            <TableRow className="hover:bg-transparent">
+                            <TableRow>
                                 <TableHead className="text-[10px] font-black uppercase py-3 pl-6">Member & Designation</TableHead>
                                 <TableHead className="text-[10px] font-black uppercase py-3">Academic Rank</TableHead>
                                 <TableHead className="text-[10px] font-black uppercase py-3">Qualification</TableHead>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -43,7 +44,8 @@ import {
     LayoutGrid,
     Search,
     Clock,
-    BarChart3
+    BarChart3,
+    CalendarDays
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
@@ -59,6 +61,8 @@ interface ProgramAnalyticsProps {
 }
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function ProgramAnalytics({ programs, compliances, campuses, isLoading, selectedYear }: ProgramAnalyticsProps) {
   const { isAdmin, userRole } = useUser();
@@ -199,12 +203,65 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         }
     });
 
+    // 6. Accreditation Roadmap Calculation
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const roadmapData = programs.map(p => {
+        const record = compliances.find(c => c.programId === p.id);
+        const campusName = campusMap.get(p.campusId) || 'Unknown';
+        
+        if (!record || !record.accreditationRecords || record.accreditationRecords.length === 0) {
+            return {
+                id: p.id,
+                name: p.name,
+                campusName,
+                level: p.isNewProgram ? 'Not Yet Subject' : 'Non Accredited',
+                nextYear: 0,
+                nextMonth: 0,
+                status: 'Unscheduled'
+            };
+        }
+
+        const latest = record.accreditationRecords.find(m => m.lifecycleStatus === 'Current') || record.accreditationRecords[record.accreditationRecords.length - 1];
+        
+        const nextY = latest.nextScheduleYear || 0;
+        const nextM = latest.nextScheduleMonth !== undefined ? latest.nextScheduleMonth : -1;
+
+        let status = 'Upcoming';
+        if (nextY > 0) {
+            if (nextY < currentYear || (nextY === currentYear && nextM < currentMonth)) {
+                status = 'Overdue';
+            }
+        } else {
+            status = 'Unscheduled';
+        }
+
+        return {
+            id: p.id,
+            name: p.name,
+            campusName,
+            level: latest.result || latest.level,
+            nextYear: nextY,
+            nextMonth: nextM,
+            status
+        };
+    }).sort((a, b) => {
+        if (a.status === 'Overdue' && b.status !== 'Overdue') return -1;
+        if (b.status === 'Overdue' && a.status !== 'Overdue') return 1;
+        if (a.nextYear === 0) return 1;
+        if (b.nextYear === 0) return -1;
+        return (a.nextYear - b.nextYear) || (a.nextMonth - b.nextMonth);
+    });
+
     return { 
         accreditationSummary, 
         copcPercentage, 
         facultyRankSummary, 
         campusPerformanceData,
         missingDocs,
+        roadmapData,
         totalPrograms: programs.length, 
         monitoredCount: compliances.length 
     };
@@ -387,6 +444,75 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                                         <span className="text-xs font-black text-emerald-600">{campus.copcCount} ({campus.copcPercentage}%)</span>
                                         <div className="w-16"><Progress value={campus.copcPercentage} className="h-1" /></div>
                                     </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        </CardContent>
+      </Card>
+
+      {/* --- INSTITUTIONAL ACCREDITATION ROADMAP (NEW) --- */}
+      <Card className="shadow-lg border-primary/10 overflow-hidden">
+        <CardHeader className="bg-primary/5 border-b py-4">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <CalendarDays className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Accreditation Roadmap</CardTitle>
+                </div>
+                <Badge variant="outline" className="bg-white border-primary/20 text-primary font-black text-[9px] uppercase">Strategic Timeline</Badge>
+            </div>
+            <CardDescription className="text-xs">Timeline of target survey dates across all sites to facilitate audit planning and budgetary decisions.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+            <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader className="bg-muted/50">
+                        <TableRow>
+                            <TableHead className="font-black text-[10px] uppercase py-3 pl-6">Campus / Site</TableHead>
+                            <TableHead className="font-black text-[10px] uppercase py-3">Academic Program</TableHead>
+                            <TableHead className="font-black text-[10px] uppercase py-3">Current Level</TableHead>
+                            <TableHead className="font-black text-[10px] uppercase py-3 text-center">Next Target Schedule</TableHead>
+                            <TableHead className="font-black text-[10px] uppercase py-3 text-right pr-6">Status</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {analytics?.roadmapData.map((item: any) => (
+                            <TableRow key={item.id} className="hover:bg-muted/20 transition-colors">
+                                <TableCell className="py-3 pl-6">
+                                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase">
+                                        <School className="h-3 w-3 opacity-40" />
+                                        {item.campusName}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="py-3">
+                                    <span className="text-xs font-bold text-slate-800">{item.name}</span>
+                                </TableCell>
+                                <TableCell className="py-3">
+                                    <Badge variant="secondary" className="bg-muted text-[10px] font-medium border-none">{item.level}</Badge>
+                                </TableCell>
+                                <TableCell className="py-3 text-center">
+                                    {item.nextYear > 0 ? (
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-black text-primary tabular-nums">{months[item.nextMonth] || 'TBA'} {item.nextYear}</span>
+                                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-tighter">Planned Horizon</span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-[10px] text-muted-foreground italic">No schedule set</span>
+                                    )}
+                                </TableCell>
+                                <TableCell className="py-3 text-right pr-6">
+                                    <Badge 
+                                        className={cn(
+                                            "text-[9px] font-black uppercase h-5 px-2 border-none shadow-sm",
+                                            item.status === 'Overdue' ? "bg-rose-600 text-white animate-pulse" : 
+                                            item.status === 'Upcoming' ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-600"
+                                        )}
+                                    >
+                                        {item.status === 'Overdue' && <AlertTriangle className="h-2 w-2 mr-1" />}
+                                        {item.status}
+                                    </Badge>
                                 </TableCell>
                             </TableRow>
                         ))}

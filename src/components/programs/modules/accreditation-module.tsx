@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShieldCheck, Calendar, Link as LinkIcon, Award, Layers, PlusCircle, Trash2, Calculator, Check, ClipboardList, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Calendar, Link as LinkIcon, Award, Layers, PlusCircle, Trash2, Calculator, Check, ClipboardList, CheckCircle2, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -46,6 +46,16 @@ const standardAreas = [
   { code: 'Area IX', name: 'Laboratories' },
   { code: 'Area X', name: 'Administration' },
 ];
+
+const months = [
+  { value: 0, label: 'January' }, { value: 1, label: 'February' }, { value: 2, label: 'March' },
+  { value: 3, label: 'April' }, { value: 4, label: 'May' }, { value: 5, label: 'June' },
+  { value: 6, label: 'July' }, { value: 7, label: 'August' }, { value: 8, label: 'September' },
+  { value: 9, label: 'October' }, { value: 10, label: 'November' }, { value: 11, label: 'December' },
+];
+
+const currentYear = new Date().getFullYear();
+const yearsList = Array.from({ length: 15 }, (_, i) => currentYear + i);
 
 function AccreditationRecordCard({ 
   index, 
@@ -138,6 +148,38 @@ function AccreditationRecordCard({
                                 <FormItem><FormLabel className="text-[10px] font-bold uppercase">Validity Period</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="Valid until..." className="h-9 text-xs" disabled={!canEdit} /></FormControl></FormItem>
                             )} />
                         </div>
+
+                        <Separator />
+
+                        <div className="space-y-4">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                                <Clock className="h-4 w-4" /> Next Accreditation Schedule
+                            </h4>
+                            <div className="grid grid-cols-2 gap-3">
+                                <FormField control={control} name={`accreditationRecords.${index}.nextScheduleMonth`} render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[9px] uppercase font-bold text-slate-500">Target Month</FormLabel>
+                                        <Select onValueChange={(v) => field.onChange(Number(v))} value={field.value !== undefined ? String(field.value) : undefined} disabled={!canEdit}>
+                                            <FormControl><SelectTrigger className="h-8 text-xs bg-slate-50"><SelectValue placeholder="Select Month" /></SelectTrigger></FormControl>
+                                            <SelectContent>{months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </FormItem>
+                                )} />
+                                <FormField control={control} name={`accreditationRecords.${index}.nextScheduleYear`} render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[9px] uppercase font-bold text-slate-500">Target Year</FormLabel>
+                                        <Select onValueChange={(v) => field.onChange(Number(v))} value={field.value !== undefined ? String(field.value) : undefined} disabled={!canEdit}>
+                                            <FormControl><SelectTrigger className="h-8 text-xs bg-slate-50"><SelectValue placeholder="Year" /></SelectTrigger></FormControl>
+                                            <SelectContent>{yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                    </FormItem>
+                                )} />
+                            </div>
+                            <FormDescription className="text-[9px] italic">Setting this allows institutional tracking of upcoming surveys and missed deadlines.</FormDescription>
+                        </div>
+
+                        <Separator />
+
                         <FormField control={control} name={`accreditationRecords.${index}.certificateLink`} render={({ field }) => (
                             <FormItem>
                                 <FormLabel className="text-[10px] font-bold uppercase flex items-center gap-2">
@@ -310,7 +352,9 @@ export function AccreditationModule({ canEdit, programSpecializations }: { canEd
                     areas: standardAreas.map(area => ({ areaCode: area.code, areaName: area.name, googleDriveLink: '', taskForce: '' })),
                     ratingsSummary: { grandMean: 0, descriptiveRating: '' },
                     mandatoryRequirements: '',
-                    enhancementRecommendations: ''
+                    enhancementRecommendations: '',
+                    nextScheduleMonth: new Date().getMonth(),
+                    nextScheduleYear: new Date().getFullYear() + 3
                 })}
                 className="shadow-lg shadow-primary/20"
             >
