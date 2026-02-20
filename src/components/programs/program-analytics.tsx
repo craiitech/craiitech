@@ -231,7 +231,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             };
         };
 
-        if (p.isNewProgram) return []; // Filter out "Not Yet Subject" as requested
+        if (p.isNewProgram) return [];
 
         if (!record || !record.accreditationRecords || record.accreditationRecords.length === 0) {
             return [getEntryData('Non Accredited', 'No schedule logged')];
@@ -239,10 +239,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
 
         const milestones = record.accreditationRecords;
 
-        // If program has specializations, we expand the roster
         if (p.hasSpecializations && p.specializations && p.specializations.length > 0) {
             return p.specializations.map(spec => {
-                // Find current accreditation for THIS major
                 const currentMilestone = milestones.find(m => 
                     m.lifecycleStatus === 'Current' && 
                     m.components?.some(c => c.id === spec.id)
@@ -259,20 +257,22 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             });
         }
 
-        // Standard single-milestone program
         const latest = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
         return [getEntryData(latest?.level || 'Non Accredited', latest?.statusValidityDate || 'No schedule set')];
     })
     .sort((a, b) => {
+        // Sort by date (year) from oldest to latest
+        // Treat 0 (unscheduled) as high value to push to bottom
+        const yearA = a.year === 0 ? 9999 : a.year;
+        const yearB = b.year === 0 ? 9999 : b.year;
+
+        if (yearA !== yearB) return yearA - yearB;
+        
+        // If years are same, use status priority as secondary sort
         const statusPriority: Record<string, number> = { 'Overdue': 0, 'Upcoming': 1, 'Scheduled': 2, 'Unscheduled': 3 };
         const pA = statusPriority[a.status] ?? 4;
         const pB = statusPriority[b.status] ?? 4;
-
         if (pA !== pB) return pA - pB;
-        
-        if (a.year !== b.year) {
-            return a.year - b.year; 
-        }
 
         return a.name.localeCompare(b.name);
     });
