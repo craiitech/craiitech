@@ -160,12 +160,14 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         });
 
         const campusCopcPercentage = total > 0 ? Math.round((copcCount / total) * 100) : 0;
+        const campusAccreditedPercentage = total > 0 ? Math.round((accreditedCount / total) * 100) : 0;
 
         return {
             id: campus.id,
             name: campus.name,
             offeringCount: total,
             accreditedCount,
+            accreditedPercentage: campusAccreditedPercentage,
             copcCount,
             copcPercentage: campusCopcPercentage
         };
@@ -343,7 +345,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         </Card>
       </div>
 
-      {/* --- NEW: CAMPUS PERFORMANCE MATRIX --- */}
       <Card className="shadow-md border-primary/10 overflow-hidden">
         <CardHeader className="bg-muted/10 border-b py-4">
             <div className="flex items-center gap-2">
@@ -358,7 +359,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                     <TableHeader className="bg-muted/50">
                         <TableRow>
                             <TableHead className="font-black text-[10px] uppercase py-3 pl-6">Site / Campus</TableHead>
-                            <TableHead className="text-center font-black text-[10px] uppercase py-3"># of Program Offerings</TableHead>
+                            <TableHead className="text-center font-black text-[10px] uppercase py-3"># of Program Offering</TableHead>
                             <TableHead className="text-center font-black text-[10px] uppercase py-3"># of Accredited Programs</TableHead>
                             <TableHead className="text-right font-black text-[10px] uppercase py-3 pr-6">COPC Compliance</TableHead>
                         </TableRow>
@@ -377,8 +378,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                                 </TableCell>
                                 <TableCell className="text-center">
                                     <div className="flex flex-col items-center gap-1">
-                                        <span className="text-xs font-black text-primary">{campus.accreditedCount} / {campus.offeringCount}</span>
-                                        <div className="w-16"><Progress value={(campus.accreditedCount / campus.offeringCount) * 100} className="h-1" /></div>
+                                        <span className="text-xs font-black text-primary">{campus.accreditedCount} / {campus.offeringCount} ({campus.accreditedPercentage}%)</span>
+                                        <div className="w-16"><Progress value={campus.accreditedPercentage} className="h-1" /></div>
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-right pr-6">
