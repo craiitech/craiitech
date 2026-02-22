@@ -45,7 +45,8 @@ import {
     Clock,
     BarChart3,
     CalendarDays,
-    AlertTriangle
+    AlertTriangle,
+    Building
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
@@ -369,7 +370,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         totalPrograms: programs.length, 
         monitoredCount: filteredCompliances.length 
     };
-  }, [programs, compliances, campusMap, unitMap, selectedYear, campuses]);
+  }, [programs, filteredCompliances, campusMap, unitMap, selectedYear, campuses]);
 
   const complianceTableData = useMemo(() => {
     return programs.map(program => {
