@@ -112,7 +112,6 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
 
     match /qaAdvisories/{advisoryId} { 
-      // Explicitly allow list/get for all verified portal users
       allow read: if isSignedIn(); 
       allow write: if isAdmin(); 
     }
@@ -124,6 +123,47 @@ service cloud.firestore {
     match /roles/{roleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /cycles/{cycleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     
+    // Announcement & Configuration rules
+    match /campusSettings/{settingId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || (isSupervisor() && settingId == profile().get('campusId', ''));
+    }
+
+    match /procedureManuals/{manualId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /eomsPolicyManuals/{sectionId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // --------------------------------------------------------------------------
+    // AUDIT LOGS & FEEDBACK
+    // --------------------------------------------------------------------------
+
+    match /activityLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+    }
+
+    match /errorReports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+    }
+
+    match /appFeedbacks/{feedbackId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+    }
+
+    match /softwareEvaluations/{evalId} {
+      allow read: if isAdmin() || isAuditor();
+      allow create: if true; // Public stakeholders can evaluate
+    }
+
     // Catch-all for legacy or other collections
     match /{path=**} {
       allow read, write: if isAdmin();
