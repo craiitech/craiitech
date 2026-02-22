@@ -19,80 +19,6 @@
       },
       "required": ["id", "email", "firstName", "lastName", "roleId", "role", "campusId", "unitId", "verified"]
     },
-    "EvaluationCycle": {
-      "title": "EvaluationCycle",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "academicYear": { "type": "string" },
-        "semester": { "type": "string", "enum": ["1st Semester", "2nd Semester", "Summer"] },
-        "type": { "type": "string", "enum": ["Midterm", "Final", "Annual"] },
-        "startDate": { "type": "string", "format": "date-time" },
-        "endDate": { "type": "string", "format": "date-time" },
-        "studentWeight": { "type": "number" },
-        "supervisorWeight": { "type": "number" },
-        "status": { "type": "string", "enum": ["Active", "Closed"] }
-      },
-      "required": ["academicYear", "semester", "type", "startDate", "endDate", "studentWeight", "supervisorWeight", "status"]
-    },
-    "Subject": {
-      "title": "Subject",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "code": { "type": "string" },
-        "facultyId": { "type": "string" },
-        "enrolledStudentIds": { "type": "array", "items": { "type": "string" } }
-      },
-      "required": ["name", "code", "facultyId"]
-    },
-    "StudentEvaluation": {
-      "title": "StudentEvaluation",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "cycleId": { "type": "string" },
-        "facultyId": { "type": "string" },
-        "subjectId": { "type": "string" },
-        "studentId": { "type": "string" },
-        "responses": { "type": "object" },
-        "meanScore": { "type": "number" },
-        "comments": { "type": "string" },
-        "submittedAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["cycleId", "facultyId", "subjectId", "responses", "meanScore", "submittedAt"]
-    },
-    "SupervisorEvaluation": {
-      "title": "SupervisorEvaluation",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "cycleId": { "type": "string" },
-        "facultyId": { "type": "string" },
-        "supervisorId": { "type": "string" },
-        "responses": { "type": "object" },
-        "meanScore": { "type": "number" },
-        "remarks": { "type": "string" },
-        "documentLinks": { "type": "array", "items": { "type": "string" } },
-        "submittedAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["cycleId", "facultyId", "supervisorId", "responses", "meanScore", "submittedAt"]
-    },
-    "ComputedResult": {
-      "title": "ComputedResult",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "facultyId": { "type": "string" },
-        "cycleId": { "type": "string" },
-        "studentMean": { "type": "number" },
-        "supervisorMean": { "type": "number" },
-        "finalScore": { "type": "number" },
-        "interpretation": { "type": "string" }
-      },
-      "required": ["facultyId", "cycleId", "finalScore"]
-    },
     "QaAdvisory": {
       "title": "QaAdvisory",
       "type": "object",
@@ -115,11 +41,6 @@
   "firestore": {
     "structure": [
       { "path": "/users/{userId}", "definition": { "entityName": "User" } },
-      { "path": "/evaluationCycles/{cycleId}", "definition": { "entityName": "EvaluationCycle" } },
-      { "path": "/subjects/{subjectId}", "definition": { "entityName": "Subject" } },
-      { "path": "/studentEvaluations/{evalId}", "definition": { "entityName": "StudentEvaluation" } },
-      { "path": "/supervisorEvaluations/{evalId}", "definition": { "entityName": "SupervisorEvaluation" } },
-      { "path": "/computedResults/{resultId}", "definition": { "entityName": "ComputedResult" } },
       { "path": "/qaAdvisories/{advisoryId}", "definition": { "entityName": "QaAdvisory" } }
     ]
   }

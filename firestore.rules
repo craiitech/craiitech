@@ -93,38 +93,6 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // AFES COLLECTIONS (FACULTY EVALUATION)
-    // --------------------------------------------------------------------------
-
-    match /evaluationCycles/{cycleId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    match /subjects/{subjectId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    match /studentEvaluations/{evalId} {
-      // Students can only see their own, Admin can see all (masking handled in UI)
-      allow read: if isAdmin() || (isSignedIn() && resource.data.studentId == request.auth.uid);
-      allow create: if isSignedIn() && request.resource.data.studentId == request.auth.uid;
-      allow update, delete: if false; // Evaluations are final once submitted
-    }
-
-    match /supervisorEvaluations/{evalId} {
-      allow read: if isAdmin() || (isSignedIn() && (resource.data.supervisorId == request.auth.uid || resource.data.facultyId == request.auth.uid));
-      allow create: if isSupervisor() && request.resource.data.supervisorId == request.auth.uid;
-      allow update, delete: if false;
-    }
-
-    match /computedResults/{resultId} {
-      allow read: if isSignedIn(); // Faculty can see their results, others can see aggregated stats
-      allow write: if isAdmin();
-    }
-
-    // --------------------------------------------------------------------------
     // MISC COLLECTIONS
     // --------------------------------------------------------------------------
 
@@ -132,9 +100,9 @@ service cloud.firestore {
     match /programCompliances/{recordId} { allow read: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
     match /campuses/{campusId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /units/{unitId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /qaAdvisories/{advisoryId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /qaAdvisories/{advisoryId} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
     match /roles/{roleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /cycles/{cycleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /risks/{riskId} { allow read: if isSignedIn(); allow write: if isAdmin() || (hasProfile() && resource.data.userId == request.auth.uid); }
+    match /risks/{riskId} { allow read: if isAdmin() || isSupervisor() || (hasProfile() && resource.data.userId == request.auth.uid); allow write: if isAdmin() || (hasProfile() && request.resource.data.userId == request.auth.uid); }
   }
 }
