@@ -33,15 +33,12 @@ import {
     Activity, 
     School, 
     CheckCircle2,
-    XCircle,
-    LayoutList,
     ShieldCheck,
     Info,
     UserCircle,
     FileWarning,
     Briefcase,
     LayoutGrid,
-    Search,
     Clock,
     BarChart3,
     CalendarDays,
@@ -61,8 +58,6 @@ interface ProgramAnalyticsProps {
   isLoading: boolean;
   selectedYear: number;
 }
-
-const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
 const YEAR_COLORS: Record<string, { bg: string, text: string, border: string, row: string }> = {
     '2024': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', row: 'bg-blue-50/30' },
@@ -370,7 +365,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         totalPrograms: programs.length, 
         monitoredCount: filteredCompliances.length 
     };
-  }, [programs, filteredCompliances, campusMap, unitMap, selectedYear, campuses]);
+  }, [programs, compliances, campusMap, unitMap, selectedYear, campuses]);
 
   const complianceTableData = useMemo(() => {
     return programs.map(program => {
@@ -424,14 +419,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         };
     }).sort((a, b) => a.campusName.localeCompare(b.campusName) || a.name.localeCompare(b.name));
   }, [programs, compliances, campusMap]);
-
-  if (isLoading) {
-    return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-[350px] w-full" />)}
-        </div>
-    );
-  }
 
   const getCopcBadge = (status: string) => {
     switch (status) {
