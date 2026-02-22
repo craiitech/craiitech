@@ -43,7 +43,8 @@ import {
     BarChart3,
     CalendarDays,
     AlertTriangle,
-    Building
+    Building,
+    LayoutList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
