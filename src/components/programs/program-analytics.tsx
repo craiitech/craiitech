@@ -77,6 +77,7 @@ const YEAR_COLORS: Record<string, { bg: string, text: string, border: string, ro
 };
 
 const getYearStyle = (year: string) => {
+    if (year === 'Pending') return { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', row: 'bg-blue-50/30' };
     if (Number(year) <= 2024) return YEAR_COLORS['2024'];
     return YEAR_COLORS[year] || YEAR_COLORS['Default'];
 };
@@ -226,7 +227,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
     const currentMonth = now.getMonth() + 1;
 
     const getSortValue = (validity: string) => {
-        if (!validity || validity.toLowerCase().includes('no schedule')) return 0;
+        if (!validity) return 0;
+        if (validity.trim().toUpperCase() === 'WAITING FOR RESULT') return 0;
+        if (validity.toLowerCase().includes('no schedule')) return 0;
         
         const yearMatch = validity.match(/\d{4}/);
         const year = yearMatch ? parseInt(yearMatch[0]) : 0;
@@ -248,16 +251,25 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             const val = getSortValue(validity);
             const detectedYear = Math.floor(val / 100);
             const detectedMonth = val % 100;
+            const isWaiting = validity?.trim().toUpperCase() === 'WAITING FOR RESULT';
 
             let status = 'Scheduled';
+            let priority = 3; // Default: Upcoming
+
             if (detectedYear > 0) {
                 if (detectedYear < currentYear || (detectedYear === currentYear && detectedMonth < currentMonth && detectedMonth > 0)) {
                     status = 'Overdue';
+                    priority = 1;
                 } else if (detectedYear === currentYear) {
                     status = 'Upcoming';
+                    priority = 3;
                 }
+            } else if (isWaiting) {
+                status = 'Result Pending';
+                priority = 2; // Right after Overdue
             } else {
                 status = 'Unscheduled';
+                priority = 4;
             }
 
             return {
@@ -266,9 +278,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                 campusName,
                 level,
                 validityText: validity || 'No schedule set',
-                year: detectedYear > 0 ? detectedYear.toString() : 'Other',
+                year: detectedYear > 0 ? detectedYear.toString() : (isWaiting ? 'Pending' : 'Other'),
                 status,
-                sortValue: val || 999999 // Push unscheduled to the end
+                sortValue: val || 999999,
+                priority
             };
         };
 
@@ -311,17 +324,22 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         return [getEntryData(latest?.level || 'Non Accredited', latest?.statusValidityDate || 'No schedule set')];
     })
     .sort((a, b) => {
-        // Strict chronological sort: Oldest (Earliest) to Newest (Latest)
+        // 1. Group by Priority (Overdue -> Pending -> Upcoming)
+        if (a.priority !== b.priority) {
+            return a.priority - b.priority;
+        }
+        // 2. Within priority, sort by chronological value
         if (a.sortValue !== b.sortValue) {
             return a.sortValue - b.sortValue;
         }
+        // 3. Fallback to name
         return a.name.localeCompare(b.name);
     });
 
     // 7. Yearly Distribution for Header
     const yearlyDistribution: Record<string, number> = {};
     roadmapData.forEach(item => {
-        if (item.year !== 'Other') {
+        if (item.year !== 'Other' && item.year !== 'Pending') {
             yearlyDistribution[item.year] = (yearlyDistribution[item.year] || 0) + 1;
         }
     });
@@ -593,6 +611,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                                             className={cn(
                                                 "text-[9px] font-black uppercase h-5 px-2 border-none shadow-sm",
                                                 item.status === 'Overdue' ? "bg-rose-600 text-white animate-pulse" : 
+                                                item.status === 'Result Pending' ? "bg-blue-600 text-white" :
                                                 item.status === 'Upcoming' ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-600"
                                             )}
                                         >
