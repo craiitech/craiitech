@@ -34,7 +34,7 @@ service cloud.firestore {
     }
 
     function isSupervisor() {
-      return isSignedIn() && hasProfile() && profile().get('role', '').matches('(?i).*(director|odimo|vice president|chair|dean).*');
+      return isSignedIn() && hasProfile() && profile().get('role', '').matches('(?i).*(director|odimo|vice president|chair|dean|admin).*');
     }
 
     // --------------------------------------------------------------------------
@@ -53,27 +53,15 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /submissions/{submissionId} {
-      // Allow all signed-in users to list/get documents to prevent permission errors during scoped queries.
-      // Privacy is maintained by client-side filters and admin oversight.
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
-        resource.data.userId == request.auth.uid || 
-        (isSupervisor() && resource.data.campusId == profile().get('campusId', ''))
-      ));
-      allow delete: if isAdmin();
-    }
-
-    match /risks/{riskId} { 
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
-        resource.data.userId == request.auth.uid || 
-        (isSupervisor() && resource.data.campusId == profile().get('campusId', ''))
-      ));
-      allow delete: if isAdmin();
-    }
+    // Registries allowing list/read for authenticated users
+    match /submissions/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
+    match /risks/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
+    match /unitMonitoringRecords/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || (isSupervisor() && profile().get('role', '') == 'Campus ODIMO'); }
+    match /auditSchedules/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isAuditor(); }
+    match /auditFindings/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isAuditor(); }
+    match /correctiveActionPlans/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
+    match /academicPrograms/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
+    match /programCompliances/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
 
     // --------------------------------------------------------------------------
     // SYSTEM REGISTRIES & ANNOUNCEMENTS
@@ -92,7 +80,7 @@ service cloud.firestore {
     match /managementReviewOutputs/{outputId} {
       allow read: if isSignedIn();
       allow write: if isAdmin() || isAuditor();
-      allow update: if isSignedIn(); // Allow units to log progress
+      allow update: if isSignedIn();
     }
 
     match /correctiveActionRequests/{carId} {
@@ -117,8 +105,6 @@ service cloud.firestore {
     match /isoClauses/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /procedureManuals/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /eomsPolicyManuals/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /academicPrograms/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
-    match /programCompliances/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
 
     // --------------------------------------------------------------------------
     // AUDIT LOGS & FEEDBACK
