@@ -1,3 +1,4 @@
+
 export type Role = {
   id: string;
   name: string;
@@ -268,6 +269,17 @@ export type SoftwareEvaluation = {
   overallScore: number;
   generalComments?: string;
   recommendations?: string;
+};
+
+export type QaAdvisory = {
+    id: string;
+    controlNumber: string;
+    subject: string;
+    releaseDate: any; // Timestamp
+    googleDriveLink: string;
+    scope: 'University-Wide' | 'Specific Unit';
+    targetUnitId?: string;
+    createdAt: any; // Timestamp
 };
 
 // --- ACADEMIC PROGRAM MONITORING TYPES ---

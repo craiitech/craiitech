@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -55,7 +56,7 @@ import {
   orderBy,
   limit,
 } from 'firebase/firestore';
-import type { Submission, User as AppUser, Unit, Campus, Cycle, Risk, ManagementReviewOutput, AuditSchedule } from '@/lib/types';
+import type { Submission, User as AppUser, Unit, Campus, Cycle, Risk, ManagementReviewOutput, AuditSchedule, QaAdvisory } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle, AlertCloseButton } from '@/components/ui/alert';
@@ -218,6 +219,17 @@ export default function HomePage() {
   
   const allCyclesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'cycles') : null, [firestore]);
   const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(allCyclesQuery);
+
+  // Fetch Latest QA Advisories for the dashboard
+  const advisoriesQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'qaAdvisories'), orderBy('releaseDate', 'desc'), limit(1)) : null), [firestore]);
+  const { data: latestAdvisories } = useCollection<QaAdvisory>(advisoriesQuery);
+
+  const latestAdvisory = useMemo(() => {
+    if (!latestAdvisories || latestAdvisories.length === 0 || !userProfile) return null;
+    const adv = latestAdvisories[0];
+    const isAccessible = adv.scope === 'University-Wide' || adv.targetUnitId === userProfile.unitId || isAdmin;
+    return isAccessible ? adv : null;
+  }, [latestAdvisories, userProfile, isAdmin]);
   
   const years = useMemo(() => {
     if (!allCycles) return [new Date().getFullYear()];
@@ -507,6 +519,18 @@ export default function HomePage() {
       </TabsList>
       
       <TabsContent value="overview" className="space-y-4">
+        {latestAdvisory && (
+            <Alert className="border-primary bg-primary/5 shadow-md animate-in slide-in-from-top-4 duration-500">
+                <Megaphone className="h-5 w-5 text-primary" />
+                <AlertTitle className="font-black uppercase tracking-tight text-primary">Latest QA Advisory: {latestAdvisory.subject}</AlertTitle>
+                <AlertDescription className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
+                    <span className="text-sm font-medium text-slate-700">Official Directive {latestAdvisory.controlNumber} has been released.</span>
+                    <Button size="sm" asChild className="h-8 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">
+                        <Link href="/advisories">Open Advisory Vault</Link>
+                    </Button>
+                </AlertDescription>
+            </Alert>
+        )}
         {noRisksLogged && !isLoading && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -614,6 +638,18 @@ export default function HomePage() {
 
   const renderAuditorHome = () => (
     <div className="space-y-6">
+        {latestAdvisory && (
+            <Alert className="border-primary bg-primary/5 shadow-md">
+                <Megaphone className="h-5 w-5 text-primary" />
+                <AlertTitle className="font-black uppercase tracking-tight text-primary">New QA Advisory: {latestAdvisory.subject}</AlertTitle>
+                <AlertDescription className="flex items-center justify-between mt-2">
+                    <span className="text-sm">Official Directive {latestAdvisory.controlNumber} available.</span>
+                    <Button size="sm" asChild variant="outline" className="h-8 text-[10px] font-black uppercase tracking-widest">
+                        <Link href="/advisories">Vault</Link>
+                    </Button>
+                </AlertDescription>
+            </Alert>
+        )}
         <div className="grid gap-4 md:grid-cols-3">
             {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
             {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
@@ -672,6 +708,18 @@ export default function HomePage() {
             <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
         </TabsList>
       <TabsContent value="overview" className="space-y-4">
+         {latestAdvisory && (
+            <Alert className="border-primary bg-primary/5 shadow-md">
+                <Megaphone className="h-5 w-5 text-primary" />
+                <AlertTitle className="font-black uppercase tracking-tight text-primary">Strategic Update: {latestAdvisory.subject}</AlertTitle>
+                <AlertDescription className="flex items-center justify-between mt-2">
+                    <span className="text-sm">QA Advisory {latestAdvisory.controlNumber} has been issued university-wide.</span>
+                    <Button size="sm" asChild className="h-8 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">
+                        <Link href="/advisories">Access Vault</Link>
+                    </Button>
+                </AlertDescription>
+            </Alert>
+         )}
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
             <div className="lg:col-span-4 space-y-4">
                 {unitsInCampus.length === 0 && !isLoading && (
@@ -723,6 +771,18 @@ export default function HomePage() {
         <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
       </TabsList>
       <TabsContent value="overview" className="space-y-4">
+        {latestAdvisory && (
+            <Alert className="border-primary bg-primary/5 shadow-md">
+                <Megaphone className="h-5 w-5 text-primary" />
+                <AlertTitle className="font-black uppercase tracking-tight text-primary">System-Wide Advisory: {latestAdvisory.subject}</AlertTitle>
+                <AlertDescription className="flex items-center justify-between mt-2">
+                    <span className="text-sm">Official Directive {latestAdvisory.controlNumber} is active.</span>
+                    <Button size="sm" asChild variant="outline" className="h-8 text-[10px] font-black uppercase tracking-widest">
+                        <Link href="/advisories">Vault</Link>
+                    </Button>
+                </AlertDescription>
+            </Alert>
+        )}
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
           {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
           {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
@@ -732,8 +792,8 @@ export default function HomePage() {
             <div className="lg:col-span-2 space-y-4">
                  <IncompleteCampusSubmissions allSubmissions={submissions} allCampuses={campuses} allUnits={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} />
                 <div className="grid gap-4 md:grid-cols-2">
-                    <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
-                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
+                    <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isSupervisor} selectedYear={selectedYear} />
+                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
                 </div>
                 <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={mrOutputs || []} selectedYear={selectedYear} />
             </div>

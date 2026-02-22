@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -6,7 +7,7 @@ import {
   useUser,
   useAuth,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, BookOpen, BookMarked, ClipboardCheck, GraduationCap, MonitorCheck, ClipboardList, FolderKanban } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, BookOpen, BookMarked, ClipboardCheck, GraduationCap, MonitorCheck, ClipboardList, FolderKanban, Megaphone } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
@@ -33,6 +34,12 @@ export function SidebarNav({
       label: 'Home',
       active: pathname === '/dashboard',
       icon: <LayoutDashboard />,
+    },
+    {
+      href: '/advisories',
+      label: 'QA Advisories',
+      active: pathname.startsWith('/advisories'),
+      icon: <Megaphone />,
     },
     {
       href: '/audit',

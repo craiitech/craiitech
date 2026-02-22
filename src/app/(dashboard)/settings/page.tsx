@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -21,6 +22,7 @@ import { ErrorReportManagement } from '@/components/admin/error-report-managemen
 import { ProcedureManualManagement } from '@/components/admin/procedure-manual-management';
 import { EomsPolicyManualManagement } from '@/components/admin/eoms-policy-manual-management';
 import { UnitGroupingExplorer } from '@/components/admin/unit-grouping-explorer';
+import { AdvisoryManagement } from '@/components/advisories/advisory-management';
 
 
 export default function SettingsPage() {
@@ -57,6 +59,7 @@ export default function SettingsPage() {
             <TabsTrigger value="units">Units</TabsTrigger>
             <TabsTrigger value="unit-grouping">Unit Explorer</TabsTrigger>
             <TabsTrigger value="roles">Roles</TabsTrigger>
+            <TabsTrigger value="advisories">QA Advisories</TabsTrigger>
             <TabsTrigger value="procedure-manuals">Procedure Manuals</TabsTrigger>
             <TabsTrigger value="eoms-policy-manual">RSU EOMS Manual</TabsTrigger>
             <TabsTrigger value="cycles">Cycles &amp; Deadlines</TabsTrigger>
@@ -77,6 +80,9 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="roles" className="space-y-4">
             <RoleManagement />
+          </TabsContent>
+          <TabsContent value="advisories" className="space-y-4">
+            <AdvisoryManagement />
           </TabsContent>
           <TabsContent value="procedure-manuals" className="space-y-4">
             <ProcedureManualManagement />

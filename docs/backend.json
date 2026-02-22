@@ -128,6 +128,21 @@
         "controlNumber": { "type": "string" }
       },
       "required": ["id", "userId", "submissionDate", "googleDriveLink", "cycleId", "statusId", "reportType", "year", "unitName", "campusId", "unitId", "revision", "controlNumber"]
+    },
+    "QaAdvisory": {
+      "title": "QaAdvisory",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "controlNumber": { "type": "string" },
+        "subject": { "type": "string" },
+        "releaseDate": { "type": "string", "format": "date-time" },
+        "googleDriveLink": { "type": "string", "format": "uri" },
+        "scope": { "type": "string", "enum": ["University-Wide", "Specific Unit"] },
+        "targetUnitId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["controlNumber", "subject", "releaseDate", "googleDriveLink", "scope"]
     }
   },
   "auth": {
@@ -145,7 +160,8 @@
       { "path": "/programCompliances/{recordId}", "definition": { "entityName": "ProgramComplianceRecord" } },
       { "path": "/submissions/{submissionId}", "definition": { "entityName": "Submission" } },
       { "path": "/campuses/{campusId}", "definition": { "entityName": "Campus" } },
-      { "path": "/units/{unitId}", "definition": { "entityName": "Unit" } }
+      { "path": "/units/{unitId}", "definition": { "entityName": "Unit" } },
+      { "path": "/qaAdvisories/{advisoryId}", "definition": { "entityName": "QaAdvisory" } }
     ]
   }
 }

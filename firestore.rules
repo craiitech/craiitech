@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -201,6 +202,18 @@ service cloud.firestore {
         profile().get('role', '').matches('(?i).*(director|odimo|admin|vice president).*') &&
         (settingId == profile().get('campusId', '') || settingId == 'global')
       ));
+    }
+
+    // --------------------------------------------------------------------------
+    // QA ADVISORIES (NEW COMMUNICATION HUB)
+    // --------------------------------------------------------------------------
+    match /qaAdvisories/{advisoryId} {
+      allow read: if isSignedIn() && (
+        resource.data.scope == 'University-Wide' || 
+        resource.data.targetUnitId == profile().get('unitId', '') ||
+        isAdmin()
+      );
+      allow write: if isAdmin();
     }
   }
 }
