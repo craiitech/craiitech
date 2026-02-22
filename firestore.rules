@@ -20,7 +20,7 @@ service cloud.firestore {
     }
 
     /**
-     * Master Admin Check
+     * Role Hierarchy Checks
      */
     function isAdmin() {
       return isSignedIn() && (
@@ -78,31 +78,55 @@ service cloud.firestore {
     }
 
     match /submissions/{submissionId} {
-      allow read: if isAdmin() || isAuditor() || (isSignedIn() && (
+      // Allow read if user is Admin/Auditor OR if the document belongs to their unit/campus scope
+      allow read: if isAdmin() || isAuditor() || (isSignedIn() && hasProfile() && (
         resource.data.userId == request.auth.uid || 
         resource.data.unitId == profile().get('unitId', '') || 
-        resource.data.campusId == profile().get('campusId', '') ||
-        isSupervisor()
+        (isSupervisor() && resource.data.campusId == profile().get('campusId', ''))
       ));
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isAdmin() || (isSignedIn() && (
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
         resource.data.userId == request.auth.uid || 
-        isSupervisor()
+        (isSupervisor() && resource.data.campusId == profile().get('campusId', ''))
+      ));
+      allow delete: if isAdmin();
+    }
+
+    match /risks/{riskId} { 
+      // Synchronized with Submissions: Allow unit and campus level visibility
+      allow read: if isAdmin() || isAuditor() || (isSignedIn() && hasProfile() && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.unitId == profile().get('unitId', '') || 
+        (isSupervisor() && resource.data.campusId == profile().get('campusId', ''))
+      ));
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
+        resource.data.userId == request.auth.uid || 
+        (isSupervisor() && resource.data.campusId == profile().get('campusId', ''))
       ));
       allow delete: if isAdmin();
     }
 
     // --------------------------------------------------------------------------
-    // MISC COLLECTIONS
+    // SYSTEM REGISTRIES
     // --------------------------------------------------------------------------
+
+    match /qaAdvisories/{advisoryId} { 
+      // Explicitly allow list/get for all verified portal users
+      allow read: if isSignedIn(); 
+      allow write: if isAdmin(); 
+    }
 
     match /academicPrograms/{programId} { allow read: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
     match /programCompliances/{recordId} { allow read: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
     match /campuses/{campusId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /units/{unitId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /qaAdvisories/{advisoryId} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
     match /roles/{roleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /cycles/{cycleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /risks/{riskId} { allow read: if isAdmin() || isSupervisor() || (hasProfile() && resource.data.userId == request.auth.uid); allow write: if isAdmin() || (hasProfile() && request.resource.data.userId == request.auth.uid); }
+    
+    // Catch-all for legacy or other collections
+    match /{path=**} {
+      allow read, write: if isAdmin();
+    }
   }
 }
