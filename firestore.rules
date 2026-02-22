@@ -21,7 +21,6 @@ service cloud.firestore {
 
     /**
      * Master Admin Check
-     * Checks both the dedicated admin collection and the role string.
      */
     function isAdmin() {
       return isSignedIn() && (
@@ -34,84 +33,14 @@ service cloud.firestore {
       return isSignedIn() && hasProfile() && profile().get('role', '').matches('(?i).*auditor.*');
     }
 
+    function isSupervisor() {
+      return isSignedIn() && hasProfile() && profile().get('role', '').matches('(?i).*(director|odimo|vice president|chair|dean).*');
+    }
+
     // --------------------------------------------------------------------------
-    // QA REPORTS MODULE COLLECTIONS (Top Level)
+    // CORE COLLECTIONS
     // --------------------------------------------------------------------------
     
-    match /qaAuditReports/{reportId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isAdmin() || isAuditor();
-    }
-
-    match /managementReviews/{mrId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isAdmin() || isAuditor();
-    }
-
-    match /managementReviewOutputs/{outputId} {
-      allow read: if isSignedIn();
-      allow create, delete: if isAdmin() || isAuditor();
-      allow update: if isSignedIn();
-    }
-
-    match /correctiveActionRequests/{carId} {
-      allow read: if isSignedIn();
-      allow create: if isAdmin() || isAuditor();
-      allow update: if isAdmin() || isAuditor() || 
-        (hasProfile() && resource.data.unitId == profile().get('unitId', ''));
-      allow delete: if isAdmin();
-    }
-
-    // --------------------------------------------------------------------------
-    // CORE COLLECTION: unitMonitoringRecords
-    // --------------------------------------------------------------------------
-    match /unitMonitoringRecords/{recordId} {
-        
-        // 1. Master Admin and Auditors can see everything (Global Scope)
-        allow get, list: if isAdmin() || isAuditor();
-        
-        // 2. Campus Officials (Director, Odimos, VP) see their campus
-        allow get, list: if isSignedIn() && hasProfile() && (
-          resource.data.campusId == profile().get('campusId', '') && 
-          profile().get('role', '').matches('(?i).*(director|odimo|vice president).*')
-        );
-
-        // 3. Unit Users see their unit
-        allow get, list: if isSignedIn() && hasProfile() && (
-          resource.data.unitId == profile().get('unitId', '') &&
-          !profile().get('role', '').matches('(?i).*(director|odimo|vice president|admin|auditor).*')
-        );
-
-        // 4. Write Rules (ENFORCE DATA INTEGRITY)
-        allow create: if (isAdmin() || (isSignedIn() && hasProfile() && profile().get('role', '') == 'Campus ODIMO' && request.resource.data.campusId == profile().get('campusId', ''))) && 
-          request.resource.data.keys().hasAll(['unitId', 'campusId']);
-        
-        allow update: if isAdmin() || (isSignedIn() && hasProfile() && profile().get('role', '') == 'Campus ODIMO' && resource.data.campusId == profile().get('campusId', ''));
-        
-        allow delete: if isAdmin();
-    }
-
-    // --------------------------------------------------------------------------
-    // EOMS COLLECTIONS
-    // --------------------------------------------------------------------------
-
-    match /academicPrograms/{programId} {
-        allow read: if isSignedIn();
-        allow write: if isAdmin() || (isSignedIn() && hasProfile() && (
-          profile().get('role', '').matches('(?i).*director.*') || 
-          profile().get('role', '').matches('(?i).*odimo.*')
-        ));
-    }
-
-    match /programCompliances/{recordId} {
-        allow read: if isSignedIn();
-        allow write: if isAdmin() || (isSignedIn() && hasProfile() && (
-          profile().get('role', '').matches('(?i).*director.*') || 
-          profile().get('role', '').matches('(?i).*odimo.*') ||
-          (profile().get('campusId', '') == (request.resource.data.campusId || resource.data.campusId) && profile().get('role', '').matches('(?i).*coordinator.*'))
-        ));
-    }
-
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId;
@@ -124,98 +53,88 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /submissions/{submissionId} {
-      allow read: if isAdmin() || isAuditor();
-      allow read: if isSignedIn() && hasProfile() && (
-        resource.data.userId == request.auth.uid || 
-        resource.data.unitId == profile().get('unitId', '') || 
-        resource.data.campusId == profile().get('campusId', '') ||
-        profile().get('role', '').matches('(?i).*(vice president|director|odimo|admin).*')
-      );
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
-        resource.data.userId == request.auth.uid || 
-        resource.data.unitId == profile().get('unitId', '') || 
-        resource.data.campusId == profile().get('campusId', '')
-      ));
-      allow delete: if isAdmin();
-    }
-
-    match /risks/{riskId} {
-      allow read: if isAdmin() || isAuditor();
-      allow read: if isSignedIn() && hasProfile() && (
-        resource.data.unitId == profile().get('unitId', '') ||
-        resource.data.userId == request.auth.uid ||
-        resource.data.campusId == profile().get('campusId', '') ||
-        profile().get('role', '').matches('(?i).*(vice president|director|odimo|admin).*')
-      );
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
-        request.auth.uid == resource.data.userId || 
-        profile().get('unitId', '') == resource.data.unitId
-      ));
-      allow delete: if isAdmin();
-    }
-
-    match /appFeedbacks/{feedbackId} {
-      allow create: if isSignedIn();
-      allow read: if isAdmin();
-    }
-
-    match /softwareEvaluations/{evalId} {
-      allow create: if true;
-      allow read: if isAdmin();
-    }
-
-    match /roles/{roleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /cycles/{cycleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /campuses/{campusId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /units/{unitId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /activityLogs/{logId} { allow read: if isAdmin(); allow create: if isSignedIn(); }
-    match /errorReports/{errorId} { allow create: if isSignedIn(); allow read, update, delete: if isAdmin(); }
-    match /procedureManuals/{unitId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /eomsPolicyManuals/{docId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /isoClauses/{clauseId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    
-    // IQA STRATEGIC PLANNING & AUDIT CONDUCT
-    match /auditPlans/{planId} { 
-      allow read: if isSignedIn(); 
-      allow write: if isAdmin(); 
-    }
-    match /auditSchedules/{scheduleId} { 
-      allow read: if isSignedIn(); 
-      allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (isAuditor() && (resource.data.auditorId == request.auth.uid || resource.data.auditorId == null));
-    }
-    match /auditFindings/{findingId} { 
-      allow read: if isSignedIn(); 
-      allow create, update, delete: if isAdmin() || isAuditor(); 
-    }
-    match /correctiveActionPlans/{planId} { 
-      allow read: if isSignedIn(); 
-      allow create: if isSignedIn(); 
-      allow update, delete: if isAdmin(); 
-    }
-    
-    match /campusSettings/{settingId} {
+    match /qaAuditReports/{reportId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSignedIn() && hasProfile() && (
-        profile().get('role', '').matches('(?i).*(director|odimo|admin|vice president).*') &&
-        (settingId == profile().get('campusId', '') || settingId == 'global')
+      allow write: if isAdmin() || isAuditor();
+    }
+
+    match /managementReviews/{mrId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isAuditor();
+    }
+
+    match /managementReviewOutputs/{outputId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isAuditor();
+      allow update: if isSignedIn();
+    }
+
+    match /correctiveActionRequests/{carId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin() || isAuditor();
+      allow update: if isAdmin() || isAuditor() || 
+        (hasProfile() && resource.data.unitId == profile().get('unitId', ''));
+      allow delete: if isAdmin();
+    }
+
+    match /submissions/{submissionId} {
+      allow read: if isAdmin() || isAuditor() || (isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.unitId == profile().get('unitId', '') || 
+        resource.data.campusId == profile().get('campusId', '') ||
+        isSupervisor()
       ));
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin() || (isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        isSupervisor()
+      ));
+      allow delete: if isAdmin();
     }
 
     // --------------------------------------------------------------------------
-    // QA ADVISORIES (NEW COMMUNICATION HUB)
+    // AFES COLLECTIONS (FACULTY EVALUATION)
     // --------------------------------------------------------------------------
-    match /qaAdvisories/{advisoryId} {
-      allow list: if isSignedIn();
-      allow get: if isSignedIn() && (
-        resource.data.get('scope', 'University-Wide') == 'University-Wide' || 
-        resource.data.get('targetUnitId', '') == profile().get('unitId', '') ||
-        isAdmin()
-      );
+
+    match /evaluationCycles/{cycleId} {
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
+
+    match /subjects/{subjectId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /studentEvaluations/{evalId} {
+      // Students can only see their own, Admin can see all (masking handled in UI)
+      allow read: if isAdmin() || (isSignedIn() && resource.data.studentId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.studentId == request.auth.uid;
+      allow update, delete: if false; // Evaluations are final once submitted
+    }
+
+    match /supervisorEvaluations/{evalId} {
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.supervisorId == request.auth.uid || resource.data.facultyId == request.auth.uid));
+      allow create: if isSupervisor() && request.resource.data.supervisorId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /computedResults/{resultId} {
+      allow read: if isSignedIn(); // Faculty can see their results, others can see aggregated stats
+      allow write: if isAdmin();
+    }
+
+    // --------------------------------------------------------------------------
+    // MISC COLLECTIONS
+    // --------------------------------------------------------------------------
+
+    match /academicPrograms/{programId} { allow read: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
+    match /programCompliances/{recordId} { allow read: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
+    match /campuses/{campusId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /units/{unitId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /qaAdvisories/{advisoryId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /roles/{roleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /cycles/{cycleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /risks/{riskId} { allow read: if isSignedIn(); allow write: if isAdmin() || (hasProfile() && resource.data.userId == request.auth.uid); }
   }
 }

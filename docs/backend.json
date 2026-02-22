@@ -13,121 +13,85 @@
         "role": { "type": "string" },
         "campusId": { "type": "string" },
         "unitId": { "type": "string" },
+        "department": { "type": "string" },
         "verified": { "type": "boolean" },
         "ndaAccepted": { "type": "boolean" }
       },
       "required": ["id", "email", "firstName", "lastName", "roleId", "role", "campusId", "unitId", "verified"]
     },
-    "QaAuditReport": {
-      "title": "QaAuditReport",
+    "EvaluationCycle": {
+      "title": "EvaluationCycle",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "type": { "type": "string", "enum": ["IQA", "EQA"] },
-        "title": { "type": "string" },
+        "academicYear": { "type": "string" },
+        "semester": { "type": "string", "enum": ["1st Semester", "2nd Semester", "Summer"] },
+        "type": { "type": "string", "enum": ["Midterm", "Final", "Annual"] },
         "startDate": { "type": "string", "format": "date-time" },
         "endDate": { "type": "string", "format": "date-time" },
-        "googleDriveLink": { "type": "string", "format": "uri" },
-        "campusId": { "type": "string" },
-        "eqaCategory": { "type": "string", "enum": ["Certification / Re-Certification Audit", "Surveillance Audit"] },
-        "certifyingBody": { "type": "string" },
-        "standard": { "type": "string", "enum": ["ISO 9001:2015", "ISO 21001:2018"] }
+        "studentWeight": { "type": "number" },
+        "supervisorWeight": { "type": "number" },
+        "status": { "type": "string", "enum": ["Active", "Closed"] }
       },
-      "required": ["type", "title", "startDate", "endDate", "googleDriveLink", "campusId"]
+      "required": ["academicYear", "semester", "type", "startDate", "endDate", "studentWeight", "supervisorWeight", "status"]
     },
-    "ManagementReview": {
-      "title": "ManagementReview",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "startDate": { "type": "string", "format": "date-time" },
-        "endDate": { "type": "string", "format": "date-time" },
-        "minutesLink": { "type": "string", "format": "uri" },
-        "campusId": { "type": "string" }
-      },
-      "required": ["title", "startDate", "endDate", "minutesLink", "campusId"]
-    },
-    "ManagementReviewOutput": {
-      "title": "ManagementReviewOutput",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "mrId": { "type": "string" },
-        "description": { "type": "string" },
-        "initiator": { "type": "string" },
-        "concernedUnitIds": { "type": "array", "items": { "type": "string" } },
-        "actionPlan": { "type": "string" },
-        "followUpDate": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["Open", "On-going", "Closed"] }
-      },
-      "required": ["mrId", "description", "concernedUnitIds", "status"]
-    },
-    "CorrectiveActionRequest": {
-      "title": "CorrectiveActionRequest",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "carNumber": { "type": "string" },
-        "ncReportNumber": { "type": "string" },
-        "source": { "type": "string", "enum": ["Audit Finding", "Legal Non-compliance", "Non-conforming Service", "Others"] },
-        "procedureTitle": { "type": "string" },
-        "initiator": { "type": "string" },
-        "natureOfFinding": { "type": "string", "enum": ["NC", "OFI"] },
-        "concerningClause": { "type": "string" },
-        "unitId": { "type": "string" },
-        "campusId": { "type": "string" },
-        "unitHead": { "type": "string" },
-        "descriptionOfNonconformance": { "type": "string" },
-        "status": { "type": "string", "enum": ["Open", "In Progress", "Closed"] }
-      },
-      "required": ["carNumber", "source", "procedureTitle", "unitId", "campusId", "status"]
-    },
-    "AcademicProgram": {
-      "title": "AcademicProgram",
+    "Subject": {
+      "title": "Subject",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
-        "abbreviation": { "type": "string" },
-        "campusId": { "type": "string" },
-        "collegeId": { "type": "string" },
-        "level": { "type": "string", "enum": ["Undergraduate", "Graduate", "TVET"] },
-        "isBoardProgram": { "type": "boolean" },
-        "isActive": { "type": "boolean" }
+        "code": { "type": "string" },
+        "facultyId": { "type": "string" },
+        "enrolledStudentIds": { "type": "array", "items": { "type": "string" } }
       },
-      "required": ["id", "name", "campusId", "collegeId", "level", "isActive", "isBoardProgram"]
+      "required": ["name", "code", "facultyId"]
     },
-    "ProgramComplianceRecord": {
-      "title": "ProgramComplianceRecord",
+    "StudentEvaluation": {
+      "title": "StudentEvaluation",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "programId": { "type": "string" },
-        "campusId": { "type": "string" },
-        "academicYear": { "type": "number" }
-      },
-      "required": ["id", "programId", "campusId", "academicYear"]
-    },
-    "Submission": {
-      "title": "Submission",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "submissionDate": { "type": "string", "format": "date-time" },
-        "googleDriveLink": { "type": "string", "format": "uri" },
         "cycleId": { "type": "string" },
-        "statusId": { "type": "string" },
-        "reportType": { "type": "string" },
-        "year": { "type": "number" },
-        "unitName": { "type": "string" },
-        "campusId": { "type": "string" },
-        "unitId": { "type": "string" },
-        "revision": { "type": "number" },
-        "controlNumber": { "type": "string" }
+        "facultyId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "studentId": { "type": "string" },
+        "responses": { "type": "object" },
+        "meanScore": { "type": "number" },
+        "comments": { "type": "string" },
+        "submittedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "userId", "submissionDate", "googleDriveLink", "cycleId", "statusId", "reportType", "year", "unitName", "campusId", "unitId", "revision", "controlNumber"]
+      "required": ["cycleId", "facultyId", "subjectId", "responses", "meanScore", "submittedAt"]
+    },
+    "SupervisorEvaluation": {
+      "title": "SupervisorEvaluation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "cycleId": { "type": "string" },
+        "facultyId": { "type": "string" },
+        "supervisorId": { "type": "string" },
+        "responses": { "type": "object" },
+        "meanScore": { "type": "number" },
+        "remarks": { "type": "string" },
+        "documentLinks": { "type": "array", "items": { "type": "string" } },
+        "submittedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["cycleId", "facultyId", "supervisorId", "responses", "meanScore", "submittedAt"]
+    },
+    "ComputedResult": {
+      "title": "ComputedResult",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "facultyId": { "type": "string" },
+        "cycleId": { "type": "string" },
+        "studentMean": { "type": "number" },
+        "supervisorMean": { "type": "number" },
+        "finalScore": { "type": "number" },
+        "interpretation": { "type": "string" }
+      },
+      "required": ["facultyId", "cycleId", "finalScore"]
     },
     "QaAdvisory": {
       "title": "QaAdvisory",
@@ -151,16 +115,11 @@
   "firestore": {
     "structure": [
       { "path": "/users/{userId}", "definition": { "entityName": "User" } },
-      { "path": "/roles_admin/{userId}", "definition": { "description": "Admin privileges map." } },
-      { "path": "/qaAuditReports/{reportId}", "definition": { "entityName": "QaAuditReport" } },
-      { "path": "/managementReviews/{mrId}", "definition": { "entityName": "ManagementReview" } },
-      { "path": "/managementReviewOutputs/{outputId}", "definition": { "entityName": "ManagementReviewOutput" } },
-      { "path": "/correctiveActionRequests/{carId}", "definition": { "entityName": "CorrectiveActionRequest" } },
-      { "path": "/academicPrograms/{programId}", "definition": { "entityName": "AcademicProgram" } },
-      { "path": "/programCompliances/{recordId}", "definition": { "entityName": "ProgramComplianceRecord" } },
-      { "path": "/submissions/{submissionId}", "definition": { "entityName": "Submission" } },
-      { "path": "/campuses/{campusId}", "definition": { "entityName": "Campus" } },
-      { "path": "/units/{unitId}", "definition": { "entityName": "Unit" } },
+      { "path": "/evaluationCycles/{cycleId}", "definition": { "entityName": "EvaluationCycle" } },
+      { "path": "/subjects/{subjectId}", "definition": { "entityName": "Subject" } },
+      { "path": "/studentEvaluations/{evalId}", "definition": { "entityName": "StudentEvaluation" } },
+      { "path": "/supervisorEvaluations/{evalId}", "definition": { "entityName": "SupervisorEvaluation" } },
+      { "path": "/computedResults/{resultId}", "definition": { "entityName": "ComputedResult" } },
       { "path": "/qaAdvisories/{advisoryId}", "definition": { "entityName": "QaAdvisory" } }
     ]
   }
