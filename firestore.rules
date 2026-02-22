@@ -50,7 +50,8 @@ service cloud.firestore {
 
     match /managementReviewOutputs/{outputId} {
       allow read: if isSignedIn();
-      allow create, update, delete: if isAdmin() || isAuditor();
+      allow create, delete: if isAdmin() || isAuditor();
+      allow update: if isSignedIn();
     }
 
     match /correctiveActionRequests/{carId} {
@@ -192,7 +193,7 @@ service cloud.firestore {
     }
     match /correctiveActionPlans/{planId} { 
       allow read: if isSignedIn(); 
-      allow create: if isSignedIn();
+      allow create: if isSignedIn(); 
       allow update, delete: if isAdmin(); 
     }
     
@@ -208,9 +209,10 @@ service cloud.firestore {
     // QA ADVISORIES (NEW COMMUNICATION HUB)
     // --------------------------------------------------------------------------
     match /qaAdvisories/{advisoryId} {
-      allow read: if isSignedIn() && (
-        resource.data.scope == 'University-Wide' || 
-        resource.data.targetUnitId == profile().get('unitId', '') ||
+      allow list: if isSignedIn();
+      allow get: if isSignedIn() && (
+        resource.data.get('scope', 'University-Wide') == 'University-Wide' || 
+        resource.data.get('targetUnitId', '') == profile().get('unitId', '') ||
         isAdmin()
       );
       allow write: if isAdmin();
