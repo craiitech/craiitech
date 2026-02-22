@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { AcademicProgram, ProgramComplianceRecord, Campus } from '@/lib/types';
+import type { AcademicProgram, ProgramComplianceRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
     BarChart, 
@@ -57,16 +57,13 @@ interface ProgramAnalyticsProps {
   programs: AcademicProgram[];
   compliances: ProgramComplianceRecord[];
   campuses: Campus[];
+  units: Unit[];
   isLoading: boolean;
   selectedYear: number;
 }
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
-/**
- * YEAR COLOR SCHEMA
- * Consistent colors used for both header badges and row highlighting.
- */
 const YEAR_COLORS: Record<string, { bg: string, text: string, border: string, row: string }> = {
     '2024': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', row: 'bg-blue-50/30' },
     '2025': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200', row: 'bg-green-50/30' },
@@ -82,15 +79,16 @@ const getYearStyle = (year: string) => {
     return YEAR_COLORS[year] || YEAR_COLORS['Default'];
 };
 
-export function ProgramAnalytics({ programs, compliances, campuses, isLoading, selectedYear }: ProgramAnalyticsProps) {
+export function ProgramAnalytics({ programs, compliances, campuses, units, isLoading, selectedYear }: ProgramAnalyticsProps) {
   const { userRole, isAdmin } = useUser();
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
-
-  const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
-  const isUnitViewer = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
+  const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
 
   const analytics = useMemo(() => {
     if (!programs.length) return null;
+
+    const filteredProgramIds = new Set(programs.map(p => p.id));
+    const filteredCompliances = compliances.filter(c => filteredProgramIds.has(c.programId));
 
     // 1. Accreditation Level Summary
     const accreditationMap: Record<string, number> = {
@@ -107,7 +105,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             return;
         }
 
-        const record = compliances.find(c => c.programId === p.id);
+        const record = filteredCompliances.find(c => c.programId === p.id);
         if (!record || !record.accreditationRecords || record.accreditationRecords.length === 0) {
             accreditationMap['Non Accredited']++;
             return;
@@ -135,12 +133,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         })).sort((a, b) => b.count - a.count);
 
     // 2. COPC Percentage Summary
-    const copcWith = compliances.filter(c => c.ched?.copcStatus === 'With COPC').length;
+    const copcWith = filteredCompliances.filter(c => c.ched?.copcStatus === 'With COPC').length;
     const copcPercentage = Math.round((copcWith / programs.length) * 100);
 
     // 3. Faculty Rank Distribution
     const rankMap: Record<string, number> = {};
-    compliances.forEach(c => {
+    filteredCompliances.forEach(c => {
         const allFaculty = [
             c.faculty?.dean,
             c.faculty?.associateDean,
@@ -156,7 +154,28 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
     const facultyRankSummary = Object.entries(rankMap).map(([rank, count]) => ({ rank, count }))
         .sort((a, b) => b.count - a.count);
 
-    // 4. Campus Performance Aggregation
+    // 4. Unit Faculty Distribution (Headcount per Academic Unit)
+    const unitFacultyMap: Record<string, number> = {};
+    filteredCompliances.forEach(c => {
+        const program = programs.find(p => p.id === c.programId);
+        if (!program) return;
+        const unitId = program.collegeId;
+        
+        const count = [
+            c.faculty?.dean,
+            c.faculty?.associateDean,
+            c.faculty?.programChair,
+            ...(c.faculty?.members || [])
+        ].filter(f => f && f.name && f.name.trim() !== '').length;
+
+        unitFacultyMap[unitId] = (unitFacultyMap[unitId] || 0) + count;
+    });
+    const unitFacultySummary = Object.entries(unitFacultyMap).map(([id, count]) => ({
+        name: unitMap.get(id) || id,
+        count
+    })).sort((a, b) => b.count - a.count);
+
+    // 5. Campus Performance Aggregation
     const campusPerformanceData = campuses.map(campus => {
         const campusPrograms = programs.filter(p => p.campusId === campus.id);
         const total = campusPrograms.length;
@@ -167,7 +186,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         let copcCount = 0;
 
         campusPrograms.forEach(p => {
-            const record = compliances.find(c => c.programId === p.id);
+            const record = filteredCompliances.find(c => c.programId === p.id);
             if (record) {
                 if (record.ched?.copcStatus === 'With COPC') copcCount++;
 
@@ -195,10 +214,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         };
     }).filter(Boolean).sort((a: any, b: any) => b.offeringCount - a.offeringCount);
 
-    // 5. Missing Document Audit
+    // 6. Missing Document Audit
     const missingDocs: { programName: string, campusName: string, items: string[] }[] = [];
     programs.forEach(p => {
-        const record = compliances.find(c => c.programId === p.id);
+        const record = filteredCompliances.find(c => c.programId === p.id);
         const campusName = campusMap.get(p.campusId) || 'Unknown';
         const items: string[] = [];
 
@@ -221,7 +240,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         }
     });
 
-    // 6. Accreditation Roadmap Calculation
+    // 7. Accreditation Roadmap Calculation
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
@@ -244,7 +263,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
     };
 
     const roadmapData = programs.flatMap(p => {
-        const record = compliances.find(c => c.programId === p.id);
+        const record = filteredCompliances.find(c => c.programId === p.id);
         const campusName = campusMap.get(p.campusId) || 'Unknown';
         
         const getEntryData = (level: string, validity: string, suffix?: string) => {
@@ -254,7 +273,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             const isWaiting = validity?.trim().toUpperCase() === 'WAITING FOR RESULT';
 
             let status = 'Scheduled';
-            let priority = 3; // Default: Upcoming
+            let priority = 3; 
 
             if (detectedYear > 0) {
                 if (detectedYear < currentYear || (detectedYear === currentYear && detectedMonth < currentMonth && detectedMonth > 0)) {
@@ -266,7 +285,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                 }
             } else if (isWaiting) {
                 status = 'Result Pending';
-                priority = 2; // Right after Overdue
+                priority = 2; 
             } else {
                 status = 'Unscheduled';
                 priority = 4;
@@ -285,13 +304,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             };
         };
 
-        // Filter out "Not Yet Subject"
         if (p.isNewProgram) return [];
 
         const milestones = record?.accreditationRecords || [];
 
         if (p.hasSpecializations && p.specializations && p.specializations.length > 0) {
-            // Group majors by their unique accreditation level + validity text
             const groups: Record<string, { level: string, validity: string, majorNames: string[] }> = {};
 
             p.specializations.forEach(spec => {
@@ -313,7 +330,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
                 groups[key].majorNames.push(spec.name);
             });
 
-            // Convert groups to roadmap entries
             return Object.values(groups).map(group => {
                 const suffix = group.majorNames.join(', ');
                 return getEntryData(group.level, group.validity, suffix);
@@ -324,19 +340,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         return [getEntryData(latest?.level || 'Non Accredited', latest?.statusValidityDate || 'No schedule set')];
     })
     .sort((a, b) => {
-        // 1. Group by Priority (Overdue -> Pending -> Upcoming)
-        if (a.priority !== b.priority) {
-            return a.priority - b.priority;
-        }
-        // 2. Within priority, sort by chronological value
-        if (a.sortValue !== b.sortValue) {
-            return a.sortValue - b.sortValue;
-        }
-        // 3. Fallback to name
+        if (a.priority !== b.priority) return a.priority - b.priority;
+        if (a.sortValue !== b.sortValue) return a.sortValue - b.sortValue;
         return a.name.localeCompare(b.name);
     });
 
-    // 7. Yearly Distribution for Header
     const yearlyDistribution: Record<string, number> = {};
     roadmapData.forEach(item => {
         if (item.year !== 'Other' && item.year !== 'Pending') {
@@ -351,14 +359,15 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         accreditationSummary, 
         copcPercentage, 
         facultyRankSummary, 
+        unitFacultySummary,
         campusPerformanceData,
         missingDocs,
         roadmapData,
         distributionSummary,
         totalPrograms: programs.length, 
-        monitoredCount: compliances.length 
+        monitoredCount: filteredCompliances.length 
     };
-  }, [programs, compliances, campusMap, selectedYear, campuses]);
+  }, [programs, compliances, campusMap, unitMap, selectedYear, campuses]);
 
   const complianceTableData = useMemo(() => {
     return programs.map(program => {
@@ -460,14 +469,14 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-5"><LayoutGrid className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
-                <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Programs Offered</CardTitle>
+                <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Programs Filtered</CardTitle>
             </CardHeader>
             <CardContent><div className="text-3xl font-black text-primary tabular-nums">{analytics?.totalPrograms}</div></CardContent>
         </Card>
         <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-5"><CheckCircle2 className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
-                <CardTitle className="text-xs uppercase tracking-wider text-green-700 font-bold">COPC Rate</CardTitle>
+                <CardTitle className="text-xs uppercase tracking-wider text-green-700 font-bold">COPC Compliance</CardTitle>
             </CardHeader>
             <CardContent><div className="text-3xl font-black text-green-600 tabular-nums">{analytics?.copcPercentage}%</div></CardContent>
         </Card>
@@ -485,7 +494,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-5"><Briefcase className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
-                <CardTitle className="text-xs uppercase tracking-wider text-blue-700 font-bold">Faculty Baseline</CardTitle>
+                <CardTitle className="text-xs uppercase tracking-wider text-blue-700 font-bold">Faculty Headcount</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="text-3xl font-black text-blue-600 tabular-nums">
@@ -495,56 +504,170 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
         </Card>
       </div>
 
-      <Card className="shadow-md border-primary/10 overflow-hidden">
-        <CardHeader className="bg-muted/10 border-b py-4">
-            <div className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" />
-                <CardTitle className="text-sm font-black uppercase tracking-tight">Campus Performance Matrix</CardTitle>
-            </div>
-            <CardDescription className="text-xs">Institutional parity overview across university campuses.</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-            <div className="overflow-x-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="shadow-md border-primary/10">
+            <CardHeader className="bg-muted/10 border-b py-4">
+                <div className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Maturity Registry</CardTitle>
+                </div>
+                <CardDescription className="text-xs">Summary of program status across the accreditation lifecycle for filtered programs.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
                 <Table>
                     <TableHeader className="bg-muted/50">
                         <TableRow>
-                            <TableHead className="font-black text-[10px] uppercase py-3 pl-6">Site / Campus</TableHead>
-                            <TableHead className="text-center font-black text-[10px] uppercase py-3"># of Program Offering</TableHead>
-                            <TableHead className="text-center font-black text-[10px] uppercase py-3"># of Accredited Programs</TableHead>
-                            <TableHead className="text-right font-black text-[10px] uppercase py-3 pr-6">COPC Compliance</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase">Level</TableHead>
+                            <TableHead className="text-center text-[10px] font-black uppercase">Total Programs</TableHead>
+                            <TableHead className="text-right text-[10px] font-black uppercase pr-6">Percentage</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {analytics?.campusPerformanceData.map((campus: any) => (
-                            <TableRow key={campus.id} className="hover:bg-muted/20 transition-colors">
-                                <TableCell className="py-3 pl-6">
+                        {analytics?.accreditationSummary.map((item) => (
+                            <TableRow key={item.level}>
+                                <TableCell className="text-xs font-bold text-slate-700 py-3">
                                     <div className="flex items-center gap-2">
-                                        <School className="h-4 w-4 text-primary opacity-60" />
-                                        <span className="text-xs font-black text-slate-800 uppercase tracking-tight">{campus.name}</span>
+                                        {item.level === 'Not Yet Subject' ? <Clock className="h-3 w-3 text-amber-500" /> : <ShieldCheck className="h-3 w-3 text-primary" />}
+                                        {item.level}
                                     </div>
                                 </TableCell>
-                                <TableCell className="text-center">
-                                    <Badge variant="outline" className="font-black text-slate-600 border-slate-200">{campus.offeringCount}</Badge>
-                                </TableCell>
-                                <TableCell className="text-center">
-                                    <div className="flex flex-col items-center gap-1">
-                                        <span className="text-xs font-black text-primary">{campus.accreditedCount} / {campus.offeringCount} ({campus.accreditedPercentage}%)</span>
-                                        <div className="w-16"><Progress value={campus.accreditedPercentage} className="h-1" /></div>
-                                    </div>
-                                </TableCell>
+                                <TableCell className="text-center font-black tabular-nums text-primary">{item.count}</TableCell>
                                 <TableCell className="text-right pr-6">
                                     <div className="flex flex-col items-end gap-1">
-                                        <span className="text-xs font-black text-emerald-600">{campus.copcCount} ({campus.copcPercentage}%)</span>
-                                        <div className="w-16"><Progress value={campus.copcPercentage} className="h-1" /></div>
+                                        <span className="text-[10px] font-black">{item.percentage}%</span>
+                                        <div className="w-16"><Progress value={item.percentage} className={cn("h-1", item.level === 'Not Yet Subject' ? "bg-amber-100" : "")} /></div>
                                     </div>
                                 </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
-            </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+        </Card>
+
+        <Card className="shadow-md border-primary/10">
+            <CardHeader className="bg-muted/10 border-b py-4">
+                <div className="flex items-center gap-2">
+                    <Briefcase className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">Faculty Resource Profile (By Rank)</CardTitle>
+                </div>
+                <CardDescription className="text-xs">Academic rank distribution across active offerings in your scope.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+                <Table>
+                    <TableHeader className="bg-muted/50">
+                        <TableRow>
+                            <TableHead className="text-[10px] font-black uppercase">Academic Rank</TableHead>
+                            <TableHead className="text-right text-[10px] font-black uppercase pr-6">Headcount</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {analytics?.facultyRankSummary.map((item) => (
+                            <TableRow key={item.rank}>
+                                <TableCell className="text-xs font-bold text-slate-700 py-3">{item.rank}</TableCell>
+                                <TableCell className="text-right pr-6">
+                                    <Badge variant="outline" className="font-black text-primary tabular-nums h-6 px-3">{item.count}</Badge>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                        {analytics?.facultyRankSummary.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={2} className="h-24 text-center text-muted-foreground italic text-xs">No faculty data available for this filter.</TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="shadow-md border-primary/10">
+            <CardHeader className="bg-muted/10 border-b py-4">
+                <div className="flex items-center gap-2">
+                    <Building className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">Academic Unit Faculty Density</CardTitle>
+                </div>
+                <CardDescription className="text-xs">Headcount of verified faculty members assigned per academic unit.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+                <Table>
+                    <TableHeader className="bg-muted/50">
+                        <TableRow>
+                            <TableHead className="text-[10px] font-black uppercase">College / Unit</TableHead>
+                            <TableHead className="text-right text-[10px] font-black uppercase pr-6">Total Faculty</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {analytics?.unitFacultySummary.map((item) => (
+                            <TableRow key={item.name}>
+                                <TableCell className="text-xs font-bold text-slate-700 py-3">{item.name}</TableCell>
+                                <TableCell className="text-right pr-6">
+                                    <Badge className="bg-indigo-600 text-white font-black h-6 px-3 shadow-md">{item.count}</Badge>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                        {analytics?.unitFacultySummary.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={2} className="h-24 text-center text-muted-foreground italic text-xs">No unit-level faculty mapping available.</TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+
+        <Card className="shadow-md border-primary/10 overflow-hidden">
+            <CardHeader className="bg-muted/10 border-b py-4">
+                <div className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">Campus Performance Matrix</CardTitle>
+                </div>
+                <CardDescription className="text-xs">Institutional parity overview across university campuses.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader className="bg-muted/50">
+                            <TableRow>
+                                <TableHead className="font-black text-[10px] uppercase py-3 pl-6">Site / Campus</TableHead>
+                                <TableHead className="text-center font-black text-[10px] uppercase py-3">Offering Count</TableHead>
+                                <TableHead className="text-center font-black text-[10px] uppercase py-3">Accreditation Rate</TableHead>
+                                <TableHead className="text-right font-black text-[10px] uppercase py-3 pr-6">COPC %</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {analytics?.campusPerformanceData.map((campus: any) => (
+                                <TableRow key={campus.id} className="hover:bg-muted/20 transition-colors">
+                                    <TableCell className="py-3 pl-6">
+                                        <div className="flex items-center gap-2">
+                                            <School className="h-4 w-4 text-primary opacity-60" />
+                                            <span className="text-xs font-black text-slate-800 uppercase tracking-tight">{campus.name}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        <Badge variant="outline" className="font-black text-slate-600 border-slate-200">{campus.offeringCount}</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        <div className="flex flex-col items-center gap-1">
+                                            <span className="text-xs font-black text-primary">{campus.accreditedPercentage}%</span>
+                                            <div className="w-16"><Progress value={campus.accreditedPercentage} className="h-1" /></div>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-right pr-6">
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className="text-xs font-black text-emerald-600">{campus.copcPercentage}%</span>
+                                            <div className="w-16"><Progress value={campus.copcPercentage} className="h-1" /></div>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </CardContent>
+        </Card>
+      </div>
 
       <Card className="shadow-lg border-primary/10 overflow-hidden">
         <CardHeader className="bg-primary/5 border-b py-4">
@@ -627,83 +750,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, isLoading, s
             </div>
         </CardContent>
       </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="shadow-md border-primary/10">
-            <CardHeader className="bg-muted/10 border-b py-4">
-                <div className="flex items-center gap-2">
-                    <Award className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Maturity Registry</CardTitle>
-                </div>
-                <CardDescription className="text-xs">Summary of program status across the accreditation lifecycle.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-                <Table>
-                    <TableHeader className="bg-muted/50">
-                        <TableRow>
-                            <TableHead className="text-[10px] font-black uppercase">Level</TableHead>
-                            <TableHead className="text-center text-[10px] font-black uppercase">Total Programs</TableHead>
-                            <TableHead className="text-right text-[10px] font-black uppercase pr-6">Percentage</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {analytics?.accreditationSummary.map((item) => (
-                            <TableRow key={item.level}>
-                                <TableCell className="text-xs font-bold text-slate-700 py-3">
-                                    <div className="flex items-center gap-2">
-                                        {item.level === 'Not Yet Subject' ? <Clock className="h-3 w-3 text-amber-500" /> : <ShieldCheck className="h-3 w-3 text-primary" />}
-                                        {item.level}
-                                    </div>
-                                </TableCell>
-                                <TableCell className="text-center font-black tabular-nums text-primary">{item.count}</TableCell>
-                                <TableCell className="text-right pr-6">
-                                    <div className="flex flex-col items-end gap-1">
-                                        <span className="text-[10px] font-black">{item.percentage}%</span>
-                                        <div className="w-16"><Progress value={item.percentage} className={cn("h-1", item.level === 'Not Yet Subject' ? "bg-amber-100" : "")} /></div>
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
-
-        <Card className="shadow-md border-primary/10">
-            <CardHeader className="bg-muted/10 border-b py-4">
-                <div className="flex items-center gap-2">
-                    <Briefcase className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">Faculty Resource Profile</CardTitle>
-                </div>
-                <CardDescription className="text-xs">Academic rank distribution across monitored offerings.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-                <Table>
-                    <TableHeader className="bg-muted/50">
-                        <TableRow>
-                            <TableHead className="text-[10px] font-black uppercase">Academic Rank</TableHead>
-                            <TableHead className="text-right text-[10px] font-black uppercase pr-6">Number of Faculty</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {analytics?.facultyRankSummary.map((item) => (
-                            <TableRow key={item.rank}>
-                                <TableCell className="text-xs font-bold text-slate-700 py-3">{item.rank}</TableCell>
-                                <TableCell className="text-right pr-6">
-                                    <Badge variant="outline" className="font-black text-primary tabular-nums h-6 px-3">{item.count}</Badge>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                        {analytics?.facultyRankSummary.length === 0 && (
-                            <TableRow>
-                                <TableCell colSpan={2} className="h-24 text-center text-muted-foreground italic text-xs">No faculty data available for this period.</TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 shadow-md border-primary/10 overflow-hidden">

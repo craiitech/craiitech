@@ -247,9 +247,10 @@ export default function AcademicProgramsPage() {
 
         <TabsContent value="analytics" className="animate-in fade-in duration-500">
             <ProgramAnalytics 
-                programs={programs}
+                programs={filteredPrograms}
                 compliances={rawCompliances || []}
                 campuses={campuses || []}
+                units={units || []}
                 isLoading={isLoading}
                 selectedYear={selectedYear}
             />
