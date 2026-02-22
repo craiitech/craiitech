@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -81,6 +80,9 @@ const getYearStyle = (year: string) => {
 
 export function ProgramAnalytics({ programs, compliances, campuses, units, isLoading, selectedYear }: ProgramAnalyticsProps) {
   const { userRole, isAdmin } = useUser();
+  const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+  const isUnitViewer = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
+
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
 
