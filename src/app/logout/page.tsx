@@ -26,15 +26,13 @@ export default function LogoutPage() {
   const auth = useAuth();
   const { toast } = useToast();
   const { clearSessionLogs } = useSessionActivity();
-  const { user, userProfile, firestore, isUserLoading, isAdmin, userRole } = useUser();
+  const { user, userProfile, firestore, isUserLoading } = useUser();
 
   const [rating, setRating] = useState<number>(0);
   const [hoveredRating, setHoveredRating] = useState<number>(0);
   const [comments, setComments] = useState('');
   const [suggestions, setSuggestions] = useState('');
   const [isProcessingLogout, setIsProcessingLogout] = useState(false);
-
-  const canPerformSoftwareAudit = isAdmin || userRole === 'Auditor';
 
   const handleFinalLogout = async (skipFeedback = false) => {
     if (!auth || !user) return;
@@ -179,16 +177,14 @@ export default function LogoutPage() {
                 Submit Feedback & Logout
               </Button>
               
-              {canPerformSoftwareAudit && (
-                <Button 
-                  variant="outline"
-                  className="w-full h-12 border-primary text-primary font-bold hover:bg-primary/5" 
-                  onClick={() => router.push('/software-quality')}
-                >
-                  <MonitorCheck className="mr-2 h-5 w-5" />
-                  Perform Formal Software Audit (ISO 25010)
-                </Button>
-              )}
+              <Button 
+                variant="outline"
+                className="w-full h-12 border-primary text-primary font-bold hover:bg-primary/5" 
+                onClick={() => router.push('/evaluate')}
+              >
+                <MonitorCheck className="mr-2 h-5 w-5" />
+                Please Evaluate your experience with the System
+              </Button>
 
               <Button 
                 variant="ghost" 
