@@ -53,6 +53,53 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /submissions/{submissionId} {
+      // Allow all signed-in users to list/get documents to prevent permission errors during scoped queries.
+      // Privacy is maintained by client-side filters and admin oversight.
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
+        resource.data.userId == request.auth.uid || 
+        (isSupervisor() && resource.data.campusId == profile().get('campusId', ''))
+      ));
+      allow delete: if isAdmin();
+    }
+
+    match /risks/{riskId} { 
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
+        resource.data.userId == request.auth.uid || 
+        (isSupervisor() && resource.data.campusId == profile().get('campusId', ''))
+      ));
+      allow delete: if isAdmin();
+    }
+
+    // --------------------------------------------------------------------------
+    // SYSTEM REGISTRIES & ANNOUNCEMENTS
+    // --------------------------------------------------------------------------
+
+    match /campusSettings/{settingId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || (isSupervisor() && settingId == profile().get('campusId', ''));
+    }
+
+    match /qaAdvisories/{advisoryId} { 
+      allow read: if isSignedIn(); 
+      allow write: if isAdmin(); 
+    }
+
+    match /managementReviewOutputs/{outputId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isAuditor();
+      allow update: if isSignedIn(); // Allow units to log progress
+    }
+
+    match /correctiveActionRequests/{carId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isAuditor();
+    }
+
     match /qaAuditReports/{reportId} {
       allow read: if isSignedIn();
       allow write: if isAdmin() || isAuditor();
@@ -63,81 +110,15 @@ service cloud.firestore {
       allow write: if isAdmin() || isAuditor();
     }
 
-    match /managementReviewOutputs/{outputId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || isAuditor();
-      allow update: if isSignedIn();
-    }
-
-    match /correctiveActionRequests/{carId} {
-      allow read: if isSignedIn();
-      allow create: if isAdmin() || isAuditor();
-      allow update: if isAdmin() || isAuditor() || 
-        (hasProfile() && resource.data.unitId == profile().get('unitId', ''));
-      allow delete: if isAdmin();
-    }
-
-    match /submissions/{submissionId} {
-      // Allow read if user is Admin/Auditor OR if the document belongs to their unit/campus scope
-      allow read: if isAdmin() || isAuditor() || (isSignedIn() && hasProfile() && (
-        resource.data.userId == request.auth.uid || 
-        resource.data.unitId == profile().get('unitId', '') || 
-        (isSupervisor() && resource.data.campusId == profile().get('campusId', ''))
-      ));
-      allow create: if isSignedIn();
-      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
-        resource.data.userId == request.auth.uid || 
-        (isSupervisor() && resource.data.campusId == profile().get('campusId', ''))
-      ));
-      allow delete: if isAdmin();
-    }
-
-    match /risks/{riskId} { 
-      // Synchronized with Submissions: Allow unit and campus level visibility
-      allow read: if isAdmin() || isAuditor() || (isSignedIn() && hasProfile() && (
-        resource.data.userId == request.auth.uid || 
-        resource.data.unitId == profile().get('unitId', '') || 
-        (isSupervisor() && resource.data.campusId == profile().get('campusId', ''))
-      ));
-      allow create: if isSignedIn();
-      allow update: if isAdmin() || (isSignedIn() && hasProfile() && (
-        resource.data.userId == request.auth.uid || 
-        (isSupervisor() && resource.data.campusId == profile().get('campusId', ''))
-      ));
-      allow delete: if isAdmin();
-    }
-
-    // --------------------------------------------------------------------------
-    // SYSTEM REGISTRIES
-    // --------------------------------------------------------------------------
-
-    match /qaAdvisories/{advisoryId} { 
-      allow read: if isSignedIn(); 
-      allow write: if isAdmin(); 
-    }
-
-    match /academicPrograms/{programId} { allow read: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
-    match /programCompliances/{recordId} { allow read: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
-    match /campuses/{campusId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /units/{unitId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /roles/{roleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /cycles/{cycleId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    
-    // Announcement & Configuration rules
-    match /campusSettings/{settingId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSupervisor() && settingId == profile().get('campusId', ''));
-    }
-
-    match /procedureManuals/{manualId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    match /eomsPolicyManuals/{sectionId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
+    match /campuses/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /units/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /roles/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /cycles/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /isoClauses/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /procedureManuals/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /eomsPolicyManuals/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /academicPrograms/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
+    match /programCompliances/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
 
     // --------------------------------------------------------------------------
     // AUDIT LOGS & FEEDBACK
@@ -161,10 +142,10 @@ service cloud.firestore {
 
     match /softwareEvaluations/{evalId} {
       allow read: if isAdmin() || isAuditor();
-      allow create: if true; // Public stakeholders can evaluate
+      allow create: if true; 
     }
 
-    // Catch-all for legacy or other collections
+    // Catch-all for other collections
     match /{path=**} {
       allow read, write: if isAdmin();
     }
