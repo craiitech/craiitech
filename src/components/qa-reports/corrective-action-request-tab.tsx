@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, History, Trash2, Edit, Info, ShieldCheck, FileText, ClipboardCheck, UserCheck, Clock, UserPlus, ListTodo } from 'lucide-react';
+import { Loader2, PlusCircle, History, Trash2, Edit, Info, ShieldCheck, FileText, ClipboardCheck, UserCheck, Clock, UserPlus, ListTodo, User, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -59,10 +59,12 @@ const carSchema = z.object({
 
   verificationRecords: z.array(z.object({
     result: z.string().min(1, 'Verification result is required'),
+    resultVerifiedBy: z.string().min(1, 'Required'),
+    resultVerificationDate: z.string().min(1, 'Required'),
     effectivenessResult: z.string().min(1, 'Verification of effectiveness is required'),
+    effectivenessVerifiedBy: z.string().min(1, 'Required'),
+    effectivenessVerificationDate: z.string().min(1, 'Required'),
     remarks: z.string().optional(),
-    verifiedBy: z.string().min(1, 'Verified by is required'),
-    verificationDate: z.string().min(1, 'Date is required'),
   })).optional(),
   
   status: z.enum(['Open', 'In Progress', 'Closed']),
@@ -118,7 +120,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         })),
         verificationRecords: (values.verificationRecords || []).map(rec => ({
             ...rec,
-            verificationDate: Timestamp.fromDate(new Date(rec.verificationDate))
+            resultVerificationDate: Timestamp.fromDate(new Date(rec.resultVerificationDate)),
+            effectivenessVerificationDate: Timestamp.fromDate(new Date(rec.effectivenessVerificationDate))
         })),
         updatedAt: serverTimestamp(),
       };
@@ -158,7 +161,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
       })),
       verificationRecords: (car.verificationRecords || []).map(rec => ({
           ...rec,
-          verificationDate: safeDate(rec.verificationDate)
+          resultVerificationDate: safeDate(rec.resultVerificationDate),
+          effectivenessVerificationDate: safeDate(rec.effectivenessVerificationDate)
       })),
     } as any);
     setIsDialogOpen(true);
@@ -187,7 +191,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
           ) : (
             <Table>
-              <TableHeader className="bg-muted/50">
+              <TableHeader>
                 <TableRow>
                   <TableHead className="font-bold text-[10px] uppercase">CAR No. & Unit</TableHead>
                   <TableHead className="font-bold text-[10px] uppercase">Procedure / Findings</TableHead>
@@ -462,37 +466,122 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                         <Button 
                                             type="button" 
                                             size="sm" 
-                                            onClick={() => appendVerification({ result: '', effectivenessResult: '', remarks: '', verifiedBy: '', verificationDate: format(new Date(), 'yyyy-MM-dd') })}
+                                            onClick={() => appendVerification({ 
+                                                result: '', 
+                                                resultVerifiedBy: '', 
+                                                resultVerificationDate: format(new Date(), 'yyyy-MM-dd'),
+                                                effectivenessResult: '', 
+                                                effectivenessVerifiedBy: '', 
+                                                effectivenessVerificationDate: format(new Date(), 'yyyy-MM-dd'),
+                                                remarks: '' 
+                                            })}
                                             className="h-7 text-[9px] font-black uppercase shadow-lg shadow-primary/20"
                                         >
                                             <UserPlus className="h-3 w-3 mr-1.5" /> Add Verification Record
                                         </Button>
                                     </div>
                                     
-                                    <div className="space-y-4">
+                                    <div className="space-y-6">
                                         {verificationFields.map((field, index) => (
-                                            <Card key={field.id} className="relative border-primary/10 overflow-hidden group">
+                                            <Card key={field.id} className="relative border-primary/10 overflow-hidden group shadow-md">
                                                 <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeVerification(index)}>
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
-                                                <CardHeader className="bg-muted/30 py-2 border-b">
-                                                    <CardTitle className="text-[10px] font-black uppercase text-primary">Verification Cycle #{index + 1}</CardTitle>
+                                                <CardHeader className="bg-muted/30 py-3 border-b">
+                                                    <CardTitle className="text-[10px] font-black uppercase text-primary flex items-center gap-2">
+                                                        <ClipboardCheck className="h-3.5 w-3.5" />
+                                                        Verification Cycle #{index + 1}
+                                                    </CardTitle>
                                                 </CardHeader>
-                                                <CardContent className="p-4 space-y-4">
-                                                    <FormField control={form.control} name={`verificationRecords.${index}.result`} render={({ field: inputField }) => (
-                                                        <FormItem><FormLabel className="text-[10px] font-bold uppercase">Verification Finding / Result</FormLabel><FormControl><Textarea {...inputField} rows={2} className="text-xs bg-slate-50" /></FormControl></FormItem>
-                                                    )} />
-                                                    <FormField control={form.control} name={`verificationRecords.${index}.effectivenessResult`} render={({ field: inputField }) => (
-                                                        <FormItem><FormLabel className="text-[10px] font-bold uppercase">Verification of Effectiveness of the Action Taken</FormLabel><FormControl><Textarea {...inputField} rows={2} className="text-xs bg-slate-50" /></FormControl></FormItem>
-                                                    )} />
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                        <FormField control={form.control} name={`verificationRecords.${index}.verifiedBy`} render={({ field: inputField }) => (
-                                                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Verified By</FormLabel><FormControl><Input {...inputField} className="h-8 text-[10px]" /></FormControl></FormItem>
+                                                <CardContent className="p-6 space-y-8">
+                                                    {/* Segment 1: Verification Result */}
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <FileText className="h-4 w-4 text-primary opacity-60" />
+                                                            <h5 className="text-[11px] font-black uppercase text-slate-700 tracking-tight">Part 1: Verification Findings / Result</h5>
+                                                        </div>
+                                                        <FormField control={form.control} name={`verificationRecords.${index}.result`} render={({ field: inputField }) => (
+                                                            <FormItem>
+                                                                <FormControl><Textarea {...inputField} rows={3} placeholder="Record the actual observations and findings..." className="text-xs bg-slate-50 border-slate-200" /></FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
                                                         )} />
-                                                        <FormField control={form.control} name={`verificationRecords.${index}.verificationDate`} render={({ field: inputField }) => (
-                                                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Date Verified</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-[10px]" /></FormControl></FormItem>
-                                                        )} />
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <FormField control={form.control} name={`verificationRecords.${index}.resultVerifiedBy`} render={({ field: inputField }) => (
+                                                                <FormItem>
+                                                                    <FormLabel className="text-[9px] font-bold uppercase text-muted-foreground">Result Verified By</FormLabel>
+                                                                    <FormControl>
+                                                                        <div className="relative">
+                                                                            <User className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
+                                                                            <Input {...inputField} placeholder="Verifier Name" className="h-8 text-[10px] pl-7" />
+                                                                        </div>
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )} />
+                                                            <FormField control={form.control} name={`verificationRecords.${index}.resultVerificationDate`} render={({ field: inputField }) => (
+                                                                <FormItem>
+                                                                    <FormLabel className="text-[9px] font-bold uppercase text-muted-foreground">Date Verified</FormLabel>
+                                                                    <FormControl>
+                                                                        <div className="relative">
+                                                                            <Calendar className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
+                                                                            <Input type="date" {...inputField} className="h-8 text-[10px] pl-7" />
+                                                                        </div>
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )} />
+                                                        </div>
                                                     </div>
+
+                                                    <Separator />
+
+                                                    {/* Segment 2: Verification of Effectiveness */}
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <ShieldCheck className="h-4 w-4 text-emerald-600 opacity-60" />
+                                                            <h5 className="text-[11px] font-black uppercase text-emerald-800 tracking-tight">Part 2: Verification of Effectiveness</h5>
+                                                        </div>
+                                                        <FormField control={form.control} name={`verificationRecords.${index}.effectivenessResult`} render={({ field: inputField }) => (
+                                                            <FormItem>
+                                                                <FormControl><Textarea {...inputField} rows={3} placeholder="Describe how effective the implemented actions were in preventing recurrence..." className="text-xs bg-emerald-50/20 border-emerald-100" /></FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )} />
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <FormField control={form.control} name={`verificationRecords.${index}.effectivenessVerifiedBy`} render={({ field: inputField }) => (
+                                                                <FormItem>
+                                                                    <FormLabel className="text-[9px] font-bold uppercase text-emerald-700/70">Effectiveness Verified By</FormLabel>
+                                                                    <FormControl>
+                                                                        <div className="relative">
+                                                                            <User className="absolute left-2 top-2.5 h-3 w-3 text-emerald-400" />
+                                                                            <Input {...inputField} placeholder="Verifier Name" className="h-8 text-[10px] pl-7 border-emerald-100" />
+                                                                        </div>
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )} />
+                                                            <FormField control={form.control} name={`verificationRecords.${index}.effectivenessVerificationDate`} render={({ field: inputField }) => (
+                                                                <FormItem>
+                                                                    <FormLabel className="text-[9px] font-bold uppercase text-emerald-700/70">Date of Effectiveness Verification</FormLabel>
+                                                                    <FormControl>
+                                                                        <div className="relative">
+                                                                            <Calendar className="absolute left-2 top-2.5 h-3 w-3 text-emerald-400" />
+                                                                            <Input type="date" {...inputField} className="h-8 text-[10px] pl-7 border-emerald-100" />
+                                                                        </div>
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )} />
+                                                        </div>
+                                                    </div>
+
+                                                    <FormField control={form.control} name={`verificationRecords.${index}.remarks`} render={({ field: inputField }) => (
+                                                        <FormItem className="pt-2">
+                                                            <FormLabel className="text-[9px] font-bold uppercase text-muted-foreground">General Remarks (Optional)</FormLabel>
+                                                            <FormControl><Input {...inputField} placeholder="Any other observations..." className="h-8 text-[10px]" /></FormControl>
+                                                        </FormItem>
+                                                    )} />
                                                 </CardContent>
                                             </Card>
                                         ))}

@@ -291,10 +291,12 @@ export type CARActionStep = {
 
 export type CARVerificationRecord = {
     result: string;
-    effectivenessResult?: string; // Verified effectiveness of action taken
+    resultVerifiedBy: string;
+    resultVerificationDate: any; // Timestamp
+    effectivenessResult: string;
+    effectivenessVerifiedBy: string;
+    effectivenessVerificationDate: any; // Timestamp
     remarks?: string;
-    verifiedBy: string;
-    verificationDate: any; // Timestamp
 };
 
 export type CorrectiveActionRequest = {
