@@ -291,7 +291,6 @@ export type CorrectiveActionRequest = {
     initiator: string;
     natureOfFinding: 'NC' | 'OFI';
     concerningClause: string;
-    concerningTopManagementId?: string;
     concerningTopManagementName?: string;
     timeLimitForReply: any; // Timestamp
     unitId: string;

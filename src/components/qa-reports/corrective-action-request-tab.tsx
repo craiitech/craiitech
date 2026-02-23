@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import type { CorrectiveActionRequest, Campus, Unit, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,8 +37,8 @@ const carSchema = z.object({
   initiator: z.string().min(1, 'Initiator is required'),
   natureOfFinding: z.enum(['NC', 'OFI']),
   concerningClause: z.string().min(1, 'ISO Clause is required'),
-  concerningTopManagementId: z.string().min(1, 'Top Management reference is required'),
-  timeLimitForReply: z.string().min(1, 'Time limit for reply is required'),
+  concerningTopManagementName: z.string().min(1, 'Top Management reference is required'),
+  timeLimitForReply: z.string().min(1, 'Time limit for reply is required.'),
   unitId: z.string().min(1, 'Responsible unit is required'),
   campusId: z.string().min(1, 'Campus is required'),
   unitHead: z.string().min(1, 'Head of Unit is required'),
@@ -76,18 +76,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   );
   const { data: cars, isLoading } = useCollection<CorrectiveActionRequest>(carQuery);
 
-  const usersQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
-  const { data: allUsers } = useCollection<User>(usersQuery);
-
-  const topManagement = useMemo(() => {
-    if (!allUsers) return [];
-    return allUsers.filter(u => 
-        u.role?.toLowerCase().includes('vice president') || 
-        u.role?.toLowerCase().includes('director') ||
-        u.role?.toLowerCase().includes('president')
-    ).sort((a, b) => (a.firstName || '').localeCompare(b.firstName || ''));
-  }, [allUsers]);
-
   const form = useForm<z.infer<typeof carSchema>>({
     resolver: zodResolver(carSchema),
     defaultValues: { 
@@ -102,11 +90,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     if (!firestore) return;
     setIsSubmitting(true);
     try {
-      const topMgmt = topManagement.find(u => u.id === values.concerningTopManagementId);
-      
       const carData: any = {
         ...values,
-        concerningTopManagementName: topMgmt ? `${topMgmt.firstName} ${topMgmt.lastName}` : '',
         requestDate: Timestamp.fromDate(new Date(values.requestDate)),
         timeLimitForReply: Timestamp.fromDate(new Date(values.timeLimitForReply)),
         immediateCompletionDate: values.immediateCompletionDate ? Timestamp.fromDate(new Date(values.immediateCompletionDate)) : null,
@@ -267,25 +252,14 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                 </div>
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
-                                    <FormField control={form.control} name="concerningTopManagementId" render={({ field }) => (
+                                    <FormField control={form.control} name="concerningTopManagementName" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel className="text-xs font-bold uppercase text-primary flex items-center gap-2">
                                                 <UserCheck className="h-3.5 w-3.5" /> Concerning (Top Management / VP)
                                             </FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger className="bg-primary/5 border-primary/20 h-10 font-bold">
-                                                        <SelectValue placeholder="Select Institutional Oversight" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {topManagement.map(u => (
-                                                        <SelectItem key={u.id} value={u.id}>
-                                                            {u.firstName} {u.lastName} ({u.role})
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                            <FormControl>
+                                                <Input {...field} placeholder="Enter name of VP or Director" className="bg-primary/5 border-primary/20 h-10 font-bold" disabled={!canManage} />
+                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
