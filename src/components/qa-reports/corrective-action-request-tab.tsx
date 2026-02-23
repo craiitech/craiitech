@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -110,8 +109,11 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     if (!firestore) return;
     setIsSubmitting(true);
     try {
+      // Explicitly handle optional fields to avoid Firestore "undefined" errors
       const carData: any = {
         ...values,
+        ncReportNumber: values.ncReportNumber || '',
+        rootCauseAnalysis: values.rootCauseAnalysis || '',
         requestDate: Timestamp.fromDate(new Date(values.requestDate)),
         timeLimitForReply: Timestamp.fromDate(new Date(values.timeLimitForReply)),
         actionSteps: (values.actionSteps || []).map(step => ({
@@ -120,6 +122,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         })),
         verificationRecords: (values.verificationRecords || []).map(rec => ({
             ...rec,
+            remarks: rec.remarks || '',
             resultVerificationDate: Timestamp.fromDate(new Date(rec.resultVerificationDate)),
             effectivenessVerificationDate: Timestamp.fromDate(new Date(rec.effectivenessVerificationDate))
         })),
@@ -445,7 +448,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                         ))}
                                         {actionFields.length === 0 && (
                                             <div className="py-10 text-center border border-dashed rounded-lg bg-muted/10">
-                                                <ListTodo className="h-8 w-8 mx-auto text-muted-foreground opacity-20 mb-2" />
+                                                <ListTodo className="h-8 w-8 mx-auto text-muted-foreground/20 mb-2" />
                                                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">No specific action steps defined</p>
                                             </div>
                                         )}
@@ -579,7 +582,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                     <FormField control={form.control} name={`verificationRecords.${index}.remarks`} render={({ field: inputField }) => (
                                                         <FormItem className="pt-2">
                                                             <FormLabel className="text-[9px] font-bold uppercase text-muted-foreground">General Remarks (Optional)</FormLabel>
-                                                            <FormControl><Input {...inputField} placeholder="Any other observations..." className="h-8 text-[10px]" /></FormControl>
+                                                            <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="Any other observations..." className="h-8 text-[10px]" /></FormControl>
                                                         </FormItem>
                                                     )} />
                                                 </CardContent>

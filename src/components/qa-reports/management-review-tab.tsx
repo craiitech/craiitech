@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -132,6 +131,8 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
 
       const dataToSave = {
         ...values,
+        lineNumber: values.lineNumber || '',
+        actionPlan: values.actionPlan || '',
         mrId: selectedMr.id,
         campusIds,
         concernedUnitIds,
@@ -606,7 +607,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                     <FormField control={outputForm.control} name="actionPlan" render={({ field }) => (
                         <FormItem>
                             <FormLabel className="text-xs font-black uppercase text-slate-700">Proposed Action Strategy (Optional)</FormLabel>
-                            <FormControl><Input {...field} placeholder="Brief suggestion on implementation..." className="bg-slate-50" /></FormControl>
+                            <FormControl><Input {...field} value={field.value || ''} placeholder="Brief suggestion on implementation..." className="bg-slate-50" /></FormControl>
                             <FormDescription className="text-[10px]">Leave blank if the unit will propose their own plan based on the decision.</FormDescription>
                         </FormItem>
                     )} />
