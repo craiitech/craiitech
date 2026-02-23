@@ -59,6 +59,7 @@ const carSchema = z.object({
 
   verificationRecords: z.array(z.object({
     result: z.string().min(1, 'Verification result is required'),
+    effectivenessResult: z.string().min(1, 'Verification of effectiveness is required'),
     remarks: z.string().optional(),
     verifiedBy: z.string().min(1, 'Verified by is required'),
     verificationDate: z.string().min(1, 'Date is required'),
@@ -461,7 +462,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                         <Button 
                                             type="button" 
                                             size="sm" 
-                                            onClick={() => appendVerification({ result: '', remarks: '', verifiedBy: '', verificationDate: format(new Date(), 'yyyy-MM-dd') })}
+                                            onClick={() => appendVerification({ result: '', effectivenessResult: '', remarks: '', verifiedBy: '', verificationDate: format(new Date(), 'yyyy-MM-dd') })}
                                             className="h-7 text-[9px] font-black uppercase shadow-lg shadow-primary/20"
                                         >
                                             <UserPlus className="h-3 w-3 mr-1.5" /> Add Verification Record
@@ -480,6 +481,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                 <CardContent className="p-4 space-y-4">
                                                     <FormField control={form.control} name={`verificationRecords.${index}.result`} render={({ field: inputField }) => (
                                                         <FormItem><FormLabel className="text-[10px] font-bold uppercase">Verification Finding / Result</FormLabel><FormControl><Textarea {...inputField} rows={2} className="text-xs bg-slate-50" /></FormControl></FormItem>
+                                                    )} />
+                                                    <FormField control={form.control} name={`verificationRecords.${index}.effectivenessResult`} render={({ field: inputField }) => (
+                                                        <FormItem><FormLabel className="text-[10px] font-bold uppercase">Verification of Effectiveness of the Action Taken</FormLabel><FormControl><Textarea {...inputField} rows={2} className="text-xs bg-slate-50" /></FormControl></FormItem>
                                                     )} />
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                         <FormField control={form.control} name={`verificationRecords.${index}.verifiedBy`} render={({ field: inputField }) => (
@@ -511,7 +515,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                 <SelectContent>
                                                     <SelectItem value="Open">Open</SelectItem>
                                                     <SelectItem value="In Progress">In Progress</SelectItem>
-                                                    <SelectItem value="Closed" className="text-emerald-600 font-bold">Closed (Resolved)</SelectItem>
+                                                    <SelectItem value="Closed">Closed</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </FormItem>
@@ -536,7 +540,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                 <p className="text-[10px] font-bold text-muted-foreground uppercase">RSU Quality Management System | Registry v2.0</p>
                 <div className="flex gap-2">
                     <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
-                    <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20">
+                    <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black">
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ClipboardCheck className="mr-2 h-4 w-4" />}
                         {editingCar ? 'Update Registry' : 'Issue Record'}
                     </Button>
