@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, History, Trash2, Edit, Info, ShieldCheck, FileText, ClipboardCheck, UserCheck, Clock, UserPlus, ListTodo, User, Calendar, Printer, Search, Filter, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Loader2, PlusCircle, History, Trash2, Edit, Info, ShieldCheck, FileText, ClipboardCheck, UserCheck, Clock, UserPlus, ListTodo, User, Calendar, Printer, Search, Filter, TrendingUp, AlertTriangle, CheckCircle2, Hash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -194,21 +194,40 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     if (!firestore) return;
     setIsSubmitting(true);
     try {
+      // Explicitly construct carData to avoid spread of 'undefined' optional fields
       const carData: any = {
-        ...values,
+        carNumber: values.carNumber,
         ncReportNumber: values.ncReportNumber || '',
-        rootCauseAnalysis: values.rootCauseAnalysis || '',
-        requestDate: Timestamp.fromDate(new Date(values.requestDate)),
+        source: values.source,
+        procedureTitle: values.procedureTitle,
+        initiator: values.initiator,
+        natureOfFinding: values.natureOfFinding,
+        concerningClause: values.concerningClause,
+        concerningTopManagementName: values.concerningTopManagementName,
         timeLimitForReply: Timestamp.fromDate(new Date(values.timeLimitForReply)),
+        unitId: values.unitId,
+        campusId: values.campusId,
+        unitHead: values.unitHead,
+        descriptionOfNonconformance: values.descriptionOfNonconformance,
+        requestDate: Timestamp.fromDate(new Date(values.requestDate)),
+        preparedBy: values.preparedBy,
+        approvedBy: values.approvedBy,
+        rootCauseAnalysis: values.rootCauseAnalysis || '',
+        status: values.status,
         actionSteps: (values.actionSteps || []).map(step => ({
-            ...step,
-            completionDate: Timestamp.fromDate(new Date(step.completionDate))
+            description: step.description || '',
+            type: step.type,
+            completionDate: Timestamp.fromDate(new Date(step.completionDate)),
+            status: step.status || 'Pending'
         })),
         verificationRecords: (values.verificationRecords || []).map(rec => ({
-            ...rec,
-            remarks: rec.remarks || '',
+            result: rec.result || '',
+            resultVerifiedBy: rec.resultVerifiedBy || '',
             resultVerificationDate: Timestamp.fromDate(new Date(rec.resultVerificationDate)),
-            effectivenessVerificationDate: Timestamp.fromDate(new Date(rec.effectivenessVerificationDate))
+            effectivenessResult: rec.effectivenessResult || '',
+            effectivenessVerifiedBy: rec.effectivenessVerifiedBy || '',
+            effectivenessVerificationDate: Timestamp.fromDate(new Date(rec.effectivenessVerificationDate)),
+            remarks: rec.remarks || '',
         })),
         updatedAt: serverTimestamp(),
       };
@@ -586,13 +605,13 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                     <FormField control={form.control} name={`actionSteps.${index}.description`} render={({ field: inputField }) => (
                                                         <FormItem className="md:col-span-1">
                                                             <FormLabel className="text-[9px] uppercase font-bold">Action Description</FormLabel>
-                                                            <FormControl><Input {...inputField} className="h-8 text-[10px]" /></FormControl>
+                                                            <FormControl><Input {...field} className="h-8 text-[10px]" /></FormControl>
                                                         </FormItem>
                                                     )} />
                                                     <FormField control={form.control} name={`actionSteps.${index}.completionDate`} render={({ field: inputField }) => (
                                                         <FormItem className="md:col-span-1">
                                                             <FormLabel className="text-[9px] uppercase font-bold">Target Completion</FormLabel>
-                                                            <FormControl><Input type="date" {...inputField} className="h-8 text-[10px]" /></FormControl>
+                                                            <FormControl><Input type="date" {...field} className="h-8 text-[10px]" /></FormControl>
                                                         </FormItem>
                                                     )} />
                                                     <FormField control={form.control} name={`actionSteps.${index}.status`} render={({ field: inputField }) => (
@@ -669,7 +688,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                         </div>
                                                         <FormField control={form.control} name={`verificationRecords.${index}.result`} render={({ field: inputField }) => (
                                                             <FormItem>
-                                                                <FormControl><Textarea {...inputField} rows={3} placeholder="Record the actual observations and findings..." className="text-xs bg-slate-50 border-slate-200" /></FormControl>
+                                                                <FormControl><Textarea {...field} rows={3} placeholder="Record the actual observations and findings..." className="text-xs bg-slate-50 border-slate-200" /></FormControl>
                                                                 <FormMessage />
                                                             </FormItem>
                                                         )} />
@@ -680,7 +699,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                                     <FormControl>
                                                                         <div className="relative">
                                                                             <User className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
-                                                                            <Input {...inputField} placeholder="Verifier Name" className="h-8 text-[10px] pl-7" />
+                                                                            <Input {...field} placeholder="Verifier Name" className="h-8 text-[10px] pl-7" />
                                                                         </div>
                                                                     </FormControl>
                                                                     <FormMessage />
@@ -692,7 +711,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                                     <FormControl>
                                                                         <div className="relative">
                                                                             <Calendar className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
-                                                                            <Input type="date" {...inputField} className="h-8 text-[10px] pl-7" />
+                                                                            <Input type="date" {...field} className="h-8 text-[10px] pl-7" />
                                                                         </div>
                                                                     </FormControl>
                                                                     <FormMessage />
@@ -711,7 +730,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                         </div>
                                                         <FormField control={form.control} name={`verificationRecords.${index}.effectivenessResult`} render={({ field: inputField }) => (
                                                             <FormItem>
-                                                                <FormControl><Textarea {...inputField} rows={3} placeholder="Describe how effective the implemented actions were in preventing recurrence..." className="text-xs bg-emerald-50/20 border-emerald-100" /></FormControl>
+                                                                <FormControl><Textarea {...field} rows={3} placeholder="Describe how effective the implemented actions were in preventing recurrence..." className="text-xs bg-emerald-50/20 border-emerald-100" /></FormControl>
                                                                 <FormMessage />
                                                             </FormItem>
                                                         )} />
@@ -722,7 +741,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                                     <FormControl>
                                                                         <div className="relative">
                                                                             <User className="absolute left-2 top-2.5 h-3 w-3 text-emerald-400" />
-                                                                            <Input {...inputField} placeholder="Verifier Name" className="h-8 text-[10px] pl-7 border-emerald-100" />
+                                                                            <Input {...field} placeholder="Verifier Name" className="h-8 text-[10px] pl-7 border-emerald-100" />
                                                                         </div>
                                                                     </FormControl>
                                                                     <FormMessage />
@@ -734,7 +753,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                                     <FormControl>
                                                                         <div className="relative">
                                                                             <Calendar className="absolute left-2 top-2.5 h-3 w-3 text-emerald-400" />
-                                                                            <Input type="date" {...inputField} className="h-8 text-[10px] pl-7 border-emerald-100" />
+                                                                            <Input type="date" {...field} className="h-8 text-[10px] pl-7 border-emerald-100" />
                                                                         </div>
                                                                     </FormControl>
                                                                     <FormMessage />
@@ -746,7 +765,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                     <FormField control={form.control} name={`verificationRecords.${index}.remarks`} render={({ field: inputField }) => (
                                                         <FormItem className="pt-2">
                                                             <FormLabel className="text-[9px] font-bold uppercase text-muted-foreground">General Remarks (Optional)</FormLabel>
-                                                            <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="Any other observations..." className="h-8 text-[10px]" /></FormControl>
+                                                            <FormControl><Input {...field} placeholder="Any other observations..." className="h-8 text-[10px]" /></FormControl>
                                                         </FormItem>
                                                     )} />
                                                 </CardContent>
