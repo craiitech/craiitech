@@ -3,12 +3,10 @@
 
 import { useState } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, where } from 'firebase/firestore';
-import type { QaAuditReport, ManagementReview, ManagementReviewOutput, CorrectiveActionRequest, Campus, Unit } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { collection } from 'firebase/firestore';
+import type { Campus, Unit } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, FileText, Users, ClipboardCheck, History, ShieldCheck, Presentation, BarChart3, ListTodo } from 'lucide-react';
+import { Loader2, FileText, Users, ClipboardCheck, ShieldCheck, Presentation, BarChart3, ListTodo } from 'lucide-react';
 import { AuditReportsTab } from '@/components/qa-reports/audit-reports-tab';
 import { ManagementReviewTab } from '@/components/qa-reports/management-review-tab';
 import { CorrectiveActionRequestTab } from '@/components/qa-reports/corrective-action-request-tab';
@@ -16,7 +14,7 @@ import { QaAnalyticsTab } from '@/components/qa-reports/qa-analytics-tab';
 import { ActionableDecisionsTab } from '@/components/qa-reports/actionable-decisions-tab';
 
 export default function QaReportsPage() {
-  const { isAdmin, userRole, isUserLoading, userProfile } = useUser();
+  const { isAdmin, userRole, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -60,6 +58,9 @@ export default function QaReportsPage() {
           <TabsTrigger value="decisions" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
             <ListTodo className="h-3.5 w-3.5" /> Actionable Decisions
           </TabsTrigger>
+          <TabsTrigger value="car" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
+            <ClipboardCheck className="h-3.5 w-3.5" /> CAR Registry
+          </TabsTrigger>
           <TabsTrigger value="iqa" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
             <FileText className="h-3.5 w-3.5" /> IQA Reports
           </TabsTrigger>
@@ -69,9 +70,6 @@ export default function QaReportsPage() {
           <TabsTrigger value="mr" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
             <Users className="h-3.5 w-3.5" /> Management Review
           </TabsTrigger>
-          <TabsTrigger value="car" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
-            <ClipboardCheck className="h-3.5 w-3.5" /> CAR Registry
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="animate-in fade-in duration-500">
@@ -80,6 +78,10 @@ export default function QaReportsPage() {
 
         <TabsContent value="decisions">
           <ActionableDecisionsTab campuses={campuses || []} units={units || []} />
+        </TabsContent>
+
+        <TabsContent value="car">
+          <CorrectiveActionRequestTab campuses={campuses || []} units={units || []} canManage={canManage} />
         </TabsContent>
 
         <TabsContent value="iqa">
@@ -92,10 +94,6 @@ export default function QaReportsPage() {
 
         <TabsContent value="mr">
           <ManagementReviewTab campuses={campuses || []} units={units || []} canManage={canManage} />
-        </TabsContent>
-
-        <TabsContent value="car">
-          <CorrectiveActionRequestTab campuses={campuses || []} units={units || []} canManage={canManage} />
         </TabsContent>
       </Tabs>
     </div>
