@@ -4,24 +4,25 @@
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
-import type { CorrectiveActionRequest, Campus, Unit, User } from '@/lib/types';
+import type { CorrectiveActionRequest, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, History, Trash2, Edit, Info, ShieldCheck, FileText, ClipboardCheck, UserCheck, Clock } from 'lucide-react';
+import { Loader2, PlusCircle, History, Trash2, Edit, Info, ShieldCheck, FileText, ClipboardCheck, UserCheck, Clock, UserPlus, ListTodo } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -48,16 +49,20 @@ const carSchema = z.object({
   approvedBy: z.string().min(1, 'Approved by is required'),
   
   rootCauseAnalysis: z.string().optional(),
-  immediateCorrection: z.string().optional(),
-  immediateCompletionDate: z.string().optional(),
-  correctiveAction: z.string().optional(),
-  correctiveCompletionDate: z.string().optional(),
   
-  followUpResult: z.string().optional(),
-  followUpRemarks: z.string().optional(),
-  followUpVerifiedBy: z.string().optional(),
-  followUpVerificationDate: z.string().optional(),
-  followUpApprovedBy: z.string().optional(),
+  actionSteps: z.array(z.object({
+    description: z.string().min(1, 'Description is required'),
+    type: z.enum(['Immediate Correction', 'Long-term Corrective Action']),
+    completionDate: z.string().min(1, 'Date is required'),
+    status: z.enum(['Pending', 'Completed']),
+  })).optional(),
+
+  verificationRecords: z.array(z.object({
+    result: z.string().min(1, 'Verification result is required'),
+    remarks: z.string().optional(),
+    verifiedBy: z.string().min(1, 'Verified by is required'),
+    verificationDate: z.string().min(1, 'Date is required'),
+  })).optional(),
   
   status: z.enum(['Open', 'In Progress', 'Closed']),
 });
@@ -82,8 +87,20 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         source: 'Audit Finding', 
         natureOfFinding: 'NC', 
         status: 'Open',
-        requestDate: format(new Date(), 'yyyy-MM-dd')
+        requestDate: format(new Date(), 'yyyy-MM-dd'),
+        actionSteps: [],
+        verificationRecords: []
     }
+  });
+
+  const { fields: actionFields, append: appendAction, remove: removeAction } = useFieldArray({
+    control: form.control,
+    name: "actionSteps"
+  });
+
+  const { fields: verificationFields, append: appendVerification, remove: removeVerification } = useFieldArray({
+    control: form.control,
+    name: "verificationRecords"
   });
 
   const onSubmit = async (values: z.infer<typeof carSchema>) => {
@@ -94,9 +111,14 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         ...values,
         requestDate: Timestamp.fromDate(new Date(values.requestDate)),
         timeLimitForReply: Timestamp.fromDate(new Date(values.timeLimitForReply)),
-        immediateCompletionDate: values.immediateCompletionDate ? Timestamp.fromDate(new Date(values.immediateCompletionDate)) : null,
-        correctiveCompletionDate: values.correctiveCompletionDate ? Timestamp.fromDate(new Date(values.correctiveCompletionDate)) : null,
-        followUpVerificationDate: values.followUpVerificationDate ? Timestamp.fromDate(new Date(values.followUpVerificationDate)) : null,
+        actionSteps: (values.actionSteps || []).map(step => ({
+            ...step,
+            completionDate: Timestamp.fromDate(new Date(step.completionDate))
+        })),
+        verificationRecords: (values.verificationRecords || []).map(rec => ({
+            ...rec,
+            verificationDate: Timestamp.fromDate(new Date(rec.verificationDate))
+        })),
         updatedAt: serverTimestamp(),
       };
 
@@ -129,9 +151,14 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
       ...car,
       requestDate: safeDate(car.requestDate),
       timeLimitForReply: safeDate(car.timeLimitForReply),
-      immediateCompletionDate: safeDate(car.immediateCompletionDate),
-      correctiveCompletionDate: safeDate(car.correctiveCompletionDate),
-      followUpVerificationDate: safeDate(car.followUpVerificationDate),
+      actionSteps: (car.actionSteps || []).map(step => ({
+          ...step,
+          completionDate: safeDate(step.completionDate)
+      })),
+      verificationRecords: (car.verificationRecords || []).map(rec => ({
+          ...rec,
+          verificationDate: safeDate(rec.verificationDate)
+      })),
     } as any);
     setIsDialogOpen(true);
   };
@@ -147,7 +174,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             <p className="text-xs text-muted-foreground font-medium">Monitoring of non-conformance and improvement actions.</p>
         </div>
         {canManage && (
-          <Button onClick={() => { setEditingCar(null); form.reset({ source: 'Audit Finding', natureOfFinding: 'NC', status: 'Open', requestDate: format(new Date(), 'yyyy-MM-dd') }); setIsDialogOpen(true); }} size="sm" className="shadow-lg shadow-primary/20">
+          <Button onClick={() => { setEditingCar(null); form.reset({ source: 'Audit Finding', natureOfFinding: 'NC', status: 'Open', requestDate: format(new Date(), 'yyyy-MM-dd'), actionSteps: [], verificationRecords: [] }); setIsDialogOpen(true); }} size="sm" className="shadow-lg shadow-primary/20">
             <PlusCircle className="mr-2 h-4 w-4" /> Issue New CAR
           </Button>
         )}
@@ -237,7 +264,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                             <TabsList className="grid w-full grid-cols-4 h-12 bg-slate-100 p-1 mb-8">
                                 <TabsTrigger value="identification" className="text-xs font-bold uppercase"><Info className="h-3.5 w-3.5 mr-2" /> Identification</TabsTrigger>
                                 <TabsTrigger value="nonconformance" className="text-xs font-bold uppercase"><ShieldCheck className="h-3.5 w-3.5 mr-2" /> Statement</TabsTrigger>
-                                <TabsTrigger value="investigation" className="text-xs font-bold uppercase"><History className="h-3.5 w-3.5 mr-2" /> Action Plan</TabsTrigger>
+                                <TabsTrigger value="investigation" className="text-xs font-bold uppercase"><History className="h-3.5 w-3.5 mr-2" /> Action Registry</TabsTrigger>
                                 <TabsTrigger value="verification" className="text-xs font-bold uppercase"><ClipboardCheck className="h-3.5 w-3.5 mr-2" /> Verification</TabsTrigger>
                             </TabsList>
 
@@ -352,63 +379,149 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                     <FormItem><FormLabel className="text-sm font-black text-slate-800">Root Cause Analysis (Investigate cause of Non-Conformity)</FormLabel><FormControl><Textarea {...field} rows={4} className="bg-primary/5 border-primary/20" /></FormControl></FormItem>
                                 )} />
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-6 rounded-xl border-dashed border-2 bg-slate-50/50">
-                                    <div className="md:col-span-3 space-y-4">
-                                        <FormField control={form.control} name="immediateCorrection" render={({ field }) => (
-                                            <FormItem><FormLabel className="text-xs font-bold uppercase text-primary">Correction / Immediate Action</FormLabel><FormControl><Textarea {...field} rows={3} className="bg-white" /></FormControl></FormItem>
-                                        )} />
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between border-b pb-2">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Proposed Action Strategy Registry</h4>
+                                        <Button 
+                                            type="button" 
+                                            size="sm" 
+                                            variant="outline"
+                                            onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending' })}
+                                            className="h-7 text-[9px] font-black uppercase bg-white shadow-sm"
+                                        >
+                                            <PlusCircle className="h-3 w-3 mr-1.5" /> Add Action Step
+                                        </Button>
                                     </div>
-                                    <FormField control={form.control} name="immediateCompletionDate" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Completion Date</FormLabel><FormControl><Input type="date" {...field} className="bg-white" /></FormControl></FormItem>
-                                    )} />
+                                    <div className="space-y-3">
+                                        {actionFields.map((field, index) => (
+                                            <Card key={field.id} className="relative overflow-hidden group">
+                                                <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                                <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                                    <FormField control={form.control} name={`actionSteps.${index}.type`} render={({ field: inputField }) => (
+                                                        <FormItem className="md:col-span-1">
+                                                            <FormLabel className="text-[9px] uppercase font-bold">Action Type</FormLabel>
+                                                            <Select onValueChange={inputField.onChange} value={inputField.value}>
+                                                                <FormControl><SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger></FormControl>
+                                                                <SelectContent>
+                                                                    <SelectItem value="Immediate Correction">Immediate Correction</SelectItem>
+                                                                    <SelectItem value="Long-term Corrective Action">Long-term Action</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </FormItem>
+                                                    )} />
+                                                    <FormField control={form.control} name={`actionSteps.${index}.description`} render={({ field: inputField }) => (
+                                                        <FormItem className="md:col-span-1">
+                                                            <FormLabel className="text-[9px] uppercase font-bold">Action Description</FormLabel>
+                                                            <FormControl><Input {...inputField} className="h-8 text-[10px]" /></FormControl>
+                                                        </FormItem>
+                                                    )} />
+                                                    <FormField control={form.control} name={`actionSteps.${index}.completionDate`} render={({ field: inputField }) => (
+                                                        <FormItem className="md:col-span-1">
+                                                            <FormLabel className="text-[9px] uppercase font-bold">Target Completion</FormLabel>
+                                                            <FormControl><Input type="date" {...inputField} className="h-8 text-[10px]" /></FormControl>
+                                                        </FormItem>
+                                                    )} />
+                                                    <FormField control={form.control} name={`actionSteps.${index}.status`} render={({ field: inputField }) => (
+                                                        <FormItem className="md:col-span-1">
+                                                            <FormLabel className="text-[9px] uppercase font-bold">Execution Status</FormLabel>
+                                                            <Select onValueChange={inputField.onChange} value={inputField.value}>
+                                                                <FormControl><SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger></FormControl>
+                                                                <SelectContent>
+                                                                    <SelectItem value="Pending">Pending</SelectItem>
+                                                                    <SelectItem value="Completed">Completed</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </FormItem>
+                                                    )} />
+                                                </CardContent>
+                                            </Card>
+                                        ))}
+                                        {actionFields.length === 0 && (
+                                            <div className="py-10 text-center border border-dashed rounded-lg bg-muted/10">
+                                                <ListTodo className="h-8 w-8 mx-auto text-muted-foreground opacity-20 mb-2" />
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">No specific action steps defined</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-6 rounded-xl border-dashed border-2 bg-slate-50/50">
-                                    <div className="md:col-span-3 space-y-4">
-                                        <FormField control={form.control} name="correctiveAction" render={({ field }) => (
-                                            <FormItem><FormLabel className="text-xs font-bold uppercase text-emerald-700">Long-term Corrective Action</FormLabel><FormControl><Textarea {...field} rows={3} className="bg-white" /></FormControl></FormItem>
-                                        )} />
-                                    </div>
-                                    <FormField control={form.control} name="correctiveCompletionDate" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Completion Date</FormLabel><FormControl><Input type="date" {...field} className="bg-white" /></FormControl></FormItem>
-                                    )} />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-6">
+                                <div className="pt-6 border-t">
                                     <FormField control={form.control} name="unitHead" render={({ field }) => (
                                         <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Head of Unit Signature (Typed)</FormLabel><FormControl><Input {...field} className="bg-slate-50 font-bold" /></FormControl></FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="status" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Current Lifecycle Status</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl><SelectTrigger className="bg-slate-50 font-black"><SelectValue /></SelectTrigger></FormControl>
-                                                <SelectContent><SelectItem value="Open">Open</SelectItem><SelectItem value="In Progress">In Progress</SelectItem><SelectItem value="Closed">Closed (Resolved)</SelectItem></SelectContent>
-                                            </Select>
-                                        </FormItem>
                                     )} />
                                 </div>
                             </TabsContent>
 
                             <TabsContent value="verification" className="space-y-8 animate-in fade-in duration-300">
-                                <Card className="border-primary/20 shadow-inner">
-                                    <CardHeader className="bg-primary/5 py-3 border-b"><CardTitle className="text-xs font-black uppercase tracking-widest text-primary">Follow-up Result & Remarks</CardTitle></CardHeader>
-                                    <CardContent className="p-6 space-y-6">
-                                        <FormField control={form.control} name="followUpResult" render={({ field }) => (
-                                            <FormItem><FormLabel className="text-xs font-bold">Verification Statement (after 2 weeks)</FormLabel><FormControl><Textarea {...field} rows={3} className="bg-white" /></FormControl></FormItem>
-                                        )} />
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <FormField control={form.control} name="followUpVerifiedBy" render={({ field }) => (
-                                                <FormItem><FormLabel className="text-xs font-bold">Verified By</FormLabel><FormControl><Input {...field} className="bg-white" /></FormControl></FormItem>
-                                            )} />
-                                            <FormField control={form.control} name="followUpVerificationDate" render={({ field }) => (
-                                                <FormItem><FormLabel className="text-xs font-bold">Date of Verification</FormLabel><FormControl><Input type="date" {...field} className="bg-white" /></FormControl></FormItem>
-                                            )} />
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between border-b pb-2">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Verification & Follow-up History</h4>
+                                        <Button 
+                                            type="button" 
+                                            size="sm" 
+                                            onClick={() => appendVerification({ result: '', remarks: '', verifiedBy: '', verificationDate: format(new Date(), 'yyyy-MM-dd') })}
+                                            className="h-7 text-[9px] font-black uppercase shadow-lg shadow-primary/20"
+                                        >
+                                            <UserPlus className="h-3 w-3 mr-1.5" /> Add Verification Record
+                                        </Button>
+                                    </div>
+                                    
+                                    <div className="space-y-4">
+                                        {verificationFields.map((field, index) => (
+                                            <Card key={field.id} className="relative border-primary/10 overflow-hidden group">
+                                                <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeVerification(index)}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                                <CardHeader className="bg-muted/30 py-2 border-b">
+                                                    <CardTitle className="text-[10px] font-black uppercase text-primary">Verification Cycle #{index + 1}</CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="p-4 space-y-4">
+                                                    <FormField control={form.control} name={`verificationRecords.${index}.result`} render={({ field: inputField }) => (
+                                                        <FormItem><FormLabel className="text-[10px] font-bold uppercase">Verification Finding / Result</FormLabel><FormControl><Textarea {...inputField} rows={2} className="text-xs bg-slate-50" /></FormControl></FormItem>
+                                                    )} />
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <FormField control={form.control} name={`verificationRecords.${index}.verifiedBy`} render={({ field: inputField }) => (
+                                                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Verified By</FormLabel><FormControl><Input {...inputField} className="h-8 text-[10px]" /></FormControl></FormItem>
+                                                        )} />
+                                                        <FormField control={form.control} name={`verificationRecords.${index}.verificationDate`} render={({ field: inputField }) => (
+                                                            <FormItem><FormLabel className="text-[10px] font-bold uppercase">Date Verified</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-[10px]" /></FormControl></FormItem>
+                                                        )} />
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        ))}
+                                        {verificationFields.length === 0 && (
+                                            <div className="py-16 text-center border border-dashed rounded-lg bg-muted/10">
+                                                <ClipboardCheck className="h-10 w-10 mx-auto text-muted-foreground opacity-20 mb-2" />
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Awaiting initial verification</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="pt-6 border-t space-y-4">
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Closure Determination</h4>
+                                    <FormField control={form.control} name="status" render={({ field }) => (
+                                        <FormItem className="max-w-xs">
+                                            <FormLabel className="text-[10px] font-black uppercase text-primary">Current Lifecycle Status</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl><SelectTrigger className="bg-primary/5 border-primary/20 font-black h-10"><SelectValue /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="Open">Open</SelectItem>
+                                                    <SelectItem value="In Progress">In Progress</SelectItem>
+                                                    <SelectItem value="Closed" className="text-emerald-600 font-bold">Closed (Resolved)</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </FormItem>
+                                    )} />
+                                </div>
+
                                 <div className="p-6 rounded-lg bg-amber-50 border border-amber-100 flex items-start gap-3">
                                     <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                                     <p className="text-[10px] text-amber-800 leading-relaxed font-medium">
-                                        As per ISO 21001 requirements, verification of effectiveness should ideally occur 2 months after implementation to ensure long-term stability of the correction.
+                                        As per ISO 21001 requirements, verification of effectiveness should ideally occur at regular intervals after implementation to ensure long-term stability of the correction. Multiple verification records help demonstrate sustainable improvement.
                                     </p>
                                 </div>
                             </TabsContent>

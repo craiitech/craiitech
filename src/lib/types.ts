@@ -282,6 +282,20 @@ export type QaAdvisory = {
     createdAt: any; // Timestamp
 };
 
+export type CARActionStep = {
+    description: string;
+    type: 'Immediate Correction' | 'Long-term Corrective Action';
+    completionDate: any; // Timestamp
+    status: 'Pending' | 'Completed';
+};
+
+export type CARVerificationRecord = {
+    result: string;
+    remarks?: string;
+    verifiedBy: string;
+    verificationDate: any; // Timestamp
+};
+
 export type CorrectiveActionRequest = {
     id: string;
     carNumber: string;
@@ -302,16 +316,8 @@ export type CorrectiveActionRequest = {
     approvedBy: string;
     
     rootCauseAnalysis?: string;
-    immediateCorrection?: string;
-    immediateCompletionDate?: any;
-    correctiveAction?: string;
-    correctiveCompletionDate?: any;
-    
-    followUpResult?: string;
-    followUpRemarks?: string;
-    followUpVerifiedBy?: string;
-    followUpVerificationDate?: any;
-    followUpApprovedBy?: string;
+    actionSteps?: CARActionStep[];
+    verificationRecords?: CARVerificationRecord[];
     
     status: 'Open' | 'In Progress' | 'Closed';
     createdAt: any;
