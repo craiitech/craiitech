@@ -1,14 +1,15 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
-import type { CorrectiveActionRequest, Campus, Unit } from '@/lib/types';
+import type { CorrectiveActionRequest, Campus, Unit, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, History, Trash2, Edit, Info, ShieldCheck, FileText, ClipboardCheck } from 'lucide-react';
+import { Loader2, PlusCircle, History, Trash2, Edit, Info, ShieldCheck, FileText, ClipboardCheck, UserCheck, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -36,7 +37,8 @@ const carSchema = z.object({
   initiator: z.string().min(1, 'Initiator is required'),
   natureOfFinding: z.enum(['NC', 'OFI']),
   concerningClause: z.string().min(1, 'ISO Clause is required'),
-  timeLimitForReply: z.string().optional(),
+  concerningTopManagementId: z.string().min(1, 'Top Management reference is required'),
+  timeLimitForReply: z.string().min(1, 'Time limit for reply is required'),
   unitId: z.string().min(1, 'Responsible unit is required'),
   campusId: z.string().min(1, 'Campus is required'),
   unitHead: z.string().min(1, 'Head of Unit is required'),
@@ -62,6 +64,7 @@ const carSchema = z.object({
 
 export function CorrectiveActionRequestTab({ campuses, units, canManage }: CorrectiveActionRequestTabProps) {
   const firestore = useFirestore();
+  const { userProfile } = useUser();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCar, setEditingCar] = useState<CorrectiveActionRequest | null>(null);
@@ -72,6 +75,18 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     [firestore]
   );
   const { data: cars, isLoading } = useCollection<CorrectiveActionRequest>(carQuery);
+
+  const usersQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
+  const { data: allUsers } = useCollection<User>(usersQuery);
+
+  const topManagement = useMemo(() => {
+    if (!allUsers) return [];
+    return allUsers.filter(u => 
+        u.role?.toLowerCase().includes('vice president') || 
+        u.role?.toLowerCase().includes('director') ||
+        u.role?.toLowerCase().includes('president')
+    ).sort((a, b) => (a.firstName || '').localeCompare(b.firstName || ''));
+  }, [allUsers]);
 
   const form = useForm<z.infer<typeof carSchema>>({
     resolver: zodResolver(carSchema),
@@ -87,10 +102,13 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     if (!firestore) return;
     setIsSubmitting(true);
     try {
+      const topMgmt = topManagement.find(u => u.id === values.concerningTopManagementId);
+      
       const carData: any = {
         ...values,
+        concerningTopManagementName: topMgmt ? `${topMgmt.firstName} ${topMgmt.lastName}` : '',
         requestDate: Timestamp.fromDate(new Date(values.requestDate)),
-        timeLimitForReply: values.timeLimitForReply ? Timestamp.fromDate(new Date(values.timeLimitForReply)) : null,
+        timeLimitForReply: Timestamp.fromDate(new Date(values.timeLimitForReply)),
         immediateCompletionDate: values.immediateCompletionDate ? Timestamp.fromDate(new Date(values.immediateCompletionDate)) : null,
         correctiveCompletionDate: values.correctiveCompletionDate ? Timestamp.fromDate(new Date(values.correctiveCompletionDate)) : null,
         followUpVerificationDate: values.followUpVerificationDate ? Timestamp.fromDate(new Date(values.followUpVerificationDate)) : null,
@@ -160,7 +178,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                 <TableRow>
                   <TableHead className="font-bold text-[10px] uppercase">CAR No. & Unit</TableHead>
                   <TableHead className="font-bold text-[10px] uppercase">Procedure / Findings</TableHead>
-                  <TableHead className="font-bold text-[10px] uppercase">ISO Clause</TableHead>
+                  <TableHead className="font-bold text-[10px] uppercase">Oversight</TableHead>
                   <TableHead className="font-bold text-[10px] uppercase text-center">Status</TableHead>
                   <TableHead className="text-right font-bold text-[10px] uppercase">Action</TableHead>
                 </TableRow>
@@ -182,7 +200,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                         </div>
                     </TableCell>
                     <TableCell>
-                        <Badge variant="outline" className="text-[10px] border-primary/20 text-primary font-bold">{car.concerningClause}</Badge>
+                        <div className="flex flex-col gap-1">
+                            <Badge variant="outline" className="text-[10px] border-primary/20 text-primary font-bold w-fit">{car.concerningClause}</Badge>
+                            <span className="text-[9px] font-bold text-slate-500 uppercase truncate max-w-[120px]">{car.concerningTopManagementName || 'Not Assigned'}</span>
+                        </div>
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge variant={car.status === 'Open' ? 'destructive' : car.status === 'In Progress' ? 'secondary' : 'default'} className="text-[9px] font-black uppercase shadow-sm border-none">
@@ -244,7 +265,44 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                         <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">NC Report No.</FormLabel><FormControl><Input {...field} placeholder="e.g. 2021-179" className="bg-slate-50" disabled={!canManage} /></FormControl></FormItem>
                                     )} />
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
+                                    <FormField control={form.control} name="concerningTopManagementId" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-xs font-bold uppercase text-primary flex items-center gap-2">
+                                                <UserCheck className="h-3.5 w-3.5" /> Concerning (Top Management / VP)
+                                            </FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger className="bg-primary/5 border-primary/20 h-10 font-bold">
+                                                        <SelectValue placeholder="Select Institutional Oversight" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {topManagement.map(u => (
+                                                        <SelectItem key={u.id} value={u.id}>
+                                                            {u.firstName} {u.lastName} ({u.role})
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="timeLimitForReply" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
+                                                <Clock className="h-3.5 w-3.5" /> Time Limit for Reply (Deadline)
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input type="date" {...field} className="bg-slate-50 h-10" disabled={!canManage} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
                                     <FormField control={form.control} name="source" render={({ field }) => (
                                         <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Source of Finding</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value} disabled={!canManage}>

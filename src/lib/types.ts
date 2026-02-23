@@ -282,6 +282,43 @@ export type QaAdvisory = {
     createdAt: any; // Timestamp
 };
 
+export type CorrectiveActionRequest = {
+    id: string;
+    carNumber: string;
+    ncReportNumber?: string;
+    source: 'Audit Finding' | 'Legal Non-compliance' | 'Non-conforming Service' | 'Others';
+    procedureTitle: string;
+    initiator: string;
+    natureOfFinding: 'NC' | 'OFI';
+    concerningClause: string;
+    concerningTopManagementId?: string;
+    concerningTopManagementName?: string;
+    timeLimitForReply: any; // Timestamp
+    unitId: string;
+    campusId: string;
+    unitHead: string;
+    descriptionOfNonconformance: string;
+    requestDate: any; // Timestamp
+    preparedBy: string;
+    approvedBy: string;
+    
+    rootCauseAnalysis?: string;
+    immediateCorrection?: string;
+    immediateCompletionDate?: any;
+    correctiveAction?: string;
+    correctiveCompletionDate?: any;
+    
+    followUpResult?: string;
+    followUpRemarks?: string;
+    followUpVerifiedBy?: string;
+    followUpVerificationDate?: any;
+    followUpApprovedBy?: string;
+    
+    status: 'Open' | 'In Progress' | 'Closed';
+    createdAt: any;
+    updatedAt: any;
+};
+
 // --- ACADEMIC PROGRAM MONITORING TYPES ---
 
 export type AcademicProgram = {
