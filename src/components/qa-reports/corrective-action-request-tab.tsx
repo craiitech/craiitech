@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -145,6 +144,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     control: form.control,
     name: "verificationRecords"
   });
+
+  const watchCarNumber = form.watch('carNumber');
+  const watchNcReportNumber = form.watch('ncReportNumber');
 
   const handlePrint = (car: CorrectiveActionRequest) => {
     const uName = unitMap.get(car.unitId) || 'Unknown Unit';
@@ -439,9 +441,25 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
-            <div className="flex items-center gap-2 text-primary mb-1">
-                <FileText className="h-5 w-5" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Form QAO-00-018</span>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-primary mb-1">
+                    <FileText className="h-5 w-5" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">Form QAO-00-018</span>
+                </div>
+                {(watchCarNumber || watchNcReportNumber) && (
+                    <div className="flex items-center gap-3">
+                        {watchCarNumber && (
+                            <Badge variant="outline" className="font-mono text-primary border-primary/30 h-6 px-2 text-[10px] font-black uppercase bg-primary/5">
+                                CAR NO: {watchCarNumber}
+                            </Badge>
+                        )}
+                        {watchNcReportNumber && (
+                            <Badge variant="outline" className="font-mono text-muted-foreground border-slate-300 h-6 px-2 text-[10px] font-black uppercase bg-white">
+                                NC NO: {watchNcReportNumber}
+                            </Badge>
+                        )}
+                    </div>
+                )}
             </div>
             <DialogTitle className="text-xl font-bold">{editingCar ? 'Manage' : 'Issue'} Corrective Action Request</DialogTitle>
             <DialogDescription className="text-xs">Formalized tracking of non-conformities and institutional improvements.</DialogDescription>
@@ -688,7 +706,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                         </div>
                                                         <FormField control={form.control} name={`verificationRecords.${index}.result`} render={({ field: inputField }) => (
                                                             <FormItem>
-                                                                <FormControl><Textarea {...field} rows={3} placeholder="Record the actual observations and findings..." className="text-xs bg-slate-50 border-slate-200" /></FormControl>
+                                                                <FormControl><Textarea {...inputField} rows={3} placeholder="Record the actual observations and findings..." className="text-xs bg-slate-50 border-slate-200" /></FormControl>
                                                                 <FormMessage />
                                                             </FormItem>
                                                         )} />
@@ -699,7 +717,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                                     <FormControl>
                                                                         <div className="relative">
                                                                             <User className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
-                                                                            <Input {...field} placeholder="Verifier Name" className="h-8 text-[10px] pl-7" />
+                                                                            <Input {...inputField} placeholder="Verifier Name" className="h-8 text-[10px] pl-7" />
                                                                         </div>
                                                                     </FormControl>
                                                                     <FormMessage />
@@ -711,7 +729,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                                     <FormControl>
                                                                         <div className="relative">
                                                                             <Calendar className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
-                                                                            <Input type="date" {...field} className="h-8 text-[10px] pl-7" />
+                                                                            <Input type="date" {...inputField} className="h-8 text-[10px] pl-7" />
                                                                         </div>
                                                                     </FormControl>
                                                                     <FormMessage />
@@ -730,7 +748,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                         </div>
                                                         <FormField control={form.control} name={`verificationRecords.${index}.effectivenessResult`} render={({ field: inputField }) => (
                                                             <FormItem>
-                                                                <FormControl><Textarea {...field} rows={3} placeholder="Describe how effective the implemented actions were in preventing recurrence..." className="text-xs bg-emerald-50/20 border-emerald-100" /></FormControl>
+                                                                <FormControl><Textarea {...inputField} rows={3} placeholder="Describe how effective the implemented actions were in preventing recurrence..." className="text-xs bg-emerald-50/20 border-emerald-100" /></FormControl>
                                                                 <FormMessage />
                                                             </FormItem>
                                                         )} />
@@ -741,7 +759,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                                     <FormControl>
                                                                         <div className="relative">
                                                                             <User className="absolute left-2 top-2.5 h-3 w-3 text-emerald-400" />
-                                                                            <Input {...field} placeholder="Verifier Name" className="h-8 text-[10px] pl-7 border-emerald-100" />
+                                                                            <Input {...inputField} placeholder="Verifier Name" className="h-8 text-[10px] pl-7 border-emerald-100" />
                                                                         </div>
                                                                     </FormControl>
                                                                     <FormMessage />
@@ -753,7 +771,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                                     <FormControl>
                                                                         <div className="relative">
                                                                             <Calendar className="absolute left-2 top-2.5 h-3 w-3 text-emerald-400" />
-                                                                            <Input type="date" {...field} className="h-8 text-[10px] pl-7 border-emerald-100" />
+                                                                            <Input type="date" {...inputField} className="h-8 text-[10px] pl-7 border-emerald-100" />
                                                                         </div>
                                                                     </FormControl>
                                                                     <FormMessage />
@@ -765,7 +783,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                     <FormField control={form.control} name={`verificationRecords.${index}.remarks`} render={({ field: inputField }) => (
                                                         <FormItem className="pt-2">
                                                             <FormLabel className="text-[9px] font-bold uppercase text-muted-foreground">General Remarks (Optional)</FormLabel>
-                                                            <FormControl><Input {...field} placeholder="Any other observations..." className="h-8 text-[10px]" /></FormControl>
+                                                            <FormControl><Input {...inputField} placeholder="Any other observations..." className="h-8 text-[10px]" /></FormControl>
                                                         </FormItem>
                                                     )} />
                                                 </CardContent>
