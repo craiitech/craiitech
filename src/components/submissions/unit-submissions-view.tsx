@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -6,7 +5,7 @@ import type { Submission, Unit, User as AppUser } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Loader2, Building, Eye, Calendar as CalendarIcon, Filter, FileWarning, CheckCircle2, PieChart as PieIcon, AlertTriangle } from 'lucide-react';
+import { Loader2, Building, Eye, Calendar as CalendarIcon, Filter, FileWarning, CheckCircle2, PieChart as PieIcon, AlertTriangle, Printer, FileText } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -23,6 +22,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { NoticeOfCompliance, NoticeOfNonCompliance } from './notices-print-templates';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -47,7 +48,7 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
     },
     2025: { 
       first: 'bg-green-50/20 hover:bg-green-100/40 dark:bg-green-900/5 dark:hover:bg-green-900/10', 
-      final: 'bg-green-100/40 hover:bg-green-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
+      final: 'bg-green-100/40 hover:bg-blue-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
     },
     2026: { 
       first: 'bg-amber-50/20 hover:bg-amber-100/40 dark:bg-amber-900/5 dark:hover:bg-amber-900/10', 
@@ -136,12 +137,10 @@ export function UnitSubmissionsView({
     const missingFirst = getMissingOrUnapproved(firstSubs, isFirstActionPlanNA);
     const missingFinal = getMissingOrUnapproved(finalSubs, isFinalActionPlanNA);
 
-    // Performance Data for Chart
     const approved = yearSubmissions.filter(s => s.statusId === 'approved').length;
     const pending = yearSubmissions.filter(s => s.statusId === 'submitted').length;
     const rejected = yearSubmissions.filter(s => s.statusId === 'rejected').length;
     
-    // Denominator exclusion logic: Only count things that are NOT N/A
     const totalPossible = (submissionTypes.length * 2) - (isFirstActionPlanNA ? 1 : 0) - (isFinalActionPlanNA ? 1 : 0);
     const missingTotal = Math.max(0, totalPossible - approved - pending - rejected);
 
@@ -171,6 +170,61 @@ export function UnitSubmissionsView({
   const handleUnitSelect = (unitId: string) => {
     setSelectedUnitId(unitId);
   }
+
+  const handlePrintNotice = (type: 'Compliance' | 'Non-Compliance') => {
+    if (!unitData || !selectedUnitId || !allUnits || !userProfile) return;
+
+    const unit = allUnits.find(u => u.id === selectedUnitId);
+    const campusName = "Main Campus"; // Fallback if campus info not found
+
+    const props = {
+        unitName: unit?.name || 'Unknown Unit',
+        campusName: campusName,
+        year: Number(selectedYear),
+        missingFirst: unitData.missingFirst,
+        missingFinal: unitData.missingFinal,
+        totalApproved: unitData.approved,
+        totalPossible: unitData.totalPossible
+    };
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            type === 'Compliance' ? <NoticeOfCompliance {...props} /> : <NoticeOfNonCompliance {...props} />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>QA Notice - ${props.unitName}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @media print { 
+                            body { margin: 0; padding: 0; background: white; } 
+                            .no-print { display: none !important; }
+                        }
+                        body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Official Notice</button>
+                    </div>
+                    <div id="print-content">
+                        ${reportHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) {
+        console.error("Print error:", err);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -237,6 +291,29 @@ export function UnitSubmissionsView({
             <ScrollArea className="h-[75vh] rounded-md border p-4 bg-muted/5">
                 {selectedUnitId && unitData ? (
                     <div className="space-y-8 pb-10">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
+                            <div className="space-y-1">
+                                <h3 className="font-black text-lg uppercase tracking-tight text-primary">
+                                    {allUnits?.find(u => u.id === selectedUnitId)?.name}
+                                </h3>
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase">
+                                    <CalendarIcon className="h-3 w-3" />
+                                    Reporting Year: {selectedYear}
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {unitData.score === 100 ? (
+                                    <Button size="sm" variant="outline" className="h-8 text-[10px] font-black uppercase text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => handlePrintNotice('Compliance')}>
+                                        <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Compliance Notice
+                                    </Button>
+                                ) : (
+                                    <Button size="sm" variant="outline" className="h-8 text-[10px] font-black uppercase text-rose-600 border-rose-200 hover:bg-rose-50" onClick={() => handlePrintNotice('Non-Compliance')}>
+                                        <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Non-Compliance Notice
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+
                         {/* --- UNIT PERFORMANCE SCORECARD --- */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 border-b pb-6">
                             <div className="lg:col-span-1 flex flex-col items-center justify-center bg-background rounded-lg border shadow-sm p-4 relative overflow-hidden">
