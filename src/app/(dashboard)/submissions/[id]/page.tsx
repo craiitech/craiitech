@@ -16,7 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Check, X, Send, History, ShieldCheck, FileText } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, X, Send, History, ShieldCheck, FileText, Monitor, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useState, useMemo, useEffect } from 'react';
@@ -95,6 +95,7 @@ export default function SubmissionDetailPage() {
 
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewOrientation, setPreviewOrientation] = useState<'portrait' | 'landscape'>('landscape');
 
   // State for resubmission form
   const [newLink, setNewLink] = useState('');
@@ -411,21 +412,44 @@ export default function SubmissionDetailPage() {
           </div>
 
           <Card>
-            <CardHeader className="py-4 border-b">
-                <CardTitle className="text-lg flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-primary" />
-                    {submission.reportType}
-                </CardTitle>
-                 <CardDescription className="text-xs">
-                    Last updated: {getFormattedDate(submission.submissionDate)}
-                </CardDescription>
+            <CardHeader className="py-4 border-b flex flex-row items-center justify-between">
+                <div className="space-y-1">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-primary" />
+                        {submission.reportType}
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                        Last updated: {getFormattedDate(submission.submissionDate)}
+                    </CardDescription>
+                </div>
+                <div className="flex bg-muted p-1 rounded-lg border">
+                    <Button 
+                        variant={previewOrientation === 'landscape' ? 'default' : 'ghost'} 
+                        size="sm" 
+                        className="h-7 px-3 text-[10px] font-black uppercase"
+                        onClick={() => setPreviewOrientation('landscape')}
+                    >
+                        <Monitor className="h-3 w-3 mr-1.5" /> Wide
+                    </Button>
+                    <Button 
+                        variant={previewOrientation === 'portrait' ? 'default' : 'ghost'} 
+                        size="sm" 
+                        className="h-7 px-3 text-[10px] font-black uppercase"
+                        onClick={() => setPreviewOrientation('portrait')}
+                    >
+                        <Smartphone className="h-3 w-3 mr-1.5" /> Tall
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent className="pt-6">
                 {previewUrl ? (
-                    <div className="aspect-video w-full rounded-lg border bg-muted shadow-inner">
+                    <div className={cn(
+                        "w-full rounded-lg border bg-muted shadow-inner transition-all duration-500 overflow-hidden",
+                        previewOrientation === 'landscape' ? "aspect-video" : "aspect-[1/1.4]"
+                    )}>
                         <iframe
                             src={previewUrl}
-                            className="h-full w-full rounded-lg"
+                            className="h-full w-full"
                             allow="autoplay"
                         ></iframe>
                     </div>
