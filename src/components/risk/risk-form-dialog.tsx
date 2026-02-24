@@ -15,6 +15,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import {
   Select,
@@ -34,7 +35,7 @@ import { doc, serverTimestamp, collection, setDoc, addDoc, Timestamp } from 'fir
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
-import { Loader2, Sparkles, ShieldCheck, Info, BookOpen } from 'lucide-react';
+import { Loader2, Sparkles, ShieldCheck, Info, BookOpen, Save, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
@@ -222,15 +223,26 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
     
     try {
         const responsiblePerson = filteredUsers.find(u => u.id === values.responsiblePersonId);
-        let targetDateISO: string | null = null;
+        
+        // Robust date parsing to prevent invalid date errors
+        let targetTimestamp: Timestamp | null = null;
         if (values.targetYear && values.targetMonth && values.targetDay) {
-            const date = new Date(Number(values.targetYear), Number(values.targetMonth), Number(values.targetDay));
-            targetDateISO = date.toISOString();
+            const yearNum = parseInt(values.targetYear);
+            const monthNum = parseInt(values.targetMonth);
+            const dayNum = parseInt(values.targetDay);
+            
+            if (!isNaN(yearNum) && !isNaN(monthNum) && !isNaN(dayNum)) {
+                const date = new Date(yearNum, monthNum, dayNum);
+                if (!isNaN(date.getTime())) {
+                    targetTimestamp = Timestamp.fromDate(date);
+                }
+            }
         }
 
         const targetUnitId = (isAdmin ? values.adminUnitId : userProfile.unitId) || '';
         const targetCampusId = (isAdmin ? values.adminCampusId : userProfile.campusId) || '';
 
+        // Explicit sanitization to prevent 'undefined' field values
         const riskData: any = {
           objective: values.objective || '',
           type: values.type || 'Risk',
@@ -249,8 +261,8 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
           },
           treatmentAction: values.treatmentAction || '',
           responsiblePersonId: values.responsiblePersonId || '',
-          responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : '',
-          targetDate: targetDateISO ? Timestamp.fromDate(new Date(targetDateISO)) : null,
+          responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : (risk?.responsiblePersonName || ''),
+          targetDate: targetTimestamp,
           oapNo: values.oapNo || '',
           resourcesNeeded: values.resourcesNeeded || '',
           updates: values.updates || '',
@@ -259,10 +271,10 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
           updatedAt: serverTimestamp(),
         };
 
-        if (values.status === 'Closed' && values.postTreatmentLikelihood && values.postTreatmentConsequence) {
+        if (values.status === 'Closed') {
             riskData.postTreatment = {
-                likelihood: Number(values.postTreatmentLikelihood),
-                consequence: Number(values.postTreatmentConsequence),
+                likelihood: Number(values.postTreatmentLikelihood || 0),
+                consequence: Number(values.postTreatmentConsequence || 0),
                 magnitude: Number(ptMagnitude),
                 rating: String(ptRating),
                 evidence: values.postTreatmentEvidence || '',
@@ -273,16 +285,17 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         if (risk) {
             const riskRef = doc(firestore, 'risks', risk.id);
             await setDoc(riskRef, riskData, { merge: true });
-            toast({ title: 'Success', description: 'Entry updated.' });
+            toast({ title: 'Record Updated', description: 'Changes to the assessment have been persisted.' });
+            // For updates, we don't automatically close to allow for continuous monitoring log
         } else {
             const riskColRef = collection(firestore, 'risks');
             await addDoc(riskColRef, { ...riskData, createdAt: serverTimestamp() });
-            toast({ title: 'Success', description: 'Entry registered.' });
+            toast({ title: 'Record Registered', description: 'New entry has been added to the registry.' });
+            onOpenChange(false); // Close on new creation
         }
-        onOpenChange(false);
     } catch (error) {
-        console.error("Error:", error);
-        toast({ title: 'Error', description: 'Could not save the assessment record.', variant: 'destructive'});
+        console.error("Risk Submit Error:", error);
+        toast({ title: 'Update Failed', description: 'A database validation error occurred. Please ensure all fields are correctly formatted.', variant: 'destructive'});
     } finally {
         setIsSubmitting(false);
     }
@@ -292,13 +305,22 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
     <Dialog open={isOpen} onOpenChange={isMandatory ? undefined : onOpenChange}>
       <DialogContent className="max-w-[95vw] lg:max-w-7xl h-[95vh] flex flex-col p-0 overflow-hidden">
         <div className="p-6 border-b shrink-0 bg-card shadow-sm">
-            <div className="flex items-center gap-2 text-primary mb-1">
-                <ShieldCheck className="h-5 w-5" />
-                <span className="text-xs font-bold uppercase tracking-widest">Risk & Opportunity Registry</span>
+            <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-primary mb-1">
+                        <ShieldCheck className="h-5 w-5" />
+                        <span className="text-xs font-bold uppercase tracking-widest">Risk & Opportunity Registry</span>
+                    </div>
+                    <DialogTitle className="text-xl">
+                    {risk ? 'Manage' : 'Log New'} Assessment Record
+                    </DialogTitle>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full h-8 w-8">
+                        <X className="h-4 w-4" />
+                    </Button>
+                </div>
             </div>
-            <DialogTitle className="text-xl">
-              {risk ? 'Edit' : 'Log New'} Assessment Record
-            </DialogTitle>
         </div>
         <div className="flex-1 flex overflow-hidden">
             <div className="flex-1 flex flex-col min-w-0 border-r bg-background">
@@ -592,7 +614,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                 </ScrollArea>
             </div>
         </div>
-        <div className="p-6 border-t shrink-0 bg-card">
+        <div className="p-6 border-t shrink-0 bg-card shadow-inner">
             <DialogFooter className="gap-2 sm:gap-0">
                 {!isMandatory && (
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
@@ -600,12 +622,20 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                     </Button>
                 )}
                 <Button 
+                    variant="secondary" 
+                    type="button" 
+                    onClick={() => onOpenChange(false)} 
+                    className="font-bold text-[10px] uppercase tracking-widest px-6"
+                >
+                    Close Dialog
+                </Button>
+                <Button 
                     form="risk-form" 
                     type="submit" 
                     disabled={isSubmitting}
                     className="min-w-[150px] shadow-lg shadow-primary/20"
                 >
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}
                   {risk ? 'Save Updates' : 'Log Assessment'}
                 </Button>
             </DialogFooter>
