@@ -15,7 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Check, X, Send, History, ShieldCheck, FileText, Monitor, Smartphone, RotateCw } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, X, Send, History, ShieldCheck, FileText, Monitor, Smartphone, RotateCw, ClipboardCheck, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
@@ -97,6 +97,7 @@ export default function SubmissionDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewOrientation, setPreviewOrientation] = useState<'portrait' | 'landscape'>('landscape');
   const [rotation, setRotation] = useState(0);
+  const [isAdminReviewOverride, setIsAdminReviewOverride] = useState(false);
 
   // State for resubmission form
   const [newLink, setNewLink] = useState('');
@@ -328,6 +329,14 @@ export default function SubmissionDetailPage() {
     setRotation(prev => (prev + 90) % 360);
   };
 
+  const showApprovalUI = useMemo(() => {
+    if (!submission) return false;
+    const isSubmitted = submission.statusId === 'submitted';
+    const isRejectedAndAdminOverride = submission.statusId === 'rejected' && isAdmin && isAdminReviewOverride;
+    
+    return isApprover && (isSubmitted || isRejectedAndAdminOverride);
+  }, [submission, isApprover, isAdmin, isAdminReviewOverride]);
+
   if (isLoading) {
     return <LoadingSkeleton />;
   }
@@ -476,17 +485,36 @@ export default function SubmissionDetailPage() {
             </CardContent>
           </Card>
           
-          {isApprover && submission.statusId === 'submitted' && (
+          {/* Admin Override Trigger */}
+          {isAdmin && submission.statusId === 'rejected' && !isAdminReviewOverride && (
+              <Card className="border-primary/20 bg-primary/5 shadow-sm">
+                  <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6">
+                      <div className="flex items-start gap-3">
+                          <AlertTriangle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                          <div className="space-y-1">
+                              <p className="text-sm font-bold text-slate-900">Administrative Override Available</p>
+                              <p className="text-xs text-muted-foreground">As an Admin, you can re-review this rejected document without waiting for a resubmission.</p>
+                          </div>
+                      </div>
+                      <Button onClick={() => setIsAdminReviewOverride(true)} className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
+                          <ClipboardCheck className="h-4 w-4" />
+                          Review Rejected Document
+                      </Button>
+                  </CardContent>
+              </Card>
+          )}
+
+          {showApprovalUI && (
              <>
-                <Card>
-                    <CardHeader>
+                <Card className="animate-in slide-in-from-top-4 duration-500 shadow-xl border-primary/30">
+                    <CardHeader className="bg-primary/5 border-b">
                         <CardTitle className="flex items-center gap-2">
                             <ShieldCheck className="text-primary" />
                             Approver's Compliance Checklist
                         </CardTitle>
                         <CardDescription>Please verify and confirm the following criteria before taking action.</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-3">
+                    <CardContent className="space-y-3 pt-6">
                         {approverChecklistItems.map(item => (
                             <div key={item.id} className="flex items-start space-x-3 p-2 rounded-md hover:bg-muted/30 transition-colors">
                                 <Checkbox
@@ -503,14 +531,14 @@ export default function SubmissionDetailPage() {
                         ))}
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader>
+                <Card className="animate-in slide-in-from-top-4 duration-500 shadow-xl border-primary/30">
+                    <CardHeader className="bg-primary/5 border-b">
                         <CardTitle>Final Determination</CardTitle>
                         <CardDescription>
                             Provide context or constructive feedback for the unit coordinator.
                         </CardDescription>
                     </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-4 pt-6">
                         <div>
                             <Label htmlFor="feedback">Official Comments</Label>
                             <Textarea 
@@ -523,12 +551,12 @@ export default function SubmissionDetailPage() {
                             />
                         </div>
                         </CardContent>
-                    <CardFooter className="flex justify-end gap-3 pt-2">
+                    <CardFooter className="flex justify-end gap-3 pt-2 bg-muted/5 border-t py-4">
                         <Button variant="destructive" onClick={handleReject} disabled={isSubmitting || !canReject}>
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4"/>}
                             Reject Submission
                         </Button>
-                            <Button onClick={handleApprove} disabled={isSubmitting || !isChecklistComplete} className="shadow-lg shadow-primary/20">
+                            <Button onClick={handleApprove} disabled={isSubmitting || !isChecklistComplete} className="shadow-lg shadow-primary/20 font-black">
                             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4"/>}
                             Approve Record
                         </Button>
