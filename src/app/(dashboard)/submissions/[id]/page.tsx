@@ -16,7 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Check, X, Send, History, ShieldCheck, FileText, Monitor, Smartphone } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, X, Send, History, ShieldCheck, FileText, Monitor, Smartphone, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useState, useMemo, useEffect } from 'react';
@@ -96,6 +96,7 @@ export default function SubmissionDetailPage() {
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewOrientation, setPreviewOrientation] = useState<'portrait' | 'landscape'>('landscape');
+  const [rotation, setRotation] = useState(0);
 
   // State for resubmission form
   const [newLink, setNewLink] = useState('');
@@ -323,6 +324,10 @@ export default function SubmissionDetailPage() {
     return status === 'submitted' ? 'AWAITING APPROVAL' : status.toUpperCase();
   }
 
+  const handleRotate = () => {
+    setRotation(prev => (prev + 90) % 360);
+  };
+
   if (isLoading) {
     return <LoadingSkeleton />;
   }
@@ -412,7 +417,7 @@ export default function SubmissionDetailPage() {
           </div>
 
           <Card>
-            <CardHeader className="py-4 border-b flex flex-row items-center justify-between">
+            <CardHeader className="py-4 border-b flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="space-y-1">
                     <CardTitle className="text-lg flex items-center gap-2">
                         <FileText className="h-5 w-5 text-primary" />
@@ -422,7 +427,16 @@ export default function SubmissionDetailPage() {
                         Last updated: {getFormattedDate(submission.submissionDate)}
                     </CardDescription>
                 </div>
-                <div className="flex bg-muted p-1 rounded-lg border">
+                <div className="flex flex-wrap items-center gap-2 bg-muted p-1 rounded-lg border">
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 px-3 text-[10px] font-black uppercase text-primary hover:bg-primary/5"
+                        onClick={handleRotate}
+                    >
+                        <RotateCw className="h-3 w-3 mr-1.5" /> Rotate
+                    </Button>
+                    <Separator orientation="vertical" className="h-4 mx-1" />
                     <Button 
                         variant={previewOrientation === 'landscape' ? 'default' : 'ghost'} 
                         size="sm" 
@@ -444,12 +458,13 @@ export default function SubmissionDetailPage() {
             <CardContent className="pt-6">
                 {previewUrl ? (
                     <div className={cn(
-                        "w-full rounded-lg border bg-muted shadow-inner transition-all duration-500 overflow-hidden",
+                        "w-full rounded-lg border bg-muted shadow-inner transition-all duration-500 overflow-hidden relative",
                         previewOrientation === 'landscape' ? "aspect-video" : "aspect-[1/1.4]"
                     )}>
                         <iframe
                             src={previewUrl}
-                            className="h-full w-full"
+                            className="absolute inset-0 h-full w-full transition-transform duration-300"
+                            style={{ transform: `rotate(${rotation}deg)` }}
                             allow="autoplay"
                         ></iframe>
                     </div>
