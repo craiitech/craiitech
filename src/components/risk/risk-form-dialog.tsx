@@ -137,7 +137,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
   const selectedAdminUnitId = form.watch('adminUnitId');
 
   useEffect(() => {
-    if (risk) {
+    if (risk && isOpen) {
       const targetDate = risk.targetDate?.toDate?.() || risk.targetDate;
       form.reset({
         year: risk.year,
@@ -165,7 +165,7 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         adminCampusId: risk.campusId || '',
         adminUnitId: risk.unitId || '',
       });
-    } else {
+    } else if (!risk && isOpen) {
       form.reset({
         year: defaultYear || new Date().getFullYear(),
         objective: '',
@@ -224,7 +224,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
     try {
         const responsiblePerson = filteredUsers.find(u => u.id === values.responsiblePersonId);
         
-        // Robust date parsing to prevent invalid date errors
         let targetTimestamp: Timestamp | null = null;
         if (values.targetYear && values.targetMonth && values.targetDay) {
             const yearNum = parseInt(values.targetYear);
@@ -242,7 +241,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         const targetUnitId = (isAdmin ? values.adminUnitId : userProfile.unitId) || '';
         const targetCampusId = (isAdmin ? values.adminCampusId : userProfile.campusId) || '';
 
-        // Explicit sanitization to prevent 'undefined' field values
         const riskData: any = {
           objective: values.objective || '',
           type: values.type || 'Risk',
@@ -286,24 +284,27 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
             const riskRef = doc(firestore, 'risks', risk.id);
             await setDoc(riskRef, riskData, { merge: true });
             toast({ title: 'Record Updated', description: 'Changes to the assessment have been persisted.' });
-            // For updates, we don't automatically close to allow for continuous monitoring log
         } else {
             const riskColRef = collection(firestore, 'risks');
             await addDoc(riskColRef, { ...riskData, createdAt: serverTimestamp() });
             toast({ title: 'Record Registered', description: 'New entry has been added to the registry.' });
-            onOpenChange(false); // Close on new creation
+            onOpenChange(false);
         }
     } catch (error) {
         console.error("Risk Submit Error:", error);
-        toast({ title: 'Update Failed', description: 'A database validation error occurred. Please ensure all fields are correctly formatted.', variant: 'destructive'});
+        toast({ title: 'Update Failed', description: 'A database validation error occurred.', variant: 'destructive'});
     } finally {
         setIsSubmitting(false);
     }
   };
 
+  const handleClose = () => {
+    onOpenChange(false);
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={isMandatory ? undefined : onOpenChange}>
-      <DialogContent className="max-w-[95vw] lg:max-w-7xl h-[95vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="max-w-[95vw] lg:max-w-7xl h-[95vh] flex flex-col p-0 overflow-hidden" onPointerDownOutside={(e) => isMandatory && e.preventDefault()} onEscapeKeyDown={(e) => isMandatory && e.preventDefault()}>
         <div className="p-6 border-b shrink-0 bg-card shadow-sm">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -315,11 +316,11 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                     {risk ? 'Manage' : 'Log New'} Assessment Record
                     </DialogTitle>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full h-8 w-8">
+                {!isMandatory && (
+                    <Button variant="ghost" size="icon" onClick={handleClose} className="rounded-full h-8 w-8">
                         <X className="h-4 w-4" />
                     </Button>
-                </div>
+                )}
             </div>
         </div>
         <div className="flex-1 flex overflow-hidden">
@@ -327,7 +328,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                 <ScrollArea className="flex-1">
                     <Form {...form}>
                         <form id="risk-form" onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-8">
-                            {/* --- Identification Section --- */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-bold flex items-center gap-2">
                                     <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">1</div>
@@ -380,7 +380,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                               </Card>
                             </div>
 
-                            {/* --- Analysis Section --- */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-bold flex items-center gap-2">
                                     <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">2</div>
@@ -433,7 +432,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                               </Card>
                             </div>
 
-                            {/* --- Action Plan Section --- */}
                             {showActionPlan && (
                                 <div className="space-y-4">
                                     <h3 className="text-lg font-bold flex items-center gap-2">
@@ -533,7 +531,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                 </div>
                             )}
 
-                            {/* --- Monitoring Section --- */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-bold flex items-center gap-2">
                                     <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">4</div>
@@ -587,7 +584,6 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                 </ScrollArea>
             </div>
             
-            {/* --- Right Reference Panel --- */}
             <div className="hidden lg:flex w-[400px] flex-col bg-muted/10 border-l shrink-0">
                 <div className="p-4 border-b font-bold text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white">
                   <Info className="h-4 w-4" /> Assessment Reference
@@ -616,15 +612,10 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         </div>
         <div className="p-6 border-t shrink-0 bg-card shadow-inner">
             <DialogFooter className="gap-2 sm:gap-0">
-                {!isMandatory && (
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-                        Cancel
-                    </Button>
-                )}
                 <Button 
                     variant="secondary" 
                     type="button" 
-                    onClick={() => onOpenChange(false)} 
+                    onClick={handleClose} 
                     className="font-bold text-[10px] uppercase tracking-widest px-6"
                 >
                     Close Dialog

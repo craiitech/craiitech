@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -235,6 +234,58 @@ export default function AcademicProgramsPage() {
         </div>
       </div>
 
+      {/* Global Filter Bar - Now accessible for both tabs */}
+      <Card className="shadow-md border-primary/10">
+          <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4 bg-muted/10">
+              <div className="flex-1 w-full space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                      <Search className="h-2.5 w-2.5" /> Search Registry
+                  </label>
+                  <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                          placeholder="Search by name or initials..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-9 h-9 text-xs bg-white"
+                      />
+                  </div>
+              </div>
+              {isGlobalViewer && (
+                  <div className="w-full md:w-64 space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                          <Building className="h-2.5 w-2.5" /> Campus Site Filter
+                      </label>
+                      <Select value={campusFilter} onValueChange={(val) => { setCampusFilter(val); setUnitFilter('all'); }}>
+                          <SelectTrigger className="h-9 text-xs bg-white">
+                              <SelectValue placeholder="All Campuses" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="all">All Campuses</SelectItem>
+                              {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                          </SelectContent>
+                      </Select>
+                  </div>
+              )}
+              {(isGlobalViewer || isCampusViewer) && (
+                  <div className="w-full md:w-64 space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                          <Layers className="h-2.5 w-2.5" /> Academic Unit Filter
+                      </label>
+                      <Select value={unitFilter} onValueChange={setUnitFilter}>
+                          <SelectTrigger className="h-9 text-xs bg-white">
+                              <SelectValue placeholder="All Units" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="all">All Units</SelectItem>
+                              {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                          </SelectContent>
+                      </Select>
+                  </div>
+              )}
+          </CardContent>
+      </Card>
+
       <Tabs defaultValue="analytics" className="space-y-6">
         <TabsList className="bg-muted p-1 border shadow-sm">
             <TabsTrigger value="analytics" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
@@ -303,57 +354,6 @@ export default function AcademicProgramsPage() {
                     <div className="absolute top-0 right-0 p-2 opacity-5"><Briefcase className="h-12 w-12 text-amber-600" /></div>
                 </Card>
             </div>
-
-            <Card className="shadow-md border-primary/10">
-                <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4 bg-muted/10">
-                    <div className="flex-1 w-full space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                            <Search className="h-2.5 w-2.5" /> Search Registry
-                        </label>
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search by name or initials..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-9 h-9 text-xs bg-white"
-                            />
-                        </div>
-                    </div>
-                    {isGlobalViewer && (
-                        <div className="w-full md:w-64 space-y-1.5">
-                            <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                                <Building className="h-2.5 w-2.5" /> Campus Site Filter
-                            </label>
-                            <Select value={campusFilter} onValueChange={(val) => { setCampusFilter(val); setUnitFilter('all'); }}>
-                                <SelectTrigger className="h-9 text-xs bg-white">
-                                    <SelectValue placeholder="All Campuses" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Campuses</SelectItem>
-                                    {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-                    {(isGlobalViewer || isCampusViewer) && (
-                        <div className="w-full md:w-64 space-y-1.5">
-                            <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                                <Layers className="h-2.5 w-2.5" /> Academic Unit Filter
-                            </label>
-                            <Select value={unitFilter} onValueChange={setUnitFilter}>
-                                <SelectTrigger className="h-9 text-xs bg-white">
-                                    <SelectValue placeholder="All Units" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Units</SelectItem>
-                                    {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
 
             <div>
                 {isLoading ? (
