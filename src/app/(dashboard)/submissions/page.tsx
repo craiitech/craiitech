@@ -30,7 +30,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { collection, query, where, doc, deleteDoc, Timestamp } from 'firebase/firestore';
 import type { Submission, Campus, Unit, User as AppUser, Cycle } from '@/lib/types';
 import { useRouter } from 'next/navigation';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { FeedbackDialog } from '@/components/dashboard/feedback-dialog';
 import {
   AlertDialog,
@@ -44,7 +44,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UnitSubmissionsView } from '@/components/submissions/unit-submissions-view';
 import { CampusSubmissionsView } from '@/components/submissions/campus-submissions-view';
@@ -87,6 +87,8 @@ export default function SubmissionsPage() {
   const [reportTypeFilter, setReportTypeFilter] = useState<string>('all');
   const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString());
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [campusFilter, setCampusFilter] = useState<string>('all');
+  const [unitFilter, setUnitFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest'>('recent');
 
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
@@ -124,11 +126,21 @@ export default function SubmissionsPage() {
   );
   const { data: allUnits } = useCollection<Unit>(unitsQuery);
 
+  const campusesQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'campuses') : null), [firestore, user]);
+  const { data: campuses } = useCollection<Campus>(campusesQuery);
+
+  const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
   const userMap = useMemo(() => {
     const map = new Map<string, string>();
     allUsers?.forEach(u => map.set(u.id, `${u.firstName} ${u.lastName}`));
     return map;
   }, [allUsers]);
+
+  const filteredUnitsList = useMemo(() => {
+    if (!allUnits) return [];
+    if (campusFilter === 'all') return allUnits;
+    return allUnits.filter(u => u.campusIds?.includes(campusFilter));
+  }, [allUnits, campusFilter]);
 
   const availableYears = useMemo(() => {
     if (!rawSubmissions) return [new Date().getFullYear().toString()];
@@ -137,12 +149,27 @@ export default function SubmissionsPage() {
     return years.sort((a,b) => b.localeCompare(a));
   }, [rawSubmissions]);
 
-  // Data specifically for the Dashboard visuals (Only filtered by Year)
+  // Handle campus filter change
+  useEffect(() => {
+    setUnitFilter('all');
+  }, [campusFilter]);
+
+  // Initial campus lock for supervisors
+  useEffect(() => {
+    if (isSupervisor && !isAdmin && userProfile?.campusId) {
+        setCampusFilter(userProfile.campusId);
+    }
+  }, [isSupervisor, isAdmin, userProfile?.campusId]);
+
+  // Data specifically for the Dashboard visuals (Reactive to site filters)
   const dashboardSubmissions = useMemo(() => {
     if (!rawSubmissions) return [];
-    if (yearFilter === 'all') return rawSubmissions;
-    return rawSubmissions.filter(s => String(s.year) === yearFilter);
-  }, [rawSubmissions, yearFilter]);
+    let filtered = [...rawSubmissions];
+    if (yearFilter !== 'all') filtered = filtered.filter(s => String(s.year) === yearFilter);
+    if (campusFilter !== 'all') filtered = filtered.filter(s => s.campusId === campusFilter);
+    if (unitFilter !== 'all') filtered = filtered.filter(s => s.unitId === unitFilter);
+    return filtered;
+  }, [rawSubmissions, yearFilter, campusFilter, unitFilter]);
 
   // Data for the table (Filtered by all active filters)
   const tableSubmissionsData = useMemo(() => {
@@ -150,12 +177,20 @@ export default function SubmissionsPage() {
     
     let filtered = [...rawSubmissions];
 
-    if (reportTypeFilter !== 'all') {
-        filtered = filtered.filter(s => s.reportType === reportTypeFilter);
-    }
-
     if (yearFilter !== 'all') {
         filtered = filtered.filter(s => String(s.year) === yearFilter);
+    }
+
+    if (campusFilter !== 'all') {
+        filtered = filtered.filter(s => s.campusId === campusFilter);
+    }
+
+    if (unitFilter !== 'all') {
+        filtered = filtered.filter(s => s.unitId === unitFilter);
+    }
+
+    if (reportTypeFilter !== 'all') {
+        filtered = filtered.filter(s => s.reportType === reportTypeFilter);
     }
 
     if (statusFilter !== 'all') {
@@ -167,12 +202,7 @@ export default function SubmissionsPage() {
         const dateB = b.submissionDate instanceof Timestamp ? b.submissionDate.toMillis() : new Date(b.submissionDate).getTime();
         return sortOrder === 'recent' ? dateB - dateA : dateA - dateB;
     });
-  }, [rawSubmissions, reportTypeFilter, yearFilter, statusFilter, sortOrder]);
-
-  const campusesQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'campuses') : null), [firestore, user]);
-  const { data: campuses } = useCollection<Campus>(campusesQuery);
-
-  const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
+  }, [rawSubmissions, reportTypeFilter, yearFilter, statusFilter, campusFilter, unitFilter, sortOrder]);
 
   const handleDeleteClick = (submission: Submission) => {
     setDeletingSubmission(submission);
@@ -194,17 +224,19 @@ export default function SubmissionsPage() {
     }
   }
 
+  const isInstitutionalViewer = isAdmin || isAuditor;
+
   return (
     <TooltipProvider>
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Submissions</h2>
-            <p className="text-muted-foreground">Manage unit compliance documentation and track overall performance.</p>
+            <h2 className="text-2xl font-bold tracking-tight">Submissions Hub</h2>
+            <p className="text-muted-foreground">Manage unit compliance documentation and track overall performance across university sites.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2 md:justify-end">
             <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-muted-foreground block">Monitoring Year</label>
+                <label className="text-[10px] font-bold uppercase text-muted-foreground block">View Year</label>
                 <Select value={yearFilter} onValueChange={setYearFilter}>
                     <SelectTrigger className="w-[140px] h-9 bg-card font-semibold shadow-sm">
                         <CalendarIcon className="mr-2 h-3.5 w-3.5 opacity-50" />
@@ -220,7 +252,7 @@ export default function SubmissionsPage() {
                 <div className="pt-5">
                     <Button 
                         onClick={() => router.push('/submissions/new')}
-                        className="shadow-lg shadow-primary/20 h-9"
+                        className="shadow-lg shadow-primary/20 h-9 font-bold uppercase text-[10px] tracking-widest"
                     >
                         <PlusCircle className="mr-2 h-4 w-4" /> New Submission
                     </Button>
@@ -229,19 +261,94 @@ export default function SubmissionsPage() {
           </div>
         </div>
 
+        {/* Global Filter Bar */}
+        <Card className="border-primary/10 shadow-sm bg-muted/10">
+            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                        <School className="h-2.5 w-2.5" /> Campus Site Filter
+                    </label>
+                    <Select 
+                        value={campusFilter} 
+                        onValueChange={setCampusFilter}
+                        disabled={!isInstitutionalViewer}
+                    >
+                        <SelectTrigger className="h-9 text-xs bg-white">
+                            <SelectValue placeholder="All Campuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {isInstitutionalViewer && <SelectItem value="all">All Campuses</SelectItem>}
+                            {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                        <Building className="h-2.5 w-2.5" /> Unit / Office Filter
+                    </label>
+                    <Select 
+                        value={unitFilter} 
+                        onValueChange={setUnitFilter}
+                        disabled={campusFilter === 'all' && isInstitutionalViewer}
+                    >
+                        <SelectTrigger className="h-9 text-xs bg-white">
+                            <SelectValue placeholder="All Units" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Units</SelectItem>
+                            {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                        <FileText className="h-2.5 w-2.5" /> Report Type
+                    </label>
+                    <Select value={reportTypeFilter} onValueChange={setReportTypeFilter}>
+                        <SelectTrigger className="h-9 text-xs bg-white">
+                            <SelectValue placeholder="All Reports" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Reports</SelectItem>
+                            {submissionTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                        <Filter className="h-2.5 w-2.5" /> Status
+                    </label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="h-9 text-xs bg-white">
+                            <SelectValue placeholder="All Statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Statuses</SelectItem>
+                            <SelectItem value="submitted">Awaiting Approval</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
+                            <SelectItem value="rejected">Rejected</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </CardContent>
+        </Card>
+
         <Tabs defaultValue="visual-insights" className="space-y-4">
             <TabsList className="bg-muted/50 p-1 border">
-                <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm">
+                <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
                     <BarChart3 className="h-4 w-4" /> Visual Insights
                 </TabsTrigger>
-                <TabsTrigger value="all-submissions" className="gap-2 data-[state=active]:shadow-sm">
-                    <List className="h-4 w-4" /> Submission Log
+                <TabsTrigger value="all-submissions" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
+                    <List className="h-4 w-4" /> Detailed Log
                 </TabsTrigger>
-                {isSupervisor && !isAdmin && <TabsTrigger value="by-unit" className="data-[state=active]:shadow-sm">Unit Explorer</TabsTrigger>}
-                {(isAdmin || isAuditor) && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm">Campus Matrix</TabsTrigger>}
+                {isSupervisor && !isAdmin && <TabsTrigger value="by-unit" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">Unit Explorer</TabsTrigger>}
+                {(isAdmin || isAuditor) && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">Site Matrix</TabsTrigger>}
             </TabsList>
 
-            <TabsContent value="visual-insights">
+            <TabsContent value="visual-insights" className="animate-in fade-in duration-500">
                 <SubmissionDashboard 
                     submissions={dashboardSubmissions}
                     cycles={cycles || []}
@@ -249,69 +356,40 @@ export default function SubmissionsPage() {
                 />
             </TabsContent>
 
-            <TabsContent value="all-submissions">
-                <Card>
-                    <CardHeader className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b">
+            <TabsContent value="all-submissions" className="animate-in fade-in duration-500">
+                <Card className="shadow-md border-primary/10 overflow-hidden">
+                    <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4 border-b bg-muted/5">
                         <div className="space-y-1">
-                            <CardTitle className="text-lg">Detailed Submission Log</CardTitle>
-                            <CardDescription>Filtering {tableSubmissionsData.length} records for {yearFilter === 'all' ? 'all years' : `AY ${yearFilter}`}.</CardDescription>
+                            <CardTitle className="text-lg uppercase font-black tracking-tight">Submission Audit Log</CardTitle>
+                            <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
+                                Displaying {tableSubmissionsData.length} records matching the current filters.
+                            </CardDescription>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <div className="space-y-1">
-                                <label className="text-[10px] font-bold uppercase text-muted-foreground block">Report Type</label>
-                                <Select value={reportTypeFilter} onValueChange={setReportTypeFilter}>
-                                    <SelectTrigger className="w-[180px] h-8 text-xs bg-muted/20">
-                                        <SelectValue placeholder="All Reports" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Reports</SelectItem>
-                                        {submissionTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-[10px] font-bold uppercase text-muted-foreground block">Status</label>
-                                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                    <SelectTrigger className="w-[150px] h-8 text-xs bg-muted/20">
-                                        <SelectValue placeholder="All Statuses" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Statuses</SelectItem>
-                                        <SelectItem value="submitted">Awaiting Approval</SelectItem>
-                                        <SelectItem value="approved">Approved</SelectItem>
-                                        <SelectItem value="rejected">Rejected</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-[10px] font-bold uppercase text-muted-foreground block">Sort</label>
-                                <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    className="h-8 text-xs gap-2 bg-muted/20"
-                                    onClick={() => setSortOrder(sortOrder === 'recent' ? 'oldest' : 'recent')}
-                                >
-                                    <ArrowUpDown className="h-3 w-3" />
-                                    {sortOrder === 'recent' ? 'Recent' : 'Oldest'}
-                                </Button>
-                            </div>
-                        </div>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 text-[10px] font-black uppercase tracking-widest gap-2 bg-white"
+                            onClick={() => setSortOrder(sortOrder === 'recent' ? 'oldest' : 'recent')}
+                        >
+                            <ArrowUpDown className="h-3.5 w-3.5 text-primary" />
+                            Sort: {sortOrder === 'recent' ? 'Recent First' : 'Oldest First'}
+                        </Button>
                     </CardHeader>
-                    <CardContent className="pt-0">
+                    <CardContent className="p-0">
                         {isLoadingSubmissions ? (
                             <div className="flex justify-center items-center h-48">
-                                <Loader2 className="animate-spin h-8 w-8 text-primary" />
+                                <Loader2 className="animate-spin h-8 w-8 text-primary opacity-20" />
                             </div>
                         ) : tableSubmissionsData.length > 0 ? (
                             <Table>
-                                <TableHeader>
+                                <TableHeader className="bg-muted/30">
                                     <TableRow className="hover:bg-transparent">
-                                        <TableHead className="font-bold uppercase text-[10px]">Report Details</TableHead>
-                                        <TableHead className="font-bold uppercase text-[10px]">Origin Unit</TableHead>
-                                        <TableHead className="font-bold uppercase text-[10px]">Uploader</TableHead>
-                                        <TableHead className="font-bold uppercase text-[10px]">Submission Date</TableHead>
-                                        <TableHead className="font-bold uppercase text-[10px]">Compliance Status</TableHead>
-                                        <TableHead className="text-right font-bold uppercase text-[10px]">Actions</TableHead>
+                                        <TableHead className="font-bold uppercase text-[10px] pl-6 py-3">Report & Control Info</TableHead>
+                                        <TableHead className="font-bold uppercase text-[10px] py-3">Origin Unit / Office</TableHead>
+                                        <TableHead className="font-bold uppercase text-[10px] py-3">Uploader</TableHead>
+                                        <TableHead className="font-bold uppercase text-[10px] py-3">Submission Date</TableHead>
+                                        <TableHead className="font-bold uppercase text-[10px] py-3">Status</TableHead>
+                                        <TableHead className="text-right font-bold uppercase text-[10px] py-3 pr-6">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -320,28 +398,28 @@ export default function SubmissionsPage() {
                                             key={sub.id} 
                                             className={cn("transition-colors group", getYearRowColor(sub.year, sub.cycleId))}
                                         >
-                                            <TableCell>
+                                            <TableCell className="pl-6 py-4">
                                                 <div className="flex flex-col">
                                                     <span className="font-bold text-sm text-slate-900">{sub.reportType}</span>
-                                                    <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">
+                                                    <span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter mt-0.5">
                                                         {sub.cycleId} Cycle {sub.year} &bull; {sub.controlNumber}
                                                     </span>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col text-xs">
-                                                    <span className="flex items-center gap-1 font-semibold text-slate-700"><Building className="h-3 w-3 text-primary/60" /> {sub.unitName}</span>
-                                                    <span className="flex items-center gap-1 text-muted-foreground text-[10px]"><School className="h-3 w-3" /> {campusMap.get(sub.campusId) || '...'}</span>
+                                                    <span className="flex items-center gap-1 font-bold text-slate-700"><Building className="h-3 w-3 text-primary/60" /> {sub.unitName}</span>
+                                                    <span className="flex items-center gap-1 text-muted-foreground text-[10px] font-medium uppercase tracking-tighter"><School className="h-3 w-3" /> {campusMap.get(sub.campusId) || '...'}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-xs">
                                                 <div className="flex items-center gap-2">
-                                                    <User className="h-3.5 w-3.5 text-muted-foreground" />
-                                                    <span className="font-medium">{userMap.get(sub.userId) || '...'}</span>
+                                                    <User className="h-3.5 w-3.5 text-muted-foreground opacity-40" />
+                                                    <span className="font-bold text-slate-600">{userMap.get(sub.userId) || '...'}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-xs">
-                                                <div className="flex items-center gap-1 font-medium text-slate-600">
+                                                <div className="flex items-center gap-1 font-bold text-slate-500">
                                                     <CalendarIcon className="h-3 w-3 opacity-50" /> 
                                                     {safeFormatDate(sub.submissionDate)}
                                                 </div>
@@ -359,11 +437,11 @@ export default function SubmissionsPage() {
                                                     {sub.statusId === 'submitted' ? 'AWAITING APPROVAL' : (sub.statusId?.toUpperCase() || 'UNKNOWN')}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="text-right space-x-2 whitespace-nowrap">
+                                            <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
                                                 <Button 
                                                     variant="default" 
                                                     size="sm" 
-                                                    className="text-[10px] h-8 px-3 font-black uppercase tracking-widest bg-primary shadow-sm"
+                                                    className="text-[10px] h-8 px-4 font-black uppercase tracking-widest bg-primary shadow-sm"
                                                     onClick={() => router.push(`/submissions/${sub.id}`)}
                                                 >
                                                     VIEW
@@ -372,7 +450,7 @@ export default function SubmissionsPage() {
                                                     <Button 
                                                         variant="ghost" 
                                                         size="icon" 
-                                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                                                         onClick={() => handleDeleteClick(sub)}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
@@ -384,10 +462,10 @@ export default function SubmissionsPage() {
                                 </TableBody>
                             </Table>
                         ) : (
-                            <div className="py-20 text-center text-muted-foreground flex flex-col items-center gap-3 border border-dashed rounded-lg mt-4">
+                            <div className="py-24 text-center text-muted-foreground flex flex-col items-center gap-3 border-t border-dashed bg-muted/5">
                                 <FileText className="h-12 w-12 opacity-10" />
-                                <p className="font-medium text-sm">No records found for the current filter criteria.</p>
-                                <Button variant="outline" size="sm" onClick={() => { setYearFilter('all'); setReportTypeFilter('all'); setStatusFilter('all'); }}>
+                                <p className="font-bold text-xs uppercase tracking-widest">No matching records</p>
+                                <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold" onClick={() => { setCampusFilter('all'); setUnitFilter('all'); setReportTypeFilter('all'); setStatusFilter('all'); }}>
                                     Clear all filters
                                 </Button>
                             </div>
@@ -397,7 +475,7 @@ export default function SubmissionsPage() {
             </TabsContent>
             
             {isSupervisor && !isAdmin && (
-                <TabsContent value="by-unit">
+                <TabsContent value="by-unit" className="animate-in fade-in duration-500">
                     <UnitSubmissionsView 
                         allSubmissions={dashboardSubmissions} 
                         allUnits={allUnits} 
@@ -408,7 +486,7 @@ export default function SubmissionsPage() {
             )}
             
             {(isAdmin || isAuditor) && (
-                <TabsContent value="by-campus">
+                <TabsContent value="by-campus" className="animate-in fade-in duration-500">
                     <CampusSubmissionsView 
                         allSubmissions={dashboardSubmissions} 
                         allCampuses={campuses} 
