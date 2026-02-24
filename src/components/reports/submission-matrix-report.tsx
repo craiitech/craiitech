@@ -10,6 +10,7 @@ import { Check, X, Printer, Loader2 } from 'lucide-react';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import ReactDOMServer from 'react-dom/server';
 
 const cycles = ['first', 'final'] as const;
