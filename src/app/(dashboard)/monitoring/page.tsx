@@ -7,7 +7,23 @@ import { collection, query, Timestamp, where } from 'firebase/firestore';
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, History, LayoutDashboard, ClipboardCheck, AlertTriangle, FileDown, Printer, CalendarSearch, SearchCode, ListChecks } from 'lucide-react';
+import { 
+    PlusCircle, 
+    Loader2, 
+    History, 
+    LayoutDashboard, 
+    ClipboardCheck, 
+    AlertTriangle, 
+    FileDown, 
+    Printer, 
+    CalendarSearch, 
+    SearchCode, 
+    ListChecks, 
+    Search, 
+    Building, 
+    Layers, 
+    Filter 
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { MonitoringFormDialog } from '@/components/monitoring/monitoring-form-dialog';
 import { MonitoringAnalytics } from '@/components/monitoring/monitoring-analytics';
@@ -29,6 +45,7 @@ import * as XLSX from 'xlsx';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MonitoringPrintTemplate } from '@/components/monitoring/monitoring-print-template';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
@@ -41,11 +58,23 @@ export default function MonitoringPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<UnitMonitoringRecord | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  
+  // Filtering States
+  const [campusFilter, setCampusFilter] = useState<string>('all');
+  const [unitFilter, setUnitFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const isGlobalAdmin = useMemo(() => isAdmin || (userRole && /admin|auditor/i.test(userRole)), [isAdmin, userRole]);
   const isCampusOfficial = useMemo(() => userRole && /director|campus odimo|vice president/i.test(userRole), [userRole]);
   const isUnitOfficial = useMemo(() => userRole && /unit odimo/i.test(userRole), [userRole]);
   const isUnitCoordinator = useMemo(() => userRole && /unit coordinator/i.test(userRole), [userRole]);
+
+  // Set initial campus filter if campus official
+  useEffect(() => {
+    if (isCampusOfficial && userProfile?.campusId) {
+        setCampusFilter(userProfile.campusId);
+    }
+  }, [isCampusOfficial, userProfile?.campusId]);
 
   const monitoringRecordsQuery = useMemoFirebase(
     () => {
@@ -75,6 +104,21 @@ export default function MonitoringPage() {
   
   const { data: allRecords, isLoading: isLoadingRecords } = useCollection<UnitMonitoringRecord>(monitoringRecordsQuery);
 
+  const campusesQuery = useMemoFirebase(() => (firestore && !isUserLoading && userProfile ? collection(firestore, 'campuses') : null), [firestore, isUserLoading, userProfile]);
+  const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
+
+  const unitsQuery = useMemoFirebase(() => (firestore && !isUserLoading && userProfile ? collection(firestore, 'units') : null), [firestore, isUserLoading, userProfile]);
+  const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+
+  const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
+  const unitMap = useMemo(() => new Map(units?.map(u => [u.id, u.name])), [units]);
+
+  const filteredUnitsList = useMemo(() => {
+    if (!units) return [];
+    if (campusFilter === 'all') return units;
+    return units.filter(u => u.campusIds?.includes(campusFilter));
+  }, [units, campusFilter]);
+
   const filteredRecords = useMemo(() => {
     if (!allRecords) return [];
     
@@ -82,6 +126,22 @@ export default function MonitoringPage() {
 
     if (isUnitOfficial && userProfile?.unitId) {
         processed = processed.filter(r => r.unitId === userProfile.unitId);
+    }
+
+    // Apply Global Filters
+    if (campusFilter !== 'all') {
+        processed = processed.filter(r => r.campusId === campusFilter);
+    }
+    if (unitFilter !== 'all') {
+        processed = processed.filter(r => r.unitId === unitFilter);
+    }
+    if (searchTerm) {
+        const lowerSearch = searchTerm.toLowerCase();
+        processed = processed.filter(r => {
+            const uName = unitMap.get(r.unitId)?.toLowerCase() || '';
+            const cName = campusMap.get(r.campusId)?.toLowerCase() || '';
+            return uName.includes(lowerSearch) || cName.includes(lowerSearch) || r.officerInCharge?.toLowerCase().includes(lowerSearch);
+        });
     }
 
     processed = processed.filter(record => {
@@ -94,16 +154,7 @@ export default function MonitoringPage() {
         const dateB = b.visitDate instanceof Timestamp ? b.visitDate.toMillis() : new Date(b.visitDate).getTime();
         return dateB - dateA;
     });
-  }, [allRecords, selectedYear, isUnitOfficial, userProfile]);
-
-  const campusesQuery = useMemoFirebase(() => (firestore && !isUserLoading && userProfile ? collection(firestore, 'campuses') : null), [firestore, isUserLoading, userProfile]);
-  const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
-
-  const unitsQuery = useMemoFirebase(() => (firestore && !isUserLoading && userProfile ? collection(firestore, 'units') : null), [firestore, isUserLoading, userProfile]);
-  const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
-
-  const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
-  const unitMap = useMemo(() => new Map(units?.map(u => [u.id, u.name])), [units]);
+  }, [allRecords, selectedYear, isUnitOfficial, userProfile, campusFilter, unitFilter, searchTerm, unitMap, campusMap]);
 
   const handleNewVisit = () => {
     setSelectedRecord(null);
@@ -211,14 +262,14 @@ export default function MonitoringPage() {
 
   return (
     <>
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">
-                {isUnitOnlyView ? 'Unit Monitoring Status' : 'Unit Monitoring'}
+                {isUnitOnlyView ? 'Unit Monitoring Status' : 'Unit Monitoring Hub'}
             </h2>
             <p className="text-muted-foreground text-sm">
-                {isUnitOnlyView ? 'View results from on-site QA monitoring visits.' : 'Record and review on-site monitoring visit findings.'}
+                {isUnitOnlyView ? 'View results from on-site QA monitoring visits.' : 'Record, analyze, and review on-site monitoring performance.'}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -240,13 +291,65 @@ export default function MonitoringPage() {
                 </Button>
             )}
             {canAddVisit && (
-                <Button size="sm" onClick={handleNewVisit} className="h-9">
+                <Button size="sm" onClick={handleNewVisit} className="h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     New Visit
                 </Button>
             )}
           </div>
         </div>
+
+        {/* Global Monitoring Filter Bar */}
+        {!isUnitOnlyView && (
+            <Card className="shadow-md border-primary/10">
+                <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4 bg-muted/10">
+                    <div className="flex-1 w-full space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                            <Search className="h-2.5 w-2.5" /> Search Visits
+                        </label>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search by unit name or officer..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-9 h-9 text-xs bg-white"
+                            />
+                        </div>
+                    </div>
+                    {isGlobalAdmin && (
+                        <div className="w-full md:w-64 space-y-1.5">
+                            <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                                <Building className="h-2.5 w-2.5" /> Site Filter
+                            </label>
+                            <Select value={campusFilter} onValueChange={(val) => { setCampusFilter(val); setUnitFilter('all'); }}>
+                                <SelectTrigger className="h-9 text-xs bg-white">
+                                    <SelectValue placeholder="All Campuses" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Campuses</SelectItem>
+                                    {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+                    <div className="w-full md:w-64 space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                            <Layers className="h-2.5 w-2.5" /> Unit / Office Filter
+                        </label>
+                        <Select value={unitFilter} onValueChange={setUnitFilter} disabled={campusFilter === 'all' && !isGlobalAdmin}>
+                            <SelectTrigger className="h-9 text-xs bg-white">
+                                <SelectValue placeholder="All Units" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Units</SelectItem>
+                                {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </CardContent>
+            </Card>
+        )}
 
         {!isLoading && filteredRecords.length === 0 && isUnitOnlyView ? (
             <Card className="border-dashed py-12 flex flex-col items-center justify-center text-center">
@@ -260,29 +363,29 @@ export default function MonitoringPage() {
             </Card>
         ) : (
             <Tabs defaultValue="performance" className="space-y-4">
-                <TabsList className="grid h-auto w-full grid-cols-2 md:inline-flex md:h-10 md:w-auto">
-                    <TabsTrigger value="performance" className="gap-2">
+                <TabsList className="bg-muted p-1 border shadow-sm w-full md:w-auto h-auto grid grid-cols-2 md:inline-flex">
+                    <TabsTrigger value="performance" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
                         <LayoutDashboard className="h-4 w-4" /> Performance
                     </TabsTrigger>
-                    <TabsTrigger value="history" className="gap-2">
+                    <TabsTrigger value="history" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
                         <History className="h-4 w-4" /> Visit Log
                     </TabsTrigger>
-                    <TabsTrigger value="findings" className="gap-2">
+                    <TabsTrigger value="findings" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
                         <AlertTriangle className="h-4 w-4" /> Gaps & Findings
                     </TabsTrigger>
                     {!isUnitOnlyView && (
-                      <TabsTrigger value="explorer" className="gap-2">
+                      <TabsTrigger value="explorer" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
                           <SearchCode className="h-4 w-4" /> Explorer
                       </TabsTrigger>
                     )}
                     {!isUnitOnlyView && (
-                      <TabsTrigger value="item-analysis" className="gap-2">
+                      <TabsTrigger value="item-analysis" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
                           <ListChecks className="h-4 w-4" /> Analysis
                       </TabsTrigger>
                     )}
                 </TabsList>
 
-                <TabsContent value="performance">
+                <TabsContent value="performance" className="animate-in fade-in duration-500">
                     <MonitoringAnalytics 
                         records={filteredRecords} 
                         campuses={campuses || []} 
@@ -292,30 +395,30 @@ export default function MonitoringPage() {
                     />
                 </TabsContent>
 
-                <TabsContent value="history" className="space-y-4">
-                    <Card>
-                        <CardHeader>
+                <TabsContent value="history" className="space-y-4 animate-in fade-in duration-500">
+                    <Card className="shadow-sm border-primary/10">
+                        <CardHeader className="bg-muted/10 border-b">
                             <CardTitle>Monitoring History - {selectedYear}</CardTitle>
                             <CardDescription>
                                 Results from on-site monitoring visits for your scope.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="p-0">
                             {isLoading ? (
                             <div className="flex h-64 items-center justify-center">
-                                <Loader2 className="h-8 w-8 animate-spin" />
+                                <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
                             </div>
                             ) : (
                             <Table>
-                                <TableHeader>
+                                <TableHeader className="bg-muted/50">
                                 <TableRow>
-                                    <TableHead>Date</TableHead>
-                                    {!isUnitOnlyView && <TableHead>Campus</TableHead>}
-                                    {!isUnitOnlyView && <TableHead>Unit</TableHead>}
-                                    <TableHead>Room</TableHead>
-                                    <TableHead>Officer in Charge</TableHead>
-                                    <TableHead>Compliance %</TableHead>
-                                    <TableHead className="text-right">Action</TableHead>
+                                    <TableHead className="pl-6 text-[10px] font-black uppercase">Date</TableHead>
+                                    {!isUnitOnlyView && <TableHead className="text-[10px] font-black uppercase">Campus</TableHead>}
+                                    {!isUnitOnlyView && <TableHead className="text-[10px] font-black uppercase">Unit</TableHead>}
+                                    <TableHead className="text-[10px] font-black uppercase">Room</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase">Officer in Charge</TableHead>
+                                    <TableHead className="text-[10px] font-black uppercase">Compliance %</TableHead>
+                                    <TableHead className="text-right pr-6 text-[10px] font-black uppercase">Action</TableHead>
                                 </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -323,8 +426,8 @@ export default function MonitoringPage() {
                                     filteredRecords.map(record => {
                                       const score = calculateCompliance(record);
                                       return (
-                                        <TableRow key={record.id} className="cursor-pointer" onClick={() => handleViewRecord(record)}>
-                                            <TableCell className="font-medium text-xs">
+                                        <TableRow key={record.id} className="cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => handleViewRecord(record)}>
+                                            <TableCell className="font-bold text-xs pl-6">
                                                 {safeFormatDateLocal(record.visitDate)}
                                             </TableCell>
                                             {!isUnitOnlyView && (
@@ -338,17 +441,17 @@ export default function MonitoringPage() {
                                                 </TableCell>
                                             )}
                                             <TableCell className="text-xs">{record.roomNumber || 'N/A'}</TableCell>
-                                            <TableCell className="text-xs">{record.officerInCharge || 'N/A'}</TableCell>
+                                            <TableCell className="text-xs font-medium">{record.officerInCharge || 'N/A'}</TableCell>
                                             <TableCell>
-                                              <Badge variant={getComplianceVariant(score)} className="text-[10px]">
+                                              <Badge variant={getComplianceVariant(score)} className="text-[10px] font-black">
                                                 {score}%
                                               </Badge>
                                             </TableCell>
-                                            <TableCell className="text-right space-x-1 whitespace-nowrap">
-                                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handlePrintRecord(record); }}>
+                                            <TableCell className="text-right pr-6 space-x-1 whitespace-nowrap">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={(e) => { e.stopPropagation(); handlePrintRecord(record); }}>
                                                 <Printer className="h-4 w-4" />
                                             </Button>
-                                            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleViewRecord(record); }}>
+                                            <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-widest" onClick={(e) => { e.stopPropagation(); handleViewRecord(record); }}>
                                                 {isAdmin || userRole === 'Campus ODIMO' ? 'Edit' : 'View'}
                                             </Button>
                                             </TableCell>
@@ -357,8 +460,8 @@ export default function MonitoringPage() {
                                     })
                                 ) : (
                                     <TableRow>
-                                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
-                                        No monitoring records found for {selectedYear}.
+                                    <TableCell colSpan={8} className="h-32 text-center text-muted-foreground italic">
+                                        No monitoring records found for the current filters.
                                     </TableCell>
                                     </TableRow>
                                 )}
@@ -369,7 +472,7 @@ export default function MonitoringPage() {
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="findings">
+                <TabsContent value="findings" className="animate-in fade-in duration-500">
                     <MonitoringFindings 
                         records={filteredRecords} 
                         campuses={campuses || []} 
@@ -379,7 +482,7 @@ export default function MonitoringPage() {
                 </TabsContent>
 
                 {!isUnitOnlyView && (
-                  <TabsContent value="explorer">
+                  <TabsContent value="explorer" className="animate-in fade-in duration-500">
                       <MonitoringUnitExplorer 
                           records={allRecords || []}
                           campuses={campuses || []}
@@ -392,7 +495,7 @@ export default function MonitoringPage() {
                 )}
 
                 {!isUnitOnlyView && (
-                  <TabsContent value="item-analysis">
+                  <TabsContent value="item-analysis" className="animate-in fade-in duration-500">
                       <MonitoringItemAnalysis 
                           records={filteredRecords}
                           campuses={campuses || []}
