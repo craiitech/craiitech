@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -94,6 +93,11 @@ export function SubmissionForm({
   const [lastSubmittedLink, setLastSubmittedLink] = useState<string>('');
   const [existingSubmission, setExistingSubmission] = useState<Submission | null>(null);
   const [originalSubmitter, setOriginalSubmitter] = useState<AppUser | null>(null);
+  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setCurrentDate(new Date());
+  }, []);
 
   const isRorForm = reportType === 'Risk and Opportunity Registry';
 
@@ -396,10 +400,10 @@ export function SubmissionForm({
 
   const previewControlData = useMemo(() => {
     const rev = existingSubmission ? (existingSubmission.revision || 0) + 1 : 0;
-    // Note: For live preview, we use local time, but final submission uses server time
-    const controlNum = generateControlNumber(currentUnitName, rev, reportType, new Date());
+    // Use stable current date once hydrated to avoid hydration mismatch
+    const controlNum = generateControlNumber(currentUnitName, rev, reportType, currentDate || new Date());
     return { rev, controlNum };
-  }, [currentUnitName, existingSubmission, reportType]);
+  }, [currentUnitName, existingSubmission, reportType, currentDate]);
 
   return (
     <>
