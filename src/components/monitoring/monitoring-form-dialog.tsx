@@ -274,10 +274,6 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
 
     const visitDate = new Date(Number(values.visitYear), Number(values.visitMonth), Number(values.visitDay));
 
-    /**
-     * CRITICAL: Reinforced Data Tagging
-     * Explicitly ensuring campusId and unitId are saved in the document to satisfy security rule constraints.
-     */
     const recordData = {
       ...values,
       visitDate,
@@ -290,12 +286,13 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
         const recordRef = doc(firestore, 'unitMonitoringRecords', record.id);
         await setDoc(recordRef, { ...recordData, createdAt: record.createdAt }, { merge: true });
         toast({ title: 'Success', description: 'Monitoring record updated.' });
+        // Specifically for Edit mode, we don't auto-close the dialogbox
       } else {
         const collectionRef = collection(firestore, 'unitMonitoringRecords');
         await addDoc(collectionRef, { ...recordData, createdAt: serverTimestamp() });
         toast({ title: 'Success', description: 'New monitoring record saved.' });
+        onOpenChange(false); // Close only for new records
       }
-      onOpenChange(false);
     } catch (error) {
       console.error("Error saving monitoring record:", error);
       toast({ title: 'Error', description: 'Could not save record.', variant: 'destructive' });
@@ -592,6 +589,17 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                     {isReadOnly ? 'Close' : 'Cancel'}
                 </Button>
+                {!isReadOnly && (
+                    <Button 
+                        type="button" 
+                        variant="secondary" 
+                        onClick={() => onOpenChange(false)} 
+                        disabled={isSubmitting}
+                        className="font-bold text-[10px] uppercase tracking-widest px-6"
+                    >
+                        Close Dialog
+                    </Button>
+                )}
                 {!isReadOnly && (
                     <Button type="submit" form="monitoring-form" disabled={isSubmitting} className="min-w-[150px] shadow-lg shadow-primary/20">
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
