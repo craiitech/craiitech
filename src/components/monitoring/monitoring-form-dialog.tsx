@@ -31,7 +31,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, ClipboardCheck, Circle, FileWarning, CheckCircle2, Info, LayoutList, Printer, BookOpen, BookMarked, HelpCircle } from 'lucide-react';
+import { Loader2, ClipboardCheck, Circle, FileWarning, CheckCircle2, Info, LayoutList, Printer, BookOpen, BookMarked, HelpCircle, Sparkles, School, Briefcase } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
@@ -63,6 +63,7 @@ const formSchema = z.object({
   visitYear: z.string().min(1, 'Year is required'),
   campusId: z.string().min(1, 'Please select a campus.'),
   unitId: z.string().min(1, 'Please select a unit.'),
+  roomType: z.enum(['Office', 'Classroom']),
   roomNumber: z.string().optional(),
   building: z.string().optional(),
   officerInCharge: z.string().optional(),
@@ -106,6 +107,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
       visitYear: String(new Date().getFullYear()),
       campusId: '',
       unitId: '',
+      roomType: 'Office',
       roomNumber: '',
       building: '',
       officerInCharge: '',
@@ -125,6 +127,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
 
   const selectedCampusId = form.watch('campusId');
   const selectedUnitId = form.watch('unitId');
+  const roomTypeValue = form.watch('roomType');
   const visitYearValue = form.watch('visitYear');
   const observationsValue = form.watch('observations');
   
@@ -238,6 +241,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
           visitMonth: String(vDate.getMonth()),
           visitDay: String(vDate.getDate()),
           visitYear: String(vDate.getFullYear()),
+          roomType: record.roomType || 'Office',
           roomNumber: record.roomNumber || '',
           building: record.building || '',
           officerInCharge: record.officerInCharge || '',
@@ -258,6 +262,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
           visitYear: String(new Date().getFullYear()),
           campusId: userProfile?.campusId || '',
           unitId: '',
+          roomType: 'Office',
           roomNumber: '',
           building: '',
           officerInCharge: '',
@@ -267,6 +272,29 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
       }
     }
   }, [record, isOpen, form, userProfile]);
+
+  const applyRoomTemplate = (type: 'Office' | 'Classroom') => {
+    const currentObs = form.getValues('observations');
+    const updatedObs = currentObs.map(obs => {
+        if (type === 'Classroom') {
+            const docItems = [
+                "Operational Plan", "Quality Objectives Monitoring", "Risk and Opportunity Registry",
+                "Risk and Opportunity Action Plan", "SWOT Analysis", "Needs and Expectation of Interested Parties",
+                "Procedure Manual", "MR Report on File", "IQA / EQA Report on File", "CSM Report on File", "Document Control Center"
+            ];
+            if (docItems.includes(obs.item)) {
+                return { ...obs, status: 'Not Applicable' as const, remarks: 'Not Applicable to this Room (Maintained at Office)' };
+            }
+        } else if (type === 'Office') {
+            if (obs.item === 'Student chairs') {
+                return { ...obs, status: 'Not Applicable' as const, remarks: 'Not Applicable to this Room' };
+            }
+        }
+        return obs;
+    });
+    form.setValue('observations', updatedObs);
+    toast({ title: 'Template Applied', description: `Set ${type} specific defaults for the checklist.` });
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!firestore || !userProfile) return;
@@ -286,12 +314,11 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
         const recordRef = doc(firestore, 'unitMonitoringRecords', record.id);
         await setDoc(recordRef, { ...recordData, createdAt: record.createdAt }, { merge: true });
         toast({ title: 'Success', description: 'Monitoring record updated.' });
-        // Specifically for Edit mode, we don't auto-close the dialogbox
       } else {
         const collectionRef = collection(firestore, 'unitMonitoringRecords');
         await addDoc(collectionRef, { ...recordData, createdAt: serverTimestamp() });
         toast({ title: 'Success', description: 'New monitoring record saved.' });
-        onOpenChange(false); // Close only for new records
+        onOpenChange(false);
       }
     } catch (error) {
       console.error("Error saving monitoring record:", error);
@@ -320,12 +347,36 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                         Record on-site visit findings and verify EOMS documentation compliance.
                     </DialogDescription>
                 </div>
-                {record && onPrint && (
-                    <Button variant="outline" size="sm" onClick={() => onPrint(record)}>
-                        <Printer className="mr-2 h-4 w-4" />
-                        Print Report
-                    </Button>
-                )}
+                <div className="flex items-center gap-2">
+                    {!isReadOnly && (
+                        <div className="flex bg-muted p-1 rounded-lg border mr-2">
+                            <Button 
+                                type="button" 
+                                variant={roomTypeValue === 'Office' ? 'default' : 'ghost'} 
+                                size="sm" 
+                                className="h-7 text-[10px] font-black uppercase"
+                                onClick={() => { form.setValue('roomType', 'Office'); applyRoomTemplate('Office'); }}
+                            >
+                                <Briefcase className="h-3 w-3 mr-1.5" /> Office
+                            </Button>
+                            <Button 
+                                type="button" 
+                                variant={roomTypeValue === 'Classroom' ? 'default' : 'ghost'} 
+                                size="sm" 
+                                className="h-7 text-[10px] font-black uppercase"
+                                onClick={() => { form.setValue('roomType', 'Classroom'); applyRoomTemplate('Classroom'); }}
+                            >
+                                <School className="h-3 w-3 mr-1.5" /> Classroom
+                            </Button>
+                        </div>
+                    )}
+                    {record && onPrint && (
+                        <Button variant="outline" size="sm" onClick={() => onPrint(record)}>
+                            <Printer className="mr-2 h-4 w-4" />
+                            Print Report
+                        </Button>
+                    )}
+                </div>
             </div>
         </div>
 
@@ -336,7 +387,7 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                         <ScrollArea className="flex-1">
                             <div className="p-6 space-y-8">
                                 {/* Header Info Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 bg-muted/20 p-4 rounded-lg border">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4 bg-muted/20 p-4 rounded-lg border">
                                     <div className="space-y-2 lg:col-span-1">
                                         <FormLabel className="text-[10px] font-bold uppercase tracking-wider">Date of Visit</FormLabel>
                                         <div className="grid grid-cols-3 gap-1">
@@ -392,17 +443,31 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                             <FormMessage />
                                         </FormItem>
                                     )} />
+                                    <FormField control={form.control} name="roomType" render={({ field }) => (
+                                        <FormItem className="lg:col-span-1">
+                                            <FormLabel className="text-[10px] font-bold uppercase tracking-wider">Room Category</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
+                                                <FormControl>
+                                                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="Office">Office Room</SelectItem>
+                                                    <SelectItem value="Classroom">Classroom</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </FormItem>
+                                    )} />
                                     <FormField control={form.control} name="roomNumber" render={({ field }) => (
                                         <FormItem className="lg:col-span-1">
-                                            <FormLabel className="text-[10px] font-bold uppercase tracking-wider">Office / Room #</FormLabel>
-                                            <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., Room 101" className="h-9 text-xs" disabled={isReadOnly} /></FormControl>
+                                            <FormLabel className="text-[10px] font-bold uppercase tracking-wider">Room #</FormLabel>
+                                            <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 101" className="h-9 text-xs" disabled={isReadOnly} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
                                     <FormField control={form.control} name="building" render={({ field }) => (
                                         <FormItem className="lg:col-span-1">
                                             <FormLabel className="text-[10px] font-bold uppercase tracking-wider">Building</FormLabel>
-                                            <FormControl><Input {...field} value={field.value || ''} placeholder="e.g., CET Building" className="h-9 text-xs" disabled={isReadOnly} /></FormControl>
+                                            <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. CET" className="h-9 text-xs" disabled={isReadOnly} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
@@ -416,10 +481,23 @@ export function MonitoringFormDialog({ isOpen, onOpenChange, record, campuses, u
                                 </div>
 
                                 <div className="space-y-4">
-                                    <h3 className="font-bold text-lg flex items-center gap-2">
-                                        <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">1</div>
-                                        Verification Checklist
-                                    </h3>
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="font-bold text-lg flex items-center gap-2">
+                                            <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">1</div>
+                                            Verification Checklist
+                                        </h3>
+                                        {!isReadOnly && (
+                                            <Button 
+                                                type="button" 
+                                                variant="secondary" 
+                                                size="sm" 
+                                                onClick={() => applyRoomTemplate(roomTypeValue)} 
+                                                className="h-8 text-[10px] font-black uppercase shadow-sm"
+                                            >
+                                                <Sparkles className="h-3 w-3 mr-1.5" /> Apply {roomTypeValue} Suggestions
+                                            </Button>
+                                        )}
+                                    </div>
                                     <div className="border rounded-lg overflow-hidden shadow-sm">
                                         <Table>
                                             <TableHeader className="bg-muted/50">

@@ -240,6 +240,7 @@ export type UnitMonitoringRecord = {
   visitDate: any; // Timestamp
   campusId: string;
   unitId: string;
+  roomType: 'Office' | 'Classroom';
   roomNumber?: string;
   building?: string;
   officerInCharge?: string;
