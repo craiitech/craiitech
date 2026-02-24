@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
@@ -18,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Loader2, ArrowLeft, Check, X, Send, History, ShieldCheck, FileText, Monitor, Smartphone, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { useState, useMemo, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
