@@ -55,6 +55,8 @@ interface RiskFormDialogProps {
   isMandatory?: boolean;
   registryLink?: string | null;
   defaultYear?: number;
+  defaultUnitId?: string;
+  defaultCampusId?: string;
 }
 
 const months = [
@@ -108,7 +110,19 @@ const consequenceOptions = [
   { value: 1, label: '1 - Insignificant' }, { value: 2, label: '2 - Minor' }, { value: 3, label: '3 - Moderate' }, { value: 4, label: '4 - Major' }, { value: 5, label: '5 - Catastrophic' },
 ];
 
-export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits, allCampuses, isMandatory, registryLink, defaultYear }: RiskFormDialogProps) {
+export function RiskFormDialog({ 
+  isOpen, 
+  onOpenChange, 
+  risk, 
+  unitUsers, 
+  allUnits, 
+  allCampuses, 
+  isMandatory, 
+  registryLink, 
+  defaultYear,
+  defaultUnitId,
+  defaultCampusId
+}: RiskFormDialogProps) {
   const { user, userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -176,11 +190,11 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
         consequence: 1,
         treatmentAction: '',
         status: 'Open',
-        adminCampusId: userProfile?.campusId || '',
-        adminUnitId: userProfile?.unitId || '',
+        adminCampusId: defaultCampusId || userProfile?.campusId || '',
+        adminUnitId: defaultUnitId || userProfile?.unitId || '',
       });
     }
-  }, [risk, isOpen, form, userProfile, defaultYear]);
+  }, [risk, isOpen, form, userProfile, defaultYear, defaultUnitId, defaultCampusId]);
 
   const likelihoodValue = form.watch('likelihood');
   const consequenceValue = form.watch('consequence');
@@ -352,6 +366,28 @@ export function RiskFormDialog({ isOpen, onOpenChange, risk, unitUsers, allUnits
                                           </FormControl>
                                         </FormItem>
                                     )} />
+                                    {isAdmin && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                                            <FormField control={form.control} name="adminCampusId" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-black uppercase text-primary">Admin Override: Campus</FormLabel>
+                                                    <Select onValueChange={(val) => { field.onChange(val); form.setValue('adminUnitId', ''); }} value={field.value || ''}>
+                                                        <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
+                                                        <SelectContent>{allCampuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                                    </Select>
+                                                </FormItem>
+                                            )} />
+                                            <FormField control={form.control} name="adminUnitId" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-black uppercase text-primary">Admin Override: Unit</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedAdminCampusId}>
+                                                        <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl>
+                                                        <SelectContent>{allUnits.filter(u => u.campusIds?.includes(selectedAdminCampusId || '')).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
+                                                    </Select>
+                                                </FormItem>
+                                            )} />
+                                        </div>
+                                    )}
                                     <FormField control={form.control} name="objective" render={({ field }) => (
                                       <FormItem>
                                         <FormLabel className="font-bold">Process Objective</FormLabel>

@@ -1,9 +1,9 @@
 'use client';
 
-import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
-import { doc, Timestamp, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
+import { doc, Timestamp, updateDoc, arrayUnion, serverTimestamp, collection, query, where } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
-import type { Submission, User as AppUser, Campus, Comment } from '@/lib/types';
+import type { Submission, User as AppUser, Campus, Unit, Comment } from '@/lib/types';
 import {
   Card,
   CardContent,
@@ -15,7 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Check, X, Send, History, ShieldCheck, FileText, Monitor, Smartphone, RotateCw, ClipboardCheck, AlertTriangle } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, X, Send, History, ShieldCheck, FileText, Monitor, Smartphone, RotateCw, ClipboardCheck, AlertTriangle, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
@@ -31,6 +31,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { generateControlNumber } from '@/lib/utils';
 import { getOfficialServerTime } from '@/lib/actions';
 import { cn } from '@/lib/utils';
+import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
 
 
 const statusVariant: Record<
@@ -98,6 +99,7 @@ export default function SubmissionDetailPage() {
   const [previewOrientation, setPreviewOrientation] = useState<'portrait' | 'landscape'>('landscape');
   const [rotation, setRotation] = useState(0);
   const [isAdminReviewOverride, setIsAdminReviewOverride] = useState(false);
+  const [isRiskSyncOpen, setIsRiskSyncOpen] = useState(false);
 
   // State for resubmission form
   const [newLink, setNewLink] = useState('');
@@ -148,6 +150,25 @@ export default function SubmissionDetailPage() {
     [firestore, submission?.campusId]
   );
   const { data: campus, isLoading: isLoadingCampus } = useDoc<Campus>(campusDocRef);
+
+  // Data for Risk Registry Bridge (Admin Only)
+  const allUnitsQuery = useMemoFirebase(
+    () => (firestore && isAdmin ? collection(firestore, 'units') : null),
+    [firestore, isAdmin]
+  );
+  const { data: allUnits } = useCollection<Unit>(allUnitsQuery);
+
+  const allCampusesQuery = useMemoFirebase(
+    () => (firestore && isAdmin ? collection(firestore, 'campuses') : null),
+    [firestore, isAdmin]
+  );
+  const { data: allCampuses } = useCollection<Campus>(allCampusesQuery);
+
+  const unitUsersQuery = useMemoFirebase(
+    () => (firestore && isAdmin && submission?.unitId ? query(collection(firestore, 'users'), where('unitId', '==', submission.unitId)) : null),
+    [firestore, isAdmin, submission?.unitId]
+  );
+  const { data: unitUsers } = useCollection<AppUser>(unitUsersQuery);
 
   const isLoading = isUserLoading || isLoadingSubmission || isLoadingSubmitter || isLoadingCampus;
   
@@ -485,23 +506,47 @@ export default function SubmissionDetailPage() {
             </CardContent>
           </Card>
           
-          {/* Admin Override Trigger */}
-          {isAdmin && submission.statusId === 'rejected' && !isAdminReviewOverride && (
-              <Card className="border-primary/20 bg-primary/5 shadow-sm">
-                  <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6">
-                      <div className="flex items-start gap-3">
-                          <AlertTriangle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                          <div className="space-y-1">
-                              <p className="text-sm font-bold text-slate-900">Administrative Override Available</p>
-                              <p className="text-xs text-muted-foreground">As an Admin, you can re-review this rejected document without waiting for a resubmission.</p>
-                          </div>
-                      </div>
-                      <Button onClick={() => setIsAdminReviewOverride(true)} className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
-                          <ClipboardCheck className="h-4 w-4" />
-                          Review Rejected Document
-                      </Button>
-                  </CardContent>
-              </Card>
+          {/* Admin Tools: Sync and Override */}
+          {isAdmin && (
+              <div className="space-y-4">
+                  {/* Risk Registry Bridge */}
+                  {submission.reportType === 'Risk and Opportunity Registry' && (
+                      <Card className="border-primary/20 bg-primary/5 shadow-sm">
+                          <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6">
+                              <div className="flex items-start gap-3">
+                                  <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                                  <div className="space-y-1">
+                                      <p className="text-sm font-bold text-slate-900">Admin: Risk Registry Bridge</p>
+                                      <p className="text-xs text-muted-foreground">Directly log the entries from this document into the system risk registry for compliance tracking.</p>
+                                  </div>
+                              </div>
+                              <Button onClick={() => setIsRiskSyncOpen(true)} className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20 bg-indigo-600 text-white hover:bg-indigo-700">
+                                  <PlusCircle className="h-4 w-4" />
+                                  Record in Risk Registry
+                              </Button>
+                          </CardContent>
+                      </Card>
+                  )}
+
+                  {/* Admin Override Trigger */}
+                  {submission.statusId === 'rejected' && !isAdminReviewOverride && (
+                      <Card className="border-primary/20 bg-primary/5 shadow-sm">
+                          <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6">
+                              <div className="flex items-start gap-3">
+                                  <AlertTriangle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                                  <div className="space-y-1">
+                                      <p className="text-sm font-bold text-slate-900">Administrative Override Available</p>
+                                      <p className="text-xs text-muted-foreground">As an Admin, you can re-review this rejected document without waiting for a resubmission.</p>
+                                  </div>
+                              </div>
+                              <Button onClick={() => setIsAdminReviewOverride(true)} className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
+                                  <ClipboardCheck className="h-4 w-4" />
+                                  Review Rejected Document
+                              </Button>
+                          </CardContent>
+                      </Card>
+                  )}
+              </div>
           )}
 
           {showApprovalUI && (
@@ -646,6 +691,21 @@ export default function SubmissionDetailPage() {
             </Card>
         </div>
       </div>
+
+      {/* Admin Risk Registry Dialog Bridge */}
+      {isAdmin && isRiskSyncOpen && submission && (
+          <RiskFormDialog 
+            isOpen={isRiskSyncOpen}
+            onOpenChange={setIsRiskSyncOpen}
+            risk={null}
+            unitUsers={unitUsers || []}
+            allUnits={allUnits || []}
+            allCampuses={allCampuses || []}
+            defaultYear={submission.year}
+            defaultUnitId={submission.unitId}
+            defaultCampusId={submission.campusId}
+          />
+      )}
     </div>
   );
 }
