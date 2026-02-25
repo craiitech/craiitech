@@ -33,18 +33,12 @@ import { useRouter } from 'next/navigation';
 
 
 export const submissionTypes = [
+  'SWOT Analysis',
+  'Needs and Expectation of Interested Parties',
   'Operational Plan',
   'Quality Objectives Monitoring',
   'Risk and Opportunity Registry',
-  'Risk and Opportunity Action Plan',
-  'Needs and Expectation of Interested Parties',
-  'SWOT Analysis',
-  'Procedure Manual',
-  'MR Report on File',
-  'IQA / EQA Report on File',
-  'CSM Report on File',
-  'Forms Utilized by Units',
-  'CSW Attachment / Evidences as per Process'
+  'Risk and Opportunity Action Plan'
 ];
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {

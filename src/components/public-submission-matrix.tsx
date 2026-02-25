@@ -13,12 +13,12 @@ import { Button } from './ui/button';
 import Link from 'next/link';
 
 const submissionTypes = [
+  'SWOT Analysis',
+  'Needs and Expectation of Interested Parties',
   'Operational Plan',
   'Quality Objectives Monitoring',
   'Risk and Opportunity Registry',
   'Risk and Opportunity Action Plan',
-  'Needs and Expectation of Interested Parties',
-  'SWOT Analysis',
 ];
 
 export function PublicSubmissionMatrix() {
