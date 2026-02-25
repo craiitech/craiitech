@@ -219,7 +219,7 @@ export default function SubmissionsPage() {
     });
   }, [normalizedSubmissions, reportTypeFilter, yearFilter, statusFilter, campusFilter, unitFilter, sortOrder]);
 
-  const handleDeleteClick = (submission: Submission) => {
+  const onDeleteClick = (submission: Submission) => {
     setDeletingSubmission(submission);
     setChallengeText(`delete-${Math.floor(1000 + Math.random() * 9000)}`);
     setConfirmationText('');
