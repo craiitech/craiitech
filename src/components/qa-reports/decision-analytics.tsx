@@ -139,11 +139,13 @@ export function DecisionAnalytics({ outputs, reviews, campuses, units, isLoading
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Decision Volume</CardTitle>
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                Decision Volume {selectedYear !== 'all' ? `(${selectedYear})` : '(All Time)'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-primary tabular-nums">{analytics.total}</div>
-            <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">Tasks identified in MR</p>
+            <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">Total Tasks identified in MR</p>
           </CardContent>
         </Card>
 
@@ -153,7 +155,9 @@ export function DecisionAnalytics({ outputs, reviews, campuses, units, isLoading
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-emerald-600 tabular-nums">{analytics.resolutionRate}%</div>
-            <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tighter">Closure effectiveness</p>
+            <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tighter">
+                {analytics.closed} of {analytics.total} decisions closed
+            </p>
           </CardContent>
         </Card>
 
@@ -163,7 +167,10 @@ export function DecisionAnalytics({ outputs, reviews, campuses, units, isLoading
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-blue-600 tabular-nums">{analytics.pending}</div>
-            <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase tracking-tighter">Awaiting Admin validation</p>
+            <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase tracking-tighter flex items-center justify-between">
+                <span>Awaiting Admin validation</span>
+                <span className="text-blue-800 font-black">{analytics.pending} / {analytics.total}</span>
+            </p>
           </CardContent>
         </Card>
 
@@ -173,7 +180,10 @@ export function DecisionAnalytics({ outputs, reviews, campuses, units, isLoading
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-amber-600 tabular-nums">{analytics.ongoing}</div>
-            <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tighter">Active units taking action</p>
+            <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tighter flex items-center justify-between">
+                <span>Active units taking action</span>
+                <span className="text-amber-800 font-black">{analytics.ongoing} / {analytics.total}</span>
+            </p>
           </CardContent>
         </Card>
       </div>
