@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -36,7 +35,7 @@ import { doc, serverTimestamp, collection, setDoc, addDoc, Timestamp } from 'fir
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
-import { Loader2, Sparkles, ShieldCheck, Info, BookOpen, Save, X, ExternalLink, FileSearch } from 'lucide-react';
+import { Loader2, Sparkles, ShieldCheck, Info, BookOpen, Save, X, ExternalLink, FileSearch, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
@@ -150,6 +149,7 @@ export function RiskFormDialog({
 
   const selectedAdminCampusId = form.watch('adminCampusId');
   const selectedAdminUnitId = form.watch('adminUnitId');
+  const watchYear = form.watch('year');
 
   useEffect(() => {
     if (risk && isOpen) {
@@ -332,9 +332,15 @@ export function RiskFormDialog({
                         <ShieldCheck className="h-5 w-5" />
                         <span className="text-xs font-bold uppercase tracking-widest">Risk & Opportunity Registry</span>
                     </div>
-                    <DialogTitle className="text-xl">
-                    {risk ? 'Manage' : 'Log New'} Assessment Record
-                    </DialogTitle>
+                    <div className="flex items-center gap-3">
+                        <DialogTitle className="text-xl">
+                            {risk ? 'Manage' : 'Log New'} Assessment Record
+                        </DialogTitle>
+                        <Badge variant="secondary" className="h-6 px-3 bg-primary/10 text-primary border-primary/20 font-black text-xs">
+                            <Calendar className="h-3 w-3 mr-1.5" />
+                            AY {watchYear}
+                        </Badge>
+                    </div>
                 </div>
                 {!isMandatory && (
                     <Button variant="ghost" size="icon" onClick={handleClose} className="rounded-full h-8 w-8">
