@@ -1,3 +1,4 @@
+
 'use client';
 
 export const faqs = [
@@ -7,116 +8,82 @@ export const faqs = [
       {
         question: 'Who can use this application?',
         answer:
-          'This application is not for general use. Access is restricted to bona fide and selected employees of Romblon State University who are directly involved in the Educational Organizations Management System (EOMS) submission and review process. All accounts are subject to verification and approval by the Quality Assurance Office.',
+          'This application is not for general use. Access is restricted to authorized employees of Romblon State University who are directly involved in the Educational Organizations Management System (EOMS) process. All accounts require verification by the Quality Assurance Office.',
       },
       {
-        question: 'How do I register for an account?',
+        question: 'What are the core EOMS documents required?',
         answer:
-          'If you are an authorized employee, click the "Register" button on the homepage. You must sign up using your official RSU email. You must agree to the Data Privacy Statement to proceed.',
+          'The system tracks 6 mandatory documents per cycle: SWOT Analysis, Needs and Expectation of Interested Parties, Operational Plan, Quality Objectives Monitoring, Risk and Opportunity Registry, and the Risk and Opportunity Action Plan (required for Medium/High risks).',
       },
       {
-        question: 'What happens after I sign up?',
+        question: 'How does account verification work?',
         answer:
-          'After initial signup, you will be redirected to complete your registration by selecting your Campus, Role, and Unit. Once submitted, you must agree to a Non-Disclosure Agreement (NDA). Your account will then be placed in a "pending" state. An administrator from the QA Office must verify and approve your account before you can log in and access the portal. You will be notified by email once your account is active.',
-      },
-       {
-        question: 'I forgot my password. How can I reset it?',
-        answer:
-          'On the login page, there is a "Forgot Password" link. Click it and follow the instructions to reset your password via email.',
+          'After registration, you must accept a Non-Disclosure Agreement (NDA). Your account enters a pending state until an Admin verifies your identity and institutional role. You will be notified via email once access is granted.',
       },
     ],
   },
   {
-    role: 'Employee / Unit Coordinator / Unit ODIMO',
+    role: 'Unit Coordinators & ODIMOs',
     questions: [
       {
-        question: 'How do I submit a report?',
+        question: 'How do I handle document revisions?',
         answer:
-          'Navigate to the "Submissions" page and click the "New Submission / Resubmission" button. On the next page, you can select a year and cycle, then click on any report in the checklist to open the submission form. You must fill in the Google Drive link and check all items in the "Final Check" list before the "Submit" button is enabled.',
+          'The portal uses automated revision control. Any update to a previously submitted or rejected document automatically increments the Revision Number (e.g., from Rev 00 to Rev 01). Each revision is assigned a new official Document Control Number.',
       },
       {
-        question: 'How do I check the status of my submissions?',
+        question: 'Is the Risk Action Plan always mandatory?',
         answer:
-          'The Home page provides a "Submission Checklist" tab that shows the status (Not Submitted, Submitted, Approved, Rejected) of each required document for the selected year and cycle. You can also view a complete history on the "Submissions" page.',
+          'No. The "Risk and Opportunity Action Plan" is only mandatory if your "Risk and Opportunity Registry" entry resulted in a Medium or High rating. Low-rated risks are exempt and marked as N/A in your compliance checklist.',
       },
       {
-        question: 'What do the different submission statuses mean?',
-        answerBlocks: [
-          { type: 'list-item', content: '<strong>Not Submitted:</strong> You have not uploaded this report for the selected period.' },
-          { type: 'list-item', content: '<strong>Submitted:</strong> The report has been sent and is awaiting review from an approver.' },
-          { type: 'list-item', content: '<strong>Approved:</strong> The submission has been reviewed and approved.' },
-          { type: 'list-item', content: '<strong>Rejected:</strong> The submission was not accepted. You must review the feedback, make corrections, and resubmit.' },
-        ],
+        question: 'What is Unit Monitoring?',
+        answer:
+          'It is an on-site audit where QA Representatives verify physical compliance (7S, signages, facilities) and documentary evidence. Results are logged in the Monitoring Hub and contribute to your unit\'s performance score.',
       },
       {
-        question: 'My submission was rejected. What do I do?',
+        question: 'How do I resubmit a rejected document?',
         answer:
-          'Find the rejected submission on your Submissions page or Home dashboard and click the "View" (eye) icon. On the detail page, you can read the rejection comments in the "Conversation History" card. Use the "Resubmit Report" form on the same page to provide a new, corrected Google Drive link. After resubmitting, you will be redirected back to the Submissions page.',
-      },
-      {
-        question: 'What is the Risk & Opportunity Register?',
-        answer:
-          'The Risk Register, accessible from the sidebar, is a module for identifying, analyzing, and managing risks and opportunities within your unit. It helps ensure the university proactively addresses potential issues and leverages opportunities, as required by ISO 21001:2018.',
-      },
-      {
-        question: 'How do I close a risk that I have logged?',
-        answer:
-          'To close a risk, open it from the register and change its status to "Closed". A new section will appear requiring "Post-Treatment Analysis". Here you must re-evaluate the risk\'s likelihood and consequence after your action plan was implemented, provide written evidence of the implementation, and specify the date it was completed. This creates a full audit trail showing the risk was effectively resolved.',
+          'Navigate to the submission details page of the rejected report. Review the conversation history for feedback, paste your new Google Drive link, and click "Submit Corrected Revision".',
       },
     ],
   },
   {
-    role: 'Campus Director / Campus ODIMO',
+    role: 'Campus Directors & Supervisors',
     questions: [
       {
-        question: 'How do I review submissions from my campus?',
+        question: 'How do I track unit compliance gaps?',
         answer:
-          'Navigate to the "Approvals" page from the sidebar. You will see a queue of submissions from your campus that are awaiting your review. You can click on the "View" button to inspect the submission details and document preview.',
+          'Use the "Submissions Hub" and select the "Site Matrix" or "Unit Explorer" tab. The system provides real-time "Maturity Indices" based on approved documents. You can generate printable "Notices of Non-Compliance" for units with outstanding requirements.',
       },
       {
-        question: 'How do I approve or reject a submission?',
+        question: 'What is the IQA Hub?',
         answer:
-          'On the "Approvals" page, you can quickly approve with the green checkmark button. To reject, click the red "X" button, which opens a dialog where you must provide feedback. When approving from the submission detail page, you will be automatically redirected back to the Approvals list.',
+          'The Internal Quality Audit (IQA) Hub allows for strategic planning and itinerary management. Auditors use it to log objective evidence against ISO 21001:2018 clauses during the audit conduct.',
       },
       {
-        question: 'How do I monitor the Risk Register for my campus?',
-        answer:
-          'Your dashboard contains a "Risk Management Overview" card showing analytics for your campus, filterable by year. You can also go to the "Risk Register" page to see a complete, read-only list of all risk and opportunity entries from all units within your campus, allowing you to monitor their status and action plans.',
-      },
-       {
         question: 'Can I approve my own submissions?',
         answer:
-          'No, the system automatically filters your own submissions out of your approval queue to ensure a proper review process.',
-      },
-       {
-        question: 'My dashboard has an "Incomplete Submissions" card. What is it?',
-        answer:
-          'This card shows you units in your campus that have not yet submitted all required documents for the year. You can click on any unit in this list to see a detailed card on the right showing exactly which documents are submitted or missing for both the first and final cycles.',
+          'No. To maintain audit integrity, the system automatically filters your own submissions out of your approval queue.',
       },
     ],
   },
   {
-    role: 'Administrator',
+    role: 'Administrators',
     questions: [
       {
-        question: 'How do I manage users?',
+        question: 'What is the Risk Registry Bridge?',
         answer:
-          'Go to the "Settings" page and click on the "Users" tab. Here you can view all users, filter by status (Pending, Verified), verify new user registrations by clicking "Verify User", edit user details (role, campus, unit), and delete users.',
+          'It is a tool on the Submission Details page that allows Admins to directly record risks from a unit\'s uploaded document into the digital Risk Register database, ensuring data parity even if the unit failed to log it manually.',
       },
       {
-        question: 'What is the "Leaderboard" on my dashboard?',
+        question: 'How do I manage the EOMS Manual?',
         answer:
-          'The Leaderboard shows a ranked list of "Top Performing Units" across all campuses. It highlights units that have completed 50% or more of their required submissions for the year and assigns them a star rating based on their completion percentage.',
+          'Admins can populate and update the 10 core sections of the official RSU EOMS Manual via the Settings page. This manual is used as a reference during monitoring visits.',
       },
-       {
-        question: 'How do I delete a submission?',
+      {
+        question: 'Can I re-review a rejected submission?',
         answer:
-          'On the "Submissions" page, a delete icon (trash can) is visible to you in the actions column for each submission. Clicking it will open a confirmation dialog. For security, you must type the randomly generated confirmation phrase (e.g., "delete-1234") into the input field to enable and finalize the deletion.',
-      },
-       {
-        question: 'How can I view the audit trail?',
-        answer:
-          'Navigate to the "Audit Log" page from the sidebar. This page provides an immutable, chronological record of all significant user actions, such as logins, submissions, and administrative changes.',
+          'Yes. As an Admin, you have a "Review" override capability on rejected submissions, allowing you to re-open the approval checklist without waiting for a user resubmission.',
       },
     ],
   },

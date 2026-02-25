@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -23,34 +24,35 @@ export type SupportChatOutput = z.infer<typeof SupportChatOutputSchema>;
 
 
 const helpContent = `
-  // General (For All Users)
-  // Account Registration: Users sign up with their RSU email and create an account after agreeing to the Data Privacy statement.
-  // Account Verification: After completing their profile and accepting an NDA, an admin must verify the account.
-  // Profile Updates: Users can update their first and last name on the "Profile" page.
+  // System Overview
+  // Purpose: Submission and Monitoring Portal for Romblon State University EOMS (ISO 21001:2018).
+  // 6 Core Documents: SWOT, Needs & Expectations, Operational Plan, Quality Objectives, Risk Registry, Risk Action Plan.
+  // Denominator: Institutional compliance scores are calculated based on these 6 reports.
 
-  // Risk Management Lifecycle (IMPORTANT)
-  // 1. Identification (First Cycle): Log risks/opportunities, set initial Likelihood/Consequence, and propose a Treatment Plan. Status: "Open".
-  // 2. Monitoring (Ongoing): Units should update the "Monitoring Notes / Updates" field as mitigation activities occur. Status: "In Progress".
-  // 3. Evaluation (Final Cycle): Units must close the risk, perform "Post-Treatment Analysis" (Residual Risk), and provide evidence of completion. Status: "Closed".
+  // Document Control & Revisions
+  // Revisions: All documents start at Rev 00. Resubmissions or updates increment to Rev 01, 02, etc.
+  // Statuses: Pending, Submitted (Awaiting Approval), Approved (Verified), Rejected.
+  // Fuzzy Matching: The system uses a normalizer to identify reports even if named slightly differently (e.g. "2025 SWOT Analysis").
 
-  // Risk Rating Scale (Magnitude = Likelihood x Consequence)
-  // High Priority: 10 - 25 (Requires mandatory Action Plan)
-  // Medium Priority: 5 - 9 (Requires mandatory Action Plan)
-  // Low Priority: 1 - 4 (Monitor only)
+  // Risk Management
+  // Lifecycle: Identification -> Analysis (Likelihood x Consequence) -> Treatment (Action Plan) -> Monitoring -> Post-Treatment Analysis -> Closure.
+  // Rating Scale: High (10-25), Medium (5-9), Low (1-4).
+  // Mandate: Action Plans are mandatory for Medium and High risks. Low risks are exempt.
+  // AI Tool: Suggest Risk Treatment flow provides ISO-aligned mitigation strategies.
 
-  // Employee / Unit Coordinator / Unit ODIMO
-  // Dashboard: Shows submission stats, checklist, and risk overview.
-  // How to Submit: Go to "New Submission / Resubmission", select Year/Cycle, paste GDrive link, complete checklist, and submit.
-  // Handling Rejection: Find the rejected report, view feedback, correct the doc, and use the "Resubmit Report" form on the detail page.
+  // Academic Program Monitoring
+  // Metrics: CHED COPC, AACCUP Accreditation levels, Enrollment (disaggregated by sex), Faculty Ranks, Graduation Outcomes.
+  // Roadmap: Chronological tracking of next survey targets.
 
-  // Approvers (Campus Director, VP, ODIMO)
-  // Approvals Page: Lists "Submitted" reports from their campus. Users cannot self-approve.
-  // Approving/Rejecting: Provide feedback for rejections. Approving redirects back to the list.
+  // Quality Audit (IQA) & Unit Monitoring
+  // IQA Hub: Plan framework -> Schedule itinerary -> Log Evidence (against ISO clauses) -> Final Report.
+  // Monitoring Hub: On-site verification of 7S, signages, and EOMS files.
+  // Notices: Automated generation of Notice of Compliance or Notice of Non-Compliance.
 
-  // Administrator
-  // System Admin: Manage Users, Campuses, Units, Roles, Cycles, and Manuals from "Settings".
-  // Secure Deletion: Admins can delete submissions using a random challenge phrase confirmation.
-  // Audit Log: A read-only log of all system actions.
+  // Role Permissions
+  // Admin: Full system oversight, User activation, Risk Bridge (log risks from docs), Review Override (re-review rejected items).
+  // Campus Director: Unit management for their campus, Notice generation, Site-specific analytics.
+  // Unit Coordinator: Document submission, Risk logging, Program monitoring updates.
 `;
 
 export async function supportChat(input: SupportChatInput): Promise<SupportChatOutput> {
@@ -70,10 +72,11 @@ const supportChatPrompt = ai.definePrompt({
 
   RULES:
   - Answer ONLY based on the provided user manual content.
-  - For Risk Management queries, emphasize the lifecycle: Identification (Cycle 1), Monitoring (Ongoing), and Evaluation (Final Cycle).
+  - Emphasize the 6-document framework for EOMS compliance.
+  - Explain that Revision control is automatic (Rev 00, 01, etc.).
+  - Mention that Risk Action Plans are only mandatory for Medium/High rated risks.
   - If the user asks a question not covered by the manual, politely state that you can only answer questions about the EOMS Portal's features and usage.
-  - Be concise and clear. Use bullet points or numbered lists if it helps with clarity.
-  - Your persona is helpful, professional, and friendly.
+  - Be concise, professional, and helpful. Use bullet points for readability.
 
   User Query: {{{query}}}
   `,
