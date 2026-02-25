@@ -125,7 +125,7 @@ export function QaAnalyticsTab() {
 
     return {
       totalCars: cars.length,
-      openCars: carStatusCounts.Open,
+      openCars: carStatusCounts.Open + carStatusCounts['In Progress'],
       closedCars: carStatusCounts.Closed,
       totalAudits: auditReports.length,
       totalMrSessions: mrs.length,
@@ -172,8 +172,10 @@ export function QaAnalyticsTab() {
             <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Active CARs</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-primary tabular-nums">{analytics.openCars}</div>
-            <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">Institutional Action items</p>
+            <div className="text-3xl font-black text-primary tabular-nums">
+                {analytics.openCars} <span className="text-sm text-muted-foreground font-bold">/ {analytics.totalCars}</span>
+            </div>
+            <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">Active vs. Total records</p>
           </CardContent>
         </Card>
 
