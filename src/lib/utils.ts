@@ -15,6 +15,24 @@ const REPORT_TYPE_CODES: Record<string, string> = {
 };
 
 /**
+ * Fuzzy Report Normalizer
+ * Centralizes the logic for identifying EOMS reports despite minor naming variations.
+ */
+export const normalizeReportType = (type: string): string => {
+  const t = type?.toLowerCase() || '';
+  if (t.includes('swot')) return 'SWOT Analysis';
+  if (t.includes('needs') || t.includes('expectation') || t.includes('interested parties')) return 'Needs and Expectation of Interested Parties';
+  if (t.includes('operational plan')) return 'Operational Plan';
+  if (t.includes('objectives monitoring') || t.includes('quality objectives')) return 'Quality Objectives Monitoring';
+  
+  // Specificity order: Action Plan first to avoid mis-categorizing as Registry
+  if (t.includes('action plan') && t.includes('risk')) return 'Risk and Opportunity Action Plan';
+  if (t.includes('registry') && t.includes('risk')) return 'Risk and Opportunity Registry';
+  
+  return type;
+};
+
+/**
  * Official Unit Mapping based on the RSU directory.
  */
 const UNIT_CODES: Record<string, string> = {
@@ -87,7 +105,7 @@ export function generateControlNumber(
   
   const revPadded = String(revision).padStart(2, '0');
   const docControl = '0001';
-  const reportCode = REPORT_TYPE_CODES[reportType] || 'DOC';
+  const reportCode = REPORT_TYPE_CODES[normalizeReportType(reportType)] || 'DOC';
   
   // Format date as YYYY-MM-DD
   const dateStr = date.toISOString().split('T')[0];

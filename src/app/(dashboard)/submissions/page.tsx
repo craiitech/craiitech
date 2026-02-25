@@ -49,22 +49,8 @@ import { UnitSubmissionsView } from '@/components/submissions/unit-submissions-v
 import { CampusSubmissionsView } from '@/components/submissions/campus-submissions-view';
 import { SubmissionDashboard } from '@/components/submissions/submission-dashboard';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, normalizeReportType } from '@/lib/utils';
 import { submissionTypes } from './new/page';
-
-/**
- * Fuzzy Report Normalizer
- */
-const normalizeReportType = (type: string): string => {
-  const t = type?.toLowerCase() || '';
-  if (t.includes('swot')) return 'SWOT Analysis';
-  if (t.includes('needs') || t.includes('expectation') || t.includes('interested parties')) return 'Needs and Expectation of Interested Parties';
-  if (t.includes('operational plan')) return 'Operational Plan';
-  if (t.includes('objectives monitoring') || t.includes('quality objectives')) return 'Quality Objectives Monitoring';
-  if (t.includes('registry') && t.includes('risk')) return 'Risk and Opportunity Registry';
-  if (t.includes('action plan') && t.includes('risk')) return 'Risk and Opportunity Action Plan';
-  return type;
-};
 
 /**
  * Returns a Tailwind class string for row background based on the submission year.
@@ -461,7 +447,7 @@ export default function SubmissionsPage() {
                                                         sub.statusId === 'approved' && "bg-emerald-600 text-white",
                                                         sub.statusId === 'rejected' && "bg-rose-600 text-white",
                                                         sub.statusId === 'submitted' && "bg-amber-500 text-amber-950",
-                                                        sub.statusId === 'pending' && "bg-slate-500 text-white"
+                                                        sub.statusId === 'pending' && "bg-slate-50 text-white"
                                                     )}
                                                 >
                                                     {sub.statusId === 'submitted' ? 'AWAITING APPROVAL' : (sub.statusId?.toUpperCase() || 'UNKNOWN')}
@@ -481,7 +467,7 @@ export default function SubmissionsPage() {
                                                         variant="ghost" 
                                                         size="icon" 
                                                         className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                        onClick={() => handleDeleteClick(sub)}
+                                                        onClick={() => onDeleteClick(sub)}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
@@ -523,7 +509,7 @@ export default function SubmissionsPage() {
                         allUnits={allUnits} 
                         isLoading={isLoadingSubmissions} 
                         isAdmin={isAdmin} 
-                        onDeleteClick={handleDeleteClick} 
+                        onDeleteClick={onDeleteClick} 
                     />
                 </TabsContent>
             )}

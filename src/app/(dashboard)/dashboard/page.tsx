@@ -92,7 +92,7 @@ import { ComplianceOverTime } from '@/components/dashboard/strategic/compliance-
 import { RiskMatrix } from '@/components/dashboard/strategic/risk-matrix';
 import { RiskFunnel } from '@/components/dashboard/strategic/risk-funnel';
 import { CycleSubmissionBreakdown } from '@/components/dashboard/strategic/cycle-submission-breakdown';
-import { cn } from '@/lib/utils';
+import { cn, normalizeReportType } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ComplianceHeatmap } from '@/components/dashboard/strategic/compliance-heatmap';
 import { MaturityRadar } from '@/components/dashboard/strategic/maturity-radar';
@@ -112,20 +112,6 @@ const statusVariant: Record<
   rejected: 'destructive',
   submitted: 'outline',
   'awaiting approval': 'outline',
-};
-
-/**
- * Fuzzy Report Normalizer
- */
-const normalizeReportType = (type: string): string => {
-  const t = type?.toLowerCase() || '';
-  if (t.includes('swot')) return 'SWOT Analysis';
-  if (t.includes('needs') || t.includes('expectation') || t.includes('interested parties')) return 'Needs and Expectation of Interested Parties';
-  if (t.includes('operational plan')) return 'Operational Plan';
-  if (t.includes('objectives monitoring') || t.includes('quality objectives')) return 'Quality Objectives Monitoring';
-  if (t.includes('registry') && t.includes('risk')) return 'Risk and Opportunity Registry';
-  if (t.includes('action plan') && t.includes('risk')) return 'Risk and Opportunity Action Plan';
-  return type;
 };
 
 export default function HomePage() {

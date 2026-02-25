@@ -28,7 +28,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Checkbox } from '@/components/ui/checkbox';
-import { generateControlNumber } from '@/lib/utils';
+import { generateControlNumber, normalizeReportType } from '@/lib/utils';
 import { getOfficialServerTime } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
@@ -379,6 +379,8 @@ export default function SubmissionDetailPage() {
     );
   }
 
+  const isRiskRegistry = normalizeReportType(submission.reportType) === 'Risk and Opportunity Registry';
+
   return (
     <div className="space-y-4">
        <div className="flex items-center gap-4">
@@ -510,7 +512,7 @@ export default function SubmissionDetailPage() {
           {isAdmin && (
               <div className="space-y-4">
                   {/* Risk Registry Bridge */}
-                  {submission.reportType === 'Risk and Opportunity Registry' && (
+                  {isRiskRegistry && (
                       <Card className="border-primary/20 bg-primary/5 shadow-sm">
                           <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6">
                               <div className="flex items-start gap-3">
@@ -704,6 +706,7 @@ export default function SubmissionDetailPage() {
             defaultYear={submission.year}
             defaultUnitId={submission.unitId}
             defaultCampusId={submission.campusId}
+            registryLink={submission.googleDriveLink}
           />
       )}
     </div>
