@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -69,8 +70,8 @@ const carSchema = z.object({
 });
 
 export function CorrectiveActionRequestTab({ campuses, units, canManage }: CorrectiveActionRequestTabProps) {
+  const { userProfile, isAdmin, userRole, isAuditor } = useUser();
   const firestore = useFirestore();
-  const { userProfile } = useUser();
   const { toast } = useToast();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -90,19 +91,37 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
 
   const filteredCars = useMemo(() => {
-    if (!rawCars) return [];
+    if (!rawCars || !userProfile) return [];
+
+    // STRICT SCOPING LOGIC
+    const isInstitutionalViewer = isAdmin || isAuditor;
+    const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+
     return rawCars.filter(car => {
+        // 1. Authorization Filter (Primary Gate)
+        if (!isInstitutionalViewer) {
+            if (isCampusSupervisor) {
+                // Campus Directors see all CARs for their campus
+                if (car.campusId !== userProfile.campusId) return false;
+            } else {
+                // Unit Coordinators ONLY see CARs for their specific unit
+                if (car.unitId !== userProfile.unitId) return false;
+            }
+        }
+
+        // 2. Search Logic
         const matchesSearch = 
             car.carNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
             car.procedureTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (unitMap.get(car.unitId) || '').toLowerCase().includes(searchTerm.toLowerCase());
         
+        // 3. Time Logic
         const reqDate = car.requestDate instanceof Timestamp ? car.requestDate.toDate() : new Date(car.requestDate);
         const matchesYear = yearFilter === 'all' || reqDate.getFullYear().toString() === yearFilter;
 
         return matchesSearch && matchesYear;
     });
-  }, [rawCars, searchTerm, yearFilter, unitMap]);
+  }, [rawCars, searchTerm, yearFilter, unitMap, userProfile, isAdmin, isAuditor, userRole]);
 
   const years = useMemo(() => {
     if (!rawCars) return [];
@@ -196,7 +215,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     if (!firestore) return;
     setIsSubmitting(true);
     try {
-      // Explicitly construct carData to avoid spread of 'undefined' optional fields
       const carData: any = {
         carNumber: values.carNumber,
         ncReportNumber: values.ncReportNumber || '',
@@ -283,11 +301,11 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-5"><ClipboardCheck className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Issued</CardTitle>
+                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Contextual CARs</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="text-3xl font-black text-primary tabular-nums">{stats.total}</div>
-                <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase">Institutional Requests</p>
+                <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase">Requests in your scope</p>
             </CardContent>
         </Card>
         <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden">
@@ -313,11 +331,11 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-5"><AlertTriangle className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-rose-700">Audit Density</CardTitle>
+                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-rose-700">Non-Conformities</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="text-3xl font-black text-rose-600 tabular-nums">{filteredCars.filter(c => c.natureOfFinding === 'NC').length}</div>
-                <p className="text-[9px] font-bold text-rose-600/70 mt-1 uppercase">Non-Conformities Found</p>
+                <p className="text-[9px] font-bold text-rose-600/70 mt-1 uppercase">Critical gaps found</p>
             </CardContent>
         </Card>
       </div>
@@ -327,7 +345,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         <div className="flex-1 flex flex-col md:flex-row gap-4 items-end">
             <div className="w-full md:w-72 space-y-1.5">
                 <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                    <Search className="h-2.5 w-2.5" /> Search Registry
+                    <Search className="h-2.5 w-2.5" /> Search My Scope
                 </label>
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -426,7 +444,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                         <TableCell colSpan={5} className="h-48 text-center text-muted-foreground">
                             <div className="flex flex-col items-center gap-2 opacity-20">
                                 <ClipboardCheck className="h-10 w-10" />
-                                <p className="text-xs font-bold uppercase tracking-widest">No matching records found</p>
+                                <p className="text-xs font-bold uppercase tracking-widest">No authorized CAR records found</p>
                             </div>
                         </TableCell>
                     </TableRow>

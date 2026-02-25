@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, doc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import type { ManagementReviewOutput, Campus, Unit, ManagementReview } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,7 +46,7 @@ const ALL_ADMIN_ID = 'all-admin-units';
 const ALL_REDI_ID = 'all-redi-units';
 
 export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsTabProps) {
-  const { userProfile, isAdmin, userRole } = useUser();
+  const { userProfile, isAdmin, userRole, isAuditor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [selectedOutput, setSelectedOutput] = useState<ManagementReviewOutput | null>(null);
@@ -95,18 +95,25 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   const filteredOutputs = useMemo(() => {
     if (!rawOutputs || !userProfile) return [];
     
-    const isCampusLevel = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
+    // STRICT SCOPING LOGIC
+    const isInstitutionalViewer = isAdmin || isAuditor;
+    const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
     const isUnitLevel = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
 
     return rawOutputs.filter(output => {
+        // 1. Authorization Filter (Primary Gate)
         const isAssigned = (output.assignments || []).some(a => {
-            const isInstitutional = a.campusId === 'university-wide';
+            if (isInstitutionalViewer) return true;
+
+            const isInstitutionalTarget = a.campusId === 'university-wide';
             const isMyCampus = a.campusId === userProfile.campusId;
             
-            if (!isInstitutional && !isMyCampus) return false;
+            if (!isInstitutionalTarget && !isMyCampus) return false;
 
-            if (isCampusLevel || isAdmin) return true;
+            // If user is Campus-level, they see everything in their campus
+            if (isCampusSupervisor) return true;
 
+            // If user is Unit-level, they only see items explicitly for them or their category
             if (isUnitLevel) {
                 if (a.unitId === ALL_UNITS_ID) return true;
                 if (a.unitId === ALL_ACADEMIC_ID && myUnit?.category === 'Academic') return true;
@@ -114,11 +121,12 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                 if (a.unitId === ALL_REDI_ID && myUnit?.category === 'Research') return true;
                 if (a.unitId === userProfile.unitId) return true;
             }
-            return true;
+            return false;
         });
 
-        if (!isAssigned && !isAdmin) return false;
+        if (!isAssigned) return false;
 
+        // 2. Year Filter
         if (selectedYear !== 'all') {
             const reviewData = reviewMap.get(output.mrId);
             return reviewData?.year === selectedYear;
@@ -126,7 +134,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
 
         return true;
     });
-  }, [rawOutputs, userProfile, isAdmin, userRole, myUnit, selectedYear, reviewMap]);
+  }, [rawOutputs, userProfile, isAdmin, isAuditor, userRole, myUnit, selectedYear, reviewMap]);
 
   const form = useForm<z.infer<typeof updateSchema>>({
     resolver: zodResolver(updateSchema),
@@ -241,7 +249,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                 <BarChart3 className="h-3.5 w-3.5" /> Strategic Insights
             </TabsTrigger>
             <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
-                <List className="h-3.5 w-3.5" /> Assignment Registry
+                <List className="h-3.5 w-3.5" /> My Assignments Registry
             </TabsTrigger>
         </TabsList>
 
