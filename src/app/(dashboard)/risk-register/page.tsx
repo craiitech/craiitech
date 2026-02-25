@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Loader2, CalendarSearch, BarChart3, List, Search, Building, Layers, Filter } from 'lucide-react';
+import { PlusCircle, Loader2, CalendarSearch, BarChart3, List, Search, Building, Layers, Filter, Shield, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
@@ -277,31 +277,84 @@ export default function RiskRegisterPage() {
         </TabsContent>
 
         <TabsContent value="detailed-register" className="animate-in fade-in duration-500">
-            <Card className="shadow-md border-primary/10 overflow-hidden">
-                <CardHeader className="bg-muted/5 border-b py-4">
-                    <CardTitle className="text-lg uppercase font-black tracking-tight">Register for {selectedYear}</CardTitle>
-                    <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
-                        Displaying {filteredRisks.length} entries matching the current filters.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                    {isLoading ? (
-                        <div className="flex items-center justify-center h-64">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
-                        </div>
-                    ) : (
-                        <RiskTable 
-                            risks={filteredRisks}
-                            usersMap={usersMap}
-                            onEdit={handleEditRisk}
-                            isAdmin={isAdmin}
-                            isSupervisor={isSupervisor}
-                            campusMap={campusMap}
-                            unitMap={unitMap}
-                        />
-                    )}
-                </CardContent>
-            </Card>
+            <Tabs defaultValue="risks" className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <TabsList className="bg-muted/30 p-1 border shadow-sm h-9">
+                        <TabsTrigger value="risks" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-7 data-[state=active]:bg-white data-[state=active]:text-destructive">
+                            <Shield className="h-3.5 w-3.5" /> Risks
+                        </TabsTrigger>
+                        <TabsTrigger value="opportunities" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-7 data-[state=active]:bg-white data-[state=active]:text-emerald-600">
+                            <TrendingUp className="h-3.5 w-3.5" /> Opportunities
+                        </TabsTrigger>
+                    </TabsList>
+                </div>
+
+                <TabsContent value="risks" className="mt-0 animate-in slide-in-from-left-2 duration-300">
+                    <Card className="shadow-md border-primary/10 overflow-hidden">
+                        <CardHeader className="bg-rose-50/30 border-b py-4">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <CardTitle className="text-lg uppercase font-black tracking-tight text-slate-900">Risk Registry: {selectedYear}</CardTitle>
+                                    <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                        Displaying {filteredRisks.filter(r => r.type === 'Risk').length} risk entries.
+                                    </CardDescription>
+                                </div>
+                                <Shield className="h-10 w-10 text-rose-600/10" />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            {isLoading ? (
+                                <div className="flex items-center justify-center h-64">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+                                </div>
+                            ) : (
+                                <RiskTable 
+                                    risks={filteredRisks.filter(r => r.type === 'Risk')}
+                                    usersMap={usersMap}
+                                    onEdit={handleEditRisk}
+                                    isAdmin={isAdmin}
+                                    isSupervisor={isSupervisor}
+                                    campusMap={campusMap}
+                                    unitMap={unitMap}
+                                />
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="opportunities" className="mt-0 animate-in slide-in-from-right-2 duration-300">
+                    <Card className="shadow-md border-primary/10 overflow-hidden">
+                        <CardHeader className="bg-emerald-50/30 border-b py-4">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <CardTitle className="text-lg uppercase font-black tracking-tight text-slate-900">Opportunity Registry: {selectedYear}</CardTitle>
+                                    <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                        Displaying {filteredRisks.filter(r => r.type === 'Opportunity').length} opportunity entries.
+                                    </CardDescription>
+                                </div>
+                                <TrendingUp className="h-10 w-10 text-emerald-600/10" />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            {isLoading ? (
+                                <div className="flex items-center justify-center h-64">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+                                </div>
+                            ) : (
+                                <RiskTable 
+                                    risks={filteredRisks.filter(r => r.type === 'Opportunity')}
+                                    usersMap={usersMap}
+                                    onEdit={handleEditRisk}
+                                    isAdmin={isAdmin}
+                                    isSupervisor={isSupervisor}
+                                    campusMap={campusMap}
+                                    unitMap={unitMap}
+                                />
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </TabsContent>
       </Tabs>
     </div>

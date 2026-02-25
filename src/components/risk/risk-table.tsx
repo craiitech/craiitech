@@ -153,8 +153,8 @@ export function RiskTable({ risks, usersMap, onEdit, isAdmin, isSupervisor, camp
 
   if (risks.length === 0) {
     return (
-      <div className="text-center py-16 text-muted-foreground">
-        No risks or opportunities have been logged for this unit yet.
+      <div className="text-center py-16 text-muted-foreground italic">
+        No entries found matching the current filters.
       </div>
     );
   }
@@ -165,110 +165,113 @@ export function RiskTable({ risks, usersMap, onEdit, isAdmin, isSupervisor, camp
         <TableRow>
           {isAdmin && (
             <TableHead>
-              <Button variant="ghost" onClick={() => requestSort('campusName')} className="-ml-4">
+              <Button variant="ghost" onClick={() => requestSort('campusName')} className="-ml-4 text-[10px] font-black uppercase">
                 Campus {getSortIndicator('campusName')}
               </Button>
             </TableHead>
           )}
           {(isAdmin || isSupervisor) && (
             <TableHead>
-              <Button variant="ghost" onClick={() => requestSort('unitName')} className="-ml-4">
+              <Button variant="ghost" onClick={() => requestSort('unitName')} className="-ml-4 text-[10px] font-black uppercase">
                 Unit {getSortIndicator('unitName')}
               </Button>
             </TableHead>
           )}
           <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('type')} className="-ml-4">
+            <Button variant="ghost" onClick={() => requestSort('type')} className="-ml-4 text-[10px] font-black uppercase">
               Type {getSortIndicator('type')}
             </Button>
           </TableHead>
           <TableHead>
-             <Button variant="ghost" onClick={() => requestSort('description')} className="-ml-4">
+             <Button variant="ghost" onClick={() => requestSort('description')} className="-ml-4 text-[10px] font-black uppercase">
               Description {getSortIndicator('description')}
             </Button>
           </TableHead>
           <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('magnitude')} className="-ml-4">
+            <Button variant="ghost" onClick={() => requestSort('magnitude')} className="-ml-4 text-[10px] font-black uppercase">
               Rating {getSortIndicator('magnitude')}
             </Button>
           </TableHead>
            <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('status')} className="-ml-4">
+            <Button variant="ghost" onClick={() => requestSort('status')} className="-ml-4 text-[10px] font-black uppercase">
               Status {getSortIndicator('status')}
             </Button>
           </TableHead>
            <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('responsiblePersonName')} className="-ml-4">
+            <Button variant="ghost" onClick={() => requestSort('responsiblePersonName')} className="-ml-4 text-[10px] font-black uppercase">
               Accountable {getSortIndicator('responsiblePersonName')}
             </Button>
           </TableHead>
           <TableHead>
-            <Button variant="ghost" onClick={() => requestSort('updatedAt')} className="-ml-4">
-                Last Updated {getSortIndicator('updatedAt')}
+            <Button variant="ghost" onClick={() => requestSort('updatedAt')} className="-ml-4 text-[10px] font-black uppercase">
+                Updated {getSortIndicator('updatedAt')}
             </Button>
           </TableHead>
-          <TableHead><span className="sr-only">Actions</span></TableHead>
+          <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {sortedRisks.map((risk) => (
-          <TableRow key={risk.id} className="hover:bg-muted/30 transition-colors">
+          <TableRow key={risk.id} className="hover:bg-muted/30 transition-colors group">
             {isAdmin && (
-              <TableCell className="text-xs">
+              <TableCell className="text-[10px] font-bold">
                 <div className="flex items-center gap-2">
-                  <School className="h-3.5 w-3.5 text-muted-foreground" />
+                  <School className="h-3.5 w-3.5 text-primary opacity-40" />
                   {campusMap?.get(risk.campusId) || '...'}
                 </div>
               </TableCell>
             )}
             {(isAdmin || isSupervisor) && (
-              <TableCell className="text-xs">
+              <TableCell className="text-[10px] font-bold">
                 <div className="flex items-center gap-2">
-                  <Building className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Building className="h-3.5 w-3.5 text-primary opacity-40" />
                   {unitMap?.get(risk.unitId) || '...'}
                 </div>
               </TableCell>
             )}
             <TableCell>
-                <div className={`flex items-center gap-2 ${risk.type === 'Risk' ? 'text-destructive' : 'text-green-600'}`}>
-                    {risk.type === 'Risk' ? <Shield className="h-4 w-4"/> : <TrendingUp className="h-4 w-4"/>}
-                    <span className="font-bold text-xs uppercase tracking-tight">{risk.type}</span>
+                <div className={`flex items-center gap-2 ${risk.type === 'Risk' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                    {risk.type === 'Risk' ? <Shield className="h-3 w-3"/> : <TrendingUp className="h-3 w-3"/>}
+                    <span className="font-black text-[9px] uppercase tracking-widest">{risk.type}</span>
                 </div>
             </TableCell>
-            <TableCell className="max-w-xs truncate font-medium">{risk.description}</TableCell>
+            <TableCell className="max-w-xs font-bold text-xs">
+                <p className="truncate" title={risk.description}>{risk.description}</p>
+                <p className="text-[9px] text-muted-foreground truncate font-medium mt-0.5" title={risk.objective}>Obj: {risk.objective}</p>
+            </TableCell>
             <TableCell>
                 <Badge className={cn("text-[9px] font-black h-5 uppercase px-2 shadow-sm", getRatingBadgeStyle(risk.type, risk.preTreatment.rating))}>
                     {risk.preTreatment.rating} ({risk.preTreatment.magnitude})
                 </Badge>
             </TableCell>
             <TableCell>
-                <Badge variant={statusVariant[risk.status] ?? 'outline'} className="flex items-center w-fit text-[10px] h-5 px-2">
+                <Badge variant={statusVariant[risk.status] ?? 'outline'} className="flex items-center w-fit text-[9px] font-black uppercase h-5 px-2 border-none shadow-sm">
                     {getStatusIcon(risk.status)}
                     {risk.status}
                 </Badge>
             </TableCell>
-            <TableCell className="text-xs">{risk.responsiblePersonName}</TableCell>
-            <TableCell className="text-xs text-muted-foreground">{formatDate(risk.updatedAt)}</TableCell>
-            <TableCell className="text-right">
-              <div className="flex items-center justify-end gap-2">
+            <TableCell className="text-[10px] font-bold text-slate-600">{risk.responsiblePersonName}</TableCell>
+            <TableCell className="text-[10px] font-bold text-muted-foreground tabular-nums">{formatDate(risk.updatedAt)}</TableCell>
+            <TableCell className="text-right pr-6 whitespace-nowrap">
+              <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button 
                     variant="outline" 
                     size="sm" 
-                    className="h-8 text-[10px] font-black uppercase tracking-widest bg-white"
+                    className="h-7 text-[9px] font-black uppercase tracking-widest bg-white shadow-sm"
                     onClick={() => onEdit(risk)}
                 >
                     Edit
                 </Button>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button variant="ghost" size="icon" className="h-7 w-7">
                         <MoreHorizontal className="h-4 w-4" />
                     </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onEdit(risk)}>
-                        View Details
+                    <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuLabel className="text-[10px] uppercase font-black">Controls</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => onEdit(risk)} className="text-xs font-bold">
+                        View Full Details
                     </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
