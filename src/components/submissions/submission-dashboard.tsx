@@ -166,7 +166,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
   }
 
   const renderMissingCard = (title: string, data: any[]) => (
-    <Card className="border-destructive/20 bg-destructive/5 shadow-sm overflow-hidden">
+    <Card className="border-destructive/20 bg-destructive/5 shadow-sm overflow-hidden h-full">
         <CardHeader className="bg-destructive/10 border-b py-3">
             <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-destructive flex items-center gap-2">
                 <FileWarning className="h-3.5 w-3.5" />
@@ -240,12 +240,10 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
         </Card>
       </div>
 
-      {/* --- UN-SUBMITTED DOCUMENTS TRACKING (2 CARDS PER CYCLE) --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {renderMissingCard("Unsubmitted: 1st Cycle (Part 1)", analytics.firstCycleMissing.slice(0, 6))}
-        {renderMissingCard("Unsubmitted: 1st Cycle (Part 2)", analytics.firstCycleMissing.slice(6, 12))}
-        {renderMissingCard("Unsubmitted: Final Cycle (Part 1)", analytics.finalCycleMissing.slice(0, 6))}
-        {renderMissingCard("Unsubmitted: Final Cycle (Part 2)", analytics.finalCycleMissing.slice(6, 12))}
+      {/* --- UN-SUBMITTED DOCUMENTS TRACKING (ONE CARD PER CYCLE) --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {renderMissingCard("Unsubmitted Documentation: First Cycle", analytics.firstCycleMissing)}
+        {renderMissingCard("Unsubmitted Documentation: Final Cycle", analytics.finalCycleMissing)}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
