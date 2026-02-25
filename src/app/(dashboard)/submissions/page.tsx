@@ -97,6 +97,20 @@ export default function SubmissionsPage() {
   const [confirmationText, setConfirmationText] = useState('');
   const [challengeText, setChallengeText] = useState('');
 
+  const isInstitutionalViewer = isAdmin || isAuditor;
+
+  // Sync filters with role profile
+  useEffect(() => {
+    if (userProfile && !isUserLoading) {
+        if (!isInstitutionalViewer) {
+            setCampusFilter(userProfile.campusId);
+            if (!isSupervisor) {
+                setUnitFilter(userProfile.unitId);
+            }
+        }
+    }
+  }, [userProfile, isInstitutionalViewer, isSupervisor, isUserLoading]);
+
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
     // Institutional View: Admins and Auditors see everything.
@@ -158,15 +172,8 @@ export default function SubmissionsPage() {
 
   // Handle campus filter change
   useEffect(() => {
-    setUnitFilter('all');
-  }, [campusFilter]);
-
-  // Initial campus lock for supervisors
-  useEffect(() => {
-    if (isSupervisor && !isAdmin && userProfile?.campusId) {
-        setCampusFilter(userProfile.campusId);
-    }
-  }, [isSupervisor, isAdmin, userProfile?.campusId]);
+    if (isAdmin || isAuditor) setUnitFilter('all');
+  }, [campusFilter, isAdmin, isAuditor]);
 
   // Data specifically for the Dashboard visuals (Reactive to site filters)
   const dashboardSubmissions = useMemo(() => {
@@ -239,15 +246,13 @@ export default function SubmissionsPage() {
     }
   }
 
-  const isInstitutionalViewer = isAdmin || isAuditor;
-
   return (
     <TooltipProvider>
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Submissions Hub</h2>
-            <p className="text-muted-foreground">Manage unit compliance documentation and track overall performance across university sites.</p>
+            <p className="text-muted-foreground">Manage unit compliance documentation and track overall performance.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2 md:justify-end">
             <div className="space-y-1">
@@ -281,7 +286,7 @@ export default function SubmissionsPage() {
             <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                 <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                        <School className="h-2.5 w-2.5" /> Campus Site Filter
+                        <School className="h-2.5 w-2.5" /> Campus Site
                     </label>
                     <Select 
                         value={campusFilter} 
@@ -300,18 +305,18 @@ export default function SubmissionsPage() {
 
                 <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                        <Building className="h-2.5 w-2.5" /> Unit / Office Filter
+                        <Building className="h-2.5 w-2.5" /> Unit / Office
                     </label>
                     <Select 
                         value={unitFilter} 
                         onValueChange={setUnitFilter}
-                        disabled={campusFilter === 'all' && isInstitutionalViewer}
+                        disabled={!isInstitutionalViewer && !isSupervisor}
                     >
                         <SelectTrigger className="h-9 text-xs bg-white">
                             <SelectValue placeholder="All Units" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Units</SelectItem>
+                            {(isInstitutionalViewer || isSupervisor) && <SelectItem value="all">All Units</SelectItem>}
                             {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                         </SelectContent>
                     </Select>

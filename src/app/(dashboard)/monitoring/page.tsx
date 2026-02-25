@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -69,12 +68,20 @@ export default function MonitoringPage() {
   const isUnitOfficial = useMemo(() => userRole && /unit odimo/i.test(userRole), [userRole]);
   const isUnitCoordinator = useMemo(() => userRole && /unit coordinator/i.test(userRole), [userRole]);
 
-  // Set initial campus filter if campus official
+  // Set initial filters & enforce strict scoping
   useEffect(() => {
-    if (isCampusOfficial && userProfile?.campusId) {
-        setCampusFilter(userProfile.campusId);
+    if (userProfile && !isUserLoading) {
+        if (isGlobalAdmin) {
+            // Global admins see everything
+        } else if (isCampusOfficial || isUnitOfficial) {
+            setCampusFilter(userProfile.campusId);
+            if (isUnitOfficial) setUnitFilter(userProfile.unitId);
+        } else if (isUnitCoordinator) {
+            setCampusFilter(userProfile.campusId);
+            setUnitFilter(userProfile.unitId);
+        }
     }
-  }, [isCampusOfficial, userProfile?.campusId]);
+  }, [isGlobalAdmin, isCampusOfficial, isUnitOfficial, isUnitCoordinator, userProfile, isUserLoading]);
 
   const monitoringRecordsQuery = useMemoFirebase(
     () => {
@@ -82,15 +89,13 @@ export default function MonitoringPage() {
         
         const baseRef = collection(firestore, 'unitMonitoringRecords');
 
+        // SCRICT SCOPING IN FETCHING
         if (isGlobalAdmin) {
             return query(baseRef);
         }
 
         if (isCampusOfficial || isUnitOfficial) {
-             if (userProfile.campusId) {
-                 return query(baseRef, where('campusId', '==', userProfile.campusId));
-             }
-             return null; 
+             return query(baseRef, where('campusId', '==', userProfile.campusId));
         }
 
         if (isUnitCoordinator && userProfile.unitId) {
@@ -124,15 +129,19 @@ export default function MonitoringPage() {
     
     let processed = [...allRecords];
 
+    // Final Gate Authorization
     if (isUnitOfficial && userProfile?.unitId) {
         processed = processed.filter(r => r.unitId === userProfile.unitId);
     }
+    if (isCampusOfficial && !isGlobalAdmin && userProfile?.campusId) {
+        processed = processed.filter(r => r.campusId === userProfile.campusId);
+    }
 
-    // Apply Global Filters
-    if (campusFilter !== 'all') {
+    // Apply Global Filters (Only if they differ from strict scope)
+    if (isGlobalAdmin && campusFilter !== 'all') {
         processed = processed.filter(r => r.campusId === campusFilter);
     }
-    if (unitFilter !== 'all') {
+    if ((isGlobalAdmin || isCampusOfficial) && unitFilter !== 'all') {
         processed = processed.filter(r => r.unitId === unitFilter);
     }
     if (searchTerm) {
@@ -154,7 +163,7 @@ export default function MonitoringPage() {
         const dateB = b.visitDate instanceof Timestamp ? b.visitDate.toMillis() : new Date(b.visitDate).getTime();
         return dateB - dateA;
     });
-  }, [allRecords, selectedYear, isUnitOfficial, userProfile, campusFilter, unitFilter, searchTerm, unitMap, campusMap]);
+  }, [allRecords, selectedYear, isUnitOfficial, isCampusOfficial, isGlobalAdmin, userProfile, campusFilter, unitFilter, searchTerm, unitMap, campusMap]);
 
   const handleNewVisit = () => {
     setSelectedRecord(null);
@@ -300,56 +309,62 @@ export default function MonitoringPage() {
         </div>
 
         {/* Global Monitoring Filter Bar */}
-        {!isUnitOnlyView && (
-            <Card className="shadow-md border-primary/10">
-                <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4 bg-muted/10">
-                    <div className="flex-1 w-full space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                            <Search className="h-2.5 w-2.5" /> Search Visits
-                        </label>
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search by unit name or officer..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-9 h-9 text-xs bg-white"
-                            />
-                        </div>
+        <Card className="shadow-md border-primary/10">
+            <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4 bg-muted/10">
+                <div className="flex-1 w-full space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                        <Search className="h-2.5 w-2.5" /> Search Visits
+                    </label>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search by unit name or officer..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-9 h-9 text-xs bg-white"
+                        />
                     </div>
-                    {isGlobalAdmin && (
-                        <div className="w-full md:w-64 space-y-1.5">
-                            <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                                <Building className="h-2.5 w-2.5" /> Site Filter
-                            </label>
-                            <Select value={campusFilter} onValueChange={(val) => { setCampusFilter(val); setUnitFilter('all'); }}>
-                                <SelectTrigger className="h-9 text-xs bg-white">
-                                    <SelectValue placeholder="All Campuses" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Campuses</SelectItem>
-                                    {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-                    <div className="w-full md:w-64 space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                            <Layers className="h-2.5 w-2.5" /> Unit / Office Filter
-                        </label>
-                        <Select value={unitFilter} onValueChange={setUnitFilter} disabled={campusFilter === 'all' && !isGlobalAdmin}>
-                            <SelectTrigger className="h-9 text-xs bg-white">
-                                <SelectValue placeholder="All Units" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Units</SelectItem>
-                                {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </CardContent>
-            </Card>
-        )}
+                </div>
+                
+                <div className="w-full md:w-64 space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                        <Building className="h-2.5 w-2.5" /> Site Location
+                    </label>
+                    <Select 
+                        value={campusFilter} 
+                        onValueChange={(val) => { setCampusFilter(val); setUnitFilter('all'); }}
+                        disabled={!isGlobalAdmin}
+                    >
+                        <SelectTrigger className="h-9 text-xs bg-white">
+                            <SelectValue placeholder="All Campuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {isGlobalAdmin && <SelectItem value="all">All Campuses</SelectItem>}
+                            {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="w-full md:w-64 space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                        <Layers className="h-2.5 w-2.5" /> Unit / Office
+                    </label>
+                    <Select 
+                        value={unitFilter} 
+                        onValueChange={setUnitFilter} 
+                        disabled={!isGlobalAdmin && !isCampusOfficial}
+                    >
+                        <SelectTrigger className="h-9 text-xs bg-white">
+                            <SelectValue placeholder="All Units" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {(isGlobalAdmin || isCampusOfficial) && <SelectItem value="all">All Units</SelectItem>}
+                            {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </CardContent>
+        </Card>
 
         {!isLoading && filteredRecords.length === 0 && isUnitOnlyView ? (
             <Card className="border-dashed py-12 flex flex-col items-center justify-center text-center">
@@ -443,8 +458,8 @@ export default function MonitoringPage() {
                                             <TableCell className="text-xs">{record.roomNumber || 'N/A'}</TableCell>
                                             <TableCell className="text-xs font-medium">{record.officerInCharge || 'N/A'}</TableCell>
                                             <TableCell>
-                                              <Badge variant={getComplianceVariant(score)} className="text-[10px] font-black">
-                                                {score}%
+                                              <Badge variant={calculateCompliance(record) >= 80 ? 'default' : calculateCompliance(record) >= 50 ? 'secondary' : 'destructive'} className="text-[10px] font-black">
+                                                {calculateCompliance(record)}%
                                               </Badge>
                                             </TableCell>
                                             <TableCell className="text-right pr-6 space-x-1 whitespace-nowrap">

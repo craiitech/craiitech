@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, deleteDoc } from 'firebase/firestore';
 import type { AcademicProgram, Campus, ProgramComplianceRecord, Unit } from '@/lib/types';
@@ -61,6 +61,20 @@ export default function AcademicProgramsPage() {
 
   const canManage = isAdmin || userRole === 'Campus Director' || userRole === 'Campus ODIMO';
 
+  // Role-based initial filter setup & strict locking
+  useEffect(() => {
+    if (userProfile && !isUserLoading) {
+        if (isGlobalViewer) {
+            // Global roles can see everything
+        } else if (isCampusViewer) {
+            setCampusFilter(userProfile.campusId);
+        } else if (isUnitViewer) {
+            setCampusFilter(userProfile.campusId);
+            setUnitFilter(userProfile.unitId);
+        }
+    }
+  }, [userProfile, isGlobalViewer, isCampusViewer, isUnitViewer, isUserLoading]);
+
   /**
    * SCOPED PROGRAM QUERY
    */
@@ -93,10 +107,15 @@ export default function AcademicProgramsPage() {
         return query(baseRef, where('academicYear', '==', selectedYear), where('campusId', '==', userProfile.campusId));
     }
     if (isUnitViewer && userProfile.unitId) {
+        const programIds = rawPrograms?.filter(p => p.collegeId === userProfile.unitId).map(p => p.id) || [];
+        // If program list is loaded, scope compliance strictly to these unit programs
+        if (programIds.length > 0) {
+            return query(baseRef, where('academicYear', '==', selectedYear), where('programId', 'in', programIds.slice(0, 10)));
+        }
         return query(baseRef, where('academicYear', '==', selectedYear), where('campusId', '==', userProfile.campusId));
     }
     return null;
-  }, [firestore, isUserLoading, userProfile, selectedYear, isGlobalViewer, isCampusViewer, isUnitViewer]);
+  }, [firestore, isUserLoading, userProfile, selectedYear, isGlobalViewer, isCampusViewer, isUnitViewer, rawPrograms]);
 
   const { data: rawCompliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
@@ -108,13 +127,17 @@ export default function AcademicProgramsPage() {
 
   const filteredPrograms = useMemo(() => {
     return programs.filter(p => {
+      // Strict Gate check
+      if (!isGlobalViewer && p.campusId !== userProfile?.campusId) return false;
+      if (isUnitViewer && p.collegeId !== userProfile?.unitId) return false;
+
       const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            p.abbreviation.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCampus = campusFilter === 'all' || p.campusId === campusFilter;
       const matchesUnit = unitFilter === 'all' || p.collegeId === unitFilter;
       return matchesSearch && matchesCampus && matchesUnit;
     });
-  }, [programs, searchTerm, campusFilter, unitFilter]);
+  }, [programs, searchTerm, campusFilter, unitFilter, isGlobalViewer, isUnitViewer, userProfile]);
 
   /**
    * CALCULATE REGISTRY SUMMARY STATS (Reacts to filters)
@@ -196,7 +219,7 @@ export default function AcademicProgramsPage() {
   };
 
   const isLoading = isUserLoading || isLoadingPrograms || isLoadingCampuses || isLoadingCompliances || isLoadingUnits;
-  const academicYears = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+  const academicYears = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
   return (
     <div className="space-y-6">
@@ -251,38 +274,44 @@ export default function AcademicProgramsPage() {
                       />
                   </div>
               </div>
-              {isGlobalViewer && (
-                  <div className="w-full md:w-64 space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                          <Building className="h-2.5 w-2.5" /> Campus Site Filter
-                      </label>
-                      <Select value={campusFilter} onValueChange={(val) => { setCampusFilter(val); setUnitFilter('all'); }}>
-                          <SelectTrigger className="h-9 text-xs bg-white">
-                              <SelectValue placeholder="All Campuses" />
-                          </SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="all">All Campuses</SelectItem>
-                              {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                          </SelectContent>
-                      </Select>
-                  </div>
-              )}
-              {(isGlobalViewer || isCampusViewer) && (
-                  <div className="w-full md:w-64 space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                          <Layers className="h-2.5 w-2.5" /> Academic Unit Filter
-                      </label>
-                      <Select value={unitFilter} onValueChange={setUnitFilter}>
-                          <SelectTrigger className="h-9 text-xs bg-white">
-                              <SelectValue placeholder="All Units" />
-                          </SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="all">All Units</SelectItem>
-                              {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-                          </SelectContent>
-                      </Select>
-                  </div>
-              )}
+              
+              <div className="w-full md:w-64 space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                      <Building className="h-2.5 w-2.5" /> Campus Site
+                  </label>
+                  <Select 
+                      value={campusFilter} 
+                      onValueChange={(val) => { setCampusFilter(val); setUnitFilter('all'); }}
+                      disabled={!isGlobalViewer}
+                  >
+                      <SelectTrigger className="h-9 text-xs bg-white">
+                          <SelectValue placeholder="All Campuses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {isGlobalViewer && <SelectItem value="all">All Campuses</SelectItem>}
+                          {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      </SelectContent>
+                  </Select>
+              </div>
+
+              <div className="w-full md:w-64 space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                      <Layers className="h-2.5 w-2.5" /> Academic Unit
+                  </label>
+                  <Select 
+                      value={unitFilter} 
+                      onValueChange={setUnitFilter}
+                      disabled={!isGlobalViewer && !isCampusViewer}
+                  >
+                      <SelectTrigger className="h-9 text-xs bg-white">
+                          <SelectValue placeholder="All Units" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {(isGlobalViewer || isCampusViewer) && <SelectItem value="all">All Units</SelectItem>}
+                          {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                      </SelectContent>
+                  </Select>
+              </div>
           </CardContent>
       </Card>
 

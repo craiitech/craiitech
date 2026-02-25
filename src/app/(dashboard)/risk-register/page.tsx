@@ -42,27 +42,44 @@ export default function RiskRegisterPage() {
         }
     }, [searchParams]);
 
-    // Role-based initial filter setup
+    // Role-based initial filter setup & strict locking
     useEffect(() => {
-        if (isSupervisor && !isAdmin && userProfile?.campusId) {
-            setCampusFilter(userProfile.campusId);
+        if (userProfile && !isUserLoading) {
+            if (isAdmin) {
+                // Admin can see everything, defaults are fine
+            } else if (isSupervisor) {
+                // Supervisors are locked to their campus
+                setCampusFilter(userProfile.campusId);
+            } else {
+                // Unit Coordinators are locked to their site and unit
+                setCampusFilter(userProfile.campusId);
+                setUnitFilter(userProfile.unitId);
+            }
         }
-    }, [isSupervisor, isAdmin, userProfile?.campusId]);
+    }, [userProfile, isAdmin, isSupervisor, isUserLoading]);
 
-    // Handle campus change: reset unit
+    // Handle campus change: reset unit (only for Admins)
     useEffect(() => {
-        setUnitFilter('all');
-    }, [campusFilter]);
+        if (isAdmin) setUnitFilter('all');
+    }, [campusFilter, isAdmin]);
     
     const risksQuery = useMemoFirebase(() => {
         if (!firestore || !userProfile) return null;
         
-        // Base fetch is by year to ensure we have the full dataset for the period
-        return query(
-            collection(firestore, 'risks'), 
-            where('year', '==', selectedYear)
-        );
-    }, [firestore, userProfile, selectedYear]);
+        const baseRef = collection(firestore, 'risks');
+        
+        // Strict Scoping in Fetching
+        if (isAdmin) {
+            return query(baseRef, where('year', '==', selectedYear));
+        }
+        
+        if (isSupervisor) {
+            return query(baseRef, where('year', '==', selectedYear), where('campusId', '==', userProfile.campusId));
+        }
+
+        // Unit Coordinator / Unit ODIMO
+        return query(baseRef, where('year', '==', selectedYear), where('unitId', '==', userProfile.unitId));
+    }, [firestore, userProfile, selectedYear, isAdmin, isSupervisor]);
 
     const { data: allRisks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
     
@@ -111,23 +128,22 @@ export default function RiskRegisterPage() {
 
     /**
      * GLOBAL FILTER LOGIC
-     * Applies Campus, Unit, and Search filters to the retrieved dataset.
+     * Applies search filters to the retrieved scoped dataset.
      */
     const filteredRisks = useMemo(() => {
         if (!allRisks) return [];
         
         return allRisks.filter(risk => {
-            // 1. Authorization Gate (Ensure unit users only see their own even if data is cached)
+            // 1. Final Gate Authorization Check
             const isUnitUser = !isAdmin && !isSupervisor;
             if (isUnitUser && risk.unitId !== userProfile?.unitId) return false;
+            if (isSupervisor && !isAdmin && risk.campusId !== userProfile?.campusId) return false;
 
-            // 2. Campus Filter
-            if (campusFilter !== 'all' && risk.campusId !== campusFilter) return false;
+            // 2. Local Filters
+            if (isAdmin && campusFilter !== 'all' && risk.campusId !== campusFilter) return false;
+            if ((isAdmin || isSupervisor) && unitFilter !== 'all' && risk.unitId !== unitFilter) return false;
 
-            // 3. Unit Filter
-            if (unitFilter !== 'all' && risk.unitId !== unitFilter) return false;
-
-            // 4. Search Filter
+            // 3. Search Filter
             if (searchTerm) {
                 const lowerSearch = searchTerm.toLowerCase();
                 const uName = unitMap.get(risk.unitId)?.toLowerCase() || '';
@@ -160,7 +176,7 @@ export default function RiskRegisterPage() {
     const isLoading = isUserLoading || isLoadingRisks || isLoadingUsers || isLoadingUnits || isLoadingCampuses;
 
     const canLogRisk = isAdmin || !isSupervisor;
-    const isInstitutionalViewer = isAdmin || isSupervisor;
+    const isInstitutionalViewer = isAdmin || (userRole && /auditor/i.test(userRole || ''));
 
   return (
     <>
@@ -169,7 +185,7 @@ export default function RiskRegisterPage() {
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Risk & Opportunity Register</h2>
             <p className="text-muted-foreground">
-              A centralized module for logging, tracking, and monitoring risks and opportunities for your unit.
+              A centralized module for logging, tracking, and monitoring risks and opportunities.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -214,47 +230,43 @@ export default function RiskRegisterPage() {
                   </div>
               </div>
               
-              {isInstitutionalViewer && (
-                  <div className="w-full md:w-64 space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                          <Building className="h-2.5 w-2.5" /> Campus Site Filter
-                      </label>
-                      <Select 
-                          value={campusFilter} 
-                          onValueChange={(val) => { setCampusFilter(val); }}
-                          disabled={!isAdmin}
-                      >
-                          <SelectTrigger className="h-9 text-xs bg-white">
-                              <SelectValue placeholder="All Campuses" />
-                          </SelectTrigger>
-                          <SelectContent>
-                              {isAdmin && <SelectItem value="all">All Campuses</SelectItem>}
-                              {allCampuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                          </SelectContent>
-                      </Select>
-                  </div>
-              )}
+              <div className="w-full md:w-64 space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                      <Building className="h-2.5 w-2.5" /> Campus Site
+                  </label>
+                  <Select 
+                      value={campusFilter} 
+                      onValueChange={(val) => { setCampusFilter(val); }}
+                      disabled={!isAdmin}
+                  >
+                      <SelectTrigger className="h-9 text-xs bg-white">
+                          <SelectValue placeholder="All Campuses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {isAdmin && <SelectItem value="all">All Campuses</SelectItem>}
+                          {allCampuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      </SelectContent>
+                  </Select>
+              </div>
 
-              {isInstitutionalViewer && (
-                  <div className="w-full md:w-64 space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                          <Layers className="h-2.5 w-2.5" /> Unit / Office Filter
-                      </label>
-                      <Select 
-                          value={unitFilter} 
-                          onValueChange={setUnitFilter}
-                          disabled={campusFilter === 'all' && isAdmin}
-                      >
-                          <SelectTrigger className="h-9 text-xs bg-white">
-                              <SelectValue placeholder="All Units" />
-                          </SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="all">All Units</SelectItem>
-                              {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-                          </SelectContent>
-                      </Select>
-                  </div>
-              )}
+              <div className="w-full md:w-64 space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                      <Layers className="h-2.5 w-2.5" /> Unit / Office
+                  </label>
+                  <Select 
+                      value={unitFilter} 
+                      onValueChange={setUnitFilter}
+                      disabled={!isAdmin && !isSupervisor}
+                  >
+                      <SelectTrigger className="h-9 text-xs bg-white">
+                          <SelectValue placeholder="All Units" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {(isAdmin || isSupervisor) && <SelectItem value="all">All Units</SelectItem>}
+                          {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                      </SelectContent>
+                  </Select>
+              </div>
           </CardContent>
       </Card>
 
