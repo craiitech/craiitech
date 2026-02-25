@@ -114,6 +114,20 @@ const statusVariant: Record<
   'awaiting approval': 'outline',
 };
 
+/**
+ * Fuzzy Report Normalizer
+ */
+const normalizeReportType = (type: string): string => {
+  const t = type?.toLowerCase() || '';
+  if (t.includes('swot')) return 'SWOT Analysis';
+  if (t.includes('needs') || t.includes('expectation') || t.includes('interested parties')) return 'Needs and Expectation of Interested Parties';
+  if (t.includes('operational plan')) return 'Operational Plan';
+  if (t.includes('objectives monitoring') || t.includes('quality objectives')) return 'Quality Objectives Monitoring';
+  if (t.includes('registry') && t.includes('risk')) return 'Risk and Opportunity Registry';
+  if (t.includes('action plan') && t.includes('risk')) return 'Risk and Opportunity Action Plan';
+  return type;
+};
+
 export default function HomePage() {
   const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor, isVp } = useUser();
   const firestore = useFirestore();
@@ -153,19 +167,9 @@ export default function HomePage() {
     if (!rawSubmissions) return null;
     return rawSubmissions.map(s => {
       const date = s.submissionDate;
-      let rType = String(s.reportType || '').trim();
-      const lowerType = rType.toLowerCase();
-      
-      if (lowerType.includes('risk and opportunity registry')) rType = 'Risk and Opportunity Registry';
-      else if (lowerType.includes('operational plan')) rType = 'Operational Plan';
-      else if (lowerType.includes('objectives monitoring')) rType = 'Quality Objectives Monitoring';
-      else if (lowerType.includes('needs and expectation')) rType = 'Needs and Expectation of Interested Parties';
-      else if (lowerType.includes('swot')) rType = 'SWOT Analysis';
-      else if (lowerType.includes('action plan') && lowerType.includes('risk')) rType = 'Risk and Opportunity Action Plan';
-
       return {
         ...s,
-        reportType: rType,
+        reportType: normalizeReportType(s.reportType),
         submissionDate: date instanceof Timestamp ? date.toDate() : new Date(date)
       }
     });

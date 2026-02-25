@@ -53,6 +53,20 @@ import { cn } from '@/lib/utils';
 import { submissionTypes } from './new/page';
 
 /**
+ * Fuzzy Report Normalizer
+ */
+const normalizeReportType = (type: string): string => {
+  const t = type?.toLowerCase() || '';
+  if (t.includes('swot')) return 'SWOT Analysis';
+  if (t.includes('needs') || t.includes('expectation') || t.includes('interested parties')) return 'Needs and Expectation of Interested Parties';
+  if (t.includes('operational plan')) return 'Operational Plan';
+  if (t.includes('objectives monitoring') || t.includes('quality objectives')) return 'Quality Objectives Monitoring';
+  if (t.includes('registry') && t.includes('risk')) return 'Risk and Opportunity Registry';
+  if (t.includes('action plan') && t.includes('risk')) return 'Risk and Opportunity Action Plan';
+  return type;
+};
+
+/**
  * Returns a Tailwind class string for row background based on the submission year.
  */
 const getYearRowColor = (year: number, cycle: string) => {
@@ -110,6 +124,14 @@ export default function SubmissionsPage() {
 
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
+  const normalizedSubmissions = useMemo(() => {
+    if (!rawSubmissions) return [];
+    return rawSubmissions.map(s => ({
+        ...s,
+        reportType: normalizeReportType(s.reportType)
+    }));
+  }, [rawSubmissions]);
+
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: cycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
 
@@ -142,11 +164,11 @@ export default function SubmissionsPage() {
   }, [allUnits, campusFilter]);
 
   const availableYears = useMemo(() => {
-    if (!rawSubmissions) return [new Date().getFullYear().toString()];
-    const years = Array.from(new Set(rawSubmissions.map(s => String(s.year))));
+    if (!normalizedSubmissions) return [new Date().getFullYear().toString()];
+    const years = Array.from(new Set(normalizedSubmissions.map(s => String(s.year))));
     if (years.length === 0) return [new Date().getFullYear().toString()];
     return years.sort((a,b) => b.localeCompare(a));
-  }, [rawSubmissions]);
+  }, [normalizedSubmissions]);
 
   // Handle campus filter change
   useEffect(() => {
@@ -162,13 +184,13 @@ export default function SubmissionsPage() {
 
   // Data specifically for the Dashboard visuals (Reactive to site filters)
   const dashboardSubmissions = useMemo(() => {
-    if (!rawSubmissions) return [];
-    let filtered = [...rawSubmissions];
+    if (!normalizedSubmissions) return [];
+    let filtered = [...normalizedSubmissions];
     if (yearFilter !== 'all') filtered = filtered.filter(s => String(s.year) === yearFilter);
     if (campusFilter !== 'all') filtered = filtered.filter(s => s.campusId === campusFilter);
     if (unitFilter !== 'all') filtered = filtered.filter(s => s.unitId === unitFilter);
     return filtered;
-  }, [rawSubmissions, yearFilter, campusFilter, unitFilter]);
+  }, [normalizedSubmissions, yearFilter, campusFilter, unitFilter]);
 
   const dashboardUnits = useMemo(() => {
     if (!allUnits) return [];
@@ -180,9 +202,9 @@ export default function SubmissionsPage() {
 
   // Data for the table (Filtered by all active filters)
   const tableSubmissionsData = useMemo(() => {
-    if (!rawSubmissions) return [];
+    if (!normalizedSubmissions) return [];
     
-    let filtered = [...rawSubmissions];
+    let filtered = [...normalizedSubmissions];
 
     if (yearFilter !== 'all') {
         filtered = filtered.filter(s => String(s.year) === yearFilter);
@@ -209,7 +231,7 @@ export default function SubmissionsPage() {
         const dateB = b.submissionDate instanceof Timestamp ? b.submissionDate.toMillis() : new Date(b.submissionDate).getTime();
         return sortOrder === 'recent' ? dateB - dateA : dateA - dateB;
     });
-  }, [rawSubmissions, reportTypeFilter, yearFilter, statusFilter, campusFilter, unitFilter, sortOrder]);
+  }, [normalizedSubmissions, reportTypeFilter, yearFilter, statusFilter, campusFilter, unitFilter, sortOrder]);
 
   const handleDeleteClick = (submission: Submission) => {
     setDeletingSubmission(submission);
