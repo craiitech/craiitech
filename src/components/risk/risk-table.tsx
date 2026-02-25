@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { MoreHorizontal, ArrowUpDown, Shield, TrendingUp, AlertCircle, CheckCircle, Clock, School, Building } from 'lucide-react';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 interface RiskTableProps {
   risks: Risk[];
@@ -42,12 +43,6 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive'> = {
   'Open': 'destructive',
   'In Progress': 'secondary',
   'Closed': 'default',
-};
-
-const ratingVariant: Record<string, 'default' | 'secondary' | 'destructive'> = {
-  'High': 'destructive',
-  'Medium': 'secondary',
-  'Low': 'default',
 };
 
 export function RiskTable({ risks, usersMap, onEdit, isAdmin, isSupervisor, campusMap, unitMap }: RiskTableProps) {
@@ -130,6 +125,30 @@ export function RiskTable({ risks, usersMap, onEdit, isAdmin, isSupervisor, camp
     const d = date instanceof Timestamp ? date.toDate() : new Date(date);
     if (isNaN(d.getTime())) return 'N/A';
     return format(d, 'PP');
+  }
+
+  /**
+   * DYNAMIC RATING COLORS
+   * Risk: High=Red, Medium=Yellow, Low=Green
+   * Opportunity: High=Green, Medium=Yellow, Low=Red
+   */
+  const getRatingBadgeStyle = (type: 'Risk' | 'Opportunity', rating: string) => {
+    if (type === 'Risk') {
+        switch (rating) {
+            case 'High': return 'bg-rose-600 text-white border-none';
+            case 'Medium': return 'bg-amber-400 text-amber-950 border-none';
+            case 'Low': return 'bg-emerald-600 text-white border-none';
+            default: return '';
+        }
+    } else {
+        // Opportunity
+        switch (rating) {
+            case 'High': return 'bg-emerald-600 text-white border-none';
+            case 'Medium': return 'bg-amber-400 text-amber-950 border-none';
+            case 'Low': return 'bg-rose-600 text-white border-none';
+            default: return '';
+        }
+    }
   }
 
   if (risks.length === 0) {
@@ -218,12 +237,12 @@ export function RiskTable({ risks, usersMap, onEdit, isAdmin, isSupervisor, camp
             </TableCell>
             <TableCell className="max-w-xs truncate font-medium">{risk.description}</TableCell>
             <TableCell>
-                <Badge variant={ratingVariant[risk.preTreatment.rating] ?? 'outline'} className="text-[10px] h-5">
+                <Badge className={cn("text-[9px] font-black h-5 uppercase px-2 shadow-sm", getRatingBadgeStyle(risk.type, risk.preTreatment.rating))}>
                     {risk.preTreatment.rating} ({risk.preTreatment.magnitude})
                 </Badge>
             </TableCell>
             <TableCell>
-                <Badge variant={statusVariant[risk.status] ?? 'outline'} className="flex items-center w-fit text-[10px] h-5">
+                <Badge variant={statusVariant[risk.status] ?? 'outline'} className="flex items-center w-fit text-[10px] h-5 px-2">
                     {getStatusIcon(risk.status)}
                     {risk.status}
                 </Badge>
@@ -231,19 +250,29 @@ export function RiskTable({ risks, usersMap, onEdit, isAdmin, isSupervisor, camp
             <TableCell className="text-xs">{risk.responsiblePersonName}</TableCell>
             <TableCell className="text-xs text-muted-foreground">{formatDate(risk.updatedAt)}</TableCell>
             <TableCell className="text-right">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => onEdit(risk)}>
-                    View / Edit Entry
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex items-center justify-end gap-2">
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 text-[10px] font-black uppercase tracking-widest bg-white"
+                    onClick={() => onEdit(risk)}
+                >
+                    Edit
+                </Button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => onEdit(risk)}>
+                        View Details
+                    </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </TableCell>
           </TableRow>
         ))}
