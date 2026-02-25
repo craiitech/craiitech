@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -35,7 +36,7 @@ import { doc, serverTimestamp, collection, setDoc, addDoc, Timestamp } from 'fir
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
-import { Loader2, Sparkles, ShieldCheck, Info, BookOpen, Save, X } from 'lucide-react';
+import { Loader2, Sparkles, ShieldCheck, Info, BookOpen, Save, X, ExternalLink, FileSearch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
@@ -316,9 +317,14 @@ export function RiskFormDialog({
     onOpenChange(false);
   }
 
+  const previewUrl = useMemo(() => {
+    if (!registryLink) return null;
+    return registryLink.replace('/view', '/preview').replace('?usp=sharing', '');
+  }, [registryLink]);
+
   return (
     <Dialog open={isOpen} onOpenChange={isMandatory ? undefined : onOpenChange}>
-      <DialogContent className="max-w-[95vw] lg:max-w-7xl h-[95vh] flex flex-col p-0 overflow-hidden" onPointerDownOutside={(e) => isMandatory && e.preventDefault()} onEscapeKeyDown={(e) => isMandatory && e.preventDefault()}>
+      <DialogContent className={cn("max-w-[95vw] h-[95vh] flex flex-col p-0 overflow-hidden", registryLink ? "lg:max-w-[1600px]" : "lg:max-w-7xl")} onPointerDownOutside={(e) => isMandatory && e.preventDefault()} onEscapeKeyDown={(e) => isMandatory && e.preventDefault()}>
         <div className="p-6 border-b shrink-0 bg-card shadow-sm">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -338,7 +344,7 @@ export function RiskFormDialog({
             </div>
         </div>
         <div className="flex-1 flex overflow-hidden">
-            <div className="flex-1 flex flex-col min-w-0 border-r bg-background">
+            <div className={cn("flex flex-col min-w-0 border-r bg-background", registryLink ? "flex-[1]" : "flex-1")}>
                 <ScrollArea className="flex-1">
                     <Form {...form}>
                         <form id="risk-form" onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-8">
@@ -620,30 +626,84 @@ export function RiskFormDialog({
                 </ScrollArea>
             </div>
             
-            <div className="hidden lg:flex w-[400px] flex-col bg-muted/10 border-l shrink-0">
-                <div className="p-4 border-b font-bold text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white">
-                  <Info className="h-4 w-4" /> Assessment Reference
-                </div>
-                <ScrollArea className="flex-1 p-6 space-y-6">
-                    <Card className="border-blue-200 shadow-sm overflow-hidden">
-                        <CardHeader className="py-3 px-4 bg-blue-50 border-b">
-                          <CardTitle className="text-[10px] font-black uppercase tracking-widest text-blue-800">Magnitude Guide</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 space-y-4">
-                            <div className="grid grid-cols-1 gap-1.5 text-[10px] font-bold">
-                                <div className="p-2 rounded bg-red-50 border border-red-100 text-red-700 uppercase">High (10-25) - Action Mandatory</div>
-                                <div className="p-2 rounded bg-amber-50 border border-amber-100 text-amber-700 uppercase">Medium (5-9) - Action Mandatory</div>
-                                <div className="p-2 rounded bg-green-50 border border-green-100 text-green-700 uppercase">Low (1-4) - Monitor Only</div>
+            <div className={cn("hidden lg:flex flex-col bg-muted/10 border-l shrink-0", registryLink ? "flex-[1.2]" : "w-[400px]")}>
+                {registryLink ? (
+                    <div className="h-full flex flex-col overflow-hidden">
+                        <div className="p-4 border-b font-bold text-xs uppercase tracking-widest text-muted-foreground flex items-center justify-between bg-white">
+                            <div className="flex items-center gap-2">
+                                <FileSearch className="h-4 w-4 text-primary" />
+                                Source Document Preview
                             </div>
-                            <div className="flex gap-2 text-[10px] pt-2 border-t mt-2">
-                              <BookOpen className="h-3.5 w-3.5 shrink-0 text-blue-600" />
-                              <p className="leading-tight text-muted-foreground italic">
-                                Magnitude is calculated as <strong>Likelihood x Consequence</strong>. High and Medium ratings automatically trigger the Action Plan requirement.
-                              </p>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" asChild>
+                                <a href={registryLink} target="_blank" rel="noopener noreferrer">
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                            </Button>
+                        </div>
+                        <div className="p-4 bg-primary/5 border-b border-primary/10">
+                            <div className="flex items-start gap-2">
+                                <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black uppercase text-primary leading-none">Bridge Mode Active</p>
+                                    <p className="text-[10px] text-slate-600 leading-tight">Copy descriptions and ratings from the document on the right to the database form on the left.</p>
+                                </div>
                             </div>
-                        </CardContent>
-                    </Card>
-                </ScrollArea>
+                        </div>
+                        <div className="flex-1 relative bg-white">
+                            {previewUrl && (
+                                <iframe 
+                                    src={previewUrl} 
+                                    className="absolute inset-0 w-full h-full border-none"
+                                    allow="autoplay"
+                                    title="Risk Registry Document Source"
+                                />
+                            )}
+                        </div>
+                        <div className="p-4 bg-white border-t space-y-3">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Rating Guide Reference</h4>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="p-2 rounded bg-red-50 border border-red-100 text-center">
+                                    <p className="text-[9px] font-black text-red-700">HIGH</p>
+                                    <p className="text-[8px] text-red-600">10-25</p>
+                                </div>
+                                <div className="p-2 rounded bg-amber-50 border border-amber-100 text-center">
+                                    <p className="text-[9px] font-black text-amber-700">MED</p>
+                                    <p className="text-[8px] text-amber-600">5-9</p>
+                                </div>
+                                <div className="p-2 rounded bg-green-50 border border-green-100 text-center">
+                                    <p className="text-[9px] font-black text-green-700">LOW</p>
+                                    <p className="text-[8px] text-green-600">1-4</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <div className="p-4 border-b font-bold text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white">
+                          <Info className="h-4 w-4" /> Assessment Reference
+                        </div>
+                        <ScrollArea className="flex-1 p-6 space-y-6">
+                            <Card className="border-blue-200 shadow-sm overflow-hidden">
+                                <CardHeader className="py-3 px-4 bg-blue-50 border-b">
+                                  <CardTitle className="text-[10px] font-black uppercase tracking-widest text-blue-800">Magnitude Guide</CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-4 space-y-4">
+                                    <div className="grid grid-cols-1 gap-1.5 text-[10px] font-bold">
+                                        <div className="p-2 rounded bg-red-50 border border-red-100 text-red-700 uppercase">High (10-25) - Action Mandatory</div>
+                                        <div className="p-2 rounded bg-amber-50 border border-amber-100 text-amber-700 uppercase">Medium (5-9) - Action Mandatory</div>
+                                        <div className="p-2 rounded bg-green-50 border border-green-100 text-green-700 uppercase">Low (1-4) - Monitor Only</div>
+                                    </div>
+                                    <div className="flex gap-2 text-[10px] pt-2 border-t mt-2">
+                                      <BookOpen className="h-3.5 w-3.5 shrink-0 text-blue-600" />
+                                      <p className="leading-tight text-muted-foreground italic">
+                                        Magnitude is calculated as <strong>Likelihood x Consequence</strong>. High and Medium ratings automatically trigger the Action Plan requirement.
+                                      </p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </ScrollArea>
+                    </>
+                )}
             </div>
         </div>
         <div className="p-6 border-t shrink-0 bg-card shadow-inner">
