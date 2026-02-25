@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter } from 'lucide-react';
@@ -124,7 +123,7 @@ export default function SubmissionsPage() {
     () => (firestore ? collection(firestore, 'units') : null),
     [firestore]
   );
-  const { data: allUnits } = useCollection<Unit>(unitsQuery);
+  const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const campusesQuery = useMemoFirebase(() => (firestore && user ? collection(firestore, 'campuses') : null), [firestore, user]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
@@ -170,6 +169,14 @@ export default function SubmissionsPage() {
     if (unitFilter !== 'all') filtered = filtered.filter(s => s.unitId === unitFilter);
     return filtered;
   }, [rawSubmissions, yearFilter, campusFilter, unitFilter]);
+
+  const dashboardUnits = useMemo(() => {
+    if (!allUnits) return [];
+    let filtered = [...allUnits];
+    if (campusFilter !== 'all') filtered = filtered.filter(u => u.campusIds?.includes(campusFilter));
+    if (unitFilter !== 'all') filtered = filtered.filter(u => u.id === unitFilter);
+    return filtered;
+  }, [allUnits, campusFilter, unitFilter]);
 
   // Data for the table (Filtered by all active filters)
   const tableSubmissionsData = useMemo(() => {
@@ -352,7 +359,8 @@ export default function SubmissionsPage() {
                 <SubmissionDashboard 
                     submissions={dashboardSubmissions}
                     cycles={cycles || []}
-                    isLoading={isLoadingSubmissions || isLoadingCycles}
+                    allUnits={dashboardUnits}
+                    isLoading={isLoadingSubmissions || isLoadingCycles || isLoadingUnits}
                 />
             </TabsContent>
 

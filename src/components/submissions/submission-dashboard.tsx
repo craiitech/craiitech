@@ -1,21 +1,24 @@
-
 'use client';
 
 import { useMemo } from 'react';
-import type { Submission, Cycle } from '@/lib/types';
+import type { Submission, Cycle, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { FileText, CheckCircle2, Clock, AlertCircle, TrendingUp, CalendarCheck, CalendarOff } from 'lucide-react';
+import { FileText, CheckCircle2, Clock, AlertCircle, TrendingUp, CalendarCheck, CalendarOff, FileWarning } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 import { isBefore, isAfter } from 'date-fns';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
+import { ScrollArea } from '../ui/scroll-area';
+import { Progress } from '../ui/progress';
+import { cn } from '@/lib/utils';
 
 interface SubmissionDashboardProps {
   submissions: Submission[];
   cycles: Cycle[];
+  allUnits: Unit[];
   isLoading: boolean;
 }
 
@@ -30,9 +33,9 @@ const TIMELINESS_COLORS: Record<string, string> = {
   'Late': 'hsl(var(--chart-3))',
 };
 
-export function SubmissionDashboard({ submissions, cycles, isLoading }: SubmissionDashboardProps) {
+export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }: SubmissionDashboardProps) {
   const analytics = useMemo(() => {
-    if (!submissions || !cycles) return null;
+    if (!submissions || !cycles || !allUnits) return null;
 
     // 1. KPI Stats
     const total = submissions.length;
@@ -97,8 +100,49 @@ export function SubmissionDashboard({ submissions, cycles, isLoading }: Submissi
     });
     const reportData = Object.entries(reportCounts).map(([name, total]) => ({ name, total }));
 
-    return { total, approvalRate, pending, statusData, timelinessData, reportData };
-  }, [submissions, cycles]);
+    // 5. Missing Document Calculations (Institutional Parity)
+    const calculateMissingForCycle = (cycleId: 'first' | 'final') => {
+        const cycleSubs = submissions.filter(s => s.cycleId === cycleId);
+        
+        return submissionTypes.map(type => {
+            const submittedUnitIds = new Set(cycleSubs.filter(s => s.reportType === type).map(s => s.unitId));
+            
+            // Handle ROA exemption logic:
+            // If ROR is approved as 'low', the unit is exempt from ROA for that cycle.
+            let exemptUnitIds = new Set<string>();
+            if (type === 'Risk and Opportunity Action Plan') {
+                cycleSubs.filter(s => s.reportType === 'Risk and Opportunity Registry' && s.riskRating === 'low').forEach(s => {
+                    exemptUnitIds.add(s.unitId);
+                });
+            }
+
+            const missingUnitsCount = allUnits.filter(u => !submittedUnitIds.has(u.id) && !exemptUnitIds.has(u.id)).length;
+            const relevantTotal = Math.max(0, allUnits.length - exemptUnitIds.size);
+            const percentage = relevantTotal > 0 ? Math.round(((relevantTotal - missingUnitsCount) / relevantTotal) * 100) : 100;
+
+            return {
+                type,
+                missingCount: missingUnitsCount,
+                percentage,
+                isExempt: relevantTotal === 0
+            };
+        });
+    };
+
+    const firstCycleMissing = calculateMissingForCycle('first');
+    const finalCycleMissing = calculateMissingForCycle('final');
+
+    return { 
+        total, 
+        approvalRate, 
+        pending, 
+        statusData, 
+        timelinessData, 
+        reportData,
+        firstCycleMissing,
+        finalCycleMissing
+    };
+  }, [submissions, cycles, allUnits]);
 
   if (isLoading) {
     return (
@@ -120,6 +164,37 @@ export function SubmissionDashboard({ submissions, cycles, isLoading }: Submissi
       </Card>
     );
   }
+
+  const renderMissingCard = (title: string, data: any[]) => (
+    <Card className="border-destructive/20 bg-destructive/5 shadow-sm overflow-hidden">
+        <CardHeader className="bg-destructive/10 border-b py-3">
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-destructive flex items-center gap-2">
+                <FileWarning className="h-3.5 w-3.5" />
+                {title}
+            </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+            <ScrollArea className="h-[240px]">
+                <div className="p-4 space-y-3">
+                    {data.map((item, idx) => (
+                        <div key={idx} className="space-y-1.5 p-2 rounded bg-white border border-destructive/5 shadow-sm group hover:border-destructive/30 transition-colors">
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-bold text-slate-700 truncate leading-none group-hover:text-destructive transition-colors" title={item.type}>{item.type}</span>
+                                <Badge variant={item.missingCount > 0 ? 'destructive' : 'default'} className="h-4 text-[8px] font-black py-0 px-1.5 border-none">
+                                    {item.missingCount > 0 ? `${item.missingCount} MISSING` : 'COMPLETE'}
+                                </Badge>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Progress value={item.percentage} className="h-1 flex-1" />
+                                <span className="text-[9px] font-black text-muted-foreground tabular-nums">{item.percentage}%</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </ScrollArea>
+        </CardContent>
+    </Card>
+  );
 
   return (
     <div className="space-y-6">
@@ -163,6 +238,14 @@ export function SubmissionDashboard({ submissions, cycles, isLoading }: Submissi
             <p className="text-[9px] font-bold text-blue-600/70 mt-1">Documents sent before deadline</p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* --- UN-SUBMITTED DOCUMENTS TRACKING (2 CARDS PER CYCLE) --- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {renderMissingCard("Unsubmitted: 1st Cycle (Part 1)", analytics.firstCycleMissing.slice(0, 6))}
+        {renderMissingCard("Unsubmitted: 1st Cycle (Part 2)", analytics.firstCycleMissing.slice(6, 12))}
+        {renderMissingCard("Unsubmitted: Final Cycle (Part 1)", analytics.finalCycleMissing.slice(0, 6))}
+        {renderMissingCard("Unsubmitted: Final Cycle (Part 2)", analytics.finalCycleMissing.slice(6, 12))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -99,7 +98,7 @@ import { ComplianceHeatmap } from '@/components/dashboard/strategic/compliance-h
 import { MaturityRadar } from '@/components/dashboard/strategic/maturity-radar';
 
 
-export const TOTAL_REPORTS_PER_CYCLE = 6;
+export const TOTAL_REPORTS_PER_CYCLE = 12;
 export const TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT = TOTAL_REPORTS_PER_CYCLE * 2; 
 
 
@@ -488,22 +487,24 @@ export default function HomePage() {
               <span>{Math.round(progress)}%</span>
             </div>
             <Progress value={progress} />
-            <div className="space-y-3">
-              {submissionTypes.map((reportType) => {
-                const submission = statusMap.get(reportType);
-                const isSubmitted = !!submission;
-                const isNA = reportType === 'Risk and Opportunity Action Plan' && isActionPlanNA;
-                return (
-                  <div key={reportType} className={cn("flex items-center justify-between rounded-md border p-4", isNA && "opacity-50 bg-muted/50")}>
-                      <div className="flex items-center gap-3">
-                         {getIconForStatus(isNA ? 'n/a' : submission?.statusId)}
-                        <span className="font-medium">{reportType}</span>
-                      </div>
-                      {isNA ? <Badge variant="secondary">N/A</Badge> : isSubmitted ? <Badge variant={statusVariant[submission.statusId]} className="capitalize">{getStatusText(submission.statusId)}</Badge> : <Badge variant="outline">Not Submitted</Badge>}
-                  </div>
-                );
-              })}
-            </div>
+            <ScrollArea className="h-[400px] pr-2">
+                <div className="space-y-3">
+                {submissionTypes.map((reportType) => {
+                    const submission = statusMap.get(reportType);
+                    const isSubmitted = !!submission;
+                    const isNA = reportType === 'Risk and Opportunity Action Plan' && isActionPlanNA;
+                    return (
+                    <div key={reportType} className={cn("flex items-center justify-between rounded-md border p-4", isNA && "opacity-50 bg-muted/50")}>
+                        <div className="flex items-center gap-3">
+                            {getIconForStatus(isNA ? 'n/a' : submission?.statusId)}
+                            <span className="font-medium text-xs">{reportType}</span>
+                        </div>
+                        {isNA ? <Badge variant="secondary" className="text-[9px]">N/A</Badge> : isSubmitted ? <Badge variant={statusVariant[submission.statusId]} className="capitalize text-[9px]">{getStatusText(submission.statusId)}</Badge> : <Badge variant="outline" className="text-[9px]">Not Submitted</Badge>}
+                    </div>
+                    );
+                })}
+                </div>
+            </ScrollArea>
         </div>
     );
   }
@@ -759,7 +760,7 @@ export default function HomePage() {
       </TabsContent>
       <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin} />
         <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading} selectedYear={selectedYear}/>
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
       </TabsContent>
