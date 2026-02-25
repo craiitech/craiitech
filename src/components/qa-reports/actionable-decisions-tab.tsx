@@ -92,29 +92,32 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     return Array.from(years).sort((a, b) => b.localeCompare(a));
   }, [reviews]);
 
+  /**
+   * SCOPED OUTPUTS GENERATOR
+   * Filters the list of decisions based on authorization AND filters the assignment list
+   * within each decision so users only see their own accountability entries.
+   */
   const filteredOutputs = useMemo(() => {
     if (!rawOutputs || !userProfile) return [];
     
-    // STRICT SCOPING LOGIC
     const isInstitutionalViewer = isAdmin || isAuditor;
     const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
     const isUnitLevel = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
 
-    return rawOutputs.filter(output => {
-        // 1. Authorization Filter (Primary Gate)
-        const isAssigned = (output.assignments || []).some(a => {
+    return rawOutputs.map(output => {
+        // Determine which assignments the user is allowed to see
+        const visibleAssignments = (output.assignments || []).filter(a => {
             if (isInstitutionalViewer) return true;
 
             const isInstitutionalTarget = a.campusId === 'university-wide';
             const isMyCampus = a.campusId === userProfile.campusId;
             
-            if (!isInstitutionalTarget && !isMyCampus) return false;
+            if (isCampusSupervisor) {
+                return isInstitutionalTarget || isMyCampus;
+            }
 
-            // If user is Campus-level, they see everything in their campus
-            if (isCampusSupervisor) return true;
-
-            // If user is Unit-level, they only see items explicitly for them or their category
             if (isUnitLevel) {
+                if (!isInstitutionalTarget && !isMyCampus) return false;
                 if (a.unitId === ALL_UNITS_ID) return true;
                 if (a.unitId === ALL_ACADEMIC_ID && myUnit?.category === 'Academic') return true;
                 if (a.unitId === ALL_ADMIN_ID && myUnit?.category === 'Administrative') return true;
@@ -124,16 +127,20 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
             return false;
         });
 
-        if (!isAssigned) return false;
+        // If the decision has no assignments relevant to the user, hide the entire row (except for admins)
+        if (visibleAssignments.length === 0 && !isInstitutionalViewer) return null;
 
-        // 2. Year Filter
+        // Apply Year Filter
         if (selectedYear !== 'all') {
             const reviewData = reviewMap.get(output.mrId);
-            return reviewData?.year === selectedYear;
+            if (reviewData?.year !== selectedYear) return null;
         }
 
-        return true;
-    });
+        return {
+            ...output,
+            assignments: visibleAssignments
+        };
+    }).filter(Boolean as any) as ManagementReviewOutput[];
   }, [rawOutputs, userProfile, isAdmin, isAuditor, userRole, myUnit, selectedYear, reviewMap]);
 
   const form = useForm<z.infer<typeof updateSchema>>({
