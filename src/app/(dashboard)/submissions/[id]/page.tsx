@@ -3,7 +3,7 @@
 import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
 import { doc, Timestamp, updateDoc, arrayUnion, serverTimestamp, collection, query, where } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
-import type { Submission, User as AppUser, Campus, Unit, Comment } from '@/lib/types';
+import type { Submission, User as AppUser, Campus, Unit, Comment, Risk } from '@/lib/types';
 import {
   Card,
   CardContent,
@@ -15,7 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Check, X, Send, History, ShieldCheck, FileText, Monitor, Smartphone, RotateCw, ClipboardCheck, AlertTriangle, PlusCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, X, Send, History, ShieldCheck, FileText, Monitor, Smartphone, RotateCw, ClipboardCheck, AlertTriangle, PlusCircle, ListChecks } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
@@ -32,6 +32,16 @@ import { generateControlNumber, normalizeReportType } from '@/lib/utils';
 import { getOfficialServerTime } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 
 const statusVariant: Record<
@@ -100,6 +110,7 @@ export default function SubmissionDetailPage() {
   const [rotation, setRotation] = useState(0);
   const [isAdminReviewOverride, setIsAdminReviewOverride] = useState(false);
   const [isRiskSyncOpen, setIsRiskSyncOpen] = useState(false);
+  const [isBridgePromptOpen, setIsBridgePromptOpen] = useState(false);
 
   // State for resubmission form
   const [newLink, setNewLink] = useState('');
@@ -169,6 +180,17 @@ export default function SubmissionDetailPage() {
     [firestore, isAdmin, submission?.unitId]
   );
   const { data: unitUsers } = useCollection<AppUser>(unitUsersQuery);
+
+  // Check for existing risks to trigger bridge prompt
+  const existingRisksQuery = useMemoFirebase(() => {
+    if (!firestore || !isAdmin || !submission) return null;
+    return query(
+        collection(firestore, 'risks'),
+        where('unitId', '==', submission.unitId),
+        where('year', '==', submission.year)
+    );
+  }, [firestore, isAdmin, submission]);
+  const { data: existingRisks } = useCollection<Risk>(existingRisksQuery);
 
   const isLoading = isUserLoading || isLoadingSubmission || isLoadingSubmitter || isLoadingCampus;
   
@@ -358,6 +380,14 @@ export default function SubmissionDetailPage() {
     return isApprover && (isSubmitted || isRejectedAndAdminOverride);
   }, [submission, isApprover, isAdmin, isAdminReviewOverride]);
 
+  const handleOpenRiskBridge = () => {
+    if (existingRisks && existingRisks.length > 0) {
+        setIsBridgePromptOpen(true);
+    } else {
+        setIsRiskSyncOpen(true);
+    }
+  };
+
   if (isLoading) {
     return <LoadingSkeleton />;
   }
@@ -522,7 +552,7 @@ export default function SubmissionDetailPage() {
                                       <p className="text-xs text-muted-foreground">Directly log the entries from this document into the system risk registry for compliance tracking.</p>
                                   </div>
                               </div>
-                              <Button onClick={() => setIsRiskSyncOpen(true)} className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20 bg-indigo-600 text-white hover:bg-indigo-700">
+                              <Button onClick={handleOpenRiskBridge} className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20 bg-indigo-600 text-white hover:bg-indigo-700">
                                   <PlusCircle className="h-4 w-4" />
                                   Record in Risk Registry
                               </Button>
@@ -693,6 +723,31 @@ export default function SubmissionDetailPage() {
             </Card>
         </div>
       </div>
+
+      {/* Bridge Gate Prompt */}
+      <AlertDialog open={isBridgePromptOpen} onOpenChange={setIsBridgePromptOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <div className="flex items-center gap-2 text-primary mb-2">
+                    <ListChecks className="h-5 w-5" />
+                    <AlertDialogTitle>Existing Risk Entries Detected</AlertDialogTitle>
+                </div>
+                <AlertDialogDescription className="text-sm">
+                    There are already <strong>{existingRisks?.length}</strong> entries logged for <strong>{submission.unitName}</strong> in the Academic Year <strong>{submission.year}</strong>.
+                    <br/><br/>
+                    Would you like to record a <strong>new</strong> entry from this document, or manage the <strong>existing</strong> register?
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="gap-2 sm:gap-0">
+                <AlertDialogCancel onClick={() => { setIsBridgePromptOpen(false); setIsRiskSyncOpen(true); }} className="border-primary text-primary hover:bg-primary/5">
+                    Manage Existing / Add More
+                </AlertDialogCancel>
+                <AlertDialogAction onClick={() => { setIsBridgePromptOpen(false); setIsRiskSyncOpen(true); }} className="bg-primary">
+                    Record New Entry
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Admin Risk Registry Dialog Bridge */}
       {isAdmin && isRiskSyncOpen && submission && (

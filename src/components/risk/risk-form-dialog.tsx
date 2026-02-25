@@ -30,12 +30,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useUser, useFirestore } from '@/firebase';
-import { doc, serverTimestamp, collection, setDoc, addDoc, Timestamp } from 'firebase/firestore';
+import { useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, serverTimestamp, collection, setDoc, addDoc, Timestamp, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
-import { Loader2, Sparkles, ShieldCheck, Info, BookOpen, Save, X, ExternalLink, FileSearch, Calendar } from 'lucide-react';
+import { Loader2, Sparkles, ShieldCheck, Info, BookOpen, Save, X, ExternalLink, FileSearch, Calendar, ListChecks, PlusCircle, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
@@ -113,7 +113,7 @@ const consequenceOptions = [
 export function RiskFormDialog({ 
   isOpen, 
   onOpenChange, 
-  risk, 
+  risk: initialRisk, 
   unitUsers, 
   allUnits, 
   allCampuses, 
@@ -126,9 +126,9 @@ export function RiskFormDialog({
   const { user, userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { logSessionActivity } = useSessionActivity();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
+  const [activeRisk, setActiveRisk] = useState<Risk | null>(initialRisk);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -142,48 +142,50 @@ export function RiskFormDialog({
       consequence: 1,
       treatmentAction: '',
       status: 'Open',
-      adminCampusId: '',
-      adminUnitId: '',
+      adminCampusId: defaultCampusId || userProfile?.campusId || '',
+      adminUnitId: defaultUnitId || userProfile?.unitId || '',
     },
   });
 
+  const watchYear = form.watch('year');
   const selectedAdminCampusId = form.watch('adminCampusId');
   const selectedAdminUnitId = form.watch('adminUnitId');
-  const watchYear = form.watch('year');
 
-  useEffect(() => {
-    if (risk && isOpen) {
-      const targetDate = risk.targetDate?.toDate?.() || risk.targetDate;
+  // Load risk into form
+  const handleLoadRisk = (r: Risk | null) => {
+    setActiveRisk(r);
+    if (r) {
+      const targetDate = r.targetDate?.toDate?.() || r.targetDate;
       form.reset({
-        year: risk.year,
-        objective: risk.objective || '',
-        type: risk.type || 'Risk',
-        description: risk.description || '',
-        currentControls: risk.currentControls || '',
-        likelihood: risk.preTreatment.likelihood,
-        consequence: risk.preTreatment.consequence,
-        treatmentAction: risk.treatmentAction || '',
-        status: risk.status || 'Open',
-        responsiblePersonId: risk.responsiblePersonId || '',
+        year: r.year,
+        objective: r.objective || '',
+        type: r.type || 'Risk',
+        description: r.description || '',
+        currentControls: r.currentControls || '',
+        likelihood: r.preTreatment.likelihood,
+        consequence: r.preTreatment.consequence,
+        treatmentAction: r.treatmentAction || '',
+        status: r.status || 'Open',
+        responsiblePersonId: r.responsiblePersonId || '',
         targetYear: targetDate instanceof Date ? String(targetDate.getFullYear()) : undefined,
         targetMonth: targetDate instanceof Date ? String(targetDate.getMonth()) : undefined,
         targetDay: targetDate instanceof Date ? String(targetDate.getDate()) : undefined,
-        postTreatmentLikelihood: risk.postTreatment?.likelihood,
-        postTreatmentConsequence: risk.postTreatment?.consequence,
-        postTreatmentEvidence: risk.postTreatment?.evidence || '',
-        postTreatmentDateImplemented: risk.postTreatment?.dateImplemented || '',
-        oapNo: risk.oapNo || '',
-        resourcesNeeded: risk.resourcesNeeded || '',
-        updates: risk.updates || '',
-        preparedBy: risk.preparedBy || '',
-        approvedBy: risk.approvedBy || '',
-        adminCampusId: risk.campusId || '',
-        adminUnitId: risk.unitId || '',
+        postTreatmentLikelihood: r.postTreatment?.likelihood,
+        postTreatmentConsequence: r.postTreatment?.consequence,
+        postTreatmentEvidence: r.postTreatment?.evidence || '',
+        postTreatmentDateImplemented: r.postTreatment?.dateImplemented || '',
+        oapNo: r.oapNo || '',
+        resourcesNeeded: r.resourcesNeeded || '',
+        updates: r.updates || '',
+        preparedBy: r.preparedBy || '',
+        approvedBy: r.approvedBy || '',
+        adminCampusId: r.campusId || '',
+        adminUnitId: r.unitId || '',
       });
-    } else if (!risk && isOpen) {
+    } else {
       form.reset({
-        year: defaultYear || new Date().getFullYear(),
-        objective: '',
+        year: watchYear,
+        objective: form.getValues('objective') || '', // Usually keep objective context
         type: 'Risk',
         description: '',
         currentControls: '',
@@ -191,11 +193,30 @@ export function RiskFormDialog({
         consequence: 1,
         treatmentAction: '',
         status: 'Open',
-        adminCampusId: defaultCampusId || userProfile?.campusId || '',
-        adminUnitId: defaultUnitId || userProfile?.unitId || '',
+        adminCampusId: selectedAdminCampusId,
+        adminUnitId: selectedAdminUnitId,
       });
     }
-  }, [risk, isOpen, form, userProfile, defaultYear, defaultUnitId, defaultCampusId]);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+        handleLoadRisk(initialRisk);
+    }
+  }, [initialRisk, isOpen]);
+
+  // Fetch all risks for the current unit/year context to show in bridge side-panel
+  const unitRisksQuery = useMemoFirebase(() => {
+    const targetUnitId = isAdmin ? selectedAdminUnitId : userProfile?.unitId;
+    if (!firestore || !targetUnitId || !isOpen) return null;
+    return query(
+        collection(firestore, 'risks'), 
+        where('unitId', '==', targetUnitId),
+        where('year', '==', watchYear)
+    );
+  }, [firestore, selectedAdminUnitId, userProfile, watchYear, isOpen, isAdmin]);
+
+  const { data: unitRisks } = useCollection<Risk>(unitRisksQuery);
 
   const likelihoodValue = form.watch('likelihood');
   const consequenceValue = form.watch('consequence');
@@ -265,7 +286,7 @@ export function RiskFormDialog({
           year: Number(values.year),
           unitId: targetUnitId,
           campusId: targetCampusId,
-          userId: risk?.userId || user.uid,
+          userId: activeRisk?.userId || user.uid,
           preTreatment: { 
             likelihood: Number(values.likelihood), 
             consequence: Number(values.consequence), 
@@ -274,7 +295,7 @@ export function RiskFormDialog({
           },
           treatmentAction: values.treatmentAction || '',
           responsiblePersonId: values.responsiblePersonId || '',
-          responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : (risk?.responsiblePersonName || ''),
+          responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : (activeRisk?.responsiblePersonName || ''),
           targetDate: targetTimestamp,
           oapNo: values.oapNo || '',
           resourcesNeeded: values.resourcesNeeded || '',
@@ -295,27 +316,29 @@ export function RiskFormDialog({
             };
         }
 
-        if (risk) {
-            const riskRef = doc(firestore, 'risks', risk.id);
+        if (activeRisk) {
+            const riskRef = doc(firestore, 'risks', activeRisk.id);
             await setDoc(riskRef, riskData, { merge: true });
-            toast({ title: 'Record Updated', description: 'Changes to the assessment have been persisted.' });
+            toast({ title: 'Record Updated', description: 'Changes saved.' });
         } else {
             const riskColRef = collection(firestore, 'risks');
             await addDoc(riskColRef, { ...riskData, createdAt: serverTimestamp() });
-            toast({ title: 'Record Registered', description: 'New entry has been added to the registry.' });
+            toast({ title: 'Record Registered', description: 'New entry added.' });
+        }
+
+        if (registryLink) {
+            // Bridge mode: Clear form for rapid entry of next row, stay open
+            handleLoadRisk(null);
+        } else {
             onOpenChange(false);
         }
     } catch (error) {
         console.error("Risk Submit Error:", error);
-        toast({ title: 'Update Failed', description: 'A database validation error occurred.', variant: 'destructive'});
+        toast({ title: 'Update Failed', description: 'Could not save record.', variant: 'destructive'});
     } finally {
         setIsSubmitting(false);
     }
   };
-
-  const handleClose = () => {
-    onOpenChange(false);
-  }
 
   const previewUrl = useMemo(() => {
     if (!registryLink) return null;
@@ -334,7 +357,7 @@ export function RiskFormDialog({
                     </div>
                     <div className="flex items-center gap-3">
                         <DialogTitle className="text-xl">
-                            {risk ? 'Manage' : 'Log New'} Assessment Record
+                            {activeRisk ? 'Manage' : 'Log New'} Assessment Record
                         </DialogTitle>
                         <Badge variant="secondary" className="h-6 px-3 bg-primary/10 text-primary border-primary/20 font-black text-xs">
                             <Calendar className="h-3 w-3 mr-1.5" />
@@ -343,7 +366,7 @@ export function RiskFormDialog({
                     </div>
                 </div>
                 {!isMandatory && (
-                    <Button variant="ghost" size="icon" onClick={handleClose} className="rounded-full h-8 w-8">
+                    <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full h-8 w-8">
                         <X className="h-4 w-4" />
                     </Button>
                 )}
@@ -633,83 +656,112 @@ export function RiskFormDialog({
             </div>
             
             <div className={cn("hidden lg:flex flex-col bg-muted/10 border-l shrink-0", registryLink ? "flex-[1.2]" : "w-[400px]")}>
-                {registryLink ? (
-                    <div className="h-full flex flex-col overflow-hidden">
-                        <div className="p-4 border-b font-bold text-xs uppercase tracking-widest text-muted-foreground flex items-center justify-between bg-white">
-                            <div className="flex items-center gap-2">
-                                <FileSearch className="h-4 w-4 text-primary" />
-                                Source Document Preview
-                            </div>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" asChild>
-                                <a href={registryLink} target="_blank" rel="noopener noreferrer">
-                                    <ExternalLink className="h-3.5 w-3.5" />
-                                </a>
-                            </Button>
-                        </div>
-                        <div className="p-4 bg-primary/5 border-b border-primary/10">
-                            <div className="flex items-start gap-2">
-                                <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-black uppercase text-primary leading-none">Bridge Mode Active</p>
-                                    <p className="text-[10px] text-slate-600 leading-tight">Copy descriptions and ratings from the document on the right to the database form on the left.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex-1 relative bg-white">
-                            {previewUrl && (
-                                <iframe 
-                                    src={previewUrl} 
-                                    className="absolute inset-0 w-full h-full border-none"
-                                    allow="autoplay"
-                                    title="Risk Registry Document Source"
-                                />
-                            )}
-                        </div>
-                        <div className="p-4 bg-white border-t space-y-3">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Rating Guide Reference</h4>
-                            <div className="grid grid-cols-3 gap-2">
-                                <div className="p-2 rounded bg-red-50 border border-red-100 text-center">
-                                    <p className="text-[9px] font-black text-red-700">HIGH</p>
-                                    <p className="text-[8px] text-red-600">10-25</p>
-                                </div>
-                                <div className="p-2 rounded bg-amber-50 border border-amber-100 text-center">
-                                    <p className="text-[9px] font-black text-amber-700">MED</p>
-                                    <p className="text-[8px] text-amber-600">5-9</p>
-                                </div>
-                                <div className="p-2 rounded bg-green-50 border border-green-100 text-center">
-                                    <p className="text-[9px] font-black text-green-700">LOW</p>
-                                    <p className="text-[8px] text-green-600">1-4</p>
-                                </div>
-                            </div>
-                        </div>
+                <div className="p-4 border-b font-bold text-xs uppercase tracking-widest text-muted-foreground flex items-center justify-between bg-white">
+                    <div className="flex items-center gap-2">
+                        <ListChecks className="h-4 w-4 text-primary" />
+                        Institutional Context Registry
                     </div>
-                ) : (
-                    <>
-                        <div className="p-4 border-b font-bold text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white">
-                          <Info className="h-4 w-4" /> Assessment Reference
+                </div>
+                
+                <ScrollArea className="flex-1 p-6 space-y-6">
+                    {/* Integrated Current Registry List (The "Display Saved Registry" request) */}
+                    {unitRisks && unitRisks.length > 0 && (
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Current Entries ({unitRisks.length})</h4>
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-6 text-[9px] font-black uppercase gap-1 text-primary hover:bg-primary/5"
+                                    onClick={() => handleLoadRisk(null)}
+                                >
+                                    <PlusCircle className="h-3 w-3" /> New Entry
+                                </Button>
+                            </div>
+                            <div className="space-y-2">
+                                {unitRisks.map(r => (
+                                    <button 
+                                        key={r.id}
+                                        type="button"
+                                        onClick={() => handleLoadRisk(r)}
+                                        className={cn(
+                                            "w-full text-left p-3 rounded-xl border transition-all hover:shadow-md group",
+                                            activeRisk?.id === r.id 
+                                                ? "bg-white border-primary shadow-sm ring-1 ring-primary/20" 
+                                                : "bg-background/50 border-transparent text-muted-foreground"
+                                        )}
+                                    >
+                                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                                            <Badge variant="outline" className={cn("h-4 text-[8px] font-black px-1.5", activeRisk?.id === r.id ? "border-primary/30 text-primary" : "opacity-50")}>{r.type}</Badge>
+                                            <Badge 
+                                                className={cn(
+                                                    "h-4 text-[8px] font-black border-none px-1.5 shadow-none",
+                                                    r.preTreatment.rating === 'High' ? "bg-red-500 text-white" : 
+                                                    r.preTreatment.rating === 'Medium' ? "bg-amber-500 text-white" : 
+                                                    "bg-emerald-500 text-white"
+                                                )}
+                                            >
+                                                {r.preTreatment.rating}
+                                            </Badge>
+                                        </div>
+                                        <p className={cn("text-[11px] font-bold leading-tight line-clamp-2", activeRisk?.id === r.id ? "text-slate-900" : "text-slate-500")}>
+                                            {r.description}
+                                        </p>
+                                        <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <span className="text-[8px] font-black uppercase text-primary">Load for Edit</span>
+                                            <ChevronRight className="h-2 w-2 text-primary" />
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                        <ScrollArea className="flex-1 p-6 space-y-6">
-                            <Card className="border-blue-200 shadow-sm overflow-hidden">
-                                <CardHeader className="py-3 px-4 bg-blue-50 border-b">
-                                  <CardTitle className="text-[10px] font-black uppercase tracking-widest text-blue-800">Magnitude Guide</CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-4 space-y-4">
-                                    <div className="grid grid-cols-1 gap-1.5 text-[10px] font-bold">
-                                        <div className="p-2 rounded bg-red-50 border border-red-100 text-red-700 uppercase">High (10-25) - Action Mandatory</div>
-                                        <div className="p-2 rounded bg-amber-50 border border-amber-100 text-amber-700 uppercase">Medium (5-9) - Action Mandatory</div>
-                                        <div className="p-2 rounded bg-green-50 border border-green-100 text-green-700 uppercase">Low (1-4) - Monitor Only</div>
-                                    </div>
-                                    <div className="flex gap-2 text-[10px] pt-2 border-t mt-2">
-                                      <BookOpen className="h-3.5 w-3.5 shrink-0 text-blue-600" />
-                                      <p className="leading-tight text-muted-foreground italic">
-                                        Magnitude is calculated as <strong>Likelihood x Consequence</strong>. High and Medium ratings automatically trigger the Action Plan requirement.
-                                      </p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </ScrollArea>
-                    </>
-                )}
+                    )}
+
+                    {registryLink && (
+                        <Card className="border-primary/20 shadow-sm overflow-hidden flex flex-col h-[500px]">
+                            <CardHeader className="py-3 px-4 bg-primary/5 border-b flex flex-row items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <FileSearch className="h-3.5 w-3.5 text-primary" />
+                                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-primary">Source Document Preview</CardTitle>
+                                </div>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" asChild>
+                                    <a href={registryLink} target="_blank" rel="noopener noreferrer">
+                                        <ExternalLink className="h-3.5 w-3.5" />
+                                    </a>
+                                </Button>
+                            </CardHeader>
+                            <CardContent className="p-0 flex-1 relative bg-white">
+                                {previewUrl && (
+                                    <iframe 
+                                        src={previewUrl} 
+                                        className="absolute inset-0 w-full h-full border-none"
+                                        allow="autoplay"
+                                        title="Risk Registry Document Source"
+                                    />
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    <Card className="border-blue-200 shadow-sm overflow-hidden">
+                        <CardHeader className="py-3 px-4 bg-blue-50 border-b">
+                          <CardTitle className="text-[10px] font-black uppercase tracking-widest text-blue-800">Magnitude Guide</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4 space-y-4">
+                            <div className="grid grid-cols-1 gap-1.5 text-[10px] font-bold">
+                                <div className="p-2 rounded bg-red-50 border border-red-100 text-red-700 uppercase">High (10-25) - Action Mandatory</div>
+                                <div className="p-2 rounded bg-amber-50 border border-amber-100 text-amber-700 uppercase">Medium (5-9) - Action Mandatory</div>
+                                <div className="p-2 rounded bg-green-50 border border-green-100 text-green-700 uppercase">Low (1-4) - Monitor Only</div>
+                            </div>
+                            <div className="flex gap-2 text-[10px] pt-2 border-t mt-2">
+                              <BookOpen className="h-3.5 w-3.5 shrink-0 text-blue-600" />
+                              <p className="leading-tight text-muted-foreground italic">
+                                Magnitude is calculated as <strong>Likelihood x Consequence</strong>. High and Medium ratings automatically trigger the Action Plan requirement.
+                              </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </ScrollArea>
             </div>
         </div>
         <div className="p-6 border-t shrink-0 bg-card shadow-inner">
@@ -717,7 +769,7 @@ export function RiskFormDialog({
                 <Button 
                     variant="secondary" 
                     type="button" 
-                    onClick={handleClose} 
+                    onClick={() => onOpenChange(false)} 
                     className="font-bold text-[10px] uppercase tracking-widest px-6"
                 >
                     Close Dialog
@@ -729,7 +781,7 @@ export function RiskFormDialog({
                     className="min-w-[150px] shadow-lg shadow-primary/20"
                 >
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}
-                  {risk ? 'Save Updates' : 'Log Assessment'}
+                  {activeRisk ? 'Update Entry' : 'Log Assessment'}
                 </Button>
             </DialogFooter>
         </div>
