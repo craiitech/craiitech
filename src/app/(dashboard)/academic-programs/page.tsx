@@ -39,6 +39,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+const currentYear = new Date().getFullYear();
+
 export default function AcademicProgramsPage() {
   const { user, userProfile, isAdmin, isAuditor, userRole, isUserLoading, isVp } = useUser();
   const firestore = useFirestore();
