@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -21,6 +22,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
+const QAO_SURVEY_URL = "https://surveymars.com/q/38KA5k0nk?fbclid=IwY2xjawQOLYpleHRuA2FlbQIxMABicmlkETJEUVhNTW9HSmthVjF6OTNRc3J0YwZhcHBfaWQQMjIyMDM5MTc4ODIwMDg5MgABHtluiQqsM9r-FKULWIkB7WPNEn2GPJCQxEC3YaEpQDluY9Bz256TSf_KcFn0_aem_gqrw_KPziVb2QvcD14zSRA";
+
 export default function LogoutPage() {
   const router = useRouter();
   const auth = useAuth();
@@ -33,6 +36,11 @@ export default function LogoutPage() {
   const [comments, setComments] = useState('');
   const [suggestions, setSuggestions] = useState('');
   const [isProcessingLogout, setIsProcessingLogout] = useState(false);
+
+  const handleExternalEvaluation = () => {
+    alert("Before you exit, kindly Evaluate your experience with us, kindly search for Quality Assurance Office and the services you have availed with us");
+    window.open(QAO_SURVEY_URL, "_blank");
+  };
 
   const handleFinalLogout = async (skipFeedback = false) => {
     if (!auth || !user) return;
@@ -180,7 +188,7 @@ export default function LogoutPage() {
               <Button 
                 variant="outline"
                 className="w-full h-12 border-primary text-primary font-bold hover:bg-primary/5" 
-                onClick={() => router.push('/evaluate')}
+                onClick={handleExternalEvaluation}
               >
                 <MonitorCheck className="mr-2 h-5 w-5" />
                 Please Evaluate your experience with the System
