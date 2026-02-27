@@ -60,9 +60,8 @@ export default function LogoutPage() {
       }
 
       // 2. Trigger the mandatory QAO External Evaluation alert and link
-      if (!skipFeedback) {
-        triggerExternalEvaluation();
-      }
+      // This is now triggered for BOTH skip and submit paths
+      triggerExternalEvaluation();
 
       // 3. Perform the secure sign-out
       await signOut(auth);
