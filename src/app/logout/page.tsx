@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -44,6 +43,11 @@ export default function LogoutPage() {
 
   const handleFinalLogout = async (skipFeedback = false) => {
     if (!auth || !user) return;
+    
+    // Trigger the mandatory QAO External Evaluation alert and link FIRST
+    // This must be done as a result of user interaction to bypass popup blockers
+    triggerExternalEvaluation();
+    
     setIsProcessingLogout(true);
 
     try {
@@ -59,11 +63,7 @@ export default function LogoutPage() {
         });
       }
 
-      // 2. Trigger the mandatory QAO External Evaluation alert and link
-      // This is now triggered for BOTH skip and submit paths
-      triggerExternalEvaluation();
-
-      // 3. Perform the secure sign-out
+      // 2. Perform the secure sign-out
       await signOut(auth);
       clearSessionLogs();
       
@@ -72,7 +72,7 @@ export default function LogoutPage() {
         description: "You have been securely signed out of the portal.",
       });
       
-      // 4. Return to landing page
+      // 3. Return to landing page
       router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
