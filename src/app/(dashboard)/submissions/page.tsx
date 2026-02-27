@@ -1,6 +1,6 @@
 'use client';
 
-import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter, Download } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -51,19 +51,42 @@ import { SubmissionDashboard } from '@/components/submissions/submission-dashboa
 import { format } from 'date-fns';
 import { cn, normalizeReportType } from '@/lib/utils';
 import { submissionTypes } from './new/page';
+import Link from 'next/link';
 
 /**
  * Returns a Tailwind class string for row background based on the submission year.
  */
-const getYearRowColor = (year: number, cycle: string) => {
-  const colors: Record<number, string> = {
-    2024: 'bg-blue-50/50 hover:bg-blue-100/50 dark:bg-blue-900/10 dark:hover:bg-blue-900/20',
-    2025: 'bg-green-50/50 hover:bg-green-100/50 dark:bg-green-900/10 dark:hover:bg-green-900/20',
-    2026: 'bg-amber-50/50 hover:bg-amber-100/50 dark:bg-amber-900/10 dark:hover:bg-amber-900/20',
-    2027: 'bg-purple-50/50 hover:bg-purple-100/50 dark:bg-purple-900/10 dark:hover:bg-purple-900/20',
-    2028: 'bg-rose-50/50 hover:bg-rose-100/50 dark:bg-rose-900/10 dark:hover:bg-rose-900/20',
+const getYearCycleRowColor = (year: number, cycle: string) => {
+  const isFinal = cycle.toLowerCase() === 'final';
+  const colors: Record<number, { first: string, final: string }> = {
+    2024: { 
+      first: 'bg-blue-50/20 hover:bg-blue-100/40 dark:bg-blue-900/5 dark:hover:bg-blue-900/10', 
+      final: 'bg-blue-100/40 hover:bg-blue-200/50 dark:bg-blue-900/20 dark:hover:bg-blue-900/30' 
+    },
+    2025: { 
+      first: 'bg-green-50/20 hover:bg-green-100/40 dark:bg-green-900/5 dark:hover:bg-green-900/10', 
+      final: 'bg-green-100/40 hover:bg-blue-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
+    },
+    2026: { 
+      first: 'bg-amber-50/20 hover:bg-amber-100/40 dark:bg-amber-900/5 dark:hover:bg-amber-900/10', 
+      final: 'bg-amber-100/40 hover:bg-amber-200/50 dark:bg-amber-900/20 dark:hover:bg-amber-900/30' 
+    },
+    2027: { 
+      first: 'bg-purple-50/20 hover:bg-purple-100/40 dark:bg-purple-900/5 dark:hover:bg-purple-900/10', 
+      final: 'bg-purple-100/40 hover:bg-purple-200/50 dark:bg-purple-900/20 dark:hover:bg-purple-900/30' 
+    },
+    2028: { 
+      first: 'bg-rose-50/20 hover:bg-rose-100/40 dark:bg-rose-900/5 dark:hover:bg-rose-900/10', 
+      final: 'bg-rose-100/40 hover:bg-rose-200/50 dark:bg-rose-900/20 dark:hover:bg-rose-900/30' 
+    },
   };
-  return colors[year] || 'bg-slate-50/50 hover:bg-slate-100/50 dark:bg-slate-900/10 dark:hover:bg-slate-900/20';
+  
+  const yearColor = colors[year] || { 
+    first: 'bg-slate-50/20 hover:bg-slate-100/40 dark:bg-slate-900/5 dark:hover:bg-slate-900/10', 
+    final: 'bg-slate-100/40 hover:bg-slate-200/50 dark:bg-slate-900/20 dark:hover:bg-slate-900/30' 
+  };
+  
+  return isFinal ? yearColor.final : yearColor.first;
 };
 
 const safeFormatDate = (date: any) => {
@@ -287,16 +310,26 @@ export default function SubmissionsPage() {
                     </SelectContent>
                 </Select>
             </div>
-            {!isSupervisor && !isAuditor && (
-                <div className="pt-5">
+            
+            <div className="flex items-center gap-2 pt-5">
+                <Button 
+                    variant="outline"
+                    className="h-9 font-bold uppercase text-[10px] tracking-widest border-primary/20 text-primary hover:bg-primary/5"
+                    asChild
+                >
+                    <Link href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank">
+                        <Download className="mr-2 h-4 w-4" /> Download Templates
+                    </Link>
+                </Button>
+                {!isSupervisor && !isAuditor && (
                     <Button 
                         onClick={() => router.push('/submissions/new')}
                         className="shadow-lg shadow-primary/20 h-9 font-bold uppercase text-[10px] tracking-widest"
                     >
                         <PlusCircle className="mr-2 h-4 w-4" /> New Submission
                     </Button>
-                </div>
-            )}
+                )}
+            </div>
           </div>
         </div>
 

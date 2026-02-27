@@ -275,15 +275,26 @@ export default function NewSubmissionPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">New Submission / Resubmission</h2>
           <p className="text-muted-foreground">Select a report to submit for the chosen year and cycle.</p>
         </div>
-        <Button variant="outline" onClick={() => router.push('/submissions')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Submissions
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button 
+                variant="outline"
+                className="h-9 font-bold uppercase text-[10px] tracking-widest border-primary/20 text-primary hover:bg-primary/5"
+                asChild
+            >
+                <Link href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank">
+                    <Download className="mr-2 h-4 w-4" /> Download Templates
+                </Link>
+            </Button>
+            <Button variant="outline" onClick={() => router.push('/submissions')} className="h-9 font-bold uppercase text-[10px] tracking-widest">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
+            </Button>
+        </div>
       </div>
       
        {selectedCycle === 'final' && selectedReport && specialUpdateReports.includes(selectedReport) && !finalCycleStatusMap.has(selectedReport) && (
@@ -396,7 +407,7 @@ export default function NewSubmissionPage() {
                         <Download className="h-5 w-5 text-primary flex-shrink-0 mt-1"/>
                         <div>
                             <span className="font-semibold">1. Download Templates:</span> All report templates are available in the official EOMS Google Drive folder. 
-                            <Button variant="link" asChild className="p-0 h-auto ml-1">
+                            <Button variant="link" asChild className="p-0 h-auto ml-1 font-bold">
                                 <Link href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank">Access templates here.</Link>
                             </Button>
                         </div>
