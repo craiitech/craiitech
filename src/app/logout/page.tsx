@@ -37,7 +37,7 @@ export default function LogoutPage() {
   const [suggestions, setSuggestions] = useState('');
   const [isProcessingLogout, setIsProcessingLogout] = useState(false);
 
-  const handleExternalEvaluation = () => {
+  const triggerExternalEvaluation = () => {
     alert("Before you exit, kindly Evaluate your experience with us, kindly search for Quality Assurance Office and the services you have availed with us");
     window.open(QAO_SURVEY_URL, "_blank");
   };
@@ -47,6 +47,7 @@ export default function LogoutPage() {
     setIsProcessingLogout(true);
 
     try {
+      // 1. Save internal feedback if provided
       if (!skipFeedback && rating > 0 && firestore) {
         await addDoc(collection(firestore, 'appFeedbacks'), {
           userId: user.uid,
@@ -58,6 +59,12 @@ export default function LogoutPage() {
         });
       }
 
+      // 2. Trigger the mandatory QAO External Evaluation alert and link
+      if (!skipFeedback) {
+        triggerExternalEvaluation();
+      }
+
+      // 3. Perform the secure sign-out
       await signOut(auth);
       clearSessionLogs();
       
@@ -66,6 +73,7 @@ export default function LogoutPage() {
         description: "You have been securely signed out of the portal.",
       });
       
+      // 4. Return to landing page
       router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
@@ -80,7 +88,7 @@ export default function LogoutPage() {
 
   if (isUserLoading) {
     return (
-      <div className="flex min-h min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
+      <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
@@ -177,7 +185,7 @@ export default function LogoutPage() {
             
             <CardFooter className="flex flex-col gap-3 pb-8">
               <Button 
-                className="w-full h-12 text-lg font-bold shadow-lg shadow-primary/20" 
+                className="w-full h-12 text-lg font-bold shadow-xl shadow-primary/20" 
                 onClick={() => handleFinalLogout(false)}
                 disabled={rating === 0}
               >
@@ -188,7 +196,7 @@ export default function LogoutPage() {
               <Button 
                 variant="outline"
                 className="w-full h-12 border-primary text-primary font-bold hover:bg-primary/5" 
-                onClick={handleExternalEvaluation}
+                onClick={triggerExternalEvaluation}
               >
                 <MonitorCheck className="mr-2 h-5 w-5" />
                 Please Evaluate your experience with the System
