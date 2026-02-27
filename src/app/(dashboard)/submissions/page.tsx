@@ -78,7 +78,7 @@ const safeFormatDate = (date: any) => {
 };
 
 export default function SubmissionsPage() {
-  const { user, userProfile, isAdmin, isAuditor, isSupervisor, isUserLoading } = useUser();
+  const { user, userProfile, isAdmin, isAuditor, isSupervisor, isVp, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -97,9 +97,10 @@ export default function SubmissionsPage() {
   const [confirmationText, setConfirmationText] = useState('');
   const [challengeText, setChallengeText] = useState('');
 
-  const isInstitutionalViewer = isAdmin || isAuditor;
+  // Institutional Viewers can see everything across the university
+  const isInstitutionalViewer = isAdmin || isAuditor || isVp;
 
-  // Sync filters with role profile
+  // Sync filters with role profile upon load
   useEffect(() => {
     if (userProfile && !isUserLoading) {
         if (!isInstitutionalViewer) {
@@ -113,14 +114,21 @@ export default function SubmissionsPage() {
 
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
-    // Institutional View: Admins and Auditors see everything.
-    if (isAdmin || isAuditor) return collection(firestore, 'submissions');
     
+    // Institutional View: Admins, Auditors, and VPs see everything.
+    if (isAdmin || isAuditor || isVp) return collection(firestore, 'submissions');
+    
+    // Campus Supervisors (Directors/ODIMOs) see all units within their campus
     if (isSupervisor && userProfile.campusId) {
       return query(collection(firestore, 'submissions'), where('campusId', '==', userProfile.campusId));
     }
-    return query(collection(firestore, 'submissions'), where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
-  }, [firestore, isAdmin, isAuditor, isSupervisor, userProfile, isUserLoading]);
+    
+    // Restricted Users (Coordinators) see ONLY their specific unit's reports
+    return query(collection(firestore, 'submissions'), 
+        where('unitId', '==', userProfile.unitId), 
+        where('campusId', '==', userProfile.campusId)
+    );
+  }, [firestore, isAdmin, isAuditor, isVp, isSupervisor, userProfile, isUserLoading]);
 
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
@@ -136,8 +144,8 @@ export default function SubmissionsPage() {
   const { data: cycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
 
   const usersQuery = useMemoFirebase(
-    () => (firestore && (isAdmin || isSupervisor || isAuditor) ? collection(firestore, 'users') : null),
-    [firestore, isAdmin, isSupervisor, isAuditor]
+    () => (firestore && (isInstitutionalViewer || isSupervisor) ? collection(firestore, 'users') : null),
+    [firestore, isInstitutionalViewer, isSupervisor]
   );
   const { data: allUsers } = useCollection<AppUser>(usersQuery);
 
@@ -170,12 +178,12 @@ export default function SubmissionsPage() {
     return years.sort((a,b) => b.localeCompare(a));
   }, [normalizedSubmissions]);
 
-  // Handle campus filter change
+  // Handle campus filter change - reset unit selection for admins
   useEffect(() => {
-    if (isAdmin || isAuditor) setUnitFilter('all');
-  }, [campusFilter, isAdmin, isAuditor]);
+    if (isInstitutionalViewer) setUnitFilter('all');
+  }, [campusFilter, isInstitutionalViewer]);
 
-  // Data specifically for the Dashboard visuals (Reactive to site filters)
+  // Scoped Data specifically for the Dashboard visuals
   const dashboardSubmissions = useMemo(() => {
     if (!normalizedSubmissions) return [];
     let filtered = [...normalizedSubmissions];
@@ -185,15 +193,26 @@ export default function SubmissionsPage() {
     return filtered;
   }, [normalizedSubmissions, yearFilter, campusFilter, unitFilter]);
 
+  // Scoped Units specifically for "Missing Reports" tracking in the Dashboard
   const dashboardUnits = useMemo(() => {
-    if (!allUnits) return [];
+    if (!allUnits || !userProfile) return [];
     let filtered = [...allUnits];
+    
+    // If not a global viewer, strictly scope to institutional assignment
+    if (!isInstitutionalViewer) {
+        if (isSupervisor) {
+            filtered = filtered.filter(u => u.campusIds?.includes(userProfile.campusId));
+        } else {
+            filtered = filtered.filter(u => u.id === userProfile.unitId);
+        }
+    }
+
     if (campusFilter !== 'all') filtered = filtered.filter(u => u.campusIds?.includes(campusFilter));
     if (unitFilter !== 'all') filtered = filtered.filter(u => u.id === unitFilter);
     return filtered;
-  }, [allUnits, campusFilter, unitFilter]);
+  }, [allUnits, isInstitutionalViewer, isSupervisor, userProfile, campusFilter, unitFilter]);
 
-  // Data for the table (Filtered by all active filters)
+  // Data for the table (Filtered by all active UI filters)
   const tableSubmissionsData = useMemo(() => {
     if (!normalizedSubmissions) return [];
     
@@ -281,7 +300,7 @@ export default function SubmissionsPage() {
           </div>
         </div>
 
-        {/* Global Filter Bar */}
+        {/* Global Filter Bar - Role Restricted */}
         <Card className="border-primary/10 shadow-sm bg-muted/10">
             <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                 <div className="space-y-1.5">
@@ -365,7 +384,7 @@ export default function SubmissionsPage() {
                     <List className="h-4 w-4" /> Detailed Log
                 </TabsTrigger>
                 {isSupervisor && !isAdmin && <TabsTrigger value="by-unit" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">Unit Explorer</TabsTrigger>}
-                {(isAdmin || isAuditor) && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">Site Matrix</TabsTrigger>}
+                {isInstitutionalViewer && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">Site Matrix</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="visual-insights" className="animate-in fade-in duration-500">
@@ -417,7 +436,7 @@ export default function SubmissionsPage() {
                                     {tableSubmissionsData.map((sub) => (
                                         <TableRow 
                                             key={sub.id} 
-                                            className={cn("transition-colors group", getYearRowColor(sub.year, sub.cycleId))}
+                                            className={cn("transition-colors group", getYearCycleRowColor(sub.year, sub.cycleId))}
                                         >
                                             <TableCell className="pl-6 py-4">
                                                 <div className="flex flex-col">
@@ -506,7 +525,7 @@ export default function SubmissionsPage() {
                 </TabsContent>
             )}
             
-            {(isAdmin || isAuditor) && (
+            {isInstitutionalViewer && (
                 <TabsContent value="by-campus" className="animate-in fade-in duration-500">
                     <CampusSubmissionsView 
                         allSubmissions={dashboardSubmissions} 
