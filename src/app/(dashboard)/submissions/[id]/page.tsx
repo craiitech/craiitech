@@ -609,10 +609,16 @@ export default function SubmissionDetailPage() {
                                                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{risk.type}</span>
                                                       <Badge 
                                                           className={cn(
-                                                              "text-[8px] font-black h-4 py-0 px-1 border-none shadow-none",
-                                                              risk.preTreatment.rating === 'High' ? "bg-rose-600 text-white" :
-                                                              risk.preTreatment.rating === 'Medium' ? "bg-amber-500 text-white" :
-                                                              "bg-emerald-600 text-white"
+                                                              "text-[8px] font-black h-4 py-0 px-1.5 border-none shadow-none",
+                                                              risk.type === 'Risk' ? (
+                                                                  risk.preTreatment.rating === 'High' ? "bg-rose-600 text-white" :
+                                                                  risk.preTreatment.rating === 'Medium' ? "bg-amber-500 text-white" :
+                                                                  "bg-emerald-600 text-white"
+                                                              ) : (
+                                                                  risk.preTreatment.rating === 'High' ? "bg-emerald-600 text-white" :
+                                                                  risk.preTreatment.rating === 'Medium' ? "bg-amber-500 text-white" :
+                                                                  "bg-rose-600 text-white"
+                                                              )
                                                           )}
                                                       >
                                                           {risk.preTreatment.rating} ({risk.preTreatment.magnitude})

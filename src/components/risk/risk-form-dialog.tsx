@@ -353,7 +353,7 @@ export function RiskFormDialog({
                 <div className="space-y-1">
                     <div className="flex items-center gap-2 text-primary mb-1">
                         <ShieldCheck className="h-5 w-5" />
-                        <span className="text-xs font-bold uppercase tracking-widest">Risk & Opportunity Registry</span>
+                        <span className="text-xs font-bold uppercase tracking-widest">Registry Tracking</span>
                     </div>
                     <div className="flex items-center gap-3">
                         <DialogTitle className="text-xl">
@@ -493,8 +493,14 @@ export function RiskFormDialog({
                                     <div className="flex items-center justify-between p-4 bg-muted/30 rounded-md border">
                                         <div className="text-sm font-medium">Magnitude (L x C): <span className="font-bold text-lg">{magnitude}</span></div>
                                         <Badge 
-                                            variant={rating === 'High' ? 'destructive' : rating === 'Medium' ? 'secondary' : 'default'}
-                                            className="h-7 px-4 text-xs font-bold uppercase"
+                                            className={cn(
+                                                "h-7 px-4 text-xs font-bold uppercase border-none text-white",
+                                                riskTypeValue === 'Risk' ? (
+                                                    rating === 'High' ? 'bg-rose-600' : rating === 'Medium' ? 'bg-amber-500' : 'bg-emerald-600'
+                                                ) : (
+                                                    rating === 'High' ? 'bg-emerald-600' : rating === 'Medium' ? 'bg-amber-500' : 'bg-rose-600'
+                                                )
+                                            )}
                                         >
                                             {rating} RATING
                                         </Badge>
@@ -664,7 +670,7 @@ export function RiskFormDialog({
                 </div>
                 
                 <ScrollArea className="flex-1 p-6 space-y-6">
-                    {/* Integrated Current Registry List (The "Display Saved Registry" request) */}
+                    {/* Integrated Current Registry List */}
                     {unitRisks && unitRisks.length > 0 && (
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
@@ -695,10 +701,16 @@ export function RiskFormDialog({
                                             <Badge variant="outline" className={cn("h-4 text-[8px] font-black px-1.5", activeRisk?.id === r.id ? "border-primary/30 text-primary" : "opacity-50")}>{r.type}</Badge>
                                             <Badge 
                                                 className={cn(
-                                                    "h-4 text-[8px] font-black border-none px-1.5 shadow-none",
-                                                    r.preTreatment.rating === 'High' ? "bg-red-50 text-white" : 
-                                                    r.preTreatment.rating === 'Medium' ? "bg-amber-500 text-white" : 
-                                                    "bg-emerald-500 text-white"
+                                                    "h-4 text-[8px] font-black border-none px-1.5 shadow-none text-white",
+                                                    r.type === 'Risk' ? (
+                                                        r.preTreatment.rating === 'High' ? "bg-rose-600" : 
+                                                        r.preTreatment.rating === 'Medium' ? "bg-amber-500" : 
+                                                        "bg-emerald-600"
+                                                    ) : (
+                                                        r.preTreatment.rating === 'High' ? "bg-emerald-600" : 
+                                                        r.preTreatment.rating === 'Medium' ? "bg-amber-500" : 
+                                                        "bg-rose-600"
+                                                    )
                                                 )}
                                             >
                                                 {r.preTreatment.rating}
@@ -749,9 +761,13 @@ export function RiskFormDialog({
                         </CardHeader>
                         <CardContent className="p-4 space-y-4">
                             <div className="grid grid-cols-1 gap-1.5 text-[10px] font-bold">
-                                <div className="p-2 rounded bg-red-50 border border-red-100 text-red-700 uppercase">High (10-25) - Action Mandatory</div>
+                                <div className={cn("p-2 rounded border uppercase", riskTypeValue === 'Risk' ? "bg-red-50 border-red-100 text-red-700" : "bg-green-50 border-green-100 text-green-700")}>
+                                    High (10-25) - {riskTypeValue === 'Risk' ? 'Action Mandatory' : 'Strategic Target'}
+                                </div>
                                 <div className="p-2 rounded bg-amber-50 border border-amber-100 text-amber-700 uppercase">Medium (5-9) - Action Mandatory</div>
-                                <div className="p-2 rounded bg-green-50 border border-green-100 text-green-700 uppercase">Low (1-4) - Monitor Only</div>
+                                <div className={cn("p-2 rounded border uppercase", riskTypeValue === 'Risk' ? "bg-green-50 border-green-100 text-green-700" : "bg-red-50 border-red-100 text-red-700")}>
+                                    Low (1-4) - {riskTypeValue === 'Risk' ? 'Monitor Only' : 'Incidental Gain'}
+                                </div>
                             </div>
                             <div className="flex gap-2 text-[10px] pt-2 border-t mt-2">
                               <BookOpen className="h-3.5 w-3.5 shrink-0 text-blue-600" />

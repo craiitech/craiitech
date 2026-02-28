@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -68,14 +67,22 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
     const statusData = Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
 
     // 3. Risk Heatmap (Scatter)
-    const heatmapData = risks.map(r => ({
-        x: r.preTreatment.consequence,
-        y: r.preTreatment.likelihood,
-        z: r.preTreatment.magnitude,
-        name: r.description,
-        rating: r.preTreatment.rating,
-        fill: RATING_COLORS[r.preTreatment.rating]
-    }));
+    const heatmapData = risks.map(r => {
+        let fill = RATING_COLORS[r.preTreatment.rating];
+        if (r.type === 'Opportunity') {
+            if (r.preTreatment.rating === 'High') fill = 'hsl(142 71% 45%)'; // Emerald Green
+            if (r.preTreatment.rating === 'Low') fill = 'hsl(var(--destructive))'; // Rose Red
+        }
+        return {
+            x: r.preTreatment.consequence,
+            y: r.preTreatment.likelihood,
+            z: r.preTreatment.magnitude,
+            name: r.description,
+            rating: r.preTreatment.rating,
+            fill: fill,
+            type: r.type
+        };
+    });
 
     return { total, openCount, highRiskCount, opportunityCount, priorityData, statusData, heatmapData };
   }, [risks]);
@@ -164,10 +171,12 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
                     </ScatterChart>
                 </ResponsiveContainer>
             </ChartContainer>
-            <div className="flex justify-center gap-4 text-[10px] font-bold uppercase tracking-tighter mt-2">
-                <div className="flex items-center gap-1"><div className="h-2 w-2 rounded-full bg-red-500" /> High Risk</div>
-                <div className="flex items-center gap-1"><div className="h-2 w-2 rounded-full bg-amber-500" /> Medium Risk</div>
-                <div className="flex items-center gap-1"><div className="h-2 w-2 rounded-full bg-green-500" /> Low Risk</div>
+            <div className="flex flex-col gap-2 pt-2">
+                <div className="flex justify-center gap-4 text-[10px] font-black uppercase tracking-tighter">
+                    <div className="flex items-center gap-1"><div className="h-2 w-2 rounded-full bg-red-500" /> High Risk / Low Opportunity</div>
+                    <div className="flex items-center gap-1"><div className="h-2 w-2 rounded-full bg-amber-500" /> Medium</div>
+                    <div className="flex items-center gap-1"><div className="h-2 w-2 rounded-full bg-green-500" /> Low Risk / High Opportunity</div>
+                </div>
             </div>
           </CardContent>
         </Card>
@@ -213,7 +222,7 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
               <ShieldAlert className="h-5 w-5 text-primary" />
               <CardTitle>Risk Rating Distribution</CardTitle>
             </div>
-            <CardDescription>Volume of entries by calculated Magnitude (L x C).</CardDescription>
+            <CardDescription>Volume of entries by calculated Magnitude (L x C). (Colors represent standard Risk profiles)</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={{}} className="h-[250px] w-full">
