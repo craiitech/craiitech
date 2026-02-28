@@ -454,7 +454,7 @@ export function RiskFormDialog({
                             <div className="space-y-4">
                                 <h3 className="text-lg font-bold flex items-center gap-2">
                                     <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">2</div>
-                                    Risk Analysis
+                                    {riskTypeValue} Analysis
                                 </h3>
                                 <Card>
                                   <CardContent className="space-y-4 pt-6">
@@ -696,7 +696,7 @@ export function RiskFormDialog({
                                             <Badge 
                                                 className={cn(
                                                     "h-4 text-[8px] font-black border-none px-1.5 shadow-none",
-                                                    r.preTreatment.rating === 'High' ? "bg-red-500 text-white" : 
+                                                    r.preTreatment.rating === 'High' ? "bg-red-50 text-white" : 
                                                     r.preTreatment.rating === 'Medium' ? "bg-amber-500 text-white" : 
                                                     "bg-emerald-500 text-white"
                                                 )}
