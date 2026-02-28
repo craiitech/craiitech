@@ -15,7 +15,29 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Check, X, Send, History, ShieldCheck, FileText, Monitor, Smartphone, RotateCw, ClipboardCheck, AlertTriangle, PlusCircle, ListChecks } from 'lucide-react';
+import { 
+    Loader2, 
+    ArrowLeft, 
+    Check, 
+    X, 
+    Send, 
+    History, 
+    ShieldCheck, 
+    FileText, 
+    Monitor, 
+    Smartphone, 
+    RotateCw, 
+    ClipboardCheck, 
+    AlertTriangle, 
+    PlusCircle, 
+    ListChecks, 
+    Shield, 
+    TrendingUp, 
+    Clock, 
+    CheckCircle, 
+    AlertCircle, 
+    Activity
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
@@ -42,6 +64,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 const statusVariant: Record<
@@ -181,16 +204,16 @@ export default function SubmissionDetailPage() {
   );
   const { data: unitUsers } = useCollection<AppUser>(unitUsersQuery);
 
-  // Check for existing risks to trigger bridge prompt
+  // Check for existing risks to trigger bridge prompt AND display preview
   const existingRisksQuery = useMemoFirebase(() => {
-    if (!firestore || !isAdmin || !submission) return null;
+    if (!firestore || !submission) return null;
     return query(
         collection(firestore, 'risks'),
         where('unitId', '==', submission.unitId),
         where('year', '==', submission.year)
     );
-  }, [firestore, isAdmin, submission]);
-  const { data: existingRisks } = useCollection<Risk>(existingRisksQuery);
+  }, [firestore, submission]);
+  const { data: existingRisks, isLoading: isLoadingRisks } = useCollection<Risk>(existingRisksQuery);
 
   const isLoading = isUserLoading || isLoadingSubmission || isLoadingSubmitter || isLoadingCampus;
   
@@ -537,6 +560,101 @@ export default function SubmissionDetailPage() {
                 )}
             </CardContent>
           </Card>
+
+          {/* --- DIGITAL REGISTER PREVIEW (Risk Registry Specific) --- */}
+          {isRiskRegistry && (
+              <Card className="shadow-lg border-primary/20 overflow-hidden">
+                  <CardHeader className="bg-muted/10 border-b py-4">
+                      <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                              <ShieldCheck className="h-5 w-5 text-primary" />
+                              <CardTitle className="text-sm font-black uppercase tracking-tight">Digital Register Synchronization Preview</CardTitle>
+                          </div>
+                          {isLoadingRisks ? (
+                              <Loader2 className="h-4 w-4 animate-spin text-primary opacity-20" />
+                          ) : (
+                              <Badge variant="secondary" className="h-5 text-[9px] font-black bg-primary/5 text-primary border-none">
+                                  {existingRisks?.length || 0} ENTRIES LOGGED
+                              </Badge>
+                          )}
+                      </div>
+                      <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
+                          Cross-referencing digitally encoded entries for AY {submission.year}.
+                      </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                      <ScrollArea className="max-h-[400px]">
+                          {existingRisks && existingRisks.length > 0 ? (
+                              <div className="divide-y">
+                                  {existingRisks.sort((a,b) => b.updatedAt?.toMillis() - a.updatedAt?.toMillis()).map((risk) => (
+                                      <div key={risk.id} className="p-4 hover:bg-muted/20 transition-colors group">
+                                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                              <div className="space-y-1 min-w-0">
+                                                  <div className="flex items-center gap-2 mb-1">
+                                                      {risk.type === 'Risk' ? (
+                                                          <Shield className="h-3.5 w-3.5 text-rose-600" />
+                                                      ) : (
+                                                          <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+                                                      )}
+                                                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{risk.type}</span>
+                                                      <Badge 
+                                                          className={cn(
+                                                              "text-[8px] font-black h-4 py-0 px-1 border-none shadow-none",
+                                                              risk.preTreatment.rating === 'High' ? "bg-rose-600 text-white" :
+                                                              risk.preTreatment.rating === 'Medium' ? "bg-amber-500 text-white" :
+                                                              "bg-emerald-600 text-white"
+                                                          )}
+                                                      >
+                                                          {risk.preTreatment.rating} ({risk.preTreatment.magnitude})
+                                                      </Badge>
+                                                  </div>
+                                                  <p className="text-xs font-bold text-slate-800 leading-tight truncate" title={risk.description}>
+                                                      {risk.description}
+                                                  </p>
+                                                  <div className="flex items-center gap-3 pt-1">
+                                                      <span className="text-[9px] font-medium text-muted-foreground italic truncate max-w-[250px]">Obj: {risk.objective}</span>
+                                                  </div>
+                                              </div>
+                                              <div className="flex items-center gap-4 shrink-0">
+                                                  <div className="text-right">
+                                                      <Badge 
+                                                          variant="outline" 
+                                                          className={cn(
+                                                              "text-[9px] font-black uppercase h-5 px-2 border-none bg-muted shadow-none",
+                                                              risk.status === 'Open' ? "text-rose-600" :
+                                                              risk.status === 'In Progress' ? "text-amber-600" :
+                                                              "text-emerald-600"
+                                                          )}
+                                                      >
+                                                          {risk.status === 'Open' ? <AlertCircle className="h-2.5 w-2.5 mr-1" /> : risk.status === 'In Progress' ? <Clock className="h-2.5 w-2.5 mr-1" /> : <CheckCircle className="h-2.5 w-2.5 mr-1" />}
+                                                          {risk.status}
+                                                      </Badge>
+                                                      <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase">LATEST STATUS</p>
+                                                  </div>
+                                              </div>
+                                          </div>
+                                      </div>
+                                  ))}
+                              </div>
+                          ) : (
+                              <div className="py-16 text-center space-y-3 opacity-20">
+                                  <Activity className="h-10 w-10 mx-auto text-muted-foreground" />
+                                  <p className="text-[10px] font-black uppercase tracking-widest">No digital entries found</p>
+                                  <p className="text-[9px] max-w-[200px] mx-auto leading-relaxed">The unit has uploaded the document but has not yet registered individual risks in the system database.</p>
+                              </div>
+                          )}
+                      </ScrollArea>
+                  </CardContent>
+                  <CardFooter className="bg-muted/10 border-t p-4 flex justify-between items-center">
+                      <p className="text-[9px] text-muted-foreground font-medium italic">Integrated QMS Data Synchronization Layer</p>
+                      {isAdmin && (
+                          <Button variant="ghost" size="sm" className="h-7 text-[9px] font-black uppercase gap-1 text-primary" onClick={handleOpenRiskBridge}>
+                              <PlusCircle className="h-3 w-3" /> Manage Digital Records
+                          </Button>
+                      )}
+                  </CardFooter>
+              </Card>
+          )}
           
           {/* Admin Tools: Sync and Override */}
           {isAdmin && (
@@ -738,7 +856,7 @@ export default function SubmissionDetailPage() {
                     Would you like to record a <strong>new</strong> entry from this document, or manage the <strong>existing</strong> register?
                 </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => { setIsBridgePromptOpen(false); setIsRiskSyncOpen(true); }} className="border-primary text-primary hover:bg-primary/5">
                     Manage Existing / Add More
                 </AlertDialogCancel>
