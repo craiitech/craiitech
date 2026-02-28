@@ -36,7 +36,8 @@ import {
     Clock, 
     CheckCircle, 
     AlertCircle, 
-    Activity
+    Activity,
+    ShieldAlert
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -65,6 +66,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 
 const statusVariant: Record<
@@ -344,6 +346,13 @@ export default function SubmissionDetailPage() {
         toast({ title: 'Error', description: 'Missing required data to resubmit.', variant: 'destructive' });
         return;
     }
+
+    const isRor = normalizeReportType(submission.reportType) === 'Risk and Opportunity Registry';
+    if (isRor && (!existingRisks || existingRisks.length === 0)) {
+        toast({ title: 'Digital Registry Required', description: 'Individual risks must be recorded in the digital register before document resubmission.', variant: 'destructive' });
+        return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -433,6 +442,7 @@ export default function SubmissionDetailPage() {
   }
 
   const isRiskRegistry = normalizeReportType(submission.reportType) === 'Risk and Opportunity Registry';
+  const hasRisks = existingRisks && existingRisks.length > 0;
 
   return (
     <div className="space-y-4">
@@ -770,6 +780,22 @@ export default function SubmissionDetailPage() {
                     <CardDescription>This resubmission will automatically increment the document to <strong>Revision {String((submission.revision || 0) + 1).padStart(2, '0')}</strong>.</CardDescription>
                 </CardHeader>
                  <CardContent className="space-y-4 pt-6">
+                    {isRiskRegistry && !isLoadingRisks && !hasRisks && (
+                        <Alert variant="destructive" className="border-destructive/50 bg-destructive/5 mb-6">
+                            <ShieldAlert className="h-5 w-5 text-destructive" />
+                            <AlertTitle className="font-black uppercase tracking-tight text-destructive">Resubmission Blocked</AlertTitle>
+                            <AlertDescription className="space-y-4 pt-1">
+                                <p className="text-xs font-bold leading-relaxed">
+                                    This report was rejected and now requires digital register entries to be present before you can submit a corrected revision. 
+                                    Your unit currently has <strong>0 entries</strong> logged for AY {submission.year}.
+                                </p>
+                                <Button size="sm" variant="destructive" asChild className="h-8 text-[10px] font-black uppercase tracking-widest">
+                                    <Link href="/risk-register">Go to Risk Register Registry</Link>
+                                </Button>
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
                     <div>
                         <Label htmlFor="new-link">Corrected Google Drive Link</Label>
                         <Input 
@@ -777,7 +803,7 @@ export default function SubmissionDetailPage() {
                             placeholder="https://drive.google.com/..."
                             value={newLink}
                             onChange={(e) => setNewLink(e.target.value)}
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || (isRiskRegistry && !hasRisks)}
                             className="focus:ring-primary"
                         />
                     </div>
@@ -788,12 +814,12 @@ export default function SubmissionDetailPage() {
                             placeholder="Briefly describe the corrective actions taken in this revision..."
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || (isRiskRegistry && !hasRisks)}
                         />
                     </div>
                  </CardContent>
                 <CardFooter className="flex justify-end gap-2 border-t pt-4">
-                    <Button onClick={handleResubmit} disabled={isSubmitting || !newLink} className="min-w-[200px]">
+                    <Button onClick={handleResubmit} disabled={isSubmitting || !newLink || (isRiskRegistry && !hasRisks)} className="min-w-[200px]">
                          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4"/>}
                         Submit Corrected Revision
                     </Button>
