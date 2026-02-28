@@ -1,13 +1,14 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, addDoc } from 'firebase/firestore';
-import type { Submission, Comment, Unit, Cycle } from '@/lib/types';
+import { collection, query, where, addDoc, getDocs } from 'firebase/firestore';
+import type { Submission, Comment, Unit, Cycle, Risk } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
-import { CheckCircle, Circle, Download, FileCheck, Scan, Link as LinkIcon, AlertCircle, XCircle, ChevronRight, Loader2, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Circle, Download, FileCheck, Scan, Link as LinkIcon, AlertCircle, XCircle, ChevronRight, Loader2, ArrowLeft, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -102,7 +103,6 @@ export default function NewSubmissionPage() {
 
 
   const submissionsQuery = useMemoFirebase(() => {
-    // UNIT-CENTRIC: Isolated by unitId AND campusId to handle branch units correctly
     if (!firestore || !userProfile?.unitId || !userProfile?.campusId || !selectedYear) return null;
     return query(
       collection(firestore, 'submissions'),
@@ -117,13 +117,23 @@ export default function NewSubmissionPage() {
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
+  // Digital risks check for Final Cycle prerequisite
+  const digitalRisksQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.unitId || !selectedYear) return null;
+    return query(
+        collection(firestore, 'risks'),
+        where('unitId', '==', userProfile.unitId),
+        where('year', '==', selectedYear)
+    );
+  }, [firestore, userProfile?.unitId, selectedYear]);
+  const { data: digitalRisks } = useCollection<Risk>(digitalRisksQuery);
+
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
     if (!rawSubmissions) {
       return { firstCycleStatusMap: new Map(), finalCycleStatusMap: new Map() };
     }
 
     const normalizedSubmissions = rawSubmissions.map(s => {
-        // Aggressive fuzzy normalization of report types
         let rType = String(s.reportType || '').trim();
         const lowerType = rType.toLowerCase();
         
@@ -161,10 +171,16 @@ export default function NewSubmissionPage() {
   
   const specialUpdateReports = ['SWOT Analysis', 'Needs and Expectation of Interested Parties'];
 
+  // Final Cycle ROR Prerequisite Logic
+  const isFirstCycleRorComplete = useMemo(() => {
+    const docSubmitted = firstCycleStatusMap.has('Risk and Opportunity Registry');
+    const digitalLogged = digitalRisks && digitalRisks.length > 0;
+    return docSubmitted && digitalLogged;
+  }, [firstCycleStatusMap, digitalRisks]);
+
   const isLoading = isLoadingCycles || isLoadingSubmissions || isLoadingUnits;
 
   const handleSelectReport = (reportType: string) => {
-    // Prevent selection if the report is N/A
     const isActionPlan = reportType === 'Risk and Opportunity Action Plan';
     const registryFormSubmission = submissionStatusMap.get('Risk and Opportunity Registry');
     const isActionPlanNA = isActionPlan && registryFormSubmission?.riskRating === 'low';
@@ -460,6 +476,39 @@ export default function NewSubmissionPage() {
                             </Button>
                         </CardContent>
                     </Card>
+                ) : (selectedReport === 'Risk and Opportunity Registry' && selectedCycle === 'final' && !isFirstCycleRorComplete) ? (
+                    <Card className="lg:sticky top-20 border-destructive/50">
+                        <CardHeader className="bg-destructive/5">
+                            <CardTitle className="flex items-center gap-2 text-destructive">
+                                <ShieldAlert className="h-5 w-5" />
+                                First Cycle Requirement Block
+                            </CardTitle>
+                            <CardDescription>
+                                The <strong>Final Submission</strong> for the Risk Registry requires a verified <strong>First Cycle</strong> baseline.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-6 space-y-6">
+                            <Alert variant="destructive">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>Prerequisite Not Met</AlertTitle>
+                                <AlertDescription className="space-y-2">
+                                    <p>To continue with the Final Cycle, your unit must have:</p>
+                                    <ul className="list-disc pl-5 font-bold">
+                                        <li className={cn(firstCycleStatusMap.has('Risk and Opportunity Registry') ? "text-green-600 line-through" : "")}>Submitted the First Cycle ROR Document</li>
+                                        <li className={cn(digitalRisks && digitalRisks.length > 0 ? "text-green-600 line-through" : "")}>Encoded individual risks in the Digital Register</li>
+                                    </ul>
+                                </AlertDescription>
+                            </Alert>
+                            <div className="flex gap-3">
+                                <Button className="flex-1" variant="outline" onClick={() => setSelectedCycle('first')}>
+                                    Go to First Cycle Submission
+                                </Button>
+                                <Button className="flex-1" variant="default" asChild>
+                                    <Link href="/risk-register">Open Digital Register</Link>
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
                 ) : (
                     <Card className="lg:sticky top-20">
                         <CardHeader>
@@ -476,9 +525,11 @@ export default function NewSubmissionPage() {
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
                                             <AlertDialogTitle>Update Confirmation</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                A submission for this report was made in the First Cycle. Are there any updates for the Final Cycle?
-                                            </AlertDialogDescription>
+                                            <AlertDialogHeader>
+                                                <AlertDialogDescription>
+                                                    A submission for this report was made in the First Cycle. Are there any updates for the Final Cycle?
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                             <AlertDialogCancel onClick={handleCarryOverSubmission} disabled={isCarryingOver}>

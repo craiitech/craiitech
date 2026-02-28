@@ -36,7 +36,7 @@ import { doc, serverTimestamp, collection, setDoc, addDoc, Timestamp, query, whe
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
-import { Loader2, Sparkles, ShieldCheck, Info, BookOpen, Save, X, ExternalLink, FileSearch, Calendar, ListChecks, PlusCircle, ChevronRight } from 'lucide-react';
+import { Loader2, Sparkles, ShieldCheck, Info, BookOpen, Save, X, ExternalLink, FileSearch, Calendar, ListChecks, PlusCircle, ChevronRight, Activity, TrendingUp, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
@@ -45,6 +45,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { suggestRiskTreatment } from '@/ai/flows/suggest-treatment-flow';
+import { Separator } from '../ui/separator';
 
 interface RiskFormDialogProps {
   isOpen: boolean;
@@ -183,7 +184,6 @@ export function RiskFormDialog({
   const selectedAdminUnitId = form.watch('adminUnitId');
   const riskTypeValue = form.watch('type');
 
-  // Load risk into form
   const handleLoadRisk = (r: Risk | null) => {
     setActiveRisk(r);
     if (r) {
@@ -202,8 +202,8 @@ export function RiskFormDialog({
         targetYear: targetDate instanceof Date ? String(targetDate.getFullYear()) : undefined,
         targetMonth: targetDate instanceof Date ? String(targetDate.getMonth()) : undefined,
         targetDay: targetDate instanceof Date ? String(targetDate.getDate()) : undefined,
-        postTreatmentLikelihood: r.postTreatment?.likelihood,
-        postTreatmentConsequence: r.postTreatment?.consequence,
+        postTreatmentLikelihood: r.postTreatment?.likelihood || 1,
+        postTreatmentConsequence: r.postTreatment?.consequence || 1,
         postTreatmentEvidence: r.postTreatment?.evidence || '',
         postTreatmentDateImplemented: r.postTreatment?.dateImplemented || '',
         oapNo: r.oapNo || '',
@@ -253,12 +253,13 @@ export function RiskFormDialog({
   const consequenceValue = form.watch('consequence');
   const descriptionValue = form.watch('description');
   const objectiveValue = form.watch('objective');
-  const ptLikelihood = form.watch('postTreatmentLikelihood');
-  const ptConsequence = form.watch('postTreatmentConsequence');
+  const ptLikelihood = form.watch('postTreatmentLikelihood') || 1;
+  const ptConsequence = form.watch('postTreatmentConsequence') || 1;
 
   const magnitude = likelihoodValue * consequenceValue;
   const rating = getRating(magnitude);
-  const ptMagnitude = ptLikelihood && ptConsequence ? ptLikelihood * ptConsequence : 0;
+  
+  const ptMagnitude = ptLikelihood * ptConsequence;
   const ptRating = getRating(ptMagnitude);
 
   const showActionPlan = rating === 'Medium' || rating === 'High';
@@ -335,10 +336,10 @@ export function RiskFormDialog({
           updatedAt: serverTimestamp(),
         };
 
-        if (values.status === 'Closed') {
+        if (values.status === 'Closed' || values.postTreatmentLikelihood) {
             riskData.postTreatment = {
-                likelihood: Number(values.postTreatmentLikelihood || 0),
-                consequence: Number(values.postTreatmentConsequence || 0),
+                likelihood: Number(values.postTreatmentLikelihood || 1),
+                consequence: Number(values.postTreatmentConsequence || 1),
                 magnitude: Number(ptMagnitude),
                 rating: String(ptRating),
                 evidence: values.postTreatmentEvidence || '',
@@ -483,7 +484,7 @@ export function RiskFormDialog({
                             <div className="space-y-4">
                                 <h3 className="text-lg font-bold flex items-center gap-2">
                                     <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">2</div>
-                                    {riskTypeValue} Analysis
+                                    {riskTypeValue} Analysis (Initial Baseline)
                                 </h3>
                                 <Card>
                                   <CardContent className="space-y-4 pt-6">
@@ -524,7 +525,7 @@ export function RiskFormDialog({
                                         )} />
                                     </div>
                                     <div className="flex items-center justify-between p-4 bg-muted/30 rounded-md border">
-                                        <div className="text-sm font-medium">Magnitude (L x C): <span className="font-bold text-lg">{magnitude}</span></div>
+                                        <div className="text-sm font-medium">Initial Magnitude (L x C): <span className="font-bold text-lg">{magnitude}</span></div>
                                         <Badge 
                                             className={cn(
                                                 "h-7 px-4 text-xs font-bold uppercase border-none text-white",
@@ -644,48 +645,125 @@ export function RiskFormDialog({
                             <div className="space-y-4">
                                 <h3 className="text-lg font-bold flex items-center gap-2">
                                     <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">4</div>
-                                    Monitoring & Updates
+                                    Final Assessment (Post-Treatment Analysis)
                                 </h3>
-                                <Card className="border-blue-200">
-                                    <CardContent className="space-y-4 pt-6">
-                                        <FormField
-                                            control={form.control}
-                                            name="updates"
-                                            render={({ field }) => (
+                                <Card className="border-blue-200 bg-blue-50/5 shadow-md">
+                                    <CardHeader className="bg-blue-50/50 border-b py-4">
+                                        <CardTitle className="text-sm font-black uppercase text-blue-800">Final Execution & Impact Verification</CardTitle>
+                                        <CardDescription className="text-xs">Re-assess the likelihood and consequence after implementation of the action plan.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-6 pt-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <FormField control={form.control} name="updates" render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="font-bold">Monitoring Notes / Updates</FormLabel>
-                                                    <FormControl>
-                                                        <Textarea 
-                                                            {...field} 
-                                                            value={field.value || ''} 
-                                                            rows={4} 
-                                                            placeholder="Record progress or evidence of actions taken..." 
-                                                        />
-                                                    </FormControl>
+                                                    <FormLabel className="font-bold text-blue-700">Implementation/Monitoring Data</FormLabel>
+                                                    <FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Record the actual results or findings during monitoring..." className="bg-white border-blue-100" /></FormControl>
+                                                    <FormDescription className="text-[9px]">Describe the progress or final status of the treatment action.</FormDescription>
                                                 </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={form.control}
-                                            name="status"
-                                            render={({ field }) => (
+                                            )} />
+                                            <FormField control={form.control} name="postTreatmentEvidence" render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel className="font-bold">Status</FormLabel>
+                                                    <FormLabel className="font-bold text-blue-700">Evidence of Implementation</FormLabel>
+                                                    <FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Documents, photos, or data verified..." className="bg-white border-blue-100" /></FormControl>
+                                                    <FormDescription className="text-[9px]">Identify specific objective evidence collected.</FormDescription>
+                                                </FormItem>
+                                            )} />
+                                        </div>
+
+                                        <Separator />
+
+                                        <div className="space-y-4">
+                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-800 flex items-center gap-2">
+                                                <TrendingUp className="h-4 w-4" /> Final {riskTypeValue} Analysis
+                                            </h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <FormField control={form.control} name="postTreatmentLikelihood" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-[10px] font-bold uppercase">Residual Likelihood (L)</FormLabel>
+                                                        <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                                            <FormControl><SelectTrigger className="bg-white"><SelectValue /></SelectTrigger></FormControl>
+                                                            <SelectContent>
+                                                                {ASSESSMENT_CRITERIA.likelihood[riskTypeValue].map(o => (
+                                                                    <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={form.control} name="postTreatmentConsequence" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-[10px] font-bold uppercase">Residual Consequence (C)</FormLabel>
+                                                        <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                                                            <FormControl><SelectTrigger className="bg-white"><SelectValue /></SelectTrigger></FormControl>
+                                                            <SelectContent>
+                                                                {ASSESSMENT_CRITERIA.consequence[riskTypeValue].map(o => (
+                                                                    <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )} />
+                                            </div>
+
+                                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 bg-white rounded-lg border border-blue-100 shadow-inner">
+                                                <div className="text-sm font-medium">Residual Magnitude: <span className="font-black text-xl tabular-nums">{ptMagnitude}</span></div>
+                                                <Badge 
+                                                    className={cn(
+                                                        "h-8 px-6 text-[10px] font-black uppercase border-none text-white",
+                                                        riskTypeValue === 'Risk' ? (
+                                                            ptRating === 'High' ? 'bg-rose-600' : ptRating === 'Medium' ? 'bg-amber-500' : 'bg-emerald-600'
+                                                        ) : (
+                                                            ptRating === 'High' ? 'bg-emerald-600' : ptRating === 'Medium' ? 'bg-amber-500' : 'bg-rose-600'
+                                                        )
+                                                    )}
+                                                >
+                                                    {ptRating} RESIDUAL RATING
+                                                </Badge>
+                                            </div>
+
+                                            {/* Closure / Carry-over Guidance */}
+                                            <div className="mt-4 animate-in zoom-in duration-500">
+                                                {ptRating === 'Low' ? (
+                                                    <Alert className="bg-emerald-50 border-emerald-200">
+                                                        <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                                                        <AlertTitle className="text-emerald-800 font-bold uppercase tracking-tight">Mitigation Successful</AlertTitle>
+                                                        <AlertDescription className="text-emerald-700 text-xs font-medium">
+                                                            The residual rating is now <strong>Low</strong>. You may proceed to change the status to <strong>Closed</strong> below to formally complete this registry entry.
+                                                        </AlertDescription>
+                                                    </Alert>
+                                                ) : (
+                                                    <Alert className="bg-amber-50 border-amber-200">
+                                                        <ShieldAlert className="h-5 w-5 text-amber-600" />
+                                                        <AlertTitle className="text-amber-800 font-bold uppercase tracking-tight">Risk/Opportunity Retains Significance</AlertTitle>
+                                                        <AlertDescription className="text-amber-700 text-xs font-medium">
+                                                            The residual rating remains <strong>{ptRating}</strong>. This entry should be carried out and baseline-re-analyzed in the **Next Year's** Risk Registry to ensure sustainable control.
+                                                        </AlertDescription>
+                                                    </Alert>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
+                                            <FormField control={form.control} name="status" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-bold text-primary">Update Execution Status</FormLabel>
                                                     <Select onValueChange={field.onChange} value={field.value}>
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                        </FormControl>
+                                                        <FormControl><SelectTrigger className="bg-primary/5 border-primary/20 font-black h-11"><SelectValue /></SelectTrigger></FormControl>
                                                         <SelectContent>
-                                                            <SelectItem value="Open">Open</SelectItem>
-                                                            <SelectItem value="In Progress">In Progress</SelectItem>
-                                                            <SelectItem value="Closed">Closed</SelectItem>
+                                                            <SelectItem value="Open">Open (Analysis Stage)</SelectItem>
+                                                            <SelectItem value="In Progress">In Progress (Execution Stage)</SelectItem>
+                                                            <SelectItem value="Closed" className="font-bold text-emerald-600">Closed (Mitigation Complete)</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </FormItem>
-                                            )}
-                                        />
+                                            )} />
+                                            <FormField control={form.control} name="postTreatmentDateImplemented" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-[10px] font-bold uppercase">Date of Closure / Final Update</FormLabel>
+                                                    <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Dec 2024" className="bg-white h-11" /></FormControl>
+                                                </FormItem>
+                                            )} />
+                                        </div>
                                     </CardContent>
                                 </Card>
                             </div>
@@ -703,7 +781,6 @@ export function RiskFormDialog({
                 </div>
                 
                 <ScrollArea className="flex-1 p-6 space-y-6">
-                    {/* Integrated Current Registry List */}
                     {unitRisks && unitRisks.length > 0 && (
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
@@ -830,7 +907,7 @@ export function RiskFormDialog({
                     className="min-w-[150px] shadow-lg shadow-primary/20"
                 >
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}
-                  {activeRisk ? 'Update Entry' : 'Log Assessment'}
+                  {activeRisk ? 'Update Registry' : 'Log Assessment'}
                 </Button>
             </DialogFooter>
         </div>
