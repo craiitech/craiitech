@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -102,13 +103,43 @@ const formSchema = z.object({
   adminUnitId: z.string().optional(),
 });
 
-const likelihoodOptions = [
-  { value: 1, label: '1 - Rare' }, { value: 2, label: '2 - Unlikely' }, { value: 3, label: '3 - Possible' }, { value: 4, label: '4 - Likely' }, { value: 5, label: '5 - Almost Certain' },
-];
-
-const consequenceOptions = [
-  { value: 1, label: '1 - Insignificant' }, { value: 2, label: '2 - Minor' }, { value: 3, label: '3 - Moderate' }, { value: 4, label: '4 - Major' }, { value: 5, label: '5 - Catastrophic' },
-];
+/**
+ * Institutional Assessment Criteria based on official reference table.
+ */
+const ASSESSMENT_CRITERIA = {
+  likelihood: {
+    Risk: [
+      { value: 1, label: '1 - Rare (Not known to happen)' },
+      { value: 2, label: '2 - Low (Once a year)' },
+      { value: 3, label: '3 - Medium (Once per quarter)' },
+      { value: 4, label: '4 - High (>Once per quarter)' },
+      { value: 5, label: '5 - Very High (Once per month)' },
+    ],
+    Opportunity: [
+      { value: 1, label: '1 - Rare (No chance in 12 mo.)' },
+      { value: 2, label: '2 - Low (1-25% chance of success)' },
+      { value: 3, label: '3 - Medium (26-50% success)' },
+      { value: 4, label: '4 - High (51-75% success)' },
+      { value: 5, label: '5 - Very High (>75% success)' },
+    ],
+  },
+  consequence: {
+    Risk: [
+      { value: 1, label: '1 - Insignificant (Minimal/No impact)' },
+      { value: 2, label: '2 - Minor (Noticeable effect)' },
+      { value: 3, label: '3 - Significant (Moderate/Claim)' },
+      { value: 4, label: '4 - Major (Catastrophic/Legal - Alts avail.)' },
+      { value: 5, label: '5 - Catastrophic (Catastrophic/Legal - No Alts)' },
+    ],
+    Opportunity: [
+      { value: 1, label: '1 - Insignificant (No perceived value)' },
+      { value: 2, label: '2 - Minor (Slightly improve QMS)' },
+      { value: 3, label: '3 - Significant (Considerably improve QMS)' },
+      { value: 4, label: '4 - Major (Highly improve QMS)' },
+      { value: 5, label: '5 - Catastrophic (Greatly improve QMS)' },
+    ],
+  }
+};
 
 export function RiskFormDialog({ 
   isOpen, 
@@ -150,6 +181,7 @@ export function RiskFormDialog({
   const watchYear = form.watch('year');
   const selectedAdminCampusId = form.watch('adminCampusId');
   const selectedAdminUnitId = form.watch('adminUnitId');
+  const riskTypeValue = form.watch('type');
 
   // Load risk into form
   const handleLoadRisk = (r: Risk | null) => {
@@ -185,7 +217,7 @@ export function RiskFormDialog({
     } else {
       form.reset({
         year: watchYear,
-        objective: form.getValues('objective') || '', // Usually keep objective context
+        objective: form.getValues('objective') || '', 
         type: 'Risk',
         description: '',
         currentControls: '',
@@ -205,7 +237,6 @@ export function RiskFormDialog({
     }
   }, [initialRisk, isOpen]);
 
-  // Fetch all risks for the current unit/year context to show in bridge side-panel
   const unitRisksQuery = useMemoFirebase(() => {
     const targetUnitId = isAdmin ? selectedAdminUnitId : userProfile?.unitId;
     if (!firestore || !targetUnitId || !isOpen) return null;
@@ -220,7 +251,6 @@ export function RiskFormDialog({
 
   const likelihoodValue = form.watch('likelihood');
   const consequenceValue = form.watch('consequence');
-  const riskTypeValue = form.watch('type');
   const descriptionValue = form.watch('description');
   const objectiveValue = form.watch('objective');
   const ptLikelihood = form.watch('postTreatmentLikelihood');
@@ -327,7 +357,6 @@ export function RiskFormDialog({
         }
 
         if (registryLink) {
-            // Bridge mode: Clear form for rapid entry of next row, stay open
             handleLoadRisk(null);
         } else {
             onOpenChange(false);
@@ -469,7 +498,9 @@ export function RiskFormDialog({
                                                 </SelectTrigger>
                                               </FormControl>
                                               <SelectContent>
-                                                {likelihoodOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}
+                                                {ASSESSMENT_CRITERIA.likelihood[riskTypeValue].map(o => (
+                                                  <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                                                ))}
                                               </SelectContent>
                                             </Select>
                                           </FormItem>
@@ -484,7 +515,9 @@ export function RiskFormDialog({
                                                 </SelectTrigger>
                                               </FormControl>
                                               <SelectContent>
-                                                {consequenceOptions.map(o => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}
+                                                {ASSESSMENT_CRITERIA.consequence[riskTypeValue].map(o => (
+                                                  <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                                                ))}
                                               </SelectContent>
                                             </Select>
                                           </FormItem>
