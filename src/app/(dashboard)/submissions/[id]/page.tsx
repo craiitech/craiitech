@@ -598,7 +598,7 @@ export default function SubmissionDetailPage() {
                       </CardDescription>
                   </CardHeader>
                   <CardContent className="p-0">
-                      <ScrollArea className="max-h-[400px]">
+                      <ScrollArea className="h-[400px]">
                           {existingRisks && existingRisks.length > 0 ? (
                               <div className="divide-y">
                                   {existingRisks.sort((a,b) => b.updatedAt?.toMillis() - a.updatedAt?.toMillis()).map((risk) => (
