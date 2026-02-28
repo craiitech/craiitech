@@ -171,11 +171,12 @@ export default function NewSubmissionPage() {
   
   const specialUpdateReports = ['SWOT Analysis', 'Needs and Expectation of Interested Parties'];
 
-  // Final Cycle ROR Prerequisite Logic
+  // Final Cycle ROR Prerequisite Logic: Requires doc + At least one Risk AND at least one Opportunity
   const isFirstCycleRorComplete = useMemo(() => {
     const docSubmitted = firstCycleStatusMap.has('Risk and Opportunity Registry');
-    const digitalLogged = digitalRisks && digitalRisks.length > 0;
-    return docSubmitted && digitalLogged;
+    const hasR = digitalRisks?.some(r => r.type === 'Risk');
+    const hasO = digitalRisks?.some(r => r.type === 'Opportunity');
+    return docSubmitted && hasR && hasO;
   }, [firstCycleStatusMap, digitalRisks]);
 
   const isLoading = isLoadingCycles || isLoadingSubmissions || isLoadingUnits;
@@ -493,9 +494,10 @@ export default function NewSubmissionPage() {
                                 <AlertTitle>Prerequisite Not Met</AlertTitle>
                                 <AlertDescription className="space-y-2">
                                     <p>To continue with the Final Cycle, your unit must have:</p>
-                                    <ul className="list-disc pl-5 font-bold">
+                                    <ul className="list-decimal pl-5 font-bold">
                                         <li className={cn(firstCycleStatusMap.has('Risk and Opportunity Registry') ? "text-green-600 line-through" : "")}>Submitted the First Cycle ROR Document</li>
-                                        <li className={cn(digitalRisks && digitalRisks.length > 0 ? "text-green-600 line-through" : "")}>Encoded individual risks in the Digital Register</li>
+                                        <li className={cn(digitalRisks?.some(r => r.type === 'Risk') ? "text-green-600 line-through" : "")}>Encoded individual **Risks** in the Digital Register</li>
+                                        <li className={cn(digitalRisks?.some(r => r.type === 'Opportunity') ? "text-green-600 line-through" : "")}>Encoded individual **Opportunities** in the Digital Register</li>
                                     </ul>
                                 </AlertDescription>
                             </Alert>

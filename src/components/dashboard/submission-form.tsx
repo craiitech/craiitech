@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -102,7 +103,7 @@ export function SubmissionForm({
 
   const isRorForm = reportType === 'Risk and Opportunity Registry';
 
-  // Digital Risk Validation - Check if risks exist in DB before allowing submission
+  // Digital Risk Validation - Check if BOTH risks AND opportunities exist in DB before allowing submission
   const digitalRisksQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile?.unitId || !year || !isRorForm) return null;
     return query(
@@ -113,7 +114,10 @@ export function SubmissionForm({
   }, [firestore, userProfile?.unitId, year, isRorForm]);
 
   const { data: digitalRisks, isLoading: isLoadingDigitalRisks } = useCollection<Risk>(digitalRisksQuery);
-  const hasDigitalRisks = digitalRisks && digitalRisks.length > 0;
+  
+  const hasRisks = digitalRisks?.some(r => r.type === 'Risk');
+  const hasOpportunities = digitalRisks?.some(r => r.type === 'Opportunity');
+  const isDigitalComplete = hasRisks && hasOpportunities;
 
   const checklistItems = useMemo(() => {
     const dynamicBaseItems = [
@@ -285,9 +289,9 @@ export function SubmissionForm({
         return;
     }
 
-    // Secondary check for ROR digital entries
-    if (isRorForm && !hasDigitalRisks) {
-        toast({ title: 'Registry Validation Block', description: 'Individual risks must be recorded in the digital register before document submission.', variant: 'destructive' });
+    // Secondary check for ROR digital entries (Double verification)
+    if (isRorForm && !isDigitalComplete) {
+        toast({ title: 'Registry Validation Block', description: 'Both individual Risks AND Opportunities must be recorded in the digital register before document submission.', variant: 'destructive' });
         return;
     }
 
@@ -440,15 +444,19 @@ export function SubmissionForm({
             </Alert>
         )}
 
-        {isRorForm && !isLoadingDigitalRisks && !hasDigitalRisks && (
+        {isRorForm && !isLoadingDigitalRisks && !isDigitalComplete && (
             <Alert variant="destructive" className="border-destructive/50 bg-destructive/5 animate-in slide-in-from-top-2 duration-500">
                 <ShieldAlert className="h-5 w-5 text-destructive" />
                 <AlertTitle className="font-black uppercase tracking-tight text-destructive">Digital Registry Block</AlertTitle>
                 <AlertDescription className="space-y-4 pt-1">
                     <p className="text-xs font-bold leading-relaxed">
-                        Institutional quality standards require individual risks and opportunities to be encoded digitally in the system BEFORE the formal document can be submitted. 
-                        Your unit currently has <strong>0 entries</strong> logged for AY {year}.
+                        Institutional quality standards require individual **Risks AND Opportunities** to be encoded digitally in the system BEFORE the formal document can be submitted. 
+                        Currently, your digital register is missing required data:
                     </p>
+                    <ul className="list-disc pl-5 text-xs font-bold space-y-1">
+                        {!hasRisks && <li className="text-destructive">NO RISKS ENCODED</li>}
+                        {!hasOpportunities && <li className="text-destructive">NO OPPORTUNITIES ENCODED</li>}
+                    </ul>
                     <Button size="sm" variant="destructive" asChild className="h-8 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-destructive/20">
                         <Link href="/risk-register">
                             Go to Risk Register Registry
@@ -503,7 +511,7 @@ export function SubmissionForm({
                   <Input
                     placeholder="https://drive.google.com/..."
                     {...field}
-                    disabled={!canUpdateExisting || (isRorForm && !hasDigitalRisks)}
+                    disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete)}
                   />
                   <div className="absolute inset-y-0 right-3 flex items-center">
                     {renderValidationIcon()}
@@ -566,7 +574,7 @@ export function SubmissionForm({
                 <Textarea
                   placeholder="Add any relevant comments for the approvers"
                   {...field}
-                  disabled={!canUpdateExisting || (isRorForm && !hasDigitalRisks)}
+                  disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete)}
                 />
               </FormControl>
               <FormMessage />
@@ -587,7 +595,7 @@ export function SubmissionForm({
                     onValueChange={(value: RiskRating) => setRiskRating(value)}
                     value={riskRating ?? ""}
                     className="flex items-center space-x-4"
-                    disabled={!canUpdateExisting || (isRorForm && !hasDigitalRisks)}
+                    disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete)}
                 >
                     <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl><RadioGroupItem value="low" /></FormControl>
@@ -616,7 +624,7 @@ export function SubmissionForm({
                         id={`${reportType}-${item.id}`}
                         checked={checkedState[item.id] || false}
                         onCheckedChange={() => handleCheckboxChange(item.id)}
-                        disabled={!canUpdateExisting || (isRorForm && !hasDigitalRisks)}
+                        disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete)}
                     />
                     <Label htmlFor={`${reportType}-${item.id}`} className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                         {item.label}
@@ -635,7 +643,7 @@ export function SubmissionForm({
             validationStatus === 'invalid' ||
             !isChecklistComplete ||
             !canUpdateExisting ||
-            (isRorForm && !isLoadingDigitalRisks && !hasDigitalRisks)
+            (isRorForm && !isLoadingDigitalRisks && !isDigitalComplete)
           }
         >
           {isSubmitting ? (
