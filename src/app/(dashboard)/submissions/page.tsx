@@ -437,7 +437,6 @@ export default function SubmissionsPage() {
                                 <TableHeader className="bg-muted/30">
                                     <TableRow className="hover:bg-transparent">
                                         <TableHead className="font-bold uppercase text-[10px] pl-6 py-3">Report & Control Info</TableHead>
-                                        <TableHead className="font-bold uppercase text-[10px] py-3 text-center">Register Status</TableHead>
                                         <TableHead className="font-bold uppercase text-[10px] py-3">Origin Unit / Office</TableHead>
                                         <TableHead className="font-bold uppercase text-[10px] py-3">Uploader</TableHead>
                                         <TableHead className="font-bold uppercase text-[10px] py-3">Submission Date</TableHead>
@@ -456,38 +455,38 @@ export default function SubmissionsPage() {
                                                 className={cn("transition-colors group", getYearCycleRowColor(sub.year, sub.cycleId))}
                                             >
                                                 <TableCell className="pl-6 py-4">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-sm text-slate-900">{sub.reportType}</span>
-                                                        <span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter mt-0.5">
+                                                    <div className="flex flex-col gap-1.5">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-bold text-sm text-slate-900">{sub.reportType}</span>
+                                                            {isRor && (
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <div>
+                                                                            {registered ? (
+                                                                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 h-4 px-1.5 font-black text-[8px] gap-1 animate-in zoom-in duration-300">
+                                                                                    <CheckCircle2 className="h-2.5 w-2.5" /> LOG
+                                                                                </Badge>
+                                                                            ) : (
+                                                                                <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 h-4 px-1.5 font-black text-[8px] gap-1">
+                                                                                    <XCircle className="h-2.5 w-2.5" /> X
+                                                                                </Badge>
+                                                                            )}
+                                                                        </div>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p className="text-xs font-bold">
+                                                                            {registered 
+                                                                                ? "Entries present in digital register" 
+                                                                                : "No digital entries logged for this unit/year"}
+                                                                        </p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            )}
+                                                        </div>
+                                                        <span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">
                                                             {sub.cycleId} Cycle {sub.year} &bull; {sub.controlNumber}
                                                         </span>
                                                     </div>
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    {isRor && (
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <div className="flex justify-center">
-                                                                    {registered ? (
-                                                                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 h-5 px-2 font-black text-[9px] gap-1 animate-in zoom-in duration-300">
-                                                                            <CheckCircle2 className="h-3 w-3" /> LOG
-                                                                        </Badge>
-                                                                    ) : (
-                                                                        <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 h-5 px-2 font-black text-[9px] gap-1">
-                                                                            <XCircle className="h-3 w-3" /> X
-                                                                        </Badge>
-                                                                    )}
-                                                                </div>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p className="text-xs font-bold">
-                                                                    {registered 
-                                                                        ? "Entries present in digital register" 
-                                                                        : "No digital entries logged for this unit/year"}
-                                                                </p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    )}
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex flex-col text-xs">
