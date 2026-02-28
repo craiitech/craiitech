@@ -64,7 +64,7 @@ export function SidebarNav({
     },
     {
       href: '/submissions',
-      label: 'Submissions Hub',
+      label: 'EOMS SUBMISSION HUB',
       active: pathname.startsWith('/submissions'),
       icon: <FileText />,
     },

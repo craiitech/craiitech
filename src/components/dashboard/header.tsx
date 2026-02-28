@@ -1,3 +1,4 @@
+
 'use client';
 
 import { usePathname } from 'next/navigation';
@@ -18,6 +19,7 @@ export function Header({ notificationCount }: HeaderProps) {
 
   const getPageTitle = (path: string) => {
     if (path === '/dashboard') return 'Home';
+    if (path.startsWith('/submissions')) return 'EOMS SUBMISSION HUB';
     
     // Special case for the Audit module
     if (path.startsWith('/audit')) {
