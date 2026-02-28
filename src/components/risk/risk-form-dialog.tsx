@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -46,6 +45,7 @@ import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { suggestRiskTreatment } from '@/ai/flows/suggest-treatment-flow';
 import { Separator } from '../ui/separator';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface RiskFormDialogProps {
   isOpen: boolean;
