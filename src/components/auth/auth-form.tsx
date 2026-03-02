@@ -40,8 +40,10 @@ const firebaseErrorMap: Record<string, string> = {
     "auth/popup-closed-by-user": "The sign-in window was closed. Please try again.",
     "auth/cancelled-popup-request": "A sign-in request is already in progress. Please wait or refresh the page.",
     "auth/invalid-credential": "Invalid credentials. Please check your email and password and try again.",
-    "auth/operation-not-allowed": "Google Sign-In is not enabled. Please contact the administrator.",
+    "auth/operation-not-allowed": "Google Sign-In is not enabled. Please contact the administrator to enable it in the Firebase Console.",
     "auth/popup-blocked": "The sign-in popup was blocked by your browser. Please allow popups or try again to use redirect.",
+    "auth/unauthorized-domain": "This domain is not authorized for Google Sign-In. Please contact the administrator to add this URL to the Authorized Domains list in Firebase.",
+    "auth/internal-error": "A temporary internal error occurred. Please refresh the page and try again.",
 };
 
 export function AuthForm({ initialTab }: AuthFormProps) {
@@ -61,14 +63,12 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const firestore = useFirestore();
 
   /**
-   * Centralized logic to handle authentication results from both popups, 
-   * redirects, and manual email/password sign-ups.
+   * Centralized logic to handle authentication results.
    */
   const handleAuthResult = useCallback(async (result: UserCredential) => {
     if (!firestore) return;
     const user = result.user;
     const additionalInfo = getAdditionalUserInfo(result);
-    const [first = '', last = ''] = user.displayName?.split(' ') || [];
     
     try {
         const userDocRef = doc(firestore, 'users', user.uid);
@@ -76,11 +76,12 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
         // If it's a new Auth user OR the user exists in Auth but is missing their Firestore profile
         if (additionalInfo?.isNewUser || !userDoc.exists()) {
+          const [first = '', last = ''] = user.displayName?.split(' ') || [];
           const userData = {
             id: user.uid,
             email: user.email,
-            firstName: firstName || first,
-            lastName: lastName || last,
+            firstName: firstName || first || 'User',
+            lastName: lastName || last || '',
             avatar: user.photoURL,
             roleId: '',
             role: '',
@@ -89,17 +90,16 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             verified: false,
             ndaAccepted: false,
           };
-          // Use setDoc with merge: true to avoid overwriting existing data if any fields were somehow present
           await setDoc(userDocRef, userData, { merge: true });
-          await logUserActivity(user.uid, user.displayName || 'Unknown', 'New User', 'user_register', { method: result.providerId || 'google' });
+          await logUserActivity(user.uid, `${userData.firstName} ${userData.lastName}`, 'New User', 'user_register', { method: result.providerId || 'google' });
           
           toast({
             title: 'Account Created!',
-            description: 'Please complete your registration.',
+            description: 'Please complete your registration details.',
           });
           router.push('/complete-registration');
         } else {
-          // Returning user with valid profile
+          // Returning user
           router.push('/dashboard');
         }
     } catch (err) {
@@ -120,10 +120,10 @@ export function AuthForm({ initialTab }: AuthFormProps) {
                 }
             })
             .catch((error) => {
-                console.error('Google redirect error:', error);
                 const errorCode = (error as AuthError).code;
+                console.error('Redirect Result Error:', errorCode, error);
                 if (errorCode !== 'auth/redirect-cancelled-by-user') {
-                    setAuthError(firebaseErrorMap[errorCode] || 'Could not complete sign-in via redirect. Please check your connection.');
+                    setAuthError(firebaseErrorMap[errorCode] || `Sign-in failed (${errorCode}). Please check your connection or Whitelisted Domains.`);
                 }
             });
     }
@@ -170,11 +170,10 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
     try {
         await signInWithEmailAndPassword(auth, email, password);
-        // Navigation is handled by the root layout/provider listening to auth state
     } catch (error) {
         console.error('Sign in error:', error);
         const errorCode = (error as AuthError).code;
-        setAuthError(firebaseErrorMap[errorCode] || 'An unknown sign-in error occurred. Please try again.');
+        setAuthError(firebaseErrorMap[errorCode] || `Sign-in failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         setIsSubmitting(false);
     }
   };
@@ -205,7 +204,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     } catch (error) {
       console.error('Sign up error:', error);
       const errorCode = (error as AuthError).code;
-      setAuthError(firebaseErrorMap[errorCode] || 'An unknown registration error occurred. Please try again.');
+      setAuthError(firebaseErrorMap[errorCode] || `Registration failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setIsSubmitting(false);
     }
   };
@@ -218,8 +217,9 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     setIsSubmitting(true);
     setAuthError(null);
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
     
-    // Attempt popup first (preferred user experience)
+    // Attempt popup first
     signInWithPopup(auth, provider)
       .then(async (result) => {
         handleAuthResult(result);
@@ -228,16 +228,17 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         const errorCode = (error as AuthError).code;
         console.warn('Google popup interaction failed/blocked:', errorCode);
         
-        // If popup is blocked, closed, or another request exists, switch to redirect
+        // If popup is blocked or closed, fallback to redirect
         const shouldRedirect = 
             errorCode === 'auth/popup-blocked' || 
             errorCode === 'auth/popup-closed-by-user' || 
-            errorCode === 'auth/cancelled-popup-request';
+            errorCode === 'auth/cancelled-popup-request' ||
+            errorCode === 'auth/internal-error';
 
         if (shouldRedirect) {
             signInWithRedirect(auth, provider);
         } else {
-            setAuthError(firebaseErrorMap[errorCode] || 'An unknown error occurred during Google Sign-In.');
+            setAuthError(firebaseErrorMap[errorCode] || `Google Sign-In Error: ${errorCode}. Please ensure this domain is whitelisted in Firebase.`);
             setIsSubmitting(false);
         }
       });
