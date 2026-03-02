@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,9 @@ import {
   GoogleAuthProvider,
   getAdditionalUserInfo,
   signInWithRedirect,
+  getRedirectResult,
   AuthError,
+  UserCredential,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { Loader2, Mail, X, Eye, EyeOff, AlertCircle } from 'lucide-react';
@@ -29,29 +31,6 @@ interface AuthFormProps {
   initialTab: 'signin' | 'signup';
 }
 
-function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
-      <path
-        fill="#FFC107"
-        d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039L38.804 9.81C34.553 6.186 29.658 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
-      />
-      <path
-        fill="#FF3D00"
-        d="M6.306 14.691c-1.328 1.9-2.131 4.2-2.131 6.6C4.175 23.6 5 26.1 6.306 28.31l-5.01-3.882C.05 21.6 0 18.9 0 16.1s.05-5.5 1.296-8.209z"
-      />
-      <path
-        fill="#4CAF50"
-        d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-4.819C28.907 36.5 26.545 38 24 38c-3.866 0-7.172-1.93-9.15-4.854l-6.357 4.93C11.134 41.2 17.06 44 24 44z"
-      />
-      <path
-        fill="#1976D2"
-        d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.16-4.087 5.571l6.19 4.819c3.424-3.167 5.57-7.794 5.57-12.891c0-1.341-.138-2.65-.389-3.917z"
-      />
-    </svg>
-  );
-}
-
 const firebaseErrorMap: Record<string, string> = {
     "auth/user-not-found": "No account found with this email address. Please sign up or try again.",
     "auth/wrong-password": "Incorrect password. Please try again.",
@@ -59,10 +38,11 @@ const firebaseErrorMap: Record<string, string> = {
     "auth/email-already-in-use": "This email address is already associated with an account.",
     "auth/weak-password": "The password is too weak. Please use at least 6 characters.",
     "auth/popup-closed-by-user": "The sign-in window was closed. Please try again.",
-    "auth/cancelled-popup-request": "The sign-in window was closed. Please try again.",
+    "auth/cancelled-popup-request": "A sign-in request is already in progress. Please wait or refresh the page.",
     "auth/invalid-credential": "Invalid credentials. Please check your email and password and try again.",
+    "auth/operation-not-allowed": "Google Sign-In is not enabled. Please contact the administrator.",
+    "auth/popup-blocked": "The sign-in popup was blocked by your browser. Please allow popups or try again to use redirect.",
 };
-
 
 export function AuthForm({ initialTab }: AuthFormProps) {
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -80,19 +60,85 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const auth = useAuth();
   const firestore = useFirestore();
 
+  /**
+   * Centralized logic to handle authentication results from both popups, 
+   * redirects, and manual email/password sign-ups.
+   */
+  const handleAuthResult = useCallback(async (result: UserCredential) => {
+    if (!firestore) return;
+    const user = result.user;
+    const additionalInfo = getAdditionalUserInfo(result);
+    const [first = '', last = ''] = user.displayName?.split(' ') || [];
+    
+    try {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        // If it's a new Auth user OR the user exists in Auth but is missing their Firestore profile
+        if (additionalInfo?.isNewUser || !userDoc.exists()) {
+          const userData = {
+            id: user.uid,
+            email: user.email,
+            firstName: firstName || first,
+            lastName: lastName || last,
+            avatar: user.photoURL,
+            roleId: '',
+            role: '',
+            campusId: '',
+            unitId: '',
+            verified: false,
+            ndaAccepted: false,
+          };
+          // Use setDoc with merge: true to avoid overwriting existing data if any fields were somehow present
+          await setDoc(userDocRef, userData, { merge: true });
+          await logUserActivity(user.uid, user.displayName || 'Unknown', 'New User', 'user_register', { method: result.providerId || 'google' });
+          
+          toast({
+            title: 'Account Created!',
+            description: 'Please complete your registration.',
+          });
+          router.push('/complete-registration');
+        } else {
+          // Returning user with valid profile
+          router.push('/dashboard');
+        }
+    } catch (err) {
+        console.error('Error processing auth result:', err);
+        setAuthError('An error occurred while setting up your institutional profile. Please try again.');
+        setIsSubmitting(false);
+    }
+  }, [firestore, firstName, lastName, router, toast]);
+
+  // Handle Redirect Result on Mount
   useEffect(() => {
-    // This effect ensures the dialog opens on initial render of the signup form
+    if (auth && firestore) {
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result) {
+                    setIsSubmitting(true);
+                    handleAuthResult(result);
+                }
+            })
+            .catch((error) => {
+                console.error('Google redirect error:', error);
+                const errorCode = (error as AuthError).code;
+                if (errorCode !== 'auth/redirect-cancelled-by-user') {
+                    setAuthError(firebaseErrorMap[errorCode] || 'Could not complete sign-in via redirect. Please check your connection.');
+                }
+            });
+    }
+  }, [auth, firestore, handleAuthResult]);
+
+  useEffect(() => {
     if (activeTab === 'signup') {
       setIsPrivacyDialogOpen(true);
     }
   }, [activeTab]);
 
-
   const togglePasswordVisibility = () => setIsPasswordVisible(!isPasswordVisible);
   
   const handleTabChange = (tab: 'signin' | 'signup') => {
     setActiveTab(tab);
-    // Clear credentials and errors when switching tabs
     setEmail('');
     setPassword('');
     setFirstName('');
@@ -106,9 +152,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   };
   
   const clearError = () => {
-    if (authError) {
-        setAuthError(null);
-    }
+    if (authError) setAuthError(null);
   }
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -126,12 +170,12 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
     try {
         await signInWithEmailAndPassword(auth, email, password);
-        router.push('/dashboard');
+        // Navigation is handled by the root layout/provider listening to auth state
     } catch (error) {
         console.error('Sign in error:', error);
         const errorCode = (error as AuthError).code;
         setAuthError(firebaseErrorMap[errorCode] || 'An unknown sign-in error occurred. Please try again.');
-        setIsSubmitting(false); // Only set submitting to false on error
+        setIsSubmitting(false);
     }
   };
 
@@ -157,41 +201,11 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         email,
         password
       );
-      const user = userCredential.user;
-
-      const userData = {
-        id: user.uid,
-        email: user.email,
-        firstName: firstName,
-        lastName: lastName,
-        roleId: '',
-        role: '',
-        campusId: '',
-        unitId: '',
-        verified: false,
-        ndaAccepted: false,
-      };
-
-      await setDoc(doc(firestore, 'users', user.uid), userData);
-
-      // Log successful account creation
-      await logUserActivity(user.uid, `${firstName} ${lastName}`, 'New User', 'user_register', { method: 'email' });
-
-      setFirstName('');
-      setLastName('');
-      setEmail('');
-      setPassword('');
-      
-      toast({
-        title: 'Account Created!',
-        description: 'Please complete your registration.',
-      });
-      router.push('/complete-registration');
+      await handleAuthResult(userCredential);
     } catch (error) {
       console.error('Sign up error:', error);
       const errorCode = (error as AuthError).code;
       setAuthError(firebaseErrorMap[errorCode] || 'An unknown registration error occurred. Please try again.');
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -204,64 +218,28 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     setIsSubmitting(true);
     setAuthError(null);
     const provider = new GoogleAuthProvider();
+    
+    // Attempt popup first (preferred user experience)
     signInWithPopup(auth, provider)
       .then(async (result) => {
-        const user = result.user;
-        const additionalInfo = getAdditionalUserInfo(result);
-        const [first = '', last = ''] = user.displayName?.split(' ') || [];
-        
-        if (additionalInfo?.isNewUser) {
-          const userDocRef = doc(firestore, 'users', user.uid);
-          await setDoc(userDocRef, {
-            id: user.uid,
-            email: user.email,
-            firstName: first,
-            lastName: last,
-            avatar: user.photoURL,
-            roleId: '',
-            role: '',
-            campusId: '',
-            unitId: '',
-            verified: false,
-            ndaAccepted: false,
-          });
-          await logUserActivity(user.uid, user.displayName || 'Unknown', 'New User', 'user_register', { method: 'google' });
-          toast({
-            title: 'Account Created!',
-            description: 'Please complete your registration.',
-          });
-          router.push('/complete-registration');
-        } else {
-          // Check if user document exists for returning user, create if not
-          const userDocRef = doc(firestore, 'users', user.uid);
-          const userDoc = await getDoc(userDocRef);
-          if (!userDoc.exists()) {
-             await setDoc(userDocRef, {
-                id: user.uid,
-                email: user.email,
-                firstName: first,
-                lastName: last,
-                avatar: user.photoURL,
-                roleId: '',
-                role: '',
-                campusId: '',
-                unitId: '',
-                verified: false,
-                ndaAccepted: false,
-            });
-             router.push('/complete-registration');
-          } else {
-            router.push('/dashboard');
-          }
-        }
+        handleAuthResult(result);
       })
       .catch((error) => {
-        console.error('Google sign-in error:', error);
         const errorCode = (error as AuthError).code;
-        setAuthError(firebaseErrorMap[errorCode] || 'An unknown error occurred during Google Sign-In.');
-      })
-      .finally(() => {
-        setIsSubmitting(false);
+        console.warn('Google popup interaction failed/blocked:', errorCode);
+        
+        // If popup is blocked, closed, or another request exists, switch to redirect
+        const shouldRedirect = 
+            errorCode === 'auth/popup-blocked' || 
+            errorCode === 'auth/popup-closed-by-user' || 
+            errorCode === 'auth/cancelled-popup-request';
+
+        if (shouldRedirect) {
+            signInWithRedirect(auth, provider);
+        } else {
+            setAuthError(firebaseErrorMap[errorCode] || 'An unknown error occurred during Google Sign-In.');
+            setIsSubmitting(false);
+        }
       });
   };
 
@@ -514,5 +492,28 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       }}
     />
     </>
+  );
+}
+
+function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
+      <path
+        fill="#FFC107"
+        d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039L38.804 9.81C34.553 6.186 29.658 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
+      />
+      <path
+        fill="#FF3D00"
+        d="M6.306 14.691c-1.328 1.9-2.131 4.2-2.131 6.6C4.175 23.6 5 26.1 6.306 28.31l-5.01-3.882C.05 21.6 0 18.9 0 16.1s.05-5.5 1.296-8.209z"
+      />
+      <path
+        fill="#4CAF50"
+        d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-4.819C28.907 36.5 26.545 38 24 38c-3.866 0-7.172-1.93-9.15-4.854l-6.357 4.93C11.134 41.2 17.06 44 24 44z"
+      />
+      <path
+        fill="#1976D2"
+        d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.16-4.087 5.571l6.19 4.819c3.424-3.167 5.57-7.794 5.57-12.891c0-1.341-.138-2.65-.389-3.917z"
+      />
+    </svg>
   );
 }
