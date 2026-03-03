@@ -457,7 +457,7 @@ export default function SubmissionsPage() {
                                                 <TableCell className="pl-6 py-4">
                                                     <div className="flex flex-col gap-1.5">
                                                         <div className="flex items-center gap-2">
-                                                            <span className="font-bold text-sm text-slate-900">{sub.reportType}</span>
+                                                            <span className="font-bold text-sm text-black">{sub.reportType}</span>
                                                             {isRor && (
                                                                 <Tooltip>
                                                                     <TooltipTrigger asChild>
@@ -490,18 +490,18 @@ export default function SubmissionsPage() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex flex-col text-xs">
-                                                        <span className="flex items-center gap-1 font-bold text-slate-700"><Building className="h-3 w-3 text-primary/60" /> {sub.unitName}</span>
+                                                        <span className="flex items-center gap-1 font-bold text-black"><Building className="h-3 w-3 text-primary/60" /> {sub.unitName}</span>
                                                         <span className="flex items-center gap-1 text-muted-foreground text-[10px] font-medium uppercase tracking-tighter"><School className="h-3 w-3" /> {campusMap.get(sub.campusId) || '...'}</span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-xs">
                                                     <div className="flex items-center gap-2">
                                                         <User className="h-3.5 w-3.5 text-muted-foreground opacity-40" />
-                                                        <span className="font-bold text-slate-600">{userMap.get(sub.userId) || '...'}</span>
+                                                        <span className="font-bold text-black">{userMap.get(sub.userId) || '...'}</span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-xs">
-                                                    <div className="flex items-center gap-1 font-bold text-slate-900">
+                                                    <div className="flex items-center gap-1 font-bold text-black">
                                                         <CalendarIcon className="h-3 w-3 opacity-50" /> 
                                                         {safeFormatDate(sub.submissionDate)}
                                                     </div>

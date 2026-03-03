@@ -169,7 +169,7 @@ export function SidebarNav({
                     Logout
                 </SidebarMenuButton>
             </SidebarMenuItem>
-        </ShadowMenu>
+        </SidebarMenu>
       </div>
     </div>
   );
