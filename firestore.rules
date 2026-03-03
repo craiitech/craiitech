@@ -106,6 +106,12 @@ service cloud.firestore {
     match /procedureManuals/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /eomsPolicyManuals/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
 
+    // Global System Settings (Signatories)
+    match /system/signatories {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // --------------------------------------------------------------------------
     // AUDIT LOGS & FEEDBACK
     // --------------------------------------------------------------------------
