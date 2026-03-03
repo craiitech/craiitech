@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore, useUser } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -61,6 +61,14 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
+  const { user, userProfile, isUserLoading } = useUser();
+
+  // Automatically redirect if already logged in with a profile
+  useEffect(() => {
+    if (user && userProfile && !isUserLoading) {
+      router.push('/dashboard');
+    }
+  }, [user, userProfile, isUserLoading, router]);
 
   /**
    * Centralized logic to handle authentication results.
@@ -91,7 +99,9 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             ndaAccepted: false,
           };
           await setDoc(userDocRef, userData, { merge: true });
-          await logUserActivity(user.uid, `${userData.firstName} ${userData.lastName}`, 'New User', 'user_register', { method: result.providerId || 'google' });
+          
+          const method = result.credential?.providerId || (user.email ? 'password' : 'unknown');
+          await logUserActivity(user.uid, `${userData.firstName} ${userData.lastName}`, 'New User', 'user_register', { method });
           
           toast({
             title: 'Account Created!',
@@ -169,7 +179,8 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     setAuthError(null);
 
     try {
-        await signInWithEmailAndPassword(auth, email, password);
+        const result = await signInWithEmailAndPassword(auth, email, password);
+        await handleAuthResult(result);
     } catch (error) {
         console.error('Sign in error:', error);
         const errorCode = (error as AuthError).code;
