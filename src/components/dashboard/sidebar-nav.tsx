@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -77,7 +76,7 @@ export function SidebarNav({
     },
      {
       href: '/manuals',
-      label: 'Procedure Manuals',
+      label: 'Unit Procedure Manuals',
       active: pathname.startsWith('/manuals'),
       icon: <BookOpen />,
     },
@@ -170,7 +169,7 @@ export function SidebarNav({
                     Logout
                 </SidebarMenuButton>
             </SidebarMenuItem>
-        </SidebarMenu>
+        </ShadowMenu>
       </div>
     </div>
   );

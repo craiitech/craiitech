@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter, Download, ShieldCheck, XCircle, CheckCircle2 } from 'lucide-react';
@@ -502,7 +501,7 @@ export default function SubmissionsPage() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-xs">
-                                                    <div className="flex items-center gap-1 font-bold text-slate-50">
+                                                    <div className="flex items-center gap-1 font-bold text-slate-900">
                                                         <CalendarIcon className="h-3 w-3 opacity-50" /> 
                                                         {safeFormatDate(sub.submissionDate)}
                                                     </div>
