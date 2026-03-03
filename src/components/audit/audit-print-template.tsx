@@ -1,12 +1,14 @@
+
 'use client';
 
 import React from 'react';
-import type { AuditSchedule, AuditFinding, ISOClause, AuditPlan } from '@/lib/types';
+import type { AuditSchedule, AuditFinding, ISOClause, AuditPlan, Signatories } from '@/lib/types';
 import { format } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, doc } from 'firebase/firestore';
 import { clauseQuestions } from '@/lib/audit-questions';
 import { CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 
 interface AuditPrintTemplateProps {
   schedule: AuditSchedule;
@@ -16,6 +18,13 @@ interface AuditPrintTemplateProps {
 }
 
 export function AuditPrintTemplate({ schedule, findings, clauses, plan }: AuditPrintTemplateProps) {
+  const firestore = useFirestore();
+  const signatoryRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
+    [firestore]
+  );
+  const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
   const conductDate = schedule.scheduledDate instanceof Timestamp 
     ? schedule.scheduledDate.toDate() 
     : new Date(schedule.scheduledDate);
@@ -167,7 +176,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, plan }: AuditP
       <div className="mt-10 pt-4 border-t border-slate-200 flex justify-between items-center text-[8px] text-slate-400 italic uppercase tracking-widest">
         <span>RSU-QAO-IQA-LOG | REV 02-2025</span>
         <span className="font-bold">Page 1 of 1</span>
-        <span>Electronic Copy Issued by RSU EOMS Portal</span>
+        <span>Issued by: {signatories?.qaoDirector || 'Director, Quality Assurance Office'}</span>
       </div>
     </div>
   );

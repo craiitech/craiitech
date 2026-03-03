@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -13,12 +14,13 @@ interface NoticeProps {
   missingFinal: string[];
   totalApproved: number;
   totalPossible: number;
+  qaoDirector: string;
 }
 
 /**
  * NOTICE OF NON-COMPLIANCE TEMPLATE
  */
-export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst, missingFinal }: NoticeProps) {
+export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst, missingFinal, qaoDirector }: NoticeProps) {
   return (
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed">
       {/* Institutional Header */}
@@ -94,7 +96,7 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
 
       <div className="mt-20">
         <div className="w-64 text-center">
-            <div className="border-b border-black font-bold uppercase pt-8">DR. MARVIN RICK G. FORCADO</div>
+            <div className="border-b border-black font-bold uppercase pt-8">{qaoDirector}</div>
             <p className="text-[10px] uppercase font-bold mt-1">Director, Quality Assurance Office</p>
         </div>
       </div>
@@ -110,7 +112,7 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
 /**
  * NOTICE OF COMPLIANCE TEMPLATE
  */
-export function NoticeOfCompliance({ unitName, campusName, year, totalApproved }: NoticeProps) {
+export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, qaoDirector }: NoticeProps) {
   return (
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed border-[12px] border-double border-slate-200">
       <div className="border-2 border-slate-800 p-8 min-h-[9in] flex flex-col">
@@ -157,7 +159,7 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved }
 
         <div className="mt-20 flex justify-center">
             <div className="w-80 text-center">
-                <div className="font-bold text-lg uppercase">DR. MARVIN RICK G. FORCADO</div>
+                <div className="font-bold text-lg uppercase">{qaoDirector}</div>
                 <div className="w-full h-px bg-black my-1" />
                 <p className="text-xs uppercase font-black tracking-widest text-slate-600">Director, Quality Assurance Office</p>
             </div>

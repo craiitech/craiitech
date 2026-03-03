@@ -33,6 +33,16 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["controlNumber", "subject", "releaseDate", "googleDriveLink", "scope"]
+    },
+    "Signatories": {
+      "title": "Signatories",
+      "type": "object",
+      "properties": {
+        "qaoDirector": { "type": "string" },
+        "qmsHead": { "type": "string" },
+        "accreditationHead": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -41,7 +51,8 @@
   "firestore": {
     "structure": [
       { "path": "/users/{userId}", "definition": { "entityName": "User" } },
-      { "path": "/qaAdvisories/{advisoryId}", "definition": { "entityName": "QaAdvisory" } }
+      { "path": "/qaAdvisories/{advisoryId}", "definition": { "entityName": "QaAdvisory" } },
+      { "path": "/system/signatories", "definition": { "entityName": "Signatories" } }
     ]
   }
 }

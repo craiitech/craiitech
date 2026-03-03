@@ -23,6 +23,7 @@ import { ProcedureManualManagement } from '@/components/admin/procedure-manual-m
 import { EomsPolicyManualManagement } from '@/components/admin/eoms-policy-manual-management';
 import { UnitGroupingExplorer } from '@/components/admin/unit-grouping-explorer';
 import { AdvisoryManagement } from '@/components/advisories/advisory-management';
+import { SignatoryManagement } from '@/components/admin/signatory-management';
 
 
 export default function SettingsPage() {
@@ -49,12 +50,13 @@ export default function SettingsPage() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">System Settings</h2>
           <p className="text-muted-foreground">
-            Manage users, campuses, units, roles, and campus-specific settings.
+            Manage users, campuses, units, roles, and institutional signatories.
           </p>
         </div>
         <Tabs defaultValue="users" className="space-y-4">
           <TabsList className="grid h-auto w-full grid-cols-2 md:inline-flex md:h-10 md:w-auto">
             <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="signatories">Signatories</TabsTrigger>
             <TabsTrigger value="campuses">Campuses</TabsTrigger>
             <TabsTrigger value="units">Units</TabsTrigger>
             <TabsTrigger value="unit-grouping">Unit Explorer</TabsTrigger>
@@ -68,6 +70,9 @@ export default function SettingsPage() {
           </TabsList>
           <TabsContent value="users" className="space-y-4">
             <UserManagement />
+          </TabsContent>
+          <TabsContent value="signatories" className="space-y-4">
+            <SignatoryManagement />
           </TabsContent>
           <TabsContent value="campuses" className="space-y-4">
             <CampusManagement />

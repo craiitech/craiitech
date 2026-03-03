@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
-import type { Submission, Unit, Campus } from '@/lib/types';
+import type { Submission, Unit, Campus, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } 
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { NoticeOfCompliance, NoticeOfNonCompliance } from './notices-print-templates';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -58,11 +61,11 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
     },
     2027: { 
       first: 'bg-purple-50/20 hover:bg-purple-100/40 dark:bg-purple-900/5 dark:hover:bg-purple-900/10', 
-      final: 'bg-purple-100/40 hover:bg-purple-200/50 dark:bg-purple-900/20 dark:hover:bg-purple-900/30' 
+      final: 'bg-purple-100/40 hover:bg-blue-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
     },
     2028: { 
       first: 'bg-rose-50/20 hover:bg-rose-100/40 dark:bg-rose-900/5 dark:hover:bg-rose-900/10', 
-      final: 'bg-rose-100/40 hover:bg-rose-200/50 dark:bg-rose-900/20 dark:hover:bg-rose-900/30' 
+      final: 'bg-rose-100/40 hover:bg-rose-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
     },
   };
   
@@ -92,9 +95,16 @@ export function CampusSubmissionsView({
   onDeleteClick,
 }: CampusSubmissionsViewProps) {
   const router = useRouter();
+  const firestore = useFirestore();
   const [selectedCampusId, setSelectedCampusId] = useState<string | null>(null);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+
+  const signatoryRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
+    [firestore]
+  );
+  const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   const availableYears = useMemo(() => {
     if (!allSubmissions) return [new Date().getFullYear().toString()];
@@ -200,7 +210,8 @@ export function CampusSubmissionsView({
         missingFirst: unitData.missingFirst,
         missingFinal: unitData.missingFinal,
         totalApproved: unitData.approved,
-        totalPossible: unitData.totalPossible
+        totalPossible: unitData.totalPossible,
+        qaoDirector: signatories?.qaoDirector || 'DR. MARVIN RICK G. FORCADO'
     };
 
     try {

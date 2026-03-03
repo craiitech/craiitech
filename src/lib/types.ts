@@ -329,6 +329,13 @@ export type CorrectiveActionRequest = {
     updatedAt: any;
 };
 
+export type Signatories = {
+  qaoDirector: string;
+  qmsHead: string;
+  accreditationHead: string;
+  updatedAt?: any;
+};
+
 // --- ACADEMIC PROGRAM MONITORING TYPES ---
 
 export type AcademicProgram = {

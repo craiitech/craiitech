@@ -2,10 +2,11 @@
 'use client';
 
 import React from 'react';
-import type { CorrectiveActionRequest, Campus, Unit } from '@/lib/types';
+import type { CorrectiveActionRequest, Campus, Unit, Signatories } from '@/lib/types';
 import { format } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, doc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 
 interface CARPrintTemplateProps {
   car: CorrectiveActionRequest;
@@ -14,6 +15,13 @@ interface CARPrintTemplateProps {
 }
 
 export function CARPrintTemplate({ car, unitName, campusName }: CARPrintTemplateProps) {
+  const firestore = useFirestore();
+  const signatoryRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
+    [firestore]
+  );
+  const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
   const safeDate = (d: any) => {
     if (!d) return '';
     const date = d instanceof Timestamp ? d.toDate() : new Date(d);
@@ -27,6 +35,8 @@ export function CARPrintTemplate({ car, unitName, campusName }: CARPrintTemplate
   const latestVerification = car.verificationRecords && car.verificationRecords.length > 0 
     ? car.verificationRecords[car.verificationRecords.length - 1] 
     : null;
+
+  const directorName = signatories?.qaoDirector || car.approvedBy || 'DR. MARVIN RICK G. FORCADO';
 
   return (
     <div className="p-8 text-black bg-white max-w-[8.5in] mx-auto font-sans text-[11px] leading-tight border-none">
@@ -139,7 +149,7 @@ export function CARPrintTemplate({ car, unitName, campusName }: CARPrintTemplate
           </div>
           <div className="p-2">
             <p className="text-[9px] uppercase opacity-60 mb-4">Approved by</p>
-            <p className="border-t border-black pt-1 uppercase">{car.approvedBy}</p>
+            <p className="border-t border-black pt-1 uppercase">{directorName}</p>
           </div>
         </div>
       </div>
@@ -264,7 +274,7 @@ export function CARPrintTemplate({ car, unitName, campusName }: CARPrintTemplate
           </div>
           <div className="p-2">
             <p className="mb-4">Approved by:</p>
-            <p className="border-t border-black pt-1">{car.approvedBy || '________________'}</p>
+            <p className="border-t border-black pt-1">{directorName}</p>
           </div>
         </div>
       </div>
