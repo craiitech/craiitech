@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -86,6 +87,7 @@ const formSchema = z.object({
   likelihood: z.number().min(1).max(5),
   consequence: z.number().min(1).max(5),
   treatmentAction: z.string().optional(),
+  monitoringScore: z.string().optional(),
   responsiblePersonId: z.string().optional(),
   targetYear: z.string().optional(),
   targetMonth: z.string().optional(),
@@ -173,6 +175,7 @@ export function RiskFormDialog({
       likelihood: 1,
       consequence: 1,
       treatmentAction: '',
+      monitoringScore: '',
       status: 'Open',
       adminCampusId: defaultCampusId || userProfile?.campusId || '',
       adminUnitId: defaultUnitId || userProfile?.unitId || '',
@@ -197,6 +200,7 @@ export function RiskFormDialog({
         likelihood: r.preTreatment.likelihood,
         consequence: r.preTreatment.consequence,
         treatmentAction: r.treatmentAction || '',
+        monitoringScore: r.monitoringScore || '',
         status: r.status || 'Open',
         responsiblePersonId: r.responsiblePersonId || '',
         targetYear: targetDate instanceof Date ? String(targetDate.getFullYear()) : undefined,
@@ -224,6 +228,7 @@ export function RiskFormDialog({
         likelihood: 1,
         consequence: 1,
         treatmentAction: '',
+        monitoringScore: '',
         status: 'Open',
         adminCampusId: selectedAdminCampusId,
         adminUnitId: selectedAdminUnitId,
@@ -325,6 +330,7 @@ export function RiskFormDialog({
             rating: String(rating) 
           },
           treatmentAction: values.treatmentAction || '',
+          monitoringScore: values.monitoringScore || '',
           responsiblePersonId: values.responsiblePersonId || '',
           responsiblePersonName: responsiblePerson ? `${responsiblePerson.firstName} ${responsiblePerson.lastName}` : (activeRisk?.responsiblePersonName || ''),
           targetDate: targetTimestamp,
@@ -669,6 +675,18 @@ export function RiskFormDialog({
                                                 </FormItem>
                                             )} />
                                         </div>
+
+                                        {showActionPlan && (
+                                            <FormField control={form.control} name="monitoringScore" render={({ field }) => (
+                                                <FormItem className="animate-in slide-in-from-top-2 duration-300">
+                                                    <FormLabel className="font-bold text-blue-700">Treatment Plan Monitoring Score</FormLabel>
+                                                    <FormControl>
+                                                        <Textarea {...field} value={field.value || ''} rows={3} placeholder="Provide the monitoring score or evaluation of the treatment plan effectiveness..." className="bg-white border-blue-100 italic text-xs" />
+                                                    </FormControl>
+                                                    <FormDescription className="text-[9px]">Required for Medium/High rated risks to track corrective efficiency.</FormDescription>
+                                                </FormItem>
+                                            )} />
+                                        )}
 
                                         <Separator />
 

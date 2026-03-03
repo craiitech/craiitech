@@ -65,6 +65,7 @@ export type Risk = {
         rating: string;
     };
     treatmentAction?: string;
+    monitoringScore?: string; // Evaluative score/text for treatment
     responsiblePersonId?: string;
     responsiblePersonName?: string; // Denormalized
     targetDate?: any; // Can be Timestamp
