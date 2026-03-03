@@ -27,7 +27,7 @@ import {
   FormDescription,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ShieldCheck, UserCheck, Award } from 'lucide-react';
+import { Loader2, ShieldCheck, UserCheck, Award, Save } from 'lucide-react';
 import type { Signatories } from '@/lib/types';
 
 const signatorySchema = z.object({
