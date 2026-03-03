@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
-import type { Submission, Unit, User as AppUser, Signatories } from '@/lib/types';
+import { useState, useMemo, useEffect } from 'react';
+import type { Submission, Unit, User as AppUser, Signatories, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { NoticeOfCompliance, NoticeOfNonCompliance } from './notices-print-templates';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, Timestamp } from 'firebase/firestore';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -79,6 +79,7 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
 interface UnitSubmissionsViewProps {
   allSubmissions: Submission[] | null;
   allUnits: Unit[] | null;
+  allCampuses: Campus[] | null;
   userProfile: AppUser | null;
   isLoading: boolean;
 }
@@ -86,6 +87,7 @@ interface UnitSubmissionsViewProps {
 export function UnitSubmissionsView({
   allSubmissions,
   allUnits,
+  allCampuses,
   userProfile,
   isLoading,
 }: UnitSubmissionsViewProps) {
@@ -99,6 +101,13 @@ export function UnitSubmissionsView({
     [firestore]
   );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
+  // Auto-select the unit for unit-level users
+  useEffect(() => {
+    if (userProfile?.unitId && !selectedUnitId) {
+        setSelectedUnitId(userProfile.unitId);
+    }
+  }, [userProfile, selectedUnitId]);
 
   const availableYears = useMemo(() => {
     if (!allSubmissions) return [new Date().getFullYear().toString()];
@@ -182,14 +191,14 @@ export function UnitSubmissionsView({
   }
 
   const handlePrintNotice = (type: 'Compliance' | 'Non-Compliance') => {
-    if (!unitData || !selectedUnitId || !allUnits || !userProfile) return;
+    if (!unitData || !selectedUnitId || !allUnits || !userProfile || !allCampuses) return;
 
     const unit = allUnits.find(u => u.id === selectedUnitId);
-    const campusName = "Institutional Office"; // Simplified for unit context
+    const campus = allCampuses.find(c => unit?.campusIds?.includes(c.id));
 
     const props = {
         unitName: unit?.name || 'Unknown Unit',
-        campusName: campusName,
+        campusName: campus?.name || 'Institutional Campus',
         year: Number(selectedYear),
         missingFirst: unitData.missingFirst,
         missingFinal: unitData.missingFinal,
@@ -249,9 +258,9 @@ export function UnitSubmissionsView({
     <Card>
       <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <CardTitle>Unit Submissions Monitoring</CardTitle>
+            <CardTitle>Unit Status & Verification</CardTitle>
             <CardDescription>
-            Performance is calculated based on <strong>Approved</strong> documents. N/A reports are excluded from the score.
+            Review documentation progress and generate official compliance notices.
             </CardDescription>
         </div>
         <div className="flex items-center gap-2">
@@ -314,11 +323,11 @@ export function UnitSubmissionsView({
                             </div>
                             <div className="flex items-center gap-2">
                                 {unitData.score === 100 ? (
-                                    <Button size="sm" variant="outline" className="h-8 text-[10px] font-black uppercase text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => handlePrintNotice('Compliance')}>
+                                    <Button size="sm" variant="outline" className="h-8 text-[10px] font-black uppercase text-emerald-600 border-emerald-200 hover:bg-emerald-50 shadow-sm" onClick={() => handlePrintNotice('Compliance')}>
                                         <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Compliance Notice
                                     </Button>
                                 ) : (
-                                    <Button size="sm" variant="outline" className="h-8 text-[10px] font-black uppercase text-rose-600 border-rose-200 hover:bg-rose-50" onClick={() => handlePrintNotice('Non-Compliance')}>
+                                    <Button size="sm" variant="outline" className="h-8 text-[10px] font-black uppercase text-rose-600 border-rose-200 hover:bg-rose-50 shadow-sm" onClick={() => handlePrintNotice('Non-Compliance')}>
                                         <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Non-Compliance Notice
                                     </Button>
                                 )}

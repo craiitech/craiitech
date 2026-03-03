@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter, Download, ShieldCheck, XCircle, CheckCircle2 } from 'lucide-react';
@@ -73,11 +74,11 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
     },
     2027: { 
       first: 'bg-purple-50/20 hover:bg-purple-100/40 dark:bg-purple-900/5 dark:hover:bg-purple-900/10', 
-      final: 'bg-purple-100/40 hover:bg-purple-200/50 dark:bg-purple-900/20 dark:hover:bg-purple-900/30' 
+      final: 'bg-purple-100/40 hover:bg-blue-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
     },
     2028: { 
       first: 'bg-rose-50/20 hover:bg-rose-100/40 dark:bg-rose-900/5 dark:hover:bg-rose-900/10', 
-      final: 'bg-rose-100/40 hover:bg-rose-200/50 dark:bg-rose-900/20 dark:hover:bg-rose-900/30' 
+      final: 'bg-rose-100/40 hover:bg-rose-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
     },
   };
   
@@ -395,7 +396,7 @@ export default function SubmissionsPage() {
                 <TabsTrigger value="all-submissions" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
                     <List className="h-4 w-4" /> Detailed Log
                 </TabsTrigger>
-                {isSupervisor && !isAdmin && <TabsTrigger value="by-unit" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">Unit Explorer</TabsTrigger>}
+                {!isInstitutionalViewer && <TabsTrigger value="by-unit" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">Unit Status</TabsTrigger>}
                 {isInstitutionalViewer && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">Site Matrix</TabsTrigger>}
             </TabsList>
 
@@ -412,8 +413,8 @@ export default function SubmissionsPage() {
                 <Card className="shadow-md border-primary/10 overflow-hidden">
                     <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4 border-b bg-muted/5">
                         <div className="space-y-1">
-                            <CardTitle className="text-lg uppercase font-black tracking-tight">Submission Audit Log</CardTitle>
-                            <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
+                            <CardTitle className="text-lg uppercase font-black tracking-tight text-slate-900">Submission Audit Log</CardTitle>
+                            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                                 Displaying {tableSubmissionsData.length} records matching the current filters.
                             </CardDescription>
                         </div>
@@ -436,12 +437,12 @@ export default function SubmissionsPage() {
                             <Table>
                                 <TableHeader className="bg-muted/30">
                                     <TableRow className="hover:bg-transparent">
-                                        <TableHead className="font-bold uppercase text-[10px] pl-6 py-3">Report & Control Info</TableHead>
-                                        <TableHead className="font-bold uppercase text-[10px] py-3">Origin Unit / Office</TableHead>
-                                        <TableHead className="font-bold uppercase text-[10px] py-3">Uploader</TableHead>
-                                        <TableHead className="font-bold uppercase text-[10px] py-3">Submission Date</TableHead>
-                                        <TableHead className="font-bold uppercase text-[10px] py-3">Status</TableHead>
-                                        <TableHead className="text-right font-bold uppercase text-[10px] py-3 pr-6">Actions</TableHead>
+                                        <TableHead className="font-bold uppercase text-[10px] pl-6 py-3 text-slate-900">Report & Control Info</TableHead>
+                                        <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Origin Unit / Office</TableHead>
+                                        <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Uploader</TableHead>
+                                        <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Submission Date</TableHead>
+                                        <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Status</TableHead>
+                                        <TableHead className="text-right font-bold uppercase text-[10px] py-3 pr-6 text-slate-900">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -483,7 +484,7 @@ export default function SubmissionsPage() {
                                                                 </Tooltip>
                                                             )}
                                                         </div>
-                                                        <span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">
+                                                        <span className="text-[9px] text-slate-600 font-mono uppercase tracking-tighter">
                                                             {sub.cycleId} Cycle {sub.year} &bull; {sub.controlNumber}
                                                         </span>
                                                     </div>
@@ -491,12 +492,12 @@ export default function SubmissionsPage() {
                                                 <TableCell>
                                                     <div className="flex flex-col text-xs">
                                                         <span className="flex items-center gap-1 font-bold text-black"><Building className="h-3 w-3 text-primary/60" /> {sub.unitName}</span>
-                                                        <span className="flex items-center gap-1 text-muted-foreground text-[10px] font-medium uppercase tracking-tighter"><School className="h-3 w-3" /> {campusMap.get(sub.campusId) || '...'}</span>
+                                                        <span className="flex items-center gap-1 text-slate-600 text-[10px] font-medium uppercase tracking-tighter"><School className="h-3 w-3" /> {campusMap.get(sub.campusId) || '...'}</span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-xs">
                                                     <div className="flex items-center gap-2">
-                                                        <User className="h-3.5 w-3.5 text-muted-foreground opacity-40" />
+                                                        <User className="h-3.5 w-3.5 text-slate-600 opacity-40" />
                                                         <span className="font-bold text-black">{userMap.get(sub.userId) || '...'}</span>
                                                     </div>
                                                 </TableCell>
@@ -557,11 +558,12 @@ export default function SubmissionsPage() {
                 </Card>
             </TabsContent>
             
-            {isSupervisor && !isAdmin && (
+            {!isInstitutionalViewer && (
                 <TabsContent value="by-unit" className="animate-in fade-in duration-500">
                     <UnitSubmissionsView 
                         allSubmissions={dashboardSubmissions} 
                         allUnits={allUnits} 
+                        allCampuses={campuses}
                         userProfile={userProfile} 
                         isLoading={isLoadingSubmissions} 
                     />
