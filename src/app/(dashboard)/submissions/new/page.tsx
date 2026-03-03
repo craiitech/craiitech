@@ -7,7 +7,7 @@ import type { Submission, Comment, Unit, Cycle, Risk } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
-import { CheckCircle, Circle, Download, FileCheck, Scan, Link as LinkIcon, AlertCircle, XCircle, ChevronRight, Loader2, ArrowLeft, ShieldAlert } from 'lucide-react';
+import { CheckCircle, Circle, Download, FileCheck, Scan, Link as LinkIcon, AlertCircle, XCircle, ChevronRight, Loader2, ArrowLeft, ShieldAlert, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -512,49 +512,69 @@ export default function NewSubmissionPage() {
                         </CardContent>
                     </Card>
                 ) : (
-                    <Card className="lg:sticky top-20">
-                        <CardHeader>
-                            <CardTitle>Submit: {selectedReport}</CardTitle>
-                            <CardDescription>
-                                {submissionStatusMap.get(selectedReport)
-                                    ? `A report has already been submitted for your unit. You can update it by submitting again.`
-                                    : `Fill out the form below to submit this report for your unit.`}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {showUpdateDialog === selectedReport && !showFormForUpdate ? (
-                                <AlertDialog open={true} onOpenChange={(open) => !open && setShowUpdateDialog(null)}>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Update Confirmation</AlertDialogTitle>
+                    <div className="space-y-6">
+                        {/* Informative alert for Final Cycle ROR even if not blocked */}
+                        {selectedReport === 'Risk and Opportunity Registry' && selectedCycle === 'final' && isFirstCycleRorComplete && (
+                            <Alert className="bg-primary/5 border-primary/20 animate-in slide-in-from-top-2 duration-500">
+                                <Info className="h-5 w-5 text-primary" />
+                                <AlertTitle className="font-black uppercase text-primary tracking-tight">Post-Treatment Update Required</AlertTitle>
+                                <AlertDescription className="space-y-4 pt-1">
+                                    <p className="text-xs font-bold leading-relaxed">
+                                        Before uploading your formal registry document, please ensure each individual entry in the Digital Risk Register has been updated with its **Final Assessment (Post-Treatment Analysis)**.
+                                    </p>
+                                    <Button size="sm" asChild className="h-8 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">
+                                        <Link href="/risk-register?highlightSection=4">
+                                            Update Digital Register Now
+                                        </Link>
+                                    </Button>
+                                </AlertDescription>
+                            </Alert>
+                        )}
+
+                        <Card className="lg:sticky top-20">
+                            <CardHeader>
+                                <CardTitle>Submit: {selectedReport}</CardTitle>
+                                <CardDescription>
+                                    {submissionStatusMap.get(selectedReport)
+                                        ? `A report has already been submitted for your unit. You can update it by submitting again.`
+                                        : `Fill out the form below to submit this report for your unit.`}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {showUpdateDialog === selectedReport && !showFormForUpdate ? (
+                                    <AlertDialog open={true} onOpenChange={(open) => !open && setShowUpdateDialog(null)}>
+                                        <AlertDialogContent>
                                             <AlertDialogHeader>
-                                                <AlertDialogDescription>
-                                                    A submission for this report was made in the First Cycle. Are there any updates for the Final Cycle?
-                                                </AlertDialogDescription>
+                                                <AlertDialogTitle>Update Confirmation</AlertDialogTitle>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogDescription>
+                                                        A submission for this report was made in the First Cycle. Are there any updates for the Final Cycle?
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
                                             </AlertDialogHeader>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel onClick={handleCarryOverSubmission} disabled={isCarryingOver}>
-                                                {isCarryingOver && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                                No, No Updates
-                                            </AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => setShowFormForUpdate(true)}>
-                                                Yes, I Have Updates
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            ) : (
-                                <SubmissionForm
-                                    reportType={selectedReport}
-                                    year={selectedYear}
-                                    cycleId={selectedCycle}
-                                    onSuccess={handleFormSuccess}
-                                    key={`${selectedReport}-${selectedYear}-${selectedCycle}`}
-                                />
-                            )}
-                        </CardContent>
-                    </Card>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel onClick={handleCarryOverSubmission} disabled={isCarryingOver}>
+                                                    {isCarryingOver && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                                    No, No Updates
+                                                </AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => setShowFormForUpdate(true)}>
+                                                    Yes, I Have Updates
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                ) : (
+                                    <SubmissionForm
+                                        reportType={selectedReport}
+                                        year={selectedYear}
+                                        cycleId={selectedCycle}
+                                        onSuccess={handleFormSuccess}
+                                        key={`${selectedReport}-${selectedYear}-${selectedCycle}`}
+                                    />
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
                 )
             ) : (
                  <Card className="lg:sticky top-20 flex items-center justify-center h-96">

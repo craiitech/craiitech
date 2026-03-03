@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -47,6 +46,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { suggestRiskTreatment } from '@/ai/flows/suggest-treatment-flow';
 import { Separator } from '../ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { useSearchParams } from 'next/navigation';
 
 interface RiskFormDialogProps {
   isOpen: boolean;
@@ -160,6 +160,7 @@ export function RiskFormDialog({
   const { user, userProfile, isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [activeRisk, setActiveRisk] = useState<Risk | null>(initialRisk);
@@ -181,6 +182,8 @@ export function RiskFormDialog({
       adminUnitId: defaultUnitId || userProfile?.unitId || '',
     },
   });
+
+  const shouldHighlightFinal = searchParams.get('highlightSection') === '4';
 
   const watchYear = form.watch('year');
   const selectedAdminCampusId = form.watch('adminCampusId');
@@ -653,7 +656,7 @@ export function RiskFormDialog({
                                     <div className="bg-primary text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">4</div>
                                     Final Assessment (Post-Treatment Analysis)
                                 </h3>
-                                <Card className="border-blue-200 bg-blue-50/5 shadow-md">
+                                <Card className={cn("border-blue-200 bg-blue-50/5 shadow-md transition-all duration-1000", shouldHighlightFinal && "animate-blink-primary")}>
                                     <CardHeader className="bg-blue-50/50 border-b py-4">
                                         <CardTitle className="text-sm font-black uppercase text-blue-800">Final Execution & Impact Verification</CardTitle>
                                         <CardDescription className="text-xs">Re-assess the likelihood and consequence after implementation of the action plan.</CardDescription>
