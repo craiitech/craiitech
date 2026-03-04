@@ -5,7 +5,26 @@ import type { Submission, Unit, Campus, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Loader2, Building, Eye, School, Trash2, Download, Filter, Calendar as CalendarIcon, PieChart as PieIcon, AlertTriangle, CheckCircle2, FileWarning, Printer, LayoutList } from 'lucide-react';
+import { 
+    Loader2, 
+    Building, 
+    Eye, 
+    School, 
+    Trash2, 
+    Download, 
+    Filter, 
+    Calendar as CalendarIcon, 
+    PieChart as PieIcon, 
+    AlertTriangle, 
+    CheckCircle2, 
+    FileWarning, 
+    Printer, 
+    LayoutList,
+    ChevronLeft,
+    ChevronRight,
+    PanelLeftClose,
+    PanelLeftOpen
+} from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -99,6 +118,7 @@ export function CampusSubmissionsView({
   const { userProfile, isAuditor, isVp } = useUser();
   const [selectedCampusId, setSelectedCampusId] = useState<string | null>(null);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   const isInstitutionalViewer = isGlobalAdmin || isAuditor || isVp;
 
@@ -374,9 +394,13 @@ export function CampusSubmissionsView({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-1">
-            <ScrollArea className="h-[75vh] rounded-md border bg-muted/5">
+        <div className="flex flex-col md:flex-row gap-6 h-[75vh]">
+          {/* Collapsible Sidebar */}
+          <div className={cn(
+            "transition-all duration-300 overflow-hidden flex flex-col gap-2",
+            isSidebarVisible ? "w-full md:w-1/3 opacity-100" : "w-0 opacity-0 md:-ml-6"
+          )}>
+            <ScrollArea className="flex-1 rounded-md border bg-muted/5">
                  {campusesToShow.length > 0 ? (
                     <Accordion type="single" collapsible value={selectedCampusId || ''} onValueChange={handleCampusSelect}>
                         {campusesToShow.map(campus => (
@@ -425,8 +449,20 @@ export function CampusSubmissionsView({
             </ScrollArea>
           </div>
 
-          <div className="md:col-span-2">
-            <ScrollArea className="h-[75vh] rounded-md border p-4 bg-muted/5">
+          {/* Main Content Area */}
+          <div className="flex-1 min-w-0 flex flex-col relative">
+            {/* Toggle Button */}
+            <Button
+                variant="secondary"
+                size="icon"
+                className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden md:flex hover:bg-primary hover:text-white transition-colors"
+                onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+                title={isSidebarVisible ? "Hide Unit List" : "Show Unit List"}
+            >
+                {isSidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </Button>
+
+            <ScrollArea className="flex-1 rounded-md border p-4 bg-muted/5">
                 {selectedCampusId && !selectedUnitId && (
                     <div className="h-full flex flex-col items-center justify-center text-center gap-6 p-8 animate-in fade-in zoom-in duration-500">
                         <div className="bg-primary/5 h-24 w-24 rounded-full flex items-center justify-center">
