@@ -116,7 +116,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       (firebaseUser) => {
         if (firebaseUser) {
-          setUserAuthState({ user: firebaseUser, isAuthLoading: false, userError: null });
+          setUserAuthState({ user: firebaseUser, iAuthLoading: false, userError: null });
         } else {
           // User is logged out
           setUserAuthState({ user: null, isAuthLoading: false, userError: null });
@@ -169,8 +169,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const isVp = !!userRole?.toLowerCase().includes('vice president');
     const isAuditor = !!userRole?.toLowerCase().includes('auditor');
     
-    // CRITICAL: Aligned with Firestore Security Rules Regex: (?i).*(director|odimo|admin|vice president).*
-    const supervisorRolesRegex = /(director|odimo|admin|vice president)/i;
+    // CRITICAL: Aligned with new requirements - Unit ODIMO is NOT a supervisor/approver
+    const supervisorRolesRegex = /^(Campus Director|Campus ODIMO|Vice President.*|Director.*)$/i;
     const isSupervisor = isAdmin || (userRole ? supervisorRolesRegex.test(userRole) : false) || isVp;
 
     const mainCampus = campuses?.find(c => c.name === 'Main Campus');

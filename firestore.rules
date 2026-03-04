@@ -21,6 +21,7 @@ service cloud.firestore {
 
     /**
      * Role Hierarchy Checks
+     * Update: Only Campus and Admin roles are supervisors for approval purposes.
      */
     function isAdmin() {
       return isSignedIn() && (
@@ -34,7 +35,7 @@ service cloud.firestore {
     }
 
     function isSupervisor() {
-      return isSignedIn() && hasProfile() && profile().get('role', '').matches('(?i).*(director|odimo|vice president|chair|dean|admin).*');
+      return isSignedIn() && hasProfile() && profile().get('role', '').matches('(?i)^(Campus Director|Campus ODIMO|Admin|Vice President.*|Director.*)$');
     }
 
     // --------------------------------------------------------------------------

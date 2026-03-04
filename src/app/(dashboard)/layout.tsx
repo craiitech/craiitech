@@ -115,18 +115,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return query(submissionsCollection, where('statusId', '==', 'submitted'));
     }
 
+    // Only Campus-level supervisors see submissions to approve
     if (isSupervisor) {
         if (userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president')) {
             if (!userProfile.campusId) return null;
             return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
         }
-        
-        // Unit ODIMOs see submissions from their unit that need their approval
-        if (userRole === 'Unit ODIMO') {
-            return query(submissionsCollection, where('unitId', '==', userProfile.unitId), where('statusId', '==', 'submitted'));
-        }
     }
     
+    // Regular users (Coordinators and Unit ODIMOs) see their own rejections
     return query(submissionsCollection, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
   }
 
@@ -137,14 +134,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!notifications) return 0;
     if (isAdmin) return notifications.length;
     if (isSupervisor && userProfile) {
-        // Supervisors usually see others' work, but for Unit ODIMO we show unit-wide submissions to evaluate
-        if (userRole === 'Unit ODIMO') {
-            return notifications.filter(s => s.userId !== userProfile.id).length;
-        }
         return notifications.filter(s => s.userId !== userProfile.id).length;
     }
     return notifications.length;
-  }, [notifications, userProfile, isAdmin, isSupervisor, userRole]);
+  }, [notifications, userProfile, isAdmin, isSupervisor]);
 
 
   const userLocation = useMemo(() => {

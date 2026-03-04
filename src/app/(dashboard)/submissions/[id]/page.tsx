@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
@@ -224,23 +223,16 @@ export default function SubmissionDetailPage() {
     ? submission.googleDriveLink.replace('/view', '/preview').replace('?usp=sharing', '')
     : '');
 
-  const getFormattedDate = (date: any) => {
-    if (!date) return '';
-    if (date instanceof Timestamp) {
-      return format(date.toDate(), 'MMMM d, yyyy, h:mm a');
-    }
-    const d = new Date(date);
-    if (!isNaN(d.getTime())) {
-      return format(d, 'MMMM d, yyyy, h:mm a');
-    }
-    return 'Invalid Date';
-  };
-  
-  const isApprover = 
-    submission &&
-    userProfile && 
-    submission.userId !== userProfile.id &&
-    isSupervisor;
+  // CRITICAL: Aligned with new requirements - Only Admin, Campus Director, Campus ODIMO, and VP can approve
+  const isApprover = useMemo(() => {
+    if (!submission || !userProfile || !userRole) return false;
+    if (submission.userId === userProfile.id) return false; // Cannot approve own
+    
+    const approverRoles = ['Admin', 'Campus Director', 'Campus ODIMO'];
+    const roleIsApprover = approverRoles.includes(userRole) || userRole.toLowerCase().includes('vice president');
+    
+    return roleIsApprover;
+  }, [submission, userProfile, userRole]);
   
   const isSubmitter = user && submission && user.uid === submission.userId;
 
@@ -264,11 +256,7 @@ export default function SubmissionDetailPage() {
     updateDoc(submissionDocRef, updateData)
         .then(() => {
             toast({ title: 'Success', description: 'Submission has been approved.' });
-            if (isSupervisor) {
-                router.push('/approvals');
-            } else {
-                router.push('/submissions');
-            }
+            router.back();
         })
         .catch(error => {
             console.error('Error approving submission', error);
@@ -325,9 +313,7 @@ export default function SubmissionDetailPage() {
         .then(() => {
           toast({ title: 'Success', description: 'Submission has been rejected.' });
           setFeedback('');
-           if (isSupervisor) {
-                router.push('/approvals');
-            }
+          router.back();
         })
         .catch(error => {
            console.error('Error rejecting submission', error);

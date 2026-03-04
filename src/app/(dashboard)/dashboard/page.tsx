@@ -126,8 +126,8 @@ export default function HomePage() {
 
   const canViewCampusAnnouncements = userProfile?.campusId;
 
-  // Campus Level Supervisor excludes Unit ODIMO because they are assigned to a specific unit and perform submissions
-  const isCampusSupervisor = isSupervisor && !isAdmin && userRole !== 'Unit ODIMO';
+  // Campus Level Supervisor excludes Unit ODIMO because they are restricted to submission only
+  const isCampusSupervisor = isSupervisor && !isAdmin;
 
   // Fetch submissions based on role
   const submissionsQuery = useMemoFirebase(() => {
@@ -510,7 +510,6 @@ export default function HomePage() {
     <Tabs defaultValue="overview" className="space-y-4">
       <TabsList className="grid grid-cols-2 md:inline-flex md:h-10 md:w-auto h-auto">
         <TabsTrigger value="overview">Overview</TabsTrigger>
-        {userRole === 'Unit ODIMO' && <TabsTrigger value="approvals">Approvals</TabsTrigger>}
         <TabsTrigger value="actions">Submission Checklist</TabsTrigger>
         <TabsTrigger value="history">History</TabsTrigger>
       </TabsList>
@@ -558,32 +557,6 @@ export default function HomePage() {
           </Card>
         </div>
       </TabsContent>
-
-      {userRole === 'Unit ODIMO' && (
-        <TabsContent value="approvals" className="space-y-4">
-          <Card>
-            <CardHeader><CardTitle>Unit Approvals</CardTitle><CardDescription>Submissions from your unit awaiting your evaluation.</CardDescription></CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader><TableRow><TableHead>Submitter</TableHead><TableHead>Report</TableHead><TableHead>Date</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {submissions?.filter(s => s.statusId === 'submitted' && s.userId !== userProfile?.id && s.year === selectedYear).map((submission) => (
-                    <TableRow key={submission.id}>
-                      <TableCell>{allUsersMap.get(submission.userId)?.firstName} {allUsersMap.get(submission.userId)?.lastName}</TableCell>
-                      <TableCell>{submission.reportType}</TableCell>
-                      <TableCell>{format(submission.submissionDate, 'PP')}</TableCell>
-                      <TableCell className="text-right"><Button variant="outline" size="sm" onClick={() => router.push(`/submissions/${submission.id}`)}><ClipboardCheck className="mr-2 h-4 w-4" /> Evaluate Submission</Button></TableCell>
-                    </TableRow>
-                  ))}
-                  {submissions?.filter(s => s.statusId === 'submitted' && s.userId !== userProfile?.id && s.year === selectedYear).length === 0 && (
-                    <TableRow><TableCell colSpan={4} className="h-24 text-center">No submissions pending evaluation for {selectedYear}.</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      )}
 
       <TabsContent value="actions" className="space-y-4">
         <Card>
@@ -696,11 +669,11 @@ export default function HomePage() {
                     <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
                 </div>
                 <ComplianceHeatmap units={unitsInCampus} submissions={submissions || []} selectedYear={selectedYear} />
-                <Card className="col-span-4"><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from your campus.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
+                <Card className="col-span-4"><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from your campus.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent>
             </div>
             <div className="lg:col-span-3 space-y-4">
                 <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
-                 <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from your campus.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent></Card>
+                 <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from your campus.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent>
                 {selectedDetail && (<UnitSubmissionDetailCard unitId={selectedDetail.unitId} campusId={selectedDetail.campusId} allUnits={allUnits} allSubmissions={submissions} onClose={() => setSelectedDetail(null)} onViewSubmission={(id) => router.push(`/submissions/${id}`)} selectedYear={selectedYear} />)}
             </div>
         </div>
