@@ -36,6 +36,24 @@ interface CampusNoticeProps {
  * NOTICE OF NON-COMPLIANCE TEMPLATE (UNIT LEVEL)
  */
 export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst, missingFinal, qaoDirector, qmsHead }: NoticeProps) {
+  const isPresident = unitName.toLowerCase().includes('president');
+  const isVP = unitName.toLowerCase().includes('vice president');
+  const isMainCampus = campusName.toLowerCase().includes('main campus');
+
+  let forLine = '';
+  let thruLine: string | null = null;
+
+  if (isPresident) {
+    forLine = "OFFICE OF THE UNIVERSITY PRESIDENT";
+  } else if (isVP) {
+    forLine = unitName.toUpperCase();
+  } else if (isMainCampus) {
+    forLine = `THE UNIT HEAD / DIRECTOR / DEAN / PROGRAM CHAIR, ${unitName.toUpperCase()}`;
+  } else {
+    forLine = `UNIT COORDINATORS / DEPARTMENT HEAD / PROGRAM CHAIRS, ${unitName.toUpperCase()}`;
+    thruLine = `THE CAMPUS DIRECTOR, ${campusName.toUpperCase()}`;
+  }
+
   return (
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed">
       {/* Institutional Header */}
@@ -55,16 +73,22 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
 
       <div className="space-y-4 mb-10">
         <div className="grid grid-cols-12 gap-2">
-            <span className="col-span-2 font-bold uppercase">FOR:</span>
-            <span className="col-span-10 font-bold uppercase">THE HEAD / DIRECTOR, {unitName}</span>
+            <span className="col-span-2 font-bold uppercase text-xs">FOR:</span>
+            <span className="col-span-10 font-bold uppercase text-xs">{forLine}</span>
         </div>
-        <div className="grid grid-cols-12 gap-2 border-b border-black pb-4">
-            <span className="col-span-2 font-bold uppercase">THRU:</span>
-            <span className="col-span-10 font-bold uppercase">THE CAMPUS DIRECTOR, {campusName}</span>
-        </div>
+        
+        {thruLine ? (
+            <div className="grid grid-cols-12 gap-2 border-b border-black pb-4">
+                <span className="col-span-2 font-bold uppercase text-xs">THRU:</span>
+                <span className="col-span-10 font-bold uppercase text-xs">{thruLine}</span>
+            </div>
+        ) : (
+            <div className="border-b border-black pb-4" />
+        )}
+
         <div className="grid grid-cols-12 gap-2 pt-2">
-            <span className="col-span-2 font-bold uppercase">SUBJECT:</span>
-            <span className="col-span-10 font-black uppercase underline">NOTICE OF NON-COMPLIANCE (EOMS DOCUMENTATION)</span>
+            <span className="col-span-2 font-bold uppercase text-xs">SUBJECT:</span>
+            <span className="col-span-10 font-black uppercase underline text-xs">NOTICE OF NON-COMPLIANCE (EOMS DOCUMENTATION)</span>
         </div>
       </div>
 
