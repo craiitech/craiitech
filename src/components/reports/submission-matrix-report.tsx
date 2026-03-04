@@ -100,6 +100,7 @@ const MatrixPrintView = ({ data, year }: { data: MatrixData, year: number }) => 
     <div style={{ marginTop: '30px', borderTop: '1px solid #000', paddingTop: '10px', fontSize: '9px', fontStyle: 'italic', color: '#444' }}>
       <p>Status Key: ✔ = Submitted & Approved | ✘ = Missing / Pending | N/A = Not Required for Cycle</p>
       <p>This is a system-generated document issued by the RSU EOMS Portal.</p>
+      <p style={{ fontWeight: 'bold', marginTop: '10px' }}>This is a system-generated report; signature is not required.</p>
     </div>
   </div>
 );
@@ -177,7 +178,7 @@ export function SubmissionMatrixReport({
       <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-muted/10 border-b py-6">
         <div className="min-w-0 pr-4">
           <CardTitle className="text-xl font-black uppercase tracking-tight">Institutional Submission Matrix</CardTitle>
-          <CardDescription className="max-w-xl text-xs font-medium">
+          <CardDescription className="max-xl text-xs font-medium">
             Cross-sectional compliance summary for {selectedYear}. <Check className="inline h-3 w-3 text-green-500" /> Approved, <X className="inline h-3 w-3 text-red-500" /> Missing, "N/A" Not Applicable.
           </CardDescription>
         </div>

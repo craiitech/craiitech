@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -115,6 +114,11 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
         </div>
       </div>
 
+      {/* System Generated Note */}
+      <div className="mt-8 text-center text-[9px] font-bold italic text-slate-500">
+        This is a system-generated report; signature is not required.
+      </div>
+
       <div className="mt-16 text-[9px] text-slate-400 italic border-t pt-4 flex justify-between">
         <span>RSU-QAO-FOR-022 | Rev 00</span>
         <span>Issued via RSU EOMS Portal</span>
@@ -177,6 +181,11 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
                 <div className="w-full h-px bg-black my-1" />
                 <p className="text-xs uppercase font-black tracking-widest text-slate-600">Director, Quality Assurance Office</p>
             </div>
+        </div>
+
+        {/* System Generated Note */}
+        <div className="mt-8 text-center text-[9px] font-bold italic text-slate-500">
+            This is a system-generated report; signature is not required.
         </div>
 
         <div className="mt-auto pt-8 flex justify-between items-end text-[9px] text-slate-400 uppercase font-bold tracking-tighter">
@@ -299,6 +308,11 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, uni
         </div>
       </div>
 
+      {/* System Generated Note */}
+      <div className="mt-8 text-center text-[9px] font-bold italic text-slate-500">
+        This is a system-generated report; signature is not required.
+      </div>
+
       <div className="mt-16 text-[9px] text-slate-400 italic border-t pt-4 flex justify-between">
         <span>RSU-QAO-FOR-024 | REV 00</span>
         <span>Issued via RSU EOMS Portal</span>
@@ -361,6 +375,11 @@ export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, units 
                 <div className="w-full h-px bg-black my-1" />
                 <p className="text-xs uppercase font-black tracking-widest text-slate-600">Director, Quality Assurance Office</p>
             </div>
+        </div>
+
+        {/* System Generated Note */}
+        <div className="mt-8 text-center text-[9px] font-bold italic text-slate-500">
+            This is a system-generated report; signature is not required.
         </div>
 
         <div className="mt-auto pt-8 flex justify-between items-end text-[9px] text-slate-400 uppercase font-bold tracking-tighter">

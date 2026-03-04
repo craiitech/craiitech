@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -287,6 +286,11 @@ export function CARPrintTemplate({ car, unitName, campusName }: CARPrintTemplate
         <div className="text-right">
           <span>Date Received: ________________</span>
         </div>
+      </div>
+
+      {/* System Generated Note */}
+      <div className="mt-4 text-center text-[9px] font-bold italic text-slate-500">
+        This is a system-generated report; signature is not required.
       </div>
 
       {/* Form Identifier */}

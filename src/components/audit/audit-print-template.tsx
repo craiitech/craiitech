@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -170,6 +169,11 @@ export function AuditPrintTemplate({ schedule, findings, clauses, plan }: AuditP
           </div>
           <p className="text-[9px] uppercase font-black text-slate-500">Unit Head / Director</p>
         </div>
+      </div>
+
+      {/* System Generated Note */}
+      <div className="mt-8 text-center text-[9px] font-bold italic text-slate-500">
+        This is a system-generated report; signature is not required.
       </div>
 
       {/* Pagination & Control Footer */}
