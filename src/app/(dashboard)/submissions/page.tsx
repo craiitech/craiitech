@@ -48,6 +48,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UnitSubmissionsView } from '@/components/submissions/unit-submissions-view';
 import { CampusSubmissionsView } from '@/components/submissions/campus-submissions-view';
 import { SubmissionDashboard } from '@/components/submissions/submission-dashboard';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { cn, normalizeReportType } from '@/lib/utils';
 import { submissionTypes } from './new/page';
