@@ -6,7 +6,7 @@ import type { Submission, Unit, Campus, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Loader2, Building, Eye, School, Trash2, Download, Filter, Calendar as CalendarIcon, PieChart as PieIcon, AlertTriangle, CheckCircle2, FileWarning, Printer } from 'lucide-react';
+import { Loader2, Building, Eye, School, Trash2, Download, Filter, Calendar as CalendarIcon, PieChart as PieIcon, AlertTriangle, CheckCircle2, FileWarning, Printer, LayoutList } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -26,7 +26,7 @@ import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { NoticeOfCompliance, NoticeOfNonCompliance } from './notices-print-templates';
+import { NoticeOfCompliance, NoticeOfNonCompliance, CampusNoticeOfCompliance, CampusNoticeOfNonCompliance } from './notices-print-templates';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
@@ -253,6 +253,97 @@ export function CampusSubmissionsView({
     }
   };
 
+  /**
+   * CAMPUS LEVEL PRINTING
+   */
+  const handlePrintCampusNotice = () => {
+    if (!selectedCampusId || !allUnits || !allSubmissions || !allCampuses) return;
+
+    const campus = allCampuses.find(c => c.id === selectedCampusId);
+    const campusUnits = allUnits.filter(u => u.campusIds?.includes(selectedCampusId));
+
+    const processedUnits = campusUnits.map(unit => {
+        const unitSubs = allSubmissions.filter(s => s.unitId === unit.id && s.campusId === selectedCampusId && s.year.toString() === selectedYear);
+        const firstRegistry = unitSubs.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
+        const finalRegistry = unitSubs.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
+        
+        const isFirstNA = firstRegistry?.riskRating === 'low';
+        const isFinalNA = finalRegistry?.riskRating === 'low';
+
+        const getMissing = (cycleId: 'first' | 'final', isNA: boolean) => {
+            const approved = new Set(unitSubs.filter(s => s.cycleId === cycleId && s.statusId === 'approved').map(s => s.reportType));
+            return submissionTypes.filter(type => {
+                if (approved.has(type)) return false;
+                if (type === 'Risk and Opportunity Action Plan' && isNA) return false;
+                return true;
+            });
+        };
+
+        const missingFirst = getMissing('first', isFirstNA);
+        const missingFinal = getMissing('final', isFinalNA);
+        const approvedCount = unitSubs.filter(s => s.statusId === 'approved').length;
+        const totalPossible = (submissionTypes.length * 2) - (isFirstNA ? 1 : 0) - (isFinalNA ? 1 : 0);
+        const score = Math.round((approvedCount / (totalPossible || 1)) * 100);
+
+        return {
+            name: unit.name,
+            score,
+            approvedCount,
+            totalPossible,
+            missingFirst,
+            missingFinal
+        };
+    });
+
+    const isFullyCompliant = processedUnits.every(u => u.score === 100);
+    const qaoDirector = signatories?.qaoDirector || 'DR. MARVIN RICK G. FORCADO';
+
+    const props = {
+        campusName: campus?.name || 'Unknown Campus',
+        year: Number(selectedYear),
+        qaoDirector,
+        units: processedUnits
+    };
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            isFullyCompliant ? <CampusNoticeOfCompliance {...props} /> : <CampusNoticeOfNonCompliance {...props} />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Campus Status Notice - ${props.campusName}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @media print { 
+                            body { margin: 0; padding: 0; background: white; } 
+                            .no-print { display: none !important; }
+                        }
+                        body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Consolidated Campus Report</button>
+                    </div>
+                    <div id="print-content">
+                        ${reportHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) {
+        console.error("Print error:", err);
+    }
+  };
+
   if (isLoading) {
     return (
         <div className="flex justify-center items-center h-64">
@@ -338,6 +429,30 @@ export function CampusSubmissionsView({
 
           <div className="md:col-span-2">
             <ScrollArea className="h-[75vh] rounded-md border p-4 bg-muted/5">
+                {selectedCampusId && !selectedUnitId && (
+                    <div className="h-full flex flex-col items-center justify-center text-center gap-6 p-8 animate-in fade-in zoom-in duration-500">
+                        <div className="bg-primary/5 h-24 w-24 rounded-full flex items-center justify-center">
+                            <School className="h-12 w-12 text-primary opacity-40" />
+                        </div>
+                        <div className="space-y-2">
+                            <h3 className="font-black text-xl uppercase tracking-tight text-slate-900">
+                                {campusesToShow.find(c => c.id === selectedCampusId)?.name}
+                            </h3>
+                            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                                You have selected a campus site. You can monitor individual units from the tree on the left, or generate a consolidated site-wide report below.
+                            </p>
+                        </div>
+                        <Button 
+                            variant="default" 
+                            className="h-12 px-8 font-black uppercase tracking-widest shadow-xl shadow-primary/20 gap-3"
+                            onClick={handlePrintCampusNotice}
+                        >
+                            <LayoutList className="h-5 w-5" />
+                            Print Campus Status Notice
+                        </Button>
+                    </div>
+                )}
+
                 {selectedUnitId && unitData ? (
                     <div className="space-y-8 pb-10">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
@@ -492,12 +607,12 @@ export function CampusSubmissionsView({
                             </div>
                         </div>
                     </div>
-                ) : (
+                ) : !selectedCampusId ? (
                     <div className="flex flex-col items-center justify-center h-full text-center gap-2 text-muted-foreground">
                         <Building className="h-12 w-12 opacity-10" />
-                        <p className="text-sm font-medium">Select a unit from the site tree to view report history and performance metrics.</p>
+                        <p className="text-sm font-medium">Select a campus from the tree to begin monitoring.</p>
                     </div>
-                )}
+                ) : null}
             </ScrollArea>
           </div>
         </div>
