@@ -126,12 +126,17 @@ export default function HomePage() {
 
   const canViewCampusAnnouncements = userProfile?.campusId;
 
+  // Campus Level Supervisor excludes Unit ODIMO because they are assigned to a specific unit and perform submissions
+  const isCampusSupervisor = isSupervisor && !isAdmin && userRole !== 'Unit ODIMO';
+
   // Fetch submissions based on role
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     if (isAdmin) return collection(firestore, 'submissions');
     if (!userProfile) return null;
-    if (isSupervisor) {
+    
+    // Campus level supervisors get everything in their campus
+    if (isCampusSupervisor) {
       if (userProfile.campusId) {
         return query(
           collection(firestore, 'submissions'),
@@ -140,12 +145,14 @@ export default function HomePage() {
       }
       return null;
     }
+    
+    // Unit level users (Coordinators and Unit ODIMOs) get their unit's submissions
     return query(
       collection(firestore, 'submissions'),
       where('unitId', '==', userProfile.unitId),
       where('campusId', '==', userProfile.campusId)
     );
-  }, [firestore, userProfile, isAdmin, isSupervisor]);
+  }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
 
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
@@ -166,7 +173,7 @@ export default function HomePage() {
     if (!firestore || !userProfile) return null;
     const baseRisksQuery = collection(firestore, 'risks');
     if (isAdmin) return baseRisksQuery;
-    if (isSupervisor) {
+    if (isCampusSupervisor) {
         if (userProfile.campusId) return query(baseRisksQuery, where('campusId', '==', userProfile.campusId));
         return null; 
     }
@@ -174,7 +181,7 @@ export default function HomePage() {
         return query(baseRisksQuery, where('unitId', '==', userProfile.unitId), where('campusId', '==', userProfile.campusId));
     }
     return null; 
-  }, [firestore, userProfile, isAdmin, isSupervisor]);
+  }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
@@ -186,10 +193,10 @@ export default function HomePage() {
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     if (isAdmin) return collection(firestore, 'users');
-    if (isSupervisor && userProfile?.campusId) return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
+    if (isCampusSupervisor && userProfile?.campusId) return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
     if (userProfile) return query(collection(firestore, 'users'), where('id', '==', userProfile.id));
     return null;
-  }, [firestore, isAdmin, isSupervisor, userProfile]);
+  }, [firestore, isAdmin, isCampusSupervisor, userProfile]);
 
   const { data: allUsersData, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
 
@@ -266,8 +273,6 @@ export default function HomePage() {
       return allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
   }, [allUnits, userProfile]);
 
-    const isCampusSupervisor = isSupervisor && !isAdmin;
-
   const schedulesQuery = useMemoFirebase(() => {
     if (!firestore || userRole !== 'Auditor' || !user) return null;
     return query(collection(firestore, 'auditSchedules'), where('auditorId', '==', user.uid));
@@ -315,7 +320,7 @@ export default function HomePage() {
           icon: <Users className="h-6 w-6 text-primary" />,
         },
       };
-    } else if (isSupervisor) {
+    } else if (isCampusSupervisor) {
       const totalRequired = unitsInCampus.length * TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT;
       const approvedSubmissionsCount = new Set(
         yearSubmissions
@@ -397,7 +402,7 @@ export default function HomePage() {
             },
         };
     }
-  }, [submissions, isSupervisor, isAdmin, allUsersMap, userProfile, unitsInCampus, selectedYear, userRole, mySchedules]);
+  }, [submissions, isCampusSupervisor, isAdmin, allUsersMap, userProfile, unitsInCampus, selectedYear, userRole, mySchedules]);
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
     const emptyResult = { firstCycleStatusMap: new Map<string, Submission>(), finalCycleStatusMap: new Map<string, Submission>() };
@@ -687,8 +692,8 @@ export default function HomePage() {
                     {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
-                    <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isSupervisor} selectedYear={selectedYear} />
-                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
+                    <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
+                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
                 </div>
                 <ComplianceHeatmap units={unitsInCampus} submissions={submissions || []} selectedYear={selectedYear} />
                 <Card className="col-span-4"><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from your campus.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
@@ -707,7 +712,7 @@ export default function HomePage() {
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
       </TabsContent>
        <TabsContent value="users" className="space-y-4">
-        {isSupervisor && (<UnitUserOverview allUsers={Array.from(allUsersMap.values())} allUnits={allUnits} isLoading={isLoading} userProfile={userProfile} />)}
+        {isCampusSupervisor && (<UnitUserOverview allUsers={Array.from(allUsersMap.values())} allUnits={allUnits} isLoading={isLoading} userProfile={userProfile} />)}
       </TabsContent>
        <TabsContent value="strategic" className="space-y-6">
         <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={mrOutputs || []} selectedYear={selectedYear} />
@@ -736,13 +741,14 @@ export default function HomePage() {
             <div className="lg:col-span-2 space-y-4">
                  <IncompleteCampusSubmissions allSubmissions={submissions} allCampuses={campuses} allUnits={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} />
                 <div className="grid gap-4 md:grid-cols-2">
-                    <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isSupervisor} selectedYear={selectedYear} />
-                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
+                    <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
+                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
                 </div>
                 <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={mrOutputs || []} selectedYear={selectedYear} />
             </div>
              <div className="lg:col-span-1 space-y-4">
-                <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
+                <Trophy className="h-5 w-5 text-yellow-500" />
+                <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
                 <Card><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from all users.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
                  <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from all users.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent></Card>
             </div>
@@ -768,7 +774,7 @@ export default function HomePage() {
     if (isLoading) return (<div className="space-y-4"><div className="grid gap-4 md:grid-cols-3"><Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" /></div><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7"><Skeleton className="col-span-4 h-80" /><Skeleton className="col-span-3 h-80" /></div></div>);
     if (isAdmin) return renderAdminHome();
     if (userRole === 'Auditor') return renderAuditorHome();
-    if (isSupervisor) return renderSupervisorHome();
+    if (isCampusSupervisor) return renderSupervisorHome();
     return renderUnitUserHome();
   };
   
@@ -799,7 +805,7 @@ export default function HomePage() {
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><MessageSquare />Communications Board</CardTitle><CardDescription>Important announcements from campus and system administrators.</CardDescription></CardHeader>
             <CardContent className="flex flex-col gap-4">
-              {globalAnnouncement && isGlobalAnnouncementVisible && (<Alert><Globe className="h-4 w-4" /><AlertTitle>Global Announcement</AlertTitle><AlertDescription>{globalAnnouncement}</AlertDescription><AlertCloseButton onClick={() => setIsGlobalAnnouncementVisible(false)} /></Alert>)}
+              {globalAnnouncement && isGlobalAnnouncementVisible && (<Alert><Globe className="h-4 w-4" /> <AlertTitle>Global Announcement</AlertTitle><AlertDescription>{globalAnnouncement}</AlertDescription><AlertCloseButton onClick={() => setIsGlobalAnnouncementVisible(false)} /></Alert>)}
               {announcement && isAnnouncementVisible && (<Alert><Megaphone className="h-4 w-4" /><AlertTitle>Campus Announcement</AlertTitle><AlertDescription>{announcement}</AlertDescription><AlertCloseButton onClick={() => setIsAnnouncementVisible(false)} /></Alert>)}
             </CardContent>
           </Card>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -121,6 +120,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             if (!userProfile.campusId) return null;
             return query(submissionsCollection, where('campusId', '==', userProfile.campusId), where('statusId', '==', 'submitted'));
         }
+        
+        // Unit ODIMOs see submissions from their unit that need their approval
+        if (userRole === 'Unit ODIMO') {
+            return query(submissionsCollection, where('unitId', '==', userProfile.unitId), where('statusId', '==', 'submitted'));
+        }
     }
     
     return query(submissionsCollection, where('userId', '==', userProfile.id), where('statusId', '==', 'rejected'));
@@ -132,9 +136,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const notificationCount = useMemo(() => {
     if (!notifications) return 0;
     if (isAdmin) return notifications.length;
-    if (isSupervisor && userProfile) return notifications.filter(s => s.userId !== userProfile.id).length;
+    if (isSupervisor && userProfile) {
+        // Supervisors usually see others' work, but for Unit ODIMO we show unit-wide submissions to evaluate
+        if (userRole === 'Unit ODIMO') {
+            return notifications.filter(s => s.userId !== userProfile.id).length;
+        }
+        return notifications.filter(s => s.userId !== userProfile.id).length;
+    }
     return notifications.length;
-  }, [notifications, userProfile, isAdmin, isSupervisor]);
+  }, [notifications, userProfile, isAdmin, isSupervisor, userRole]);
 
 
   const userLocation = useMemo(() => {
@@ -142,9 +152,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const campusName = allCampuses.find(c => c.id === userProfile.campusId)?.name;
     const unitName = allUnits.find(u => u.id === userProfile.unitId)?.name;
     let location = campusName || '';
-    if (unitName && !isSupervisor && userRole !== 'Auditor') location += ` / ${unitName}`;
+    
+    // Roles that strictly belong to a unit show both site and unit
+    const isCampusLevel = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || isAdmin || userRole?.toLowerCase().includes('vice president');
+    if (unitName && !isCampusLevel && userRole !== 'Auditor') location += ` / ${unitName}`;
     return location;
-  }, [userProfile, allCampuses, allUnits, isSupervisor, userRole]);
+  }, [userProfile, allCampuses, allUnits, userRole, isAdmin]);
 
   const displayName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : user?.displayName;
   const displayAvatar = userProfile?.avatar || user?.photoURL;

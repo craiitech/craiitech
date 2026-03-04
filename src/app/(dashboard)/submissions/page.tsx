@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter, Download, ShieldCheck, XCircle, CheckCircle2 } from 'lucide-react';
@@ -102,7 +101,7 @@ const safeFormatDate = (date: any) => {
 };
 
 export default function SubmissionsPage() {
-  const { user, userProfile, isAdmin, isAuditor, isSupervisor, isVp, isUserLoading } = useUser();
+  const { user, userProfile, isAdmin, isAuditor, isSupervisor, isVp, userRole, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -129,36 +128,36 @@ export default function SubmissionsPage() {
     if (userProfile && !isUserLoading) {
         if (!isInstitutionalViewer) {
             setCampusFilter(userProfile.campusId);
-            if (!isSupervisor) {
+            if (!isSupervisor || userRole === 'Unit ODIMO') {
                 setUnitFilter(userProfile.unitId);
             }
         }
     }
-  }, [userProfile, isInstitutionalViewer, isSupervisor, isUserLoading]);
+  }, [userProfile, isInstitutionalViewer, isSupervisor, userRole, isUserLoading]);
 
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
-    if (isAdmin || isAuditor || isVp) return collection(firestore, 'submissions');
-    if (isSupervisor && userProfile.campusId) {
+    if (isInstitutionalViewer) return collection(firestore, 'submissions');
+    if (isSupervisor && userRole !== 'Unit ODIMO' && userProfile.campusId) {
       return query(collection(firestore, 'submissions'), where('campusId', '==', userProfile.campusId));
     }
     return query(collection(firestore, 'submissions'), 
         where('unitId', '==', userProfile.unitId), 
         where('campusId', '==', userProfile.campusId)
     );
-  }, [firestore, isAdmin, isAuditor, isVp, isSupervisor, userProfile, isUserLoading]);
+  }, [firestore, isInstitutionalViewer, isSupervisor, userRole, userProfile, isUserLoading]);
 
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
   // Added risks fetch to verify registration status in the detailed log
   const risksQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
-    if (isAdmin || isAuditor || isVp) return collection(firestore, 'risks');
-    if (isSupervisor && userProfile.campusId) {
+    if (isInstitutionalViewer) return collection(firestore, 'risks');
+    if (isSupervisor && userRole !== 'Unit ODIMO' && userProfile.campusId) {
       return query(collection(firestore, 'risks'), where('campusId', '==', userProfile.campusId));
     }
     return query(collection(firestore, 'risks'), where('unitId', '==', userProfile.unitId));
-  }, [firestore, isAdmin, isAuditor, isVp, isSupervisor, userProfile, isUserLoading]);
+  }, [firestore, isInstitutionalViewer, isSupervisor, userRole, userProfile, isUserLoading]);
 
   const { data: allRisks } = useCollection<Risk>(risksQuery);
 
@@ -225,7 +224,7 @@ export default function SubmissionsPage() {
     if (!allUnits || !userProfile) return [];
     let filtered = [...allUnits];
     if (!isInstitutionalViewer) {
-        if (isSupervisor) {
+        if (isSupervisor && userRole !== 'Unit ODIMO') {
             filtered = filtered.filter(u => u.campusIds?.includes(userProfile.campusId));
         } else {
             filtered = filtered.filter(u => u.id === userProfile.unitId);
@@ -234,7 +233,7 @@ export default function SubmissionsPage() {
     if (campusFilter !== 'all') filtered = filtered.filter(u => u.campusIds?.includes(campusFilter));
     if (unitFilter !== 'all') filtered = filtered.filter(u => u.id === unitFilter);
     return filtered;
-  }, [allUnits, isInstitutionalViewer, isSupervisor, userProfile, campusFilter, unitFilter]);
+  }, [allUnits, isInstitutionalViewer, isSupervisor, userRole, userProfile, campusFilter, unitFilter]);
 
   const tableSubmissionsData = useMemo(() => {
     if (!normalizedSubmissions) return [];
@@ -280,6 +279,9 @@ export default function SubmissionsPage() {
   // Calculate a safe year for the specific status reports (site matrix/unit status)
   const reportSelectedYear = yearFilter === 'all' ? new Date().getFullYear().toString() : yearFilter;
 
+  // Unit ODIMOs can submit documents for their unit
+  const canSubmit = !isAuditor && (!isSupervisor || userRole === 'Unit ODIMO');
+
   return (
     <TooltipProvider>
       <div className="space-y-4">
@@ -313,7 +315,7 @@ export default function SubmissionsPage() {
                         <Download className="mr-2 h-4 w-4" /> Download Templates
                     </a>
                 </Button>
-                {!isSupervisor && !isAuditor && (
+                {canSubmit && (
                     <Button 
                         onClick={() => router.push('/submissions/new')}
                         className="shadow-lg shadow-primary/20 h-9 font-bold uppercase text-[10px] tracking-widest"
@@ -346,7 +348,7 @@ export default function SubmissionsPage() {
                     <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                         <Building className="h-2.5 w-2.5" /> Unit / Office
                     </label>
-                    <Select value={unitFilter} onValueChange={setUnitFilter} disabled={!isInstitutionalViewer && !isSupervisor}>
+                    <Select value={unitFilter} onValueChange={setUnitFilter} disabled={!isInstitutionalViewer && (!isSupervisor || userRole === 'Unit ODIMO')}>
                         <SelectTrigger className="h-9 text-xs bg-white">
                             <SelectValue placeholder="All Units" />
                         </SelectTrigger>
