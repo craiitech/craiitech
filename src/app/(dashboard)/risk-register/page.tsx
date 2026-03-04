@@ -17,13 +17,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { RORPrintTemplate } from '@/components/risk/ror-print-template';
+import { useToast } from '@/hooks/use-toast';
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
 export default function RiskRegisterPage() {
-    const { userProfile, isAdmin, userRole, isUserLoading, firestore, isSupervisor } = useUser();
+    const { userProfile, isAdmin, isUserLoading, firestore, isSupervisor } = useUser();
     const searchParams = useSearchParams();
+    const { toast } = useToast();
     
     // UI States
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -192,6 +194,7 @@ export default function RiskRegisterPage() {
     /**
      * UNIT-SPECIFIC PRINT LOGIC
      * Groups filtered risks by unit and generates separate forms.
+     * Optimized for 11x13 Landscape paper.
      */
     const handlePrintROR = () => {
         if (!filteredRisks.length || !userProfile) return;
@@ -235,7 +238,7 @@ export default function RiskRegisterPage() {
                         <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                         <style>
                             @media print { 
-                                @page { size: landscape; margin: 0.5cm; }
+                                @page { size: 13in 11in; margin: 0.5in; }
                                 body { margin: 0; padding: 0; background: white; } 
                                 .no-print { display: none !important; }
                                 .print-page-break { page-break-after: always; }
@@ -246,7 +249,7 @@ export default function RiskRegisterPage() {
                     </head>
                     <body>
                         <div class="no-print mb-8 flex justify-center">
-                            <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Unit Forms</button>
+                            <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Unit Forms (11x13)</button>
                         </div>
                         <div id="print-content">
                             ${reportsHtml}

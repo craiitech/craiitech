@@ -6,6 +6,8 @@ import type { Risk, Signatories } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 interface RORPrintTemplateProps {
   risks: Risk[];
@@ -37,7 +39,6 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
       {/* Institutional Header */}
       <div className="flex items-center justify-between border-b-2 border-black pb-2 mb-4">
         <div className="flex items-center gap-4">
-            {/* Left logo removed as requested */}
             <div className="text-left">
                 <p className="text-[10px] uppercase">Republic of the Philippines</p>
                 <h1 className="text-lg font-bold uppercase leading-none">Romblon State University</h1>
@@ -174,7 +175,7 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
         <div>
             <p className="text-left mb-6 text-[9px] opacity-60">Prepared by:</p>
             <div className="border-b border-black pb-1 min-h-[1.5rem] uppercase">
-                {risks[0]?.preparedBy || 'Unit Head'}
+                {risks[0]?.preparedBy || ''}
             </div>
             <p className="mt-1 text-[8px]">UNIT ODIMO</p>
         </div>
@@ -188,7 +189,7 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
         <div>
             <p className="text-left mb-6 text-[9px] opacity-60">Approved by:</p>
             <div className="border-b border-black pb-1 min-h-[1.5rem] uppercase font-black text-primary">
-                {/* Dynamic logic for Main Campus vs Others */}
+                {/* Approval Name logic handled in registration */}
             </div>
             <p className="mt-1 text-[8px]">{approverTitle}</p>
         </div>
