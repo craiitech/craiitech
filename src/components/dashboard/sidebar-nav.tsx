@@ -183,7 +183,7 @@ export function SidebarNav({
                     <span>Logout</span>
                 </SidebarMenuButton>
             </SidebarMenuItem>
-        </FinishSidebarMenu>
+        </SidebarMenu>
       </div>
     </div>
   );
