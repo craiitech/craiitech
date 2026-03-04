@@ -1,6 +1,6 @@
 'use client';
 
-import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter, Download, ShieldCheck, XCircle, CheckCircle2 } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter, Download, ShieldCheck, XCircle, CheckCircle2, ChevronRight } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -53,9 +53,6 @@ import { cn, normalizeReportType } from '@/lib/utils';
 import { submissionTypes } from './new/page';
 import Link from 'next/link';
 
-/**
- * Returns a Tailwind class string for row background based on the submission year.
- */
 const getYearCycleRowColor = (year: number, cycle: string) => {
   const isFinal = cycle.toLowerCase() === 'final';
   const colors: Record<number, { first: string, final: string }> = {
@@ -106,7 +103,7 @@ export default function SubmissionsPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const [reportTypeFilter, setReportTypeFilter] = useState<string>('all');
+  const [activeDetailedTab, setActiveDetailedTab] = useState<string>('all');
   const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString());
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [campusFilter, setCampusFilter] = useState<string>('all');
@@ -120,10 +117,8 @@ export default function SubmissionsPage() {
   const [confirmationText, setConfirmationText] = useState('');
   const [challengeText, setChallengeText] = useState('');
 
-  // Institutional Viewers can see everything across the university
   const isInstitutionalViewer = isAdmin || isAuditor || isVp;
 
-  // Sync filters with role profile upon load
   useEffect(() => {
     if (userProfile && !isUserLoading) {
         if (!isInstitutionalViewer) {
@@ -149,7 +144,6 @@ export default function SubmissionsPage() {
 
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
-  // Added risks fetch to verify registration status in the detailed log
   const risksQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
     if (isInstitutionalViewer) return collection(firestore, 'risks');
@@ -241,15 +235,19 @@ export default function SubmissionsPage() {
     if (yearFilter !== 'all') filtered = filtered.filter(s => String(s.year) === yearFilter);
     if (campusFilter !== 'all') filtered = filtered.filter(s => s.campusId === campusFilter);
     if (unitFilter !== 'all') filtered = filtered.filter(s => s.unitId === unitFilter);
-    if (reportTypeFilter !== 'all') filtered = filtered.filter(s => s.reportType === reportTypeFilter);
     if (statusFilter !== 'all') filtered = filtered.filter(s => s.statusId === statusFilter);
+    
+    // Internal Tab Filtering
+    if (activeDetailedTab !== 'all') {
+        filtered = filtered.filter(s => s.reportType === activeDetailedTab);
+    }
 
     return filtered.sort((a, b) => {
         const dateA = a.submissionDate instanceof Timestamp ? a.submissionDate.toMillis() : new Date(a.submissionDate).getTime();
         const dateB = b.submissionDate instanceof Timestamp ? b.submissionDate.toMillis() : new Date(b.submissionDate).getTime();
         return sortOrder === 'recent' ? dateB - dateA : dateA - dateB;
     });
-  }, [normalizedSubmissions, reportTypeFilter, yearFilter, statusFilter, campusFilter, unitFilter, sortOrder]);
+  }, [normalizedSubmissions, activeDetailedTab, yearFilter, statusFilter, campusFilter, unitFilter, sortOrder]);
 
   const isRiskRegistered = (unitId: string, year: number) => {
     if (!allRisks) return false;
@@ -276,10 +274,7 @@ export default function SubmissionsPage() {
     }
   }
 
-  // Calculate a safe year for the specific status reports (site matrix/unit status)
   const reportSelectedYear = yearFilter === 'all' ? new Date().getFullYear().toString() : yearFilter;
-
-  // Unit ODIMOs can submit documents for their unit
   const canSubmit = !isAuditor && (!isSupervisor || userRole === 'Unit ODIMO');
 
   return (
@@ -328,7 +323,7 @@ export default function SubmissionsPage() {
         </div>
 
         <Card className="border-primary/10 shadow-sm bg-muted/10">
-            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
                 <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                         <School className="h-2.5 w-2.5" /> Campus Site
@@ -361,22 +356,7 @@ export default function SubmissionsPage() {
 
                 <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                        <FileText className="h-2.5 w-2.5" /> Report Type
-                    </label>
-                    <Select value={reportTypeFilter} onValueChange={setReportTypeFilter}>
-                        <SelectTrigger className="h-9 text-xs bg-white">
-                            <SelectValue placeholder="All Reports" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Reports</SelectItem>
-                            {submissionTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                        <Filter className="h-2.5 w-2.5" /> Status
+                        <Filter className="h-2.5 w-2.5" /> Filter by Workflow Status
                     </label>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                         <SelectTrigger className="h-9 text-xs bg-white">
@@ -399,7 +379,7 @@ export default function SubmissionsPage() {
                     <BarChart3 className="h-4 w-4" /> Visual Insights
                 </TabsTrigger>
                 <TabsTrigger value="all-submissions" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
-                    <List className="h-4 w-4" /> Detailed Log
+                    <List className="h-4 w-4" /> Detailed Audit Log
                 </TabsTrigger>
                 {!isInstitutionalViewer && <TabsTrigger value="by-unit" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">Unit Status</TabsTrigger>}
                 {isInstitutionalViewer && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">Site Matrix</TabsTrigger>}
@@ -414,153 +394,174 @@ export default function SubmissionsPage() {
                 />
             </TabsContent>
 
-            <TabsContent value="all-submissions" className="animate-in fade-in duration-500">
-                <Card className="shadow-md border-primary/10 overflow-hidden">
-                    <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4 border-b bg-muted/5">
-                        <div className="space-y-1">
-                            <CardTitle className="text-lg uppercase font-black tracking-tight text-slate-900">Submission Audit Log</CardTitle>
-                            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                                Displaying {tableSubmissionsData.length} records matching the current filters.
-                            </CardDescription>
-                        </div>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="h-8 text-[10px] font-black uppercase tracking-widest gap-2 bg-white"
-                            onClick={() => setSortOrder(sortOrder === 'recent' ? 'oldest' : 'recent')}
-                        >
-                            <ArrowUpDown className="h-3.5 w-3.5 text-primary" />
-                            Sort: {sortOrder === 'recent' ? 'Recent First' : 'Oldest First'}
-                        </Button>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        {isLoadingSubmissions ? (
-                            <div className="flex justify-center items-center h-48">
-                                <Loader2 className="animate-spin h-8 w-8 text-primary opacity-20" />
-                            </div>
-                        ) : tableSubmissionsData.length > 0 ? (
-                            <Table>
-                                <TableHeader className="bg-muted/30">
-                                    <TableRow className="hover:bg-transparent">
-                                        <TableHead className="font-bold uppercase text-[10px] pl-6 py-3 text-slate-900">Report & Control Info</TableHead>
-                                        <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Origin Unit / Office</TableHead>
-                                        <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Uploader</TableHead>
-                                        <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Submission Date</TableHead>
-                                        <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Status</TableHead>
-                                        <TableHead className="text-right font-bold uppercase text-[10px] py-3 pr-6 text-slate-900">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {tableSubmissionsData.map((sub) => {
-                                        const isRor = sub.reportType === 'Risk and Opportunity Registry';
-                                        const registered = isRor && isRiskRegistered(sub.unitId, sub.year);
-                                        
-                                        return (
-                                            <TableRow 
-                                                key={sub.id} 
-                                                className={cn("transition-colors group", getYearCycleRowColor(sub.year, sub.cycleId))}
-                                            >
-                                                <TableCell className="pl-6 py-4">
-                                                    <div className="flex flex-col gap-1.5">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-bold text-sm text-black">{sub.reportType}</span>
-                                                            {isRor && (
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <div>
-                                                                            {registered ? (
-                                                                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 h-4 px-1.5 font-black text-[8px] gap-1 animate-in zoom-in duration-300">
-                                                                                    <CheckCircle2 className="h-2.5 w-2.5" /> LOG
-                                                                                </Badge>
-                                                                            ) : (
-                                                                                <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 h-4 px-1.5 font-black text-[8px] gap-1">
-                                                                                    <XCircle className="h-2.5 w-2.5" /> X
-                                                                                </Badge>
-                                                                            )}
-                                                                        </div>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        <p className="text-xs font-bold">
-                                                                            {registered 
-                                                                                ? "Entries present in digital register" 
-                                                                                : "No digital entries logged for this unit/year"}
-                                                                        </p>
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            )}
-                                                        </div>
-                                                        <span className="text-[9px] text-slate-600 font-mono uppercase tracking-tighter">
-                                                            {sub.cycleId} Cycle {sub.year} &bull; {sub.controlNumber}
-                                                        </span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col text-xs">
-                                                        <span className="flex items-center gap-1 font-bold text-black"><Building className="h-3 w-3 text-primary/60" /> {sub.unitName}</span>
-                                                        <span className="flex items-center gap-1 text-slate-600 text-[10px] font-medium uppercase tracking-tighter"><School className="h-3 w-3" /> {campusMap.get(sub.campusId) || '...'}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-xs">
-                                                    <div className="flex items-center gap-2">
-                                                        <User className="h-3.5 w-3.5 text-slate-600 opacity-40" />
-                                                        <span className="font-bold text-black">{userMap.get(sub.userId) || '...'}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-xs">
-                                                    <div className="flex items-center gap-1 font-bold text-black">
-                                                        <CalendarIcon className="h-3 w-3 opacity-50" /> 
-                                                        {safeFormatDate(sub.submissionDate)}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge 
-                                                        className={cn(
-                                                            "capitalize font-black text-[9px] px-2 py-0.5 shadow-sm border-none",
-                                                            sub.statusId === 'approved' && "bg-emerald-600 text-white",
-                                                            sub.statusId === 'rejected' && "bg-rose-600 text-white",
-                                                            sub.statusId === 'submitted' && "bg-amber-500 text-amber-950",
-                                                            sub.statusId === 'pending' && "bg-slate-50 text-white"
-                                                        )}
-                                                    >
-                                                        {sub.statusId === 'submitted' ? 'AWAITING APPROVAL' : (sub.statusId?.toUpperCase() || 'UNKNOWN')}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
-                                                    <Button 
-                                                        variant="default" 
-                                                        size="sm" 
-                                                        className="text-[10px] h-8 px-4 font-black uppercase tracking-widest bg-primary shadow-sm"
-                                                        onClick={() => router.push(`/submissions/${sub.id}`)}
-                                                    >
-                                                        VIEW
-                                                    </Button>
-                                                    {isAdmin && (
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="icon" 
-                                                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                            onClick={() => onDeleteClick(sub)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    )}
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        ) : (
-                            <div className="py-24 text-center text-muted-foreground flex flex-col items-center gap-3 border-t border-dashed bg-muted/5">
-                                <FileText className="h-12 w-12 opacity-10" />
-                                <p className="font-bold text-xs uppercase tracking-widest">No matching records</p>
-                                <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold" onClick={() => { setCampusFilter('all'); setUnitFilter('all'); setReportTypeFilter('all'); setStatusFilter('all'); }}>
-                                    Clear all filters
+            <TabsContent value="all-submissions" className="animate-in fade-in duration-500 space-y-4">
+                <Tabs value={activeDetailedTab} onValueChange={setActiveDetailedTab} className="w-full">
+                    <ScrollArea className="w-full">
+                        <TabsList className="bg-muted/30 p-1 border h-auto flex whitespace-nowrap">
+                            <TabsTrigger value="all" className="text-[9px] font-black uppercase px-4 py-2">All Documents</TabsTrigger>
+                            {submissionTypes.map((type) => (
+                                <TabsTrigger 
+                                    key={type} 
+                                    value={type} 
+                                    className="text-[9px] font-black uppercase px-4 py-2"
+                                >
+                                    {type.replace('Needs and Expectation of Interested Parties', 'Interested Parties')}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                    </ScrollArea>
+
+                    <TabsContent value={activeDetailedTab} className="mt-4">
+                        <Card className="shadow-md border-primary/10 overflow-hidden">
+                            <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4 border-b bg-muted/5">
+                                <div className="space-y-1">
+                                    <CardTitle className="text-lg uppercase font-black tracking-tight text-slate-900">
+                                        {activeDetailedTab === 'all' ? 'Submission Audit Log' : activeDetailedTab}
+                                    </CardTitle>
+                                    <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                        Displaying {tableSubmissionsData.length} records matching selection.
+                                    </CardDescription>
+                                </div>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 text-[10px] font-black uppercase tracking-widest gap-2 bg-white"
+                                    onClick={() => setSortOrder(sortOrder === 'recent' ? 'oldest' : 'recent')}
+                                >
+                                    <ArrowUpDown className="h-3.5 w-3.5 text-primary" />
+                                    Sort: {sortOrder === 'recent' ? 'Recent First' : 'Oldest First'}
                                 </Button>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {isLoadingSubmissions ? (
+                                    <div className="flex justify-center items-center h-48">
+                                        <Loader2 className="animate-spin h-8 w-8 text-primary opacity-20" />
+                                    </div>
+                                ) : tableSubmissionsData.length > 0 ? (
+                                    <Table>
+                                        <TableHeader className="bg-muted/30">
+                                            <TableRow className="hover:bg-transparent">
+                                                <TableHead className="font-bold uppercase text-[10px] pl-6 py-3 text-slate-900">Report & Control Info</TableHead>
+                                                <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Origin Unit / Office</TableHead>
+                                                <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Uploader</TableHead>
+                                                <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Submission Date</TableHead>
+                                                <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Status</TableHead>
+                                                <TableHead className="text-right font-bold uppercase text-[10px] py-3 pr-6 text-slate-900">Actions</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {tableSubmissionsData.map((sub) => {
+                                                const isRor = sub.reportType === 'Risk and Opportunity Registry';
+                                                const registered = isRor && isRiskRegistered(sub.unitId, sub.year);
+                                                
+                                                return (
+                                                    <TableRow 
+                                                        key={sub.id} 
+                                                        className={cn("transition-colors group", getYearCycleRowColor(sub.year, sub.cycleId))}
+                                                    >
+                                                        <TableCell className="pl-6 py-4">
+                                                            <div className="flex flex-col gap-1.5">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-bold text-sm text-black">{sub.reportType}</span>
+                                                                    {isRor && (
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
+                                                                                <div>
+                                                                                    {registered ? (
+                                                                                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 h-4 px-1.5 font-black text-[8px] gap-1 animate-in zoom-in duration-300">
+                                                                                            <CheckCircle2 className="h-2.5 w-2.5" /> LOG
+                                                                                        </Badge>
+                                                                                    ) : (
+                                                                                        <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 h-4 px-1.5 font-black text-[8px] gap-1">
+                                                                                            <XCircle className="h-2.5 w-2.5" /> X
+                                                                                        </Badge>
+                                                                                    )}
+                                                                                </div>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>
+                                                                                <p className="text-xs font-bold">
+                                                                                    {registered 
+                                                                                        ? "Entries present in digital register" 
+                                                                                        : "No digital entries logged for this unit/year"}
+                                                                                </p>
+                                                                            </TooltipContent>
+                                                                        </Tooltip>
+                                                                    )}
+                                                                </div>
+                                                                <span className="text-[9px] text-slate-600 font-mono uppercase tracking-tighter">
+                                                                    {sub.cycleId} Cycle {sub.year} &bull; {sub.controlNumber}
+                                                                </span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex flex-col text-xs">
+                                                                <span className="flex items-center gap-1 font-bold text-black"><Building className="h-3 w-3 text-primary/60" /> {sub.unitName}</span>
+                                                                <span className="flex items-center gap-1 text-slate-600 text-[10px] font-medium uppercase tracking-tighter"><School className="h-3 w-3" /> {campusMap.get(sub.campusId) || '...'}</span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-xs">
+                                                            <div className="flex items-center gap-2">
+                                                                <User className="h-3.5 w-3.5 text-slate-600 opacity-40" />
+                                                                <span className="font-bold text-black">{userMap.get(sub.userId) || '...'}</span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-xs">
+                                                            <div className="flex items-center gap-1 font-bold text-black">
+                                                                <CalendarIcon className="h-3 w-3 opacity-50" /> 
+                                                                {safeFormatDate(sub.submissionDate)}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge 
+                                                                className={cn(
+                                                                    "capitalize font-black text-[9px] px-2 py-0.5 shadow-sm border-none",
+                                                                    sub.statusId === 'approved' && "bg-emerald-600 text-white",
+                                                                    sub.statusId === 'rejected' && "bg-rose-600 text-white",
+                                                                    sub.statusId === 'submitted' && "bg-amber-500 text-amber-950",
+                                                                    sub.statusId === 'pending' && "bg-slate-50 text-white"
+                                                                )}
+                                                            >
+                                                                {sub.statusId === 'submitted' ? 'AWAITING APPROVAL' : (sub.statusId?.toUpperCase() || 'UNKNOWN')}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
+                                                            <Button 
+                                                                variant="default" 
+                                                                size="sm" 
+                                                                className="text-[10px] h-8 px-4 font-black uppercase tracking-widest bg-primary shadow-sm"
+                                                                onClick={() => router.push(`/submissions/${sub.id}`)}
+                                                            >
+                                                                VIEW
+                                                            </Button>
+                                                            {isAdmin && (
+                                                                <Button 
+                                                                    variant="ghost" 
+                                                                    size="icon" 
+                                                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                                    onClick={() => onDeleteClick(sub)}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                                ) : (
+                                    <div className="py-24 text-center text-muted-foreground flex flex-col items-center gap-3 border-t border-dashed bg-muted/5">
+                                        <FileText className="h-12 w-12 opacity-10" />
+                                        <p className="font-bold text-xs uppercase tracking-widest">No matching records</p>
+                                        <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold" onClick={() => setActiveDetailedTab('all')}>
+                                            View all categories
+                                        </Button>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
             </TabsContent>
             
             {!isInstitutionalViewer && (
