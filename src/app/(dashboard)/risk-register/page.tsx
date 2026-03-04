@@ -189,23 +189,40 @@ export default function RiskRegisterPage() {
         setIsFormOpen(true);
     };
 
+    /**
+     * UNIT-SPECIFIC PRINT LOGIC
+     * Groups filtered risks by unit and generates separate forms.
+     */
     const handlePrintROR = () => {
         if (!filteredRisks.length || !userProfile) return;
 
-        // Determine names for the report
-        const uName = unitFilter !== 'all' ? (unitMap.get(unitFilter) || 'Multi-Unit') : (userProfile.unitId ? unitMap.get(userProfile.unitId) : 'Various Units');
-        const cName = campusFilter !== 'all' ? (campusMap.get(campusFilter) || 'Institutional') : (campusMap.get(userProfile.campusId) || 'University-Wide');
+        // Group the currently filtered risks by unit
+        const risksByUnit: Record<string, Risk[]> = {};
+        filteredRisks.forEach(risk => {
+            if (!risksByUnit[risk.unitId]) {
+                risksByUnit[risk.unitId] = [];
+            }
+            risksByUnit[risk.unitId].push(risk);
+        });
 
         try {
-            const reportHtml = renderToStaticMarkup(
-                <RORPrintTemplate 
-                    risks={filteredRisks} 
-                    unitName={uName || ''} 
-                    campusName={cName || ''} 
-                    year={selectedYear}
-                    signatories={signatories || undefined}
-                />
-            );
+            const reportsHtml = Object.entries(risksByUnit).map(([uId, uRisks]) => {
+                const uName = unitMap.get(uId) || 'Unknown Unit';
+                const cId = uRisks[0]?.campusId;
+                const cName = campusMap.get(cId) || 'Institutional';
+                
+                return renderToStaticMarkup(
+                    <div className="print-page-break mb-12">
+                        <RORPrintTemplate 
+                            risks={uRisks} 
+                            unitName={uName} 
+                            campusName={cName} 
+                            year={selectedYear}
+                            signatories={signatories || undefined}
+                        />
+                    </div>
+                );
+            }).join('');
 
             const printWindow = window.open('', '_blank');
             if (printWindow) {
@@ -214,23 +231,25 @@ export default function RiskRegisterPage() {
                     <!DOCTYPE html>
                     <html>
                     <head>
-                        <title>ROR Report - ${selectedYear}</title>
+                        <title>ROR Units Batch - ${selectedYear}</title>
                         <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                         <style>
                             @media print { 
                                 @page { size: landscape; margin: 0.5cm; }
                                 body { margin: 0; padding: 0; background: white; } 
                                 .no-print { display: none !important; }
+                                .print-page-break { page-break-after: always; }
+                                .print-page-break:last-child { page-break-after: auto; }
                             }
                             body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
                         </style>
                     </head>
                     <body>
                         <div class="no-print mb-8 flex justify-center">
-                            <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print ROR Form</button>
+                            <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Unit Forms</button>
                         </div>
                         <div id="print-content">
-                            ${reportHtml}
+                            ${reportsHtml}
                         </div>
                     </body>
                     </html>
@@ -239,6 +258,7 @@ export default function RiskRegisterPage() {
             }
         } catch (err) {
             console.error("Print error:", err);
+            toast({ title: "Print Error", description: "Could not generate batch unit forms.", variant: "destructive" });
         }
     };
     
@@ -251,7 +271,7 @@ export default function RiskRegisterPage() {
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Risk & Opportunity Register</h2>
+            <h2 className="text-2xl font-bold tracking-tight">Risk & Opportunity Registry</h2>
             <p className="text-muted-foreground text-sm">
               A centralized module for logging, tracking, and monitoring institutional risks and opportunities.
             </p>

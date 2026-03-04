@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import type { Risk, Campus, Unit, Signatories } from '@/lib/types';
+import type { Risk, Signatories } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
