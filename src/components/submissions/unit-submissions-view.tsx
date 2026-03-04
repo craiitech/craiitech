@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -209,7 +208,8 @@ export function UnitSubmissionsView({
         missingFinal: unitData.missingFinal,
         totalApproved: unitData.approved,
         totalPossible: unitData.totalPossible,
-        qaoDirector: signatories?.qaoDirector || 'DR. MARVIN RICK G. FORCADO'
+        qaoDirector: signatories?.qaoDirector || 'DR. MARVIN RICK G. FORCADO',
+        qmsHead: signatories?.qmsHead || 'QMS Head'
     };
 
     try {

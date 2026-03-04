@@ -3,7 +3,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { FileWarning, CheckCircle2, ShieldCheck, School, LayoutList, Building2, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, ShieldCheck } from 'lucide-react';
 
 interface NoticeProps {
   unitName: string;
@@ -14,12 +14,14 @@ interface NoticeProps {
   totalApproved: number;
   totalPossible: number;
   qaoDirector: string;
+  qmsHead: string;
 }
 
 interface CampusNoticeProps {
   campusName: string;
   year: number;
   qaoDirector: string;
+  qmsHead: string;
   units: {
     name: string;
     score: number;
@@ -33,7 +35,7 @@ interface CampusNoticeProps {
 /**
  * NOTICE OF NON-COMPLIANCE TEMPLATE (UNIT LEVEL)
  */
-export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst, missingFinal, qaoDirector }: NoticeProps) {
+export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst, missingFinal, qaoDirector, qmsHead }: NoticeProps) {
   return (
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed">
       {/* Institutional Header */}
@@ -107,14 +109,19 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
         <p>For your immediate compliance and appropriate action.</p>
       </div>
 
-      <div className="mt-20">
-        <div className="w-64 text-center">
-            <div className="border-b border-black font-bold uppercase pt-8">{qaoDirector}</div>
-            <p className="text-[10px] uppercase font-bold mt-1">Director, Quality Assurance Office</p>
+      <div className="mt-20 space-y-12">
+        <div className="w-64">
+            <div className="border-b border-black font-bold uppercase text-center pb-1">{qmsHead}</div>
+            <p className="text-[10px] uppercase font-bold mt-1 text-center">Head, Quality Management System Unit</p>
+        </div>
+        
+        <div className="w-64">
+            <p className="text-[10px] font-bold uppercase mb-4">Noted by:</p>
+            <div className="border-b border-black font-bold uppercase text-center pb-1">{qaoDirector}</div>
+            <p className="text-[10px] uppercase font-bold mt-1 text-center">Director, Quality Assurance Office</p>
         </div>
       </div>
 
-      {/* System Generated Note */}
       <div className="mt-8 text-center text-[9px] font-bold italic text-slate-500">
         This is a system-generated report; signature is not required.
       </div>
@@ -130,7 +137,7 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
 /**
  * NOTICE OF COMPLIANCE TEMPLATE (UNIT LEVEL)
  */
-export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, qaoDirector }: NoticeProps) {
+export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, qaoDirector, qmsHead }: NoticeProps) {
   return (
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed border-[12px] border-double border-slate-200">
       <div className="border-2 border-slate-800 p-8 min-h-[9in] flex flex-col">
@@ -175,15 +182,17 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
             </p>
         </div>
 
-        <div className="mt-20 flex justify-center">
-            <div className="w-80 text-center">
-                <div className="font-bold text-lg uppercase">{qaoDirector}</div>
-                <div className="w-full h-px bg-black my-1" />
-                <p className="text-xs uppercase font-black tracking-widest text-slate-600">Director, Quality Assurance Office</p>
+        <div className="mt-20 grid grid-cols-2 gap-12">
+            <div className="text-center">
+                <div className="font-bold uppercase border-b border-black pb-1 mb-1">{qmsHead}</div>
+                <p className="text-[9px] uppercase font-black tracking-widest text-slate-600">Head, QMS Unit</p>
+            </div>
+            <div className="text-center">
+                <div className="font-bold uppercase border-b border-black pb-1 mb-1">{qaoDirector}</div>
+                <p className="text-[9px] uppercase font-black tracking-widest text-slate-600">Director, QAO (Noted By)</p>
             </div>
         </div>
 
-        {/* System Generated Note */}
         <div className="mt-8 text-center text-[9px] font-bold italic text-slate-500">
             This is a system-generated report; signature is not required.
         </div>
@@ -206,7 +215,7 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
 /**
  * CONSOLIDATED CAMPUS STATUS NOTICE (NON-COMPLIANCE)
  */
-export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, units }: CampusNoticeProps) {
+export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qmsHead, units }: CampusNoticeProps) {
   const nonCompliantUnits = units.filter(u => u.score < 100);
   const compliantUnits = units.filter(u => u.score === 100);
 
@@ -301,14 +310,19 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, uni
         </p>
       </div>
 
-      <div className="mt-20">
-        <div className="w-64 text-center">
-            <div className="border-b border-black font-bold uppercase pt-8">{qaoDirector}</div>
-            <p className="text-[10px] uppercase font-bold mt-1">Director, Quality Assurance Office</p>
+      <div className="mt-20 space-y-12">
+        <div className="w-64">
+            <div className="border-b border-black font-bold uppercase text-center pb-1">{qmsHead}</div>
+            <p className="text-[10px] uppercase font-bold mt-1 text-center">Head, Quality Management System Unit</p>
+        </div>
+        
+        <div className="w-64">
+            <p className="text-[10px] font-bold uppercase mb-4">Noted by:</p>
+            <div className="border-b border-black font-bold uppercase text-center pb-1">{qaoDirector}</div>
+            <p className="text-[10px] uppercase font-bold mt-1 text-center">Director, Quality Assurance Office</p>
         </div>
       </div>
 
-      {/* System Generated Note */}
       <div className="mt-8 text-center text-[9px] font-bold italic text-slate-500">
         This is a system-generated report; signature is not required.
       </div>
@@ -324,7 +338,7 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, uni
 /**
  * CONSOLIDATED CAMPUS STATUS NOTICE (COMPLIANCE)
  */
-export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, units }: CampusNoticeProps) {
+export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHead, units }: CampusNoticeProps) {
   return (
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed border-[12px] border-double border-slate-200">
       <div className="border-2 border-slate-800 p-8 min-h-[9in] flex flex-col">
@@ -369,15 +383,17 @@ export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, units 
             </p>
         </div>
 
-        <div className="mt-20 flex justify-center">
-            <div className="w-80 text-center">
-                <div className="font-bold text-lg uppercase">{qaoDirector}</div>
-                <div className="w-full h-px bg-black my-1" />
-                <p className="text-xs uppercase font-black tracking-widest text-slate-600">Director, Quality Assurance Office</p>
+        <div className="mt-20 grid grid-cols-2 gap-12">
+            <div className="text-center">
+                <div className="font-bold uppercase border-b border-black pb-1 mb-1">{qmsHead}</div>
+                <p className="text-[9px] uppercase font-black tracking-widest text-slate-600">Head, QMS Unit</p>
+            </div>
+            <div className="text-center">
+                <div className="font-bold uppercase border-b border-black pb-1 mb-1">{qaoDirector}</div>
+                <p className="text-[9px] uppercase font-black tracking-widest text-slate-600">Director, QAO (Noted By)</p>
             </div>
         </div>
 
-        {/* System Generated Note */}
         <div className="mt-8 text-center text-[9px] font-bold italic text-slate-500">
             This is a system-generated report; signature is not required.
         </div>

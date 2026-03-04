@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -222,7 +221,8 @@ export function CampusSubmissionsView({
         missingFinal: unitData.missingFinal,
         totalApproved: unitData.approved,
         totalPossible: unitData.totalPossible,
-        qaoDirector: signatories?.qaoDirector || 'DR. MARVIN RICK G. FORCADO'
+        qaoDirector: signatories?.qaoDirector || 'DR. MARVIN RICK G. FORCADO',
+        qmsHead: signatories?.qmsHead || 'QMS Head'
     };
 
     try {
@@ -305,11 +305,13 @@ export function CampusSubmissionsView({
 
     const isFullyCompliant = processedUnits.every(u => u.score === 100);
     const qaoDirector = signatories?.qaoDirector || 'DR. MARVIN RICK G. FORCADO';
+    const qmsHead = signatories?.qmsHead || 'QMS Head';
 
     const props = {
         campusName: campus?.name || 'Unknown Campus',
         year: Number(selectedYear),
         qaoDirector,
+        qmsHead,
         units: processedUnits
     };
 
