@@ -28,12 +28,16 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
   // Determine if this is a "Final" submission based on presence of post-treatment data
   const isFinal = risks.some(r => r.status === 'Closed' || (r.postTreatment && r.postTreatment.evidence));
 
+  // Signatory Logic based on Site
+  const isMainCampus = campusName.toLowerCase().includes('main campus') || campusName.toLowerCase().includes('site 1');
+  const approverTitle = isMainCampus ? 'UNIT HEAD / DIRECTOR' : 'CAMPUS DIRECTOR';
+
   return (
     <div className="p-4 text-black bg-white max-w-[13in] mx-auto font-sans leading-tight">
       {/* Institutional Header */}
       <div className="flex items-center justify-between border-b-2 border-black pb-2 mb-4">
         <div className="flex items-center gap-4">
-            <img src="/rsupage.png" alt="RSU Logo" className="h-16 w-16 object-contain" />
+            {/* Left logo removed as requested */}
             <div className="text-left">
                 <p className="text-[10px] uppercase">Republic of the Philippines</p>
                 <h1 className="text-lg font-bold uppercase leading-none">Romblon State University</h1>
@@ -172,21 +176,21 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
             <div className="border-b border-black pb-1 min-h-[1.5rem] uppercase">
                 {risks[0]?.preparedBy || 'Unit Head'}
             </div>
-            <p className="mt-1 text-[8px]">Date: ____________________</p>
+            <p className="mt-1 text-[8px]">UNIT ODIMO</p>
         </div>
         <div>
             <p className="text-left mb-6 text-[9px] opacity-60">Monitored by:</p>
             <div className="border-b border-black pb-1 min-h-[1.5rem] uppercase">
-                Campus Director / ODIMO
+                {/* Visual placeholder for signature */}
             </div>
-            <p className="mt-1 text-[8px]">Date: ____________________</p>
+            <p className="mt-1 text-[8px]">UNIT COORDINATOR</p>
         </div>
         <div>
             <p className="text-left mb-6 text-[9px] opacity-60">Approved by:</p>
             <div className="border-b border-black pb-1 min-h-[1.5rem] uppercase font-black text-primary">
-                {signatories?.qaoDirector || 'Director, QAO'}
+                {/* Dynamic logic for Main Campus vs Others */}
             </div>
-            <p className="mt-1 text-[8px]">Date: ____________________</p>
+            <p className="mt-1 text-[8px]">{approverTitle}</p>
         </div>
       </div>
 
