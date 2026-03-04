@@ -58,8 +58,8 @@ export default function Home() {
                             RSU EOMS
                         </h1>
                     </div>
-                    <p className="text-lg sm:text-xl text-white/70 max-w-2xl mx-auto">
-                        Educational Organizations Management System Submission and Monitoring Portal.
+                    <p className="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto">
+                        Educational Organizations Management System Submission and Monitoring Portal of Romblon State University - Quality Assurance Office
                     </p>
                 </div>
 
