@@ -541,7 +541,7 @@ export function SubmissionForm({
                                     In the popup window, find the <strong>"General access"</strong> section. If it says "Restricted", click on it.
                                 </li>
                                 <li>
-                                    Select <strong>"Anyone with the link"</strong> from the dropdown menu. This is critical for the QA Office to be able to view your file.
+                                    Select <strong>"Anyone with the link"</strong> from the dropdown menu. This is critical for the Quality Assurance Office to be able to view your file.
                                 </li>
                                  <li>
                                     To the right of "Anyone with the link", ensure the role is set to <strong>"Viewer"</strong>.
@@ -670,7 +670,7 @@ export function SubmissionForm({
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogAction onClick={() => router.push(`/risk-register?openForm=true&mandatory=true&link=${encodeURIComponent(lastSubmittedLink)}`)}>
+                <AlertDialogAction onClick={() => router.push(`/risk-register?openForm=true&mandatory=true&year=${year}&link=${encodeURIComponent(lastSubmittedLink)}`)}>
                     Continue to Risk Register
                 </AlertDialogAction>
             </AlertDialogFooter>

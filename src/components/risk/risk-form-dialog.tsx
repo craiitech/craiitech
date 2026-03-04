@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -222,8 +223,9 @@ export function RiskFormDialog({
         adminUnitId: r.unitId || '',
       });
     } else {
+      // For new risks, strictly reset to the year being viewed in the registry
       form.reset({
-        year: watchYear,
+        year: defaultYear || currentYear,
         objective: form.getValues('objective') || '', 
         type: 'Risk',
         description: '',

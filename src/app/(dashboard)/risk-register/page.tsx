@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,7 +36,14 @@ export default function RiskRegisterPage() {
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        if (searchParams.get('openForm') === 'true') {
+        const openFormParam = searchParams.get('openForm') === 'true';
+        const yearParam = searchParams.get('year');
+        
+        if (yearParam) {
+            setSelectedYear(Number(yearParam));
+        }
+
+        if (openFormParam) {
             setIsMandatory(searchParams.get('mandatory') === 'true');
             setRegistryLink(searchParams.get('link'));
             handleNewRisk();
