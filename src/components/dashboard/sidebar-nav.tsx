@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -88,7 +89,7 @@ export function SidebarNav({
     },
     {
       href: '/risk-register',
-      label: 'Risk Register',
+      label: 'Risk & Opportunity Registry',
       active: pathname.startsWith('/risk-register'),
       icon: <ShieldCheck />,
     },
@@ -144,8 +145,8 @@ export function SidebarNav({
       <SidebarMenu className="flex-1">
         {visibleRoutes.map((route) => (
           <SidebarMenuItem key={route.href} className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md">
-            <Link href={route.href} passHref>
-              <SidebarMenuButton as="a" isActive={route.active} icon={route.icon} {...props} className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground hover:bg-sidebar-accent">
+            <Link href={route.href} passHref legacyBehavior>
+              <SidebarMenuButton as="a" isActive={route.active} icon={route.icon} className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground hover:bg-sidebar-accent">
                 {route.label}
                 {route.href === '/approvals' && isSupervisor && notificationCount > 0 && (
                   <SidebarMenuBadge>{notificationCount}</SidebarMenuBadge>
@@ -158,7 +159,7 @@ export function SidebarNav({
       <div className="mt-auto">
          <SidebarMenu>
             <SidebarMenuItem>
-                <Link href="/help" passHref>
+                <Link href="/help" passHref legacyBehavior>
                     <SidebarMenuButton as="a" isActive={pathname.startsWith('/help')} icon={<HelpCircle/>} className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground hover:bg-sidebar-accent">
                         Help
                     </SidebarMenuButton>
