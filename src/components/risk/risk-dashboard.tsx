@@ -9,7 +9,7 @@ import {
     Pie, 
     Cell, 
     ResponsiveContainer, 
-    Tooltip, 
+    Tooltip as RechartsTooltip, 
     BarChart, 
     Bar, 
     XAxis, 
@@ -18,9 +18,7 @@ import {
     ScatterChart,
     Scatter,
     ZAxis,
-    Legend,
-    LineChart,
-    Line
+    Legend
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '../ui/skeleton';
@@ -29,7 +27,6 @@ import {
     ShieldAlert, 
     TrendingUp, 
     CheckCircle2, 
-    AlertTriangle, 
     ShieldCheck, 
     Activity, 
     Target, 
@@ -50,12 +47,6 @@ const RATING_COLORS: Record<string, string> = {
   High: 'hsl(var(--destructive))',
   Medium: 'hsl(48 96% 53%)', // Amber
   Low: 'hsl(142 71% 45%)',   // Emerald
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  Open: 'hsl(var(--destructive))',
-  'In Progress': 'hsl(var(--chart-1))',
-  Closed: 'hsl(142 71% 45%)',
 };
 
 export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardProps) {
@@ -200,7 +191,7 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
                         <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                         <XAxis type="number" hide />
                         <YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 9, fontWeight: 700 }} axisLine={false} tickLine={false} />
-                        <Tooltip content={<ChartTooltipContent />} />
+                        <RechartsTooltip content={<ChartTooltipContent />} />
                         <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '10px' }} />
                         <Bar dataKey="risks" stackId="a" fill="hsl(var(--destructive))" radius={[0, 0, 0, 0]} barSize={12} />
                         <Bar dataKey="opportunities" stackId="a" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} barSize={12} />
@@ -275,7 +266,7 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} tick={{ fontSize: 9, fontWeight: 600 }} />
                             <YAxis axisLine={false} tickLine={false} domain={[0, 25]} />
-                            <Tooltip content={<ChartTooltipContent />} />
+                            <RechartsTooltip content={<ChartTooltipContent />} />
                             <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '9px', fontWeight: 'black', textTransform: 'uppercase', paddingBottom: '20px' }} />
                             <Bar dataKey="Initial Magnitude" fill="hsl(var(--muted))" radius={[2, 2, 0, 0]} barSize={20} />
                             <Bar dataKey="Residual Magnitude" fill="hsl(142 71% 45%)" radius={[2, 2, 0, 0]} barSize={20} />
