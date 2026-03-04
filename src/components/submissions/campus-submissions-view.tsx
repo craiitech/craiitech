@@ -21,7 +21,6 @@ import {
 } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -84,6 +83,7 @@ interface CampusSubmissionsViewProps {
   isLoading: boolean;
   isAdmin: boolean;
   onDeleteClick: (submission: Submission) => void;
+  selectedYear: string;
 }
 
 export function CampusSubmissionsView({
@@ -93,13 +93,13 @@ export function CampusSubmissionsView({
   isLoading,
   isAdmin: isGlobalAdmin,
   onDeleteClick,
+  selectedYear,
 }: CampusSubmissionsViewProps) {
   const router = useRouter();
   const firestore = useFirestore();
   const { userProfile, isAuditor, isVp } = useUser();
   const [selectedCampusId, setSelectedCampusId] = useState<string | null>(null);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
-  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
 
   const isInstitutionalViewer = isGlobalAdmin || isAuditor || isVp;
 
@@ -115,13 +115,6 @@ export function CampusSubmissionsView({
         setSelectedCampusId(userProfile.campusId);
     }
   }, [userProfile, isInstitutionalViewer, selectedCampusId]);
-
-  const availableYears = useMemo(() => {
-    if (!allSubmissions) return [new Date().getFullYear().toString()];
-    const years = Array.from(new Set(allSubmissions.map(s => s.year.toString())));
-    if (years.length === 0) return [new Date().getFullYear().toString()];
-    return years.sort((a,b) => b.localeCompare(a));
-  }, [allSubmissions]);
 
   // STRICT SCOPING: Only show campuses the user is authorized to see
   const campusesToShow = useMemo(() => {
@@ -376,19 +369,6 @@ export function CampusSubmissionsView({
             <CardDescription>
             Audit scores are calculated based on <strong>Approved</strong> documents. N/A reports are excluded from performance metrics.
             </CardDescription>
-        </div>
-        <div className="flex items-center gap-2">
-            <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-muted-foreground block">View Year</label>
-                <Select value={selectedYear} onValueChange={setSelectedYear}>
-                    <SelectTrigger className="w-[120px] h-8 text-xs">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </div>
         </div>
       </CardHeader>
       <CardContent>

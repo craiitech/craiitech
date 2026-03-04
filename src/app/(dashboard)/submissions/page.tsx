@@ -277,6 +277,9 @@ export default function SubmissionsPage() {
     }
   }
 
+  // Calculate a safe year for the specific status reports (site matrix/unit status)
+  const reportSelectedYear = yearFilter === 'all' ? new Date().getFullYear().toString() : yearFilter;
+
   return (
     <TooltipProvider>
       <div className="space-y-4">
@@ -561,11 +564,12 @@ export default function SubmissionsPage() {
             {!isInstitutionalViewer && (
                 <TabsContent value="by-unit" className="animate-in fade-in duration-500">
                     <UnitSubmissionsView 
-                        allSubmissions={dashboardSubmissions} 
+                        allSubmissions={normalizedSubmissions} 
                         allUnits={allUnits} 
                         allCampuses={campuses}
                         userProfile={userProfile} 
-                        isLoading={isLoadingSubmissions} 
+                        isLoading={isLoadingSubmissions}
+                        selectedYear={reportSelectedYear}
                     />
                 </TabsContent>
             )}
@@ -573,12 +577,13 @@ export default function SubmissionsPage() {
             {isInstitutionalViewer && (
                 <TabsContent value="by-campus" className="animate-in fade-in duration-500">
                     <CampusSubmissionsView 
-                        allSubmissions={dashboardSubmissions} 
+                        allSubmissions={normalizedSubmissions} 
                         allCampuses={campuses} 
                         allUnits={allUnits} 
                         isLoading={isLoadingSubmissions} 
                         isAdmin={isAdmin} 
-                        onDeleteClick={onDeleteClick} 
+                        onDeleteClick={onDeleteClick}
+                        selectedYear={reportSelectedYear}
                     />
                 </TabsContent>
             )}

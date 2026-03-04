@@ -19,7 +19,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -82,6 +81,7 @@ interface UnitSubmissionsViewProps {
   allCampuses: Campus[] | null;
   userProfile: AppUser | null;
   isLoading: boolean;
+  selectedYear: string;
 }
 
 export function UnitSubmissionsView({
@@ -90,12 +90,12 @@ export function UnitSubmissionsView({
   allCampuses,
   userProfile,
   isLoading,
+  selectedYear,
 }: UnitSubmissionsViewProps) {
   const router = useRouter();
   const firestore = useFirestore();
   const { isAdmin } = useUser();
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
-  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
 
   const signatoryRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'system', 'signatories') : null),
@@ -109,13 +109,6 @@ export function UnitSubmissionsView({
         setSelectedUnitId(userProfile.unitId);
     }
   }, [userProfile, selectedUnitId]);
-
-  const availableYears = useMemo(() => {
-    if (!allSubmissions) return [new Date().getFullYear().toString()];
-    const years = Array.from(new Set(allSubmissions.map(s => s.year.toString())));
-    if (years.length === 0) return [new Date().getFullYear().toString()];
-    return years.sort((a,b) => b.localeCompare(a));
-  }, [allSubmissions]);
 
   const unitsToShow = useMemo(() => {
     if (!allUnits || !userProfile?.campusId) {
