@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Submission, Unit, Campus, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -27,8 +27,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } 
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { NoticeOfCompliance, NoticeOfNonCompliance, CampusNoticeOfCompliance, CampusNoticeOfNonCompliance } from './notices-print-templates';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, Timestamp } from 'firebase/firestore';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -91,20 +91,30 @@ export function CampusSubmissionsView({
   allCampuses,
   allUnits,
   isLoading,
-  isAdmin,
+  isAdmin: isGlobalAdmin,
   onDeleteClick,
 }: CampusSubmissionsViewProps) {
   const router = useRouter();
   const firestore = useFirestore();
+  const { userProfile, isAuditor, isVp } = useUser();
   const [selectedCampusId, setSelectedCampusId] = useState<string | null>(null);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+
+  const isInstitutionalViewer = isGlobalAdmin || isAuditor || isVp;
 
   const signatoryRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'system', 'signatories') : null),
     [firestore]
   );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
+  // Auto-initialize selectedCampusId for site-level users
+  useEffect(() => {
+    if (userProfile?.campusId && !isInstitutionalViewer && !selectedCampusId) {
+        setSelectedCampusId(userProfile.campusId);
+    }
+  }, [userProfile, isInstitutionalViewer, selectedCampusId]);
 
   const availableYears = useMemo(() => {
     if (!allSubmissions) return [new Date().getFullYear().toString()];
@@ -113,10 +123,14 @@ export function CampusSubmissionsView({
     return years.sort((a,b) => b.localeCompare(a));
   }, [allSubmissions]);
 
+  // STRICT SCOPING: Only show campuses the user is authorized to see
   const campusesToShow = useMemo(() => {
-    if (!allCampuses) return [];
-    return [...allCampuses].sort((a,b) => a.name.localeCompare(b.name));
-  }, [allCampuses]);
+    if (!allCampuses || !userProfile) return [];
+    if (isInstitutionalViewer) return [...allCampuses].sort((a,b) => a.name.localeCompare(b.name));
+    
+    // Non-institutional viewers only see their own campus
+    return allCampuses.filter(c => c.id === userProfile.campusId);
+  }, [allCampuses, userProfile, isInstitutionalViewer]);
   
   const unitsInSelectedCampus = useMemo(() => {
     if (!selectedCampusId || !allUnits) return [];
@@ -189,6 +203,9 @@ export function CampusSubmissionsView({
   }, [selectedUnitId, selectedCampusId, allSubmissions, selectedYear]);
   
   const handleCampusSelect = (campusId: string) => {
+    // If not institutional viewer, selection is locked to their own campus
+    if (!isInstitutionalViewer && campusId !== userProfile?.campusId) return;
+    
     setSelectedCampusId(prev => (prev === campusId ? null : campusId));
     setSelectedUnitId(null);
   }
@@ -201,6 +218,7 @@ export function CampusSubmissionsView({
     if (!unitData || !selectedUnitId || !allUnits || !selectedCampusId || !allCampuses) return;
 
     const unit = allUnits.find(u => u.id === selectedUnitId);
+    // Explicitly find the campus based on selectedCampusId to ensure context consistency
     const campus = allCampuses.find(c => c.id === selectedCampusId);
 
     const props = {
@@ -253,9 +271,6 @@ export function CampusSubmissionsView({
     }
   };
 
-  /**
-   * CAMPUS LEVEL PRINTING
-   */
   const handlePrintCampusNotice = () => {
     if (!selectedCampusId || !allUnits || !allSubmissions || !allCampuses) return;
 
@@ -386,6 +401,7 @@ export function CampusSubmissionsView({
                             <AccordionItem value={campus.id} key={campus.id} className="border-b-0">
                                 <AccordionTrigger 
                                     className="px-4 py-3 hover:no-underline hover:bg-muted/50 data-[state=open]:bg-muted/20"
+                                    disabled={!isInstitutionalViewer}
                                 >
                                     <div className="flex items-center gap-3">
                                         <School className="h-4 w-4 text-primary shrink-0" />
@@ -591,7 +607,7 @@ export function CampusSubmissionsView({
                                 <SubmissionTableForCycle 
                                     submissions={unitData.firstCycle} 
                                     onEyeClick={(id) => router.push(`/submissions/${id}`)}
-                                    isAdmin={isAdmin}
+                                    isAdmin={isGlobalAdmin}
                                     onDeleteClick={onDeleteClick}
                                 />
                             </div>
@@ -601,7 +617,7 @@ export function CampusSubmissionsView({
                                 <SubmissionTableForCycle 
                                     submissions={unitData.finalCycle} 
                                     onEyeClick={(id) => router.push(`/submissions/${id}`)}
-                                    isAdmin={isAdmin}
+                                    isAdmin={isGlobalAdmin}
                                     onDeleteClick={onDeleteClick}
                                 />
                             </div>

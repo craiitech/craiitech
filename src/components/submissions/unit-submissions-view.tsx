@@ -25,7 +25,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { NoticeOfCompliance, NoticeOfNonCompliance } from './notices-print-templates';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
 import { doc, Timestamp } from 'firebase/firestore';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -93,6 +93,7 @@ export function UnitSubmissionsView({
 }: UnitSubmissionsViewProps) {
   const router = useRouter();
   const firestore = useFirestore();
+  const { isAdmin } = useUser();
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
 
@@ -102,7 +103,7 @@ export function UnitSubmissionsView({
   );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
-  // Auto-select the unit for unit-level users
+  // Auto-select the unit for unit-level users and ensure it stays locked if not admin
   useEffect(() => {
     if (userProfile?.unitId && !selectedUnitId) {
         setSelectedUnitId(userProfile.unitId);
@@ -137,6 +138,8 @@ export function UnitSubmissionsView({
     if (!selectedUnitId || !allSubmissions || !userProfile?.campusId) {
       return null;
     }
+    
+    // STRICT SCOPING: Only look at submissions for the selected unit AND the user's campus
     const yearSubmissions = allSubmissions.filter(s => 
         s.unitId === selectedUnitId && 
         s.campusId === userProfile.campusId && 
@@ -202,7 +205,8 @@ export function UnitSubmissionsView({
     if (!unitData || !selectedUnitId || !allUnits || !userProfile || !allCampuses) return;
 
     const unit = allUnits.find(u => u.id === selectedUnitId);
-    const campus = allCampuses.find(c => unit?.campusIds?.includes(c.id));
+    // Explicitly use the user's assigned campus for the report identity
+    const campus = allCampuses.find(c => c.id === userProfile.campusId);
 
     const props = {
         unitName: unit?.name || 'Unknown Unit',
@@ -430,12 +434,12 @@ export function UnitSubmissionsView({
                         </h4>
                         <div className="space-y-3">
                             <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 uppercase text-[9px] font-black">First Submission Cycle</Badge>
-                            <SubmissionTableForCycle submissions={unitData.firstCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} />
+                            <SubmissionTableForCycle submissions={unitData.firstCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} isAdmin={isAdmin} />
                         </div>
                         
                         <div className="space-y-3">
                             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 uppercase text-[9px] font-black">Final Submission Cycle</Badge>
-                            <SubmissionTableForCycle submissions={unitData.finalCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} />
+                            <SubmissionTableForCycle submissions={unitData.finalCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} isAdmin={isAdmin} />
                         </div>
                     </div>
                 </div>
@@ -452,7 +456,15 @@ export function UnitSubmissionsView({
 }
 
 
-function SubmissionTableForCycle({ submissions, onEyeClick }: { submissions: Submission[], onEyeClick: (id: string) => void }) {
+function SubmissionTableForCycle({ 
+    submissions, 
+    onEyeClick,
+    isAdmin
+}: { 
+    submissions: Submission[], 
+    onEyeClick: (id: string) => void,
+    isAdmin: boolean
+}) {
     if (submissions.length === 0) {
         return (
             <div className="rounded-lg border border-dashed p-8 text-center bg-muted/10">
