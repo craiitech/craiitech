@@ -2,10 +2,10 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Loader2, CalendarSearch, BarChart3, List, Search, Building, Layers, Filter, Shield, TrendingUp } from 'lucide-react';
+import { PlusCircle, Loader2, CalendarSearch, BarChart3, List, Search, Building, Layers, Filter, Shield, TrendingUp, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import type { Risk, User as AppUser, Unit, Campus, Signatories } from '@/lib/types';
 import { useState, useMemo, useEffect } from 'react';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
@@ -15,6 +15,8 @@ import { useSearchParams } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { RORPrintTemplate } from '@/components/risk/ror-print-template';
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
@@ -134,6 +136,12 @@ export default function RiskRegisterPage() {
         return new Map(users.map(u => [u.id, u]));
     }, [users]);
 
+    const signatoryRef = useMemoFirebase(
+        () => (firestore ? doc(firestore, 'system', 'signatories') : null),
+        [firestore]
+    );
+    const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
     /**
      * GLOBAL FILTER LOGIC
      * Applies search filters to the retrieved scoped dataset.
@@ -180,11 +188,63 @@ export default function RiskRegisterPage() {
         setEditingRisk(risk);
         setIsFormOpen(true);
     };
+
+    const handlePrintROR = () => {
+        if (!filteredRisks.length || !userProfile) return;
+
+        // Determine names for the report
+        const uName = unitFilter !== 'all' ? (unitMap.get(unitFilter) || 'Multi-Unit') : (userProfile.unitId ? unitMap.get(userProfile.unitId) : 'Various Units');
+        const cName = campusFilter !== 'all' ? (campusMap.get(campusFilter) || 'Institutional') : (campusMap.get(userProfile.campusId) || 'University-Wide');
+
+        try {
+            const reportHtml = renderToStaticMarkup(
+                <RORPrintTemplate 
+                    risks={filteredRisks} 
+                    unitName={uName || ''} 
+                    campusName={cName || ''} 
+                    year={selectedYear}
+                    signatories={signatories || undefined}
+                />
+            );
+
+            const printWindow = window.open('', '_blank');
+            if (printWindow) {
+                printWindow.document.open();
+                printWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>ROR Report - ${selectedYear}</title>
+                        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                        <style>
+                            @media print { 
+                                @page { size: landscape; margin: 0.5cm; }
+                                body { margin: 0; padding: 0; background: white; } 
+                                .no-print { display: none !important; }
+                            }
+                            body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="no-print mb-8 flex justify-center">
+                            <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print ROR Form</button>
+                        </div>
+                        <div id="print-content">
+                            ${reportHtml}
+                        </div>
+                    </body>
+                    </html>
+                `);
+                printWindow.document.close();
+            }
+        } catch (err) {
+            console.error("Print error:", err);
+        }
+    };
     
     const isLoading = isUserLoading || isLoadingRisks || isLoadingUsers || isLoadingUnits || isLoadingCampuses;
 
     const canLogRisk = isAdmin || !isSupervisor;
-    const isInstitutionalViewer = isAdmin || (userRole && /auditor/i.test(userRole || ''));
 
   return (
     <>
@@ -192,15 +252,15 @@ export default function RiskRegisterPage() {
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Risk & Opportunity Register</h2>
-            <p className="text-muted-foreground">
-              A centralized module for logging, tracking, and monitoring risks and opportunities.
+            <p className="text-muted-foreground text-sm">
+              A centralized module for logging, tracking, and monitoring institutional risks and opportunities.
             </p>
           </div>
           <div className="flex items-center gap-2">
             <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase text-muted-foreground block text-right">Monitoring Year</label>
                 <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                    <SelectTrigger className="w-[120px] h-9">
+                    <SelectTrigger className="w-[120px] h-9 bg-white font-bold shadow-sm">
                         <CalendarSearch className="h-4 w-4 mr-2 opacity-50" />
                         <SelectValue placeholder="Year" />
                     </SelectTrigger>
@@ -209,14 +269,24 @@ export default function RiskRegisterPage() {
                     </SelectContent>
                 </Select>
             </div>
-            {canLogRisk && (
-                <div className="pt-5">
+            <div className="flex items-center gap-2 pt-5">
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handlePrintROR} 
+                    disabled={isLoading || filteredRisks.length === 0}
+                    className="h-9 bg-white shadow-sm font-bold uppercase text-[10px] tracking-widest"
+                >
+                    <Printer className="mr-2 h-4 w-4" />
+                    Print Registry
+                </Button>
+                {canLogRisk && (
                     <Button onClick={handleNewRisk} className="h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest">
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Log New Entry
                     </Button>
-                </div>
-            )}
+                )}
+            </div>
           </div>
       </div>
 
