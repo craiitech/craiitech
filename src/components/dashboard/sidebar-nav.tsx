@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   useUser,
-  useAuth,
 } from '@/firebase';
 import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, BookOpen, BookMarked, ClipboardCheck, GraduationCap, MonitorCheck, ClipboardList, FolderKanban, Megaphone } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
+import { cn } from '@/lib/utils';
 
 interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
   notificationCount: number;
@@ -141,36 +141,49 @@ export function SidebarNav({
   });
 
   return (
-    <div className="flex flex-col h-full">
+    <div className={cn("flex flex-col h-full", className)} {...props}>
       <SidebarMenu className="flex-1">
         {visibleRoutes.map((route) => (
-          <SidebarMenuItem key={route.href} className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md">
-            <Link href={route.href} passHref legacyBehavior>
-              <SidebarMenuButton as="a" isActive={route.active} icon={route.icon} className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground hover:bg-sidebar-accent">
-                {route.label}
+          <SidebarMenuItem key={route.href}>
+            <SidebarMenuButton 
+              asChild 
+              isActive={route.active} 
+              tooltip={route.label}
+              className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent"
+            >
+              <Link href={route.href}>
+                {route.icon}
+                <span>{route.label}</span>
                 {route.href === '/approvals' && isSupervisor && notificationCount > 0 && (
                   <SidebarMenuBadge>{notificationCount}</SidebarMenuBadge>
                 )}
-              </SidebarMenuButton>
-            </Link>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
       </SidebarMenu>
       <div className="mt-auto">
          <SidebarMenu>
             <SidebarMenuItem>
-                <Link href="/help" passHref legacyBehavior>
-                    <SidebarMenuButton as="a" isActive={pathname.startsWith('/help')} icon={<HelpCircle/>} className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground hover:bg-sidebar-accent">
-                        Help
-                    </SidebarMenuButton>
-                </Link>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleLogout} icon={<LogOut/>} className="hover:bg-sidebar-accent">
-                    Logout
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={pathname.startsWith('/help')}
+                  tooltip="Help"
+                  className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent"
+                >
+                  <Link href="/help">
+                    <HelpCircle />
+                    <span>Help</span>
+                  </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
-        </SidebarMenu>
+             <SidebarMenuItem>
+                <SidebarMenuButton onClick={handleLogout} tooltip="Logout" className="hover:bg-sidebar-accent">
+                    <LogOut />
+                    <span>Logout</span>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+        </FinishSidebarMenu>
       </div>
     </div>
   );
