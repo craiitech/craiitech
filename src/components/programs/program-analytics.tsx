@@ -481,48 +481,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       
-      {/* --- STRATEGIC GAPS REGISTRY --- */}
-      <Card className="border-destructive/30 bg-destructive/5 overflow-hidden shadow-md">
-          <CardHeader className="bg-destructive/10 border-b py-4">
-              <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-destructive">
-                      <ShieldAlert className="h-5 w-5 text-destructive" />
-                      <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Gaps Registry</CardTitle>
-                  </div>
-                  <Badge variant="destructive" className="animate-pulse shadow-sm h-5 text-[9px] font-black uppercase">ACTION REQUIRED</Badge>
-              </div>
-              <CardDescription className="text-xs font-medium text-destructive/70">Critical documentation deficiencies impacting maturity index for AY {selectedYear}.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0 max-h-[300px] overflow-hidden">
-              <ScrollArea className="h-full">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 divide-x divide-y divide-destructive/10">
-                      {analytics?.missingDocs.map((doc, idx) => (
-                          <div key={idx} className="p-4 space-y-2 hover:bg-white/50 transition-colors group">
-                              <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0">
-                                      <p className="text-xs font-black text-slate-900 leading-tight truncate group-hover:text-destructive transition-colors" title={doc.programName}>{doc.programName}</p>
-                                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">{doc.campusName}</p>
-                                  </div>
-                                  <Badge variant="destructive" className="h-4 text-[8px] font-black px-1.5 shrink-0">{doc.items.length} GAPS</Badge>
-                              </div>
-                              <div className="flex flex-wrap gap-1">
-                                  {doc.items.map(item => (
-                                      <Badge key={item} variant="outline" className="text-[8px] h-4 py-0 border-destructive/20 text-destructive bg-white">{item}</Badge>
-                                  ))}
-                              </div>
-                          </div>
-                      ))}
-                      {analytics?.missingDocs.length === 0 && (
-                          <div className="col-span-full py-16 text-center">
-                              <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto opacity-20 mb-3" />
-                              <p className="text-xs font-black uppercase text-slate-400">Institutional Parity Achieved</p>
-                          </div>
-                      )}
-                  </div>
-              </ScrollArea>
-          </CardContent>
-      </Card>
-
       {/* --- EXECUTIVE KPI PANEL --- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
@@ -564,6 +522,48 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             </CardContent>
         </Card>
       </div>
+
+      {/* --- STRATEGIC GAPS REGISTRY --- */}
+      <Card className="border-destructive/30 bg-destructive/5 overflow-hidden shadow-md">
+          <CardHeader className="bg-destructive/10 border-b py-4">
+              <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-destructive">
+                      <ShieldAlert className="h-5 w-5 text-destructive" />
+                      <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Gaps Registry</CardTitle>
+                  </div>
+                  <Badge variant="destructive" className="animate-pulse shadow-sm h-5 text-[9px] font-black uppercase">ACTION REQUIRED</Badge>
+              </div>
+              <CardDescription className="text-xs font-medium text-destructive/70">Critical documentation deficiencies impacting maturity index for AY {selectedYear}.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0 overflow-hidden">
+              <ScrollArea className="h-[300px]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 divide-x divide-y divide-destructive/10">
+                      {analytics?.missingDocs.map((doc, idx) => (
+                          <div key={idx} className="p-4 space-y-2 hover:bg-white/50 transition-colors group">
+                              <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                      <p className="text-xs font-black text-slate-900 leading-tight truncate group-hover:text-destructive transition-colors" title={doc.programName}>{doc.programName}</p>
+                                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">{doc.campusName}</p>
+                                  </div>
+                                  <Badge variant="destructive" className="h-4 text-[8px] font-black px-1.5 shrink-0">{doc.items.length} GAPS</Badge>
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                  {doc.items.map(item => (
+                                      <Badge key={item} variant="outline" className="text-[8px] h-4 py-0 border-destructive/20 text-destructive bg-white">{item}</Badge>
+                                  ))}
+                              </div>
+                          </div>
+                      ))}
+                      {analytics?.missingDocs.length === 0 && (
+                          <div className="col-span-full py-16 text-center">
+                              <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto opacity-20 mb-3" />
+                              <p className="text-xs font-black uppercase text-slate-400">Institutional Parity Achieved</p>
+                          </div>
+                      )}
+                  </div>
+              </ScrollArea>
+          </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
