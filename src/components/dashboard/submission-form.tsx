@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -41,7 +40,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useRouter } from 'next/navigation';
 import { debounce } from 'lodash';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { generateControlNumber } from '@/lib/utils';
+import { generateControlNumber, cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { getOfficialServerTime } from '@/lib/actions';
 import Link from 'next/link';
@@ -106,13 +105,14 @@ export function SubmissionForm({
 
   // Digital Risk Validation - Check if BOTH risks AND opportunities exist in DB before allowing submission
   const digitalRisksQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile?.unitId || !year || !isRorForm) return null;
+    const targetUnitId = isAdmin ? form.getValues('adminUnitId') : userProfile?.unitId;
+    if (!firestore || !targetUnitId || !year || !isRorForm) return null;
     return query(
       collection(firestore, 'risks'),
-      where('unitId', '==', userProfile.unitId),
+      where('unitId', '==', targetUnitId),
       where('year', '==', year)
     );
-  }, [firestore, userProfile.unitId, year, isRorForm]);
+  }, [firestore, userProfile?.unitId, year, isRorForm, isAdmin]);
 
   const { data: digitalRisks, isLoading: isLoadingDigitalRisks } = useCollection<Risk>(digitalRisksQuery);
   
@@ -120,7 +120,7 @@ export function SubmissionForm({
   const hasOpportunities = digitalRisks?.some(r => r.type === 'Opportunity');
   const isDigitalComplete = hasRisks && hasOpportunities;
 
-  const form = useForm<z.infer<typeof submissionSchema>>({
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(submissionSchema),
     defaultValues: {
       googleDriveLink: '',
