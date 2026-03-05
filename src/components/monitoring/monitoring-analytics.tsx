@@ -2,12 +2,12 @@
 
 import { useMemo } from 'react';
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, ClipboardCheck, TrendingUp, School, Building, User, Trophy } from 'lucide-react';
+import { AlertCircle, ClipboardCheck, TrendingUp, School, Building, User, Trophy, Zap, Target, BarChart3, Info } from 'lucide-react';
 
 interface MonitoringAnalyticsProps {
   records: UnitMonitoringRecord[];
@@ -126,35 +126,50 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/10">
+        <Card className="bg-primary/5 border-primary/10 flex flex-col">
             <CardHeader className="pb-2">
                 <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Visits in {selectedYear}</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
                 <div className="text-3xl font-bold">{analytics.totalVisits}</div>
             </CardContent>
+            <div className="p-3 bg-muted/10 border-t mt-auto">
+                <p className="text-[9px] text-muted-foreground italic leading-tight">
+                    <strong>Guidance:</strong> Quantifies the total volume of oversight activity conducted during the reporting period.
+                </p>
+            </div>
         </Card>
-        <Card className="bg-green-50 border-green-100">
+        <Card className="bg-green-50 border-green-100 flex flex-col">
             <CardHeader className="pb-2">
                 <CardTitle className="text-xs uppercase tracking-wider text-green-700 font-bold">Avg. Compliance</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
                 <div className="text-3xl font-bold text-green-600">{Math.round(analytics.averageCompliance)}%</div>
             </CardContent>
+            <div className="p-3 bg-green-100/20 border-t mt-auto">
+                <p className="text-[9px] text-green-800/60 italic leading-tight">
+                    <strong>Guidance:</strong> Represents the average operational quality score across all validated on-site visits.
+                </p>
+            </div>
         </Card>
-        <Card className="bg-amber-50 border-amber-100">
+        <Card className="bg-amber-50 border-amber-100 flex flex-col">
             <CardHeader className="pb-2">
                 <CardTitle className="text-xs uppercase tracking-wider text-amber-700 font-bold">Total Findings</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
                 <div className="text-3xl font-bold text-amber-600">{analytics.criticalCount}</div>
             </CardContent>
+            <div className="p-3 bg-amber-100/20 border-t mt-auto">
+                <p className="text-[9px] text-amber-800/60 italic leading-tight">
+                    <strong>Guidance:</strong> Aggregate count of identified deficiencies requiring administrative attention or updates.
+                </p>
+            </div>
         </Card>
-        <Card className="bg-blue-50 border-blue-100">
+        <Card className="bg-blue-50 border-blue-100 flex flex-col">
             <CardHeader className="pb-2">
                 <CardTitle className="text-xs uppercase tracking-wider text-blue-700 font-bold">Top Unit</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
                 <div className="text-lg font-bold text-blue-600 truncate">
                     {analytics.unitLeaderboard[0]?.name}
                 </div>
@@ -162,21 +177,26 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
                     {analytics.unitLeaderboard[0]?.campus}
                 </p>
             </CardContent>
+            <div className="p-3 bg-blue-100/20 border-t mt-auto">
+                <p className="text-[9px] text-blue-800/60 italic leading-tight">
+                    <strong>Guidance:</strong> Highlights the highest-performing entity based on objective on-site evidence logs.
+                </p>
+            </div>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between py-4">
+        <Card className="flex flex-col">
+            <CardHeader className="flex flex-row items-center justify-between py-4 bg-muted/10 border-b">
                 <div className="flex items-center gap-2">
                     <AlertCircle className="h-5 w-5 text-destructive" />
-                    <CardTitle>Top Findings & Gaps</CardTitle>
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">Top Findings & Gaps</CardTitle>
                 </div>
                 <Badge variant="destructive" className="h-6 px-3 font-black text-[10px] uppercase">
                     TOTAL GAPS: {analytics.criticalCount}
                 </Badge>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6 flex-1">
                 <ChartContainer config={{}} className="h-[350px] w-full">
                     <ResponsiveContainer>
                         <BarChart data={analytics.commonIssuesData} layout="vertical" margin={{ left: 40, right: 40 }}>
@@ -191,19 +211,27 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
                     </ResponsiveContainer>
                 </ChartContainer>
             </CardContent>
+            <div className="p-4 bg-muted/10 border-t mt-auto">
+                <div className="flex items-start gap-3">
+                    <Zap className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">
+                        <strong>Guidance for usage:</strong> Use this visualization to prioritize training and resource allocation. Frequent gaps across multiple units identify systemic weaknesses in quality standards or physical infrastructure.
+                    </p>
+                </div>
+            </div>
         </Card>
 
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between py-4">
+        <Card className="flex flex-col">
+            <CardHeader className="flex flex-row items-center justify-between py-4 bg-muted/10 border-b">
                 <div className="flex items-center gap-2">
                     <School className="h-5 w-5 text-primary" />
-                    <CardTitle>Campus Comparison</CardTitle>
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">Campus Comparison</CardTitle>
                 </div>
                 <Badge variant="secondary" className="h-6 px-3 font-black text-[10px] uppercase bg-primary text-white border-none">
                     {analytics.campusChartData.length} SITES MONITORED
                 </Badge>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6 flex-1">
                 <ChartContainer config={{}} className="h-[350px] w-full">
                     <ResponsiveContainer>
                         <BarChart data={analytics.campusChartData} margin={{ top: 20 }}>
@@ -221,18 +249,27 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
                     </ResponsiveContainer>
                 </ChartContainer>
             </CardContent>
+            <div className="p-4 bg-muted/10 border-t mt-auto">
+                <div className="flex items-start gap-3">
+                    <Target className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">
+                        <strong>Guidance for usage:</strong> Benchmarks site-level performance across the university. Large variances between campuses suggest a need for uniform adherence to the EOMS Manual and standardized facility maintenance.
+                    </p>
+                </div>
+            </div>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className="border-primary/10 shadow-lg overflow-hidden">
+        <CardHeader className="bg-primary/5 border-b py-4">
             <div className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-yellow-500" />
-                <CardTitle>Performance Leaderboard</CardTitle>
+                <CardTitle className="text-sm font-black uppercase tracking-tight">Monitoring Excellence Leaderboard</CardTitle>
             </div>
+            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Top performing units based on verified physical and documentary compliance.</CardDescription>
         </CardHeader>
-        <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {analytics.unitLeaderboard.map((unit, index) => (
                     <div key={unit.id} className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors shadow-sm">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 font-black text-primary">
@@ -241,7 +278,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
                         <div className="flex-1 min-w-0 space-y-1">
                             <div className="flex items-center justify-between gap-2">
                                 <p className="font-bold text-sm truncate">{unit.name}</p>
-                                <Badge variant="outline" className="bg-green-50 text-green-700 h-5 text-[10px]">{unit.rate}% Score</Badge>
+                                <Badge variant="outline" className="bg-green-50 text-green-700 h-5 text-[10px] font-black">{unit.rate}% Score</Badge>
                             </div>
                             <div className="flex items-center gap-4 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
                                 <span className="flex items-center gap-1"><School className="h-3 w-3" /> {unit.campus}</span>
@@ -250,6 +287,13 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
                         </div>
                     </div>
                 ))}
+            </div>
+            <Separator className="mb-4" />
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
+                <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                <p className="text-[10px] text-blue-800 leading-relaxed font-medium italic">
+                    <strong>Guidance for usage:</strong> This leaderboard promotes a culture of quality. Units appearing here consistently demonstrate mature operational processes, clean facilities (7S), and complete documentation on file.
+                </p>
             </div>
         </CardContent>
       </Card>
