@@ -419,7 +419,7 @@ export default function AcademicProgramsPage() {
                         </div>
                     </CardContent>
                     <div className="p-3 bg-blue-100/20 border-t mt-auto">
-                        <p className="text-[9px] text-blue-800/60 italic leading-tight">
+                        <p className="text-[9px] text-emerald-800/60 italic leading-tight">
                             <strong>Explanation:</strong> Verification of CHED COPC awards. Only programs with "With COPC" status are marked as compliant.
                         </p>
                     </div>
@@ -440,7 +440,7 @@ export default function AcademicProgramsPage() {
                         </div>
                     </CardContent>
                     <div className="p-3 bg-amber-100/20 border-t mt-auto">
-                        <p className="text-[9px] text-amber-800/60 italic leading-tight">
+                        <p className="text-[9px] text-emerald-800/60 italic leading-tight">
                             <strong>Explanation:</strong> Count of programs subject to PRC licensure exams. Used to prioritize quality assurance for regulated professional tracks.
                         </p>
                     </div>
@@ -452,10 +452,10 @@ export default function AcademicProgramsPage() {
                 <div className="flex items-center justify-between">
                     <TabsList className="bg-muted/50 p-1 border shadow-sm h-9">
                         <TabsTrigger value="active" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-7 data-[state=active]:bg-white">
-                            <ShieldCheck className="h-3 w-3" /> Active Offerings
+                            <ShieldCheck className="h-3 w-3" /> Active Offerings ({summaryStats.activeCount})
                         </TabsTrigger>
                         <TabsTrigger value="inactive" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-7 data-[state=active]:bg-white data-[state=active]:text-destructive">
-                            <ShieldAlert className="h-3 w-3" /> Subject for Closure
+                            <ShieldAlert className="h-3 w-3" /> Subject for Closure ({summaryStats.inactiveCount})
                         </TabsTrigger>
                     </TabsList>
                 </div>
