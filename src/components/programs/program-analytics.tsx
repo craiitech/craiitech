@@ -19,6 +19,14 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { 
+    Table, 
+    TableBody, 
+    TableCell, 
+    TableHead, 
+    TableHeader, 
+    TableRow 
+} from '@/components/ui/table';
+import { 
     Award, 
     TrendingUp, 
     Activity, 
@@ -480,7 +488,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             <CardHeader className="bg-muted/10 border-b py-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2"><Award className="h-5 w-5 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Maturity Profile</CardTitle></div>
-                    <Badge variant="secondary" className="bg-primary text-white text-[10px] font-black h-6 px-3">TOTAL: {analytics?.totalPrograms || 0}</Badge>
+                    <Badge variant="secondary" className="bg-primary text-white text-[10px] font-black h-6 px-3">OVERALL TOTAL: {analytics?.totalPrograms || 0}</Badge>
                 </div>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
@@ -506,7 +514,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             <CardHeader className="bg-muted/10 border-b py-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-emerald-600" /><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Recognition Momentum (COPC)</CardTitle></div>
-                    <Badge className="bg-emerald-600 text-white text-[10px] font-black h-6 px-3">TOTAL: {analytics?.activeCopc + (analytics?.inactiveCopc || 0)}</Badge>
+                    <Badge className="bg-emerald-600 text-white text-[10px] font-black h-6 px-3">INSTITUTIONAL TOTAL: {analytics?.activeCopc + (analytics?.inactiveCopc || 0)}</Badge>
                 </div>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
@@ -534,7 +542,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             <CardHeader className="bg-muted/10 border-b py-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle></div>
-                    <Badge variant="secondary" className="bg-amber-500 text-white text-[10px] font-black h-6 px-3">UPCOMING PIPELINE</Badge>
+                    <Badge variant="secondary" className="bg-amber-500 text-white text-[10px] font-black h-6 px-3">OVERALL PIPELINE: {analytics?.roadmapData.length || 0}</Badge>
                 </div>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
@@ -560,7 +568,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             <CardHeader className="bg-muted/10 border-b py-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2"><History className="h-5 w-5 text-emerald-600" /><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle></div>
-                    <Badge variant="secondary" className="bg-emerald-600 text-white text-[10px] font-black h-6 px-3">RECORDED SURVEYS</Badge>
+                    <Badge variant="secondary" className="bg-emerald-600 text-white text-[10px] font-black h-6 px-3">OVERALL SURVEYS: {analytics?.monitoredCount || 0}</Badge>
                 </div>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
