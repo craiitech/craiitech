@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -427,7 +428,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 <UserCircle className="h-10 w-10 opacity-80" />
                 <div>
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-70">User Perspective</p>
-                    <p className="font-bold text-sm">{isAdmin ? 'Institutional Admin' : isCampusSupervisor ? 'Campus Director' : 'Unit Coordinator'}</p>
+                    <p className="font-bold text-sm">{isAdmin ? 'Institutional Admin' : userRole === 'Campus Director' ? 'Campus Director' : 'Unit Coordinator'}</p>
                 </div>
             </div>
             <div className="p-6 flex-1 bg-white/50 backdrop-blur-sm">
@@ -737,7 +738,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     <CardDescription className="text-[10px] font-bold text-destructive/70">Missing evidence records impacting institutional parity.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
-                    <ScrollArea className="h-[500px]">
+                    <ScrollArea className="flex-1">
                         <div className="divide-y divide-destructive/10">
                             {analytics?.missingDocs.map((doc, idx) => (
                                 <div key={idx} className="p-4 space-y-2 hover:bg-white/50 transition-colors group">
