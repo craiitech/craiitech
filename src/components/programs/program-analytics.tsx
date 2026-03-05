@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useMemo } from 'react';
-import type { AcademicProgram, ProgramComplianceRecord, Campus, Unit } from '@/lib/types';
+import type { AcademicProgram, ProgramComplianceRecord, AccreditationRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { 
     BarChart, 
@@ -52,7 +53,8 @@ import {
     Target,
     Zap,
     Users,
-    ChevronRight
+    ChevronRight,
+    History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
@@ -392,6 +394,24 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         { pillar: 'Outcomes Registry', score: Math.round((filteredCompliances.filter(c => c.graduationRecords && c.graduationRecords.length > 0).length / (filteredCompliances.length || 1)) * 100), fullMark: 100 },
     ];
 
+    // 9. Achieved Accreditations per Year (Based on Date of Survey)
+    const surveysByYear: Record<string, number> = {};
+    filteredCompliances.forEach(c => {
+        const milestones = c.accreditationRecords || [];
+        milestones.forEach(m => {
+            if (m.dateOfSurvey) {
+                const yearMatch = m.dateOfSurvey.match(/\d{4}/);
+                if (yearMatch) {
+                    const year = yearMatch[0];
+                    surveysByYear[year] = (surveysByYear[year] || 0) + 1;
+                }
+            }
+        });
+    });
+    const surveysHistoryData = Object.entries(surveysByYear)
+        .map(([year, count]) => ({ year, count }))
+        .sort((a, b) => a.year.localeCompare(b.year));
+
     return { 
         accreditationSummary, 
         copcPercentage, 
@@ -402,6 +422,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         roadmapData,
         distributionSummary,
         maturityRadarData,
+        surveysHistoryData,
         totalPrograms: programs.length, 
         monitoredCount: filteredCompliances.length 
     };
@@ -416,9 +437,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         title: "Strategic Pipeline Analysis",
         text: "Programs in the 'Overdue' category represent immediate threats to the university's institutional rating. The 'Accreditation Velocity' chart helps the Planning and Development Office anticipate budgetary requirements for task force operations over the next 24-36 months."
     },
-    faculty: {
-        title: "Human Capital Sufficiency",
-        text: "Faculty Density vs. Rank determines whether a unit has the 'Depth' required for Graduate studies. High percentages of lower ranks (Instructors) in professional board programs may trigger CHED RQAT non-compliance flags."
+    history: {
+        title: "Historical Quality Output",
+        text: "Achievements per year show the university's momentum in formal quality audits. Fluctuations in these numbers often represent institutional cycles where multiple programs complete their Level 1 PSV or proceed to higher levels simultaneously."
     }
   };
 
@@ -450,7 +471,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               <CardDescription className="text-xs font-medium text-destructive/70">Critical documentation deficiencies impacting the university's institutional maturity index for AY {selectedYear}.</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-              <ScrollArea className="max-h-[300px]">
+              <ScrollArea className="flex-1">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 divide-x divide-y divide-destructive/10">
                       {analytics?.missingDocs.map((doc, idx) => (
                           <div key={idx} className="p-4 space-y-2 hover:bg-white/50 transition-colors group">
@@ -648,6 +669,41 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             </CardFooter>
         </Card>
 
+        {/* --- ACCREDITATION ACHIEVEMENT HISTORY --- */}
+        <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
+            <CardHeader className="bg-muted/10 border-b py-4">
+                <div className="flex items-center gap-2">
+                    <History className="h-5 w-5 text-emerald-600" />
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle>
+                </div>
+                <CardDescription className="text-xs">Formal surveys successfully conducted per year (Historical Data).</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 flex-1">
+                <ChartContainer config={{}} className="h-[300px] w-full">
+                    <ResponsiveContainer>
+                        <BarChart data={analytics?.surveysHistoryData}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
+                            <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
+                            <RechartsTooltip content={<ChartTooltipContent />} />
+                            <Bar dataKey="count" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} barSize={40} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+            </CardContent>
+            <CardFooter className="bg-emerald-50/50 border-t p-4 flex gap-3">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase text-emerald-800 tracking-widest">{discussionNotes.history.title}</p>
+                    <p className="text-[10px] text-emerald-700 leading-relaxed font-medium italic">
+                        {discussionNotes.history.text}
+                    </p>
+                </div>
+            </CardFooter>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* --- CAMPUS PERFORMANCE MATRIX --- */}
         <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-muted/10 border-b py-4">
@@ -702,6 +758,30 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     </p>
                 </div>
             </CardFooter>
+        </Card>
+
+        {/* --- UNIT FACULTY HEADCOUNT --- */}
+        <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col">
+            <CardHeader className="bg-muted/10 border-b py-4">
+                <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">Unit Faculty Headcount Distribution</CardTitle>
+                </div>
+                <CardDescription className="text-xs">Concentration of human resources across academic colleges.</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 flex-1">
+                <ChartContainer config={{}} className="h-[250px] w-full">
+                    <ResponsiveContainer>
+                        <BarChart data={analytics?.unitFacultySummary} layout="vertical">
+                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                            <XAxis type="number" hide />
+                            <YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 9, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                            <RechartsTooltip content={<ChartTooltipContent />} />
+                            <Bar dataKey="count" fill="hsl(var(--chart-1))" radius={[0, 4, 4, 0]} barSize={12} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+            </CardContent>
         </Card>
       </div>
 
