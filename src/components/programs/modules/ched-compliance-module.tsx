@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
@@ -5,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Calendar, Link as LinkIcon, PlusCircle, Trash2, Gavel, Layers, Info, CheckCircle2, Eye } from 'lucide-react';
+import { FileText, Calendar, Link as LinkIcon, PlusCircle, Trash2, Gavel, Layers, Info, CheckCircle2, Eye, FileX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -50,6 +51,7 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
   const boardApprovalMode = useWatch({ control, name: "ched.boardApprovalMode" }) || 'sole';
   const copcLinkVal = useWatch({ control, name: "ched.copcLink" });
   const boardApprovalLinkVal = useWatch({ control, name: "ched.boardApprovalLink" });
+  const closureLinkVal = useWatch({ control, name: "ched.closureResolutionLink" });
   const majorApprovals = useWatch({ control, name: "ched.majorBoardApprovals" }) || [];
 
   const { fields: rqatFields, append: appendRqat, remove: removeRqat } = useFieldArray({
@@ -229,7 +231,9 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                                             disabled={!canEdit} 
                                                             onBlur={(e) => {
                                                                 // Ensure we store the majorId alongside the link
-                                                                control._fields[`ched.majorBoardApprovals.${idx}.majorId`] = spec.id;
+                                                                if (control._fields) {
+                                                                    control._fields[`ched.majorBoardApprovals.${idx}.majorId`] = spec.id;
+                                                                }
                                                                 inputField.onBlur();
                                                             }}
                                                         />
@@ -242,6 +246,47 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                 </div>
                             ))}
                         </div>
+                    </div>
+                )}
+
+                {/* CLOSURE AUTHORITY SECTION - Conditional */}
+                {!program.isActive && (
+                    <div className="pt-6 border-t mt-6 space-y-4 border-destructive/20 bg-destructive/5 p-4 rounded-lg animate-in fade-in duration-500">
+                        <div className="flex items-center gap-2 text-destructive">
+                            <FileX className="h-4 w-4" />
+                            <h4 className="text-xs font-black uppercase tracking-tight">Closure Authority (BOR Resolution)</h4>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                                control={control}
+                                name="ched.closureApprovalDate"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-bold uppercase">Date of Closure Approval</FormLabel>
+                                        <FormControl><Input {...field} value={field.value || ''} type="date" className="h-9 text-xs" disabled={!canEdit} /></FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={control}
+                                name="ched.closureResolutionLink"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-bold uppercase flex items-center gap-2">
+                                            GDrive Link: Closure Resolution
+                                            {closureLinkVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                                        </FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <LinkIcon className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground" />
+                                                <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9 h-9 text-xs" disabled={!canEdit} />
+                                            </div>
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                        <GDrivePreview url={closureLinkVal} title="Closure Resolution" />
                     </div>
                 )}
             </CardContent>

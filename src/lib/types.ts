@@ -493,6 +493,8 @@ export type ProgramComplianceRecord = {
     majorBoardApprovals?: { majorId: string; link: string }[]; // Major-specific links
     programCmoLink?: string; // ADDED: Shared Program CMO
     rqatVisits?: RQATVisit[];
+    closureResolutionLink?: string; // NEW: GDrive link for closure resolution
+    closureApprovalDate?: string; // NEW: Date of closure approval
   };
 
   // Accreditation (Array for history/lifecycle tracking)
