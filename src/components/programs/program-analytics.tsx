@@ -82,19 +82,8 @@ const getYearStyle = (year: string) => {
     return YEAR_COLORS[year] || YEAR_COLORS['Default'];
 };
 
-const PILLAR_COLORS = {
-    'Authority': 'hsl(var(--chart-1))',
-    'Accreditation': 'hsl(var(--chart-2))',
-    'Faculty': 'hsl(var(--chart-3))',
-    'Curriculum': 'hsl(var(--chart-4))',
-    'Outcomes': 'hsl(var(--chart-5))'
-};
-
 export function ProgramAnalytics({ programs, compliances, campuses, units, isLoading, selectedYear }: ProgramAnalyticsProps) {
   const { userRole, isAdmin } = useUser();
-  const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
-  const isUnitViewer = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
-
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
 
@@ -150,8 +139,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     const copcWith = filteredCompliances.filter(c => c.ched?.copcStatus === 'With COPC').length;
     const copcPercentage = Math.round((copcWith / programs.length) * 100);
 
-    // 3. Faculty Rank Distribution
+    // 3. Faculty Rank Distribution & Global Alignment
     const rankMap: Record<string, number> = {};
+    let totalFacultyCount = 0;
+    let alignedFacultyCount = 0;
+
     filteredCompliances.forEach(c => {
         const allFaculty = [
             c.faculty?.dean,
@@ -163,6 +155,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         allFaculty.forEach(f => {
             const rank = f.academicRank || 'Unspecified';
             rankMap[rank] = (rankMap[rank] || 0) + 1;
+            
+            totalFacultyCount++;
+            if (f.isAlignedWithCMO === 'Aligned') {
+                alignedFacultyCount++;
+            }
         });
     });
     const facultyRankSummary = Object.entries(rankMap).map(([rank, count]) => ({ rank, count }))
@@ -373,7 +370,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     const maturityRadarData = [
         { pillar: 'Authority (COPC)', score: copcPercentage, fullMark: 100 },
         { pillar: 'Accreditation', score: Math.round((accreditationSummary.filter(s => s.level.includes('Level')).length / (accreditationSummary.length || 1)) * 100), fullMark: 100 },
-        { pillar: 'Faculty Alignment', score: Math.round((alignedFaculty / (totalFaculty || 1)) * 100), fullMark: 100 },
+        { pillar: 'Faculty Alignment', score: Math.round((alignedFacultyCount / (totalFacultyCount || 1)) * 100), fullMark: 100 },
         { pillar: 'Curriculum Notation', score: Math.round((filteredCompliances.filter(c => c.curriculumRecords?.some(cr => cr.isNotedByChed)).length / (filteredCompliances.length || 1)) * 100), fullMark: 100 },
         { pillar: 'Outcomes Registry', score: Math.round((filteredCompliances.filter(c => c.graduationRecords && c.graduationRecords.length > 0).length / (filteredCompliances.length || 1)) * 100), fullMark: 100 },
     ];
