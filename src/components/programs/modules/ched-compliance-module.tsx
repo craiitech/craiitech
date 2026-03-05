@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
@@ -6,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Calendar, Link as LinkIcon, PlusCircle, Trash2, Gavel, Layers, Info, CheckCircle2 } from 'lucide-react';
+import { FileText, Calendar, Link as LinkIcon, PlusCircle, Trash2, Gavel, Layers, Info, CheckCircle2, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -19,12 +18,39 @@ interface ChedComplianceModuleProps {
   program: AcademicProgram;
 }
 
+/**
+ * Component to render a Google Drive preview frame.
+ */
+function GDrivePreview({ url, title }: { url?: string; title: string }) {
+  if (!url || !url.startsWith('https://drive.google.com/')) return null;
+  
+  const embedUrl = url.replace('/view', '/preview').replace('?usp=sharing', '');
+
+  return (
+    <div className="mt-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-500">
+      <div className="flex items-center gap-2 px-1">
+        <Eye className="h-3 w-3 text-primary" />
+        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Document Preview: {title}</span>
+      </div>
+      <div className="aspect-[16/10] w-full rounded-lg border bg-muted overflow-hidden shadow-inner relative group">
+        <iframe
+          src={embedUrl}
+          className="absolute inset-0 h-full w-full border-none"
+          allow="autoplay"
+          title={`${title} Preview`}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleProps) {
   const { control } = useFormContext();
   
   const boardApprovalMode = useWatch({ control, name: "ched.boardApprovalMode" }) || 'sole';
   const copcLinkVal = useWatch({ control, name: "ched.copcLink" });
   const boardApprovalLinkVal = useWatch({ control, name: "ched.boardApprovalLink" });
+  const majorApprovals = useWatch({ control, name: "ched.majorBoardApprovals" }) || [];
 
   const { fields: rqatFields, append: appendRqat, remove: removeRqat } = useFieldArray({
     control,
@@ -102,6 +128,7 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                 )}
                 />
             </div>
+            <GDrivePreview url={copcLinkVal} title="COPC Certificate" />
             <FormDescription className="text-[9px]">Official CHED certification credentials for the program.</FormDescription>
           </CardContent>
         </Card>
@@ -148,34 +175,39 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                 />
 
                 {boardApprovalMode === 'sole' ? (
-                    <FormField
-                        control={control}
-                        name="ched.boardApprovalLink"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
-                                    BOR Resolution GDrive Link
-                                    {boardApprovalLinkVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}
-                                </FormLabel>
-                                <FormControl>
-                                    <div className="relative">
-                                        <LinkIcon className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground" />
-                                        <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9 h-9 text-xs" disabled={!canEdit} />
-                                    </div>
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    <div className="space-y-4">
+                        <FormField
+                            control={control}
+                            name="ched.boardApprovalLink"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
+                                        BOR Resolution GDrive Link
+                                        {boardApprovalLinkVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                                    </FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <LinkIcon className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground" />
+                                            <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9 h-9 text-xs" disabled={!canEdit} />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <GDrivePreview url={boardApprovalLinkVal} title="Institutional BOR Resolution" />
+                    </div>
                 ) : (
                     <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
                         <p className="text-[10px] font-black uppercase tracking-widest text-primary">Majors with Separate Authority</p>
                         <div className="space-y-3">
                             {program.specializations?.map((spec, idx) => (
                                 <div key={spec.id} className="p-3 rounded-lg border bg-muted/5 space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <Layers className="h-3 w-3 text-primary" />
-                                        <span className="text-xs font-bold text-slate-700">{spec.name}</span>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Layers className="h-3 w-3 text-primary" />
+                                            <span className="text-xs font-bold text-slate-700">{spec.name}</span>
+                                        </div>
                                     </div>
                                     <FormField
                                         control={control}
@@ -206,6 +238,7 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                             </FormItem>
                                         )}
                                     />
+                                    <GDrivePreview url={majorApprovals[idx]?.link} title={`BOR: ${spec.name}`} />
                                 </div>
                             ))}
                         </div>
@@ -292,6 +325,8 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                     </FormItem>
                                 )}
                             />
+
+                            <GDrivePreview url={useWatch({ control, name: `ched.rqatVisits.${index}.reportLink` })} title={`RQAT: ${useWatch({ control, name: `ched.rqatVisits.${index}.date` }) || 'Visit Report'}`} />
 
                             <FormField
                                 control={control}
