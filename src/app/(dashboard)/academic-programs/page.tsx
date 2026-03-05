@@ -229,7 +229,7 @@ export default function AcademicProgramsPage() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <GraduationCap className="h-8 w-8 text-primary" />
-            Program Monitoring
+            CHED Programs Monitoring
           </h2>
           <p className="text-muted-foreground flex items-center gap-2">
             <ShieldCheck className="h-3 w-3" />

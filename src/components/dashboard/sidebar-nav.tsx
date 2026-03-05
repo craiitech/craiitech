@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -57,7 +56,7 @@ export function SidebarNav({
     },
     {
       href: '/academic-programs',
-      label: 'Program Monitoring',
+      label: 'CHED Programs Monitoring',
       active: pathname.startsWith('/academic-programs'),
       roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <GraduationCap />,
