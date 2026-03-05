@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -38,6 +37,7 @@ import {
     School, 
     CheckCircle2,
     ShieldCheck,
+    ShieldAlert,
     Info,
     UserCircle,
     FileWarning,
