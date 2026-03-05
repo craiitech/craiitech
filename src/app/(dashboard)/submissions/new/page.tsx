@@ -8,7 +8,7 @@ import type { Submission, Comment, Unit, Cycle, Risk } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
-import { CheckCircle, Circle, Download, FileCheck, Scan, Link as LinkIcon, AlertCircle, XCircle, ChevronRight, Loader2, ArrowLeft, ShieldAlert, Info, Eye } from 'lucide-react';
+import { CheckCircle, Circle, Download, FileCheck, Scan, Link as LinkIcon, AlertCircle, XCircle, ChevronRight, Loader2, ArrowLeft, ShieldAlert, Info, Eye, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -24,14 +24,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -78,8 +70,6 @@ export default function NewSubmissionPage() {
   const [showUpdateDialog, setShowUpdateDialog] = useState<string | null>(null);
   const [isCarryingOver, setIsCarryingOver] = useState(false);
   const [showFormForUpdate, setShowFormForUpdate] = useState(false);
-  
-  const [isSampleOpen, setIsSampleOpen] = useState(false);
   
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
@@ -443,7 +433,7 @@ export default function NewSubmissionPage() {
                 <CardHeader>
                     <CardTitle>General Instructions</CardTitle>
                 </CardHeader>
-                <CardContent className="text-sm space-y-4">
+                <CardContent className="text-sm space-y-6">
                      <div className="flex items-start gap-3">
                         <Download className="h-5 w-5 text-primary flex-shrink-0 mt-1"/>
                         <div>
@@ -451,10 +441,6 @@ export default function NewSubmissionPage() {
                             <div className="flex flex-wrap items-center gap-2 mt-1">
                                 <Button variant="link" asChild className="p-0 h-auto font-bold">
                                     <Link href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank">Access templates</Link>
-                                </Button>
-                                <span className="text-muted-foreground text-[10px] opacity-50">•</span>
-                                <Button variant="link" className="p-0 h-auto font-bold text-primary flex items-center gap-1" onClick={() => setIsSampleOpen(true)}>
-                                    <Eye className="h-3 w-3" /> View Sample Format
                                 </Button>
                             </div>
                         </div>
@@ -476,6 +462,35 @@ export default function NewSubmissionPage() {
                         <div>
                             <span className="font-semibold">4. Copy and Submit Link:</span> Copy the sharing link from Google Drive and paste it into the submission form.
                         </div>
+                    </div>
+
+                    {/* DYNAMIC TEMPLATE VISUAL GUIDE */}
+                    <div className="pt-4 border-t space-y-4">
+                        <div className="flex items-center gap-2 text-primary">
+                            <ImageIcon className="h-4 w-4" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Template Visual Guide</span>
+                        </div>
+                        {selectedReport ? (
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-bold text-muted-foreground leading-tight italic">Expected format for: {selectedReport}</p>
+                                <div className="relative rounded-lg overflow-hidden shadow-md border bg-muted aspect-[1/1.4] w-full group transition-all hover:shadow-lg">
+                                    {currentTemplate && (
+                                        <Image 
+                                            src={currentTemplate.imageUrl} 
+                                            alt={currentTemplate.description} 
+                                            fill
+                                            className="object-contain p-1"
+                                            data-ai-hint={currentTemplate.imageHint}
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="p-8 rounded-lg border border-dashed bg-muted/10 text-center space-y-2">
+                                <ImageIcon className="h-8 w-8 mx-auto opacity-10" />
+                                <p className="text-[10px] font-medium text-muted-foreground">Select a report type to see the official format sample.</p>
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>
@@ -615,42 +630,6 @@ export default function NewSubmissionPage() {
             )}
         </div>
       </div>
-
-      <Dialog open={isSampleOpen} onOpenChange={setIsSampleOpen}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
-            <DialogHeader className="p-6 border-b bg-muted/30 shrink-0">
-                <div className="flex items-center gap-2 text-primary mb-1">
-                    <Eye className="h-5 w-5" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Template Visual Guide</span>
-                </div>
-                <DialogTitle className="text-xl">
-                    {selectedReport ? `Sample: ${selectedReport}` : 'General Document Standard'}
-                </DialogTitle>
-                <DialogDescription className="text-xs">
-                    This sample demonstrates the expected layout, header format, and signature placement.
-                </DialogDescription>
-            </DialogHeader>
-            <ScrollArea className="flex-1 bg-slate-100">
-                <div className="p-8 flex justify-center">
-                    {currentTemplate && (
-                        <div className="relative rounded-lg overflow-hidden shadow-2xl border bg-white max-w-2xl">
-                            <Image 
-                                src={currentTemplate.imageUrl} 
-                                alt={currentTemplate.description} 
-                                width={800} 
-                                height={1100}
-                                className="object-contain h-auto w-full"
-                                data-ai-hint={currentTemplate.imageHint}
-                            />
-                        </div>
-                    )}
-                </div>
-            </ScrollArea>
-            <DialogFooter className="p-4 border-t bg-card shrink-0">
-                <Button variant="outline" className="font-bold uppercase text-xs" onClick={() => setIsSampleOpen(false)}>Close Guide</Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <FeedbackDialog 
         isOpen={isFeedbackDialogOpen}
