@@ -149,7 +149,7 @@ export default function AcademicProgramsPage() {
    */
   const summaryStats = useMemo(() => {
     const total = filteredPrograms.length;
-    if (total === 0) return { total: 0, activeCount: 0, inactiveCount: 0, accreditedRate: 0, copcRate: 0, boardCount: 0, activeAccredited: 0, inactiveAccredited: 0, activeCopc: 0, inactiveCopc: 0 };
+    if (total === 0) return { total: 0, activeCount: 0, inactiveCount: 0, accreditedRate: 0, copcRate: 0, activeBoardCount: 0, inactiveBoardCount: 0, activeAccredited: 0, inactiveAccredited: 0, activeCopc: 0, inactiveCopc: 0 };
 
     let activeCount = 0;
     let inactiveCount = 0;
@@ -157,13 +157,12 @@ export default function AcademicProgramsPage() {
     let inactiveAccredited = 0;
     let activeCopc = 0;
     let inactiveCopc = 0;
-    let boardCount = 0;
+    let activeBoardCount = 0;
+    let inactiveBoardCount = 0;
 
     filteredPrograms.forEach(p => {
         if (p.isActive) activeCount++;
         else inactiveCount++;
-
-        if (p.isBoardProgram) boardCount++;
         
         const record = rawCompliances?.find(c => c.programId === p.id);
         const isAccredited = (rec: ProgramComplianceRecord | undefined) => {
@@ -177,9 +176,11 @@ export default function AcademicProgramsPage() {
         if (p.isActive) {
             if (isAccredited(record)) activeAccredited++;
             if (hasCopc(record)) activeCopc++;
+            if (p.isBoardProgram) activeBoardCount++;
         } else {
             if (isAccredited(record)) inactiveAccredited++;
             if (hasCopc(record)) inactiveCopc++;
+            if (p.isBoardProgram) inactiveBoardCount++;
         }
     });
 
@@ -189,7 +190,8 @@ export default function AcademicProgramsPage() {
         inactiveCount,
         accreditedRate: Math.round((activeAccredited / (activeCount || 1)) * 100),
         copcRate: Math.round((activeCopc / (activeCount || 1)) * 100),
-        boardCount,
+        activeBoardCount,
+        inactiveBoardCount,
         activeAccredited,
         inactiveAccredited,
         activeCopc,
@@ -413,8 +415,13 @@ export default function AcademicProgramsPage() {
                         <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">Professional Readiness</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-black text-amber-600 tabular-nums">{summaryStats.boardCount}</div>
-                        <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tight">Board-Regulated Programs</p>
+                        <div className="text-3xl font-black text-amber-600 tabular-nums">{summaryStats.activeBoardCount}</div>
+                        <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tight">Active Board-Regulated Programs</p>
+                        <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="outline" className="text-[8px] h-4 border-amber-200 text-amber-600 font-bold bg-white uppercase">
+                                {summaryStats.inactiveBoardCount} Inactive Board
+                            </Badge>
+                        </div>
                     </CardContent>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><Briefcase className="h-12 w-12 text-amber-600" /></div>
                 </Card>
