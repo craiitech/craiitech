@@ -35,7 +35,8 @@ import {
     Gavel,
     UserCheck,
     Briefcase,
-    CalendarDays
+    CalendarDays,
+    FileX
 } from 'lucide-react';
 import { 
     PieChart, 
@@ -63,6 +64,8 @@ import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
 import { Timestamp } from 'firebase/firestore';
 import { useUser } from '@/firebase';
+import { format } from 'date-fns';
+import { Separator } from '../ui/separator';
 
 interface ProgramPerformanceViewProps {
   program: AcademicProgram;
@@ -300,6 +303,16 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
     if (record.ched?.copcLink) docs.governance.push({ id: 'copc', title: 'CHED COPC', url: record.ched.copcLink, status: record.ched.copcStatus });
     if (record.ched?.programCmoLink) docs.governance.push({ id: 'cmo-global', title: 'Program CMO Reference', url: record.ched.programCmoLink, status: 'Standard' });
     
+    // NEW: Closure Authority Evidence
+    if (!program.isActive && record.ched?.closureResolutionLink) {
+        docs.governance.push({ 
+            id: 'bor-closure', 
+            title: 'BOR Resolution for Closure', 
+            url: record.ched.closureResolutionLink, 
+            status: record.ched.closureApprovalDate || 'Approved' 
+        });
+    }
+
     // Curriculum Docs
     (record.curriculumRecords || []).forEach((curr, idx) => {
         if (curr.notationProofLink) {
@@ -334,6 +347,56 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       
+      {/* --- TERMINAL AUTHORITY ALERT (FOR INACTIVE PROGRAMS) --- */}
+      {!program.isActive && (
+          <Card className="border-destructive bg-destructive/10 shadow-lg overflow-hidden animate-in zoom-in duration-500">
+              <div className="flex flex-col md:flex-row">
+                  <div className="p-6 bg-destructive text-white flex flex-col items-center justify-center text-center md:w-64 shrink-0">
+                      <FileX className="h-12 w-12 mb-3" />
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Terminal Authority</p>
+                      <p className="font-black text-lg leading-tight mt-1">SUBJECT FOR CLOSURE</p>
+                  </div>
+                  <div className="p-6 flex-1 bg-white">
+                      <div className="space-y-4">
+                          <div className="flex items-center gap-2">
+                              <Gavel className="h-5 w-5 text-destructive" />
+                              <h3 className="font-black text-sm uppercase text-slate-900 tracking-tight">Board Referendum for Program Closure</h3>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div className="space-y-1">
+                                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Official Approval Date</p>
+                                  <p className="text-lg font-black text-slate-800">
+                                      {record.ched?.closureApprovalDate ? format(new Date(record.ched.closureApprovalDate), 'MMMM dd, yyyy') : 'PENDING OFFICIAL RECORD'}
+                                  </p>
+                              </div>
+                              <div className="flex items-end">
+                                  {record.ched?.closureResolutionLink ? (
+                                      <Button 
+                                          variant="destructive" 
+                                          className="w-full font-black uppercase text-[10px] tracking-widest shadow-lg shadow-destructive/20 h-10"
+                                          onClick={() => setPreviewDoc({ title: 'BOR Closure Resolution', url: getEmbedUrl(record.ched!.closureResolutionLink!) })}
+                                      >
+                                          <ExternalLink className="h-4 w-4 mr-2" />
+                                          View Closure Resolution
+                                      </Button>
+                                  ) : (
+                                      <div className="w-full p-2 rounded bg-muted/50 border border-dashed flex items-center justify-center gap-2 text-[10px] font-bold text-muted-foreground uppercase italic">
+                                          <Info className="h-3.5 w-3.5" />
+                                          Evidence link not yet encoded
+                                      </div>
+                                  )}
+                              </div>
+                          </div>
+                          <Separator />
+                          <p className="text-[11px] text-muted-foreground font-medium italic leading-relaxed">
+                              This program has been officially designated for terminal closure by the University Board of Regents. No new enrollments should be accepted, and academic phase-out protocols must be strictly followed.
+                          </p>
+                      </div>
+                  </div>
+              </div>
+          </Card>
+      )}
+
       {/* --- USER PERSPECTIVE --- */}
       <Card className="border-primary/20 bg-primary/5 shadow-sm overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center">
