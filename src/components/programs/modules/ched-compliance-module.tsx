@@ -53,6 +53,7 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
   const boardApprovalLinkVal = useWatch({ control, name: "ched.boardApprovalLink" });
   const closureLinkVal = useWatch({ control, name: "ched.closureResolutionLink" });
   const majorApprovals = useWatch({ control, name: "ched.majorBoardApprovals" }) || [];
+  const rqatVisits = useWatch({ control, name: "ched.rqatVisits" }) || [];
 
   const { fields: rqatFields, append: appendRqat, remove: removeRqat } = useFieldArray({
     control,
@@ -386,7 +387,10 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                 )}
                             />
 
-                            <GDrivePreview url={useWatch({ control, name: `ched.rqatVisits.${index}.reportLink` })} title={`RQAT: ${useWatch({ control, name: `ched.rqatVisits.${index}.date` }) || 'Visit Report'}`} />
+                            <GDrivePreview 
+                                url={rqatVisits[index]?.reportLink} 
+                                title={`RQAT: ${rqatVisits[index]?.date || 'Visit Report'}`} 
+                            />
 
                             <FormField
                                 control={control}
