@@ -79,7 +79,8 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         programCmoLink: '', 
         rqatVisits: [],
         closureResolutionLink: '',
-        closureApprovalDate: ''
+        closureApprovalDate: '',
+        closureReferendumNumber: ''
       },
       accreditationRecords: [],
       curriculumRecords: [],
@@ -114,7 +115,8 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
             programCmoLink: '', 
             rqatVisits: [],
             closureResolutionLink: '',
-            closureApprovalDate: ''
+            closureApprovalDate: '',
+            closureReferendumNumber: ''
         },
         accreditationRecords: [],
         curriculumRecords: [],

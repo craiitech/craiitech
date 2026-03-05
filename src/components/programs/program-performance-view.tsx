@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -36,7 +37,8 @@ import {
     UserCheck,
     Briefcase,
     CalendarDays,
-    FileX
+    FileX,
+    Hash
 } from 'lucide-react';
 import { 
     PieChart, 
@@ -337,7 +339,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         <div className="flex flex-col items-center justify-center h-96 text-center border border-dashed rounded-2xl bg-muted/5">
             <Activity className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
             <h3 className="text-lg font-bold">No Data Recorded for AY {selectedYear}</h3>
-            <p className="text-sm text-muted-foreground max-w-sm">Please populate the compliance modules to activate decision support analytics.</p>
+            <p className="text-sm text-muted-foreground max-sm">Please populate the compliance modules to activate decision support analytics.</p>
         </div>
     );
   }
@@ -362,12 +364,21 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                               <Gavel className="h-5 w-5 text-destructive" />
                               <h3 className="font-black text-sm uppercase text-slate-900 tracking-tight">Board Referendum for Program Closure</h3>
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                               <div className="space-y-1">
                                   <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Official Approval Date</p>
                                   <p className="text-lg font-black text-slate-800">
-                                      {record.ched?.closureApprovalDate ? format(new Date(record.ched.closureApprovalDate), 'MMMM dd, yyyy') : 'PENDING OFFICIAL RECORD'}
+                                      {record.ched?.closureApprovalDate ? format(new Date(record.ched.closureApprovalDate), 'MMMM dd, yyyy') : 'PENDING'}
                                   </p>
+                              </div>
+                              <div className="space-y-1">
+                                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">BOR-Referendum No.</p>
+                                  <div className="flex items-center gap-2">
+                                      <Hash className="h-4 w-4 text-primary" />
+                                      <p className="text-lg font-black text-primary font-mono">
+                                          {record.ched?.closureReferendumNumber || 'NOT RECORDED'}
+                                      </p>
+                                  </div>
                               </div>
                               <div className="flex items-end">
                                   {record.ched?.closureResolutionLink ? (
@@ -377,19 +388,19 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                                           onClick={() => setPreviewDoc({ title: 'BOR Closure Resolution', url: getEmbedUrl(record.ched!.closureResolutionLink!) })}
                                       >
                                           <ExternalLink className="h-4 w-4 mr-2" />
-                                          View Closure Resolution
+                                          View Resolution
                                       </Button>
                                   ) : (
                                       <div className="w-full p-2 rounded bg-muted/50 border border-dashed flex items-center justify-center gap-2 text-[10px] font-bold text-muted-foreground uppercase italic">
                                           <Info className="h-3.5 w-3.5" />
-                                          Evidence link not yet encoded
+                                          Evidence link missing
                                       </div>
                                   )}
                               </div>
                           </div>
                           <Separator />
                           <p className="text-[11px] text-muted-foreground font-medium italic leading-relaxed">
-                              This program has been officially designated for terminal closure by the University Board of Regents. No new enrollments should be accepted, and academic phase-out protocols must be strictly followed.
+                              This program has been officially designated for terminal closure by the University Board of Regents under Referendum {record.ched?.closureReferendumNumber || '[N/A]'}. Academic phase-out protocols must be strictly followed.
                           </p>
                       </div>
                   </div>
@@ -680,7 +691,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                         </div>
                     </CardHeader>
                     <CardContent className="pt-6">
-                        <ChartContainer config={{}} className="h-[220px] w-full">
+                        <ChartContainer config={{}} className="h-[220px] w-[220px] shrink-0">
                             <ResponsiveContainer>
                                 <BarChart data={analyticsData.enrollmentData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} />

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Calendar, Link as LinkIcon, PlusCircle, Trash2, Gavel, Layers, Info, CheckCircle2, Eye, FileX } from 'lucide-react';
+import { FileText, Calendar, Link as LinkIcon, PlusCircle, Trash2, Gavel, Layers, Info, CheckCircle2, Eye, FileX, Hash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -259,6 +259,21 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField
                                 control={control}
+                                name="ched.closureReferendumNumber"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-bold uppercase flex items-center gap-2">
+                                            <Hash className="h-3 w-3" />
+                                            BOR-Referendum No.
+                                        </FormLabel>
+                                        <FormControl>
+                                            <Input {...field} value={field.value || ''} placeholder="e.g. 2024-042" className="h-9 text-xs bg-white font-mono" disabled={!canEdit} />
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={control}
                                 name="ched.closureApprovalDate"
                                 render={({ field }) => (
                                     <FormItem>
@@ -267,25 +282,25 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={control}
-                                name="ched.closureResolutionLink"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase flex items-center gap-2">
-                                            GDrive Link: Closure Resolution
-                                            {closureLinkVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}
-                                        </FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <LinkIcon className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground" />
-                                                <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9 h-9 text-xs" disabled={!canEdit} />
-                                            </div>
-                                        </FormControl>
-                                    </FormItem>
-                                )}
-                            />
                         </div>
+                        <FormField
+                            control={control}
+                            name="ched.closureResolutionLink"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-bold uppercase flex items-center gap-2">
+                                        GDrive Link: Closure Resolution
+                                        {closureLinkVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                                    </FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <LinkIcon className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground" />
+                                            <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9 h-9 text-xs" disabled={!canEdit} />
+                                        </div>
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
                         <GDrivePreview url={closureLinkVal} title="Closure Resolution" />
                     </div>
                 )}

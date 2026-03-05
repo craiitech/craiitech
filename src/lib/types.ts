@@ -495,6 +495,7 @@ export type ProgramComplianceRecord = {
     rqatVisits?: RQATVisit[];
     closureResolutionLink?: string; // NEW: GDrive link for closure resolution
     closureApprovalDate?: string; // NEW: Date of closure approval
+    closureReferendumNumber?: string; // NEW: BOR Referendum No.
   };
 
   // Accreditation (Array for history/lifecycle tracking)
