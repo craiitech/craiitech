@@ -487,6 +487,7 @@ export type ProgramComplianceRecord = {
   ched: {
     copcStatus: 'With COPC' | 'No COPC' | 'In Progress';
     copcLink?: string; // GDrive PDF
+    copcAwardDate?: string; // Added: Official date of COPC issuance
     boardApprovalMode?: 'sole' | 'per-major';
     boardApprovalLink?: string; // Single BOR resolution link
     majorBoardApprovals?: { majorId: string; link: string }[]; // Major-specific links

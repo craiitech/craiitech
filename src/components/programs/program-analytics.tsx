@@ -154,9 +154,23 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             percentage: Math.round((count / programs.length) * 100)
         })).sort((a, b) => b.count - a.count);
 
-    // 2. COPC Percentage Summary
+    // 2. COPC Percentage Summary & Yearly Momentum
     const copcWith = filteredCompliances.filter(c => c.ched?.copcStatus === 'With COPC').length;
     const copcPercentage = Math.round((copcWith / programs.length) * 100);
+
+    const copcByYear: Record<string, number> = {};
+    filteredCompliances.forEach(c => {
+        if (c.ched?.copcStatus === 'With COPC' && c.ched.copcAwardDate) {
+            const yearMatch = c.ched.copcAwardDate.match(/\d{4}/);
+            if (yearMatch) {
+                const year = yearMatch[0];
+                copcByYear[year] = (copcByYear[year] || 0) + 1;
+            }
+        }
+    });
+    const copcHistoryData = Object.entries(copcByYear)
+        .map(([year, count]) => ({ year, count }))
+        .sort((a, b) => a.year.localeCompare(b.year));
 
     // 3. Faculty Rank Distribution & Global Alignment
     const rankMap: Record<string, number> = {};
@@ -415,6 +429,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     return { 
         accreditationSummary, 
         copcPercentage, 
+        copcHistoryData,
         facultyRankSummary, 
         unitFacultySummary,
         campusPerformanceData,
@@ -440,6 +455,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     history: {
         title: "Historical Quality Output",
         text: "Achievements per year show the university's momentum in formal quality audits. Fluctuations in these numbers often represent institutional cycles where multiple programs complete their Level 1 PSV or proceed to higher levels simultaneously."
+    },
+    copc: {
+        title: "Regulatory Momentum",
+        text: "The yearly distribution of COPC awards demonstrates the university's commitment to securing official operating authority from CHED. Consistent growth in this metric indicates strong institutional compliance with national standards."
     }
   };
 
@@ -702,6 +721,43 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             </CardFooter>
         </Card>
       </div>
+
+      {/* --- COPC INSTITUTIONAL MOMENTUM --- */}
+      <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
+          <CardHeader className="bg-muted/10 border-b py-4">
+              <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                  <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Recognition Momentum (COPC)</CardTitle>
+              </div>
+              <CardDescription className="text-xs">Annual distribution of Certificate of Program Compliance (COPC) issuance.</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6 flex-1">
+              <ChartContainer config={{}} className="h-[300px] w-full">
+                  <ResponsiveContainer>
+                      <BarChart data={analytics?.copcHistoryData}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
+                          <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
+                          <RechartsTooltip content={<ChartTooltipContent />} />
+                          <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} barSize={50}>
+                              {analytics?.copcHistoryData.map((_, index) => (
+                                  <Cell key={index} fillOpacity={0.8 - (index * 0.1)} />
+                              ))}
+                          </Bar>
+                      </BarChart>
+                  </ResponsiveContainer>
+              </ChartContainer>
+          </CardContent>
+          <CardFooter className="bg-emerald-50/20 border-t p-4 flex gap-3">
+              <Zap className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase text-emerald-800 tracking-widest">{discussionNotes.copc.title}</p>
+                  <p className="text-[10px] text-emerald-700 leading-relaxed font-medium italic">
+                      {discussionNotes.copc.text}
+                  </p>
+              </div>
+          </CardFooter>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* --- CAMPUS PERFORMANCE MATRIX --- */}

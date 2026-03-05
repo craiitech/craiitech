@@ -72,6 +72,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
       ched: { 
         copcStatus: 'In Progress', 
         copcLink: '', 
+        copcAwardDate: '',
         boardApprovalMode: 'sole',
         boardApprovalLink: '', 
         majorBoardApprovals: [],
@@ -104,6 +105,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         ched: { 
             copcStatus: 'In Progress', 
             copcLink: '', 
+            copcAwardDate: '',
             boardApprovalMode: 'sole',
             boardApprovalLink: '', 
             majorBoardApprovals: [],
