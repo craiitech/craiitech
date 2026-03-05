@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -88,19 +87,13 @@ const getYearStyle = (year: string) => {
     return YEAR_COLORS[year] || YEAR_COLORS['Default'];
 };
 
-const ACCREDITATION_COLORS: Record<string, string> = {
-    'Level IV Re-accredited': '#1e3a8a',
-    'Level IV Accredited': '#1e40af',
-    'Level III Re-accredited': '#1d4ed8',
-    'Level III Accredited': '#2563eb',
-    'Level II Re-accredited': '#3b82f6',
-    'Level II Accredited': '#60a5fa',
-    'Level I Re-accredited': '#93c5fd',
-    'Level I Accredited': '#bfdbfe',
-    'PSV': '#fbbf24',
-    'Non Accredited': '#ef4444',
-    'Not Yet Subject': '#94a3b8'
-};
+const ACCREDITATION_LEVELS_ORDER = [
+    'Level IV Re-accredited', 'Level IV Accredited',
+    'Level III Re-accredited', 'Level III Accredited',
+    'Level II Re-accredited', 'Level II Accredited',
+    'Level I Re-accredited', 'Level I Accredited',
+    'PSV', 'Non Accredited', 'Not Yet Subject'
+];
 
 export function ProgramAnalytics({ programs, compliances, campuses, units, isLoading, selectedYear }: ProgramAnalyticsProps) {
   const { userRole, isAdmin } = useUser();
@@ -113,65 +106,59 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     const filteredProgramIds = new Set(programs.map(p => p.id));
     const filteredCompliances = compliances.filter(c => filteredProgramIds.has(c.programId));
 
-    // 1. Accreditation Level Summary
-    const accreditationMap: Record<string, number> = {
-        'Level IV Re-accredited': 0, 'Level IV Accredited': 0,
-        'Level III Re-accredited': 0, 'Level III Accredited': 0,
-        'Level II Re-accredited': 0, 'Level II Accredited': 0,
-        'Level I Re-accredited': 0, 'Level I Accredited': 0,
-        'PSV': 0, 'Non Accredited': 0, 'Not Yet Subject': 0
-    };
+    // 1. Accreditation Level Summary (DISAGGREGATED)
+    const accreditationDataMap: Record<string, { level: string, Undergraduate: number, Graduate: number, total: number }> = {};
+    ACCREDITATION_LEVELS_ORDER.forEach(lvl => {
+        accreditationDataMap[lvl] = { level: lvl, Undergraduate: 0, Graduate: 0, total: 0 };
+    });
     
     programs.forEach(p => {
+        const pLevel = p.level === 'Graduate' ? 'Graduate' : 'Undergraduate';
+        let accLevelKey = 'Non Accredited';
+
         if (p.isNewProgram) {
-            accreditationMap['Not Yet Subject']++;
-            return;
-        }
-
-        const record = filteredCompliances.find(c => c.programId === p.id);
-        if (!record || !record.accreditationRecords || record.accreditationRecords.length === 0) {
-            accreditationMap['Non Accredited']++;
-            return;
-        }
-
-        const milestones = record.accreditationRecords;
-        const latest = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
-        
-        let level = latest?.level || 'Non Accredited';
-        if (level.includes('Preliminary Survey Visit')) level = 'PSV';
-        
-        if (accreditationMap[level] !== undefined) {
-            accreditationMap[level]++;
+            accLevelKey = 'Not Yet Subject';
         } else {
-            accreditationMap['Non Accredited']++;
+            const record = filteredCompliances.find(c => c.programId === p.id);
+            if (record && record.accreditationRecords && record.accreditationRecords.length > 0) {
+                const milestones = record.accreditationRecords;
+                const latest = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
+                accLevelKey = latest?.level || 'Non Accredited';
+                if (accLevelKey.includes('Preliminary Survey Visit')) accLevelKey = 'PSV';
+            }
+        }
+
+        if (accreditationDataMap[accLevelKey]) {
+            accreditationDataMap[accLevelKey][pLevel]++;
+            accreditationDataMap[accLevelKey].total++;
         }
     });
 
-    const accreditationSummary = Object.entries(accreditationMap)
-        .filter(([_, count]) => count > 0)
-        .map(([level, count]) => ({
-            level,
-            count,
-            percentage: Math.round((count / programs.length) * 100)
-        })).sort((a, b) => b.count - a.count);
+    const accreditationSummary = Object.values(accreditationDataMap)
+        .filter(d => d.total > 0)
+        .sort((a, b) => b.total - a.total);
 
-    // 2. COPC Percentage Summary & Yearly Momentum
+    // 2. COPC Percentage Summary & Yearly Momentum (DISAGGREGATED)
     const copcWith = filteredCompliances.filter(c => c.ched?.copcStatus === 'With COPC').length;
     const copcPercentage = Math.round((copcWith / programs.length) * 100);
 
-    const copcByYear: Record<string, number> = {};
+    const copcYearlyMap: Record<string, { year: string, Undergraduate: number, Graduate: number }> = {};
     filteredCompliances.forEach(c => {
         if (c.ched?.copcStatus === 'With COPC' && c.ched.copcAwardDate) {
             const yearMatch = c.ched.copcAwardDate.match(/\d{4}/);
             if (yearMatch) {
                 const year = yearMatch[0];
-                copcByYear[year] = (copcByYear[year] || 0) + 1;
+                const p = programs.find(prog => prog.id === c.programId);
+                const pLevel = p?.level === 'Graduate' ? 'Graduate' : 'Undergraduate';
+                
+                if (!copcYearlyMap[year]) {
+                    copcYearlyMap[year] = { year, Undergraduate: 0, Graduate: 0 };
+                }
+                copcYearlyMap[year][pLevel]++;
             }
         }
     });
-    const copcHistoryData = Object.entries(copcByYear)
-        .map(([year, count]) => ({ year, count }))
-        .sort((a, b) => a.year.localeCompare(b.year));
+    const copcHistoryData = Object.values(copcYearlyMap).sort((a, b) => a.year.localeCompare(b.year));
 
     // 3. Faculty Rank Distribution & Global Alignment
     const rankMap: Record<string, number> = {};
@@ -199,7 +186,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     const facultyRankSummary = Object.entries(rankMap).map(([rank, count]) => ({ rank, count }))
         .sort((a, b) => b.count - a.count);
 
-    // 4. Unit Faculty Distribution (Headcount per Academic Unit)
+    // 4. Unit Faculty Distribution
     const unitFacultyMap: Record<string, number> = {};
     let totalFacultyHeadcount = 0;
     filteredCompliances.forEach(c => {
@@ -296,16 +283,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         if (!validity) return 0;
         if (validity.trim().toUpperCase() === 'WAITING FOR RESULT') return 0;
         if (validity.toLowerCase().includes('no schedule')) return 0;
-        
         const yearMatch = validity.match(/\d{4}/);
         const year = yearMatch ? parseInt(yearMatch[0]) : 0;
-        
         const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
         let month = 0;
-        monthNames.forEach((m, idx) => {
-            if (validity.toLowerCase().includes(m)) month = idx + 1;
-        });
-        
+        monthNames.forEach((m, idx) => { if (validity.toLowerCase().includes(m)) month = idx + 1; });
         return year * 100 + month;
     };
 
@@ -330,19 +312,15 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     status = 'Upcoming';
                     priority = 3;
                 }
-            } else if (isWaiting) {
-                status = 'Result Pending';
-                priority = 2; 
-            } else {
-                status = 'Unscheduled';
-                priority = 4;
-            }
+            } else if (isWaiting) { status = 'Result Pending'; priority = 2; }
+            else { status = 'Unscheduled'; priority = 4; }
 
             return {
                 id: `${p.id}-${suffix || 'base'}`,
                 name: suffix ? `${p.name} (${suffix})` : p.name,
                 campusName,
                 level,
+                programLevel: p.level,
                 validityText: validity || 'No schedule set',
                 year: detectedYear > 0 ? detectedYear.toString() : (isWaiting ? 'Pending' : 'Other'),
                 status,
@@ -352,12 +330,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         };
 
         if (p.isNewProgram) return [];
-
         const milestones = record?.accreditationRecords || [];
 
         if (p.hasSpecializations && p.specializations && p.specializations.length > 0) {
             const groups: Record<string, { level: string, validity: string, majorNames: string[] }> = {};
-
             p.specializations.forEach(spec => {
                 const currentMilestone = milestones.find(m => 
                     m.lifecycleStatus === 'Current' && 
@@ -370,41 +346,32 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 const level = currentMilestone?.level || 'Non Accredited';
                 const validity = currentMilestone?.statusValidityDate || 'No schedule set';
                 const key = `${level}|${validity}`;
-
-                if (!groups[key]) {
-                    groups[key] = { level, validity, majorNames: [] };
-                }
+                if (!groups[key]) groups[key] = { level, validity, majorNames: [] };
                 groups[key].majorNames.push(spec.name);
             });
-
-            return Object.values(groups).map(group => {
-                const suffix = group.majorNames.join(', ');
-                return getEntryData(group.level, group.validity, suffix);
-            });
+            return Object.values(groups).map(group => getEntryData(group.level, group.validity, group.majorNames.join(', ')));
         }
 
         const latest = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
         return [getEntryData(latest?.level || 'Non Accredited', latest?.statusValidityDate || 'No schedule set')];
-    })
-    .sort((a, b) => {
-        if (a.priority !== b.priority) return a.priority - b.priority;
-        if (a.sortValue !== b.sortValue) return a.sortValue - b.sortValue;
-        return a.name.localeCompare(b.name);
-    });
+    }).sort((a, b) => (a.priority !== b.priority) ? (a.priority - b.priority) : (a.sortValue - b.sortValue));
 
-    const yearlyDistribution: Record<string, number> = {};
+    // Distribution (DISAGGREGATED)
+    const distributionYearlyMap: Record<string, { year: string, Undergraduate: number, Graduate: number }> = {};
     let totalScheduledCount = 0;
     roadmapData.forEach(item => {
         if (item.year !== 'Other' && item.year !== 'Pending') {
-            yearlyDistribution[item.year] = (yearlyDistribution[item.year] || 0) + 1;
+            const pLevel = item.programLevel === 'Graduate' ? 'Graduate' : 'Undergraduate';
+            if (!distributionYearlyMap[item.year]) {
+                distributionYearlyMap[item.year] = { year: item.year, Undergraduate: 0, Graduate: 0 };
+            }
+            distributionYearlyMap[item.year][pLevel]++;
             totalScheduledCount++;
         }
     });
-    const distributionSummary = Object.entries(yearlyDistribution)
-        .map(([year, count]) => ({ year, count }))
-        .sort((a, b) => a.year.localeCompare(b.year));
+    const distributionSummary = Object.values(distributionYearlyMap).sort((a, b) => a.year.localeCompare(b.year));
 
-    // 8. Quality Maturity Radar Data (Institutional Parity)
+    // 8. Maturity Radar Data
     const maturityRadarData = [
         { pillar: 'Authority (COPC)', score: copcPercentage, fullMark: 100 },
         { pillar: 'Accreditation', score: Math.round((accreditationSummary.filter(s => s.level.includes('Level')).length / (accreditationSummary.length || 1)) * 100), fullMark: 100 },
@@ -413,25 +380,28 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         { pillar: 'Outcomes Registry', score: Math.round((filteredCompliances.filter(c => c.graduationRecords && c.graduationRecords.length > 0).length / (filteredCompliances.length || 1)) * 100), fullMark: 100 },
     ];
 
-    // 9. Achieved Accreditations per Year (Based on Date of Survey)
-    const surveysByYear: Record<string, number> = {};
+    // 9. Achieved Accreditations per Year (DISAGGREGATED)
+    const surveysYearlyMap: Record<string, { year: string, Undergraduate: number, Graduate: number }> = {};
     let totalAchievedCount = 0;
     filteredCompliances.forEach(c => {
+        const prog = programs.find(p => p.id === c.programId);
+        const pLevel = prog?.level === 'Graduate' ? 'Graduate' : 'Undergraduate';
         const milestones = c.accreditationRecords || [];
         milestones.forEach(m => {
             if (m.dateOfSurvey) {
                 const yearMatch = m.dateOfSurvey.match(/\d{4}/);
                 if (yearMatch) {
                     const year = yearMatch[0];
-                    surveysByYear[year] = (surveysByYear[year] || 0) + 1;
+                    if (!surveysYearlyMap[year]) {
+                        surveysYearlyMap[year] = { year, Undergraduate: 0, Graduate: 0 };
+                    }
+                    surveysYearlyMap[year][pLevel]++;
                     totalAchievedCount++;
                 }
             }
         });
     });
-    const surveysHistoryData = Object.entries(surveysByYear)
-        .map(([year, count]) => ({ year, count }))
-        .sort((a, b) => a.year.localeCompare(b.year));
+    const surveysHistoryData = Object.values(surveysYearlyMap).sort((a, b) => a.year.localeCompare(b.year));
 
     return { 
         accreditationSummary, 
@@ -455,22 +425,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
   }, [programs, compliances, campusMap, unitMap, selectedYear, campuses]);
 
   const discussionNotes = {
-    maturity: {
-        title: "Quality Maturity Discussion",
-        text: "The Maturity Radar visualizes how well programs are balanced across regulatory, academic, and outcome pillars. A 'collapsed' radar (low scores) indicates a program that may have high accreditation levels but lacks valid regulatory authority (COPC) or outcome evidence."
-    },
-    roadmap: {
-        title: "Strategic Pipeline Analysis",
-        text: "Programs in the 'Overdue' category represent immediate threats to the university's institutional rating. The 'Accreditation Velocity' chart helps the Planning and Development Office anticipate budgetary requirements for task force operations over the next 24-36 months."
-    },
-    history: {
-        title: "Historical Quality Output",
-        text: "Achievements per year show the university's momentum in formal quality audits. Fluctuations in these numbers often represent institutional cycles where multiple programs complete their Level 1 PSV or proceed to higher levels simultaneously."
-    },
-    copc: {
-        title: "Regulatory Momentum",
-        text: "The yearly distribution of COPC awards demonstrates the university's commitment to securing official operating authority from CHED. Consistent growth in this metric indicates strong institutional compliance with national standards."
-    }
+    maturity: { title: "Quality Maturity Discussion", text: "The Maturity Radar visualizes how well programs are balanced across regulatory, academic, and outcome pillars. A 'collapsed' radar indicates a program that may lack valid regulatory authority or outcome evidence." },
+    roadmap: { title: "Strategic Pipeline Analysis", text: "Programs in the 'Overdue' category represent immediate threats to the university's institutional rating. The 'Accreditation Velocity' chart identifies upcoming resource mobilization needs for both undergraduate and graduate tracks." },
+    history: { title: "Historical Quality Output", text: "Achievements per year show institutional momentum. Disaggregation helps identify whether graduate or undergraduate programs are driving quality improvements in specific cycles." },
+    copc: { title: "Regulatory Momentum", text: "Tracking COPC awards per level demonstrates the university's commitment to securing formal recognition across its entire educational portfolio." }
   };
 
   if (isLoading) {
@@ -500,8 +458,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               </div>
               <CardDescription className="text-xs font-medium text-destructive/70">Critical documentation deficiencies impacting the university's institutional maturity index for AY {selectedYear}.</CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
-              <ScrollArea className="flex-1">
+          <CardContent className="p-0 flex-1">
+              <ScrollArea className="h-full">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 divide-x divide-y divide-destructive/10">
                       {analytics?.missingDocs.map((doc, idx) => (
                           <div key={idx} className="p-4 space-y-2 hover:bg-white/50 transition-colors group">
@@ -560,7 +518,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             </CardHeader>
             <CardContent>
                 <div className="text-3xl font-black text-amber-600 tabular-nums">
-                    {analytics?.accreditationSummary.filter(s => s.level.includes('Level')).reduce((acc, curr) => acc + curr.count, 0)}
+                    {analytics?.accreditationSummary.reduce((acc, curr) => acc + (curr.level.includes('Level') ? curr.total : 0), 0)}
                 </div>
                 <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase">Accredited at Level I or Higher</p>
             </CardContent>
@@ -594,7 +552,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 <CardDescription className="text-xs">Distribution of programs across AACCUP accreditation levels.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
-                <ChartContainer config={{}} className="h-[300px] w-full">
+                <ChartContainer config={{
+                    Undergraduate: { label: 'Undergraduate', color: 'hsl(var(--primary))' },
+                    Graduate: { label: 'Graduate', color: 'hsl(var(--chart-2))' }
+                }} className="h-[350px] w-full">
                     <ResponsiveContainer>
                         <BarChart data={analytics?.accreditationSummary} layout="vertical" margin={{ left: 20, right: 40 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
@@ -602,17 +563,18 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             <YAxis 
                                 dataKey="level" 
                                 type="category" 
-                                tick={{ fontSize: 9, fontWeight: 700, fill: 'hsl(var(--muted-foreground))' }} 
+                                tick={{ fontSize: 9, fontBold: 700, fill: 'hsl(var(--muted-foreground))' }} 
                                 width={140}
                                 axisLine={false}
                                 tickLine={false}
                             />
                             <RechartsTooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={14} animationDuration={1500}>
-                                <LabelList dataKey="count" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: '#1e3a8a' }} />
-                                {analytics?.accreditationSummary.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={ACCREDITATION_COLORS[entry.level] || '#94a3b8'} />
-                                ))}
+                            <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingBottom: '10px' }} />
+                            <Bar dataKey="Undergraduate" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={12} stackId="a">
+                                <LabelList dataKey="Undergraduate" position="inside" style={{ fontSize: '9px', fontWeight: '900', fill: '#fff' }} />
+                            </Bar>
+                            <Bar dataKey="Graduate" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} barSize={12} stackId="a">
+                                <LabelList dataKey="Graduate" position="inside" style={{ fontSize: '9px', fontWeight: '900', fill: '#fff' }} />
                             </Bar>
                         </BarChart>
                     </ResponsiveContainer>
@@ -621,7 +583,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             <CardFooter className="bg-slate-50 border-t p-4 flex gap-3">
                 <Info className="h-5 w-5 text-slate-600 shrink-0 mt-0.5" />
                 <p className="text-[9px] text-slate-500 leading-relaxed italic">
-                    <strong>Institutional Performance Note:</strong> High concentration in the "Level II Re-accredited" or above indicates established quality. Programs in "PSV" or "Non Accredited" are priority targets for task force activation.
+                    <strong>Disaggregated View:</strong> Visualizing the quality index for both degree levels ensures balanced institutional growth. Graduate programs often require higher faculty alignment for accreditation advancement.
                 </p>
             </CardFooter>
         </Card>
@@ -631,7 +593,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             <CardHeader className="bg-muted/10 border-b py-4">
                 <div className="flex items-center gap-2">
                     <Target className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">Pillar-Based Quality Radar</CardTitle>
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Quality Signature</CardTitle>
                 </div>
                 <CardDescription className="text-xs">University maturity across regulatory, resource, and outcome pillars.</CardDescription>
             </CardHeader>
@@ -682,19 +644,22 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 <CardDescription className="text-xs">Quantity of programs due for survey per year.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
-                <ChartContainer config={{}} className="h-[300px] w-full">
+                <ChartContainer config={{
+                    Undergraduate: { label: 'Undergraduate', color: 'hsl(var(--primary))' },
+                    Graduate: { label: 'Graduate', color: 'hsl(var(--chart-2))' }
+                }} className="h-[300px] w-full">
                     <ResponsiveContainer>
                         <BarChart data={analytics?.distributionSummary}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
                             <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
                             <RechartsTooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={40}>
-                                <LabelList dataKey="count" position="top" style={{ fontSize: '12px', fontWeight: '900', fill: '#1e3a8a' }} />
-                                {analytics?.distributionSummary.map((entry, index) => {
-                                    const style = getYearStyle(entry.year);
-                                    return <Cell key={index} fill={style.text.includes('blue') ? '#3b82f6' : style.text.includes('green') ? '#10b981' : '#f59e0b'} />;
-                                })}
+                            <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                            <Bar dataKey="Undergraduate" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} barSize={30}>
+                                <LabelList dataKey="Undergraduate" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--primary))' }} />
+                            </Bar>
+                            <Bar dataKey="Graduate" fill="hsl(var(--chart-2))" radius={[2, 2, 0, 0]} barSize={30}>
+                                <LabelList dataKey="Graduate" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--chart-2))' }} />
                             </Bar>
                         </BarChart>
                     </ResponsiveContainer>
@@ -726,15 +691,22 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 <CardDescription className="text-xs">Formal surveys successfully conducted per year (Historical Data).</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
-                <ChartContainer config={{}} className="h-[300px] w-full">
+                <ChartContainer config={{
+                    Undergraduate: { label: 'Undergraduate', color: 'hsl(142 71% 45%)' },
+                    Graduate: { label: 'Graduate', color: 'hsl(142 71% 70%)' }
+                }} className="h-[300px] w-full">
                     <ResponsiveContainer>
                         <BarChart data={analytics?.surveysHistoryData}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
                             <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
                             <RechartsTooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="count" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} barSize={40}>
-                                <LabelList dataKey="count" position="top" style={{ fontSize: '12px', fontWeight: '900', fill: '#065f46' }} />
+                            <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                            <Bar dataKey="Undergraduate" fill="hsl(142 71% 45%)" radius={[2, 2, 0, 0]} barSize={30}>
+                                <LabelList dataKey="Undergraduate" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#065f46' }} />
+                            </Bar>
+                            <Bar dataKey="Graduate" fill="hsl(142 71% 70%)" radius={[2, 2, 0, 0]} barSize={30}>
+                                <LabelList dataKey="Graduate" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#065f46' }} />
                             </Bar>
                         </BarChart>
                     </ResponsiveContainer>
@@ -767,18 +739,22 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               <CardDescription className="text-xs">Annual distribution of Certificate of Program Compliance (COPC) issuance.</CardDescription>
           </CardHeader>
           <CardContent className="pt-10 flex-1">
-              <ChartContainer config={{}} className="h-[350px] w-full">
+              <ChartContainer config={{
+                  Undergraduate: { label: 'Undergraduate', color: '#10b981' },
+                  Graduate: { label: 'Graduate', color: '#6ee7b7' }
+              }} className="h-[350px] w-full">
                   <ResponsiveContainer>
                       <BarChart data={analytics?.copcHistoryData}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} />
                           <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
                           <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
                           <RechartsTooltip content={<ChartTooltipContent />} />
-                          <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} barSize={60}>
-                              <LabelList dataKey="count" position="top" style={{ fontSize: '12px', fontWeight: '900', fill: '#065f46' }} />
-                              {analytics?.copcHistoryData.map((_, index) => (
-                                  <Cell key={index} fillOpacity={0.8 - (index * 0.1)} />
-                              ))}
+                          <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingBottom: '20px' }} />
+                          <Bar dataKey="Undergraduate" fill="#10b981" radius={[2, 2, 0, 0]} barSize={40}>
+                              <LabelList dataKey="Undergraduate" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#065f46' }} />
+                          </Bar>
+                          <Bar dataKey="Graduate" fill="#6ee7b7" radius={[2, 2, 0, 0]} barSize={40}>
+                              <LabelList dataKey="Graduate" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#065f46' }} />
                           </Bar>
                       </BarChart>
                   </ResponsiveContainer>
@@ -898,10 +874,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   <div className="flex flex-wrap items-center gap-2">
                       {analytics?.distributionSummary.map((dist, idx) => {
                           const style = getYearStyle(dist.year);
+                          const total = dist.Undergraduate + dist.Graduate;
                           return (
                               <Badge key={idx} variant="outline" className={cn("h-6 px-2 text-[10px] font-black gap-1.5 border-none shadow-sm", style.bg, style.text)}>
                                   <div className={cn("h-1.5 w-1.5 rounded-full", style.text.replace('text-', 'bg-'))} />
-                                  YEAR {dist.year}: {dist.count} TARGETS
+                                  YEAR {dist.year}: {total} TARGETS (U:{dist.Undergraduate} | G:{dist.Graduate})
                               </Badge>
                           );
                       })}
@@ -914,6 +891,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       <TableHeader className="bg-muted/50">
                           <TableRow>
                               <TableHead className="font-black text-[10px] uppercase py-3 pl-6">Offering & Campus</TableHead>
+                              <TableHead className="font-black text-[10px] uppercase py-3 text-center">Program Level</TableHead>
                               <TableHead className="font-black text-[10px] uppercase py-3">Next Target Schedule</TableHead>
                               <TableHead className="font-black text-[10px] uppercase py-3 text-right pr-6">Alert Level</TableHead>
                           </TableRow>
@@ -928,6 +906,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                               <span className="text-xs font-bold text-slate-800 truncate">{item.name}</span>
                                               <span className="text-[9px] font-black text-muted-foreground uppercase tracking-tighter">{item.campusName} &bull; {item.level}</span>
                                           </div>
+                                      </TableCell>
+                                      <TableCell className="py-3 text-center">
+                                          <Badge variant="outline" className={cn("text-[8px] font-black uppercase h-4 px-1.5", item.programLevel === 'Graduate' ? "border-cyan-200 text-cyan-700 bg-cyan-50" : "border-blue-200 text-blue-700 bg-blue-50")}>
+                                              {item.programLevel}
+                                          </Badge>
                                       </TableCell>
                                       <TableCell className="py-3">
                                           <span className={cn("text-xs font-black tabular-nums uppercase", yearStyle.text)}>{item.validityText}</span>
