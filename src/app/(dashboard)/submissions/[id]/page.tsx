@@ -237,16 +237,21 @@ export default function SubmissionDetailPage() {
     ? submission.googleDriveLink.replace('/view', '/preview').replace('?usp=sharing', '')
     : '');
 
-  // CRITICAL: Aligned with new requirements - Only Admin, Campus Director, Campus ODIMO, and VP can approve
+  // CRITICAL: Aligned with new requirements - Admin, Campus Director, Campus ODIMO, and VP can approve
   const isApprover = useMemo(() => {
     if (!submission || !userProfile || !userRole) return false;
-    if (submission.userId === userProfile.id) return false; // Cannot approve own
+    
+    // Institutional Admins bypass the "cannot approve own" rule for flexibility and testing
+    if (isAdmin) return true;
+
+    // Others cannot approve their own submissions
+    if (submission.userId === userProfile.id) return false; 
     
     const approverRoles = ['Admin', 'Campus Director', 'Campus ODIMO'];
     const roleIsApprover = approverRoles.includes(userRole) || userRole.toLowerCase().includes('vice president');
     
     return roleIsApprover;
-  }, [submission, userProfile, userRole]);
+  }, [submission, userProfile, userRole, isAdmin]);
   
   const isSubmitter = user && submission && user.uid === submission.userId;
 

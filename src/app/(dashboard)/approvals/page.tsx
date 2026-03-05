@@ -75,11 +75,13 @@ export default function ApprovalsPage() {
         let submissionsQuery: Query | null = null;
 
         if (isAdmin) {
+            // Admins see all pending submissions institutionally
             submissionsQuery = query(
                 collection(firestore, 'submissions'), 
                 where('statusId', '==', 'submitted')
             );
         } else if (userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president')) {
+            // Site supervisors see pending submissions for their campus
             submissionsQuery = query(
                 collection(firestore, 'submissions'), 
                 where('statusId', '==', 'submitted'),
@@ -98,8 +100,10 @@ export default function ApprovalsPage() {
                     return { ...data, id: doc.id, submissionDate };
                 });
 
-                // Supervisors should not see their own submissions in the approval queue
-                fetchedSubmissions = fetchedSubmissions.filter(s => s.userId !== userProfile.id);
+                // Supervisors (non-admins) should not see their own submissions in the approval queue
+                if (!isAdmin) {
+                    fetchedSubmissions = fetchedSubmissions.filter(s => s.userId !== userProfile.id);
+                }
                 
                 setSubmissions(fetchedSubmissions);
             } catch(e) {
