@@ -18,7 +18,8 @@ import {
     RadarChart, 
     PolarGrid, 
     PolarAngleAxis, 
-    PolarRadiusAxis
+    PolarRadiusAxis,
+    LabelList
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '../ui/skeleton';
@@ -429,6 +430,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     return { 
         accreditationSummary, 
         copcPercentage, 
+        copcTotal: copcWith,
         copcHistoryData,
         facultyRankSummary, 
         unitFacultySummary,
@@ -725,21 +727,27 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
       {/* --- COPC INSTITUTIONAL MOMENTUM --- */}
       <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
           <CardHeader className="bg-muted/10 border-b py-4">
-              <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-emerald-600" />
-                  <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Recognition Momentum (COPC)</CardTitle>
+              <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                      <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                      <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Recognition Momentum (COPC)</CardTitle>
+                  </div>
+                  <Badge className="bg-emerald-600 text-white text-[10px] font-black uppercase h-6 px-3">
+                      OVERALL TOTAL: {analytics?.copcTotal || 0}
+                  </Badge>
               </div>
               <CardDescription className="text-xs">Annual distribution of Certificate of Program Compliance (COPC) issuance.</CardDescription>
           </CardHeader>
-          <CardContent className="pt-6 flex-1">
-              <ChartContainer config={{}} className="h-[300px] w-full">
+          <CardContent className="pt-10 flex-1">
+              <ChartContainer config={{}} className="h-[350px] w-full">
                   <ResponsiveContainer>
                       <BarChart data={analytics?.copcHistoryData}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} />
                           <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
                           <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
                           <RechartsTooltip content={<ChartTooltipContent />} />
-                          <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} barSize={50}>
+                          <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} barSize={60}>
+                              <LabelList dataKey="count" position="top" style={{ fontSize: '12px', fontWeight: '900', fill: '#065f46' }} />
                               {analytics?.copcHistoryData.map((_, index) => (
                                   <Cell key={index} fillOpacity={0.8 - (index * 0.1)} />
                               ))}
