@@ -437,7 +437,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       
-      {/* --- STRATEGIC GAPS REGISTRY (RESTORED TO TOP) --- */}
+      {/* --- STRATEGIC GAPS REGISTRY --- */}
       <Card className="border-destructive/30 bg-destructive/5 overflow-hidden shadow-md">
           <CardHeader className="bg-destructive/10 border-b py-4">
               <div className="flex items-center justify-between">
@@ -528,7 +528,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* --- ACCREDITATION MATURITY BREAKDOWN (RESTORED) --- */}
+        {/* --- ACCREDITATION MATURITY BREAKDOWN --- */}
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-muted/10 border-b py-4">
                 <div className="flex items-center gap-2">
@@ -552,7 +552,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                 tickLine={false}
                             />
                             <RechartsTooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={14}>
+                            <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={14} animationDuration={1500}>
                                 {analytics?.accreditationSummary.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={ACCREDITATION_COLORS[entry.level] || '#94a3b8'} />
                                 ))}
@@ -705,14 +705,29 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         </Card>
       </div>
 
-      {/* --- INSTITUTIONAL SURVEY PIPELINE --- */}
+      {/* --- INSTITUTIONAL SURVEY PIPELINE (ROADMAP) --- */}
       <Card className="shadow-lg border-primary/10 overflow-hidden">
           <CardHeader className="bg-primary/5 border-b py-4">
-              <div className="flex items-center gap-2">
-                  <LayoutList className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Survey Pipeline (Roadmap)</CardTitle>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                          <LayoutList className="h-5 w-5 text-primary" />
+                          <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Survey Pipeline (Roadmap)</CardTitle>
+                      </div>
+                      <CardDescription className="text-xs">Strategic chronological timeline of target survey dates across all sites.</CardDescription>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                      {analytics?.distributionSummary.map((dist, idx) => {
+                          const style = getYearStyle(dist.year);
+                          return (
+                              <Badge key={idx} variant="outline" className={cn("h-6 px-2 text-[10px] font-black gap-1.5 border-none shadow-sm", style.bg, style.text)}>
+                                  <div className={cn("h-1.5 w-1.5 rounded-full", style.text.replace('text-', 'bg-'))} />
+                                  YEAR {dist.year}: {dist.count} TARGETS
+                              </Badge>
+                          );
+                      })}
+                  </div>
               </div>
-              <CardDescription className="text-xs">Strategic chronological timeline of target survey dates across all sites.</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
               <div className="overflow-x-auto">
