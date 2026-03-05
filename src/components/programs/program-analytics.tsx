@@ -26,6 +26,12 @@ import {
     TableHeader, 
     TableRow 
 } from '@/components/ui/table';
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger
+} from '@/components/ui/tabs';
 import { 
     Award, 
     TrendingUp, 
@@ -49,7 +55,8 @@ import {
     Zap,
     Users,
     ChevronRight,
-    History
+    History,
+    FileX
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
@@ -145,7 +152,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         }
     });
 
-    // --- 2. Accreditation Level Summary (DISAGGREGATED) ---
+    // --- 2. Accreditation Level Summary ---
     const accreditationDataMap: Record<string, { level: string, Undergraduate: number, Graduate: number, Inactive: number, total: number }> = {};
     ACCREDITATION_LEVELS_ORDER.forEach(lvl => {
         accreditationDataMap[lvl] = { level: lvl, Undergraduate: 0, Graduate: 0, Inactive: 0, total: 0 };
@@ -177,7 +184,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         .filter(d => d.total > 0)
         .sort((a, b) => b.total - a.total);
 
-    // --- 3. COPC Recognition Momentum (DISAGGREGATED) ---
+    // --- 3. COPC Recognition Momentum ---
     const copcYearlyMap: Record<string, { year: string, Undergraduate: number, Graduate: number, Inactive: number }> = {};
     filteredCompliances.forEach(c => {
         if (c.ched?.copcStatus === 'With COPC' && c.ched.copcAwardDate) {
@@ -349,7 +356,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     });
     const distributionSummary = Object.values(distributionYearlyMap).sort((a, b) => a.year.localeCompare(b.year));
 
-    // --- 7. Accreditation Achievement History ---
     const surveysYearlyMap: Record<string, { year: string, Undergraduate: number, Graduate: number, Inactive: number }> = {};
     filteredCompliances.forEach(c => {
         const prog = programs.find(p => p.id === c.programId);
@@ -393,6 +399,84 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         </div>
     );
   }
+
+  const RoadmapTable = ({ items }: { items: any[] }) => (
+    <div className="overflow-x-auto">
+        <Table>
+            <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
+                <TableRow>
+                    <TableHead className="font-black text-[10px] uppercase py-3 pl-6 w-[250px]">Academic Program Offering</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase py-3">Campus Site</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase py-3">Current Level</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase py-3">Schedule / Validity</TableHead>
+                    <TableHead className="text-right font-black text-[10px] uppercase py-3 pr-6">Status</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {items.map((item) => {
+                    const style = getYearStyle(item.year);
+                    return (
+                        <TableRow key={item.id} className={cn("hover:bg-muted/30 transition-colors", style.row)}>
+                            <TableCell className="py-4 pl-6">
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[13px] font-black text-slate-900 leading-tight">{item.name}</span>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="h-4 text-[8px] font-black uppercase border-slate-300 text-slate-500 bg-white">
+                                            {item.programLevel}
+                                        </Badge>
+                                        {item.category === 'Inactive' && (
+                                            <Badge variant="destructive" className="h-4 text-[8px] font-black uppercase border-none">CLOSING</Badge>
+                                        )}
+                                    </div>
+                                </div>
+                            </TableCell>
+                            <TableCell className="text-xs font-bold text-slate-600 uppercase tracking-tighter">
+                                {item.campusName}
+                            </TableCell>
+                            <TableCell>
+                                <Badge variant="secondary" className="h-5 text-[9px] font-bold bg-primary/5 text-primary border-primary/10 uppercase">
+                                    {item.level}
+                                </Badge>
+                            </TableCell>
+                            <TableCell>
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="text-xs font-black tabular-nums text-slate-800">{item.validityText}</span>
+                                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+                                        {item.year === 'Other' ? 'NO YEAR SET' : (item.year === 'Pending' ? 'AWAITING RESULT' : `FISCAL YEAR ${item.year}`)}
+                                    </span>
+                                </div>
+                            </TableCell>
+                            <TableCell className="text-right pr-6">
+                                <Badge 
+                                    className={cn(
+                                        "h-6 px-3 text-[10px] font-black uppercase border-none shadow-sm",
+                                        item.status === 'Overdue' ? "bg-rose-600 text-white animate-pulse" :
+                                        item.status === 'Result Pending' ? "bg-blue-600 text-white" :
+                                        item.status === 'Upcoming' ? "bg-amber-500 text-amber-950" :
+                                        item.status === 'Scheduled' ? "bg-emerald-600 text-white" :
+                                        "bg-slate-200 text-slate-500"
+                                    )}
+                                >
+                                    {item.status}
+                                </Badge>
+                            </TableCell>
+                        </TableRow>
+                    );
+                })}
+                {items.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
+                            <div className="flex flex-col items-center gap-2 opacity-20">
+                                <Activity className="h-10 w-10" />
+                                <p className="text-xs font-black uppercase tracking-widest">Pipeline Empty</p>
+                            </div>
+                        </TableCell>
+                    </TableRow>
+                )}
+            </TableBody>
+        </Table>
+    </div>
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -646,81 +730,28 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               </div>
           </CardHeader>
           <CardContent className="p-0">
-              <ScrollArea className="h-[500px]">
-                  <Table>
-                      <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
-                          <TableRow>
-                              <TableHead className="font-black text-[10px] uppercase py-3 pl-6 w-[250px]">Academic Program Offering</TableHead>
-                              <TableHead className="font-black text-[10px] uppercase py-3">Campus Site</TableHead>
-                              <TableHead className="font-black text-[10px] uppercase py-3">Current Level</TableHead>
-                              <TableHead className="font-black text-[10px] uppercase py-3">Schedule / Validity</TableHead>
-                              <TableHead className="text-right font-black text-[10px] uppercase py-3 pr-6">Status</TableHead>
-                          </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                          {analytics?.roadmapData.map((item) => {
-                              const style = getYearStyle(item.year);
-                              return (
-                                  <TableRow key={item.id} className={cn("hover:bg-muted/30 transition-colors", style.row)}>
-                                      <TableCell className="py-4 pl-6">
-                                          <div className="flex flex-col gap-1">
-                                              <span className="text-[13px] font-black text-slate-900 leading-tight">{item.name}</span>
-                                              <div className="flex items-center gap-2">
-                                                  <Badge variant="outline" className="h-4 text-[8px] font-black uppercase border-slate-300 text-slate-500 bg-white">
-                                                      {item.programLevel}
-                                                  </Badge>
-                                                  {item.category === 'Inactive' && (
-                                                      <Badge variant="destructive" className="h-4 text-[8px] font-black uppercase border-none">CLOSING</Badge>
-                                                  )}
-                                              </div>
-                                          </div>
-                                      </TableCell>
-                                      <TableCell className="text-xs font-bold text-slate-600 uppercase tracking-tighter">
-                                          {item.campusName}
-                                      </TableCell>
-                                      <TableCell>
-                                          <Badge variant="secondary" className="h-5 text-[9px] font-bold bg-primary/5 text-primary border-primary/10 uppercase">
-                                              {item.level}
-                                          </Badge>
-                                      </TableCell>
-                                      <TableCell>
-                                          <div className="flex flex-col gap-0.5">
-                                              <span className="text-xs font-black tabular-nums text-slate-800">{item.validityText}</span>
-                                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
-                                                  {item.year === 'Other' ? 'NO YEAR SET' : (item.year === 'Pending' ? 'AWAITING RESULT' : `FISCAL YEAR ${item.year}`)}
-                                              </span>
-                                          </div>
-                                      </TableCell>
-                                      <TableCell className="text-right pr-6">
-                                          <Badge 
-                                              className={cn(
-                                                  "h-6 px-3 text-[10px] font-black uppercase border-none shadow-sm",
-                                                  item.status === 'Overdue' ? "bg-rose-600 text-white animate-pulse" :
-                                                  item.status === 'Result Pending' ? "bg-blue-600 text-white" :
-                                                  item.status === 'Upcoming' ? "bg-amber-500 text-amber-950" :
-                                                  item.status === 'Scheduled' ? "bg-emerald-600 text-white" :
-                                                  "bg-slate-200 text-slate-500"
-                                              )}
-                                          >
-                                              {item.status}
-                                          </Badge>
-                                      </TableCell>
-                                  </TableRow>
-                              );
-                          })}
-                          {analytics?.roadmapData.length === 0 && (
-                              <TableRow>
-                                  <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
-                                      <div className="flex flex-col items-center gap-2 opacity-20">
-                                          <CalendarDays className="h-10 w-10" />
-                                          <p className="text-xs font-black uppercase tracking-widest">Pipeline Empty</p>
-                                      </div>
-                                  </TableCell>
-                              </TableRow>
-                          )}
-                      </TableBody>
-                  </Table>
-              </ScrollArea>
+              <Tabs defaultValue="active" className="w-full">
+                  <div className="px-6 py-2 bg-muted/30 border-b">
+                      <TabsList className="bg-background border shadow-sm">
+                          <TabsTrigger value="active" className="text-[10px] font-black uppercase px-6">
+                              <ShieldCheck className="h-3.5 w-3.5 mr-2" /> Active Portfolio
+                          </TabsTrigger>
+                          <TabsTrigger value="inactive" className="text-[10px] font-black uppercase px-6">
+                              <FileX className="h-3.5 w-3.5 mr-2" /> Closure Pipeline
+                          </TabsTrigger>
+                      </TabsList>
+                  </div>
+                  <TabsContent value="active" className="m-0 border-none">
+                      <ScrollArea className="h-[500px]">
+                          <RoadmapTable items={analytics?.roadmapData.filter(i => i.category !== 'Inactive') || []} />
+                      </ScrollArea>
+                  </TabsContent>
+                  <TabsContent value="inactive" className="m-0 border-none">
+                      <ScrollArea className="h-[500px]">
+                          <RoadmapTable items={analytics?.roadmapData.filter(i => i.category === 'Inactive') || []} />
+                      </ScrollArea>
+                  </TabsContent>
+              </Tabs>
           </CardContent>
           <CardFooter className="bg-muted/10 border-t py-3">
               <div className="flex items-center gap-2 text-primary font-bold text-[10px] uppercase italic">
