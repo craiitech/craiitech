@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useMemo } from 'react';
 import type { UnitMonitoringRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -168,21 +167,26 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between py-4">
                 <div className="flex items-center gap-2">
                     <AlertCircle className="h-5 w-5 text-destructive" />
                     <CardTitle>Top Findings & Gaps</CardTitle>
                 </div>
+                <Badge variant="destructive" className="h-6 px-3 font-black text-[10px] uppercase">
+                    TOTAL GAPS: {analytics.criticalCount}
+                </Badge>
             </CardHeader>
             <CardContent>
                 <ChartContainer config={{}} className="h-[350px] w-full">
                     <ResponsiveContainer>
-                        <BarChart data={analytics.commonIssuesData} layout="vertical" margin={{ left: 40 }}>
-                            <CartesianGrid strokeDasharray="3 3" />
+                        <BarChart data={analytics.commonIssuesData} layout="vertical" margin={{ left: 40, right: 40 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                             <XAxis type="number" hide />
-                            <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={120} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fontWeight: 700 }} width={120} axisLine={false} tickLine={false} />
                             <Tooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="count" fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} />
+                            <Bar dataKey="count" fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]}>
+                                <LabelList dataKey="count" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: '#991b1b' }} />
+                            </Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
@@ -190,21 +194,25 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
         </Card>
 
         <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between py-4">
                 <div className="flex items-center gap-2">
                     <School className="h-5 w-5 text-primary" />
                     <CardTitle>Campus Comparison</CardTitle>
                 </div>
+                <Badge variant="secondary" className="h-6 px-3 font-black text-[10px] uppercase bg-primary text-white border-none">
+                    {analytics.campusChartData.length} SITES MONITORED
+                </Badge>
             </CardHeader>
             <CardContent>
                 <ChartContainer config={{}} className="h-[350px] w-full">
                     <ResponsiveContainer>
-                        <BarChart data={analytics.campusChartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                            <YAxis domain={[0, 100]} unit="%" />
+                        <BarChart data={analytics.campusChartData} margin={{ top: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                            <YAxis domain={[0, 100]} unit="%" axisLine={false} tickLine={false} />
                             <Tooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="rate" radius={[4, 4, 0, 0]}>
+                            <Bar dataKey="rate" radius={[4, 4, 0, 0]} barSize={40}>
+                                <LabelList dataKey="rate" position="top" formatter={(v: number) => `${v}%`} style={{ fontSize: '11px', fontWeight: '900', fill: '#1e3a8a' }} />
                                 {analytics.campusChartData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                 ))}
