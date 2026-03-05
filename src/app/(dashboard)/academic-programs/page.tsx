@@ -420,23 +420,54 @@ export default function AcademicProgramsPage() {
                 </Card>
             </div>
 
-            <div>
-                {isLoading ? (
-                    <div className="flex h-64 items-center justify-center">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
-                    </div>
-                ) : (
-                    <ProgramRegistry 
-                        programs={filteredPrograms} 
-                        compliances={rawCompliances || []}
-                        campuses={campuses || []} 
-                        units={units || []} 
-                        onEdit={handleEditProgram}
-                        onDelete={setDeletingProgram}
-                        canManage={canManage}
-                    />
-                )}
-            </div>
+            <Tabs defaultValue="active" className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <TabsList className="bg-muted/50 p-1 border shadow-sm h-9">
+                        <TabsTrigger value="active" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-7 data-[state=active]:bg-white">
+                            <ShieldCheck className="h-3 w-3" /> Active Offerings
+                        </TabsTrigger>
+                        <TabsTrigger value="inactive" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-7 data-[state=active]:bg-white data-[state=active]:text-destructive">
+                            <ShieldAlert className="h-3 w-3" /> Subject for Closure
+                        </TabsTrigger>
+                    </TabsList>
+                </div>
+
+                <TabsContent value="active" className="animate-in slide-in-from-left-2 duration-300">
+                    {isLoading ? (
+                        <div className="flex h-64 items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+                        </div>
+                    ) : (
+                        <ProgramRegistry 
+                            programs={filteredPrograms.filter(p => p.isActive)} 
+                            compliances={rawCompliances || []}
+                            campuses={campuses || []} 
+                            units={units || []} 
+                            onEdit={handleEditProgram}
+                            onDelete={setDeletingProgram}
+                            canManage={canManage}
+                        />
+                    )}
+                </TabsContent>
+
+                <TabsContent value="inactive" className="animate-in slide-in-from-right-2 duration-300">
+                    {isLoading ? (
+                        <div className="flex h-64 items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+                        </div>
+                    ) : (
+                        <ProgramRegistry 
+                            programs={filteredPrograms.filter(p => !p.isActive)} 
+                            compliances={rawCompliances || []}
+                            campuses={campuses || []} 
+                            units={units || []} 
+                            onEdit={handleEditProgram}
+                            onDelete={setDeletingProgram}
+                            canManage={canManage}
+                        />
+                    )}
+                </TabsContent>
+            </Tabs>
         </TabsContent>
       </Tabs>
 
