@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -7,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit, School, Layers, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2 } from 'lucide-react';
+import { Edit, School, Layers, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2, Calendar, CheckCircle2, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -44,12 +43,14 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead>Program Name</TableHead>
-              <TableHead>Campus</TableHead>
-              <TableHead>College / Unit</TableHead>
-              <TableHead>Majors / Type</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-[10px] font-black uppercase pl-6">Program Name</TableHead>
+              <TableHead className="text-[10px] font-black uppercase">Campus</TableHead>
+              <TableHead className="text-[10px] font-black uppercase">College / Unit</TableHead>
+              <TableHead className="text-[10px] font-black uppercase">Majors / Type</TableHead>
+              <TableHead className="text-[10px] font-black uppercase">Date of COPC Award</TableHead>
+              <TableHead className="text-[10px] font-black uppercase">Next Visit (AACCUP)</TableHead>
+              <TableHead className="text-[10px] font-black uppercase">Status</TableHead>
+              <TableHead className="text-right text-[10px] font-black uppercase pr-6">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -57,20 +58,27 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
               const record = compliances.find(c => c.programId === program.id);
               
               const copcStatus = record?.ched?.copcStatus;
+              const copcAwardDate = record?.ched?.copcAwardDate || 'N/A';
               
               let accLabel = '';
+              let nextVisit = 'TBA';
+
               if (program.isNewProgram) {
                   accLabel = 'New Program Offering';
+                  nextVisit = 'NEW PROGRAM';
               } else if (record?.accreditationRecords && record.accreditationRecords.length > 0) {
-                  const current = record.accreditationRecords.find(m => m.lifecycleStatus === 'Current') || record.accreditationRecords[record.accreditationRecords.length - 1];
-                  accLabel = current.level;
+                  const milestones = record.accreditationRecords;
+                  const current = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
+                  accLabel = current?.level || 'Non-Accredited';
+                  nextVisit = current?.statusValidityDate || 'TBA';
               } else {
                   accLabel = 'Non-Accredited';
+                  nextVisit = 'TBA';
               }
 
               return (
-                <TableRow key={program.id} className="hover:bg-muted/30 transition-colors">
-                  <TableCell>
+                <TableRow key={program.id} className="hover:bg-muted/30 transition-colors group">
+                  <TableCell className="pl-6">
                     <div className="flex flex-col">
                       <span className="font-bold text-sm text-slate-900 leading-tight">{program.name}</span>
                       <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest mt-0.5">{program.abbreviation} &bull; {program.level}</span>
@@ -100,7 +108,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                   </TableCell>
                   <TableCell className="text-xs">
                     <div className="flex items-center gap-2">
-                      <School className="h-3.5 w-3.5 text-muted-foreground" />
+                      <School className="h-3.5 w-3.5 text-primary opacity-40" />
                       <span className="font-medium">{campusMap.get(program.campusId) || '...'}</span>
                     </div>
                   </TableCell>
@@ -134,6 +142,32 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                           </div>
                       </div>
                   </TableCell>
+                  
+                  <TableCell>
+                    <div className="flex flex-col gap-1">
+                        <span className={cn("text-xs font-black tabular-nums", copcAwardDate === 'N/A' ? "text-muted-foreground/40" : "text-emerald-600")}>
+                            {copcAwardDate}
+                        </span>
+                        {copcStatus === 'With COPC' && <Badge variant="outline" className="h-3 text-[7px] font-black border-emerald-200 text-emerald-600 bg-emerald-50 w-fit">VERIFIED</Badge>}
+                    </div>
+                  </TableCell>
+
+                  <TableCell>
+                    <div className="flex flex-col gap-1">
+                        <span className={cn(
+                            "text-xs font-black tabular-nums uppercase",
+                            nextVisit === 'NEW PROGRAM' ? "text-amber-600" : (nextVisit === 'TBA' ? "text-muted-foreground/40" : "text-primary")
+                        )}>
+                            {nextVisit}
+                        </span>
+                        {nextVisit !== 'TBA' && nextVisit !== 'NEW PROGRAM' && (
+                            <div className="flex items-center gap-1 text-[8px] font-bold text-muted-foreground uppercase">
+                                <Clock className="h-2.5 w-2.5" /> Scheduled
+                            </div>
+                        )}
+                    </div>
+                  </TableCell>
+
                   <TableCell>
                     {program.isActive ? (
                       <Badge className="bg-green-600 hover:bg-green-700 gap-1 h-5 text-[9px] uppercase tracking-tighter font-black">
@@ -143,17 +177,17 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                       <Badge variant="secondary" className="h-5 text-[9px] uppercase tracking-tighter font-black bg-slate-200">Inactive</Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-right space-x-2 whitespace-nowrap">
+                  <TableCell className="text-right space-x-2 whitespace-nowrap pr-6">
                     <Button 
                       size="sm" 
                       variant="default" 
                       className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm"
                       onClick={() => router.push(`/academic-programs/${program.id}`)}
                     >
-                      Compliance Workspace
+                      Workspace
                     </Button>
                     {canManage && (
-                      <div className="inline-flex gap-1">
+                      <div className="inline-flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/5" onClick={() => onEdit(program)}>
                               <Edit className="h-4 w-4" />
                           </Button>
