@@ -570,7 +570,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             <CardContent className="pt-6 flex-1">
                 <ChartContainer config={chartConfig} className="h-[350px] w-full">
                     <ResponsiveContainer>
-                        <BarChart data={analytics?.accreditationSummary} layout="vertical" margin={{ left: 20, right: 40 }}>
+                        <BarChart data={analytics?.accreditationSummary} layout="vertical" margin={{ left: 20, right: 60 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                             <XAxis type="number" hide />
                             <YAxis 
@@ -583,14 +583,14 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             />
                             <RechartsTooltip content={<ChartTooltipContent />} />
                             <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingBottom: '10px' }} />
-                            <Bar dataKey="Undergraduate" fill={chartConfig.Undergraduate.color} radius={[0, 0, 0, 0]} barSize={10} stackId="a">
-                                <LabelList dataKey="Undergraduate" position="inside" style={{ fontSize: '8px', fontWeight: '900', fill: '#fff' }} />
+                            <Bar dataKey="Undergraduate" fill={chartConfig.Undergraduate.color} radius={[0, 4, 4, 0]} barSize={10}>
+                                <LabelList dataKey="Undergraduate" position="right" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Undergraduate.color }} />
                             </Bar>
-                            <Bar dataKey="Graduate" fill={chartConfig.Graduate.color} radius={[0, 0, 0, 0]} barSize={10} stackId="a">
-                                <LabelList dataKey="Graduate" position="inside" style={{ fontSize: '8px', fontWeight: '900', fill: '#fff' }} />
+                            <Bar dataKey="Graduate" fill={chartConfig.Graduate.color} radius={[0, 4, 4, 0]} barSize={10}>
+                                <LabelList dataKey="Graduate" position="right" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Graduate.color }} />
                             </Bar>
-                            <Bar dataKey="Inactive" fill={chartConfig.Inactive.color} radius={[0, 4, 4, 0]} barSize={10} stackId="a">
-                                <LabelList dataKey="Inactive" position="inside" style={{ fontSize: '8px', fontWeight: '900', fill: '#fff' }} />
+                            <Bar dataKey="Inactive" fill={chartConfig.Inactive.color} radius={[0, 4, 4, 0]} barSize={10}>
+                                <LabelList dataKey="Inactive" position="right" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Inactive.color }} />
                             </Bar>
                         </BarChart>
                     </ResponsiveContainer>
@@ -599,7 +599,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             <CardFooter className="bg-slate-50 border-t p-4 flex gap-3">
                 <Info className="h-5 w-5 text-slate-600 shrink-0 mt-0.5" />
                 <p className="text-[9px] text-slate-500 leading-relaxed italic">
-                    <strong>Disaggregated View:</strong> Visualizing the quality index for both active and inactive tracks ensures that historical data from programs subject for closure does not skew active growth metrics.
+                    <strong>Disaggregated View:</strong> Separating quality indices across active and inactive tracks ensures that historical data from programs subject for closure does not skew active growth metrics.
                 </p>
             </CardFooter>
         </Card>
@@ -660,22 +660,22 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 <CardDescription className="text-xs">Quantity of programs due for survey per year.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
-                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                <ChartContainer config={chartConfig} className="h-[350px] w-full">
                     <ResponsiveContainer>
-                        <BarChart data={analytics?.distributionSummary}>
+                        <BarChart data={analytics?.distributionSummary} margin={{ top: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
                             <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
                             <RechartsTooltip content={<ChartTooltipContent />} />
                             <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '20px' }} />
-                            <Bar dataKey="Undergraduate" fill={chartConfig.Undergraduate.color} radius={[0, 0, 0, 0]} barSize={20} stackId="a">
-                                <LabelList dataKey="Undergraduate" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Undergraduate.color }} />
+                            <Bar dataKey="Undergraduate" fill={chartConfig.Undergraduate.color} radius={[4, 4, 0, 0]} barSize={20}>
+                                <LabelList dataKey="Undergraduate" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: chartConfig.Undergraduate.color }} />
                             </Bar>
-                            <Bar dataKey="Graduate" fill={chartConfig.Graduate.color} radius={[0, 0, 0, 0]} barSize={20} stackId="a">
-                                <LabelList dataKey="Graduate" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Graduate.color }} />
+                            <Bar dataKey="Graduate" fill={chartConfig.Graduate.color} radius={[4, 4, 0, 0]} barSize={20}>
+                                <LabelList dataKey="Graduate" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: chartConfig.Graduate.color }} />
                             </Bar>
-                            <Bar dataKey="Inactive" fill={chartConfig.Inactive.color} radius={[2, 2, 0, 0]} barSize={20} stackId="a">
-                                <LabelList dataKey="Inactive" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Inactive.color }} />
+                            <Bar dataKey="Inactive" fill={chartConfig.Inactive.color} radius={[4, 4, 0, 0]} barSize={20}>
+                                <LabelList dataKey="Inactive" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: chartConfig.Inactive.color }} />
                             </Bar>
                         </BarChart>
                     </ResponsiveContainer>
@@ -707,22 +707,22 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 <CardDescription className="text-xs">Formal surveys successfully conducted per year (Historical Data).</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
-                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                <ChartContainer config={chartConfig} className="h-[350px] w-full">
                     <ResponsiveContainer>
-                        <BarChart data={analytics?.surveysHistoryData}>
+                        <BarChart data={analytics?.surveysHistoryData} margin={{ top: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
                             <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
                             <RechartsTooltip content={<ChartTooltipContent />} />
                             <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '20px' }} />
-                            <Bar dataKey="Undergraduate" fill="#10b981" radius={[0, 0, 0, 0]} barSize={20} stackId="a">
-                                <LabelList dataKey="Undergraduate" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: '#065f46' }} />
+                            <Bar dataKey="Undergraduate" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20}>
+                                <LabelList dataKey="Undergraduate" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#065f46' }} />
                             </Bar>
-                            <Bar dataKey="Graduate" fill="#6ee7b7" radius={[0, 0, 0, 0]} barSize={20} stackId="a">
-                                <LabelList dataKey="Graduate" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: '#065f46' }} />
+                            <Bar dataKey="Graduate" fill="#6ee7b7" radius={[4, 4, 0, 0]} barSize={20}>
+                                <LabelList dataKey="Graduate" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#065f46' }} />
                             </Bar>
-                            <Bar dataKey="Inactive" fill={chartConfig.Inactive.color} radius={[2, 2, 0, 0]} barSize={20} stackId="a">
-                                <LabelList dataKey="Inactive" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Inactive.color }} />
+                            <Bar dataKey="Inactive" fill={chartConfig.Inactive.color} radius={[4, 4, 0, 0]} barSize={20}>
+                                <LabelList dataKey="Inactive" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: chartConfig.Inactive.color }} />
                             </Bar>
                         </BarChart>
                     </ResponsiveContainer>
@@ -757,20 +757,20 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <CardContent className="pt-10 flex-1">
               <ChartContainer config={chartConfig} className="h-[350px] w-full">
                   <ResponsiveContainer>
-                      <BarChart data={analytics?.copcHistoryData}>
+                      <BarChart data={analytics?.copcHistoryData} margin={{ top: 20 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} />
                           <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
                           <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
                           <RechartsTooltip content={<ChartTooltipContent />} />
                           <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingBottom: '20px' }} />
-                          <Bar dataKey="Undergraduate" fill="#10b981" radius={[0, 0, 0, 0]} barSize={30} stackId="a">
-                              <LabelList dataKey="Undergraduate" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: '#065f46' }} />
+                          <Bar dataKey="Undergraduate" fill="#10b981" radius={[4, 4, 0, 0]} barSize={30}>
+                              <LabelList dataKey="Undergraduate" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#065f46' }} />
                           </Bar>
-                          <Bar dataKey="Graduate" fill="#6ee7b7" radius={[0, 0, 0, 0]} barSize={30} stackId="a">
-                              <LabelList dataKey="Graduate" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: '#065f46' }} />
+                          <Bar dataKey="Graduate" fill="#6ee7b7" radius={[4, 4, 0, 0]} barSize={30}>
+                              <LabelList dataKey="Graduate" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#065f46' }} />
                           </Bar>
-                          <Bar dataKey="Inactive" fill={chartConfig.Inactive.color} radius={[2, 2, 0, 0]} barSize={30} stackId="a">
-                              <LabelList dataKey="Inactive" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Inactive.color }} />
+                          <Bar dataKey="Inactive" fill={chartConfig.Inactive.color} radius={[4, 4, 0, 0]} barSize={30}>
+                              <LabelList dataKey="Inactive" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: chartConfig.Inactive.color }} />
                           </Bar>
                       </BarChart>
                   </ResponsiveContainer>
