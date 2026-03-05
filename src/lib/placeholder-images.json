@@ -29,6 +29,48 @@
       "description": "ISO Certification QR Code",
       "imageUrl": "/ISOlogo.jpg",
       "imageHint": "qr code"
+    },
+    {
+      "id": "swot-template",
+      "description": "Official SWOT Analysis Template Sample",
+      "imageUrl": "https://picsum.photos/seed/swot-template/800/1100",
+      "imageHint": "document template"
+    },
+    {
+      "id": "nep-template",
+      "description": "Needs and Expectations Template Sample",
+      "imageUrl": "https://picsum.photos/seed/nep-template/800/1100",
+      "imageHint": "document template"
+    },
+    {
+      "id": "ope-template",
+      "description": "Operational Plan Template Sample",
+      "imageUrl": "https://picsum.photos/seed/ope-template/800/1100",
+      "imageHint": "document template"
+    },
+    {
+      "id": "qom-template",
+      "description": "Quality Objectives Monitoring Template Sample",
+      "imageUrl": "https://picsum.photos/seed/qom-template/800/1100",
+      "imageHint": "document template"
+    },
+    {
+      "id": "ror-template",
+      "description": "Risk and Opportunity Registry Template Sample",
+      "imageUrl": "https://picsum.photos/seed/ror-template/1100/800",
+      "imageHint": "document template"
+    },
+    {
+      "id": "roa-template",
+      "description": "Risk Action Plan Template Sample",
+      "imageUrl": "https://picsum.photos/seed/roa-template/800/1100",
+      "imageHint": "document template"
+    },
+    {
+      "id": "general-template",
+      "description": "General EOMS Document Template Sample",
+      "imageUrl": "https://picsum.photos/seed/general-template/800/1100",
+      "imageHint": "document template"
     }
   ]
 }

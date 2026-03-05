@@ -2,12 +2,12 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, addDoc, getDocs } from 'firebase/firestore';
+import { collection, query, where, addDoc } from 'firebase/firestore';
 import type { Submission, Comment, Unit, Cycle, Risk } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
-import { CheckCircle, Circle, Download, FileCheck, Scan, Link as LinkIcon, AlertCircle, XCircle, ChevronRight, Loader2, ArrowLeft, ShieldAlert, Info } from 'lucide-react';
+import { CheckCircle, Circle, Download, FileCheck, Scan, Link as LinkIcon, AlertCircle, XCircle, ChevronRight, Loader2, ArrowLeft, ShieldAlert, Info, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -22,8 +22,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -31,6 +37,8 @@ import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 
 export const submissionTypes = [
@@ -69,6 +77,8 @@ export default function NewSubmissionPage() {
   const [isCarryingOver, setIsCarryingOver] = useState(false);
   const [showFormForUpdate, setShowFormForUpdate] = useState(false);
   
+  const [isSampleOpen, setIsSampleOpen] = useState(false);
+  
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
 
@@ -85,7 +95,6 @@ export default function NewSubmissionPage() {
         .sort((a, b) => a.name.localeCompare(b.name));
   }, [allCycles, selectedYear]);
 
-  // Handle year change: Clear cycle if no longer valid
   useEffect(() => {
     if (selectedYear) {
         if (selectedCycle) {
@@ -117,7 +126,6 @@ export default function NewSubmissionPage() {
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
-  // Digital risks check for Final Cycle prerequisite
   const digitalRisksQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile?.unitId || !selectedYear) return null;
     return query(
@@ -171,7 +179,6 @@ export default function NewSubmissionPage() {
   
   const specialUpdateReports = ['SWOT Analysis', 'Needs and Expectation of Interested Parties'];
 
-  // Final Cycle ROR Prerequisite Logic: Requires doc + At least one Risk AND at least one Opportunity
   const isFirstCycleRorComplete = useMemo(() => {
     const docSubmitted = firstCycleStatusMap.has('Risk and Opportunity Registry');
     const hasR = digitalRisks?.some(r => r.type === 'Risk');
@@ -289,6 +296,21 @@ export default function NewSubmissionPage() {
   }
 
   const isCycleSelected = selectedYear !== null && selectedCycle !== null;
+
+  const currentTemplate = useMemo(() => {
+    if (!selectedReport) return PlaceHolderImages.find(p => p.id === 'general-template');
+    
+    const mapping: Record<string, string> = {
+        'SWOT Analysis': 'swot-template',
+        'Needs and Expectation of Interested Parties': 'nep-template',
+        'Operational Plan': 'ope-template',
+        'Quality Objectives Monitoring': 'qom-template',
+        'Risk and Opportunity Registry': 'ror-template',
+        'Risk and Opportunity Action Plan': 'roa-template'
+    };
+
+    return PlaceHolderImages.find(p => p.id === mapping[selectedReport]) || PlaceHolderImages.find(p => p.id === 'general-template');
+  }, [selectedReport]);
 
   return (
     <div className="space-y-4">
@@ -424,9 +446,15 @@ export default function NewSubmissionPage() {
                         <Download className="h-5 w-5 text-primary flex-shrink-0 mt-1"/>
                         <div>
                             <span className="font-semibold">1. Download Templates:</span> All report templates are available in the official EOMS Google Drive folder. 
-                            <Button variant="link" asChild className="p-0 h-auto ml-1 font-bold">
-                                <Link href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank">Access templates here.</Link>
-                            </Button>
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                                <Button variant="link" asChild className="p-0 h-auto font-bold">
+                                    <Link href="https://drive.google.com/drive/folders/1xabubTGa7ddu05VxiL9zhX6uge_kisN1?usp=drive_link" target="_blank">Access templates</Link>
+                                </Button>
+                                <span className="text-muted-foreground text-[10px] opacity-50">•</span>
+                                <Button variant="link" className="p-0 h-auto font-bold text-primary flex items-center gap-1" onClick={() => setIsSampleOpen(true)}>
+                                    <Eye className="h-3 w-3" /> View Sample Format
+                                </Button>
+                            </div>
                         </div>
                     </div>
                      <div className="flex items-start gap-3">
@@ -444,7 +472,7 @@ export default function NewSubmissionPage() {
                      <div className="flex items-start gap-3">
                         <LinkIcon className="h-5 w-5 text-primary flex-shrink-0 mt-1"/>
                         <div>
-                            <span className="font-semibold">4. Copy and Submit Link:</span> Copy the sharing link from Google Drive and paste it into the submission form. Use the helper button below the form for a guide.
+                            <span className="font-semibold">4. Copy and Submit Link:</span> Copy the sharing link from Google Drive and paste it into the submission form.
                         </div>
                     </div>
                 </CardContent>
@@ -585,6 +613,43 @@ export default function NewSubmissionPage() {
             )}
         </div>
       </div>
+
+      <Dialog open={isSampleOpen} onOpenChange={setIsSampleOpen}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
+            <DialogHeader className="p-6 border-b bg-muted/30 shrink-0">
+                <div className="flex items-center gap-2 text-primary mb-1">
+                    <Eye className="h-5 w-5" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Template Visual Guide</span>
+                </div>
+                <DialogTitle className="text-xl">
+                    {selectedReport ? `Sample: ${selectedReport}` : 'General Document Standard'}
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                    This sample demonstrates the expected layout, header format, and signature placement.
+                </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="flex-1 bg-slate-100">
+                <div className="p-8 flex justify-center">
+                    {currentTemplate && (
+                        <div className="relative rounded-lg overflow-hidden shadow-2xl border bg-white max-w-2xl">
+                            <Image 
+                                src={currentTemplate.imageUrl} 
+                                alt={currentTemplate.description} 
+                                width={800} 
+                                height={1100}
+                                className="object-contain h-auto w-full"
+                                data-ai-hint={currentTemplate.imageHint}
+                            />
+                        </div>
+                    )}
+                </div>
+            </ScrollArea>
+            <DialogFooter className="p-4 border-t bg-card shrink-0">
+                <Button variant="outline" className="font-bold uppercase text-xs" onClick={() => setIsSampleOpen(false)}>Close Guide</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <FeedbackDialog 
         isOpen={isFeedbackDialogOpen}
         onOpenChange={setIsFeedbackDialogOpen}
