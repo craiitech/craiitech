@@ -239,14 +239,16 @@ export default function SubmissionDetailPage() {
 
   // CRITICAL: Aligned with new requirements - Admin, Campus Director, Campus ODIMO, and VP can approve
   const isApprover = useMemo(() => {
-    if (!submission || !userProfile || !userRole) return false;
+    if (!submission || !userProfile) return false;
     
-    // Institutional Admins bypass the "cannot approve own" rule for flexibility and testing
+    // Institutional Admins always bypass the "cannot approve own" rule for flexibility and testing
     if (isAdmin) return true;
 
     // Others cannot approve their own submissions
     if (submission.userId === userProfile.id) return false; 
     
+    if (!userRole) return false;
+
     const approverRoles = ['Admin', 'Campus Director', 'Campus ODIMO'];
     const roleIsApprover = approverRoles.includes(userRole) || userRole.toLowerCase().includes('vice president');
     

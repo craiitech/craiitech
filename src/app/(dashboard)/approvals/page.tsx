@@ -66,7 +66,7 @@ export default function ApprovalsPage() {
 
   useEffect(() => {
     if (isUserLoading || !firestore || !userProfile) {
-        setIsLoading(false);
+        if (!isUserLoading) setIsLoading(false);
         return;
     }
 
@@ -75,7 +75,7 @@ export default function ApprovalsPage() {
         let submissionsQuery: Query | null = null;
 
         if (isAdmin) {
-            // Admins see all pending submissions institutionally
+            // Admins see ALL pending submissions institutionally across all campuses
             submissionsQuery = query(
                 collection(firestore, 'submissions'), 
                 where('statusId', '==', 'submitted')
@@ -100,7 +100,8 @@ export default function ApprovalsPage() {
                     return { ...data, id: doc.id, submissionDate };
                 });
 
-                // Supervisors (non-admins) should not see their own submissions in the approval queue
+                // Standard supervisors (non-admins) should not see their own submissions in the approval queue
+                // Admins bypass this to allow for self-approval testing and overrides.
                 if (!isAdmin) {
                     fetchedSubmissions = fetchedSubmissions.filter(s => s.userId !== userProfile.id);
                 }
