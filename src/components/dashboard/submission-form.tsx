@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CheckCircle, XCircle, Loader2, HelpCircle, AlertTriangle, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, HelpCircle, AlertTriangle, ShieldCheck, ShieldAlert, FileText, LayoutList, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -55,6 +55,7 @@ const submissionSchema = z.object({
       (url) => url.startsWith('https://drive.google.com/'),
       'URL must be a Google Drive link'
     ),
+  isDraft: z.boolean().default(false),
   comments: z.string().optional(),
 });
 
@@ -111,13 +112,24 @@ export function SubmissionForm({
       where('unitId', '==', userProfile.unitId),
       where('year', '==', year)
     );
-  }, [firestore, userProfile?.unitId, year, isRorForm]);
+  }, [firestore, userProfile.unitId, year, isRorForm]);
 
   const { data: digitalRisks, isLoading: isLoadingDigitalRisks } = useCollection<Risk>(digitalRisksQuery);
   
   const hasRisks = digitalRisks?.some(r => r.type === 'Risk');
   const hasOpportunities = digitalRisks?.some(r => r.type === 'Opportunity');
   const isDigitalComplete = hasRisks && hasOpportunities;
+
+  const form = useForm<z.infer<typeof submissionSchema>>({
+    resolver: zodResolver(submissionSchema),
+    defaultValues: {
+      googleDriveLink: '',
+      isDraft: false,
+      comments: '',
+    },
+  });
+
+  const isDraftValue = form.watch('isDraft');
 
   const checklistItems = useMemo(() => {
     const dynamicBaseItems = [
@@ -148,10 +160,11 @@ export function SubmissionForm({
 
 
   const isChecklistComplete = useMemo(() => {
+    if (isDraftValue) return true; // Checklist is not required for drafts
     if (isRorForm && !riskRating) return false;
     const currentKeys = checklistItems.map(i => i.id);
     return currentKeys.every(id => checkedState[id] === true);
-  }, [checkedState, isRorForm, riskRating, checklistItems]);
+  }, [checkedState, isRorForm, riskRating, checklistItems, isDraftValue]);
 
   const handleCheckboxChange = (id: string) => {
     setCheckedState(prevState => ({
@@ -165,14 +178,6 @@ export function SubmissionForm({
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
-
-  const form = useForm<z.infer<typeof submissionSchema>>({
-    resolver: zodResolver(submissionSchema),
-    defaultValues: {
-      googleDriveLink: '',
-      comments: '',
-    },
-  });
 
   const handleLinkValidation = async (link: string) => {
     if (!link || !link.startsWith('https://drive.google.com/') || !z.string().url().safeParse(link).success) {
@@ -248,6 +253,9 @@ export function SubmissionForm({
             if (existingData.googleDriveLink && form.getValues('googleDriveLink') !== existingData.googleDriveLink) {
               form.setValue('googleDriveLink', existingData.googleDriveLink);
             }
+            if (existingData.isDraft !== undefined) {
+                form.setValue('isDraft', existingData.isDraft);
+            }
             if (existingData.riskRating) {
                 setRiskRating(existingData.riskRating);
             }
@@ -263,7 +271,7 @@ export function SubmissionForm({
             setExistingSubmission(null);
             setRiskRating(null);
             setOriginalSubmitter(null);
-            form.reset({ googleDriveLink: '', comments: '' });
+            form.reset({ googleDriveLink: '', isDraft: false, comments: '' });
         }
     }
     fetchExistingSubmission();
@@ -320,6 +328,7 @@ export function SubmissionForm({
             const existingDocRef = doc(firestore, 'submissions', existingSubmission.id);
             const updateData: any = {
               googleDriveLink: values.googleDriveLink,
+              isDraft: values.isDraft,
               statusId: 'submitted',
               submissionDate: serverTimestamp(), // Atomic server time
               unitName: unit.name,
@@ -341,11 +350,11 @@ export function SubmissionForm({
             await updateDoc(existingDocRef, updateData)
             logSessionActivity(`Updated unit submission (Rev ${newRevision}): ${reportType}`, {
                 action: 'update_submission',
-                details: { submissionId: existingDocRef.id, reportType, revision: newRevision },
+                details: { submissionId: existingDocRef.id, reportType, revision: newRevision, isDraft: values.isDraft },
             });
             toast({
                 title: 'Submission Updated!',
-                description: `Revision ${newRevision} submitted for '${reportType}'.`,
+                description: `Revision ${newRevision} ${values.isDraft ? '(Draft)' : '(Final)'} submitted for '${reportType}'.`,
             });
             submissionSuccess = true;
 
@@ -355,6 +364,7 @@ export function SubmissionForm({
 
             const newSubmissionData: any = {
                 googleDriveLink: values.googleDriveLink,
+                isDraft: values.isDraft,
                 reportType,
                 year,
                 cycleId,
@@ -376,11 +386,11 @@ export function SubmissionForm({
             const docRef = await addDoc(collection(firestore, 'submissions'), newSubmissionData);
             logSessionActivity(`Created new unit submission (Rev 0): ${reportType}`, {
                 action: 'create_submission',
-                details: { submissionId: docRef.id, reportType, controlNumber: initialControlNumber },
+                details: { submissionId: docRef.id, reportType, controlNumber: initialControlNumber, isDraft: values.isDraft },
             });
             toast({
                 title: 'Submission Successful!',
-                description: `New report '${reportType}' submitted under Revision 0.`,
+                description: `New ${values.isDraft ? 'draft' : 'report'} '${reportType}' submitted under Revision 0.`,
             });
             submissionSuccess = true;
         }
@@ -444,6 +454,16 @@ export function SubmissionForm({
             </Alert>
         )}
 
+        <Alert className="bg-primary/5 border-primary/20">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertTitle className="text-xs font-black uppercase tracking-tight text-primary">Draft System Workflow</AlertTitle>
+            <AlertDescription className="text-[10px] leading-relaxed font-medium">
+                1. <strong>Draft Submission:</strong> Select "Draft" to share a raw Google Doc for content checking. No signatures are required.<br/>
+                2. <strong>Feedback Loop:</strong> Check comments and address recommendations in your source document.<br/>
+                3. <strong>Final Submission:</strong> Once cleared, secure signatures, save as PDF, and submit as "Final" to complete the Compliance Checklist.
+            </AlertDescription>
+        </Alert>
+
         {isRorForm && !isLoadingDigitalRisks && !isDigitalComplete && (
             <Alert variant="destructive" className="border-destructive/50 bg-destructive/5 animate-in slide-in-from-top-2 duration-500">
                 <ShieldAlert className="h-5 w-5 text-destructive" />
@@ -488,6 +508,41 @@ export function SubmissionForm({
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div className="space-y-4">
+            <FormField
+                control={form.control}
+                name="isDraft"
+                render={({ field }) => (
+                    <FormItem className="space-y-3">
+                        <FormLabel className="text-xs font-black uppercase tracking-widest text-primary">Submission Type</FormLabel>
+                        <FormControl>
+                            <RadioGroup
+                                onValueChange={(v) => field.onChange(v === 'true')}
+                                value={field.value ? 'true' : 'false'}
+                                className="flex flex-col sm:flex-row gap-4"
+                                disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete)}
+                            >
+                                <div className={cn("flex items-center space-x-2 border p-3 rounded-lg flex-1 cursor-pointer transition-colors hover:bg-muted/50", field.value && "bg-blue-50 border-blue-200")}>
+                                    <RadioGroupItem value="true" id="is-draft" />
+                                    <Label htmlFor="is-draft" className="flex-1 cursor-pointer">
+                                        <p className="text-sm font-bold flex items-center gap-2"><LayoutList className="h-4 w-4 text-blue-600" /> Draft (Content Check)</p>
+                                        <p className="text-[10px] text-muted-foreground">Raw working document for initial review and feedback.</p>
+                                    </Label>
+                                </div>
+                                <div className={cn("flex items-center space-x-2 border p-3 rounded-lg flex-1 cursor-pointer transition-colors hover:bg-muted/50", !field.value && "bg-green-50 border-green-200")}>
+                                    <RadioGroupItem value="false" id="is-final" />
+                                    <Label htmlFor="is-final" className="flex-1 cursor-pointer">
+                                        <p className="text-sm font-bold flex items-center gap-2"><FileText className="h-4 w-4 text-green-600" /> Final (Official Filing)</p>
+                                        <p className="text-[10px] text-muted-foreground">Signed, scanned PDF ready for compliance verification.</p>
+                                    </Label>
+                                </div>
+                            </RadioGroup>
+                        </FormControl>
+                    </FormItem>
+                )}
+            />
         </div>
 
         <div className="aspect-video w-full rounded-lg border bg-muted mb-6">
@@ -610,33 +665,47 @@ export function SubmissionForm({
           </Card>
         )}
         
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-base">Final Check</CardTitle>
-                <CardDescription className="text-xs">
-                    Please confirm the following details before submitting.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-                {checklistItems.map(item => (
-                <div key={item.id} className="flex items-start space-x-3">
-                    <Checkbox
-                        id={`${reportType}-${item.id}`}
-                        checked={checkedState[item.id] || false}
-                        onCheckedChange={() => handleCheckboxChange(item.id)}
-                        disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete)}
-                    />
-                    <Label htmlFor={`${reportType}-${item.id}`} className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        {item.label}
-                    </Label>
-                </div>
-                ))}
-            </CardContent>
-        </Card>
+        {!isDraftValue ? (
+            <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2"><CheckCircle className="h-5 w-5 text-green-600" /> Final Compliance Checklist</CardTitle>
+                    <CardDescription className="text-xs">
+                        Please confirm the following institutional requirements before submitting the final signed record.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    {checklistItems.map(item => (
+                    <div key={item.id} className="flex items-start space-x-3 p-2 rounded hover:bg-muted/30 transition-colors">
+                        <Checkbox
+                            id={`${reportType}-${item.id}`}
+                            checked={checkedState[item.id] || false}
+                            onCheckedChange={() => handleCheckboxChange(item.id)}
+                            disabled={!canUpdateExisting || (isRorForm && !isDigitalComplete)}
+                        />
+                        <Label htmlFor={`${reportType}-${item.id}`} className="text-sm font-normal leading-tight cursor-pointer">
+                            {item.label}
+                        </Label>
+                    </div>
+                    ))}
+                </CardContent>
+            </Card>
+        ) : (
+            <Card className="border-blue-200 bg-blue-50/20 animate-in fade-in slide-in-from-top-2 duration-500">
+                <CardHeader className="py-4">
+                    <CardTitle className="text-sm font-black uppercase tracking-tight text-blue-800 flex items-center gap-2">
+                        <LayoutList className="h-4 w-4" />
+                        Draft Review Mode Active
+                    </CardTitle>
+                    <CardDescription className="text-[10px] font-bold text-blue-700/70 uppercase tracking-widest">
+                        Checklist is bypassed. focus purely on content checking.
+                    </CardDescription>
+                </CardHeader>
+            </Card>
+        )}
 
         <Button
           type="submit"
-          className="w-full"
+          className={cn("w-full shadow-lg", isDraftValue ? "bg-blue-600 hover:bg-blue-700 shadow-blue-200" : "")}
           disabled={
             isSubmitting ||
             validationStatus === 'validating' ||
@@ -653,8 +722,8 @@ export function SubmissionForm({
             </>
           ) : (
             existingSubmission 
-              ? `Submit Revision ${String((existingSubmission.revision || 0) + 1).padStart(2, '0')}`
-              : 'Submit Revision 00'
+              ? `Submit Revision ${String((existingSubmission.revision || 0) + 1).padStart(2, '0')} ${isDraftValue ? '(Draft)' : ''}`
+              : `Submit Revision 00 ${isDraftValue ? '(Draft)' : ''}`
           )}
         </Button>
       </form>

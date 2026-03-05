@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -33,7 +34,7 @@ import {
 import { useState, useEffect } from 'react';
 import type { Submission, User as AppUser } from '@/lib/types';
 import { format } from 'date-fns';
-import { Loader2, ClipboardCheck } from 'lucide-react';
+import { Loader2, ClipboardCheck, LayoutList } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -216,7 +217,12 @@ export default function ApprovalsPage() {
                     className={cn("transition-colors", getYearRowColor(submission.year))}
                   >
                     <TableCell className="font-medium max-w-xs truncate">
-                      {submission.reportType}
+                      <div className="flex items-center gap-2">
+                        {submission.reportType}
+                        {submission.isDraft && (
+                            <Badge className="bg-blue-600 text-white border-none h-4 px-1 text-[8px] font-black uppercase">DRAFT</Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>{getUserName(submission.userId)}</TableCell>
                     <TableCell>
@@ -232,11 +238,13 @@ export default function ApprovalsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
-                        variant="default"
+                        variant={submission.isDraft ? "secondary" : "default"}
                         size="sm"
                         onClick={() => router.push(`/submissions/${submission.id}`)}
+                        className={cn(submission.isDraft ? "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200" : "")}
                       >
-                        <ClipboardCheck className="mr-2 h-4 w-4" /> Evaluate Submission
+                        {submission.isDraft ? <LayoutList className="mr-2 h-4 w-4" /> : <ClipboardCheck className="mr-2 h-4 w-4" />}
+                        {submission.isDraft ? 'Review Draft' : 'Evaluate Submission'}
                       </Button>
                     </TableCell>
                   </TableRow>

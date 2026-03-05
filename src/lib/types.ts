@@ -46,6 +46,7 @@ export type Submission = {
   riskRating?: 'low' | 'medium-high';
   revision: number;
   controlNumber: string;
+  isDraft?: boolean;
 };
 
 export type Risk = {

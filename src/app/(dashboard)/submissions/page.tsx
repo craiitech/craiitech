@@ -1,6 +1,7 @@
+
 'use client';
 
-import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter, Download, ShieldCheck, XCircle, CheckCircle2, ChevronRight } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter, Download, ShieldCheck, XCircle, CheckCircle2, ChevronRight, LayoutList } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -67,7 +68,7 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
     },
     2026: { 
       first: 'bg-amber-50/20 hover:bg-amber-100/40 dark:bg-amber-900/5 dark:hover:bg-amber-900/10', 
-      final: 'bg-amber-100/40 hover:bg-amber-200/50 dark:bg-amber-900/20 dark:hover:bg-amber-900/30' 
+      final: 'bg-amber-100/40 hover:bg-amber-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
     },
     2027: { 
       first: 'bg-purple-50/20 hover:bg-purple-100/40 dark:bg-purple-900/5 dark:hover:bg-purple-900/10', 
@@ -464,6 +465,11 @@ export default function SubmissionsPage() {
                                                             <div className="flex flex-col gap-1.5">
                                                                 <div className="flex items-center gap-2">
                                                                     <span className="font-bold text-sm text-black">{sub.reportType}</span>
+                                                                    {sub.isDraft && (
+                                                                        <Badge className="bg-blue-600 text-white border-none h-4 px-1.5 font-black text-[8px] gap-1 shadow-sm">
+                                                                            <LayoutList className="h-2.5 w-2.5" /> DRAFT
+                                                                        </Badge>
+                                                                    )}
                                                                     {isRor && (
                                                                         <Tooltip>
                                                                             <TooltipTrigger asChild>

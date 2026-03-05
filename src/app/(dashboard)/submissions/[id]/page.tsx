@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
@@ -37,7 +38,8 @@ import {
     CheckCircle, 
     AlertCircle, 
     Activity,
-    ShieldAlert
+    ShieldAlert,
+    LayoutList
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -170,17 +172,6 @@ export default function SubmissionDetailPage() {
     setApproverChecklist(prev => ({ ...prev, [id]: !prev[id] }));
   };
   
-  const isChecklistComplete = useMemo(() => {
-    if (Object.keys(approverChecklist).length === 0) return false;
-    return approverChecklistItems.every(item => approverChecklist[item.id] === true);
-  }, [approverChecklist]);
-
-  const canReject = useMemo(() => {
-    // Can reject if checklist is incomplete OR feedback is provided
-    return !isChecklistComplete || feedback.trim() !== '';
-  }, [isChecklistComplete, feedback]);
-
-
   const submissionId = Array.isArray(id) ? id[0] : id;
 
   const submissionDocRef = useMemoFirebase(
@@ -188,6 +179,21 @@ export default function SubmissionDetailPage() {
     [firestore, submissionId]
   );
   const { data: submission, isLoading: isLoadingSubmission } = useDoc<Submission>(submissionDocRef);
+
+  const isChecklistComplete = useMemo(() => {
+    if (!submission) return false;
+    if (submission.isDraft) return true; // Drafts don't need checklist
+    if (Object.keys(approverChecklist).length === 0) return false;
+    return approverChecklistItems.every(item => approverChecklist[item.id] === true);
+  }, [approverChecklist, submission]);
+
+  const canReject = useMemo(() => {
+    if (!submission) return false;
+    // Can reject if checklist is incomplete (for finals) OR feedback is provided
+    const needsChecklist = !submission.isDraft;
+    return (needsChecklist && !isChecklistComplete) || feedback.trim() !== '';
+  }, [isChecklistComplete, feedback, submission]);
+
 
   const submitterDocRef = useMemoFirebase(
     () => (firestore && submission ? doc(firestore, 'users', submission.userId) : null),
@@ -265,7 +271,7 @@ export default function SubmissionDetailPage() {
     
     if (feedback) {
         const newComment: Comment = {
-            text: `(Approval Comment) ${feedback}`,
+            text: `(${submission?.isDraft ? 'Draft Clearance' : 'Approval'} Comment) ${feedback}`,
             authorId: user.uid,
             authorName: userProfile.firstName + ' ' + userProfile.lastName,
             createdAt: new Date(),
@@ -276,7 +282,10 @@ export default function SubmissionDetailPage() {
     
     updateDoc(submissionDocRef, updateData)
         .then(() => {
-            toast({ title: 'Success', description: 'Submission has been approved.' });
+            toast({ 
+                title: submission?.isDraft ? 'Draft Cleared' : 'Submission Approved', 
+                description: submission?.isDraft ? 'Draft has been cleared for final PDF submission.' : 'Submission has been institutional verified.' 
+            });
             router.back();
         })
         .catch(error => {
@@ -295,7 +304,7 @@ export default function SubmissionDetailPage() {
   const handleReject = async () => {
       if (!submissionDocRef || !user || !userProfile) return;
       
-      const uncheckedReasons = approverChecklistItems
+      const uncheckedReasons = submission?.isDraft ? [] : approverChecklistItems
         .filter(item => !approverChecklist[item.id])
         .map(item => `* ${item.rejectionReason}`);
 
@@ -381,6 +390,9 @@ export default function SubmissionDetailPage() {
             userId: user.uid,
             revision: nextRevision,
             controlNumber: nextControlNumber,
+            // Keep isDraft as true if resubmitting a draft, or allow user to toggle? 
+            // For now, we assume resubmission from the rejected card maintains draft status if it was a draft.
+            isDraft: submission.isDraft
         };
 
         if (newComment) {
@@ -474,6 +486,18 @@ export default function SubmissionDetailPage() {
         {/* Left Column: Document Preview & Actions */}
         <div className="lg:col-span-2 space-y-6">
           
+          {/* Draft Notification Alert */}
+          {submission.isDraft && (
+              <Alert className="bg-blue-50 border-blue-200 animate-in slide-in-from-top-2 duration-500 shadow-md">
+                  <LayoutList className="h-5 w-5 text-blue-600" />
+                  <AlertTitle className="font-black uppercase tracking-tight text-blue-800">Draft Document for Review</AlertTitle>
+                  <AlertDescription className="text-blue-700 text-xs font-medium leading-relaxed">
+                      This is a <strong>working draft</strong> (raw document) submitted for content and formatting checks. 
+                      Official signatures are not required at this stage. Approvers should provide feedback via comments.
+                  </AlertDescription>
+              </Alert>
+          )}
+
           {/* Unified Metadata Header with Emphasized Values - Responsive Stacking */}
           <div className="rounded-lg border bg-muted/5 p-6 shadow-sm">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-6 gap-x-8">
@@ -484,13 +508,18 @@ export default function SubmissionDetailPage() {
                 </div>
                 <div className="space-y-1">
                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Status</p>
-                    <p className={cn(
-                        "text-sm font-black uppercase tracking-tight",
-                        submission.statusId === 'submitted' ? "text-amber-600 animate-pulse" : 
-                        submission.statusId === 'approved' ? "text-emerald-600" : "text-destructive"
-                    )}>
-                        {getStatusText(submission.statusId)}
-                    </p>
+                    <div className="flex items-center gap-2">
+                        <p className={cn(
+                            "text-sm font-black uppercase tracking-tight",
+                            submission.statusId === 'submitted' ? "text-amber-600 animate-pulse" : 
+                            submission.statusId === 'approved' ? "text-emerald-600" : "text-destructive"
+                        )}>
+                            {getStatusText(submission.statusId)}
+                        </p>
+                        {submission.isDraft && (
+                            <Badge className="bg-blue-600 text-white border-none h-4 px-1 text-[8px] font-black uppercase">DRAFT</Badge>
+                        )}
+                    </div>
                 </div>
                 <div className="space-y-1">
                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">Revision</p>
@@ -729,34 +758,37 @@ export default function SubmissionDetailPage() {
 
           {showApprovalUI && (
              <>
+                {!submission.isDraft && (
+                    <Card className="animate-in slide-in-from-top-4 duration-500 shadow-xl border-primary/30">
+                        <CardHeader className="bg-primary/5 border-b">
+                            <CardTitle className="flex items-center gap-2">
+                                <ShieldCheck className="text-primary" />
+                                Approver's Compliance Checklist
+                            </CardTitle>
+                            <CardDescription>Please verify and confirm the following criteria before taking action.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3 pt-6">
+                            {approverChecklistItems.map(item => (
+                                <div key={item.id} className="flex items-start space-x-3 p-2 rounded-md hover:bg-muted/30 transition-colors">
+                                    <Checkbox
+                                        id={`approver-${item.id}`}
+                                        checked={approverChecklist[item.id] || false}
+                                        onCheckedChange={() => handleChecklistChange(item.id)}
+                                        disabled={isSubmitting}
+                                        className="mt-1"
+                                    />
+                                    <Label htmlFor={`approver-${item.id}`} className="text-sm font-normal leading-relaxed cursor-pointer">
+                                        {item.label}
+                                    </Label>
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                )}
+                
                 <Card className="animate-in slide-in-from-top-4 duration-500 shadow-xl border-primary/30">
                     <CardHeader className="bg-primary/5 border-b">
-                        <CardTitle className="flex items-center gap-2">
-                            <ShieldCheck className="text-primary" />
-                            Approver's Compliance Checklist
-                        </CardTitle>
-                        <CardDescription>Please verify and confirm the following criteria before taking action.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3 pt-6">
-                        {approverChecklistItems.map(item => (
-                            <div key={item.id} className="flex items-start space-x-3 p-2 rounded-md hover:bg-muted/30 transition-colors">
-                                <Checkbox
-                                    id={`approver-${item.id}`}
-                                    checked={approverChecklist[item.id] || false}
-                                    onCheckedChange={() => handleChecklistChange(item.id)}
-                                    disabled={isSubmitting}
-                                    className="mt-1"
-                                />
-                                <Label htmlFor={`approver-${item.id}`} className="text-sm font-normal leading-relaxed cursor-pointer">
-                                    {item.label}
-                                </Label>
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
-                <Card className="animate-in slide-in-from-top-4 duration-500 shadow-xl border-primary/30">
-                    <CardHeader className="bg-primary/5 border-b">
-                        <CardTitle>Final Determination</CardTitle>
+                        <CardTitle>{submission.isDraft ? 'Review Determination' : 'Final Determination'}</CardTitle>
                         <CardDescription>
                             Provide context or constructive feedback for the unit coordinator.
                         </CardDescription>
@@ -766,7 +798,7 @@ export default function SubmissionDetailPage() {
                             <Label htmlFor="feedback">Official Comments</Label>
                             <Textarea 
                                 id="feedback"
-                                placeholder="Enter approval notes or rejection findings here..."
+                                placeholder={submission.isDraft ? "Suggest content or format corrections for the next revision..." : "Enter approval notes or rejection findings here..."}
                                 value={feedback}
                                 onChange={(e) => setFeedback(e.target.value)}
                                 disabled={isSubmitting}
@@ -777,11 +809,15 @@ export default function SubmissionDetailPage() {
                     <CardFooter className="flex justify-end gap-3 pt-2 bg-muted/5 border-t py-4">
                         <Button variant="destructive" onClick={handleReject} disabled={isSubmitting || !canReject}>
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4"/>}
-                            Reject Submission
+                            {submission.isDraft ? 'Request Draft Changes' : 'Reject Submission'}
                         </Button>
-                            <Button onClick={handleApprove} disabled={isSubmitting || !isChecklistComplete} className="shadow-lg shadow-primary/20 font-black">
+                            <Button 
+                                onClick={handleApprove} 
+                                disabled={isSubmitting || !isChecklistComplete} 
+                                className={cn("shadow-lg font-black", submission.isDraft ? "bg-blue-600 hover:bg-blue-700 shadow-blue-200" : "shadow-primary/20")}
+                            >
                             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4"/>}
-                            Approve Record
+                            {submission.isDraft ? 'Clear Draft for Finalization' : 'Approve Record'}
                         </Button>
                     </CardFooter>
                 </Card>
@@ -793,7 +829,7 @@ export default function SubmissionDetailPage() {
                 <CardHeader className="bg-destructive/5 border-b">
                     <CardTitle className="flex items-center gap-2">
                         <History className="text-destructive" />
-                        Resubmit Report (Process Correction)
+                        Resubmit {submission.isDraft ? 'Draft' : 'Report'} (Process Correction)
                     </CardTitle>
                     <CardDescription>This resubmission will automatically increment the document to <strong>Revision {String((submission.revision || 0) + 1).padStart(2, '0')}</strong>.</CardDescription>
                 </CardHeader>
