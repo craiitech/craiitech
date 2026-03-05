@@ -201,6 +201,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
     // 4. Unit Faculty Distribution (Headcount per Academic Unit)
     const unitFacultyMap: Record<string, number> = {};
+    let totalFacultyHeadcount = 0;
     filteredCompliances.forEach(c => {
         const program = programs.find(p => p.id === c.programId);
         if (!program) return;
@@ -214,6 +215,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         ].filter(f => f && f.name && f.name.trim() !== '').length;
 
         unitFacultyMap[unitId] = (unitFacultyMap[unitId] || 0) + count;
+        totalFacultyHeadcount += count;
     });
     const unitFacultySummary = Object.entries(unitFacultyMap).map(([id, count]) => ({
         name: unitMap.get(id) || id,
@@ -391,9 +393,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     });
 
     const yearlyDistribution: Record<string, number> = {};
+    let totalScheduledCount = 0;
     roadmapData.forEach(item => {
         if (item.year !== 'Other' && item.year !== 'Pending') {
             yearlyDistribution[item.year] = (yearlyDistribution[item.year] || 0) + 1;
+            totalScheduledCount++;
         }
     });
     const distributionSummary = Object.entries(yearlyDistribution)
@@ -411,6 +415,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
     // 9. Achieved Accreditations per Year (Based on Date of Survey)
     const surveysByYear: Record<string, number> = {};
+    let totalAchievedCount = 0;
     filteredCompliances.forEach(c => {
         const milestones = c.accreditationRecords || [];
         milestones.forEach(m => {
@@ -419,6 +424,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 if (yearMatch) {
                     const year = yearMatch[0];
                     surveysByYear[year] = (surveysByYear[year] || 0) + 1;
+                    totalAchievedCount++;
                 }
             }
         });
@@ -434,12 +440,15 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         copcHistoryData,
         facultyRankSummary, 
         unitFacultySummary,
+        totalFacultyHeadcount,
         campusPerformanceData,
         missingDocs,
         roadmapData,
         distributionSummary,
+        totalScheduledCount,
         maturityRadarData,
         surveysHistoryData,
+        totalAchievedCount,
         totalPrograms: programs.length, 
         monitoredCount: filteredCompliances.length 
     };
@@ -573,9 +582,14 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         {/* --- ACCREDITATION MATURITY BREAKDOWN --- */}
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-muted/10 border-b py-4">
-                <div className="flex items-center gap-2">
-                    <Award className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Maturity Profile</CardTitle>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Award className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Maturity Profile</CardTitle>
+                    </div>
+                    <Badge variant="secondary" className="bg-primary text-white text-[10px] font-black uppercase h-6 px-3">
+                        TOTAL PROGRAMS: {analytics?.totalPrograms || 0}
+                    </Badge>
                 </div>
                 <CardDescription className="text-xs">Distribution of programs across AACCUP accreditation levels.</CardDescription>
             </CardHeader>
@@ -595,6 +609,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             />
                             <RechartsTooltip content={<ChartTooltipContent />} />
                             <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={14} animationDuration={1500}>
+                                <LabelList dataKey="count" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: '#1e3a8a' }} />
                                 {analytics?.accreditationSummary.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={ACCREDITATION_COLORS[entry.level] || '#94a3b8'} />
                                 ))}
@@ -655,9 +670,14 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         {/* --- ACCREDITATION ROADMAP VELOCITY --- */}
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-muted/10 border-b py-4">
-                <div className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle>
+                    </div>
+                    <Badge variant="secondary" className="bg-amber-500 text-white text-[10px] font-black uppercase h-6 px-3">
+                        TOTAL SCHEDULED: {analytics?.totalScheduledCount || 0}
+                    </Badge>
                 </div>
                 <CardDescription className="text-xs">Quantity of programs due for survey per year.</CardDescription>
             </CardHeader>
@@ -670,6 +690,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
                             <RechartsTooltip content={<ChartTooltipContent />} />
                             <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={40}>
+                                <LabelList dataKey="count" position="top" style={{ fontSize: '12px', fontWeight: '900', fill: '#1e3a8a' }} />
                                 {analytics?.distributionSummary.map((entry, index) => {
                                     const style = getYearStyle(entry.year);
                                     return <Cell key={index} fill={style.text.includes('blue') ? '#3b82f6' : style.text.includes('green') ? '#10b981' : '#f59e0b'} />;
@@ -693,9 +714,14 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         {/* --- ACCREDITATION ACHIEVEMENT HISTORY --- */}
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-muted/10 border-b py-4">
-                <div className="flex items-center gap-2">
-                    <History className="h-5 w-5 text-emerald-600" />
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <History className="h-5 w-5 text-emerald-600" />
+                        <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle>
+                    </div>
+                    <Badge variant="secondary" className="bg-emerald-600 text-white text-[10px] font-black uppercase h-6 px-3">
+                        TOTAL ACHIEVEMENTS: {analytics?.totalAchievedCount || 0}
+                    </Badge>
                 </div>
                 <CardDescription className="text-xs">Formal surveys successfully conducted per year (Historical Data).</CardDescription>
             </CardHeader>
@@ -707,7 +733,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
                             <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
                             <RechartsTooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="count" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} barSize={40} />
+                            <Bar dataKey="count" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} barSize={40}>
+                                <LabelList dataKey="count" position="top" style={{ fontSize: '12px', fontWeight: '900', fill: '#065f46' }} />
+                            </Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
@@ -827,21 +855,28 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         {/* --- UNIT FACULTY HEADCOUNT --- */}
         <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-muted/10 border-b py-4">
-                <div className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">Unit Faculty Headcount Distribution</CardTitle>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-sm font-black uppercase tracking-tight">Unit Faculty Headcount Distribution</CardTitle>
+                    </div>
+                    <Badge variant="secondary" className="bg-primary text-white text-[10px] font-black uppercase h-6 px-3">
+                        TOTAL HEADCOUNT: {analytics?.totalFacultyHeadcount || 0}
+                    </Badge>
                 </div>
                 <CardDescription className="text-xs">Concentration of human resources across academic colleges.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
                 <ChartContainer config={{}} className="h-[250px] w-full">
                     <ResponsiveContainer>
-                        <BarChart data={analytics?.unitFacultySummary} layout="vertical">
+                        <BarChart data={analytics?.unitFacultySummary} layout="vertical" margin={{ left: 20, right: 40 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                             <XAxis type="number" hide />
                             <YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 9, fontWeight: 700 }} axisLine={false} tickLine={false} />
                             <RechartsTooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="count" fill="hsl(var(--chart-1))" radius={[0, 4, 4, 0]} barSize={12} />
+                            <Bar dataKey="count" fill="hsl(var(--chart-1))" radius={[0, 4, 4, 0]} barSize={12}>
+                                <LabelList dataKey="count" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: '#1e3a8a' }} />
+                            </Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
