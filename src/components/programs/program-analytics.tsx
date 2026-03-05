@@ -13,24 +13,11 @@ import {
     Legend, 
     ResponsiveContainer, 
     Cell,
-    Radar, 
-    RadarChart, 
-    PolarGrid, 
-    PolarAngleAxis, 
-    PolarRadiusAxis,
     LabelList
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { 
-    Table, 
-    TableBody, 
-    TableCell, 
-    TableHead, 
-    TableHeader, 
-    TableRow 
-} from '@/components/ui/table';
 import { 
     Award, 
     TrendingUp, 
@@ -408,7 +395,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-destructive">
                       <ShieldAlert className="h-5 w-5 text-destructive" />
-                      <CardTitle className="text-sm font-black uppercase tracking-tight">Administrative Gaps Registry</CardTitle>
+                      <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Gaps Registry</CardTitle>
                   </div>
                   <Badge variant="destructive" className="animate-pulse shadow-sm h-5 text-[9px] font-black uppercase">ACTION REQUIRED</Badge>
               </div>
@@ -483,7 +470,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 <div className="text-3xl font-black text-blue-600 tabular-nums">{analytics?.monitoredCount}</div>
                 <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Total verified AY {selectedYear} data</p>
             </CardContent>
-        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -504,7 +490,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             <XAxis type="number" hide />
                             <YAxis dataKey="level" type="category" tick={{ fontSize: 9, fontWeight: 700 }} width={140} axisLine={false} tickLine={false} />
                             <RechartsTooltip content={<ChartTooltipContent />} />
-                            <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+                            <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '10px' }} />
                             <Bar dataKey="Undergraduate" fill={chartConfig.Undergraduate.color} radius={[0, 4, 4, 0]} barSize={10}><LabelList dataKey="Undergraduate" position="right" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Undergraduate.color }} /></Bar>
                             <Bar dataKey="Graduate" fill={chartConfig.Graduate.color} radius={[0, 4, 4, 0]} barSize={10}><LabelList dataKey="Graduate" position="right" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Graduate.color }} /></Bar>
                             <Bar dataKey="Inactive" fill={chartConfig.Inactive.color} radius={[0, 4, 4, 0]} barSize={10}><LabelList dataKey="Inactive" position="right" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Inactive.color }} /></Bar>
@@ -625,6 +611,114 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   </TableBody>
               </Table>
           </CardContent>
+      </Card>
+
+      {/* --- INSTITUTIONAL SURVEY PIPELINE (ROADMAP) --- */}
+      <Card className="shadow-lg border-primary/10 overflow-hidden">
+          <CardHeader className="bg-muted/10 border-b py-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                          <CalendarDays className="h-5 w-5 text-primary" />
+                          <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Survey Pipeline (Roadmap)</CardTitle>
+                      </div>
+                      <CardDescription className="text-xs">Prioritized schedule of upcoming AACCUP surveys across all university campuses.</CardDescription>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                      {analytics?.distributionSummary.map(total => {
+                          const style = getYearStyle(total.year);
+                          return (
+                              <Badge key={total.year} variant="outline" className={cn("h-6 px-3 text-[10px] font-black border-none shadow-sm", style.bg, style.text)}>
+                                  {total.year}: {total.Undergraduate + total.Graduate + total.Inactive} SURVEYS
+                              </Badge>
+                          );
+                      })}
+                  </div>
+              </div>
+          </CardHeader>
+          <CardContent className="p-0">
+              <ScrollArea className="h-[500px]">
+                  <Table>
+                      <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
+                          <TableRow>
+                              <TableHead className="font-black text-[10px] uppercase py-3 pl-6 w-[250px]">Academic Program Offering</TableHead>
+                              <TableHead className="font-black text-[10px] uppercase py-3">Campus Site</TableHead>
+                              <TableHead className="font-black text-[10px] uppercase py-3">Current Level</TableHead>
+                              <TableHead className="font-black text-[10px] uppercase py-3">Schedule / Validity</TableHead>
+                              <TableHead className="text-right font-black text-[10px] uppercase py-3 pr-6">Status</TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {analytics?.roadmapData.map((item) => {
+                              const style = getYearStyle(item.year);
+                              return (
+                                  <TableRow key={item.id} className={cn("hover:bg-muted/30 transition-colors", style.row)}>
+                                      <TableCell className="py-4 pl-6">
+                                          <div className="flex flex-col gap-1">
+                                              <span className="text-[13px] font-black text-slate-900 leading-tight">{item.name}</span>
+                                              <div className="flex items-center gap-2">
+                                                  <Badge variant="outline" className="h-4 text-[8px] font-black uppercase border-slate-300 text-slate-500 bg-white">
+                                                      {item.programLevel}
+                                                  </Badge>
+                                                  {item.category === 'Inactive' && (
+                                                      <Badge variant="destructive" className="h-4 text-[8px] font-black uppercase border-none">CLOSING</Badge>
+                                                  )}
+                                              </div>
+                                          </div>
+                                      </TableCell>
+                                      <TableCell className="text-xs font-bold text-slate-600 uppercase tracking-tighter">
+                                          {item.campusName}
+                                      </TableCell>
+                                      <TableCell>
+                                          <Badge variant="secondary" className="h-5 text-[9px] font-bold bg-primary/5 text-primary border-primary/10 uppercase">
+                                              {item.level}
+                                          </Badge>
+                                      </TableCell>
+                                      <TableCell>
+                                          <div className="flex flex-col gap-0.5">
+                                              <span className="text-xs font-black tabular-nums text-slate-800">{item.validityText}</span>
+                                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                  {item.year === 'Other' ? 'NO YEAR SET' : (item.year === 'Pending' ? 'AWAITING RESULT' : `FISCAL YEAR ${item.year}`)}
+                                              </span>
+                                          </div>
+                                      </TableCell>
+                                      <TableCell className="text-right pr-6">
+                                          <Badge 
+                                              className={cn(
+                                                  "h-6 px-3 text-[10px] font-black uppercase border-none shadow-sm",
+                                                  item.status === 'Overdue' ? "bg-rose-600 text-white animate-pulse" :
+                                                  item.status === 'Result Pending' ? "bg-blue-600 text-white" :
+                                                  item.status === 'Upcoming' ? "bg-amber-500 text-amber-950" :
+                                                  item.status === 'Scheduled' ? "bg-emerald-600 text-white" :
+                                                  "bg-slate-200 text-slate-500"
+                                              )}
+                                          >
+                                              {item.status}
+                                          </Badge>
+                                      </TableCell>
+                                  </TableRow>
+                              );
+                          })}
+                          {analytics?.roadmapData.length === 0 && (
+                              <TableRow>
+                                  <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
+                                      <div className="flex flex-col items-center gap-2 opacity-20">
+                                          <CalendarDays className="h-10 w-10" />
+                                          <p className="text-xs font-black uppercase tracking-widest">Pipeline Empty</p>
+                                      </div>
+                                  </TableCell>
+                              </TableRow>
+                          )}
+                      </TableBody>
+                  </Table>
+              </ScrollArea>
+          </CardContent>
+          <CardFooter className="bg-muted/10 border-t py-3">
+              <div className="flex items-center gap-2 text-primary font-bold text-[10px] uppercase italic">
+                  <Zap className="h-3 w-3" />
+                  Note: Overdue status indicates the set validity period or target month has passed without a recorded next survey milestone.
+              </div>
+          </CardFooter>
       </Card>
     </div>
   );
