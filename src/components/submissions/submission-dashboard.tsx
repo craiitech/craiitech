@@ -3,11 +3,36 @@
 import { useMemo } from 'react';
 import type { Submission, Cycle, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
+import { 
+    PieChart, 
+    Pie, 
+    Cell, 
+    ResponsiveContainer, 
+    Tooltip as RechartsTooltip, 
+    BarChart, 
+    Bar, 
+    XAxis, 
+    YAxis, 
+    CartesianGrid, 
+    Legend 
+} from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { FileText, CheckCircle2, Clock, AlertCircle, TrendingUp, CalendarCheck, CalendarOff, FileWarning } from 'lucide-react';
+import { 
+    FileText, 
+    CheckCircle2, 
+    Clock, 
+    AlertCircle, 
+    TrendingUp, 
+    CalendarCheck, 
+    CalendarOff, 
+    FileWarning, 
+    Info, 
+    Activity, 
+    Target,
+    ShieldCheck
+} from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 import { isBefore, isAfter } from 'date-fns';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
@@ -23,14 +48,14 @@ interface SubmissionDashboardProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  approved: 'hsl(var(--chart-2))',
-  submitted: 'hsl(var(--chart-1))',
-  rejected: 'hsl(var(--chart-3))',
+  approved: 'hsl(142 71% 45%)', // Green
+  submitted: 'hsl(var(--chart-1))', // Primary
+  rejected: 'hsl(var(--destructive))', // Red
 };
 
 const TIMELINESS_COLORS: Record<string, string> = {
-  'On-Time': 'hsl(var(--chart-2))',
-  'Late': 'hsl(var(--chart-3))',
+  'On-Time': 'hsl(142 71% 45%)',
+  'Late': 'hsl(var(--destructive))',
 };
 
 export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }: SubmissionDashboardProps) {
@@ -51,7 +76,8 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
     const statusData = Object.entries(statusCounts).map(([name, value]) => ({ 
         name: name === 'submitted' ? 'Awaiting Approval' : name.charAt(0).toUpperCase() + name.slice(1), 
         value,
-        statusId: name
+        statusId: name,
+        fill: STATUS_COLORS[name] || '#cbd5e1'
     }));
 
     // 3. Timeliness (On-Time vs Late)
@@ -86,8 +112,8 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
     });
 
     const timelinessData = [
-        { name: 'On-Time', value: onTimeCount },
-        { name: 'Late', value: lateCount },
+        { name: 'On-Time', value: onTimeCount, fill: TIMELINESS_COLORS['On-Time'] },
+        { name: 'Late', value: lateCount, fill: TIMELINESS_COLORS['Late'] },
     ];
 
     // 4. Report Type Distribution
@@ -107,8 +133,6 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
         return submissionTypes.map(type => {
             const submittedUnitIds = new Set(cycleSubs.filter(s => s.reportType === type).map(s => s.unitId));
             
-            // Handle ROA exemption logic:
-            // If ROR is approved as 'low', the unit is exempt from ROA for that cycle.
             let exemptUnitIds = new Set<string>();
             if (type === 'Risk and Opportunity Action Plan') {
                 cycleSubs.filter(s => s.reportType === 'Risk and Opportunity Registry' && s.riskRating === 'low').forEach(s => {
@@ -157,23 +181,23 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
 
   if (!analytics || analytics.total === 0) {
     return (
-      <Card className="border-dashed py-20 flex flex-col items-center justify-center text-center">
-        <FileText className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
-        <CardTitle>No Visual Data Yet</CardTitle>
-        <CardDescription>Visual analytics will appear here once submissions are recorded for this scope.</CardDescription>
+      <Card className="border-dashed py-20 flex flex-col items-center justify-center text-center bg-muted/5">
+        <Activity className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
+        <CardTitle className="text-xl font-black uppercase tracking-widest opacity-40">Submission Data Pending</CardTitle>
+        <CardDescription className="max-w-xs mx-auto">Visual analytics will activate once units begin logging evidence through the portal.</CardDescription>
       </Card>
     );
   }
 
   const renderMissingCard = (title: string, data: any[]) => (
-    <Card className="border-destructive/20 bg-destructive/5 shadow-sm overflow-hidden h-full">
+    <Card className="border-destructive/20 bg-destructive/5 shadow-sm overflow-hidden h-full flex flex-col">
         <CardHeader className="bg-destructive/10 border-b py-3">
             <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-destructive flex items-center gap-2">
                 <FileWarning className="h-3.5 w-3.5" />
                 {title}
             </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
             <ScrollArea className="h-[240px]">
                 <div className="p-4 space-y-3">
                     {data.map((item, idx) => (
@@ -181,7 +205,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
                             <div className="flex items-center justify-between gap-2">
                                 <span className="text-[10px] font-bold text-slate-700 truncate leading-none group-hover:text-destructive transition-colors" title={item.type}>{item.type}</span>
                                 <Badge variant={item.missingCount > 0 ? 'destructive' : 'default'} className="h-4 text-[8px] font-black py-0 px-1.5 border-none">
-                                    {item.missingCount > 0 ? `${item.missingCount} MISSING` : 'COMPLETE'}
+                                    {item.missingCount > 0 ? `${item.missingCount} GAPS` : 'PARITY REACHED'}
                                 </Badge>
                             </div>
                             <div className="flex items-center gap-2">
@@ -192,126 +216,133 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
                     ))}
                 </div>
             </ScrollArea>
+            <div className="p-3 bg-white border-t mt-auto">
+                <p className="text-[9px] text-muted-foreground italic leading-relaxed">
+                    <strong>Guide:</strong> Low percentage indicate critical documentation gaps that prevent institutional parity for this cycle.
+                </p>
+            </div>
         </CardContent>
     </Card>
   );
 
   return (
     <div className="space-y-6">
-      {/* KPI Cards */}
+      {/* Executive KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/10">
+        <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-2 opacity-5"><FileText className="h-12 w-12" /></div>
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Total Documents</CardTitle>
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Volume Registry</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-primary tabular-nums tracking-tighter">{analytics.total}</div>
-            <p className="text-[9px] font-bold text-muted-foreground mt-1">Verified Portal Submissions</p>
+            <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase">Total evidence logs</p>
           </CardContent>
         </Card>
-        <Card className="bg-green-50 border-green-100">
+        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-2 opacity-5"><CheckCircle2 className="h-12 w-12" /></div>
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-green-700">Approval Maturity</CardTitle>
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Approval Maturity</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-green-600 tabular-nums tracking-tighter">{analytics.approvalRate}%</div>
-            <p className="text-[9px] font-bold text-green-600/70 mt-1">Completion rate of review process</p>
+            <div className="text-3xl font-black text-emerald-600 tabular-nums tracking-tighter">{analytics.approvalRate}%</div>
+            <p className="text-[9px] font-bold text-green-600/70 mt-1 uppercase">Verified quality index</p>
           </CardContent>
         </Card>
-        <Card className="bg-amber-50 border-amber-100">
+        <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-2 opacity-5"><Clock className="h-12 w-12" /></div>
           <CardHeader className="pb-2">
             <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">Audit Queue</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-amber-600 tabular-nums tracking-tighter">{analytics.pending}</div>
-            <p className="text-[9px] font-bold text-amber-600/70 mt-1">Items awaiting evaluator action</p>
+            <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase">Items for evaluation</p>
           </CardContent>
         </Card>
-        <Card className="bg-blue-50 border-blue-100">
+        <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-2 opacity-5"><TrendingUp className="h-12 w-12" /></div>
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Timeliness index</CardTitle>
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Responsiveness</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-blue-600 tabular-nums tracking-tighter">
                 {Math.round((analytics.timelinessData[0].value / (analytics.total || 1)) * 100)}%
             </div>
-            <p className="text-[9px] font-bold text-blue-600/70 mt-1">Documents sent before deadline</p>
+            <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Pre-deadline fulfillment</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* --- UN-SUBMITTED DOCUMENTS TRACKING (ONE CARD PER CYCLE) --- */}
+      {/* Institutional Gaps Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {renderMissingCard("Unsubmitted Documentation: First Cycle", analytics.firstCycleMissing)}
-        {renderMissingCard("Unsubmitted Documentation: Final Cycle", analytics.finalCycleMissing)}
+        {renderMissingCard("Parity Gap Analysis: First Submission Cycle", analytics.firstCycleMissing)}
+        {renderMissingCard("Parity Gap Analysis: Final Submission Cycle", analytics.finalCycleMissing)}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Timeliness Chart */}
-        <Card>
-          <CardHeader>
+        
+        {/* 1. COMPLIANCE TIMELINESS CHART */}
+        <Card className="shadow-md border-primary/10 overflow-hidden">
+          <CardHeader className="bg-muted/10 border-b py-4">
             <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
-              <CardTitle className="text-sm">Compliance Timeliness</CardTitle>
+              <CalendarCheck className="h-5 w-5 text-primary" />
+              <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Timeliness index</CardTitle>
             </div>
-            <CardDescription className="text-xs">Submissions relative to official ISO cycle deadlines.</CardDescription>
+            <CardDescription className="text-xs">Relationship between actual submission date and official cycle deadlines.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <ChartContainer config={{}} className="h-[200px] w-[200px] shrink-0">
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+                <ChartContainer config={{}} className="h-[220px] w-[220px] shrink-0">
                     <ResponsiveContainer>
                         <PieChart>
-                            <Tooltip content={<ChartTooltipContent hideLabel />} />
+                            <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
                             <Pie
                                 data={analytics.timelinessData}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={50}
-                                outerRadius={70}
+                                innerRadius={60}
+                                outerRadius={85}
                                 paddingAngle={5}
                                 dataKey="value"
                             >
                                 {analytics.timelinessData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={TIMELINESS_COLORS[entry.name]} />
+                                    <Cell key={`cell-${index}`} fill={entry.fill} />
                                 ))}
                             </Pie>
+                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'black', paddingTop: '20px' }} />
                         </PieChart>
                     </ResponsiveContainer>
                 </ChartContainer>
-                <div className="space-y-2 w-full">
-                    <div className="flex items-center justify-between p-3 rounded-lg border bg-green-50/30">
-                        <div className="flex items-center gap-2">
-                            <CalendarCheck className="h-4 w-4 text-green-600" />
-                            <span className="text-xs font-bold uppercase tracking-wider">On-Time</span>
+                <div className="flex-1 space-y-4">
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex gap-3">
+                        <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                            <p className="text-xs font-black uppercase text-slate-800 tracking-tight">Data Legend</p>
+                            <p className="text-[10px] text-slate-600 leading-relaxed font-medium">
+                                <strong>On-Time:</strong> Documents fulfilled before or on the set deadline.<br/>
+                                <strong>Late:</strong> Submissions logged after the official cycle closure. High "Late" counts indicate bottlenecks in document preparation.
+                            </p>
                         </div>
-                        <span className="text-lg font-black text-green-600 tabular-nums">{analytics.timelinessData[0].value}</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg border bg-red-50/30">
-                        <div className="flex items-center gap-2">
-                            <CalendarOff className="h-4 w-4 text-red-600" />
-                            <span className="text-xs font-bold uppercase tracking-wider">Late</span>
-                        </div>
-                        <span className="text-lg font-black text-red-600 tabular-nums">{analytics.timelinessData[1].value}</span>
                     </div>
                 </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Status Distribution */}
-        <Card>
-          <CardHeader>
+        {/* 2. MATURITY LIFECYCLE CHART */}
+        <Card className="shadow-md border-primary/10 overflow-hidden">
+          <CardHeader className="bg-muted/10 border-b py-4">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              <CardTitle className="text-sm">Maturity Lifecycle</CardTitle>
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              <CardTitle className="text-sm font-black uppercase tracking-tight">Quality Maturity Lifecycle</CardTitle>
             </div>
-            <CardDescription className="text-xs">Real-time status of all submitted documentation.</CardDescription>
+            <CardDescription className="text-xs">Real-time distribution of evidence status across the university scope.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <ChartContainer config={{}} className="h-[250px] w-full">
                 <ResponsiveContainer>
                     <PieChart>
-                        <Tooltip content={<ChartTooltipContent hideLabel />} />
+                        <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
                         <Pie
                             data={analytics.statusData}
                             cx="50%"
@@ -321,44 +352,65 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
                             dataKey="value"
                         >
                             {analytics.statusData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.statusId] || '#cbd5e1'} />
+                                <Cell key={`cell-${index}`} fill={entry.fill} />
                             ))}
                         </Pie>
-                        <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }} />
+                        <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'black', paddingTop: '20px' }} />
                     </PieChart>
                 </ResponsiveContainer>
             </ChartContainer>
+            <div className="mt-4 p-3 rounded-lg bg-emerald-50 border border-emerald-100 flex gap-3">
+                <Target className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                <p className="text-[10px] text-emerald-800 leading-relaxed font-medium italic">
+                    <strong>Institutional Guide:</strong> The "Approved" segment represents verified evidence suitable for audit. A large "Awaiting" segment suggests evaluator capacity issues.
+                </p>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Report Coverage Chart */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
+        {/* 3. DOCUMENTATION DENSITY CHART */}
+        <Card className="lg:col-span-2 shadow-md border-primary/10 overflow-hidden">
+          <CardHeader className="bg-muted/10 border-b py-4">
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
-              <CardTitle className="text-sm">Documentation Density</CardTitle>
+              <CardTitle className="text-sm font-black uppercase tracking-tight">Documentation Density Profile</CardTitle>
             </div>
-            <CardDescription className="text-xs">Submission volume mapped to core ISO 21001:2018 report categories.</CardDescription>
+            <CardDescription className="text-xs">Distribution of logged evidence across the 6 core ISO 21001:2018 report types.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ChartContainer config={{}} className="h-[300px] w-full">
+          <CardContent className="pt-6">
+            <ChartContainer config={{}} className="h-[350px] w-full">
                 <ResponsiveContainer>
-                    <BarChart data={analytics.reportData} layout="vertical" margin={{ left: 20, right: 40 }}>
+                    <BarChart data={analytics.reportData} layout="vertical" margin={{ left: 20, right: 40, bottom: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                         <XAxis type="number" hide />
                         <YAxis 
                             dataKey="name" 
                             type="category" 
                             tick={{ fontSize: 9, fontWeight: 700, fill: 'hsl(var(--muted-foreground))' }} 
-                            width={160}
+                            width={180}
                             axisLine={false}
                             tickLine={false}
                         />
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={12} />
+                        <RechartsTooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={14} />
                     </BarChart>
                 </ResponsiveContainer>
             </ChartContainer>
+            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 border-t">
+                <div className="space-y-1.5">
+                    <p className="text-[10px] font-black uppercase text-primary tracking-widest">Analytics Objective</p>
+                    <p className="text-[10px] text-slate-600 leading-relaxed">
+                        Identify if specific document types (e.g., SWOT vs Action Plans) are being neglected. Uneven bars indicate procedural friction in specific EOMS phases.
+                    </p>
+                </div>
+                <div className="space-y-1.5 border-l pl-6 border-slate-200">
+                    <p className="text-[10px] font-black uppercase text-slate-800 tracking-widest">Action Legend</p>
+                    <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-primary" />
+                        <span className="text-[9px] font-bold uppercase text-muted-foreground">Count of Submitted Revisions per Document Type</span>
+                    </div>
+                </div>
+            </div>
           </CardContent>
         </Card>
       </div>
