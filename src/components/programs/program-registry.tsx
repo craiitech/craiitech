@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit, School, Layers, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2, Calendar, CheckCircle2, Clock } from 'lucide-react';
+import { Edit, School, Layers, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2, Calendar, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -43,7 +43,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead className="text-[10px] font-black uppercase pl-6">Program Name</TableHead>
+              <TableHead className="text-[10px] font-black uppercase pl-6">Program Name & Status</TableHead>
               <TableHead className="text-[10px] font-black uppercase">Campus</TableHead>
               <TableHead className="text-[10px] font-black uppercase">College / Unit</TableHead>
               <TableHead className="text-[10px] font-black uppercase">Majors / Type</TableHead>
@@ -77,10 +77,23 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
               }
 
               return (
-                <TableRow key={program.id} className="hover:bg-muted/30 transition-colors group">
+                <TableRow 
+                    key={program.id} 
+                    className={cn(
+                        "transition-colors group",
+                        program.isActive ? "hover:bg-muted/30" : "bg-slate-50/50 opacity-70 grayscale-[0.5] hover:bg-slate-100/50"
+                    )}
+                >
                   <TableCell className="pl-6">
                     <div className="flex flex-col">
-                      <span className="font-bold text-sm text-slate-900 leading-tight">{program.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={cn("font-bold text-sm leading-tight", program.isActive ? "text-slate-900" : "text-slate-500")}>
+                            {program.name}
+                        </span>
+                        {!program.isActive && (
+                            <Badge variant="destructive" className="h-3 text-[7px] font-black px-1 uppercase tracking-tighter">SUBJECT FOR CLOSURE</Badge>
+                        )}
+                      </div>
                       <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest mt-0.5">{program.abbreviation} &bull; {program.level}</span>
                       
                       <div className="flex items-center gap-2 mt-1.5 flex-wrap">
@@ -174,7 +187,9 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                         <Activity className="h-2.5 w-2.5" /> Active
                       </Badge>
                     ) : (
-                      <Badge variant="secondary" className="h-5 text-[9px] uppercase tracking-tighter font-black bg-slate-200">Inactive</Badge>
+                      <Badge variant="destructive" className="gap-1 h-5 text-[9px] uppercase tracking-tighter font-black">
+                        <AlertTriangle className="h-2.5 w-2.5" /> Inactive
+                      </Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-right space-x-2 whitespace-nowrap pr-6">

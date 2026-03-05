@@ -19,7 +19,8 @@ import {
     Trash2,
     Award,
     CheckCircle2,
-    Briefcase
+    Briefcase,
+    ShieldAlert
 } from 'lucide-react';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
@@ -146,13 +147,18 @@ export default function AcademicProgramsPage() {
    */
   const summaryStats = useMemo(() => {
     const total = filteredPrograms.length;
-    if (total === 0) return { total: 0, accreditedRate: 0, copcRate: 0, boardCount: 0 };
+    if (total === 0) return { total: 0, activeCount: 0, inactiveCount: 0, accreditedRate: 0, copcRate: 0, boardCount: 0 };
 
+    let activeCount = 0;
+    let inactiveCount = 0;
     let accreditedCount = 0;
     let copcCount = 0;
     let boardCount = 0;
 
     filteredPrograms.forEach(p => {
+        if (p.isActive) activeCount++;
+        else inactiveCount++;
+
         if (p.isBoardProgram) boardCount++;
         
         const record = rawCompliances?.find(c => c.programId === p.id);
@@ -172,8 +178,10 @@ export default function AcademicProgramsPage() {
 
     return {
         total,
-        accreditedRate: Math.round((accreditedCount / total) * 100),
-        copcRate: Math.round((copcCount / total) * 100),
+        activeCount,
+        inactiveCount,
+        accreditedRate: Math.round((accreditedCount / (activeCount || 1)) * 100),
+        copcRate: Math.round((copcCount / (activeCount || 1)) * 100),
         boardCount
     };
   }, [filteredPrograms, rawCompliances]);
@@ -259,7 +267,7 @@ export default function AcademicProgramsPage() {
         </div>
       </div>
 
-      {/* Global Filter Bar - Now accessible for both tabs */}
+      {/* Global Filter Bar */}
       <Card className="shadow-md border-primary/10">
           <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4 bg-muted/10">
               <div className="flex-1 w-full space-y-1.5">
@@ -339,15 +347,20 @@ export default function AcademicProgramsPage() {
         </TabsContent>
 
         <TabsContent value="registry" className="space-y-6 animate-in fade-in duration-500">
-            {/* Dynamic Summary Cards */}
+            {/* Dynamic Summary Cards with Differentiation */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Scope Portfolio</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-black text-primary tabular-nums">{summaryStats.total}</div>
-                        <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">Active Programs in View</p>
+                        <div className="text-3xl font-black text-primary tabular-nums">{summaryStats.activeCount}</div>
+                        <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">Active Offerings</p>
+                        <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="outline" className="text-[8px] h-4 border-slate-200 text-slate-500 font-bold bg-white">
+                                {summaryStats.inactiveCount} INACTIVE / FOR CLOSURE
+                            </Badge>
+                        </div>
                     </CardContent>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><Layers className="h-12 w-12" /></div>
                 </Card>
@@ -358,7 +371,7 @@ export default function AcademicProgramsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-black text-emerald-600 tabular-nums">{summaryStats.accreditedRate}%</div>
-                        <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tight">Level I or Higher (Min.)</p>
+                        <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tight">Active Level I or Higher</p>
                     </CardContent>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><Award className="h-12 w-12 text-emerald-600" /></div>
                 </Card>
@@ -369,7 +382,7 @@ export default function AcademicProgramsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-black text-blue-600 tabular-nums">{summaryStats.copcRate}%</div>
-                        <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase tracking-tight">Institutional Authorities</p>
+                        <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase tracking-tight">Active Operating Authorities</p>
                     </CardContent>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><CheckCircle2 className="h-12 w-12 text-blue-600" /></div>
                 </Card>
