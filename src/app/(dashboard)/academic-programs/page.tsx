@@ -20,7 +20,8 @@ import {
     Award,
     CheckCircle2,
     Briefcase,
-    ShieldAlert
+    ShieldAlert,
+    Info
 } from 'lucide-react';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
@@ -360,13 +361,13 @@ export default function AcademicProgramsPage() {
         </TabsContent>
 
         <TabsContent value="registry" className="space-y-6 animate-in fade-in duration-500">
-            {/* Dynamic Summary Cards with Differentiation */}
+            {/* Dynamic Summary Cards with Differentiation and Comprehensive Explanations */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
+                <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Scope Portfolio</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex-1">
                         <div className="text-3xl font-black text-primary tabular-nums">{summaryStats.activeCount} Active</div>
                         <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">Current Academic Offerings</p>
                         <div className="flex items-center gap-2 mt-2">
@@ -375,14 +376,19 @@ export default function AcademicProgramsPage() {
                             </Badge>
                         </div>
                     </CardContent>
+                    <div className="p-3 bg-muted/10 border-t mt-auto">
+                        <p className="text-[9px] text-muted-foreground italic leading-tight">
+                            <strong>Explanation:</strong> Count of currently offered degree programs versus those officially designated for terminal closure.
+                        </p>
+                    </div>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><Layers className="h-12 w-12" /></div>
                 </Card>
 
-                <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden">
+                <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Accreditation Maturity</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex-1">
                         <div className="text-3xl font-black text-emerald-600 tabular-nums">{summaryStats.accreditedRate}%</div>
                         <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tight">Active Level I or Higher</p>
                         <div className="flex items-center gap-2 mt-2">
@@ -391,14 +397,19 @@ export default function AcademicProgramsPage() {
                             </Badge>
                         </div>
                     </CardContent>
+                    <div className="p-3 bg-emerald-100/20 border-t mt-auto">
+                        <p className="text-[9px] text-emerald-800/60 italic leading-tight">
+                            <strong>Explanation:</strong> Percentage of active programs with a valid AACCUP status. Inactive accredited counts are excluded from health score.
+                        </p>
+                    </div>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><Award className="h-12 w-12 text-emerald-600" /></div>
                 </Card>
 
-                <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden">
+                <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden flex flex-col">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">COPC Compliance</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex-1">
                         <div className="text-3xl font-black text-blue-600 tabular-nums">{summaryStats.copcRate}%</div>
                         <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase tracking-tight">Active Operating Authorities</p>
                         <div className="flex items-center gap-2 mt-2">
@@ -407,14 +418,19 @@ export default function AcademicProgramsPage() {
                             </Badge>
                         </div>
                     </CardContent>
+                    <div className="p-3 bg-blue-100/20 border-t mt-auto">
+                        <p className="text-[9px] text-blue-800/60 italic leading-tight">
+                            <strong>Explanation:</strong> Verification of CHED COPC awards. Only programs with "With COPC" status are marked as compliant.
+                        </p>
+                    </div>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><CheckCircle2 className="h-12 w-12 text-blue-600" /></div>
                 </Card>
 
-                <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden">
+                <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden flex flex-col">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">Professional Readiness</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex-1">
                         <div className="text-3xl font-black text-amber-600 tabular-nums">{summaryStats.activeBoardCount}</div>
                         <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tight">Active Board-Regulated Programs</p>
                         <div className="flex items-center gap-2 mt-2">
@@ -423,6 +439,11 @@ export default function AcademicProgramsPage() {
                             </Badge>
                         </div>
                     </CardContent>
+                    <div className="p-3 bg-amber-100/20 border-t mt-auto">
+                        <p className="text-[9px] text-amber-800/60 italic leading-tight">
+                            <strong>Explanation:</strong> Count of programs subject to PRC licensure exams. Used to prioritize quality assurance for regulated professional tracks.
+                        </p>
+                    </div>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><Briefcase className="h-12 w-12 text-amber-600" /></div>
                 </Card>
             </div>

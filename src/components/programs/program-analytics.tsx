@@ -483,43 +483,63 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
       
       {/* --- EXECUTIVE KPI PANEL --- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
+        <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
             <div className="absolute top-0 right-0 p-2 opacity-5"><LayoutGrid className="h-12 w-12" /></div>
             <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Scope Portfolio</CardTitle></CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-primary tabular-nums">{analytics?.activeCount} Active</div>
                 <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase">
                     {analytics?.inactiveCount} Subject for Closure
                 </p>
             </CardContent>
+            <div className="p-3 bg-muted/10 border-t mt-auto">
+                <p className="text-[9px] text-muted-foreground italic leading-tight">
+                    <strong>Guide:</strong> Reflects total active program offerings versus those currently being phased out.
+                </p>
+            </div>
         </Card>
-        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden">
+        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
             <div className="absolute top-0 right-0 p-2 opacity-5"><CheckCircle2 className="h-12 w-12" /></div>
             <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-wider text-green-700 font-bold">COPC Performance</CardTitle></CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-green-600 tabular-nums">{analytics?.activeCopc} Active</div>
                 <p className="text-[9px] font-bold text-green-600/70 mt-1 uppercase">
                     {analytics?.inactiveCopc} Inactive Awards Verified
                 </p>
             </CardContent>
+            <div className="p-3 bg-emerald-100/20 border-t mt-auto">
+                <p className="text-[9px] text-emerald-800/60 italic leading-tight">
+                    <strong>Guide:</strong> Tracks programs with an official CHED Certificate of Program Compliance (COPC).
+                </p>
+            </div>
         </Card>
-        <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden">
+        <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden flex flex-col">
             <div className="absolute top-0 right-0 p-2 opacity-5"><Award className="h-12 w-12" /></div>
             <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-wider text-amber-700 font-bold">Quality Maturity</CardTitle></CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-amber-600 tabular-nums">{analytics?.activeAccredited} Active</div>
                 <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase">
                     {analytics?.inactiveAccredited} Inactive Accredited
                 </p>
             </CardContent>
+            <div className="p-3 bg-amber-100/20 border-t mt-auto">
+                <p className="text-[9px] text-amber-800/60 italic leading-tight">
+                    <strong>Guide:</strong> Measures high-level institutional quality via Level I or higher AACCUP accreditation status.
+                </p>
+            </div>
         </Card>
-        <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden">
+        <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden flex flex-col">
             <div className="absolute top-0 right-0 p-2 opacity-5"><Users className="h-12 w-12" /></div>
             <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-wider text-blue-700 font-bold">Monitored Registry</CardTitle></CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-blue-600 tabular-nums">{analytics?.monitoredCount}</div>
                 <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Total verified AY {selectedYear} data</p>
             </CardContent>
+            <div className="p-3 bg-blue-100/20 border-t mt-auto">
+                <p className="text-[9px] text-blue-800/60 italic leading-tight">
+                    <strong>Guide:</strong> Total number of programs with finalized and verified compliance evidence for this year.
+                </p>
+            </div>
         </Card>
       </div>
 
@@ -536,7 +556,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               <CardDescription className="text-xs font-medium text-destructive/70">Critical documentation deficiencies impacting maturity index for AY {selectedYear}.</CardDescription>
           </CardHeader>
           <CardContent className="p-0 overflow-hidden">
-              <ScrollArea className="h-[300px]">
+              <ScrollArea className="h-[250px]">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 divide-x divide-y divide-destructive/10">
                       {analytics?.missingDocs.map((doc, idx) => (
                           <div key={idx} className="p-4 space-y-2 hover:bg-white/50 transition-colors group">
@@ -563,6 +583,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   </div>
               </ScrollArea>
           </CardContent>
+          <div className="p-3 bg-destructive/10 border-t">
+              <p className="text-[9px] text-destructive/80 italic leading-tight">
+                  <strong>Strategic Note:</strong> Identification of these gaps is mandatory for ISO 21001:2018 compliance tracking. High gap counts signify institutional risk during external audits.
+              </p>
+          </div>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -574,6 +599,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     <div className="flex items-center gap-2"><Award className="h-5 w-5 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Maturity Profile</CardTitle></div>
                     <Badge variant="secondary" className="bg-primary text-white text-[10px] font-black h-6 px-3">OVERALL TOTAL: {analytics?.totalPrograms || 0}</Badge>
                 </div>
+                <CardDescription className="text-[10px] font-bold mt-1">
+                    <strong>Comprehensive Data Guide:</strong> Analyzes the distribution of programs across AACCUP levels. Concentrations in levels III & IV signify advanced maturity.
+                </CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
                 <ChartContainer config={chartConfig} className="h-[350px] w-full">
@@ -600,6 +628,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     <div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-emerald-600" /><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Recognition Momentum (COPC)</CardTitle></div>
                     <Badge className="bg-emerald-600 text-white text-[10px] font-black h-6 px-3">INSTITUTIONAL TOTAL: {analytics?.activeCopc + (analytics?.inactiveCopc || 0)}</Badge>
                 </div>
+                <CardDescription className="text-[10px] font-bold mt-1">
+                    <strong>Comprehensive Data Guide:</strong> Tracks the timeline of COPC issuance by CHED. Steady yearly growth indicates successful regulatory alignment.
+                </CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
                 <ChartContainer config={chartConfig} className="h-[350px] w-full">
@@ -628,6 +659,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     <div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle></div>
                     <Badge variant="secondary" className="bg-amber-500 text-white text-[10px] font-black h-6 px-3">OVERALL PIPELINE: {analytics?.roadmapData.length || 0}</Badge>
                 </div>
+                <CardDescription className="text-[10px] font-bold mt-1">
+                    <strong>Comprehensive Data Guide:</strong> Projects future audit workload based on set schedules. Facilitates long-term resource and budgetary planning.
+                </CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
                 <ChartContainer config={chartConfig} className="h-[350px] w-full">
@@ -654,6 +688,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     <div className="flex items-center gap-2"><History className="h-5 w-5 text-emerald-600" /><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle></div>
                     <Badge variant="secondary" className="bg-emerald-600 text-white text-[10px] font-black h-6 px-3">OVERALL SURVEYS: {analytics?.monitoredCount || 0}</Badge>
                 </div>
+                <CardDescription className="text-[10px] font-bold mt-1">
+                    <strong>Comprehensive Data Guide:</strong> Tracks history of successful survey completions. Shows the impact of now-inactive programs on the track record.
+                </CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
                 <ChartContainer config={chartConfig} className="h-[350px] w-full">
@@ -678,7 +715,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
       <Card className="shadow-md border-primary/10 overflow-hidden">
           <CardHeader className="bg-muted/10 border-b py-4">
               <div className="flex items-center gap-2"><BarChart3 className="h-5 w-5 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Campus Parity Benchmarking</CardTitle></div>
-              <CardDescription className="text-xs">Comparative performance of sites across active and closing tracks.</CardDescription>
+              <CardDescription className="text-[10px] font-bold mt-1">
+                  <strong>Comprehensive Data Guide:</strong> Benchmarks site-level compliance across active and closing programs. Crucial for ensuring quality standards are maintained globally.
+              </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
               <Table>
@@ -715,7 +754,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                           <CalendarDays className="h-5 w-5 text-primary" />
                           <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Survey Pipeline (Roadmap)</CardTitle>
                       </div>
-                      <CardDescription className="text-xs">Prioritized schedule of upcoming AACCUP surveys across all university campuses.</CardDescription>
+                      <CardDescription className="text-[10px] font-bold">
+                          <strong>Comprehensive Data Guide:</strong> Prioritized schedule of upcoming surveys. Overdue status indicates missed quality cycle targets.
+                      </CardDescription>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                       {analytics?.distributionSummary.map(total => {
