@@ -144,16 +144,19 @@ export default function AcademicProgramsPage() {
   }, [programs, searchTerm, campusFilter, unitFilter, isGlobalViewer, isUnitViewer, userProfile]);
 
   /**
-   * CALCULATE REGISTRY SUMMARY STATS (Reacts to filters)
+   * CALCULATE REGISTRY SUMMARY STATS
+   * Disaggregates stats for Active and Inactive programs.
    */
   const summaryStats = useMemo(() => {
     const total = filteredPrograms.length;
-    if (total === 0) return { total: 0, activeCount: 0, inactiveCount: 0, accreditedRate: 0, copcRate: 0, boardCount: 0 };
+    if (total === 0) return { total: 0, activeCount: 0, inactiveCount: 0, accreditedRate: 0, copcRate: 0, boardCount: 0, activeAccredited: 0, inactiveAccredited: 0, activeCopc: 0, inactiveCopc: 0 };
 
     let activeCount = 0;
     let inactiveCount = 0;
-    let accreditedCount = 0;
-    let copcCount = 0;
+    let activeAccredited = 0;
+    let inactiveAccredited = 0;
+    let activeCopc = 0;
+    let inactiveCopc = 0;
     let boardCount = 0;
 
     filteredPrograms.forEach(p => {
@@ -163,17 +166,20 @@ export default function AcademicProgramsPage() {
         if (p.isBoardProgram) boardCount++;
         
         const record = rawCompliances?.find(c => c.programId === p.id);
-        if (record) {
-            if (record.ched?.copcStatus === 'With COPC') copcCount++;
-            
-            // Only count programs that are not "New" and have achieved Level I or above
-            if (!p.isNewProgram) {
-                const milestones = record.accreditationRecords || [];
-                const current = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
-                if (current && current.level !== 'Non Accredited' && !current.level.includes('PSV')) {
-                    accreditedCount++;
-                }
-            }
+        const isAccredited = (rec: ProgramComplianceRecord | undefined) => {
+            if (!rec || !rec.accreditationRecords || rec.accreditationRecords.length === 0) return false;
+            const milestones = rec.accreditationRecords;
+            const current = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
+            return current && current.level !== 'Non Accredited' && !current.level.includes('PSV');
+        };
+        const hasCopc = (rec: ProgramComplianceRecord | undefined) => rec?.ched?.copcStatus === 'With COPC';
+
+        if (p.isActive) {
+            if (isAccredited(record)) activeAccredited++;
+            if (hasCopc(record)) activeCopc++;
+        } else {
+            if (isAccredited(record)) inactiveAccredited++;
+            if (hasCopc(record)) inactiveCopc++;
         }
     });
 
@@ -181,9 +187,13 @@ export default function AcademicProgramsPage() {
         total,
         activeCount,
         inactiveCount,
-        accreditedRate: Math.round((accreditedCount / (activeCount || 1)) * 100),
-        copcRate: Math.round((copcCount / (activeCount || 1)) * 100),
-        boardCount
+        accreditedRate: Math.round((activeAccredited / (activeCount || 1)) * 100),
+        copcRate: Math.round((activeCopc / (activeCount || 1)) * 100),
+        boardCount,
+        activeAccredited,
+        inactiveAccredited,
+        activeCopc,
+        inactiveCopc
     };
   }, [filteredPrograms, rawCompliances]);
 
@@ -355,11 +365,11 @@ export default function AcademicProgramsPage() {
                         <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Scope Portfolio</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-black text-primary tabular-nums">{summaryStats.activeCount}</div>
-                        <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">Active Offerings</p>
+                        <div className="text-3xl font-black text-primary tabular-nums">{summaryStats.activeCount} Active</div>
+                        <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">Current Academic Offerings</p>
                         <div className="flex items-center gap-2 mt-2">
                             <Badge variant="outline" className="text-[8px] h-4 border-slate-200 text-slate-500 font-bold bg-white">
-                                {summaryStats.inactiveCount} INACTIVE / FOR CLOSURE
+                                {summaryStats.inactiveCount} SUBJECT FOR CLOSURE
                             </Badge>
                         </div>
                     </CardContent>
@@ -373,6 +383,11 @@ export default function AcademicProgramsPage() {
                     <CardContent>
                         <div className="text-3xl font-black text-emerald-600 tabular-nums">{summaryStats.accreditedRate}%</div>
                         <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tight">Active Level I or Higher</p>
+                        <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="outline" className="text-[8px] h-4 border-emerald-200 text-emerald-600 font-bold bg-white uppercase">
+                                {summaryStats.inactiveAccredited} Inactive Accredited
+                            </Badge>
+                        </div>
                     </CardContent>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><Award className="h-12 w-12 text-emerald-600" /></div>
                 </Card>
@@ -384,6 +399,11 @@ export default function AcademicProgramsPage() {
                     <CardContent>
                         <div className="text-3xl font-black text-blue-600 tabular-nums">{summaryStats.copcRate}%</div>
                         <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase tracking-tight">Active Operating Authorities</p>
+                        <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="outline" className="text-[8px] h-4 border-blue-200 text-blue-600 font-bold bg-white uppercase">
+                                {summaryStats.inactiveCopc} Inactive COPC
+                            </Badge>
+                        </div>
                     </CardContent>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><CheckCircle2 className="h-12 w-12 text-blue-600" /></div>
                 </Card>

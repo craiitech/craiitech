@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -668,7 +667,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
                             <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
                             <RechartsTooltip content={<ChartTooltipContent />} />
-                            <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                            <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '20px' }} />
                             <Bar dataKey="Undergraduate" fill={chartConfig.Undergraduate.color} radius={[0, 0, 0, 0]} barSize={20} stackId="a">
                                 <LabelList dataKey="Undergraduate" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Undergraduate.color }} />
                             </Bar>
@@ -715,7 +714,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
                             <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
                             <RechartsTooltip content={<ChartTooltipContent />} />
-                            <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                            <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '20px' }} />
                             <Bar dataKey="Undergraduate" fill="#10b981" radius={[0, 0, 0, 0]} barSize={20} stackId="a">
                                 <LabelList dataKey="Undergraduate" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: '#065f46' }} />
                             </Bar>
@@ -730,7 +729,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 </ChartContainer>
             </CardContent>
             <CardFooter className="bg-emerald-50/50 border-t p-4 flex gap-3">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                 <div className="space-y-1">
                     <p className="text-[10px] font-black uppercase text-emerald-800 tracking-widest">{discussionNotes.history.title}</p>
                     <p className="text-[10px] text-emerald-700 leading-relaxed font-medium italic">
@@ -941,7 +940,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                           <Badge 
                                               className={cn(
                                                   "text-[9px] font-black uppercase h-5 px-2 border-none shadow-sm",
-                                                  item.status === 'Overdue' ? "bg-rose-600 text-white animate-pulse" : 
+                                                  item.status === 'Overdue' ? "bg-rose-600 text-white" : 
                                                   item.status === 'Result Pending' ? "bg-blue-600 text-white" :
                                                   item.status === 'Upcoming' ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-600"
                                               )}
