@@ -470,6 +470,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 <div className="text-3xl font-black text-blue-600 tabular-nums">{analytics?.monitoredCount}</div>
                 <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Total verified AY {selectedYear} data</p>
             </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
