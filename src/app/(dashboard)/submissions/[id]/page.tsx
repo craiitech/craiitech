@@ -3,7 +3,7 @@
 import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
 import { doc, Timestamp, updateDoc, arrayUnion, serverTimestamp, collection, query, where } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
-import type { Submission, User as AppUser, Campus, Unit, Comment, Risk } from '@/lib/types';
+import type { Submission, User as AppUser, Campus, Unit, Comment, Risk, Signatories } from '@/lib/types';
 import {
   Card,
   CardContent,
@@ -88,6 +88,20 @@ const approverChecklistItems = [
     { id: 'correctContents', label: 'Are the contents of the document complete, accurate, and aligned with objectives?', rejectionReason: 'The document contents are incomplete, inaccurate, or not aligned with cycle objectives.' },
     { id: 'signaturesPresent', label: 'Are all required signatures present and valid?', rejectionReason: 'Required signatures are missing or invalid.' },
 ];
+
+/**
+ * Local helper to format Firestore Timestamps or Dates.
+ */
+const getFormattedDate = (date: any) => {
+  if (!date) return 'N/A';
+  try {
+    const d = date instanceof Timestamp ? date.toDate() : new Date(date);
+    if (isNaN(d.getTime())) return 'N/A';
+    return format(d, 'PPP p');
+  } catch (e) {
+    return 'Invalid Date';
+  }
+};
 
 
 const LoadingSkeleton = () => (
