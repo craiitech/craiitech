@@ -8,6 +8,7 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, ClipboardCheck, TrendingUp, School, Building, User, Trophy, Zap, Target, BarChart3, Info } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
 interface MonitoringAnalyticsProps {
   records: UnitMonitoringRecord[];
@@ -135,7 +136,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
             </CardContent>
             <div className="p-3 bg-muted/10 border-t mt-auto">
                 <p className="text-[9px] text-muted-foreground italic leading-tight">
-                    <strong>Guidance:</strong> Quantifies the total volume of oversight activity conducted during the reporting period.
+                    <strong>Guidance for usage:</strong> Quantifies the total volume of oversight activity conducted during the reporting period.
                 </p>
             </div>
         </Card>
@@ -148,7 +149,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
             </CardContent>
             <div className="p-3 bg-green-100/20 border-t mt-auto">
                 <p className="text-[9px] text-green-800/60 italic leading-tight">
-                    <strong>Guidance:</strong> Represents the average operational quality score across all validated on-site visits.
+                    <strong>Guidance for usage:</strong> Represents the average operational quality score across all validated on-site visits.
                 </p>
             </div>
         </Card>
@@ -161,7 +162,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
             </CardContent>
             <div className="p-3 bg-amber-100/20 border-t mt-auto">
                 <p className="text-[9px] text-amber-800/60 italic leading-tight">
-                    <strong>Guidance:</strong> Aggregate count of identified deficiencies requiring administrative attention or updates.
+                    <strong>Guidance for usage:</strong> Aggregate count of identified deficiencies requiring administrative attention or updates.
                 </p>
             </div>
         </Card>
@@ -179,7 +180,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
             </CardContent>
             <div className="p-3 bg-blue-100/20 border-t mt-auto">
                 <p className="text-[9px] text-blue-800/60 italic leading-tight">
-                    <strong>Guidance:</strong> Highlights the highest-performing entity based on objective on-site evidence logs.
+                    <strong>Guidance for usage:</strong> Highlights the highest-performing entity based on objective on-site evidence logs.
                 </p>
             </div>
         </Card>
