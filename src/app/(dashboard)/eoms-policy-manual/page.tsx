@@ -114,7 +114,7 @@ export default function EomsPolicyManualPage() {
                         className={cn(
                           "w-full justify-start text-left h-auto p-3 transition-all",
                           selectedManual?.id === manual?.id 
-                              ? "bg-primary/10 text-primary border-l-4 border-primary font-bold" 
+                              ? "bg-primary/10 text-primary border-primary font-bold" 
                               : "hover:bg-muted font-medium"
                         )}
                       >

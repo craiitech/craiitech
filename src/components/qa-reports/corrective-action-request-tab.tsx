@@ -9,7 +9,35 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, Trash2, Edit, ShieldCheck, FileText, ClipboardCheck, Clock, UserCheck, Printer, Search, Filter, TrendingUp, AlertTriangle, CheckCircle2, Hash, Eye, ListTodo, Info, UserPlus, User, ShieldAlert, Target, History as HistoryIcon, Calendar, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import { 
+    Loader2, 
+    PlusCircle, 
+    Trash2, 
+    Edit, 
+    ShieldCheck, 
+    FileText, 
+    ClipboardCheck, 
+    Clock, 
+    UserCheck, 
+    Printer, 
+    Search, 
+    Filter, 
+    TrendingUp, 
+    AlertTriangle, 
+    CheckCircle2, 
+    Hash, 
+    Eye, 
+    ListTodo, 
+    Info, 
+    UserPlus, 
+    User, 
+    ShieldAlert, 
+    Target, 
+    History as HistoryIcon, 
+    Calendar, 
+    Link as LinkIcon, 
+    ExternalLink 
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -359,7 +387,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                 <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tighter">Awaiting Implementation</p>
             </CardContent>
             <div className="p-2 bg-amber-100/20 border-t mt-auto">
-                <p className="text-[8px] text-amber-800/60 italic leading-tight">
+                <p className="text-[8px] text-muted-foreground italic leading-tight">
                     <strong>Guide:</strong> Identifies requests that are currently active and require follow-up monitoring.
                 </p>
             </div>
@@ -667,7 +695,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                             onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending' })}
                                             className="h-7 text-[9px] font-black uppercase bg-white shadow-sm"
                                         >
-                                            <PlusCircle className="h-3 w-3 mr-1.5" /> Add Action Step
+                                            <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Action Step
                                         </Button>
                                     </div>
                                     <div className="space-y-3">
