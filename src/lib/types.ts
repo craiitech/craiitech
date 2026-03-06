@@ -337,6 +337,47 @@ export type Signatories = {
   updatedAt?: any;
 };
 
+export type UnitForm = {
+    id: string;
+    unitId: string;
+    campusId: string;
+    formCode: string;
+    formName: string;
+    googleDriveLink: string;
+    revision: string;
+    requestId: string; 
+    createdAt: any;
+};
+
+export type UnitFormRequestStatus = 'Submitted' | 'QA Review' | 'Returned for Correction' | 'Awaiting Presidential Approval' | 'Approved & Registered';
+
+export type UnitFormRequestComment = {
+    text: string;
+    authorId: string;
+    authorName: string;
+    createdAt: any;
+};
+
+export type UnitFormRequest = {
+    id: string;
+    unitId: string;
+    campusId: string;
+    unitName: string;
+    submitterId: string;
+    submitterName: string;
+    scannedRegistrationFormLink: string; 
+    requestedForms: {
+        name: string;
+        code: string;
+        link: string;
+        revision: string;
+    }[];
+    status: UnitFormRequestStatus;
+    comments: UnitFormRequestComment[];
+    createdAt: any;
+    updatedAt: any;
+};
+
 // --- ACADEMIC PROGRAM MONITORING TYPES ---
 
 export type AcademicProgram = {

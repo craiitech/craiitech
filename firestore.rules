@@ -63,6 +63,10 @@ service cloud.firestore {
     match /correctiveActionPlans/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
     match /academicPrograms/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
     match /programCompliances/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
+    
+    // Unit Forms & Workflow
+    match /unitForms/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /unitFormRequests/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
 
     // --------------------------------------------------------------------------
     // SYSTEM REGISTRIES & ANNOUNCEMENTS
