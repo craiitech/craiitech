@@ -13,17 +13,16 @@ import {
     DialogTitle, 
     DialogFooter 
 } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, writeBatch, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { 
     Loader2, 
     ShieldCheck, 
     MessageSquare, 
-    CheckCircle2, 
     ExternalLink, 
     Building2, 
     History, 
@@ -31,7 +30,9 @@ import {
     ArrowRightCircle, 
     Gavel, 
     Undo2,
-    Check
+    Check,
+    FileText,
+    LayoutList
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { UnitFormRequest, UnitFormRequestStatus } from '@/lib/types';
