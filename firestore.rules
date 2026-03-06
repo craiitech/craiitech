@@ -39,6 +39,19 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
+    // UNIT FORMS & WORKFLOW (PRIORITIZED)
+    // --------------------------------------------------------------------------
+    
+    match /unitFormRequests/{id} { 
+      allow read, write: if isSignedIn();
+    }
+
+    match /unitForms/{id} { 
+      allow read: if isSignedIn(); 
+      allow write: if isAdmin(); 
+    }
+
+    // --------------------------------------------------------------------------
     // CORE COLLECTIONS
     // --------------------------------------------------------------------------
     
@@ -54,26 +67,6 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // --------------------------------------------------------------------------
-    // UNIT FORMS & WORKFLOW
-    // --------------------------------------------------------------------------
-    
-    match /unitFormRequests/{id} { 
-      allow read: if isSignedIn();
-      allow create: if isSignedIn(); 
-      allow update: if isSignedIn();
-      allow delete: if isAdmin();
-    }
-
-    match /unitForms/{id} { 
-      allow read: if isSignedIn(); 
-      allow write: if isAdmin(); 
-    }
-
-    // --------------------------------------------------------------------------
-    // REGISTRIES & SUBMISSIONS
-    // --------------------------------------------------------------------------
-
     match /submissions/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
     match /risks/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
     match /unitMonitoringRecords/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || (isSupervisor() && profile().get('role', '') == 'Campus ODIMO'); }
@@ -83,10 +76,6 @@ service cloud.firestore {
     match /academicPrograms/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
     match /programCompliances/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
     
-    // --------------------------------------------------------------------------
-    // SYSTEM REGISTRIES & ANNOUNCEMENTS
-    // --------------------------------------------------------------------------
-
     match /campusSettings/{settingId} {
       allow read: if isSignedIn();
       allow write: if isAdmin() || (isSupervisor() && settingId == profile().get('campusId', ''));
@@ -131,10 +120,6 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // --------------------------------------------------------------------------
-    // AUDIT LOGS & FEEDBACK
-    // --------------------------------------------------------------------------
-
     match /activityLogs/{logId} {
       allow read: if isAdmin();
       allow create: if isSignedIn();
@@ -156,7 +141,6 @@ service cloud.firestore {
       allow create: if true; 
     }
 
-    // Catch-all for other collections
     match /{path=**} {
       allow read, write: if isAdmin();
     }
