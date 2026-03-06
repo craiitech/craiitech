@@ -43,11 +43,11 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /unitFormRequests/{id} { 
-      allow read, write: if isSignedIn();
+      allow read, list, write: if isSignedIn();
     }
 
     match /unitForms/{id} { 
-      allow read: if isSignedIn(); 
+      allow read, list: if isSignedIn(); 
       allow write: if isAdmin(); 
     }
 
