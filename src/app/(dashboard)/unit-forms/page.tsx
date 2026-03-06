@@ -91,7 +91,9 @@ export default function UnitFormsPage() {
     if (hasAcademic) {
         // If user is academic, ensure they can see the shared entry
         const myUnit = allUnits.find(u => u.id === userProfile.unitId);
-        if (isAdmin || userRole === 'Auditor' || myUnit?.category === 'Academic') {
+        const canSeeAcademic = isAdmin || userRole === 'Auditor' || myUnit?.category === 'Academic';
+        
+        if (canSeeAcademic) {
             items.unshift({ id: SHARED_ACADEMIC_ID, name: 'Academic Units (Shared Registry)', category: 'Academic', isShared: true });
         }
     }
