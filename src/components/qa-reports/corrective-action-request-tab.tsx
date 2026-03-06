@@ -407,7 +407,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Years</SelectItem>
-                        {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                        {years.map(y => <SelectItem key={y} value={y}>AY {y}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>

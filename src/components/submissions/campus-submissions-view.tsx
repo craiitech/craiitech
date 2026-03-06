@@ -193,7 +193,7 @@ export function CampusSubmissionsView({
         { name: 'Awaiting Approval', value: pending },
         { name: 'Rejected', value: rejected },
         { name: 'Missing', value: missingTotal }
-    ].filter(d => d.value > 0);
+    ].filter(d => d.value >= 0);
 
     const score = Math.round((approved / (totalPossible || 1)) * 100);
 
@@ -381,9 +381,9 @@ export function CampusSubmissionsView({
     <Card>
       <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <CardTitle>Campus Submissions</CardTitle>
+            <CardTitle>Campus Submissions Hub</CardTitle>
             <CardDescription>
-            Audit scores are calculated based on <strong>Approved</strong> documents. N/A reports are excluded from performance metrics.
+            Performance metrics are strictly derived from <strong>Institutional Verified (Approved)</strong> documentation.
             </CardDescription>
         </div>
       </CardHeader>
@@ -451,7 +451,7 @@ export function CampusSubmissionsView({
                 size="icon"
                 className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden md:flex hover:bg-primary hover:text-white transition-colors"
                 onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-                title={isSidebarVisible ? "Hide Unit List" : "Show Unit List"}
+                title={isSidebarVisible ? "Hide Site List" : "Show Site List"}
             >
                 {isSidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
             </Button>
@@ -466,8 +466,8 @@ export function CampusSubmissionsView({
                             <h3 className="font-black text-xl uppercase tracking-tight text-slate-900">
                                 {campusesToShow.find(c => c.id === selectedCampusId)?.name}
                             </h3>
-                            <p className="text-xs text-muted-foreground max-sm mx-auto">
-                                You have selected a campus site. You can monitor individual units from the tree on the left, or generate a consolidated site-wide report below.
+                            <p className="text-xs text-muted-foreground max-sm mx-auto font-medium">
+                                Select a specific academic or administrative unit from the tree to conduct an individual compliance audit, or generate a site-wide summary using the button below.
                             </p>
                         </div>
                         <Button 
@@ -476,7 +476,7 @@ export function CampusSubmissionsView({
                             onClick={handlePrintCampusNotice}
                         >
                             <LayoutList className="h-5 w-5" />
-                            Print Campus Status Notice
+                            Generate Campus Progress Notice
                         </Button>
                     </div>
                 )}
@@ -490,16 +490,16 @@ export function CampusSubmissionsView({
                                 </h3>
                                 <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase">
                                     <CalendarIcon className="h-3 w-3" />
-                                    Reporting Year: {selectedYear}
+                                    Monitoring Cycle: {selectedYear}
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
                                 {unitData.missingFirst.length + unitData.missingFinal.length === 0 ? (
-                                    <Button size="sm" variant="outline" className="h-8 text-[10px] font-black uppercase text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => handlePrintNotice('Compliance')}>
+                                    <Button size="sm" variant="outline" className="h-8 text-[10px] font-black uppercase text-emerald-600 border-emerald-200 hover:bg-emerald-50 shadow-sm" onClick={() => handlePrintNotice('Compliance')}>
                                         <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Compliance Notice
                                     </Button>
                                 ) : (
-                                    <Button size="sm" variant="outline" className="h-8 text-[10px] font-black uppercase text-rose-600 border-rose-200 hover:bg-rose-50" onClick={() => handlePrintNotice('Non-Compliance')}>
+                                    <Button size="sm" variant="outline" className="h-8 text-[10px] font-black uppercase text-rose-600 border-rose-200 hover:bg-rose-50 shadow-sm" onClick={() => handlePrintNotice('Non-Compliance')}>
                                         <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Non-Compliance Notice
                                     </Button>
                                 )}
@@ -510,7 +510,7 @@ export function CampusSubmissionsView({
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                             <Card className="lg:col-span-1 flex flex-col items-center justify-between bg-background rounded-lg border shadow-sm p-4 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-2 opacity-5"><PieIcon className="h-12 w-12" /></div>
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Maturity Index</span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Unit Maturity Index</span>
                                 <ChartContainer config={{}} className="h-[140px] w-[140px]">
                                     <ResponsiveContainer>
                                         <PieChart>
@@ -534,11 +534,11 @@ export function CampusSubmissionsView({
                                 </ChartContainer>
                                 <div className="mt-4 text-center">
                                     <span className="text-3xl font-black tabular-nums tracking-tighter text-primary">{unitData.score}%</span>
-                                    <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest mt-1">Institutional Maturity Target: 100%</p>
+                                    <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest mt-1">Verified Maturity Target: 100%</p>
                                 </div>
                                 <div className="mt-4 pt-4 border-t w-full">
                                     <p className="text-[9px] text-muted-foreground leading-relaxed italic text-center">
-                                        <strong>Card Purpose:</strong> This index represents the overall compliance health of the unit. It is calculated by dividing the number of <strong>Approved</strong> documents by the total required for the academic year, excluding non-applicable items.
+                                        <strong>Explanation:</strong> This index represents the overall compliance health of the unit. It is calculated by dividing the number of <strong>Approved</strong> documents by the total required for the academic year, excluding non-applicable items.
                                     </p>
                                 </div>
                             </Card>
@@ -548,7 +548,7 @@ export function CampusSubmissionsView({
                                     <CardHeader className="p-4 pb-2">
                                         <div className="flex items-center gap-2">
                                             <CheckCircle2 className="h-4 w-4 text-primary" />
-                                            <CardDescription className="text-[9px] font-black uppercase tracking-widest text-primary/70">Verified Documentation Status</CardDescription>
+                                            <CardDescription className="text-[9px] font-black uppercase tracking-widest text-primary/70">Verified Achievement</CardDescription>
                                         </div>
                                         <CardTitle className="text-2xl font-black text-primary pt-1">
                                             {unitData.approved} / {unitData.totalPossible} Documents
@@ -556,7 +556,7 @@ export function CampusSubmissionsView({
                                     </CardHeader>
                                     <CardContent className="p-4 pt-0">
                                         <p className="text-[10px] text-muted-foreground leading-relaxed">
-                                            <strong>Card Purpose:</strong> Tracks the count of EOMS reports that have undergone formal verification and received institutional approval. Only these documents contribute to the unit's final quality maturity score.
+                                            <strong>Explanation:</strong> Count of documents that have undergone formal review and received institutional verification. Only <strong>Approved</strong> records contribute to the unit's final quality maturity score.
                                         </p>
                                     </CardContent>
                                 </Card>
@@ -565,15 +565,15 @@ export function CampusSubmissionsView({
                                     <CardHeader className="p-4 pb-2">
                                         <div className="flex items-center gap-2">
                                             {unitData.missingFirst.length + unitData.missingFinal.length > 0 ? <AlertTriangle className="h-4 w-4 text-red-600" /> : <ShieldCheck className="h-4 w-4 text-green-600" />}
-                                            <CardDescription className={cn("text-[9px] font-black uppercase tracking-widest", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-700" : "text-green-700")}>Outstanding Actions Required</CardDescription>
+                                            <CardDescription className={cn("text-[9px] font-black uppercase tracking-widest", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-700" : "text-green-700")}>Remaining Gaps</CardDescription>
                                         </div>
                                         <CardTitle className={cn("text-2xl font-black pt-1", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-600" : "text-green-600")}>
-                                            {unitData.missingFirst.length + unitData.missingFinal.length} Gaps Remaining
+                                            {unitData.missingFirst.length + unitData.missingFinal.length} Outstanding Items
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="p-4 pt-0">
                                         <p className={cn("text-[10px] leading-relaxed", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-800/70" : "text-green-800/70")}>
-                                            <strong>Card Purpose:</strong> Identifies documentation gaps that prevent 100% compliance. This includes reports that are either missing from the registry or were rejected and require corrective resubmission.
+                                            <strong>Explanation:</strong> Identifies documentation gaps that prevent 100% compliance. This includes reports that are either <strong>Missing</strong> from the registry or were <strong>Rejected</strong> and require corrective resubmission.
                                         </p>
                                     </CardContent>
                                 </Card>
@@ -622,14 +622,14 @@ export function CampusSubmissionsView({
                                     <CheckCircle2 className="h-6 w-6 text-green-600" />
                                 </div>
                                 <h4 className="font-black text-sm uppercase text-green-800">Operational Excellence</h4>
-                                <p className="text-xs text-green-700/70 max-w-xs mx-auto">This unit has achieved 100% submission coverage for the Academic Year {selectedYear}.</p>
+                                <p className="text-xs text-green-700/70 max-w-xs mx-auto">This unit has achieved 100% verified documentation coverage for the Academic Year {selectedYear}.</p>
                             </div>
                         )}
                         
                         <div className="space-y-6 pt-4">
                             <h4 className="text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2 text-primary">
                                 <CalendarIcon className="h-4 w-4" /> 
-                                Submission History
+                                Submission Registry
                             </h4>
                             <div className="space-y-3">
                                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 uppercase text-[9px] font-black">First Submission Cycle</Badge>
@@ -652,12 +652,12 @@ export function CampusSubmissionsView({
                             </div>
                         </div>
                     </div>
-                ) : !selectedCampusId ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
+                ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-center gap-2 text-muted-foreground p-12">
                         <Building className="h-12 w-12 opacity-10" />
-                        <p className="text-sm font-medium">Select a campus from the tree to begin monitoring.</p>
+                        <p className="text-sm font-medium">Select a campus and unit from the site tree to conduct an audit.</p>
                     </div>
-                ) : null}
+                )}
             </ScrollArea>
           </div>
         </div>

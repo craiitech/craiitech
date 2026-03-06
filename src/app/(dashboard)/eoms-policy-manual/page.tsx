@@ -94,8 +94,8 @@ export default function EomsPolicyManualPage() {
         )}>
           <Card className="flex flex-col h-[350px] lg:h-full shadow-md border-primary/10">
             <CardHeader className="bg-muted/30 border-b">
-              <CardTitle className="text-lg">Table of Contents</CardTitle>
-              <CardDescription>Select a section to read.</CardDescription>
+              <CardTitle className="text-lg font-bold uppercase tracking-wider">Table of Contents</CardTitle>
+              <CardDescription className="text-[10px]">Select a policy section to review.</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden p-2">
               <ScrollArea className="h-full">
@@ -114,7 +114,7 @@ export default function EomsPolicyManualPage() {
                         className={cn(
                           "w-full justify-start text-left h-auto p-3 transition-all",
                           selectedManual?.id === manual?.id 
-                              ? "bg-primary/10 text-primary font-bold border-l-4 border-primary" 
+                              ? "bg-primary/10 text-primary border-l-4 border-primary font-bold" 
                               : "hover:bg-muted font-medium"
                         )}
                       >
@@ -138,30 +138,30 @@ export default function EomsPolicyManualPage() {
             size="icon"
             className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden lg:flex hover:bg-primary hover:text-white transition-colors"
             onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-            title={isSidebarVisible ? "Hide Table of Contents" : "Show Table of Contents"}
+            title={isSidebarVisible ? "Hide Index" : "Show Index"}
           >
             {isSidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </Button>
 
           <Card className="h-full flex flex-col shadow-md border-primary/10">
-            <CardHeader className="border-b">
+            <CardHeader className="border-b bg-muted/5">
                 <div className="flex justify-between items-start gap-4">
                     <div className="space-y-1 min-w-0">
-                        <CardTitle className="text-xl truncate">
+                        <CardTitle className="text-lg font-black uppercase tracking-tight truncate">
                             {isLoading ? <Skeleton className="h-6 w-48" /> : (selectedManual?.title || 'Select a Section')}
                         </CardTitle>
-                        <CardDescription>
-                            Official QA Policy Document
+                        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                            Official Institutional Policy Document
                         </CardDescription>
                     </div>
                     {selectedManual && (
-                        <Badge variant="secondary" className="font-mono shrink-0">
+                        <Badge variant="secondary" className="font-mono h-6 font-bold shadow-sm">
                             Rev {selectedManual.revisionNumber}
                         </Badge>
                     )}
                 </div>
             </CardHeader>
-            <CardContent className="flex-1 p-0 bg-muted/50 overflow-hidden relative">
+            <CardContent className="flex-1 p-0 bg-slate-100 overflow-hidden relative">
                {isLoading ? (
                  <div className="flex h-full items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20"/>
@@ -177,8 +177,8 @@ export default function EomsPolicyManualPage() {
                 <div className="flex h-full items-center justify-center text-muted-foreground p-8">
                   <div className="text-center max-w-xs">
                     <BookOpen className="mx-auto h-16 w-16 opacity-10 mb-4" />
-                    <p className="font-medium text-lg text-slate-900">No Section Selected</p>
-                    <p className="text-xs mt-2">Choose a policy section from the Table of Contents to view the official documentation.</p>
+                    <p className="font-black text-xs uppercase tracking-widest">No Section Selected</p>
+                    <p className="text-[10px] mt-2">Choose a policy section from the Table of Contents to view the official documentation.</p>
                   </div>
                 </div>
               )}

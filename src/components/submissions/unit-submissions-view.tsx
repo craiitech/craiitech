@@ -182,7 +182,7 @@ export function UnitSubmissionsView({
         { name: 'Awaiting Approval', value: pending },
         { name: 'Rejected', value: rejected },
         { name: 'Missing', value: missingTotal }
-    ].filter(d => d.value > 0);
+    ].filter(d => d.value >= 0);
 
     const score = Math.round((approved / (totalPossible || 1)) * 100);
 
@@ -312,7 +312,7 @@ export function UnitSubmissionsView({
                             </h3>
                             <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase">
                                 <CalendarIcon className="h-3 w-3" />
-                                Reporting Year: {selectedYear}
+                                Monitoring Cycle: {selectedYear}
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -360,7 +360,7 @@ export function UnitSubmissionsView({
                             </div>
                             <div className="mt-4 pt-4 border-t w-full">
                                 <p className="text-[9px] text-muted-foreground leading-relaxed italic text-center">
-                                    <strong>Card Purpose:</strong> This index represents the overall compliance health of the unit. It is calculated by dividing the number of <strong>Approved</strong> documents by the total required for the academic year, excluding non-applicable items.
+                                    <strong>Explanation:</strong> This index represents the overall compliance health of the unit. It is calculated by dividing the number of <strong>Approved</strong> documents by the total required for the academic year, excluding non-applicable items.
                                 </p>
                             </div>
                         </Card>
@@ -370,7 +370,7 @@ export function UnitSubmissionsView({
                                 <CardHeader className="p-4 pb-2">
                                     <div className="flex items-center gap-2">
                                         <CheckCircle2 className="h-4 w-4 text-primary" />
-                                        <CardDescription className="text-[9px] font-black uppercase tracking-widest text-primary/70">Verified Documentation Status</CardDescription>
+                                        <CardDescription className="text-[9px] font-black uppercase tracking-widest text-primary/70">Verified Achievement</CardDescription>
                                     </div>
                                     <CardTitle className="text-2xl font-black text-primary pt-1">
                                         {unitData.approved} / {unitData.totalPossible} Documents
@@ -378,7 +378,7 @@ export function UnitSubmissionsView({
                                 </CardHeader>
                                 <CardContent className="p-4 pt-0">
                                     <p className="text-[10px] text-muted-foreground leading-relaxed">
-                                        <strong>Card Purpose:</strong> Tracks the count of EOMS reports that have undergone formal verification and received institutional approval. Only these documents contribute to the unit's final quality maturity score.
+                                        <strong>Explanation:</strong> Count of documents that have undergone formal review and received institutional verification. Only <strong>Approved</strong> records contribute to the unit's final quality maturity score.
                                     </p>
                                 </CardContent>
                             </Card>
@@ -387,15 +387,15 @@ export function UnitSubmissionsView({
                                 <CardHeader className="p-4 pb-2">
                                     <div className="flex items-center gap-2">
                                         {unitData.missingFirst.length + unitData.missingFinal.length > 0 ? <AlertTriangle className="h-4 w-4 text-red-600" /> : <ShieldCheck className="h-4 w-4 text-green-600" />}
-                                        <CardDescription className={cn("text-[9px] font-black uppercase tracking-widest", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-700" : "text-green-700")}>Outstanding Actions Required</CardDescription>
+                                        <CardDescription className={cn("text-[9px] font-black uppercase tracking-widest", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-700" : "text-green-700")}>Remaining Gaps</CardDescription>
                                     </div>
                                     <CardTitle className={cn("text-2xl font-black pt-1", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-600" : "text-green-600")}>
-                                        {unitData.missingFirst.length + unitData.missingFinal.length} Gaps Remaining
+                                        {unitData.missingFirst.length + unitData.missingFinal.length} Outstanding Items
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="p-4 pt-0">
                                     <p className={cn("text-[10px] leading-relaxed", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-800/70" : "text-green-800/70")}>
-                                        <strong>Card Purpose:</strong> Identifies documentation gaps that prevent 100% compliance. This includes reports that are either missing from the registry or were rejected and require corrective resubmission.
+                                        <strong>Explanation:</strong> Identifies documentation gaps that prevent 100% compliance. This includes reports that are either <strong>Missing</strong> from the registry or were <strong>Rejected</strong> and require corrective resubmission.
                                     </p>
                                 </CardContent>
                             </Card>
@@ -531,7 +531,6 @@ function SubmissionTableForCycle({
                              <Button 
                                 variant="default" 
                                 size="sm" 
-                                opacity-0
                                 onClick={() => onEyeClick(sub.id)} 
                                 className="h-7 text-[9px] font-bold bg-primary shadow-sm"
                             >
