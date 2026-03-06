@@ -541,10 +541,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
-            <div className="flex items-center gap-2 text-primary mb-1">
+            <DialogTitle className="flex items-center gap-2 text-primary mb-1">
                 <FileText className="h-5 w-5" />
                 <span className="text-[10px] font-black uppercase tracking-[0.2em]">Form QAO-00-018</span>
-            </div>
+            </DialogTitle>
             {(watchCarNumber || watchNcReportNumber) && (
                 <div className="flex items-center gap-3">
                     {watchCarNumber && (
