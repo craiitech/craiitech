@@ -41,11 +41,13 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     // UNIT FORMS & WORKFLOW (PRIORITIZED)
     // --------------------------------------------------------------------------
+    // Grant read/list access to all authenticated users similar to the /users collection
     
     match /unitFormRequests/{id} { 
       allow read, list: if isSignedIn();
       allow create: if isSignedIn();
       allow update: if isSignedIn();
+      allow delete: if isAdmin();
     }
 
     match /unitForms/{id} { 

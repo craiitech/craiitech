@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, Trash2, Edit, ShieldCheck, FileText, ClipboardCheck, Clock, UserCheck, Printer, Search, Filter, TrendingUp, AlertTriangle, CheckCircle2, Hash, Eye, ListTodo, Info, UserPlus, User, ShieldAlert, Target } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, ShieldCheck, FileText, ClipboardCheck, Clock, UserCheck, Printer, Search, Filter, TrendingUp, AlertTriangle, CheckCircle2, Hash, Eye, ListTodo, Info, UserPlus, User, ShieldAlert, Target, History as HistoryIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -528,7 +529,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                             <TabsList className="grid w-full grid-cols-4 h-12 bg-slate-100 p-1 mb-8">
                                 <TabsTrigger value="identification" className="text-xs font-bold uppercase"><Info className="h-3.5 w-3.5 mr-2" /> Identification</TabsTrigger>
                                 <TabsTrigger value="nonconformance" className="text-xs font-bold uppercase"><ShieldCheck className="h-3.5 w-3.5 mr-2" /> Statement</TabsTrigger>
-                                <TabsTrigger value="investigation" className="text-xs font-bold uppercase"><History className="h-3.5 w-3.5 mr-2" /> Action Registry</TabsTrigger>
+                                <TabsTrigger value="investigation" className="text-xs font-bold uppercase"><HistoryIcon className="h-3.5 w-3.5 mr-2" /> Action Registry</TabsTrigger>
                                 <TabsTrigger value="verification" className="text-xs font-bold uppercase"><ClipboardCheck className="h-3.5 w-3.5 mr-2" /> Verification</TabsTrigger>
                             </TabsList>
 
@@ -678,7 +679,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                     <FormField control={form.control} name={`actionSteps.${index}.description`} render={({ field: inputField }) => (
                                                         <FormItem className="md:col-span-1">
                                                             <FormLabel className="text-[9px] uppercase font-bold">Action Description</FormLabel>
-                                                            <FormControl><Input {...field} className="h-8 text-[10px]" /></FormControl>
+                                                            <FormControl><Input {...inputField} className="h-8 text-[10px]" /></FormControl>
                                                         </FormItem>
                                                     )} />
                                                     <FormField control={form.control} name={`actionSteps.${index}.completionDate`} render={({ field: inputField }) => (
