@@ -428,7 +428,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+            <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
           ) : (
             <div className="overflow-x-auto">
                 <Table>
@@ -964,7 +964,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                 <p className="text-[10px] font-bold text-muted-foreground uppercase">RSU Quality Management System | Registry v2.0</p>
                 <div className="flex gap-2">
                     <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
-                    <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black">
+                    <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black">
                         {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="mr-2 h-4 w-4" />}
                         {editingCar ? 'Update Registry' : 'Issue Record'}
                     </Button>

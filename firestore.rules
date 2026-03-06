@@ -40,7 +40,6 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     // UNIT FORMS & WORKFLOW
     // --------------------------------------------------------------------------
-    // Scoped read/list for all authenticated users to prevent dashboard crashes.
     
     match /unitFormRequests/{id} { 
       allow read, list: if isSignedIn();
