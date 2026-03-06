@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -9,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Search, BookOpen, Building, ListChecks } from 'lucide-react';
+import { Loader2, Search, BookOpen, Building, ListChecks, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UnitFormsTab } from '@/components/manuals/unit-forms-tab';
@@ -19,6 +18,7 @@ export default function ProcedureManualsPage() {
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   const manualsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'procedureManuals') : null),
@@ -54,65 +54,94 @@ export default function ProcedureManualsPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Procedure Manuals & Unit Forms</h2>
-        <p className="text-muted-foreground text-sm">
-          Access official operating procedures and manage controlled unit forms.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Procedure Manuals & Unit Forms</h2>
+          <p className="text-muted-foreground text-sm">
+            Access official operating procedures and manage controlled unit forms.
+          </p>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="md:hidden" 
+          onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+        >
+          <Building className="mr-2 h-4 w-4" />
+          {isSidebarVisible ? 'Hide Units' : 'Show Units'}
+        </Button>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:h-[calc(100vh-12rem)]">
-        <Card className="lg:col-span-1 flex flex-col h-[400px] lg:h-full">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-sm font-bold uppercase tracking-wider">Unit Directory</CardTitle>
-            <CardDescription className="text-[10px]">Select a unit to view its quality dossier.</CardDescription>
-            <div className="relative pt-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search units..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-9 text-xs"
-              />
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1 overflow-hidden p-0">
-            {isLoadingManuals || isLoadingUnits ? (
-              <div className="flex h-full items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
-              </div>
-            ) : (
-              <ScrollArea className="h-full">
-                {filteredManuals && filteredManuals.length > 0 ? (
-                  <div className="flex flex-col">
-                    {filteredManuals.map(manual => (
-                      <Button
-                        key={manual.id}
-                        variant="ghost"
-                        onClick={() => setSelectedUnitId(manual.id)}
-                        className={cn(
-                          "w-full justify-start text-left h-auto py-3 px-4 rounded-none border-l-4 transition-all",
-                          selectedUnitId === manual.id 
-                            ? "bg-primary/5 text-primary border-primary font-bold shadow-inner" 
-                            : "border-transparent hover:bg-muted/50"
-                        )}
-                      >
-                        <Building className="mr-3 h-4 w-4 flex-shrink-0 opacity-40" />
-                        <span className="truncate text-xs">{manual.unitName}</span>
-                        {!manual && <Badge variant="outline" className="ml-2 text-[10px] opacity-50">TBA</Badge>}
-                      </Button>
-                    ))}
-                  </div>
-                ) : (
-                    <div className="text-center text-xs text-muted-foreground pt-10 px-4">
-                        {searchTerm ? 'No matches found.' : 'No manuals registered yet.'}
-                    </div>
-                )}
-              </ScrollArea>
-            )}
-          </CardContent>
-        </Card>
 
-        <div className="lg:col-span-3 h-full">
+      <div className="flex flex-col md:flex-row gap-6 lg:h-[calc(100vh-12rem)]">
+        {/* Collapsible Sidebar / Unit Directory */}
+        <div className={cn(
+          "transition-all duration-300 overflow-hidden flex flex-col",
+          isSidebarVisible ? "w-full md:w-1/4 opacity-100" : "w-0 opacity-0 md:-mr-6"
+        )}>
+          <Card className="flex flex-col h-[400px] lg:h-full shadow-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-sm font-bold uppercase tracking-wider">Unit Directory</CardTitle>
+              <CardDescription className="text-[10px]">Select a unit to view its quality dossier.</CardDescription>
+              <div className="relative pt-2">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search units..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 h-9 text-xs"
+                />
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-hidden p-0">
+              {isLoadingManuals || isLoadingUnits ? (
+                <div className="flex h-full items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+                </div>
+              ) : (
+                <ScrollArea className="h-full">
+                  {filteredManuals && filteredManuals.length > 0 ? (
+                    <div className="flex flex-col">
+                      {filteredManuals.map(manual => (
+                        <Button
+                          key={manual.id}
+                          variant="ghost"
+                          onClick={() => setSelectedUnitId(manual.id)}
+                          className={cn(
+                            "w-full justify-start text-left h-auto py-3 px-4 rounded-none border-l-4 transition-all",
+                            selectedUnitId === manual.id 
+                              ? "bg-primary/5 text-primary border-primary font-bold shadow-inner" 
+                              : "border-transparent hover:bg-muted/50"
+                          )}
+                        >
+                          <Building className="mr-3 h-4 w-4 flex-shrink-0 opacity-40" />
+                          <span className="truncate text-xs">{manual.unitName}</span>
+                        </Button>
+                      ))}
+                    </div>
+                  ) : (
+                      <div className="text-center text-xs text-muted-foreground pt-10 px-4">
+                          {searchTerm ? 'No matches found.' : 'No manuals registered yet.'}
+                      </div>
+                  )}
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 min-w-0 flex flex-col relative">
+          {/* Toggle Button for Desktop */}
+          <Button
+            variant="secondary"
+            size="icon"
+            className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden md:flex hover:bg-primary hover:text-white transition-colors"
+            onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+            title={isSidebarVisible ? "Hide Unit List" : "Show Unit List"}
+          >
+            {isSidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </Button>
+
           {selectedUnitId ? (
             <Tabs defaultValue="manual" className="h-full flex flex-col">
                 <TabsList className="bg-muted p-1 border shadow-sm w-fit mb-4">
