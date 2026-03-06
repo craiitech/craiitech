@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -24,7 +25,7 @@ import {
     MessageSquare, 
     ExternalLink, 
     Building2, 
-    History, 
+    History as HistoryIcon, 
     User, 
     ArrowRightCircle, 
     Gavel, 
@@ -100,7 +101,6 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
           updatedAt: serverTimestamp()
       });
 
-      // If approved, migrate forms to the official unitForms collection
       if (newStatus === 'Approved & Registered') {
           request.requestedForms.forEach(f => {
               const formDocRef = doc(collection(firestore, 'unitForms'));
@@ -209,7 +209,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                                     <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2">
                                         <ShieldCheck className="h-4 w-4" /> Scanned Evidence (DRF)
                                     </h4>
-                                    <div className="aspect-video w-full rounded-2xl border bg-muted overflow-hidden shadow-inner relative">
+                                    <div className="aspect-video w-full rounded-2xl border bg-muted overflow-hidden shadow-inner relative opacity-90">
                                         <iframe 
                                             src={getEmbedUrl(request.scannedRegistrationFormLink)} 
                                             className="absolute inset-0 w-full h-full border-none"

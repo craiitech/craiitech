@@ -65,7 +65,6 @@ export default function UnitFormsPage() {
     let filtered = [...allUnits];
     if (!isAdmin && userRole !== 'Auditor') {
         filtered = filtered.filter(u => u.campusIds?.includes(userProfile.campusId));
-        // If Unit Coordinator/ODIMO, restrict strictly to their unit
         if (userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO') {
             filtered = filtered.filter(u => u.id === userProfile.unitId);
         }
@@ -121,7 +120,6 @@ export default function UnitFormsPage() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-12rem)]">
-        {/* Unit Directory Sidebar */}
         <div className={cn(
           "transition-all duration-300 overflow-hidden flex flex-col",
           isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6"
@@ -153,13 +151,13 @@ export default function UnitFormsPage() {
                         variant="ghost"
                         onClick={() => setSelectedUnitId(unit.id)}
                         className={cn(
-                          "w-full justify-start text-left h-auto py-3 px-4 rounded-none border-l-4 transition-all",
+                          "w-full justify-start text-left h-auto py-3 px-4 rounded-none border-l-2 transition-all",
                           selectedUnitId === unit.id 
                             ? "bg-primary/5 text-primary border-primary font-bold shadow-inner" 
                             : "border-transparent hover:bg-muted/50"
                         )}
                       >
-                        <Building className="mr-3 h-4 w-4 flex-shrink-0 opacity-40" />
+                        <Building className="mr-3 h-3 w-3 flex-shrink-0 opacity-40" />
                         <span className="truncate text-xs">{unit.name}</span>
                       </Button>
                     ))}
@@ -170,7 +168,6 @@ export default function UnitFormsPage() {
           </Card>
         </div>
 
-        {/* Workspace Area */}
         <div className="flex-1 min-w-0 flex flex-col relative">
           <Button
             variant="secondary"
@@ -200,7 +197,6 @@ export default function UnitFormsPage() {
                         )}
                     </div>
 
-                    {/* Official Drive Area - Set by Admin */}
                     <Card className="border-primary/20 bg-primary/5 shadow-md overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
                         <div className="flex flex-col md:flex-row items-center justify-between p-6 gap-6">
                             <div className="flex items-start gap-4">

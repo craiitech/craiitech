@@ -87,7 +87,6 @@ export default function EomsPolicyManualPage() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-12rem)]">
-        {/* Collapsible Sidebar */}
         <div className={cn(
           "transition-all duration-300 overflow-hidden flex flex-col",
           isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6"
@@ -130,9 +129,7 @@ export default function EomsPolicyManualPage() {
           </Card>
         </div>
 
-        {/* Main Preview Area */}
-        <div className="flex-1 min-w-0 flex flex-col relative">
-          {/* Desktop Sidebar Toggle */}
+        <div className="flex-1 min-0 flex flex-col relative">
           <Button
             variant="secondary"
             size="icon"
