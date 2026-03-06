@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -39,6 +38,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Unit } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 
 interface FormRegistrationDialogProps {
   isOpen: boolean;
@@ -221,7 +222,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit }: FormRegis
                                             </div>
                                             <div className="md:col-span-5">
                                                 <FormField control={form.control} name={`requestedForms.${index}.name`} render={({ field: inputField }) => (
-                                                    <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Form Title</FormLabel><FormControl><Input {...field} placeholder="Official Title" className="h-9 text-xs" /></FormControl></FormItem>
+                                                    <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Form Title</FormLabel><FormControl><Input {...inputField} placeholder="Official Title" className="h-9 text-xs" /></FormControl></FormItem>
                                                 )} />
                                             </div>
                                             <div className="md:col-span-2">
@@ -249,7 +250,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit }: FormRegis
                                 <Send className="h-8 w-8 text-emerald-600" />
                             </div>
                             <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Verification Readiness</h3>
-                            <p className="text-sm text-muted-foreground max-w-sm mx-auto font-medium">Please review your entries before submitting to the Quality Assurance Office.</p>
+                            <p className="text-sm text-muted-foreground max-sm mx-auto font-medium">Please review your entries before submitting to the Quality Assurance Office.</p>
                         </div>
 
                         <div className="space-y-6">
@@ -270,7 +271,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit }: FormRegis
                                     <Table>
                                         <TableHeader className="bg-slate-50">
                                             <TableRow>
-                                                <TableHead className="text-[9px] font-black uppercase py-2">Code</TableHead>
+                                                <TableHead className="text-[9px] font-black uppercase py-2 pl-6">Code</TableHead>
                                                 <TableHead className="text-[9px] font-black uppercase py-2">Title</TableHead>
                                                 <TableHead className="text-right text-[9px] font-black uppercase py-2 pr-6">Status</TableHead>
                                             </TableRow>
@@ -278,7 +279,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit }: FormRegis
                                         <TableBody>
                                             {fields.map((f, i) => (
                                                 <TableRow key={i}>
-                                                    <TableCell className="font-mono text-[10px] font-bold py-3">{f.code || 'TBA'}</TableCell>
+                                                    <TableCell className="font-mono text-[10px] font-bold py-3 pl-6">{f.code || 'TBA'}</TableCell>
                                                     <TableCell className="text-[11px] font-bold text-slate-700">{f.name || 'Untitled Form'}</TableCell>
                                                     <TableCell className="text-right pr-6"><Badge variant="secondary" className="h-4 text-[8px] font-black uppercase bg-primary/5 text-primary border-none">Ready</Badge></TableCell>
                                                 </TableRow>
