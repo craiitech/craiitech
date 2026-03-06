@@ -34,7 +34,8 @@ import {
     ListTodo,
     Info,
     Zap,
-    Target
+    Target,
+    ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
@@ -134,7 +135,7 @@ export function QaAnalyticsTab() {
     );
   }
 
-  if (!analytics || analytics.totalCars === 0 && analytics.totalAudits === 0) {
+  if (!analytics || (analytics.totalCars === 0 && analytics.totalAudits === 0)) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center border rounded-xl border-dashed bg-muted/5">
         <Activity className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
