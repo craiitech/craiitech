@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -13,6 +12,7 @@ import { Loader2, Search, BookOpen, Building, ListChecks } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UnitFormsTab } from '@/components/manuals/unit-forms-tab';
+import { Badge } from '@/components/ui/badge';
 
 export default function ProcedureManualsPage() {
   const firestore = useFirestore();
@@ -97,6 +97,7 @@ export default function ProcedureManualsPage() {
                       >
                         <Building className="mr-3 h-4 w-4 flex-shrink-0 opacity-40" />
                         <span className="truncate text-xs">{manual.unitName}</span>
+                        {!manual && <Badge variant="outline" className="ml-2 text-[10px] opacity-50">TBA</Badge>}
                       </Button>
                     ))}
                   </div>
