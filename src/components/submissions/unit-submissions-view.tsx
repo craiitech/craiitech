@@ -3,10 +3,24 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import type { Submission, Unit, User as AppUser, Signatories, Campus } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Loader2, Building, Eye, Calendar as CalendarIcon, Filter, FileWarning, CheckCircle2, PieChart as PieIcon, AlertTriangle, Printer, FileText } from 'lucide-react';
+import { 
+    Loader2, 
+    Building, 
+    Eye, 
+    Calendar as CalendarIcon, 
+    Filter, 
+    FileWarning, 
+    CheckCircle2, 
+    PieChart as PieIcon, 
+    AlertTriangle, 
+    Printer, 
+    FileText,
+    Info,
+    ShieldCheck
+} from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -267,8 +281,10 @@ export function UnitSubmissionsView({
                         variant="ghost"
                         onClick={() => handleUnitSelect(unit.id)}
                         className={cn(
-                            "w-full justify-start text-left h-auto py-2.5 px-4 text-xs",
-                            selectedUnitId === unit.id && "bg-primary/10 text-primary font-bold shadow-sm"
+                            "w-full justify-start text-left h-auto py-2.5 px-4 text-xs rounded-none border-l-2",
+                            selectedUnitId === unit.id 
+                                ? "bg-primary/10 text-primary border-primary font-bold shadow-sm" 
+                                : "border-transparent text-muted-foreground"
                         )}
                     >
                         <Building className="mr-3 h-3.5 w-3.5 flex-shrink-0" />
@@ -314,10 +330,10 @@ export function UnitSubmissionsView({
 
                     {/* --- UNIT PERFORMANCE SCORECARD --- */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 border-b pb-6">
-                        <div className="lg:col-span-1 flex flex-col items-center justify-center bg-background rounded-lg border shadow-sm p-4 relative overflow-hidden">
+                        <Card className="lg:col-span-1 flex flex-col items-center justify-between bg-background rounded-lg border shadow-sm p-4 relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-2 opacity-5"><PieIcon className="h-12 w-12" /></div>
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Verified Maturity</span>
-                            <ChartContainer config={{}} className="h-[120px] w-[120px]">
+                            <ChartContainer config={{}} className="h-[140px] w-[140px]">
                                 <ResponsiveContainer>
                                     <PieChart>
                                         <Tooltip content={<ChartTooltipContent hideLabel />} />
@@ -329,6 +345,7 @@ export function UnitSubmissionsView({
                                             outerRadius={50}
                                             paddingAngle={5}
                                             dataKey="value"
+                                            label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
                                         >
                                             {unitData.chartData.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={COLORS[entry.name] || '#cbd5e1'} />
@@ -337,33 +354,49 @@ export function UnitSubmissionsView({
                                     </PieChart>
                                 </ResponsiveContainer>
                             </ChartContainer>
-                            <div className="mt-2 text-center">
-                                <span className="text-2xl font-black tabular-nums tracking-tighter">{unitData.score}%</span>
-                                <p className="text-[9px] font-bold text-green-600 uppercase">Target: 100%</p>
+                            <div className="mt-4 text-center">
+                                <span className="text-3xl font-black tabular-nums tracking-tighter text-primary">{unitData.score}%</span>
+                                <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest mt-1">Institutional Maturity Target: 100%</p>
                             </div>
-                        </div>
+                            <div className="mt-4 pt-4 border-t w-full">
+                                <p className="text-[9px] text-muted-foreground leading-relaxed italic text-center">
+                                    <strong>Card Purpose:</strong> This index represents the overall compliance health of the unit. It is calculated by dividing the number of <strong>Approved</strong> documents by the total required for the academic year, excluding non-applicable items.
+                                </p>
+                            </div>
+                        </Card>
 
-                        <div className="lg:col-span-2 grid grid-cols-2 gap-4">
-                            <Card className="shadow-none border-dashed bg-muted/20">
+                        <div className="lg:col-span-2 flex flex-col gap-4">
+                            <Card className="shadow-none border-dashed bg-muted/20 flex flex-col h-full">
                                 <CardHeader className="p-4 pb-2">
-                                    <CardDescription className="text-[9px] font-black uppercase tracking-widest">Compliance Status</CardDescription>
-                                    <CardTitle className="text-xl font-black text-primary">
-                                        {unitData.approved} / {unitData.totalPossible}
+                                    <div className="flex items-center gap-2">
+                                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                                        <CardDescription className="text-[9px] font-black uppercase tracking-widest text-primary/70">Verified Documentation Status</CardDescription>
+                                    </div>
+                                    <CardTitle className="text-2xl font-black text-primary pt-1">
+                                        {unitData.approved} / {unitData.totalPossible} Documents
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="p-4 pt-0">
-                                    <p className="text-[10px] text-muted-foreground leading-tight">Total verified and <strong>Approved</strong> documents for {selectedYear}.</p>
+                                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                                        <strong>Card Purpose:</strong> Tracks the count of EOMS reports that have undergone formal verification and received institutional approval. Only these documents contribute to the unit's final quality maturity score.
+                                    </p>
                                 </CardContent>
                             </Card>
-                            <Card className={cn("shadow-none border-dashed", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200")}>
+                            
+                            <Card className={cn("shadow-none border-dashed flex flex-col h-full", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200")}>
                                 <CardHeader className="p-4 pb-2">
-                                    <CardDescription className={cn("text-[9px] font-black uppercase tracking-widest", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-700" : "text-green-700")}>Action Items</CardDescription>
-                                    <CardTitle className={cn("text-xl font-black", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-600" : "text-green-600")}>
-                                        {unitData.missingFirst.length + unitData.missingFinal.length} Required
+                                    <div className="flex items-center gap-2">
+                                        {unitData.missingFirst.length + unitData.missingFinal.length > 0 ? <AlertTriangle className="h-4 w-4 text-red-600" /> : <ShieldCheck className="h-4 w-4 text-green-600" />}
+                                        <CardDescription className={cn("text-[9px] font-black uppercase tracking-widest", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-700" : "text-green-700")}>Outstanding Actions Required</CardDescription>
+                                    </div>
+                                    <CardTitle className={cn("text-2xl font-black pt-1", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-600" : "text-green-600")}>
+                                        {unitData.missingFirst.length + unitData.missingFinal.length} Gaps Remaining
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="p-4 pt-0">
-                                    <p className="text-[10px] text-muted-foreground leading-tight">Documents awaiting upload or final approval.</p>
+                                    <p className={cn("text-[10px] leading-relaxed", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-800/70" : "text-green-800/70")}>
+                                        <strong>Card Purpose:</strong> Identifies documentation gaps that prevent 100% compliance. This includes reports that are either missing from the registry or were rejected and require corrective resubmission.
+                                    </p>
                                 </CardContent>
                             </Card>
                         </div>
@@ -498,6 +531,7 @@ function SubmissionTableForCycle({
                              <Button 
                                 variant="default" 
                                 size="sm" 
+                                opacity-0
                                 onClick={() => onEyeClick(sub.id)} 
                                 className="h-7 text-[9px] font-bold bg-primary shadow-sm"
                             >
