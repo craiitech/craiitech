@@ -21,7 +21,8 @@ service cloud.firestore {
 
     /**
      * Role Hierarchy Checks
-     * Update: Only Campus and Admin roles are supervisors for approval purposes.
+     * Campus and Admin roles are supervisors for approval purposes.
+     * Unit ODIMO is restricted to unit-level submission/view only.
      */
     function isAdmin() {
       return isSignedIn() && (
@@ -70,8 +71,13 @@ service cloud.firestore {
       allow write: if isAdmin(); 
     }
     match /unitFormRequests/{id} { 
-      allow read: if isSignedIn(); 
-      allow write: if isSignedIn(); 
+      // Allow read/list if user is Admin, Auditor, or the request belongs to their unit
+      allow read: if isSignedIn() && (isAdmin() || isSupervisor() || isAuditor() || profile().unitId == resource.data.unitId);
+      // Allow creation by any authenticated user (Units initiate requests)
+      allow create: if isSignedIn(); 
+      // Allow update by Admin (for review) or Unit (for corrections)
+      allow update: if isSignedIn() && (isAdmin() || profile().unitId == resource.data.unitId);
+      allow delete: if isAdmin();
     }
 
     // --------------------------------------------------------------------------
