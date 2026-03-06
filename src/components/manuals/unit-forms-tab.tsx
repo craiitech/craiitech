@@ -1,3 +1,4 @@
+'use server';
 
 'use client';
 
@@ -22,7 +23,11 @@ import {
     AlertCircle,
     Info,
     LayoutList,
-    Download
+    Download,
+    Building,
+    Activity,
+    ChevronRight,
+    Target
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from './form-registration-dialog';
