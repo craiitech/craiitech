@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import type { Unit, UnitForm, UnitFormRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -28,7 +28,8 @@ import {
     ChevronLeft, 
     Link as LinkIcon,
     FolderKanban,
-    Save
+    Save,
+    Layers
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
@@ -68,6 +69,7 @@ export default function UnitFormsPage() {
   const sidebarUnits = useMemo(() => {
     if (!allUnits || !userProfile || isUserLoading) return [];
     
+    // Non-Academic units are listed individually
     let filtered = allUnits.filter(u => u.category !== 'Academic');
     
     // Auth filter for non-admins
@@ -84,10 +86,14 @@ export default function UnitFormsPage() {
 
     const items = filtered.map(u => ({ id: u.id, name: u.name, category: u.category, isShared: false }));
 
-    // Add Shared Academic Entry if there are academic units
+    // Add Shared Academic Entry if there are academic units in system or relevant scope
     const hasAcademic = allUnits.some(u => u.category === 'Academic');
     if (hasAcademic) {
-        items.unshift({ id: SHARED_ACADEMIC_ID, name: 'Academic Units (Shared Registry)', category: 'Academic', isShared: true });
+        // If user is academic, ensure they can see the shared entry
+        const myUnit = allUnits.find(u => u.id === userProfile.unitId);
+        if (isAdmin || userRole === 'Auditor' || myUnit?.category === 'Academic') {
+            items.unshift({ id: SHARED_ACADEMIC_ID, name: 'Academic Units (Shared Registry)', category: 'Academic', isShared: true });
+        }
     }
 
     return items.sort((a, b) => a.isShared ? -1 : b.isShared ? 1 : a.name.localeCompare(b.name));
@@ -111,7 +117,6 @@ export default function UnitFormsPage() {
       return allUnits?.find(u => u.id === selectedUnitId);
   }, [allUnits, selectedUnitId]);
 
-  // For Shared Academic, we need to find the drive link from a specific settings doc or one of the units
   const academicSharedRef = useMemoFirebase(() => (firestore ? doc(firestore, 'campusSettings', 'academic-shared') : null), [firestore]);
   const { data: sharedSettings } = useDoc<any>(academicSharedRef);
 

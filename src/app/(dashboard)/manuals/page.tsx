@@ -123,6 +123,7 @@ export default function ProcedureManualsPage() {
             size="icon"
             className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden lg:flex hover:bg-primary hover:text-white transition-colors"
             onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+            title={isSidebarVisible ? "Hide Index" : "Show Index"}
           >
             {isSidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </Button>
