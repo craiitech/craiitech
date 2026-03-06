@@ -9,9 +9,9 @@ import {
     Dialog, 
     DialogContent, 
     DialogDescription, 
+    DialogFooter, 
     DialogHeader, 
-    DialogTitle, 
-    DialogFooter 
+    DialogTitle 
 } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
