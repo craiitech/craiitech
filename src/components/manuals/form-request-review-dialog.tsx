@@ -43,6 +43,7 @@ import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
 
 interface FormRequestReviewDialogProps {
   requestId: string;
@@ -188,7 +189,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                                                         <TableCell className="text-xs font-bold">{f.name}</TableCell>
                                                         <TableCell><Badge variant="outline" className="h-4 text-[9px] font-bold">Rev {f.revision}</Badge></TableCell>
                                                         <TableCell className="text-right pr-6">
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" asChild>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" asChild>
                                                                 <a href={f.link} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a>
                                                             </Button>
                                                         </TableCell>
