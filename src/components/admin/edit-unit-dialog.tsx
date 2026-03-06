@@ -39,7 +39,7 @@ import { doc, updateDoc, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Unit, Campus, User, UnitCategory } from '@/lib/types';
-import { Loader2, Check, ChevronsUpDown } from 'lucide-react';
+import { Loader2, Check, ChevronsUpDown, Link as LinkIcon } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
@@ -59,6 +59,7 @@ const editUnitSchema = z.object({
   category: z.enum(['Academic', 'Administrative', 'Research', 'Support']),
   campusIds: z.array(z.string()).optional(),
   vicePresidentId: z.string().optional(),
+  formsDriveLink: z.string().url('Invalid Google Drive URL').optional().or(z.literal('')),
 });
 
 export function EditUnitDialog({
@@ -88,6 +89,7 @@ export function EditUnitDialog({
       category: 'Administrative',
       campusIds: [],
       vicePresidentId: '',
+      formsDriveLink: '',
     },
   });
 
@@ -98,6 +100,7 @@ export function EditUnitDialog({
         category: unit.category || 'Administrative',
         campusIds: unit.campusIds || [],
         vicePresidentId: unit.vicePresidentId || '',
+        formsDriveLink: unit.formsDriveLink || '',
       });
     }
   }, [unit, form]);
@@ -114,6 +117,7 @@ export function EditUnitDialog({
         category: values.category,
         campusIds: values.campusIds || [],
         vicePresidentId: values.vicePresidentId === 'none' ? '' : values.vicePresidentId || '',
+        formsDriveLink: values.formsDriveLink || '',
     };
 
     updateDoc(unitRef, updateData)
@@ -278,6 +282,24 @@ export function EditUnitDialog({
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="formsDriveLink"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-primary font-bold flex items-center gap-2">
+                    <LinkIcon className="h-4 w-4" />
+                    Official Forms Drive (Admin Set)
+                  </FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="https://drive.google.com/..." className="bg-primary/5" />
+                  </FormControl>
+                  <FormDescription className="text-[10px]">The master Google Drive area where this unit's official quality forms are maintained.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

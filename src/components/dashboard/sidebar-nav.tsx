@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -5,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   useUser,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History, ShieldCheck, BookOpen, BookMarked, ClipboardCheck, GraduationCap, MonitorCheck, ClipboardList, FolderKanban, Megaphone } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardCheck, GraduationCap, MonitorCheck, ClipboardList, FolderKanban, Megaphone, ListChecks } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
 
@@ -87,6 +88,12 @@ export function SidebarNav({
       icon: <BookMarked />,
     },
     {
+      href: '/unit-forms',
+      label: 'Unit Forms & Records',
+      active: pathname.startsWith('/unit-forms'),
+      icon: <ListChecks />,
+    },
+    {
       href: '/risk-register',
       label: 'Risk & Opportunity Registry',
       active: pathname.startsWith('/risk-register'),
@@ -124,7 +131,7 @@ export function SidebarNav({
       label: 'System Audit Log',
       active: pathname.startsWith('/audit-log'),
       roles: ['Admin'],
-      icon: <History />,
+      icon: <HistoryIcon />,
     },
   ];
 

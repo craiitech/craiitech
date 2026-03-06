@@ -507,10 +507,10 @@ export function CampusSubmissionsView({
                         </div>
 
                         {/* --- UNIT PERFORMANCE SCORECARD --- */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 border-b pb-6">
                             <Card className="lg:col-span-1 flex flex-col items-center justify-between bg-background rounded-lg border shadow-sm p-4 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-2 opacity-5"><PieIcon className="h-12 w-12" /></div>
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Unit Maturity Index</span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Verified Maturity</span>
                                 <ChartContainer config={{}} className="h-[140px] w-[140px]">
                                     <ResponsiveContainer>
                                         <PieChart>
@@ -534,7 +534,7 @@ export function CampusSubmissionsView({
                                 </ChartContainer>
                                 <div className="mt-4 text-center">
                                     <span className="text-3xl font-black tabular-nums tracking-tighter text-primary">{unitData.score}%</span>
-                                    <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest mt-1">Verified Maturity Target: 100%</p>
+                                    <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest mt-1">Institutional Maturity Target: 100%</p>
                                 </div>
                                 <div className="mt-4 pt-4 border-t w-full">
                                     <p className="text-[9px] text-muted-foreground leading-relaxed italic text-center">

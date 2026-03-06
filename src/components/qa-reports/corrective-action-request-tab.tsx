@@ -771,7 +771,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                             onClick={() => appendEvidence({ title: '', url: '' })}
                                             className="h-7 text-[9px] font-black uppercase bg-white shadow-sm"
                                         >
-                                            <PlusCircle className="h-3 w-3 mr-1.5" /> Attach GDrive Evidence
+                                            <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Attach GDrive Evidence
                                         </Button>
                                     </div>
                                     <div className="space-y-3">

@@ -103,6 +103,7 @@ export type Unit = {
     category?: UnitCategory;
     vicePresidentId?: string;
     campusIds?: string[];
+    formsDriveLink?: string; // Admin-set Google Drive area for registered forms
 }
 
 export type CampusSetting = {
@@ -183,6 +184,7 @@ export type AuditSchedule = {
     summaryCompliance?: string;
     summaryOFI?: string;
     summaryNC?: string;
+    officerInCharge?: string;
 };
 
 export type AuditFinding = {
