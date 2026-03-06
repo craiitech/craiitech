@@ -133,6 +133,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+        <DialogTitle className="sr-only">Form Request Review</DialogTitle>
         {isLoading ? (
             <div className="flex h-full items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></div>
         ) : request ? (
@@ -144,7 +145,7 @@ export function FormRequestReviewDialog({ requestId, isOpen, onOpenChange }: For
                                 <Gavel className="h-5 w-5" />
                                 <span className="text-[10px] font-black uppercase tracking-[0.2em]">Institutional Oversight Panel</span>
                             </div>
-                            <DialogTitle className="text-xl font-bold uppercase tracking-tight">Reviewing Request: {request.id.substring(0, 8).toUpperCase()}</DialogTitle>
+                            <h2 className="text-xl font-bold uppercase tracking-tight">Reviewing Request: {request.id.substring(0, 8).toUpperCase()}</h2>
                         </div>
                         <Badge className="h-7 px-4 font-black uppercase text-[10px] tracking-widest bg-primary text-white border-none shadow-sm">{request.status}</Badge>
                     </div>

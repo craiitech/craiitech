@@ -345,663 +345,161 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
-            <div className="absolute top-0 right-0 p-2 opacity-5"><ClipboardCheck className="h-12 w-12" /></div>
-            <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Contextual CARs</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1">
-                <div className="text-3xl font-black text-primary tabular-nums">{stats.total}</div>
-                <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">Requests in your scope</p>
-            </CardContent>
-            <div className="p-2 bg-muted/10 border-t mt-auto">
-                <p className="text-[8px] text-muted-foreground italic leading-tight">
-                    <strong>Guide:</strong> Measures the total identifying corrective actions issued to units within your authorized oversight.
-                </p>
-            </div>
-        </Card>
-        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
-            <div className="absolute top-0 right-0 p-2 opacity-5"><CheckCircle2 className="h-12 w-12" /></div>
-            <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Resolution Rate</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1">
-                <div className="text-3xl font-black text-emerald-600 tabular-nums">{stats.resolutionRate}%</div>
-                <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tighter">Correction Effectiveness Rate</p>
-            </CardContent>
-            <div className="p-2 bg-emerald-100/20 border-t mt-auto">
-                <p className="text-[8px] text-emerald-800/60 italic leading-tight">
-                    <strong>Guide:</strong> Indicates the percentage of issued CARs that have reached verified "Closed" status.
-                </p>
-            </div>
-        </Card>
-        <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden flex flex-col">
-            <div className="absolute top-0 right-0 p-2 opacity-5"><TrendingUp className="h-12 w-12" /></div>
-            <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-amber-700">Open Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1">
-                <div className="text-3xl font-black text-amber-600 tabular-nums">{stats.open}</div>
-                <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tighter">Awaiting Implementation</p>
-            </CardContent>
-            <div className="p-2 bg-amber-100/20 border-t mt-auto">
-                <p className="text-[8px] text-muted-foreground italic leading-tight">
-                    <strong>Guide:</strong> Identifies requests that are currently active and require follow-up monitoring.
-                </p>
-            </div>
-        </Card>
-        <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden flex flex-col">
-            <div className="absolute top-0 right-0 p-2 opacity-5"><AlertTriangle className="h-12 w-12" /></div>
-            <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-rose-700">Non-Conformities</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1">
-                <div className="text-3xl font-black text-rose-600 tabular-nums">{filteredCars.filter(c => c.natureOfFinding === 'NC').length}</div>
-                <p className="text-[9px] font-bold text-rose-600/70 mt-1 uppercase tracking-tighter">Critical gaps found</p>
-            </CardContent>
-            <div className="p-2 bg-rose-100/20 border-t mt-auto">
-                <p className="text-[8px] text-rose-800/60 italic leading-tight">
-                    <strong>Guide:</strong> Count of severe breaches of ISO standard that must be prioritized for corrective action.
-                </p>
-            </div>
-        </Card>
-      </div>
-
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="flex-1 flex flex-col md:flex-row gap-4 items-end">
-            <div className="w-full md:w-72 space-y-1.5">
-                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                    <Search className="h-2.5 w-2.5" /> Search My Scope
-                </label>
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Search CAR No., Unit, or Procedure..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9 h-9 text-xs"
-                    />
-                </div>
-            </div>
-            <div className="w-full md:w-40 space-y-1.5">
-                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                    <Filter className="h-2.5 w-2.5" /> Request Year
-                </label>
-                <Select value={yearFilter} onValueChange={setYearFilter}>
-                    <SelectTrigger className="h-9 text-xs bg-white">
-                        <SelectValue placeholder="All Years" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Years</SelectItem>
-                        {years.map(y => <SelectItem key={y} value={y}>AY {y}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </div>
-        </div>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-black uppercase tracking-tight">Corrective Action Registry</h3>
         {canManage && (
-          <Button onClick={() => { setEditingCar(null); form.reset({ source: 'Audit Finding', natureOfFinding: 'NC', status: 'Open', requestDate: format(new Date(), 'yyyy-MM-dd'), actionSteps: [], evidences: [], verificationRecords: [] }); setIsDialogOpen(true); }} size="sm" className="h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest">
+          <Button onClick={() => setIsDialogOpen(true)} size="sm" className="shadow-lg shadow-primary/20">
             <PlusCircle className="mr-2 h-4 w-4" /> Issue New CAR
           </Button>
         )}
       </div>
 
-      <Card className="shadow-md border-primary/10 overflow-hidden">
-        <CardHeader className="bg-muted/5 border-b py-3">
-            <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" />
-                <CardTitle className="text-xs font-black uppercase tracking-tight">Corrective Action Registry</CardTitle>
-            </div>
-        </CardHeader>
+      <Card className="shadow-sm border-primary/10 overflow-hidden">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
           ) : (
-            <div className="overflow-x-auto">
-                <Table>
-                <TableHeader className="bg-muted/50">
-                    <TableRow>
-                    <TableHead className="font-bold text-[10px] uppercase pl-6">CAR No. & Unit</TableHead>
-                    <TableHead className="font-bold text-[10px] uppercase">Procedure / Findings</TableHead>
-                    <TableHead className="font-bold text-[10px] uppercase">Oversight</TableHead>
-                    <TableHead className="font-bold text-[10px] uppercase text-center">Status</TableHead>
-                    <TableHead className="text-right font-bold text-[10px] uppercase pr-6">Action</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {filteredCars.map((car) => (
-                    <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
-                        <TableCell className="pl-6">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow>
+                  <TableHead className="font-bold text-[10px] uppercase pl-6">CAR No. & Unit</TableHead>
+                  <TableHead className="font-bold text-[10px] uppercase">Procedure / Findings</TableHead>
+                  <TableHead className="font-bold text-[10px] uppercase">Deadline</TableHead>
+                  <TableHead className="font-bold text-[10px] uppercase text-center">Status</TableHead>
+                  <TableHead className="text-right font-bold text-[10px] uppercase pr-6">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCars.map((car) => (
+                  <TableRow key={car.id} className="hover:bg-muted/20 transition-colors">
+                    <TableCell className="pl-6">
+                      <div className="flex flex-col">
+                        <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                        <span className="text-[10px] font-bold text-slate-700 mt-0.5">{unitMap.get(car.unitId) || '...'}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="max-w-xs">
                         <div className="flex flex-col">
-                            <span className="font-black text-xs text-primary">{car.carNumber}</span>
-                            <span className="text-[10px] font-bold text-slate-700 mt-0.5 truncate max-w-[150px]">{unitMap.get(car.unitId) || '...'}</span>
-                            <span className="text-[9px] text-muted-foreground uppercase">{campusMap.get(car.campusId) || '...'}</span>
+                            <span className="text-xs font-bold truncate">{car.procedureTitle}</span>
+                            <span className="text-[10px] text-muted-foreground line-clamp-1 italic">"{car.descriptionOfNonconformance}"</span>
                         </div>
-                        </TableCell>
-                        <TableCell className="max-w-xs">
-                            <div className="flex flex-col">
-                                <span className="text-xs font-bold truncate">{car.procedureTitle}</span>
-                                <span className="text-[10px] text-muted-foreground line-clamp-1 italic">"{car.descriptionOfNonconformance}"</span>
-                            </div>
-                        </TableCell>
-                        <TableCell>
-                            <div className="flex flex-col gap-1">
-                                <Badge variant="outline" className="text-[10px] border-primary/20 text-primary font-bold w-fit">{car.concerningClause}</Badge>
-                                <span className="text-[9px] font-bold text-slate-500 uppercase truncate max-w-[120px]">{car.concerningTopManagementName || 'Not Assigned'}</span>
-                            </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                        <Badge variant={car.status === 'Open' ? 'destructive' : car.status === 'In Progress' ? 'secondary' : 'default'} className="text-[9px] font-black uppercase shadow-sm border-none">
-                            {car.status}
-                        </Badge>
-                        </TableCell>
-                        <TableCell className="text-right pr-6 whitespace-nowrap">
-                            <div className="flex items-center justify-end gap-2">
-                                <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={() => handlePrint(car)} 
-                                    className="h-8 text-[10px] font-bold uppercase tracking-widest gap-1.5"
-                                >
-                                    <Printer className="h-3.5 w-3.5" /> PRINT
-                                </Button>
-                                <Button variant="default" size="sm" onClick={() => handleEdit(car)} className="h-8 text-[10px] font-bold uppercase tracking-widest bg-primary shadow-sm">
-                                    {canManage ? 'MANAGE' : 'VIEW'}
-                                </Button>
-                            </div>
-                        </TableCell>
-                    </TableRow>
-                    ))}
-                    {!isLoading && filteredCars.length === 0 && (
-                    <TableRow>
-                        <TableCell colSpan={5} className="h-48 text-center text-muted-foreground">
-                            <div className="flex flex-col items-center gap-2 opacity-20">
-                                <ClipboardCheck className="h-10 w-10" />
-                                <p className="text-xs font-bold uppercase tracking-widest">No authorized CAR records found</p>
-                            </div>
-                        </TableCell>
-                    </TableRow>
-                    )}
-                </TableBody>
-                </Table>
-            </div>
+                    </TableCell>
+                    <TableCell className="text-[10px] font-black uppercase text-slate-600">
+                        {safeFormatDate(car.timeLimitForReply)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={car.status === 'Open' ? 'destructive' : car.status === 'In Progress' ? 'secondary' : 'default'} className="text-[9px] font-black uppercase">
+                        {car.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right pr-6 space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[10px] font-bold">
+                        PRINT
+                      </Button>
+                      <Button variant="default" size="sm" onClick={() => handleEdit(car)} className="h-8 text-[10px] font-bold">
+                        {canManage ? 'MANAGE' : 'VIEW'}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
-        <div className="p-4 bg-muted/10 border-t">
-            <div className="flex items-start gap-3">
-                <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <p className="text-[9px] text-muted-foreground leading-relaxed font-medium italic">
-                    <strong>Guide:</strong> The registry table above provides a centralized view of institutional non-conformities. It facilitates tracking the accountability chain from initiators to unit heads and top management, ensuring that every finding has a corresponding correction strategy.
-                </p>
-            </div>
-        </div>
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
-            <DialogTitle className="flex items-center gap-2 text-primary mb-1">
-                <FileText className="h-5 w-5" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Form QAO-00-018</span>
-            </DialogTitle>
-            <DialogDescription>Manage institutional non-conformance and correction tracking.</DialogDescription>
-            {(watchCarNumber || watchNcReportNumber) && (
-                <div className="flex items-center gap-3 mt-2">
-                    {watchCarNumber && (
-                        <Badge variant="outline" className="font-mono text-primary border-primary/30 h-6 px-2 text-[10px] font-black uppercase bg-primary/5">
-                            CAR NO: {watchCarNumber}
-                        </Badge>
-                    )}
-                    {watchNcReportNumber && (
-                        <Badge variant="outline" className="font-mono text-muted-foreground border-slate-300 h-6 px-2 text-[10px] font-black uppercase bg-white">
-                            NC NO: {watchNcReportNumber}
-                        </Badge>
-                    )}
-                </div>
-            )}
+            <DialogTitle>Issue Corrective Action Request (CAR)</DialogTitle>
+            <DialogDescription>Capture non-conformance details and monitor the correction cycle.</DialogDescription>
           </DialogHeader>
           
           <ScrollArea className="flex-1 bg-white">
             <div className="p-8">
                 <Form {...form}>
                     <form id="car-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
-                        <Tabs defaultValue="identification" className="w-full">
-                            <TabsList className="grid w-full grid-cols-5 h-12 bg-slate-100 p-1 mb-8">
-                                <TabsTrigger value="identification" className="text-[10px] font-bold uppercase"><Info className="h-3.5 w-3.5 mr-2" /> Identification</TabsTrigger>
-                                <TabsTrigger value="nonconformance" className="text-[10px] font-bold uppercase"><ShieldCheck className="h-3.5 w-3.5 mr-2" /> Statement</TabsTrigger>
-                                <TabsTrigger value="investigation" className="text-[10px] font-bold uppercase"><HistoryIcon className="h-3.5 w-3.5 mr-2" /> Action Registry</TabsTrigger>
-                                <TabsTrigger value="evidences" className="text-[10px] font-bold uppercase"><LinkIcon className="h-3.5 w-3.5 mr-2" /> Evidences</TabsTrigger>
-                                <TabsTrigger value="verification" className="text-[10px] font-bold uppercase"><ClipboardCheck className="h-3.5 w-3.5 mr-2" /> Verification</TabsTrigger>
-                            </TabsList>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <FormField control={form.control} name="carNumber" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">CAR Number</FormLabel><FormControl><Input {...field} placeholder="e.g. 2025-001" className="bg-slate-50" /></FormControl></FormItem>
+                            )} />
+                            <FormField control={form.control} name="ncReportNumber" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">NC Report No.</FormLabel><FormControl><Input {...field} placeholder="e.g. 2025-NC-01" className="bg-slate-50" /></FormControl></FormItem>
+                            )} />
+                        </div>
 
-                            <TabsContent value="identification" className="space-y-6 animate-in fade-in duration-300">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <FormField control={form.control} name="carNumber" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">CAR Number</FormLabel><FormControl><Input {...field} placeholder="e.g. 2021-124" className="bg-slate-50 font-black text-primary" disabled={!canManage} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="ncReportNumber" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">NC Report No.</FormLabel><FormControl><Input {...field} placeholder="e.g. 2021-179" className="bg-slate-50" disabled={!canManage} /></FormControl></FormItem>
-                                    )} />
-                                </div>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
-                                    <FormField control={form.control} name="concerningTopManagementName" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-bold uppercase text-primary flex items-center gap-2">
-                                                <UserCheck className="h-3.5 w-3.5" /> Concerning (Top Management / VP)
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Input {...field} placeholder="Enter name of VP or Director" className="bg-primary/5 border-primary/20 h-10 font-bold" disabled={!canManage} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="timeLimitForReply" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
-                                                <Calendar className="h-3.5 w-3.5" /> Time Limit for Reply (Deadline)
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Input type="date" {...field} className="bg-slate-50 h-10" disabled={!canManage} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <FormField control={form.control} name="source" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Source</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl>
+                                        <SelectContent><SelectItem value="Audit Finding">Audit Finding</SelectItem><SelectItem value="Legal Non-compliance">Legal Non-compliance</SelectItem><SelectItem value="Non-conforming Service">Non-conforming Service</SelectItem><SelectItem value="Others">Others</SelectItem></SelectContent>
+                                    </Select>
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="initiator" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Initiator</FormLabel><FormControl><Input {...field} className="bg-slate-50" /></FormControl></FormItem>
+                            )} />
+                            <FormField control={form.control} name="natureOfFinding" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Nature of Finding</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl>
+                                        <SelectContent><SelectItem value="NC">NC</SelectItem><SelectItem value="OFI">OFI</SelectItem></SelectContent>
+                                    </Select>
+                                </FormItem>
+                            )} />
+                        </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
-                                    <FormField control={form.control} name="source" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Source of Finding</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value} disabled={!canManage}>
-                                                <FormControl><SelectTrigger className="bg-slate-50 font-medium"><SelectValue /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="Audit Finding">Audit Finding</SelectItem>
-                                                    <SelectItem value="Legal Non-compliance">Legal Non-compliance</SelectItem>
-                                                    <SelectItem value="Non-conforming Service">Non-conforming Service</SelectItem>
-                                                    <SelectItem value="Others">Others</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="procedureTitle" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Title of Procedure</FormLabel><FormControl><Input {...field} placeholder="e.g. Conduct of BOR Meeting" className="bg-slate-50 font-medium" disabled={!canManage} /></FormControl></FormItem>
-                                    )} />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <FormField control={form.control} name="initiator" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Initiator</FormLabel><FormControl><Input {...field} className="bg-slate-50" disabled={!canManage} /></FormControl></FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="natureOfFinding" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Nature of Finding</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value} disabled={!canManage}>
-                                                <FormControl><SelectTrigger className="bg-slate-50 font-medium"><SelectValue /></SelectTrigger></FormControl>
-                                                <SelectContent><SelectItem value="NC">Non-Conformance (NC)</SelectItem><SelectItem value="OFI">Opportunity for Improvement (OFI)</SelectItem></SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="concerningClause" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Concerning ISO Clause</FormLabel><FormControl><Input {...field} placeholder="e.g. 7.5.3.1" className="bg-slate-50" disabled={!canManage} /></FormControl></FormItem>
-                                    )} />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
-                                    <FormField control={form.control} name="campusId" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Responsible Campus</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value} disabled={!canManage}>
-                                                <FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
-                                                <SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="unitId" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Responsible Unit</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value} disabled={!canManage}>
-                                                <FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl>
-                                                <SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )} />
-                                </div>
-                            </TabsContent>
+                        <FormField control={form.control} name="descriptionOfNonconformance" render={({ field }) => (
+                            <FormItem><FormLabel className="text-sm font-black text-slate-800">Statement of Non-Conformance</FormLabel><FormControl><Textarea {...field} rows={4} className="bg-slate-50 italic" /></FormControl></FormItem>
+                        )} />
 
-                            <TabsContent value="nonconformance" className="space-y-6 animate-in fade-in duration-300">
-                                <FormField control={form.control} name="descriptionOfNonconformance" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-sm font-black text-slate-800">Statement of Non-Conformance</FormLabel><FormControl><Textarea {...field} rows={6} className="bg-slate-50 text-xs italic font-medium leading-relaxed" disabled={!canManage} /></FormControl><FormMessage /></FormItem>
-                                )} />
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-                                    <FormField control={form.control} name="requestDate" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold text-muted-foreground uppercase">Request Date</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" disabled={!canManage} /></FormControl></FormItem>
+                        <div className="pt-6 border-t space-y-4">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Corrective Action Registry</h4>
+                            {actionFields.map((field, index) => (
+                                <div key={field.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-lg border bg-muted/5 items-end relative group">
+                                    <FormField control={form.control} name={`actionSteps.${index}.type`} render={({ field: inputField }) => (
+                                        <FormItem><FormLabel className="text-[9px] uppercase font-bold">Action Type</FormLabel><Select onValueChange={inputField.onChange} value={inputField.value}><FormControl><SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Immediate Correction">Immediate Correction</SelectItem><SelectItem value="Long-term Corrective Action">Long-term Action</SelectItem></SelectContent></Select></FormItem>
                                     )} />
-                                    <FormField control={form.control} name="preparedBy" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold text-muted-foreground uppercase">Prepared By</FormLabel><FormControl><Input {...field} className="bg-slate-50" disabled={!canManage} /></FormControl></FormItem>
+                                    <FormField control={form.control} name={`actionSteps.${index}.description`} render={({ field: inputField }) => (
+                                        <FormItem className="md:col-span-2"><FormLabel className="text-[9px] uppercase font-bold">Action Taken</FormLabel><FormControl><Input {...inputField} className="h-8 text-[10px]" /></FormControl></FormItem>
                                     )} />
-                                    <FormField control={form.control} name="approvedBy" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold text-muted-foreground uppercase">Approved By (QA Head)</FormLabel><FormControl><Input {...field} className="bg-slate-50" disabled={!canManage} /></FormControl></FormItem>
+                                    <FormField control={form.control} name={`actionSteps.${index}.completionDate`} render={({ field: inputField }) => (
+                                        <FormItem><FormLabel className="text-[9px] uppercase font-bold">Target Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-[10px]" /></FormControl></FormItem>
                                     )} />
+                                    {canManage && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)}><Trash2 className="h-3.5 w-3.5" /></Button>}
                                 </div>
-                            </TabsContent>
+                            ))}
+                            {canManage && <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending' })} className="h-8 font-black text-[10px] uppercase"><PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Step</Button>}
+                        </div>
 
-                            <TabsContent value="investigation" className="space-y-8 animate-in fade-in duration-300">
-                                <FormField control={form.control} name="rootCauseAnalysis" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-sm font-black text-slate-800">Root Cause Analysis (Investigate cause of Non-Conformity)</FormLabel><FormControl><Textarea {...field} rows={4} className="bg-primary/5 border-primary/20" /></FormControl></FormItem>
-                                )} />
-                                
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between border-b pb-2">
-                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Proposed Action Strategy Registry</h4>
-                                        <Button 
-                                            type="button" 
-                                            size="sm" 
-                                            variant="outline"
-                                            onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending' })}
-                                            className="h-7 text-[9px] font-black uppercase bg-white shadow-sm"
-                                        >
-                                            <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Action Step
-                                        </Button>
-                                    </div>
-                                    <div className="space-y-3">
-                                        {actionFields.map((field, index) => (
-                                            <Card key={field.id} className="relative overflow-hidden group">
-                                                <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                                <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                                                    <FormField control={form.control} name={`actionSteps.${index}.type`} render={({ field: inputField }) => (
-                                                        <FormItem className="md:col-span-1">
-                                                            <FormLabel className="text-[9px] uppercase font-bold">Action Type</FormLabel>
-                                                            <Select onValueChange={inputField.onChange} value={inputField.value}>
-                                                                <FormControl><SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger></FormControl>
-                                                                <SelectContent>
-                                                                    <SelectItem value="Immediate Correction">Immediate Correction</SelectItem>
-                                                                    <SelectItem value="Long-term Corrective Action">Long-term Action</SelectItem>
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </FormItem>
-                                                    )} />
-                                                    <FormField control={form.control} name={`actionSteps.${index}.description`} render={({ field: inputField }) => (
-                                                        <FormItem className="md:col-span-1">
-                                                            <FormLabel className="text-[9px] uppercase font-bold">Action Description</FormLabel>
-                                                            <FormControl><Input {...inputField} className="h-8 text-[10px]" /></FormControl>
-                                                        </FormItem>
-                                                    )} />
-                                                    <FormField control={form.control} name={`actionSteps.${index}.completionDate`} render={({ field: inputField }) => (
-                                                        <FormItem className="md:col-span-1">
-                                                            <FormLabel className="text-[9px] uppercase font-bold">Target Completion</FormLabel>
-                                                            <FormControl><Input type="date" {...inputField} className="h-8 text-[10px]" /></FormControl>
-                                                        </FormItem>
-                                                    )} />
-                                                    <FormField control={form.control} name={`actionSteps.${index}.status`} render={({ field: inputField }) => (
-                                                        <FormItem className="md:col-span-1">
-                                                            <FormLabel className="text-[9px] uppercase font-bold">Execution Status</FormLabel>
-                                                            <Select onValueChange={inputField.onChange} value={inputField.value}>
-                                                                <FormControl><SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger></FormControl>
-                                                                <SelectContent>
-                                                                    <SelectItem value="Pending">Pending</SelectItem>
-                                                                    <SelectItem value="Completed">Completed</SelectItem>
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </FormItem>
-                                                    )} />
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                        {actionFields.length === 0 && (
-                                            <div className="py-10 text-center border border-dashed rounded-lg bg-muted/10">
-                                                <ListTodo className="h-8 w-8 mx-auto text-muted-foreground/20 mb-2" />
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">No specific action steps defined</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="pt-6 border-t">
-                                    <FormField control={form.control} name="unitHead" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Head of Unit Signature (Typed)</FormLabel><FormControl><Input {...field} className="bg-slate-50 font-bold" /></FormControl></FormItem>
-                                    )} />
-                                </div>
-                            </TabsContent>
-
-                            <TabsContent value="evidences" className="space-y-8 animate-in fade-in duration-300">
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between border-b pb-2">
-                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Objective Evidence Registry</h4>
-                                        <Button 
-                                            type="button" 
-                                            size="sm" 
-                                            variant="outline"
-                                            onClick={() => appendEvidence({ title: '', url: '' })}
-                                            className="h-7 text-[9px] font-black uppercase bg-white shadow-sm"
-                                        >
-                                            <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Attach GDrive Evidence
-                                        </Button>
-                                    </div>
-                                    <div className="space-y-3">
-                                        {evidenceFields.map((field, index) => (
-                                            <Card key={field.id} className="relative overflow-hidden group">
-                                                <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeEvidence(index)}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                                <CardContent className="p-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                                                    <div className="md:col-span-4">
-                                                        <FormField control={form.control} name={`evidences.${index}.title`} render={({ field: inputField }) => (
-                                                            <FormItem>
-                                                                <FormLabel className="text-[9px] uppercase font-bold">Evidence Title</FormLabel>
-                                                                <FormControl><Input {...inputField} placeholder="e.g., Photos of 7S Implementation" className="h-8 text-[10px]" /></FormControl>
-                                                            </FormItem>
-                                                        )} />
-                                                    </div>
-                                                    <div className="md:col-span-7">
-                                                        <FormField control={form.control} name={`evidences.${index}.url`} render={({ field: inputField }) => (
-                                                            <FormItem>
-                                                                <FormLabel className="text-[9px] uppercase font-bold">Google Drive Link</FormLabel>
-                                                                <FormControl>
-                                                                    <div className="relative">
-                                                                        <LinkIcon className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                                                                        <Input {...inputField} placeholder="https://drive.google.com/..." className="h-8 text-[10px] pl-7" />
-                                                                    </div>
-                                                                </FormControl>
-                                                            </FormItem>
-                                                        )} />
-                                                    </div>
-                                                    <div className="md:col-span-1 flex justify-end">
-                                                        {form.watch(`evidences.${index}.url`) && (
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" asChild>
-                                                                <a href={form.watch(`evidences.${index}.url`)} target="_blank" rel="noopener noreferrer">
-                                                                    <ExternalLink className="h-4 w-4" />
-                                                                </a>
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                        {evidenceFields.length === 0 && (
-                                            <div className="py-16 text-center border border-dashed rounded-lg bg-muted/10">
-                                                <LinkIcon className="h-10 w-10 mx-auto text-muted-foreground opacity-20 mb-2" />
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">No implementation evidence attached</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </TabsContent>
-
-                            <TabsContent value="verification" className="space-y-8 animate-in fade-in duration-300">
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between border-b pb-2">
-                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Verification & Follow-up History</h4>
-                                        <Button 
-                                            type="button" 
-                                            size="sm" 
-                                            onClick={() => appendVerification({ 
-                                                result: '', 
-                                                resultVerifiedBy: '', 
-                                                resultVerificationDate: format(new Date(), 'yyyy-MM-dd'),
-                                                effectivenessResult: '', 
-                                                effectivenessVerifiedBy: '', 
-                                                effectivenessVerificationDate: format(new Date(), 'yyyy-MM-dd'),
-                                                remarks: '' 
-                                            })}
-                                            className="h-7 text-[9px] font-black uppercase shadow-lg shadow-primary/20"
-                                        >
-                                            <UserPlus className="h-3 w-3 mr-1.5" /> Add Verification Record
-                                        </Button>
-                                    </div>
-                                    
-                                    <div className="space-y-6">
-                                        {verificationFields.map((field, index) => (
-                                            <Card key={field.id} className="relative border-primary/10 overflow-hidden group shadow-md">
-                                                <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeVerification(index)}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                                <CardHeader className="bg-muted/30 py-3 border-b">
-                                                    <CardTitle className="text-[10px] font-black uppercase text-primary flex items-center gap-2">
-                                                        <ClipboardCheck className="h-3.5 w-3.5" />
-                                                        Verification Cycle #{index + 1}
-                                                    </CardTitle>
-                                                </CardHeader>
-                                                <CardContent className="p-6 space-y-8">
-                                                    <div className="space-y-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <FileText className="h-4 w-4 text-primary opacity-60" />
-                                                            <h5 className="text-[11px] font-black uppercase text-slate-700 tracking-tight">Part 1: Verification Findings / Result</h5>
-                                                        </div>
-                                                        <FormField control={form.control} name={`verificationRecords.${index}.result`} render={({ field: inputField }) => (
-                                                            <FormItem>
-                                                                <FormControl><Textarea {...inputField} rows={3} placeholder="Record the actual observations and findings..." className="text-xs bg-slate-50 border-slate-200" /></FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )} />
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            <FormField control={form.control} name={`verificationRecords.${index}.resultVerifiedBy`} render={({ field: inputField }) => (
-                                                                <FormItem>
-                                                                    <FormLabel className="text-[9px] font-bold uppercase text-muted-foreground">Result Verified By</FormLabel>
-                                                                    <FormControl>
-                                                                        <div className="relative">
-                                                                            <User className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
-                                                                            <Input {...inputField} placeholder="Verifier Name" className="h-8 text-[10px] pl-7" />
-                                                                        </div>
-                                                                    </FormControl>
-                                                                    <FormMessage />
-                                                                </FormItem>
-                                                            )} />
-                                                            <FormField control={form.control} name={`verificationRecords.${index}.resultVerificationDate`} render={({ field: inputField }) => (
-                                                                <FormItem>
-                                                                    <FormLabel className="text-[9px] font-bold uppercase text-muted-foreground">Date Verified</FormLabel>
-                                                                    <FormControl>
-                                                                        <div className="relative">
-                                                                            <Calendar className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
-                                                                            <Input type="date" {...inputField} className="h-8 text-[10px] pl-7" />
-                                                                        </div>
-                                                                    </FormControl>
-                                                                    <FormMessage />
-                                                                </FormItem>
-                                                            )} />
-                                                        </div>
-                                                    </div>
-
-                                                    <Separator />
-
-                                                    <div className="space-y-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <ShieldCheck className="h-4 w-4 text-emerald-600 opacity-60" />
-                                                            <h5 className="text-[11px] font-black uppercase text-emerald-800 tracking-tight">Part 2: Verification of Effectiveness</h5>
-                                                        </div>
-                                                        <FormField control={form.control} name={`verificationRecords.${index}.effectivenessResult`} render={({ field: inputField }) => (
-                                                            <FormItem>
-                                                                <FormControl><Textarea {...inputField} rows={3} placeholder="Describe how effective the implemented actions were in preventing recurrence..." className="text-xs bg-emerald-50/20 border-emerald-100" /></FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )} />
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            <FormField control={form.control} name={`verificationRecords.${index}.effectivenessVerifiedBy`} render={({ field: inputField }) => (
-                                                                <FormItem>
-                                                                    <FormLabel className="text-[9px] font-bold uppercase text-emerald-700/70">Effectiveness Verified By</FormLabel>
-                                                                    <FormControl>
-                                                                        <div className="relative">
-                                                                            <User className="absolute left-2 top-2.5 h-3 w-3 text-emerald-400" />
-                                                                            <Input {...inputField} placeholder="Verifier Name" className="h-8 text-[10px] pl-7 border-emerald-100" />
-                                                                        </div>
-                                                                    </FormControl>
-                                                                    <FormMessage />
-                                                                </FormItem>
-                                                            )} />
-                                                            <FormField control={form.control} name={`verificationRecords.${index}.effectivenessVerificationDate`} render={({ field: inputField }) => (
-                                                                <FormItem>
-                                                                    <FormLabel className="text-[9px] font-bold uppercase text-emerald-700/70">Date of Effectiveness Verification</FormLabel>
-                                                                    <FormControl>
-                                                                        <div className="relative">
-                                                                            <Calendar className="absolute left-2 top-2.5 h-3 w-3 text-emerald-400" />
-                                                                            <Input type="date" {...inputField} className="h-8 text-[10px] pl-7 border-emerald-100" />
-                                                                        </div>
-                                                                    </FormControl>
-                                                                    <FormMessage />
-                                                                </FormItem>
-                                                            )} />
-                                                        </div>
-                                                    </div>
-
-                                                    <FormField control={form.control} name={`verificationRecords.${index}.remarks`} render={({ field: remarksField }) => (
-                                                        <FormItem className="pt-2">
-                                                            <FormLabel className="text-[9px] font-bold uppercase text-muted-foreground">General Remarks (Optional)</FormLabel>
-                                                            <FormControl><Input {...remarksField} placeholder="Any other observations..." className="h-8 text-[10px]" /></FormControl>
-                                                        </FormItem>
-                                                    )} />
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                        {verificationFields.length === 0 && (
-                                            <div className="py-16 text-center border border-dashed rounded-lg bg-muted/10">
-                                                <ClipboardCheck className="h-10 w-10 mx-auto text-muted-foreground opacity-20 mb-2" />
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Awaiting initial verification</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="pt-6 border-t space-y-4">
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Closure Determination</h4>
-                                    <FormField control={form.control} name="status" render={({ field }) => (
-                                        <FormItem className="max-w-xs">
-                                            <FormLabel className="text-[10px] font-black uppercase text-primary">Current Lifecycle Status</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl><SelectTrigger className="bg-primary/5 border-primary/20 font-black h-11"><SelectValue /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="Open">Open</SelectItem>
-                                                    <SelectItem value="In Progress">In Progress</SelectItem>
-                                                    <SelectItem value="Closed">Closed</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )} />
-                                </div>
-
-                                <div className="p-6 rounded-lg bg-amber-50 border border-amber-100 flex items-start gap-3">
-                                    <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                                    <p className="text-[10px] text-amber-800 leading-relaxed font-medium">
-                                        As per ISO 21001 requirements, verification of effectiveness should ideally occur at regular intervals after implementation to ensure long-term stability of the correction. Multiple verification records help demonstrate sustainable improvement.
-                                    </p>
-                                </div>
-                            </TabsContent>
-                        </Tabs>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
+                            <FormField control={form.control} name="campusId" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Campus</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl><SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></FormItem>
+                            )} />
+                            <FormField control={form.control} name="unitId" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Unit</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl><SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></FormItem>
+                            )} />
+                        </div>
                     </form>
                 </Form>
             </div>
           </ScrollArea>
 
           <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
-            <div className="flex w-full items-center justify-between">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase">RSU Quality Management System | Registry v2.0</p>
-                <div className="flex gap-2">
-                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
-                    <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black">
-                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="mr-2 h-4 w-4" />}
-                        {editingCar ? 'Update Registry' : 'Issue Record'}
-                    </Button>
-                </div>
-            </div>
+            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
+            <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black">
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="mr-2 h-4 w-4" />}
+                {editingCar ? 'Update Registry' : 'Issue Record'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
+}
+
+function safeFormatDate(d: any) {
+    if (!d) return '--';
+    const date = d instanceof Timestamp ? d.toDate() : new Date(d);
+    return isNaN(date.getTime()) ? '--' : format(date, 'MMM dd, yyyy');
 }

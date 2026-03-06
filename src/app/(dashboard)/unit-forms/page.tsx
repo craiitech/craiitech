@@ -333,7 +333,7 @@ export default function UnitFormsPage() {
                                                 <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" /></TableCell></TableRow>
                                             ) : forms?.length ? (
                                                 forms.sort((a,b) => a.formCode.localeCompare(b.formCode)).map(form => (
-                                                    <TableRow key={form.id} className="hover:bg-muted/20">
+                                                    <TableRow key={form.id} className="hover:bg-muted/20 transition-colors">
                                                         <TableCell className="pl-6 font-mono text-xs font-bold text-primary">{form.formCode}</TableCell>
                                                         <TableCell className="text-[12px] font-bold text-slate-800">{form.formName}</TableCell>
                                                         <TableCell className="text-center"><Badge variant="secondary" className="h-4 text-[8px] font-bold uppercase">{form.revision}</Badge></TableCell>
