@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -36,7 +37,6 @@ import {
     Info
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { Unit } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -45,7 +45,7 @@ import { cn } from '@/lib/utils';
 interface FormRegistrationDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  unit: Unit;
+  unit: { id: string; name: string; category: string; isShared?: boolean };
 }
 
 const formRequestSchema = z.object({
@@ -84,7 +84,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit }: FormRegis
     try {
       const requestData = {
         ...values,
-        unitId: unit.id,
+        unitId: unit.category === 'Academic' ? 'academic-shared' : unit.id,
         unitName: unit.name,
         campusId: userProfile.campusId,
         submitterId: userProfile.id,

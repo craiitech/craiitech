@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import type { Unit, UnitForm, UnitFormRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,8 @@ import {
     PanelLeftOpen, 
     ChevronLeft, 
     Link as LinkIcon,
-    FolderKanban
+    FolderKanban,
+    Save
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
@@ -36,6 +37,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 
 const statusColors: Record<string, string> = {
     'Submitted': 'bg-blue-100 text-blue-700',
@@ -45,23 +47,30 @@ const statusColors: Record<string, string> = {
     'Approved & Registered': 'bg-emerald-100 text-emerald-700',
 };
 
+const SHARED_ACADEMIC_ID = 'academic-shared';
+
 export default function UnitFormsPage() {
   const { userProfile, isAdmin, userRole, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   
   const [isRegOpen, setIsRegOpen] = useState(false);
   const [reviewRequestId, setReviewRequestId] = useState<string | null>(null);
+  const [isSavingLink, setIsSavingLink] = useState(false);
+  const [editDriveLink, setEditDriveLink] = useState('');
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
-  const unitsToShow = useMemo(() => {
+  const sidebarUnits = useMemo(() => {
     if (!allUnits || !userProfile || isUserLoading) return [];
     
-    let filtered = [...allUnits];
+    let filtered = allUnits.filter(u => u.category !== 'Academic');
+    
+    // Auth filter for non-admins
     if (!isAdmin && userRole !== 'Auditor') {
         filtered = filtered.filter(u => u.campusIds?.includes(userProfile.campusId));
         if (userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO') {
@@ -73,16 +82,47 @@ export default function UnitFormsPage() {
         filtered = filtered.filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }
 
-    return filtered.sort((a, b) => a.name.localeCompare(b.name));
+    const items = filtered.map(u => ({ id: u.id, name: u.name, category: u.category, isShared: false }));
+
+    // Add Shared Academic Entry if there are academic units
+    const hasAcademic = allUnits.some(u => u.category === 'Academic');
+    if (hasAcademic) {
+        items.unshift({ id: SHARED_ACADEMIC_ID, name: 'Academic Units (Shared Registry)', category: 'Academic', isShared: true });
+    }
+
+    return items.sort((a, b) => a.isShared ? -1 : b.isShared ? 1 : a.name.localeCompare(b.name));
   }, [allUnits, userProfile, isAdmin, userRole, isUserLoading, searchTerm]);
 
   useEffect(() => {
-    if (userProfile?.unitId && !selectedUnitId && !isUserLoading) {
-        setSelectedUnitId(userProfile.unitId);
+    if (userProfile && !selectedUnitId && !isUserLoading) {
+        const myUnit = allUnits?.find(u => u.id === userProfile.unitId);
+        if (myUnit?.category === 'Academic') {
+            setSelectedUnitId(SHARED_ACADEMIC_ID);
+        } else {
+            setSelectedUnitId(userProfile.unitId || null);
+        }
     }
-  }, [userProfile, selectedUnitId, isUserLoading]);
+  }, [userProfile, allUnits, selectedUnitId, isUserLoading]);
 
-  const selectedUnit = useMemo(() => unitsToShow.find(u => u.id === selectedUnitId), [unitsToShow, selectedUnitId]);
+  const selectedUnit = useMemo(() => {
+      if (selectedUnitId === SHARED_ACADEMIC_ID) {
+          return { id: SHARED_ACADEMIC_ID, name: 'Academic Units (Shared)', category: 'Academic' as const, isShared: true };
+      }
+      return allUnits?.find(u => u.id === selectedUnitId);
+  }, [allUnits, selectedUnitId]);
+
+  // For Shared Academic, we need to find the drive link from a specific settings doc or one of the units
+  const academicSharedRef = useMemoFirebase(() => (firestore ? doc(firestore, 'campusSettings', 'academic-shared') : null), [firestore]);
+  const { data: sharedSettings } = useDoc<any>(academicSharedRef);
+
+  const currentDriveLink = useMemo(() => {
+      if (selectedUnitId === SHARED_ACADEMIC_ID) return sharedSettings?.formsDriveLink || '';
+      return (selectedUnit as Unit)?.formsDriveLink || '';
+  }, [selectedUnitId, sharedSettings, selectedUnit]);
+
+  useEffect(() => {
+      setEditDriveLink(currentDriveLink);
+  }, [currentDriveLink]);
 
   const formsQuery = useMemoFirebase(
     () => (firestore && selectedUnitId ? query(collection(firestore, 'unitForms'), where('unitId', '==', selectedUnitId)) : null),
@@ -96,7 +136,24 @@ export default function UnitFormsPage() {
   );
   const { data: requests, isLoading: isLoadingRequests } = useCollection<UnitFormRequest>(requestsQuery);
 
-  const canRegister = isAdmin || (userProfile?.unitId === selectedUnitId && (userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO'));
+  const canRegister = isAdmin || (selectedUnitId === SHARED_ACADEMIC_ID && userProfile?.role?.includes('Academic')) || (userProfile?.unitId === selectedUnitId);
+
+  const handleSaveDriveLink = async () => {
+      if (!firestore) return;
+      setIsSavingLink(true);
+      try {
+          if (selectedUnitId === SHARED_ACADEMIC_ID) {
+              await updateDoc(doc(firestore, 'campusSettings', 'academic-shared'), { formsDriveLink: editDriveLink });
+          } else if (selectedUnitId) {
+              await updateDoc(doc(firestore, 'units', selectedUnitId), { formsDriveLink: editDriveLink });
+          }
+          toast({ title: 'Drive Link Updated', description: 'Institutional repository link has been saved.' });
+      } catch (e) {
+          toast({ title: 'Error', description: 'Failed to update link.', variant: 'destructive' });
+      } finally {
+          setIsSavingLink(false);
+      }
+  };
 
   return (
     <div className="space-y-4">
@@ -144,7 +201,7 @@ export default function UnitFormsPage() {
               ) : (
                 <ScrollArea className="h-full">
                   <div className="flex flex-col">
-                    {unitsToShow.map(unit => (
+                    {sidebarUnits.map(unit => (
                       <Button
                         key={unit.id}
                         variant="ghost"
@@ -156,8 +213,8 @@ export default function UnitFormsPage() {
                             : "border-transparent hover:bg-muted/50"
                         )}
                       >
-                        <Building className="mr-3 h-3 w-3 flex-shrink-0 opacity-40" />
-                        <span className="truncate text-xs">{unit.name}</span>
+                        {unit.isShared ? <Layers className="mr-3 h-3 w-3 flex-shrink-0 text-primary" /> : <Building className="mr-3 h-3 w-3 flex-shrink-0 opacity-40" />}
+                        <span className={cn("truncate text-xs", unit.isShared && "font-black")}>{unit.name}</span>
                       </Button>
                     ))}
                   </div>
@@ -202,17 +259,30 @@ export default function UnitFormsPage() {
                                 <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg text-white shrink-0">
                                     <FolderKanban className="h-6 w-6" />
                                 </div>
-                                <div className="space-y-1">
+                                <div className="space-y-1 flex-1">
                                     <h4 className="text-sm font-black uppercase tracking-tight text-slate-900">Institutional Forms Drive</h4>
                                     <p className="text-[11px] text-muted-foreground leading-relaxed max-w-md">
                                         All approved quality forms for this unit are physically maintained in this designated Google Drive area by the QA Office.
                                     </p>
+                                    {isAdmin && (
+                                        <div className="flex items-center gap-2 mt-3 max-w-md">
+                                            <Input 
+                                                value={editDriveLink} 
+                                                onChange={(e) => setEditDriveLink(e.target.value)} 
+                                                placeholder="Paste Master GDrive Folder Link..."
+                                                className="h-8 text-[10px] bg-white"
+                                            />
+                                            <Button size="sm" onClick={handleSaveDriveLink} disabled={isSavingLink} className="h-8 px-3">
+                                                {isSavingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="shrink-0 w-full md:w-auto">
-                                {selectedUnit.formsDriveLink ? (
+                                {currentDriveLink ? (
                                     <Button asChild className="w-full h-11 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20 bg-indigo-600 text-white hover:bg-indigo-700">
-                                        <a href={selectedUnit.formsDriveLink} target="_blank" rel="noopener noreferrer">
+                                        <a href={currentDriveLink} target="_blank" rel="noopener noreferrer">
                                             <ExternalLink className="h-4 w-4 mr-2" />
                                             Access Official Roster
                                         </a>
@@ -344,7 +414,7 @@ export default function UnitFormsPage() {
           <FormRegistrationDialog 
             isOpen={isRegOpen} 
             onOpenChange={setIsRegOpen} 
-            unit={selectedUnit} 
+            unit={selectedUnit as any} 
           />
       )}
 
