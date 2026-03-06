@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, Trash2, Edit, ShieldCheck, FileText, ClipboardCheck, Clock, UserCheck, Printer, Search, Filter, TrendingUp, AlertTriangle, CheckCircle2, Hash, Eye, ListTodo } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, ShieldCheck, FileText, ClipboardCheck, Clock, UserCheck, Printer, Search, Filter, TrendingUp, AlertTriangle, CheckCircle2, Hash, Eye, ListTodo, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -98,29 +98,23 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   const filteredCars = useMemo(() => {
     if (!rawCars || !userProfile) return [];
 
-    // STRICT SCOPING LOGIC
     const isInstitutionalViewer = isAdmin || isAuditor;
     const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
 
     return rawCars.filter(car => {
-        // 1. Authorization Filter (Primary Gate)
         if (!isInstitutionalViewer) {
             if (isCampusSupervisor) {
-                // Campus Directors see all CARs for their campus
                 if (car.campusId !== userProfile.campusId) return false;
             } else {
-                // Unit Coordinators ONLY see CARs for their specific unit
                 if (car.unitId !== userProfile.unitId) return false;
             }
         }
 
-        // 2. Search Logic
         const matchesSearch = 
             car.carNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
             car.procedureTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (unitMap.get(car.unitId) || '').toLowerCase().includes(searchTerm.toLowerCase());
         
-        // 3. Time Logic
         const reqDate = car.requestDate instanceof Timestamp ? car.requestDate.toDate() : new Date(car.requestDate);
         const matchesYear = yearFilter === 'all' || reqDate.getFullYear().toString() === yearFilter;
 
@@ -301,7 +295,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
 
   return (
     <div className="space-y-6">
-      {/* Visual Analytics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-5"><ClipboardCheck className="h-12 w-12" /></div>
@@ -345,7 +338,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         </Card>
       </div>
 
-      {/* Registry Controls */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="flex-1 flex flex-col md:flex-row gap-4 items-end">
             <div className="w-full md:w-72 space-y-1.5">
@@ -721,7 +713,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                     </CardTitle>
                                                 </CardHeader>
                                                 <CardContent className="p-6 space-y-8">
-                                                    {/* Segment 1: Verification Result */}
                                                     <div className="space-y-4">
                                                         <div className="flex items-center gap-2">
                                                             <FileText className="h-4 w-4 text-primary opacity-60" />
@@ -763,7 +754,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
 
                                                     <Separator />
 
-                                                    {/* Segment 2: Verification of Effectiveness */}
                                                     <div className="space-y-4">
                                                         <div className="flex items-center gap-2">
                                                             <ShieldCheck className="h-4 w-4 text-emerald-600 opacity-60" />
