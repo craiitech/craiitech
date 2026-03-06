@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, Trash2, Edit, ShieldCheck, FileText, ClipboardCheck, Clock, UserCheck, Printer, Search, Filter, TrendingUp, AlertTriangle, CheckCircle2, Hash, Eye, ListTodo, Info } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, ShieldCheck, FileText, ClipboardCheck, Clock, UserCheck, Printer, Search, Filter, TrendingUp, AlertTriangle, CheckCircle2, Hash, Eye, ListTodo, Info, UserPlus, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -272,6 +272,16 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!firestore || !window.confirm('Are you sure you want to delete this report?')) return;
+    try {
+      await deleteDoc(doc(firestore, 'correctiveActionRequests', id));
+      toast({ title: 'Success', description: 'Report deleted.' });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to delete.', variant: 'destructive' });
+    }
+  };
+
   const handleEdit = (car: CorrectiveActionRequest) => {
     setEditingCar(car);
     const safeDate = (d: any) => d?.toDate ? format(d.toDate(), 'yyyy-MM-dd') : (d ? format(new Date(d), 'yyyy-MM-dd') : '');
@@ -456,28 +466,24 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-primary mb-1">
-                    <FileText className="h-5 w-5" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">Form QAO-00-018</span>
-                </div>
-                {(watchCarNumber || watchNcReportNumber) && (
-                    <div className="flex items-center gap-3">
-                        {watchCarNumber && (
-                            <Badge variant="outline" className="font-mono text-primary border-primary/30 h-6 px-2 text-[10px] font-black uppercase bg-primary/5">
-                                CAR NO: {watchCarNumber}
-                            </Badge>
-                        )}
-                        {watchNcReportNumber && (
-                            <Badge variant="outline" className="font-mono text-muted-foreground border-slate-300 h-6 px-2 text-[10px] font-black uppercase bg-white">
-                                NC NO: {watchNcReportNumber}
-                            </Badge>
-                        )}
-                    </div>
-                )}
+            <div className="flex items-center gap-2 text-primary mb-1">
+                <FileText className="h-5 w-5" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Form QAO-00-018</span>
             </div>
-            <DialogTitle className="text-xl font-bold">{editingCar ? 'Manage' : 'Issue'} Corrective Action Request</DialogTitle>
-            <DialogDescription className="text-xs">Formalized tracking of non-conformities and institutional improvements.</DialogDescription>
+            {(watchCarNumber || watchNcReportNumber) && (
+                <div className="flex items-center gap-3">
+                    {watchCarNumber && (
+                        <Badge variant="outline" className="font-mono text-primary border-primary/30 h-6 px-2 text-[10px] font-black uppercase bg-primary/5">
+                            CAR NO: {watchCarNumber}
+                        </Badge>
+                    )}
+                    {watchNcReportNumber && (
+                        <Badge variant="outline" className="font-mono text-muted-foreground border-slate-300 h-6 px-2 text-[10px] font-black uppercase bg-white">
+                            NC NO: {watchNcReportNumber}
+                        </Badge>
+                    )}
+                </div>
+            )}
           </DialogHeader>
           
           <ScrollArea className="flex-1 bg-white">
@@ -638,7 +644,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                     <FormField control={form.control} name={`actionSteps.${index}.description`} render={({ field: inputField }) => (
                                                         <FormItem className="md:col-span-1">
                                                             <FormLabel className="text-[9px] uppercase font-bold">Action Description</FormLabel>
-                                                            <FormControl><Input {...inputField} className="h-8 text-[10px]" /></FormControl>
+                                                            <FormControl><Input {...field} className="h-8 text-[10px]" /></FormControl>
                                                         </FormItem>
                                                     )} />
                                                     <FormField control={form.control} name={`actionSteps.${index}.completionDate`} render={({ field: inputField }) => (
