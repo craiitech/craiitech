@@ -55,7 +55,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 };
 
 const COLORS: Record<string, string> = {
-    Approved: 'hsl(var(--chart-2))',
+    Approved: 'hsl(142 71% 45%)',
     'Awaiting Approval': 'hsl(var(--chart-1))',
     Missing: 'hsl(var(--destructive))',
     Rejected: 'hsl(var(--chart-3))',
@@ -74,7 +74,7 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
     },
     2026: { 
       first: 'bg-amber-50/20 hover:bg-amber-100/40 dark:bg-amber-900/5 dark:hover:bg-amber-900/10', 
-      final: 'bg-amber-100/40 hover:bg-amber-200/50 dark:bg-amber-900/20 dark:hover:bg-amber-900/30' 
+      final: 'bg-amber-100/40 hover:bg-amber-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
     },
     2027: { 
       first: 'bg-purple-50/20 hover:bg-purple-100/40 dark:bg-purple-900/5 dark:hover:bg-purple-900/10', 
@@ -128,19 +128,15 @@ export function CampusSubmissionsView({
   );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
-  // Auto-initialize selectedCampusId for site-level users
   useEffect(() => {
     if (userProfile?.campusId && !isInstitutionalViewer && !selectedCampusId) {
         setSelectedCampusId(userProfile.campusId);
     }
   }, [userProfile, isInstitutionalViewer, selectedCampusId]);
 
-  // STRICT SCOPING: Only show campuses the user is authorized to see
   const campusesToShow = useMemo(() => {
     if (!allCampuses || !userProfile) return [];
     if (isInstitutionalViewer) return [...allCampuses].sort((a,b) => a.name.localeCompare(b.name));
-    
-    // Non-institutional viewers only see their own campus
     return allCampuses.filter(c => c.id === userProfile.campusId);
   }, [allCampuses, userProfile, isInstitutionalViewer]);
   
@@ -215,9 +211,7 @@ export function CampusSubmissionsView({
   }, [selectedUnitId, selectedCampusId, allSubmissions, selectedYear]);
   
   const handleCampusSelect = (campusId: string) => {
-    // If not institutional viewer, selection is locked to their own campus
     if (!isInstitutionalViewer && campusId !== userProfile?.campusId) return;
-    
     setSelectedCampusId(prev => (prev === campusId ? null : campusId));
     setSelectedUnitId(null);
   }
@@ -230,7 +224,6 @@ export function CampusSubmissionsView({
     if (!unitData || !selectedUnitId || !allUnits || !selectedCampusId || !allCampuses) return;
 
     const unit = allUnits.find(u => u.id === selectedUnitId);
-    // Explicitly find the campus based on selectedCampusId to ensure context consistency
     const campus = allCampuses.find(c => c.id === selectedCampusId);
 
     const props = {
@@ -323,7 +316,7 @@ export function CampusSubmissionsView({
         };
     });
 
-    const isFullyCompliant = processedUnits.every(u => u.score === 100);
+    const isFullyCompliant = processedUnits.every(u => u.score >= 100);
     const qaoDirector = signatories?.qaoDirector || 'DR. MARVIN RICK G. FORCADO';
     const qmsHead = signatories?.qmsHead || 'QMS Head';
 
@@ -500,7 +493,7 @@ export function CampusSubmissionsView({
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                {unitData.score === 100 ? (
+                                {unitData.score >= 100 ? (
                                     <Button size="sm" variant="outline" className="h-8 text-[10px] font-black uppercase text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => handlePrintNotice('Compliance')}>
                                         <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Compliance Notice
                                     </Button>

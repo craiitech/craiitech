@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -491,7 +490,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         <div className="p-4 bg-muted/10 border-t">
             <div className="flex items-start gap-3">
                 <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">
+                <p className="text-[9px] text-muted-foreground leading-relaxed font-medium italic">
                     <strong>Guide:</strong> The registry table above provides a centralized view of institutional non-conformities. It facilitates tracking the accountability chain from initiators to unit heads and top management, ensuring that every finding has a corresponding correction strategy.
                 </p>
             </div>

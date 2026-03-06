@@ -34,7 +34,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 };
 
 const COLORS: Record<string, string> = {
-    Approved: 'hsl(var(--chart-2))',
+    Approved: 'hsl(142 71% 45%)',
     'Awaiting Approval': 'hsl(var(--chart-1))',
     Missing: 'hsl(var(--destructive))',
     Rejected: 'hsl(var(--chart-3))',
@@ -53,7 +53,7 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
     },
     2026: { 
       first: 'bg-amber-50/20 hover:bg-amber-100/40 dark:bg-amber-900/5 dark:hover:bg-amber-900/10', 
-      final: 'bg-amber-100/40 hover:bg-amber-200/50 dark:bg-amber-900/20 dark:hover:bg-amber-900/30' 
+      final: 'bg-amber-100/40 hover:bg-amber-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
     },
     2027: { 
       first: 'bg-purple-50/20 hover:bg-purple-100/40 dark:bg-purple-900/5 dark:hover:bg-purple-900/10', 
@@ -102,7 +102,6 @@ export function UnitSubmissionsView({
   );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
-  // Auto-select the unit for unit-level users and ensure it stays locked if not admin
   useEffect(() => {
     if (userProfile?.unitId && !selectedUnitId) {
         setSelectedUnitId(userProfile.unitId);
@@ -114,10 +113,8 @@ export function UnitSubmissionsView({
       return [];
     }
 
-    // Filter by campus first
     let filtered = allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
     
-    // STRICT SCOPING: If user is a unit-level coordinator/odimo, filter to their unit ONLY
     const isUnitLevelOnly = userProfile.role === 'Unit Coordinator' || userProfile.role === 'Unit ODIMO';
     if (isUnitLevelOnly && userProfile.unitId) {
         filtered = filtered.filter(u => u.id === userProfile.unitId);
@@ -131,7 +128,6 @@ export function UnitSubmissionsView({
       return null;
     }
     
-    // STRICT SCOPING: Only look at submissions for the selected unit AND the user's campus
     const yearSubmissions = allSubmissions.filter(s => 
         s.unitId === selectedUnitId && 
         s.campusId === userProfile.campusId && 
@@ -197,7 +193,6 @@ export function UnitSubmissionsView({
     if (!unitData || !selectedUnitId || !allUnits || !userProfile || !allCampuses) return;
 
     const unit = allUnits.find(u => u.id === selectedUnitId);
-    // Explicitly use the user's assigned campus for the report identity
     const campus = allCampuses.find(c => c.id === userProfile.campusId);
 
     const props = {
@@ -304,7 +299,7 @@ export function UnitSubmissionsView({
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            {unitData.score === 100 ? (
+                            {unitData.score >= 100 ? (
                                 <Button size="sm" variant="outline" className="h-8 text-[10px] font-black uppercase text-emerald-600 border-emerald-200 hover:bg-emerald-50 shadow-sm" onClick={() => handlePrintNotice('Compliance')}>
                                     <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Compliance Notice
                                 </Button>

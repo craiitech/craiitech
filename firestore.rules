@@ -41,17 +41,28 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     // UNIT FORMS & WORKFLOW (PRIORITIZED)
     // --------------------------------------------------------------------------
-    // Grant read/list access to all authenticated users similar to the /users collection
+    // Scoped access: Users see their own unit/campus, Admins see all.
     
     match /unitFormRequests/{id} { 
-      allow read, list: if isSignedIn();
+      allow read, list: if isSignedIn() && (
+        isAdmin() || 
+        profile().unitId == resource.data.unitId ||
+        profile().campusId == resource.data.campusId
+      );
       allow create: if isSignedIn();
-      allow update: if isSignedIn();
+      allow update: if isSignedIn() && (
+        isAdmin() || 
+        profile().unitId == resource.data.unitId
+      );
       allow delete: if isAdmin();
     }
 
     match /unitForms/{id} { 
-      allow read, list: if isSignedIn(); 
+      allow read, list: if isSignedIn() && (
+        isAdmin() || 
+        profile().unitId == resource.data.unitId ||
+        profile().campusId == resource.data.campusId
+      ); 
       allow write: if isAdmin(); 
     }
 
