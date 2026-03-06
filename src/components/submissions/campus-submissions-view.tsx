@@ -285,8 +285,8 @@ export function CampusSubmissionsView({
 
     const processedUnits = campusUnits.map(unit => {
         const unitSubs = allSubmissions.filter(s => s.unitId === unit.id && s.campusId === selectedCampusId && s.year.toString() === selectedYear);
-        const firstRegistry = unitSubs.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
-        const finalRegistry = unitSubs.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
+        const firstRegistry = unitSubs.find(s => s.reportType === 'Risk and Opportunity Registry');
+        const finalRegistry = unitSubs.find(s => s.reportType === 'Risk and Opportunity Registry');
         
         const isFirstNA = firstRegistry?.riskRating === 'low';
         const isFinalNA = finalRegistry?.riskRating === 'low';
@@ -465,7 +465,7 @@ export function CampusSubmissionsView({
                             <h3 className="font-black text-xl uppercase tracking-tight text-slate-900">
                                 {campusesToShow.find(c => c.id === selectedCampusId)?.name}
                             </h3>
-                            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                            <p className="text-xs text-muted-foreground max-sm mx-auto">
                                 You have selected a campus site. You can monitor individual units from the tree on the left, or generate a consolidated site-wide report below.
                             </p>
                         </div>
@@ -493,7 +493,7 @@ export function CampusSubmissionsView({
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                {unitData.score >= 100 ? (
+                                {unitData.missingFirst.length + unitData.missingFinal.length === 0 ? (
                                     <Button size="sm" variant="outline" className="h-8 text-[10px] font-black uppercase text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => handlePrintNotice('Compliance')}>
                                         <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Compliance Notice
                                     </Button>

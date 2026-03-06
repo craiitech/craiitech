@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -44,25 +43,14 @@ service cloud.firestore {
     // Scoped access: Users see their own unit/campus, Admins see all.
     
     match /unitFormRequests/{id} { 
-      allow read, list: if isSignedIn() && (
-        isAdmin() || 
-        profile().unitId == resource.data.unitId ||
-        profile().campusId == resource.data.campusId
-      );
+      allow read, list: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && (
-        isAdmin() || 
-        profile().unitId == resource.data.unitId
-      );
+      allow update: if isSignedIn();
       allow delete: if isAdmin();
     }
 
     match /unitForms/{id} { 
-      allow read, list: if isSignedIn() && (
-        isAdmin() || 
-        profile().unitId == resource.data.unitId ||
-        profile().campusId == resource.data.campusId
-      ); 
+      allow read, list: if isSignedIn(); 
       allow write: if isAdmin(); 
     }
 

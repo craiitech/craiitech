@@ -53,7 +53,7 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
     },
     2026: { 
       first: 'bg-amber-50/20 hover:bg-amber-100/40 dark:bg-amber-900/5 dark:hover:bg-amber-900/10', 
-      final: 'bg-amber-100/40 hover:bg-amber-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
+      final: 'bg-amber-100/40 hover:bg-blue-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
     },
     2027: { 
       first: 'bg-purple-50/20 hover:bg-purple-100/40 dark:bg-purple-900/5 dark:hover:bg-purple-900/10', 
@@ -299,7 +299,7 @@ export function UnitSubmissionsView({
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            {unitData.score >= 100 ? (
+                            {unitData.missingFirst.length + unitData.missingFinal.length === 0 ? (
                                 <Button size="sm" variant="outline" className="h-8 text-[10px] font-black uppercase text-emerald-600 border-emerald-200 hover:bg-emerald-50 shadow-sm" onClick={() => handlePrintNotice('Compliance')}>
                                     <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Compliance Notice
                                 </Button>
