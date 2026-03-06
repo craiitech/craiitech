@@ -137,10 +137,8 @@ export default function UnitFormsPage() {
   );
   const { data: forms, isLoading: isLoadingForms } = useCollection<UnitForm>(formsQuery);
 
-  const requestsQuery = useMemoFirebase(
-    () => (firestore && selectedUnitId ? query(collection(firestore, 'unitFormRequests'), where('unitId', '==', selectedUnitId), orderBy('createdAt', 'desc')) : null),
-    [firestore, selectedUnitId]
-  );
+  // DISABLED AS REQUESTED TO BYPASS PERMISSION ERROR
+  const requestsQuery = null;
   const { data: requests, isLoading: isLoadingRequests } = useCollection<UnitFormRequest>(requestsQuery);
 
   const canRegister = isAdmin || (selectedUnitId === SHARED_ACADEMIC_ID && userProfile?.role?.includes('Academic')) || (userProfile?.unitId === selectedUnitId);
@@ -392,7 +390,7 @@ export default function UnitFormsPage() {
                                                         </div>
                                                     </div>
                                                 ))}
-                                                {requests?.length === 0 && (
+                                                {(!requests || requests.length === 0) && (
                                                     <div className="py-20 text-center opacity-20 flex flex-col items-center gap-2">
                                                         <Activity className="h-8 w-8" />
                                                         <p className="text-[10px] font-black uppercase tracking-widest">No active requests</p>
