@@ -386,8 +386,6 @@ export type UnitFormRequest = {
     updatedAt: any;
 };
 
-// --- ACADEMIC PROGRAM MONITORING TYPES ---
-
 export type AcademicProgram = {
   id: string;
   name: string;
@@ -396,7 +394,7 @@ export type AcademicProgram = {
   collegeId: string; // e.g., 'CET', 'CAS'
   level: 'Undergraduate' | 'Graduate' | 'TVET';
   isBoardProgram: boolean;
-  isNewProgram: boolean; // Flag for programs not yet subject to accreditation
+  isNewProgram: boolean; 
   hasSpecializations: boolean;
   specializations?: { id: string; name: string }[];
   isActive: boolean;
@@ -414,7 +412,7 @@ export type ProgramFacultyMember = {
   category: FacultyCategory;
   isAlignedWithCMO: FacultyAlignment;
   sex: 'Male' | 'Female';
-  specializationAssignment?: string; // Linked to a specialization.id
+  specializationAssignment?: string; 
 };
 
 export type GraduationOutcome = {
@@ -442,7 +440,7 @@ export type RQATVisit = {
   result: string;
   comments: string;
   nonCompliances: string;
-  reportLink?: string; // Link to GDrive PDF
+  reportLink?: string; 
 };
 
 export type BoardExamPerformance = {
@@ -492,7 +490,7 @@ export type FacultyLeadershipMember = {
 
 export type AccreditationRecord = {
     id: string;
-    level: string; // Level 1, Level 2, etc.
+    level: string; 
     typeOfVisit?: string;
     result?: string;
     components?: { id: string; name: string }[];
@@ -502,7 +500,7 @@ export type AccreditationRecord = {
     nextSchedule: string;
     nextScheduleYear?: number;
     nextScheduleMonth?: number;
-    certificateLink?: string; // GDrive PDF
+    certificateLink?: string; 
     overallTaskForceHead?: string;
     taskForce?: string;
     areas?: AccreditationArea[];
@@ -519,11 +517,11 @@ export type AccreditationRecord = {
 
 export type CurriculumRecord = {
   id: string;
-  majorId: string; // 'General' or specific specialization id
+  majorId: string; 
   revisionNumber: string;
   dateImplemented: string;
   isNotedByChed: boolean;
-  notationProofLink?: string; // Proof of notation PDF
+  notationProofLink?: string; 
   dateNoted?: string;
 };
 
@@ -532,29 +530,21 @@ export type ProgramComplianceRecord = {
   programId: string;
   campusId: string;
   academicYear: number;
-  
-  // CHED Institutional Compliance (Registry strictly for authority)
   ched: {
     copcStatus: 'With COPC' | 'No COPC' | 'In Progress';
-    copcLink?: string; // GDrive PDF
-    copcAwardDate?: string; // Added: Official date of COPC issuance
+    copcLink?: string; 
+    copcAwardDate?: string; 
     boardApprovalMode?: 'sole' | 'per-major';
-    boardApprovalLink?: string; // Single BOR resolution link
-    majorBoardApprovals?: { majorId: string; link: string }[]; // Major-specific links
-    programCmoLink?: string; // ADDED: Shared Program CMO
+    boardApprovalLink?: string; 
+    majorBoardApprovals?: { majorId: string; link: string }[]; 
+    programCmoLink?: string; 
     rqatVisits?: RQATVisit[];
-    closureResolutionLink?: string; // NEW: GDrive link for closure resolution
-    closureApprovalDate?: string; // NEW: Date of closure approval
-    closureReferendumNumber?: string; // NEW: BOR Referendum No.
+    closureResolutionLink?: string; 
+    closureApprovalDate?: string; 
+    closureReferendumNumber?: string; 
   };
-
-  // Accreditation (Array for history/lifecycle tracking)
   accreditationRecords?: AccreditationRecord[];
-
-  // Unified Curriculum & Content Noted Registry
   curriculumRecords?: CurriculumRecord[];
-
-  // Faculty/Staff
   faculty: {
     dean: FacultyLeadershipMember;
     hasAssociateDean?: boolean;
@@ -562,8 +552,6 @@ export type ProgramComplianceRecord = {
     programChair: FacultyLeadershipMember;
     members: ProgramFacultyMember[];
   };
-
-  // Student Stats
   stats: {
     enrollment: {
       firstSemester: YearLevelEnrollment;
@@ -574,14 +562,9 @@ export type ProgramComplianceRecord = {
     maleGraduates?: number;
     femaleGraduates?: number;
   };
-
-  // Outcomes registries
   graduationRecords?: GraduationOutcome[];
   tracerRecords?: TracerOutcome[];
-
-  // Board Performance
   boardPerformance?: BoardExamPerformance[];
-
   updatedAt: any;
   updatedBy: string;
 };
@@ -590,12 +573,12 @@ export type QaAuditReport = {
     id: string;
     type: 'IQA' | 'EQA';
     title: string;
-    startDate: any; // Timestamp
-    endDate: any; // Timestamp
+    startDate: any; 
+    endDate: any; 
     googleDriveLink: string;
-    campusIds: string[]; // Changed to array for multi-site scope
+    campusIds: string[]; 
     eqaCategory?: string;
     certifyingBody?: string;
     standard: string;
-    createdAt: any; // Timestamp
+    createdAt: any; 
 };

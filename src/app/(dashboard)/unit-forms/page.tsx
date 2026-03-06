@@ -131,7 +131,6 @@ export default function UnitFormsPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search units..."
-                  setSearchTerm={setSearchTerm}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9 h-9 text-xs bg-white"

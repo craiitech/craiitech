@@ -545,8 +545,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                 <FileText className="h-5 w-5" />
                 <span className="text-[10px] font-black uppercase tracking-[0.2em]">Form QAO-00-018</span>
             </DialogTitle>
+            <DialogDescription>Manage institutional non-conformance and correction tracking.</DialogDescription>
             {(watchCarNumber || watchNcReportNumber) && (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mt-2">
                     {watchCarNumber && (
                         <Badge variant="outline" className="font-mono text-primary border-primary/30 h-6 px-2 text-[10px] font-black uppercase bg-primary/5">
                             CAR NO: {watchCarNumber}
