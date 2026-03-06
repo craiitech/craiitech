@@ -32,7 +32,9 @@ import {
     Undo2,
     Check,
     FileText,
-    LayoutList
+    LayoutList,
+    Hash,
+    ChevronRight
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { UnitFormRequest, UnitFormRequestStatus } from '@/lib/types';
