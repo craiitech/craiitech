@@ -4,11 +4,11 @@ import { useState, useMemo, useEffect } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, deleteDoc, doc, addDoc, serverTimestamp, where, Timestamp, updateDoc } from 'firebase/firestore';
 import type { ManagementReview, ManagementReviewOutput, Campus, Unit, MRAssignment, ManagementReviewOutputStatus } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, ChevronRight, User, Globe, Building2, FileText, Presentation, Hash, Edit } from 'lucide-react';
+import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, ChevronRight, User, Globe, Building2, FileText, Presentation, Hash, Edit, Info, Target, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -285,6 +285,14 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                         </Button>
                     </div>
                 </CardHeader>
+                <div className="p-3 bg-white/50 border-t">
+                    <div className="flex items-start gap-3">
+                        <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                        <p className="text-[9px] text-muted-foreground italic leading-tight">
+                            <strong>Guide:</strong> Management Reviews (MR) are top-level evaluations of the university's performance. The decisions logged here are the official outputs of the University President and the Board of Regents, aimed at resolving systemic issues and capitalizing on opportunities identified in audits.
+                        </p>
+                    </div>
+                </div>
             </Card>
 
             <Tabs defaultValue="outputs" className="flex-1 flex flex-col min-h-0">
@@ -300,7 +308,10 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                 <TabsContent value="outputs" className="flex-1 min-h-0 pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <Card className="h-full flex flex-col overflow-hidden">
                         <div className="p-4 border-b bg-muted/5 flex items-center justify-between shrink-0">
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Decisions / Action Plans Registry</h4>
+                            <div className="flex items-center gap-2">
+                                <Target className="h-4 w-4 text-primary" />
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Decisions / Action Plans Registry</h4>
+                            </div>
                             {canManage && (
                                 <Button onClick={() => handleOpenOutputDialog()} size="sm" className="h-7 text-[9px] font-black uppercase shadow-lg shadow-primary/20">
                                     <PlusCircle className="h-3 w-3 mr-1.5" /> LOG MR OUTPUT
@@ -338,7 +349,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                                                 {output.lineNumber && (
                                                                     <div className="flex items-center gap-1.5 text-primary">
                                                                         <Hash className="h-2.5 w-2.5" />
-                                                                        <span className="text-[9px] font-black uppercase tracking-tighter">MR Minutes Line: {output.lineNumber}</span>
+                                                                        <span className="text-[9px] font-black uppercase tracking-tighter">Line: {output.lineNumber}</span>
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -410,6 +421,14 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                                 )}
                             </ScrollArea>
                         </CardContent>
+                        <CardFooter className="bg-muted/10 border-t py-3">
+                            <div className="flex items-start gap-3">
+                                <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                                <p className="text-[9px] text-muted-foreground italic leading-tight">
+                                    <strong>Guide:</strong> Assigned units must respond to these decisions by logging implementation progress in the "Actionable Decisions" hub. Closure is only finalized after institutional verification by the QAO.
+                                </p>
+                            </div>
+                        </CardFooter>
                     </Card>
                 </TabsContent>
 

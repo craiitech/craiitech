@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -9,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ExternalLink, Trash2, PlusCircle, FileText, Eye, Globe, Building2, ShieldCheck, Calendar, BookOpen } from 'lucide-react';
+import { Loader2, ExternalLink, Trash2, PlusCircle, FileText, Eye, Globe, Building2, ShieldCheck, Calendar, BookOpen, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -90,7 +89,6 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
       if (type === 'IQA') {
           delete dataToSave.eqaCategory;
           delete dataToSave.certifyingBody;
-          // Note: Standard is now kept for IQA
       }
 
       await addDoc(collection(firestore, 'qaAuditReports'), dataToSave);
@@ -147,6 +145,15 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
       </div>
 
       <Card className="shadow-sm border-primary/10 overflow-hidden">
+        <CardHeader className="bg-muted/10 border-b py-3">
+            <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-primary" />
+                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-primary">Strategic Purpose of the Vault</CardTitle>
+            </div>
+            <CardDescription className="text-[10px] font-medium leading-relaxed italic mt-1">
+                The {type} Vault serves as the institutional memory for all formal quality inspections. These records are vital evidence for external regulatory bodies (e.g., CHED, AACCUP) and provide the longitudinal data required for Management Reviews to drive university-wide improvements.
+            </CardDescription>
+        </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center items-center h-48">

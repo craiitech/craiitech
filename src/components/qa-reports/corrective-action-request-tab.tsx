@@ -4,11 +4,11 @@ import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import type { CorrectiveActionRequest, Campus, Unit, Signatories } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, Trash2, Edit, ShieldCheck, FileText, ClipboardCheck, Clock, UserCheck, Printer, Search, Filter, TrendingUp, AlertTriangle, CheckCircle2, Hash, Eye, ListTodo, Info, UserPlus, User } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, ShieldCheck, FileText, ClipboardCheck, Clock, UserCheck, Printer, Search, Filter, TrendingUp, AlertTriangle, CheckCircle2, Hash, Eye, ListTodo, Info, UserPlus, User, ShieldAlert, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -306,45 +306,65 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
+        <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
             <div className="absolute top-0 right-0 p-2 opacity-5"><ClipboardCheck className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Contextual CARs</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-primary tabular-nums">{stats.total}</div>
                 <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">Requests in your scope</p>
             </CardContent>
+            <div className="p-2 bg-muted/10 border-t mt-auto">
+                <p className="text-[8px] text-muted-foreground italic leading-tight">
+                    <strong>Guide:</strong> Measures the total identifying corrective actions issued to units within your authorized oversight.
+                </p>
+            </div>
         </Card>
-        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden">
+        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
             <div className="absolute top-0 right-0 p-2 opacity-5"><CheckCircle2 className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Resolution Rate</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-emerald-600 tabular-nums">{stats.resolutionRate}%</div>
                 <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tighter">Correction Closure</p>
             </CardContent>
+            <div className="p-2 bg-emerald-100/20 border-t mt-auto">
+                <p className="text-[8px] text-emerald-800/60 italic leading-tight">
+                    <strong>Guide:</strong> Indicates the percentage of issued CARs that have reached verified "Closed" status.
+                </p>
+            </div>
         </Card>
-        <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden">
+        <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden flex flex-col">
             <div className="absolute top-0 right-0 p-2 opacity-5"><TrendingUp className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-widest text-amber-700">Open Actions</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-amber-600 tabular-nums">{stats.open}</div>
                 <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tighter">Awaiting Implementation</p>
             </CardContent>
+            <div className="p-2 bg-amber-100/20 border-t mt-auto">
+                <p className="text-[8px] text-amber-800/60 italic leading-tight">
+                    <strong>Guide:</strong> Identifies requests that are currently active and require follow-up monitoring.
+                </p>
+            </div>
         </Card>
-        <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden">
+        <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden flex flex-col">
             <div className="absolute top-0 right-0 p-2 opacity-5"><AlertTriangle className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-widest text-rose-700">Non-Conformities</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1">
                 <div className="text-3xl font-black text-rose-600 tabular-nums">{filteredCars.filter(c => c.natureOfFinding === 'NC').length}</div>
                 <p className="text-[9px] font-bold text-rose-600/70 mt-1 uppercase tracking-tighter">Critical gaps found</p>
             </CardContent>
+            <div className="p-2 bg-rose-100/20 border-t mt-auto">
+                <p className="text-[8px] text-rose-800/60 italic leading-tight">
+                    <strong>Guide:</strong> Count of severe breaches of ISO standard that must be prioritized for corrective action.
+                </p>
+            </div>
         </Card>
       </div>
 
@@ -387,6 +407,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
       </div>
 
       <Card className="shadow-md border-primary/10 overflow-hidden">
+        <CardHeader className="bg-muted/5 border-b py-3">
+            <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                <CardTitle className="text-xs font-black uppercase tracking-tight">Corrective Action Registry</CardTitle>
+            </div>
+        </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
@@ -461,6 +487,14 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             </div>
           )}
         </CardContent>
+        <div className="p-4 bg-muted/10 border-t">
+            <div className="flex items-start gap-3">
+                <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">
+                    <strong>Guide:</strong> The registry table above provides a centralized view of institutional non-conformities. It facilitates tracking the accountability chain from initiators to unit heads and top management, ensuring that every finding has a corresponding correction strategy.
+                </p>
+            </div>
+        </div>
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -847,7 +881,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             </div>
           </ScrollArea>
 
-          <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
+          <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
             <div className="flex w-full items-center justify-between">
                 <p className="text-[10px] font-bold text-muted-foreground uppercase">RSU Quality Management System | Registry v2.0</p>
                 <div className="flex gap-2">
