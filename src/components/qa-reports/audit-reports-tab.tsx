@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -18,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { MultiSelector } from './multi-selector';
 
 interface AuditReportsTabProps {
   type: 'IQA' | 'EQA';
@@ -30,7 +32,7 @@ const reportSchema = z.object({
   startDate: z.string().min(1, 'Start date is required'),
   endDate: z.string().min(1, 'End date is required'),
   googleDriveLink: z.string().url('Invalid URL'),
-  campusId: z.string().min(1, 'Campus is required'),
+  campusIds: z.array(z.string()).min(1, 'Select at least one campus'),
   eqaCategory: z.string().optional(),
   certifyingBody: z.string().optional(),
   standard: z.string().min(1, 'Standard is required'),
@@ -67,7 +69,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
       startDate: '', 
       endDate: '', 
       googleDriveLink: '', 
-      campusId: '', 
+      campusIds: [], 
       eqaCategory: 'Certification / Re-Certification Audit', 
       certifyingBody: '',
       standard: 'ISO 21001:2018'
@@ -99,7 +101,7 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
         startDate: '',
         endDate: '',
         googleDriveLink: '',
-        campusId: '',
+        campusIds: [],
         eqaCategory: 'Certification / Re-Certification Audit',
         certifyingBody: '',
         standard: 'ISO 21001:2018'
@@ -121,6 +123,12 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
       toast({ title: 'Error', description: 'Failed to delete.', variant: 'destructive' });
     }
   };
+
+  const campusOptions = useMemo(() => {
+    const opts = campuses.map(c => ({ id: c.id, name: c.name }));
+    opts.unshift({ id: UNIVERSITY_WIDE_ID, name: 'University-Wide (Institutional)' });
+    return opts;
+  }, [campuses]);
 
   const campusMap = useMemo(() => {
     const map = new Map(campuses.map(c => [c.id, c.name]));
@@ -188,17 +196,20 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                         </div>
                         </TableCell>
                         <TableCell>
-                        {report.campusId === UNIVERSITY_WIDE_ID ? (
-                            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 gap-1 h-5 text-[10px] font-black uppercase tracking-tighter">
-                            <Globe className="h-3 w-3" />
-                            UNIVERSITY-WIDE
-                            </Badge>
-                        ) : (
-                            <div className="flex items-center gap-2 text-xs font-medium">
-                                <Building2 className="h-3 w-3 text-muted-foreground" />
-                                {campusMap.get(report.campusId) || '...'}
+                            <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                {report.campusIds?.includes(UNIVERSITY_WIDE_ID) ? (
+                                    <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 gap-1 h-5 text-[10px] font-black uppercase tracking-tighter">
+                                        <Globe className="h-3 w-3" />
+                                        UNIVERSITY-WIDE
+                                    </Badge>
+                                ) : (
+                                    report.campusIds?.map(id => (
+                                        <Badge key={id} variant="outline" className="h-5 text-[9px] font-bold border-primary/20 bg-white">
+                                            {campusMap.get(id) || '...'}
+                                        </Badge>
+                                    ))
+                                )}
                             </div>
-                        )}
                         </TableCell>
                         <TableCell className="text-center">
                             <div className="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
@@ -313,14 +324,20 @@ export function AuditReportsTab({ type, campuses, canManage }: AuditReportsTabPr
                 )} />
               </div>
               
-              <FormField control={form.control} name="campusId" render={({ field }) => (
-                  <FormItem><FormLabel className="text-xs font-bold uppercase tracking-wider">Site Scope</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select Scope" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                      <SelectItem value={UNIVERSITY_WIDE_ID} className="font-bold text-primary italic">University-Wide (Institutional)</SelectItem>
-                      {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                      </SelectContent>
-                  </Select><FormMessage /></FormItem>
+              <FormField control={form.control} name="campusIds" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-bold uppercase tracking-wider">Site Scope (Multi-Selection)</FormLabel>
+                    <FormControl>
+                        <MultiSelector 
+                            items={campusOptions}
+                            selectedIds={field.value}
+                            onSelect={field.onChange}
+                            placeholder="Search campuses..."
+                            label="Target Sites"
+                        />
+                    </FormControl>
+                    <FormDescription className="text-[10px]">Select all campuses covered by this audit report.</FormDescription>
+                    <FormMessage /></FormItem>
               )} />
 
               <FormField control={form.control} name="googleDriveLink" render={({ field }) => (

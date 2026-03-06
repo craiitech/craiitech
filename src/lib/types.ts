@@ -583,3 +583,17 @@ export type ProgramComplianceRecord = {
   updatedAt: any;
   updatedBy: string;
 };
+
+export type QaAuditReport = {
+    id: string;
+    type: 'IQA' | 'EQA';
+    title: string;
+    startDate: any; // Timestamp
+    endDate: any; // Timestamp
+    googleDriveLink: string;
+    campusIds: string[]; // Changed to array for multi-site scope
+    eqaCategory?: string;
+    certifyingBody?: string;
+    standard: string;
+    createdAt: any; // Timestamp
+};
