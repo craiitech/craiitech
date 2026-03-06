@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -21,9 +22,7 @@ import {
     Printer, 
     LayoutList,
     ChevronLeft,
-    ChevronRight,
-    PanelLeftClose,
-    PanelLeftOpen
+    ChevronRight
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';

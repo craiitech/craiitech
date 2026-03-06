@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -92,7 +93,7 @@ export default function EomsPolicyManualPage() {
           isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6"
         )}>
           <Card className="flex flex-col h-[350px] lg:h-full shadow-md border-primary/10">
-            <CardHeader className="bg-muted/30">
+            <CardHeader className="bg-muted/30 border-b">
               <CardTitle className="text-lg">Table of Contents</CardTitle>
               <CardDescription>Select a section to read.</CardDescription>
             </CardHeader>

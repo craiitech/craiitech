@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -20,7 +21,6 @@ service cloud.firestore {
 
     /**
      * Role Hierarchy Checks
-     * Campus and Admin roles are supervisors for approval purposes.
      */
     function isAdmin() {
       return isSignedIn() && (
@@ -38,14 +38,21 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // UNIT FORMS & WORKFLOW (PRIORITIZED)
+    // UNIT FORMS & WORKFLOW
     // --------------------------------------------------------------------------
     // Scoped access: Users see their own unit/campus, Admins see all.
     
     match /unitFormRequests/{id} { 
-      allow read, list: if isSignedIn();
+      allow read, list: if isSignedIn() && (
+        isAdmin() || 
+        (hasProfile() && profile().unitId == resource.data.unitId) ||
+        (hasProfile() && profile().campusId == resource.data.campusId)
+      );
       allow create: if isSignedIn();
-      allow update: if isSignedIn();
+      allow update: if isSignedIn() && (
+        isAdmin() || 
+        (hasProfile() && profile().unitId == resource.data.unitId)
+      );
       allow delete: if isAdmin();
     }
 
@@ -75,6 +82,7 @@ service cloud.firestore {
     match /unitMonitoringRecords/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || (isSupervisor() && profile().get('role', '') == 'Campus ODIMO'); }
     match /auditSchedules/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isAuditor(); }
     match /auditFindings/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isAuditor(); }
+    match /correctiveActionRequests/{carId} { allow read: if isSignedIn(); allow write: if isAdmin() || isAuditor() || isSupervisor(); }
     match /correctiveActionPlans/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
     match /academicPrograms/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
     match /programCompliances/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
@@ -93,11 +101,6 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin() || isAuditor();
       allow update: if isSignedIn();
-    }
-
-    match /correctiveActionRequests/{carId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || isAuditor();
     }
 
     match /qaAuditReports/{reportId} {

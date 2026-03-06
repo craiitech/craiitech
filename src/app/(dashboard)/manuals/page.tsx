@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Search, BookOpen, Building, ListChecks, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Search, BookOpen, Building, ListChecks, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UnitFormsTab } from '@/components/manuals/unit-forms-tab';
@@ -65,22 +65,22 @@ export default function ProcedureManualsPage() {
         <Button 
           variant="outline" 
           size="sm" 
-          className="md:hidden" 
+          className="lg:hidden" 
           onClick={() => setIsSidebarVisible(!isSidebarVisible)}
         >
-          <Building className="mr-2 h-4 w-4" />
+          {isSidebarVisible ? <PanelLeftClose className="mr-2 h-4 w-4" /> : <PanelLeftOpen className="mr-2 h-4 w-4" />}
           {isSidebarVisible ? 'Hide Units' : 'Show Units'}
         </Button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6 lg:h-[calc(100vh-12rem)]">
+      <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-12rem)]">
         {/* Collapsible Sidebar / Unit Directory */}
         <div className={cn(
           "transition-all duration-300 overflow-hidden flex flex-col",
-          isSidebarVisible ? "w-full md:w-1/4 opacity-100" : "w-0 opacity-0 md:-mr-6"
+          isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6"
         )}>
-          <Card className="flex flex-col h-[400px] lg:h-full shadow-sm">
-            <CardHeader className="pb-4">
+          <Card className="flex flex-col h-[400px] lg:h-full shadow-sm border-primary/10">
+            <CardHeader className="pb-4 bg-muted/30 border-b">
               <CardTitle className="text-sm font-bold uppercase tracking-wider">Unit Directory</CardTitle>
               <CardDescription className="text-[10px]">Select a unit to view its quality dossier.</CardDescription>
               <div className="relative pt-2">
@@ -89,7 +89,7 @@ export default function ProcedureManualsPage() {
                   placeholder="Search units..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 h-9 text-xs"
+                  className="pl-9 h-9 text-xs bg-white"
                 />
               </div>
             </CardHeader>
@@ -136,7 +136,7 @@ export default function ProcedureManualsPage() {
           <Button
             variant="secondary"
             size="icon"
-            className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden md:flex hover:bg-primary hover:text-white transition-colors"
+            className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden lg:flex hover:bg-primary hover:text-white transition-colors"
             onClick={() => setIsSidebarVisible(!isSidebarVisible)}
             title={isSidebarVisible ? "Hide Unit List" : "Show Unit List"}
           >
@@ -177,7 +177,7 @@ export default function ProcedureManualsPage() {
                         {previewUrl ? (
                             <iframe
                             src={previewUrl}
-                            className="absolute inset-0 h-full w-full border-none shadow-inner"
+                            className="absolute inset-0 h-full w-full border-none shadow-inner bg-white"
                             allow="autoplay"
                             title={`${selectedManual?.unitName} Manual Preview`}
                             ></iframe>

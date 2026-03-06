@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, Trash2, Edit, ShieldCheck, FileText, ClipboardCheck, Clock, UserCheck, Printer, Search, Filter, TrendingUp, AlertTriangle, CheckCircle2, Hash, Eye, ListTodo, Info, UserPlus, User, ShieldAlert, Target, History as HistoryIcon, Calendar } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, ShieldCheck, FileText, ClipboardCheck, Clock, UserCheck, Printer, Search, Filter, TrendingUp, AlertTriangle, CheckCircle2, Hash, Eye, ListTodo, Info, UserPlus, User, ShieldAlert, Target, History as HistoryIcon, Calendar, Link as LinkIcon, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -55,6 +56,10 @@ const carSchema = z.object({
     type: z.enum(['Immediate Correction', 'Long-term Corrective Action']),
     completionDate: z.string().min(1, 'Date is required'),
     status: z.enum(['Pending', 'Completed']),
+  })).optional(),
+  evidences: z.array(z.object({
+    title: z.string().min(1, 'Title is required'),
+    url: z.string().url('Invalid Google Drive URL'),
   })).optional(),
   verificationRecords: z.array(z.object({
     result: z.string().min(1, 'Verification result is required'),
@@ -149,6 +154,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         status: 'Open',
         requestDate: format(new Date(), 'yyyy-MM-dd'),
         actionSteps: [],
+        evidences: [],
         verificationRecords: []
     }
   });
@@ -156,6 +162,11 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   const { fields: actionFields, append: appendAction, remove: removeAction } = useFieldArray({
     control: form.control,
     name: "actionSteps"
+  });
+
+  const { fields: evidenceFields, append: appendEvidence, remove: removeEvidence } = useFieldArray({
+    control: form.control,
+    name: "evidences"
   });
 
   const { fields: verificationFields, append: appendVerification, remove: removeVerification } = useFieldArray({
@@ -239,6 +250,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             completionDate: Timestamp.fromDate(new Date(step.completionDate)),
             status: step.status || 'Pending'
         })),
+        evidences: values.evidences || [],
         verificationRecords: (values.verificationRecords || []).map(rec => ({
             result: rec.result || '',
             resultVerifiedBy: rec.resultVerifiedBy || '',
@@ -294,6 +306,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
           ...step,
           completionDate: safeDate(step.completionDate)
       })),
+      evidences: car.evidences || [],
       verificationRecords: (car.verificationRecords || []).map(rec => ({
           ...rec,
           resultVerificationDate: safeDate(rec.resultVerificationDate),
@@ -328,7 +341,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             </CardHeader>
             <CardContent className="flex-1">
                 <div className="text-3xl font-black text-emerald-600 tabular-nums">{stats.resolutionRate}%</div>
-                <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tighter">Correction Closure</p>
+                <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tighter">Correction Effectiveness Rate</p>
             </CardContent>
             <div className="p-2 bg-emerald-100/20 border-t mt-auto">
                 <p className="text-[8px] text-emerald-800/60 italic leading-tight">
@@ -400,7 +413,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             </div>
         </div>
         {canManage && (
-          <Button onClick={() => { setEditingCar(null); form.reset({ source: 'Audit Finding', natureOfFinding: 'NC', status: 'Open', requestDate: format(new Date(), 'yyyy-MM-dd'), actionSteps: [], verificationRecords: [] }); setIsDialogOpen(true); }} size="sm" className="h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest">
+          <Button onClick={() => { setEditingCar(null); form.reset({ source: 'Audit Finding', natureOfFinding: 'NC', status: 'Open', requestDate: format(new Date(), 'yyyy-MM-dd'), actionSteps: [], evidences: [], verificationRecords: [] }); setIsDialogOpen(true); }} size="sm" className="h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest">
             <PlusCircle className="mr-2 h-4 w-4" /> Issue New CAR
           </Button>
         )}
@@ -525,11 +538,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                 <Form {...form}>
                     <form id="car-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
                         <Tabs defaultValue="identification" className="w-full">
-                            <TabsList className="grid w-full grid-cols-4 h-12 bg-slate-100 p-1 mb-8">
-                                <TabsTrigger value="identification" className="text-xs font-bold uppercase"><Info className="h-3.5 w-3.5 mr-2" /> Identification</TabsTrigger>
-                                <TabsTrigger value="nonconformance" className="text-xs font-bold uppercase"><ShieldCheck className="h-3.5 w-3.5 mr-2" /> Statement</TabsTrigger>
-                                <TabsTrigger value="investigation" className="text-xs font-bold uppercase"><HistoryIcon className="h-3.5 w-3.5 mr-2" /> Action Registry</TabsTrigger>
-                                <TabsTrigger value="verification" className="text-xs font-bold uppercase"><ClipboardCheck className="h-3.5 w-3.5 mr-2" /> Verification</TabsTrigger>
+                            <TabsList className="grid w-full grid-cols-5 h-12 bg-slate-100 p-1 mb-8">
+                                <TabsTrigger value="identification" className="text-[10px] font-bold uppercase"><Info className="h-3.5 w-3.5 mr-2" /> Identification</TabsTrigger>
+                                <TabsTrigger value="nonconformance" className="text-[10px] font-bold uppercase"><ShieldCheck className="h-3.5 w-3.5 mr-2" /> Statement</TabsTrigger>
+                                <TabsTrigger value="investigation" className="text-[10px] font-bold uppercase"><HistoryIcon className="h-3.5 w-3.5 mr-2" /> Action Registry</TabsTrigger>
+                                <TabsTrigger value="evidences" className="text-[10px] font-bold uppercase"><LinkIcon className="h-3.5 w-3.5 mr-2" /> Evidences</TabsTrigger>
+                                <TabsTrigger value="verification" className="text-[10px] font-bold uppercase"><ClipboardCheck className="h-3.5 w-3.5 mr-2" /> Verification</TabsTrigger>
                             </TabsList>
 
                             <TabsContent value="identification" className="space-y-6 animate-in fade-in duration-300">
@@ -557,7 +571,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                     <FormField control={form.control} name="timeLimitForReply" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
-                                                <Clock className="h-3.5 w-3.5" /> Time Limit for Reply (Deadline)
+                                                <Calendar className="h-3.5 w-3.5" /> Time Limit for Reply (Deadline)
                                             </FormLabel>
                                             <FormControl>
                                                 <Input type="date" {...field} className="bg-slate-50 h-10" disabled={!canManage} />
@@ -718,6 +732,70 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                 </div>
                             </TabsContent>
 
+                            <TabsContent value="evidences" className="space-y-8 animate-in fade-in duration-300">
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between border-b pb-2">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Objective Evidence Registry</h4>
+                                        <Button 
+                                            type="button" 
+                                            size="sm" 
+                                            variant="outline"
+                                            onClick={() => appendEvidence({ title: '', url: '' })}
+                                            className="h-7 text-[9px] font-black uppercase bg-white shadow-sm"
+                                        >
+                                            <PlusCircle className="h-3 w-3 mr-1.5" /> Attach GDrive Evidence
+                                        </Button>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {evidenceFields.map((field, index) => (
+                                            <Card key={field.id} className="relative overflow-hidden group">
+                                                <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeEvidence(index)}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                                <CardContent className="p-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                                                    <div className="md:col-span-4">
+                                                        <FormField control={form.control} name={`evidences.${index}.title`} render={({ field: inputField }) => (
+                                                            <FormItem>
+                                                                <FormLabel className="text-[9px] uppercase font-bold">Evidence Title</FormLabel>
+                                                                <FormControl><Input {...inputField} placeholder="e.g., Photos of 7S Implementation" className="h-8 text-[10px]" /></FormControl>
+                                                            </FormItem>
+                                                        )} />
+                                                    </div>
+                                                    <div className="md:col-span-7">
+                                                        <FormField control={form.control} name={`evidences.${index}.url`} render={({ field: inputField }) => (
+                                                            <FormItem>
+                                                                <FormLabel className="text-[9px] uppercase font-bold">Google Drive Link</FormLabel>
+                                                                <FormControl>
+                                                                    <div className="relative">
+                                                                        <LinkIcon className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                                                                        <Input {...inputField} placeholder="https://drive.google.com/..." className="h-8 text-[10px] pl-7" />
+                                                                    </div>
+                                                                </FormControl>
+                                                            </FormItem>
+                                                        )} />
+                                                    </div>
+                                                    <div className="md:col-span-1 flex justify-end">
+                                                        {form.watch(`evidences.${index}.url`) && (
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" asChild>
+                                                                <a href={form.watch(`evidences.${index}.url`)} target="_blank" rel="noopener noreferrer">
+                                                                    <ExternalLink className="h-4 w-4" />
+                                                                </a>
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        ))}
+                                        {evidenceFields.length === 0 && (
+                                            <div className="py-16 text-center border border-dashed rounded-lg bg-muted/10">
+                                                <LinkIcon className="h-10 w-10 mx-auto text-muted-foreground opacity-20 mb-2" />
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">No implementation evidence attached</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </TabsContent>
+
                             <TabsContent value="verification" className="space-y-8 animate-in fade-in duration-300">
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between border-b pb-2">
@@ -833,10 +911,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                         </div>
                                                     </div>
 
-                                                    <FormField control={form.control} name={`verificationRecords.${index}.remarks`} render={({ field: inputField }) => (
+                                                    <FormField control={form.control} name={`verificationRecords.${index}.remarks`} render={({ field: remarksField }) => (
                                                         <FormItem className="pt-2">
                                                             <FormLabel className="text-[9px] font-bold uppercase text-muted-foreground">General Remarks (Optional)</FormLabel>
-                                                            <FormControl><Input {...inputField} placeholder="Any other observations..." className="h-8 text-[10px]" /></FormControl>
+                                                            <FormControl><Input {...remarksField} placeholder="Any other observations..." className="h-8 text-[10px]" /></FormControl>
                                                         </FormItem>
                                                     )} />
                                                 </CardContent>

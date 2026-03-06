@@ -292,6 +292,11 @@ export type CARActionStep = {
     status: 'Pending' | 'Completed';
 };
 
+export type CAREvidence = {
+    title: string;
+    url: string;
+};
+
 export type CARVerificationRecord = {
     result: string;
     resultVerifiedBy: string;
@@ -323,6 +328,7 @@ export type CorrectiveActionRequest = {
     
     rootCauseAnalysis?: string;
     actionSteps?: CARActionStep[];
+    evidences?: CAREvidence[];
     verificationRecords?: CARVerificationRecord[];
     
     status: 'Open' | 'In Progress' | 'Closed';
