@@ -1,15 +1,14 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
-import type { CorrectiveActionRequest, Campus, Unit } from '@/lib/types';
+import type { CorrectiveActionRequest, Campus, Unit, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, History, Trash2, Edit, Info, ShieldCheck, FileText, ClipboardCheck, UserCheck, Clock, UserPlus, ListTodo, User, Calendar, Printer, Search, Filter, TrendingUp, AlertTriangle, CheckCircle2, Hash } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, ShieldCheck, FileText, ClipboardCheck, Clock, UserCheck, Printer, Search, Filter, TrendingUp, AlertTriangle, CheckCircle2, Hash, Eye, ListTodo } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -86,6 +85,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     [firestore]
   );
   const { data: rawCars, isLoading } = useCollection<CorrectiveActionRequest>(carQuery);
+
+  const signatoryRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
+    [firestore]
+  );
+  const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
@@ -173,7 +178,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
 
     try {
         const reportHtml = renderToStaticMarkup(
-            <CARPrintTemplate car={car} unitName={uName} campusName={cName} />
+            <CARPrintTemplate car={car} unitName={uName} campusName={cName} signatories={signatories || undefined} />
         );
 
         const printWindow = window.open('', '_blank');
@@ -305,7 +310,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             </CardHeader>
             <CardContent>
                 <div className="text-3xl font-black text-primary tabular-nums">{stats.total}</div>
-                <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase">Requests in your scope</p>
+                <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">Requests in your scope</p>
             </CardContent>
         </Card>
         <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden">
@@ -315,7 +320,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             </CardHeader>
             <CardContent>
                 <div className="text-3xl font-black text-emerald-600 tabular-nums">{stats.resolutionRate}%</div>
-                <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Correction Closure</p>
+                <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tighter">Correction Closure</p>
             </CardContent>
         </Card>
         <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden">
@@ -325,7 +330,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             </CardHeader>
             <CardContent>
                 <div className="text-3xl font-black text-amber-600 tabular-nums">{stats.open}</div>
-                <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase">Awaiting Implementation</p>
+                <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tighter">Awaiting Implementation</p>
             </CardContent>
         </Card>
         <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden">
@@ -335,7 +340,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             </CardHeader>
             <CardContent>
                 <div className="text-3xl font-black text-rose-600 tabular-nums">{filteredCars.filter(c => c.natureOfFinding === 'NC').length}</div>
-                <p className="text-[9px] font-bold text-rose-600/70 mt-1 uppercase">Critical gaps found</p>
+                <p className="text-[9px] font-bold text-rose-600/70 mt-1 uppercase tracking-tighter">Critical gaps found</p>
             </CardContent>
         </Card>
       </div>
@@ -641,13 +646,13 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                                     <FormField control={form.control} name={`actionSteps.${index}.description`} render={({ field: inputField }) => (
                                                         <FormItem className="md:col-span-1">
                                                             <FormLabel className="text-[9px] uppercase font-bold">Action Description</FormLabel>
-                                                            <FormControl><Input {...field} className="h-8 text-[10px]" /></FormControl>
+                                                            <FormControl><Input {...inputField} className="h-8 text-[10px]" /></FormControl>
                                                         </FormItem>
                                                     )} />
                                                     <FormField control={form.control} name={`actionSteps.${index}.completionDate`} render={({ field: inputField }) => (
                                                         <FormItem className="md:col-span-1">
                                                             <FormLabel className="text-[9px] uppercase font-bold">Target Completion</FormLabel>
-                                                            <FormControl><Input type="date" {...field} className="h-8 text-[10px]" /></FormControl>
+                                                            <FormControl><Input type="date" {...inputField} className="h-8 text-[10px]" /></FormControl>
                                                         </FormItem>
                                                     )} />
                                                     <FormField control={form.control} name={`actionSteps.${index}.status`} render={({ field: inputField }) => (

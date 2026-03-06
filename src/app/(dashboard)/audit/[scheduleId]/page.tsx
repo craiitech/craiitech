@@ -3,7 +3,7 @@
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
 import { doc, collection, query, where, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
-import type { AuditSchedule, AuditFinding, ISOClause, AuditPlan } from '@/lib/types';
+import type { AuditSchedule, AuditFinding, ISOClause, AuditPlan, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
@@ -80,6 +80,12 @@ export default function AuditExecutionPage() {
     [firestore]
   );
   const { data: allIsoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(allIsoClausesQuery);
+
+  const signatoryRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
+    [firestore]
+  );
+  const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   const clausesInScope = useMemo(() => {
     if (!allIsoClauses || !schedule?.isoClausesToAudit) return [];
@@ -159,6 +165,7 @@ export default function AuditExecutionPage() {
                 findings={findings}
                 clauses={clausesInScope}
                 plan={plan || undefined}
+                signatories={signatories || undefined}
             />
         );
 

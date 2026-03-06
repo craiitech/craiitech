@@ -3,27 +3,20 @@
 import React from 'react';
 import type { AuditSchedule, AuditFinding, ISOClause, AuditPlan, Signatories } from '@/lib/types';
 import { format } from 'date-fns';
-import { Timestamp, doc } from 'firebase/firestore';
+import { Timestamp } from 'firebase/firestore';
 import { clauseQuestions } from '@/lib/audit-questions';
 import { CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 
 interface AuditPrintTemplateProps {
   schedule: AuditSchedule;
   findings: AuditFinding[];
   clauses: ISOClause[];
   plan?: AuditPlan;
+  signatories?: Signatories;
 }
 
-export function AuditPrintTemplate({ schedule, findings, clauses, plan }: AuditPrintTemplateProps) {
-  const firestore = useFirestore();
-  const signatoryRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
-    [firestore]
-  );
-  const { data: signatories } = useDoc<Signatories>(signatoryRef);
-
+export function AuditPrintTemplate({ schedule, findings, clauses, plan, signatories }: AuditPrintTemplateProps) {
   const conductDate = schedule.scheduledDate instanceof Timestamp 
     ? schedule.scheduledDate.toDate() 
     : new Date(schedule.scheduledDate);
@@ -172,7 +165,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, plan }: AuditP
       </div>
 
       {/* System Generated Note */}
-      <div className="mt-8 text-center text-[9px] font-bold italic text-slate-500">
+      <div className="mt-4 text-center text-[9px] font-bold italic text-slate-500">
         This is a system-generated report; signature is not required.
       </div>
 

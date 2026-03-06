@@ -1,26 +1,19 @@
 'use client';
 
 import React from 'react';
-import type { CorrectiveActionRequest, Campus, Unit, Signatories } from '@/lib/types';
+import type { CorrectiveActionRequest, Signatories } from '@/lib/types';
 import { format } from 'date-fns';
-import { Timestamp, doc } from 'firebase/firestore';
+import { Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 
 interface CARPrintTemplateProps {
   car: CorrectiveActionRequest;
   unitName: string;
   campusName: string;
+  signatories?: Signatories;
 }
 
-export function CARPrintTemplate({ car, unitName, campusName }: CARPrintTemplateProps) {
-  const firestore = useFirestore();
-  const signatoryRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
-    [firestore]
-  );
-  const { data: signatories } = useDoc<Signatories>(signatoryRef);
-
+export function CARPrintTemplate({ car, unitName, campusName, signatories }: CARPrintTemplateProps) {
   const safeDate = (d: any) => {
     if (!d) return '';
     const date = d instanceof Timestamp ? d.toDate() : new Date(d);
