@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -39,7 +38,7 @@ import { useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebas
 import { doc, updateDoc, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
-import type { Unit, Campus, User, UnitCategory } from '@/lib/types';
+import type { Unit, Campus, User } from '@/lib/types';
 import { Loader2, Check, ChevronsUpDown, Link as LinkIcon } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -76,7 +75,7 @@ export function EditUnitDialog({
   const [popoverOpen, setPopoverOpen] = useState(false)
 
   const usersQuery = useMemoFirebase(() => (firestore && isAdmin ? collection(firestore, 'users') : null), [firestore, isAdmin]);
-  const { data: allUsers, isLoading: isLoadingUsers } = useCollection<User>(usersQuery);
+  const { data: allUsers } = useCollection<User>(usersQuery);
 
   const vicePresidents = useMemo(() => {
     if (!allUsers) return [];

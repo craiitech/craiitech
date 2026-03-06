@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -19,7 +18,6 @@ import {
     CheckCircle2, 
     ShieldCheck, 
     Info, 
-    LayoutList, 
     Building, 
     Activity, 
     ChevronRight, 

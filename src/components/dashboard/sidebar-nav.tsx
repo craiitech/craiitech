@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -6,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   useUser,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardCheck, GraduationCap, MonitorCheck, ClipboardList, FolderKanban, Megaphone, ListChecks } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, Megaphone, ListChecks } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
 
@@ -27,7 +26,6 @@ export function SidebarNav({
     router.push('/logout');
   };
 
-  // Reordered and refined routes for optimal workflow
   const allRoutes = [
     {
       href: '/dashboard',
@@ -53,14 +51,14 @@ export function SidebarNav({
       label: 'Unit Monitoring',
       active: pathname.startsWith('/monitoring'),
       roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Vice President', 'Unit Coordinator', 'Unit ODIMO'],
-      icon: <ClipboardCheck />,
+      icon: <ClipboardList />,
     },
     {
       href: '/academic-programs',
       label: 'CHED Programs Monitoring',
       active: pathname.startsWith('/academic-programs'),
       roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Unit Coordinator', 'Unit ODIMO'],
-      icon: <GraduationCap />,
+      icon: <BookOpen />,
     },
     {
       href: '/submissions',
@@ -110,7 +108,7 @@ export function SidebarNav({
       label: 'Software Quality',
       active: pathname.startsWith('/software-quality'),
       roles: ['Admin'],
-      icon: <MonitorCheck />,
+      icon: <HistoryIcon />,
     },
      {
       href: '/reports',

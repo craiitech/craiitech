@@ -1,17 +1,15 @@
-
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, getDoc } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import type { ProcedureManual, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Search, BookOpen, Building, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen, Hash, FileText, Calendar } from 'lucide-react';
+import { Loader2, Search, BookOpen, Building, ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen, Hash, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 
 export default function ProcedureManualsPage() {
@@ -64,12 +62,11 @@ export default function ProcedureManualsPage() {
           onClick={() => setIsSidebarVisible(!isSidebarVisible)}
         >
           {isSidebarVisible ? <PanelLeftClose className="mr-2 h-4 w-4" /> : <PanelLeftOpen className="mr-2 h-4 w-4" />}
-          {isSidebarVisible ? 'Hide Units' : 'Show Units'}
+          {isSidebarVisible ? 'Hide Index' : 'Show Index'}
         </Button>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-12rem)]">
-        {/* Collapsible Sidebar / Unit Directory */}
         <div className={cn(
           "transition-all duration-300 overflow-hidden flex flex-col",
           isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6"
@@ -119,7 +116,6 @@ export default function ProcedureManualsPage() {
           </Card>
         </div>
 
-        {/* Main Content Area */}
         <div className="flex-1 min-w-0 flex flex-col relative">
           <Button
             variant="secondary"
