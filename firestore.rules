@@ -22,7 +22,6 @@ service cloud.firestore {
     /**
      * Role Hierarchy Checks
      * Campus and Admin roles are supervisors for approval purposes.
-     * Unit ODIMO is restricted to unit-level submission/view only.
      */
     function isAdmin() {
       return isSignedIn() && (
@@ -55,7 +54,26 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Registries allowing list/read for authenticated users
+    // --------------------------------------------------------------------------
+    // UNIT FORMS & WORKFLOW
+    // --------------------------------------------------------------------------
+    
+    match /unitFormRequests/{id} { 
+      allow read: if isSignedIn();
+      allow create: if isSignedIn(); 
+      allow update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    match /unitForms/{id} { 
+      allow read: if isSignedIn(); 
+      allow write: if isAdmin(); 
+    }
+
+    // --------------------------------------------------------------------------
+    // REGISTRIES & SUBMISSIONS
+    // --------------------------------------------------------------------------
+
     match /submissions/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
     match /risks/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
     match /unitMonitoringRecords/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || (isSupervisor() && profile().get('role', '') == 'Campus ODIMO'); }
@@ -65,18 +83,6 @@ service cloud.firestore {
     match /academicPrograms/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
     match /programCompliances/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
     
-    // Unit Forms & Workflow - Simplified for better dashboard performance
-    match /unitForms/{id} { 
-      allow read: if isSignedIn(); 
-      allow write: if isAdmin(); 
-    }
-    match /unitFormRequests/{id} { 
-      allow read: if isSignedIn();
-      allow create: if isSignedIn(); 
-      allow update: if isSignedIn();
-      allow delete: if isAdmin();
-    }
-
     // --------------------------------------------------------------------------
     // SYSTEM REGISTRIES & ANNOUNCEMENTS
     // --------------------------------------------------------------------------
@@ -120,7 +126,6 @@ service cloud.firestore {
     match /procedureManuals/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /eomsPolicyManuals/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
 
-    // Global System Settings (Signatories)
     match /system/signatories {
       allow read: if isSignedIn();
       allow write: if isAdmin();

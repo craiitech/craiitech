@@ -37,10 +37,17 @@ import {
     ChevronRight
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { UnitFormRequest, UnitFormRequestStatus } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { 
+    Table, 
+    TableBody, 
+    TableCell, 
+    TableHead, 
+    TableHeader, 
+    TableRow 
+} from '@/components/ui/table';
+import type { UnitFormRequest, UnitFormRequestStatus } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
