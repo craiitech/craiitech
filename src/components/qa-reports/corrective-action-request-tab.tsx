@@ -471,7 +471,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                 </TableHeader>
                 <TableBody>
                     {filteredCars.map((car) => (
-                    <TableRow key={car.id} className="hover:bg-muted/20 transition-colors">
+                    <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
                         <TableCell className="pl-6">
                         <div className="flex flex-col">
                             <span className="font-black text-xs text-primary">{car.carNumber}</span>
@@ -964,7 +964,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                         <FormItem className="max-w-xs">
                                             <FormLabel className="text-[10px] font-black uppercase text-primary">Current Lifecycle Status</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl><SelectTrigger className="bg-primary/5 border-primary/20 font-black h-10"><SelectValue /></SelectTrigger></FormControl>
+                                                <FormControl><SelectTrigger className="bg-primary/5 border-primary/20 font-black h-11"><SelectValue /></SelectTrigger></FormControl>
                                                 <SelectContent>
                                                     <SelectItem value="Open">Open</SelectItem>
                                                     <SelectItem value="In Progress">In Progress</SelectItem>

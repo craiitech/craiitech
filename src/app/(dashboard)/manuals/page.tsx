@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useFirestore } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { useState, useEffect, useMemo } from 'react';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, getDoc } from 'firebase/firestore';
 import type { ProcedureManual, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,6 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { useCollection, useMemoFirebase } from '@/firebase';
 
 export default function ProcedureManualsPage() {
   const firestore = useFirestore();
@@ -185,4 +184,3 @@ export default function ProcedureManualsPage() {
     </div>
   );
 }
-import { collection } from 'firebase/firestore';
