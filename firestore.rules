@@ -41,7 +41,7 @@ service cloud.firestore {
     // UNIT FORMS & WORKFLOW
     // --------------------------------------------------------------------------
     
-    // Broad permissions for Unit Form management to ensure stability
+    // Explicit permissions for Unit Form management
     match /unitFormRequests/{allPaths=**} { 
       allow read, write: if isSignedIn();
     }
