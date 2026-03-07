@@ -21,6 +21,7 @@ service cloud.firestore {
 
     /**
      * Role Hierarchy Checks
+     * Resilient check that doesn't crash if profile is missing.
      */
     function isAdmin() {
       return isSignedIn() && (
@@ -43,11 +44,11 @@ service cloud.firestore {
     
     // Explicit permissions for Unit Form management
     match /unitFormRequests/{requestId} { 
-      allow list, get, write: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
 
     match /unitForms/{formId} { 
-      allow list, get: if isSignedIn(); 
+      allow read: if isSignedIn(); 
       allow write: if isAdmin(); 
     }
 
