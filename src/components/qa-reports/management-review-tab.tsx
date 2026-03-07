@@ -547,7 +547,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
               <DialogFooter className="pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsMrDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
                 <Button type="submit" disabled={isSubmitting} className="min-w-[120px] shadow-lg shadow-primary/20">
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlusCircle className="h-4 w-4 mr-1.5" />}
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="h-4 w-4 mr-1.5" />}
                     Register Session
                 </Button>
               </DialogFooter>

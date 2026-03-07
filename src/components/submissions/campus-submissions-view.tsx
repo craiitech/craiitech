@@ -25,7 +25,8 @@ import {
     PanelLeftOpen,
     Info,
     TrendingUp,
-    Filter
+    Filter,
+    FileWarning
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
@@ -119,13 +120,8 @@ export function CampusSubmissionsView({
   );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
-  const campusMap = useMemo(() => new Map(allCampuses?.map(c => [c.id, c.name])), [allCampuses]);
   const unitMap = useMemo(() => new Map(allUnits?.map(u => [u.id, u.name])), [allUnits]);
 
-  /**
-   * SIDEBAR DATA
-   * Groups units by campus for the accordion selector.
-   */
   const campusGroups = useMemo(() => {
     if (!allCampuses || !allUnits) return [];
     
@@ -135,9 +131,6 @@ export function CampusSubmissionsView({
     })).filter(c => c.units.length > 0).sort((a,b) => a.name.localeCompare(b.name));
   }, [allCampuses, allUnits]);
 
-  /**
-   * UNIT DRILL-DOWN DATA
-   */
   const unitData = useMemo(() => {
     if (!selectedUnitId || !allSubmissions) return null;
     
@@ -233,7 +226,6 @@ export function CampusSubmissionsView({
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-16rem)]">
-        {/* --- UNIT DIRECTORY SIDEBAR --- */}
         <div className={cn(
           "transition-all duration-300 overflow-hidden flex flex-col gap-2",
           isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6"
@@ -281,7 +273,6 @@ export function CampusSubmissionsView({
           </Card>
         </div>
 
-        {/* --- WORKSPACE --- */}
         <div className="flex-1 min-w-0 flex flex-col relative">
           <Button
             variant="secondary"
@@ -353,8 +344,10 @@ export function CampusSubmissionsView({
                                     )}
                                     {unitData.missingFinal.length > 0 && (
                                         <div className="space-y-2">
-                                            <p className="text-[9px] font-black uppercase text-rose-600 border-b border-rose-200 pb-1">Final Cycle Registry</p>
-                                            <ul className="space-y-1.5">{unitData.missingFinal.map(doc => <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700"><div className="h-1 w-1 rounded-full bg-rose-400" /> {doc}</li>)}</ul>
+                                            <p className="text-[9px] font-black uppercase text-slate-500 underline mb-1">Missing (Final Cycle):</p>
+                                            <ul className="list-disc pl-4 text-[10px] space-y-0.5">
+                                                {unitData.missingFinal.map((m, i) => <li key={i}>{m}</li>)}
+                                            </ul>
                                         </div>
                                     )}
                                 </div>
@@ -401,7 +394,7 @@ function UnitTable({ cycleSubs, onView, isAdmin, onDeleteClick }: { cycleSubs: S
                             <TableCell className="text-right pr-6 space-x-2">
                                 <Button variant="default" size="sm" onClick={() => onView(sub.id)} className="h-8 text-[10px] font-bold bg-primary shadow-sm">VIEW RECORD</Button>
                                 {isAdmin && (
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => onDeleteClick(sub)}>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => onDeleteClick(sub)}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 )}
