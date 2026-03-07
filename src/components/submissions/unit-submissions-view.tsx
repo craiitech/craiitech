@@ -11,17 +11,16 @@ import {
     Building, 
     Eye, 
     Calendar as CalendarIcon, 
-    Filter, 
     FileWarning, 
     CheckCircle2, 
     PieChart as PieIcon, 
     AlertTriangle, 
     Printer, 
-    FileText,
-    Info,
-    ShieldCheck,
+    ShieldCheck, 
     ChevronLeft,
-    TrendingUp
+    TrendingUp,
+    Info,
+    Search
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
@@ -44,13 +43,6 @@ import { NoticeOfCompliance, NoticeOfNonCompliance } from './notices-print-templ
 import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
 import { doc, Timestamp } from 'firebase/firestore';
 
-const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    approved: 'default',
-    pending: 'secondary',
-    rejected: 'destructive',
-    submitted: 'outline'
-};
-
 const COLORS: Record<string, string> = {
     Approved: 'hsl(142 71% 45%)',
     'Awaiting Approval': 'hsl(var(--chart-1))',
@@ -71,7 +63,7 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
     },
     2026: { 
       first: 'bg-amber-50/20 hover:bg-amber-100/40', 
-      final: 'bg-amber-100/40 hover:bg-blue-200/50' 
+      final: 'bg-amber-100/40 hover:bg-amber-200/50' 
     },
     2027: { 
       first: 'bg-purple-50/20 hover:bg-purple-100/40', 
@@ -79,7 +71,7 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
     },
     2028: { 
       first: 'bg-rose-50/20 hover:bg-rose-100/40', 
-      final: 'bg-rose-100/40 hover:bg-blue-200/50' 
+      final: 'bg-rose-100/40 hover:bg-rose-200/50' 
     },
   };
   
@@ -213,7 +205,7 @@ export function UnitSubmissionsView({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Searchable Header Dropdown */}
+      {/* Horizontal Selector Header */}
       <Card className="border-primary/10 shadow-sm bg-muted/10">
         <CardContent className="p-4 flex flex-col md:flex-row items-center gap-4">
             <div className="flex-1 w-full space-y-1.5">
@@ -320,7 +312,7 @@ export function UnitSubmissionsView({
   );
 }
 
-function UnitTable({ cycleSubs, onView }: { cycleSubs: Submission[], onView: (id: string) => void }) {
+function UnitTable({ cycleSubs, onView }: { cycleSubs: any[], onView: (id: string) => void }) {
     if (cycleSubs.length === 0) return <div className="rounded-xl border border-dashed p-10 text-center bg-muted/5"><p className="text-xs text-muted-foreground font-bold uppercase tracking-widest opacity-40">No entries recorded</p></div>;
     return (
         <div className="rounded-xl border shadow-sm overflow-hidden bg-white">
@@ -330,7 +322,7 @@ function UnitTable({ cycleSubs, onView }: { cycleSubs: Submission[], onView: (id
                 </TableHeader>
                 <TableBody>
                     {cycleSubs.map(sub => (
-                        <TableRow key={sub.id} className={cn("transition-colors", getYearCycleRowColor(sub.year, sub.cycleId))}>
+                        <TableRow key={sub.id} className="transition-colors hover:bg-muted/10">
                             <TableCell className="pl-6 py-4"><div className="flex flex-col gap-1"><span className="font-bold text-sm text-slate-900">{sub.reportType}</span><span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">{sub.controlNumber}</span></div></TableCell>
                             <TableCell className="text-center"><Badge className={cn("capitalize font-black text-[9px] px-2 py-0.5 border-none shadow-sm", sub.statusId === 'approved' && "bg-emerald-600 text-white", sub.statusId === 'rejected' && "bg-rose-600 text-white", sub.statusId === 'submitted' && "bg-amber-500 text-amber-950")}>{sub.statusId === 'submitted' ? 'AWAITING' : sub.statusId.toUpperCase()}</Badge></TableCell>
                             <TableCell className="text-right pr-6"><Button variant="default" size="sm" onClick={() => onView(sub.id)} className="h-8 text-[10px] font-bold bg-primary shadow-sm">VIEW RECORD</Button></TableCell>
