@@ -42,16 +42,16 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     // Explicit permissions for Unit Form management
-    match /unitFormRequests/{allPaths=**} { 
-      allow read, write: if isSignedIn();
+    match /unitFormRequests/{requestId} { 
+      allow list, get, write: if isSignedIn();
     }
 
-    match /unitForms/{allPaths=**} { 
-      allow read: if isSignedIn(); 
+    match /unitForms/{formId} { 
+      allow list, get: if isSignedIn(); 
       allow write: if isAdmin(); 
     }
 
-    match /formDownloadLogs/{allPaths=**} {
+    match /formDownloadLogs/{logId} {
       allow create: if isSignedIn();
       allow read: if isAdmin();
     }
