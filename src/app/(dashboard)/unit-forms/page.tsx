@@ -219,7 +219,7 @@ export default function UnitFormsPage() {
                         variant="ghost"
                         onClick={() => setSelectedUnitId(unit.id)}
                         className={cn(
-                          "w-full justify-start text-left h-auto py-3 px-4 rounded-none border-l-2 transition-all",
+                          "w-full justify-start text-left h-auto py-2.5 px-4 text-xs rounded-none border-l-2 transition-all",
                           selectedUnitId === unit.id 
                             ? "bg-primary/5 text-primary border-primary font-bold shadow-inner" 
                             : "border-transparent text-muted-foreground"
@@ -399,7 +399,7 @@ export default function UnitFormsPage() {
                                                         <p className="text-xs font-black uppercase text-slate-800">1. Download Template</p>
                                                         <p className="text-[10px] text-muted-foreground font-medium italic">Obtain the official DRF from the institutional vault.</p>
                                                     </div>
-                                                    <Button size="sm" className="w-full font-black text-[10px] uppercase shadow-sm" asChild>
+                                                    <Button type="button" size="sm" className="w-full font-black text-[10px] uppercase shadow-sm" asChild>
                                                         <a href="https://drive.google.com/file/d/1yPdJGXQT1yhyXkENhtDHLaIMlxTnHYx3/view?usp=sharing" target="_blank" rel="noopener noreferrer">Access DRF Template</a>
                                                     </Button>
                                                 </CardContent>
