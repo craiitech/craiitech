@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc, updateDoc, setDoc, serverTimestamp, orderBy } from 'firebase/firestore';
+import { collection, query, where, doc, setDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import type { Unit, UnitForm, UnitFormRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -121,7 +121,7 @@ export default function UnitFormsPage() {
 
   const selectedUnit = useMemo(() => {
       if (selectedUnitId === SHARED_ACADEMIC_ID) {
-          return { id: SHARED_ACADEMIC_ID, name: 'Academic Units (Shared)', category: 'Academic' as const, isShared: true };
+          return { id: SHARED_ACADEMIC_ID, name: 'Academic Units (Shared Registry)', category: 'Academic' as const, isShared: true };
       }
       return allUnits?.find(u => u.id === selectedUnitId);
   }, [allUnits, selectedUnitId]);
@@ -160,7 +160,7 @@ export default function UnitFormsPage() {
           toast({ title: 'Drive Link Updated', description: 'Institutional repository link has been saved.' });
       } catch (e) {
           console.error("Save Link Error:", e);
-          toast({ title: 'Error', description: 'Failed to update link. Ensure the target document exists.', variant: 'destructive' });
+          toast({ title: 'Error', description: 'Failed to update link.', variant: 'destructive' });
       } finally {
           setIsSavingLink(false);
       }
@@ -279,14 +279,17 @@ export default function UnitFormsPage() {
                                                         Master repository for all approved quality forms. Controlled by the QA Office.
                                                     </p>
                                                     {isAdmin && (
-                                                        <div className="flex items-center gap-2 mt-3 max-w-md">
-                                                            <Input 
-                                                                value={editDriveLink} 
-                                                                onChange={(e) => setEditDriveLink(e.target.value)} 
-                                                                placeholder="Paste Master GDrive Folder Link..."
-                                                                className="h-8 text-[10px] bg-white"
-                                                            />
-                                                            <Button size="sm" onClick={handleSaveDriveLink} disabled={isSavingLink} className="h-8 px-3">
+                                                        <div className="flex items-center gap-2 mt-3 max-w-md p-3 bg-white rounded-lg border border-primary/20 shadow-inner">
+                                                            <div className="flex-1 space-y-1.5">
+                                                                <Label className="text-[9px] font-black uppercase text-primary tracking-widest">Update Master Repository Link</Label>
+                                                                <Input 
+                                                                    value={editDriveLink} 
+                                                                    onChange={(e) => setEditDriveLink(e.target.value)} 
+                                                                    placeholder="Paste Master GDrive Folder Link..."
+                                                                    className="h-8 text-[10px] bg-slate-50 border-primary/10"
+                                                                />
+                                                            </div>
+                                                            <Button size="sm" onClick={handleSaveDriveLink} disabled={isSavingLink} className="h-8 px-3 mt-4">
                                                                 {isSavingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                                                             </Button>
                                                         </div>
@@ -350,7 +353,7 @@ export default function UnitFormsPage() {
                                                     <TableHead className="text-[10px] font-black uppercase pl-6">Code</TableHead>
                                                     <TableHead className="text-[10px] font-black uppercase">Official Title</TableHead>
                                                     <TableHead className="text-[10px] font-black uppercase text-center">Rev.</TableHead>
-                                                    {isAdmin && <TableHead className="text-[10px] font-black uppercase">Admin Link</TableHead>}
+                                                    {isAdmin && <TableHead className="text-[10px] font-black uppercase">Admin Reference Link</TableHead>}
                                                     <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
                                                 </TableRow>
                                             </TableHeader>
@@ -500,7 +503,12 @@ export default function UnitFormsPage() {
             <div className="h-full flex flex-col items-center justify-center border border-dashed rounded-2xl bg-muted/5 text-muted-foreground p-12">
                 <Building className="h-12 w-12 opacity-10 mb-4" />
                 <h4 className="font-black text-xs uppercase tracking-[0.2em]">Form Control Hub</h4>
-                <p className="text-[10px] mt-2 max-w-[250px] text-center leading-relaxed">Select a unit from the directory to access its quality forms registry and manage registration requests.</p>
+                <p className="text-[10px] mt-2 max-w-[250px] text-center leading-relaxed">
+                    {isAdmin 
+                        ? 'Select a unit from the directory to access its quality forms registry and manage official Drive repository links.' 
+                        : 'Select a unit from the directory to access its quality forms registry and manage registration requests.'
+                    }
+                </p>
             </div>
           )}
         </div>
