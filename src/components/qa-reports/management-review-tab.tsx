@@ -1,14 +1,35 @@
+
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, deleteDoc, doc, addDoc, serverTimestamp, where, Timestamp, updateDoc } from 'firebase/firestore';
-import type { ManagementReview, ManagementReviewOutput, Campus, Unit, MRAssignment, ManagementReviewOutputStatus } from '@/lib/types';
+import { collection, query, orderBy, doc, addDoc, serverTimestamp, where, Timestamp, updateDoc } from 'firebase/firestore';
+import type { ManagementReview, ManagementReviewOutput, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, PlusCircle, Calendar, ExternalLink, Trash2, ListChecks, ChevronRight, User, Globe, Building2, FileText, Presentation, Hash, Edit, Info, Target, ShieldCheck } from 'lucide-react';
+import { 
+    Loader2, 
+    PlusCircle, 
+    Calendar, 
+    ExternalLink, 
+    Trash2, 
+    ListChecks, 
+    ChevronRight, 
+    User, 
+    Building2, 
+    FileText, 
+    Presentation, 
+    Hash, 
+    Edit, 
+    Info, 
+    Target, 
+    ShieldCheck,
+    ChevronLeft,
+    PanelLeftClose,
+    PanelLeftOpen
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -66,6 +87,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
   const [isOutputDialogOpen, setIsOutputDialogOpen] = useState(false);
   const [editingOutput, setEditingOutput] = useState<ManagementReviewOutput | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   const reviewsQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'managementReviews'), orderBy('startDate', 'desc')) : null),
@@ -211,254 +233,278 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-1 space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Meeting Logs</h3>
-          {canManage && (
-            <Button onClick={() => setIsMrDialogOpen(true)} size="sm" variant="outline" className="h-8 text-[10px] font-bold">
-              <PlusCircle className="h-3 w-3 mr-1.5" /> NEW SESSION
-            </Button>
-          )}
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+            <h3 className="text-lg font-black uppercase tracking-tight">Management Review Sessions</h3>
+            <p className="text-xs text-muted-foreground">Select a session from the log to view official outputs and minutes.</p>
         </div>
-        <ScrollArea className="h-[70vh]">
-          <div className="space-y-2 pr-4">
-            {reviews?.map(review => (
-              <Card 
-                key={review.id} 
-                className={cn("cursor-pointer transition-all hover:shadow-md", selectedMr?.id === review.id ? "border-primary ring-1 ring-primary bg-primary/5" : "hover:bg-muted/50")}
-                onClick={() => setSelectedMr(review)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1.5 min-w-0">
-                      <p className="font-bold text-sm truncate">{review.title}</p>
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
-                            <Calendar className="h-3 w-3" />
-                            {safeFormatDate(review.startDate)}
-                            {review.endDate && ` - ${safeFormatDate(review.endDate)}`}
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
-                            {review.campusId === UNIVERSITY_WIDE_ID ? (
-                                <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 h-4 px-1.5 text-[8px] font-black uppercase">Institutional</Badge>
-                            ) : (
-                                <span className="flex items-center gap-1"><Building2 className="h-3 w-3" /> {campusMap.get(review.campusId) || '...'}</span>
-                            )}
-                        </div>
-                      </div>
-                    </div>
-                    <ChevronRight className={cn("h-4 w-4 text-muted-foreground shrink-0 mt-1", selectedMr?.id === review.id && "text-primary")} />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            {reviews?.length === 0 && (
-                <div className="text-center py-20 border border-dashed rounded-xl bg-muted/10">
-                    <Presentation className="h-8 w-8 mx-auto text-muted-foreground/20 mb-2" />
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">No sessions found</p>
-                </div>
+        <div className="flex items-center gap-2">
+            <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary hover:bg-primary/5"
+                onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+            >
+                {isSidebarVisible ? <PanelLeftClose className="mr-2 h-4 w-4" /> : <PanelLeftOpen className="mr-2 h-4 w-4" />}
+                {isSidebarVisible ? 'Hide Logs' : 'Show Logs'}
+            </Button>
+            {canManage && (
+                <Button onClick={() => setIsMrDialogOpen(true)} size="sm" className="h-9 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest">
+                    <PlusCircle className="mr-2 h-4 w-4" /> New Session
+                </Button>
             )}
-          </div>
-        </ScrollArea>
+        </div>
       </div>
 
-      <div className="lg:col-span-2">
-        {selectedMr ? (
-          <div className="h-full flex flex-col space-y-4">
-            <Card className="shrink-0 border-primary/10 shadow-sm">
-                <CardHeader className="py-4 border-b bg-muted/10">
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                                <CardTitle className="text-lg font-black uppercase tracking-tight">{selectedMr.title}</CardTitle>
-                                {selectedMr.campusId === UNIVERSITY_WIDE_ID && (
-                                    <Badge className="bg-primary text-white text-[8px] font-black h-4 px-1.5">INSTITUTIONAL</Badge>
-                                )}
-                            </div>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Selected Management Review Session</p>
-                        </div>
-                        <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold" asChild>
-                            <a href={selectedMr.minutesLink} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="h-3 w-3 mr-1.5" /> OPEN MINUTES
-                            </a>
-                        </Button>
-                    </div>
+      <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-20rem)]">
+        <div className={cn(
+            "transition-all duration-300 overflow-hidden flex flex-col gap-2",
+            isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6"
+        )}>
+            <Card className="flex flex-col h-[400px] lg:h-full shadow-sm border-primary/10 bg-muted/5">
+                <CardHeader className="pb-4 border-b">
+                    <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Meeting Log Archive</CardTitle>
                 </CardHeader>
-                <div className="p-3 bg-white/50 border-t">
-                    <div className="flex items-start gap-3">
-                        <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                        <p className="text-[9px] text-muted-foreground italic leading-tight">
-                            <strong>Guide:</strong> Management Reviews (MR) are top-level evaluations of the university's performance. The decisions logged here are the official outputs of the University President and the Board of Regents, aimed at resolving systemic issues and capitalizing on opportunities identified in audits.
-                        </p>
-                    </div>
-                </div>
-            </Card>
-
-            <Tabs defaultValue="outputs" className="flex-1 flex flex-col min-h-0">
-                <TabsList className="bg-muted p-1 border grid grid-cols-2 shrink-0">
-                    <TabsTrigger value="outputs" className="text-[10px] font-black uppercase tracking-widest gap-2">
-                        <ListChecks className="h-3.5 w-3.5" /> Decisions & Actions
-                    </TabsTrigger>
-                    <TabsTrigger value="minutes" className="text-[10px] font-black uppercase tracking-widest gap-2">
-                        <FileText className="h-3.5 w-3.5" /> Minutes Preview
-                    </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="outputs" className="flex-1 min-h-0 pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    <Card className="h-full flex flex-col overflow-hidden">
-                        <div className="p-4 border-b bg-muted/5 flex items-center justify-between shrink-0">
-                            <div className="flex items-center gap-2">
-                                <Target className="h-4 w-4 text-primary" />
-                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Decisions / Action Plans Registry</h4>
-                            </div>
-                            {canManage && (
-                                <Button onClick={() => handleOpenOutputDialog()} size="sm" className="h-7 text-[9px] font-black uppercase shadow-lg shadow-primary/20">
-                                    <PlusCircle className="h-3 w-3 mr-1.5" /> LOG MR OUTPUT
-                                </Button>
+                <CardContent className="flex-1 overflow-hidden p-2">
+                    <ScrollArea className="h-full">
+                        <div className="space-y-2 pr-2">
+                            {reviews?.map(review => (
+                            <Card 
+                                key={review.id} 
+                                className={cn(
+                                    "cursor-pointer transition-all hover:shadow-md border-transparent", 
+                                    selectedMr?.id === review.id ? "bg-primary/10 border-primary/20 shadow-sm" : "hover:bg-muted/50 bg-white"
+                                )}
+                                onClick={() => setSelectedMr(review)}
+                            >
+                                <CardContent className="p-3">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="space-y-1.5 min-w-0">
+                                            <p className={cn("text-xs font-bold leading-tight truncate", selectedMr?.id === review.id ? "text-primary" : "text-slate-700")}>{review.title}</p>
+                                            <div className="flex items-center gap-2 text-[9px] text-muted-foreground font-black uppercase tracking-tighter">
+                                                <Calendar className="h-2.5 w-2.5" />
+                                                {safeFormatDate(review.startDate)}
+                                            </div>
+                                        </div>
+                                        <ChevronRight className={cn("h-3 w-3 mt-1 shrink-0 transition-transform", selectedMr?.id === review.id ? "text-primary rotate-90" : "text-muted-foreground opacity-30")} />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            ))}
+                            {reviews?.length === 0 && (
+                                <div className="text-center py-20 opacity-20">
+                                    <Presentation className="h-10 w-10 mx-auto mb-2" />
+                                    <p className="text-[10px] font-black uppercase">Log is empty</p>
+                                </div>
                             )}
                         </div>
-                        <CardContent className="p-0 flex-1 overflow-hidden">
-                            <ScrollArea className="h-full">
-                                {isLoadingOutputs ? (
-                                    <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
-                                ) : (
-                                    <Table>
-                                        <TableHeader className="bg-muted/30 sticky top-0 z-10">
-                                            <TableRow className="hover:bg-transparent">
-                                                <TableHead className="text-[10px] font-black uppercase py-2 w-[40px]">#</TableHead>
-                                                <TableHead className="text-[10px] font-black uppercase py-2">Decision / Description</TableHead>
-                                                <TableHead className="text-[10px] font-black uppercase py-2">Assigned Responsibilities</TableHead>
-                                                <TableHead className="text-[10px] font-black uppercase py-2 text-center">Follow-up</TableHead>
-                                                <TableHead className="text-[10px] font-black uppercase py-2 text-right">Status</TableHead>
-                                                <TableHead className="text-[10px] font-black uppercase py-2 text-right">Action</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {outputs?.map((output, index) => (
-                                                <TableRow key={output.id} className="hover:bg-muted/20 transition-colors">
-                                                    <TableCell className="text-[10px] font-black text-muted-foreground text-center">{index + 1}</TableCell>
-                                                    <TableCell className="max-w-xs py-4">
-                                                        <div className="flex flex-col gap-1">
-                                                            <p className="font-bold text-xs text-slate-800 leading-relaxed">{output.description}</p>
-                                                            <div className="flex flex-wrap items-center gap-3 mt-2 opacity-60">
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <User className="h-2.5 w-2.5" />
-                                                                    <span className="text-[9px] font-bold uppercase tracking-tighter">Initiator: {output.initiator}</span>
-                                                                </div>
-                                                                {output.lineNumber && (
-                                                                    <div className="flex items-center gap-1.5 text-primary">
-                                                                        <Hash className="h-2.5 w-2.5" />
-                                                                        <span className="text-[9px] font-black uppercase tracking-tighter">Line: {output.lineNumber}</span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex flex-col gap-1.5">
-                                                            {(output.assignments || []).map((a, idx) => (
-                                                                <div key={idx} className="flex flex-wrap items-center gap-1">
-                                                                    <Badge variant="secondary" className="text-[8px] font-black h-4 py-0 uppercase bg-primary/5 text-primary border-none">
-                                                                        {campusMap.get(a.campusId) || a.campusId}
-                                                                    </Badge>
-                                                                    <ChevronRight className="h-2.5 w-2.5 opacity-30" />
-                                                                    <Badge variant="outline" className={cn(
-                                                                        "text-[8px] font-bold h-4 py-0 uppercase",
-                                                                        a.unitId === ALL_ACADEMIC_ID ? "bg-blue-50 text-blue-700 border-blue-200" :
-                                                                        a.unitId === ALL_ADMIN_ID ? "bg-slate-50 text-slate-700 border-slate-200" :
-                                                                        a.unitId === ALL_REDI_ID ? "bg-purple-50 text-purple-700 border-purple-200" :
-                                                                        "border-primary/20"
-                                                                    )}>
-                                                                        {unitMap.get(a.unitId) || a.unitId}
-                                                                    </Badge>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-center">
-                                                        <span className="text-[10px] font-black tabular-nums text-slate-600">
-                                                            {output.followUpDate?.toDate ? format(output.followUpDate.toDate(), 'MMM dd, yy') : 'N/A'}
-                                                        </span>
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Badge 
-                                                            className={cn(
-                                                                "text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap",
-                                                                output.status === 'Open' ? "bg-rose-600 text-white" : 
-                                                                output.status === 'On-going' ? "bg-amber-500 text-amber-950" : 
-                                                                output.status === 'Submit for Closure Verification' ? "bg-blue-600 text-white" :
-                                                                "bg-emerald-600 text-white"
-                                                            )}
-                                                        >
-                                                            {output.status}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="icon" 
-                                                            className="h-8 w-8 text-primary hover:bg-primary/5"
-                                                            onClick={() => handleOpenOutputDialog(output)}
-                                                        >
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                            {outputs?.length === 0 && (
-                                                <TableRow>
-                                                    <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
-                                                        <div className="flex flex-col items-center gap-2 opacity-20">
-                                                            <Presentation className="h-10 w-10" />
-                                                            <p className="text-[10px] font-black uppercase tracking-widest">No decisions logged</p>
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            )}
-                                        </TableBody>
-                                    </Table>
-                                )}
-                            </ScrollArea>
-                        </CardContent>
-                        <CardFooter className="bg-muted/10 border-t py-3">
+                    </ScrollArea>
+                </CardContent>
+            </Card>
+        </div>
+
+        <div className="flex-1 min-w-0 flex flex-col relative">
+            <Button
+                variant="secondary"
+                size="icon"
+                className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden lg:flex hover:bg-primary hover:text-white transition-colors"
+                onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+                title={isSidebarVisible ? "Hide Logs" : "Show Logs"}
+            >
+                {isSidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </Button>
+
+            {selectedMr ? (
+                <div className="h-full flex flex-col space-y-4">
+                    <Card className="shrink-0 border-primary/10 shadow-md">
+                        <CardHeader className="py-4 border-b bg-muted/10">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <CardTitle className="text-lg font-black uppercase tracking-tight">{selectedMr.title}</CardTitle>
+                                        <Badge className="bg-primary text-white text-[8px] font-black h-4 px-1.5 uppercase">
+                                            {selectedMr.campusId === UNIVERSITY_WIDE_ID ? 'Institutional' : 'Site-Specific'}
+                                        </Badge>
+                                    </div>
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Selected Management Review Session</p>
+                                </div>
+                                <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold" asChild>
+                                    <a href={selectedMr.minutesLink} target="_blank" rel="noopener noreferrer">
+                                        <ExternalLink className="h-3 w-3 mr-1.5" /> OPEN MINUTES
+                                    </a>
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <div className="p-3 bg-white/50 border-t">
                             <div className="flex items-start gap-3">
-                                <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                                <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                                 <p className="text-[9px] text-muted-foreground italic leading-tight">
-                                    <strong>Guide:</strong> Assigned units must respond to these decisions by logging implementation progress in the "Actionable Decisions" hub. Closure is only finalized after institutional verification by the QAO.
+                                    <strong>Guide:</strong> Management Reviews (MR) are top-level evaluations of performance. The decisions logged here are the official outputs of the University President and the Board of Regents.
                                 </p>
                             </div>
-                        </CardFooter>
+                        </div>
                     </Card>
-                </TabsContent>
 
-                <TabsContent value="minutes" className="flex-1 min-h-0 pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    <Card className="h-full flex flex-col overflow-hidden border-primary/10">
-                        <div className="p-4 border-b bg-muted/5 flex items-center justify-between shrink-0">
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Minutes of the Meeting</h4>
-                            <p className="text-[9px] font-bold text-muted-foreground italic">Powered by Google Drive Preview</p>
+                    <Tabs defaultValue="outputs" className="flex-1 flex flex-col min-h-0">
+                        <TabsList className="bg-muted p-1 border grid grid-cols-2 shrink-0 h-10 w-[400px]">
+                            <TabsTrigger value="outputs" className="text-[10px] font-black uppercase tracking-widest gap-2">
+                                <ListChecks className="h-3.5 w-3.5" /> Decisions & Actions
+                            </TabsTrigger>
+                            <TabsTrigger value="minutes" className="text-[10px] font-black uppercase tracking-widest gap-2">
+                                <FileText className="h-3.5 w-3.5" /> Minutes Preview
+                            </TabsTrigger>
+                        </TabsList>
+
+                        <div className="flex-1 overflow-hidden pt-2">
+                            <TabsContent value="outputs" className="h-full m-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <Card className="h-full flex flex-col overflow-hidden shadow-lg border-primary/10 bg-white">
+                                    <div className="p-4 border-b bg-muted/5 flex items-center justify-between shrink-0">
+                                        <div className="flex items-center gap-2">
+                                            <Target className="h-4 w-4 text-primary" />
+                                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Decisions / Action Plans Registry</h4>
+                                        </div>
+                                        {canManage && (
+                                            <Button onClick={() => handleOpenOutputDialog()} size="sm" className="h-7 text-[9px] font-black uppercase shadow-lg shadow-primary/20">
+                                                <PlusCircle className="h-3 w-3 mr-1.5" /> LOG MR OUTPUT
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <CardContent className="p-0 flex-1 overflow-hidden">
+                                        <ScrollArea className="h-full">
+                                            {isLoadingOutputs ? (
+                                                <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
+                                            ) : (
+                                                <Table>
+                                                    <TableHeader className="bg-muted/30 sticky top-0 z-10">
+                                                        <TableRow className="hover:bg-transparent">
+                                                            <TableHead className="text-[10px] font-black uppercase py-2 w-[40px] text-center">#</TableHead>
+                                                            <TableHead className="text-[10px] font-black uppercase py-2">Decision / Description</TableHead>
+                                                            <TableHead className="text-[10px] font-black uppercase py-2">Assigned Responsibilities</TableHead>
+                                                            <TableHead className="text-[10px] font-black uppercase py-2 text-center">Follow-up</TableHead>
+                                                            <TableHead className="text-[10px] font-black uppercase py-2 text-right">Status</TableHead>
+                                                            <TableHead className="text-[10px] font-black uppercase py-2 text-right pr-6">Action</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {outputs?.map((output, index) => (
+                                                            <TableRow key={output.id} className="hover:bg-muted/20 transition-colors">
+                                                                <TableCell className="text-[10px] font-black text-muted-foreground text-center">{index + 1}</TableCell>
+                                                                <TableCell className="max-w-xs py-4">
+                                                                    <div className="flex flex-col gap-1">
+                                                                        <p className="font-bold text-xs text-slate-800 leading-relaxed">{output.description}</p>
+                                                                        <div className="flex flex-wrap items-center gap-3 mt-2 opacity-60">
+                                                                            <div className="flex items-center gap-1.5">
+                                                                                <User className="h-2.5 w-2.5" />
+                                                                                <span className="text-[9px] font-bold uppercase tracking-tighter">Initiator: {output.initiator}</span>
+                                                                            </div>
+                                                                            {output.lineNumber && (
+                                                                                <div className="flex items-center gap-1.5 text-primary">
+                                                                                    <Hash className="h-2.5 w-2.5" />
+                                                                                    <span className="text-[9px] font-black uppercase tracking-tighter">Line: {output.lineNumber}</span>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <div className="flex flex-col gap-1.5">
+                                                                        {(output.assignments || []).map((a, idx) => (
+                                                                            <div key={idx} className="flex flex-wrap items-center gap-1">
+                                                                                <Badge variant="secondary" className="text-[8px] h-4 py-0 uppercase bg-primary/5 text-primary border-none">
+                                                                                    {campusMap.get(a.campusId) || a.campusId}
+                                                                                </Badge>
+                                                                                <ChevronRight className="h-2.5 w-2.5 opacity-30" />
+                                                                                <Badge variant="outline" className={cn(
+                                                                                    "text-[8px] h-4 py-0 uppercase",
+                                                                                    a.unitId === ALL_ACADEMIC_ID ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                                                                    a.unitId === ALL_ADMIN_ID ? "bg-slate-50 text-slate-700 border-slate-200" :
+                                                                                    a.unitId === ALL_REDI_ID ? "bg-purple-50 text-purple-700 border-purple-200" :
+                                                                                    "border-primary/20"
+                                                                                )}>
+                                                                                    {unitMap.get(a.unitId) || a.unitId}
+                                                                                </Badge>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </TableCell>
+                                                                <TableCell className="text-center">
+                                                                    <span className="text-[10px] font-black tabular-nums text-slate-600">
+                                                                        {output.followUpDate?.toDate ? format(output.followUpDate.toDate(), 'MMM dd, yy') : 'N/A'}
+                                                                    </span>
+                                                                </TableCell>
+                                                                <TableCell className="text-right">
+                                                                    <Badge 
+                                                                        className={cn(
+                                                                            "text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap",
+                                                                            output.status === 'Open' ? "bg-rose-600 text-white" : 
+                                                                            output.status === 'On-going' ? "bg-amber-500 text-amber-950" : 
+                                                                            output.status === 'Submit for Closure Verification' ? "bg-blue-600 text-white animate-pulse" :
+                                                                            "bg-emerald-600 text-white"
+                                                                        )}
+                                                                    >
+                                                                        {output.status}
+                                                                    </Badge>
+                                                                </TableCell>
+                                                                <TableCell className="text-right pr-6">
+                                                                    <Button 
+                                                                        variant="ghost" 
+                                                                        size="icon" 
+                                                                        className="h-8 w-8 text-primary hover:bg-primary/5"
+                                                                        onClick={() => handleOpenOutputDialog(output)}
+                                                                    >
+                                                                        <Edit className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                        {outputs?.length === 0 && (
+                                                            <TableRow>
+                                                                <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
+                                                                    <div className="flex flex-col items-center gap-2 opacity-20">
+                                                                        <Presentation className="h-10 w-10" />
+                                                                        <p className="text-[10px] font-black uppercase tracking-widest">No decisions logged</p>
+                                                                    </div>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        )}
+                                                    </TableBody>
+                                                </Table>
+                                            )}
+                                        </ScrollArea>
+                                    </CardContent>
+                                </Card>
+                            </TabsContent>
+
+                            <TabsContent value="minutes" className="h-full m-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <Card className="h-full flex flex-col overflow-hidden border-primary/10 shadow-lg bg-white">
+                                    <div className="p-4 border-b bg-muted/5 flex items-center justify-between shrink-0">
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Minutes of the Meeting Preview</h4>
+                                        <p className="text-[9px] font-bold text-muted-foreground italic">Powered by Google Drive Preview</p>
+                                    </div>
+                                    <div className="flex-1 bg-muted relative">
+                                        <iframe
+                                            src={getEmbedUrl(selectedMr.minutesLink)}
+                                            className="absolute inset-0 w-full h-full border-none bg-white"
+                                            allow="autoplay"
+                                            title="MR Minutes Preview"
+                                        />
+                                    </div>
+                                </Card>
+                            </TabsContent>
                         </div>
-                        <div className="flex-1 bg-muted relative">
-                            <iframe
-                                src={getEmbedUrl(selectedMr.minutesLink)}
-                                className="absolute inset-0 w-full h-full border-none bg-white"
-                                allow="autoplay"
-                                title="MR Minutes Preview"
-                            />
-                        </div>
-                    </Card>
-                </TabsContent>
-            </Tabs>
-          </div>
-        ) : (
-          <div className="h-full flex flex-col items-center justify-center border border-dashed rounded-2xl bg-muted/5 text-muted-foreground animate-in fade-in duration-500">
-            <div className="bg-muted h-20 w-20 rounded-full flex items-center justify-center mb-4">
-                <Presentation className="h-10 w-10 opacity-20" />
-            </div>
-            <h4 className="font-black text-xs uppercase tracking-[0.2em]">MR Content Hub</h4>
-            <p className="text-[10px] mt-2 max-w-[200px] text-center">Select a Management Review session from the meeting log to view minutes and decisions.</p>
-          </div>
-        )}
+                    </Tabs>
+                </div>
+            ) : (
+                <div className="h-full flex flex-col items-center justify-center border border-dashed rounded-2xl bg-muted/5 text-muted-foreground animate-in fade-in duration-500">
+                    <div className="bg-muted h-20 w-20 rounded-full flex items-center justify-center mb-4">
+                        <Presentation className="h-10 w-10 opacity-20" />
+                    </div>
+                    <h4 className="font-black text-xs uppercase tracking-[0.2em]">Management Review Content Hub</h4>
+                    <p className="text-[10px] mt-2 max-w-[250px] text-center font-medium leading-relaxed">Select a session from the Meeting Log Archive on the left to analyze decisions and review minutes.</p>
+                </div>
+            )}
+        </div>
       </div>
 
       {/* --- Dialogs --- */}
@@ -627,7 +673,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                         <FormItem>
                             <FormLabel className="text-xs font-black uppercase text-slate-700">Proposed Action Strategy (Optional)</FormLabel>
                             <FormControl><Input {...field} value={field.value || ''} placeholder="Brief suggestion on implementation..." className="bg-slate-50" /></FormControl>
-                            <FormDescription className="text-[10px]">Leave blank if the unit will propose their own plan based on the decision.</FormDescription>
+                            <FormDescription className="text-[9px]">Leave blank if the unit will propose their own plan based on the decision.</FormDescription>
                         </FormItem>
                     )} />
 
