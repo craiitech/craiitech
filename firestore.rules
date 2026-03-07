@@ -41,25 +41,17 @@ service cloud.firestore {
     // UNIT FORMS & WORKFLOW
     // --------------------------------------------------------------------------
     
-    match /unitFormRequests/{id} { 
+    // Broad permissions for Unit Form management to ensure stability
+    match /unitFormRequests/{allPaths=**} { 
       allow read, write: if isSignedIn();
     }
-    
-    // Explicit match for collection-level listing
-    match /unitFormRequests {
-      allow list: if isSignedIn();
-    }
 
-    match /unitForms/{id} { 
+    match /unitForms/{allPaths=**} { 
       allow read: if isSignedIn(); 
       allow write: if isAdmin(); 
     }
-    
-    match /unitForms {
-      allow list: if isSignedIn();
-    }
 
-    match /formDownloadLogs/{id} {
+    match /formDownloadLogs/{allPaths=**} {
       allow create: if isSignedIn();
       allow read: if isAdmin();
     }

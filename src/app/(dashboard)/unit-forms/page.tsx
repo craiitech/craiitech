@@ -255,7 +255,7 @@ export default function UnitFormsPage() {
         </div>
 
         {/* Workspace Area */}
-        <div className="flex-1 min-w-0 flex flex-col relative">
+        <div className="flex-1 min-0 flex flex-col relative">
           <Button
             variant="secondary"
             size="icon"
@@ -316,7 +316,7 @@ export default function UnitFormsPage() {
 
                                             {isAdmin && (
                                                 <div className="w-full md:w-[400px] p-4 bg-white rounded-xl border border-primary/20 shadow-inner space-y-4">
-                                                    <div className="space-y-1">
+                                                    <div className="space-y-1.5">
                                                         <Label className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
                                                             <LinkIcon className="h-3 w-3" /> #1 Official Roster folder Link
                                                         </Label>
@@ -327,7 +327,7 @@ export default function UnitFormsPage() {
                                                             className="h-8 text-[10px] bg-slate-50"
                                                         />
                                                     </div>
-                                                    <div className="space-y-1">
+                                                    <div className="space-y-1.5">
                                                         <Label className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
                                                             <FileText className="h-3 w-3" /> #2 Masterlist PDF Link (Preview)
                                                         </Label>
