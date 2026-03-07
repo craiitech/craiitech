@@ -316,7 +316,7 @@ export default function UnitFormsPage() {
                                             {isAdmin && (
                                                 <div className="w-full md:w-[400px] p-4 bg-white rounded-xl border border-primary/20 shadow-inner space-y-4">
                                                     <div className="space-y-1.5">
-                                                        <Label className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
+                                                        <Label className="text-[9px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
                                                             <LinkIcon className="h-3 w-3" /> #1 Official Roster folder Link
                                                         </Label>
                                                         <Input 
@@ -327,7 +327,7 @@ export default function UnitFormsPage() {
                                                         />
                                                     </div>
                                                     <div className="space-y-1.5">
-                                                        <Label className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
+                                                        <Label className="text-[9px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
                                                             <FileText className="h-3 w-3" /> #2 Masterlist PDF Link (Preview)
                                                         </Label>
                                                         <Input 

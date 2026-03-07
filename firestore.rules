@@ -24,16 +24,16 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
-        (hasProfile() && profile().get('role', '').matches('(?i).*admin.*'))
+        (hasProfile() && profile().role.matches('(?i).*admin.*'))
       );
     }
 
     function isAuditor() {
-      return isSignedIn() && hasProfile() && profile().get('role', '').matches('(?i).*auditor.*');
+      return isSignedIn() && hasProfile() && profile().role.matches('(?i).*auditor.*');
     }
 
     function isSupervisor() {
-      return isSignedIn() && hasProfile() && profile().get('role', '').matches('(?i)^(Campus Director|Campus ODIMO|Admin|Vice President.*|Director.*)$');
+      return isSignedIn() && hasProfile() && profile().role.matches('(?i)^(Campus Director|Campus ODIMO|Admin|Vice President.*|Director.*)$');
     }
 
     // --------------------------------------------------------------------------
@@ -41,12 +41,11 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /unitFormRequests/{requestId} { 
-      allow read, write: if isSignedIn();
+      allow read, list, get, write, create, update, delete: if isSignedIn();
     }
 
     match /unitForms/{formId} { 
-      allow read: if isSignedIn(); 
-      allow write: if isSignedIn(); 
+      allow read, list, get, write, create, update, delete: if isSignedIn();
     }
 
     match /formDownloadLogs/{logId} {
@@ -72,7 +71,7 @@ service cloud.firestore {
 
     match /submissions/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
     match /risks/{id} { allow read: if isSignedIn(); allow write: if isSignedIn(); }
-    match /unitMonitoringRecords/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || (isSupervisor() && profile().get('role', '') == 'Campus ODIMO'); }
+    match /unitMonitoringRecords/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || (isSupervisor() && profile().role == 'Campus ODIMO'); }
     match /auditSchedules/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isAuditor(); }
     match /auditFindings/{id} { allow read: if isSignedIn(); allow write: if isAdmin() || isAuditor(); }
     match /correctiveActionRequests/{carId} { allow read: if isSignedIn(); allow write: if isAdmin() || isAuditor() || isSupervisor(); }
