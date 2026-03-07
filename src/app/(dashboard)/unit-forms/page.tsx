@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import type { Unit, UnitForm, UnitFormRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,8 @@ import {
     FolderKanban,
     Save,
     Layers,
-    Download
+    Download,
+    Eye
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
@@ -76,10 +77,8 @@ export default function UnitFormsPage() {
   const sidebarUnits = useMemo(() => {
     if (!allUnits || !userProfile || isUserLoading) return [];
     
-    // Non-Academic units are listed individually
     let filtered = allUnits.filter(u => u.category !== 'Academic');
     
-    // Auth filter for non-admins
     if (!isAdmin && userRole !== 'Auditor') {
         filtered = filtered.filter(u => u.campusIds?.includes(userProfile.campusId));
         if (userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO') {
@@ -93,10 +92,8 @@ export default function UnitFormsPage() {
 
     const items = filtered.map(u => ({ id: u.id, name: u.name, category: u.category, isShared: false }));
 
-    // Add Shared Academic Entry if there are academic units in system or relevant scope
     const hasAcademic = allUnits.some(u => u.category === 'Academic');
     if (hasAcademic) {
-        // If user is academic, ensure they can see the shared entry
         const myUnit = allUnits.find(u => u.id === userProfile.unitId);
         const canSeeAcademic = isAdmin || userRole === 'Auditor' || myUnit?.category === 'Academic';
         
@@ -149,8 +146,6 @@ export default function UnitFormsPage() {
     [firestore, selectedUnitId]
   );
   const { data: requests, isLoading: isLoadingRequests } = useCollection<UnitFormRequest>(requestsQuery);
-
-  const canRegister = isAdmin || (selectedUnitId === SHARED_ACADEMIC_ID && userProfile?.role?.includes('Academic')) || (userProfile?.unitId === selectedUnitId);
 
   const handleSaveDriveLink = async () => {
       if (!firestore) return;

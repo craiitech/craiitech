@@ -67,7 +67,6 @@ export function FormDownloadDialog({ form, unitId, isOpen, onOpenChange }: FormD
     if (!firestore) return;
     setIsSubmitting(true);
     try {
-      // 1. Log the download request
       const logData = {
         unitId,
         formId: form.id,
@@ -80,7 +79,6 @@ export function FormDownloadDialog({ form, unitId, isOpen, onOpenChange }: FormD
 
       await addDoc(collection(firestore, 'formDownloadLogs'), logData);
       
-      // 2. Open the link
       window.open(form.googleDriveLink, '_blank');
       
       toast({ title: 'Link Authorized', description: 'Institutional form link has been opened in a new tab.' });
