@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -27,7 +26,9 @@ import {
     Eye,
     Send,
     History as HistoryIcon,
-    Info
+    Info,
+    ListChecks,
+    ExternalLink
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
@@ -166,7 +167,7 @@ export default function UnitFormsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Unit Forms & Records</h2>
-          <p className="text-muted-foreground text-sm">Registry of official controlled forms and registration request management.</p>
+          <p className="text-muted-foreground text-sm">Registry of official controlled forms and repository management.</p>
         </div>
         <Button 
           variant="outline" 

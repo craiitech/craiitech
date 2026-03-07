@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -344,10 +343,8 @@ export function CampusSubmissionsView({
                                     )}
                                     {unitData.missingFinal.length > 0 && (
                                         <div className="space-y-2">
-                                            <p className="text-[9px] font-black uppercase text-slate-500 underline mb-1">Missing (Final Cycle):</p>
-                                            <ul className="list-disc pl-4 text-[10px] space-y-0.5">
-                                                {unitData.missingFinal.map((m, i) => <li key={i}>{m}</li>)}
-                                            </ul>
+                                            <p className="text-[9px] font-black uppercase text-rose-600 border-b border-rose-200 pb-1">Final Cycle Registry</p>
+                                            <ul className="space-y-1.5">{unitData.missingFinal.map(doc => <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700"><div className="h-1 w-1 rounded-full bg-rose-400" /> {doc}</li>)}</ul>
                                         </div>
                                     )}
                                 </div>
