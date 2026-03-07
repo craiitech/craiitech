@@ -104,12 +104,14 @@ export type Unit = {
     vicePresidentId?: string;
     campusIds?: string[];
     formsDriveLink?: string; // Admin-set Google Drive area for registered forms
+    masterlistPdfLink?: string; // Admin-set Link for the PDF Preview
 }
 
 export type CampusSetting = {
     id: string;
     announcement?: string;
     formsDriveLink?: string;
+    masterlistPdfLink?: string;
 }
 
 export type ActivityLog = {

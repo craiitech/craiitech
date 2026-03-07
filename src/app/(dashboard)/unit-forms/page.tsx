@@ -67,8 +67,10 @@ export default function UnitFormsPage() {
   
   const [isRegOpen, setIsRegOpen] = useState(false);
   const [reviewRequestId, setReviewRequestId] = useState<string | null>(null);
-  const [isSavingLink, setIsSavingLink] = useState(false);
-  const [editDriveLink, setEditDriveLink] = useState('');
+  const [isSavingLinks, setIsSavingLinks] = useState(false);
+  
+  const [editRosterLink, setEditRosterLink] = useState('');
+  const [editMasterlistLink, setEditMasterlistLink] = useState('');
   
   const [previewDoc, setPreviewDoc] = useState<{ title: string; url: string } | null>(null);
   const [downloadingForm, setDownloadingForm] = useState<UnitForm | null>(null);
@@ -130,14 +132,20 @@ export default function UnitFormsPage() {
   const academicSharedRef = useMemoFirebase(() => (firestore ? doc(firestore, 'campusSettings', 'academic-shared') : null), [firestore]);
   const { data: sharedSettings } = useDoc<any>(academicSharedRef);
 
-  const currentDriveLink = useMemo(() => {
+  const currentRosterLink = useMemo(() => {
       if (selectedUnitId === SHARED_ACADEMIC_ID) return sharedSettings?.formsDriveLink || '';
       return (selectedUnit as Unit)?.formsDriveLink || '';
   }, [selectedUnitId, sharedSettings, selectedUnit]);
 
+  const currentMasterlistLink = useMemo(() => {
+      if (selectedUnitId === SHARED_ACADEMIC_ID) return sharedSettings?.masterlistPdfLink || '';
+      return (selectedUnit as Unit)?.masterlistPdfLink || '';
+  }, [selectedUnitId, sharedSettings, selectedUnit]);
+
   useEffect(() => {
-      setEditDriveLink(currentDriveLink);
-  }, [currentDriveLink]);
+      setEditRosterLink(currentRosterLink);
+      setEditMasterlistLink(currentMasterlistLink);
+  }, [currentRosterLink, currentMasterlistLink]);
 
   const formsQuery = useMemoFirebase(
     () => (firestore && selectedUnitId ? query(collection(firestore, 'unitForms'), where('unitId', '==', selectedUnitId)) : null),
@@ -145,25 +153,32 @@ export default function UnitFormsPage() {
   );
   const { data: forms, isLoading: isLoadingForms } = useCollection<UnitForm>(formsQuery);
 
-  // Temporarily setting request query to null to bypass permission error while rule is being updated
-  const requestsQuery = null; 
+  const requestsQuery = useMemoFirebase(
+    () => (firestore && selectedUnitId ? query(collection(firestore, 'unitFormRequests'), where('unitId', '==', selectedUnitId), orderBy('createdAt', 'desc')) : null),
+    [firestore, selectedUnitId]
+  );
   const { data: requests } = useCollection<UnitFormRequest>(requestsQuery);
 
-  const handleSaveDriveLink = async () => {
+  const handleSaveAdminLinks = async () => {
       if (!firestore) return;
-      setIsSavingLink(true);
+      setIsSavingLinks(true);
       try {
+          const links = { 
+              formsDriveLink: editRosterLink, 
+              masterlistPdfLink: editMasterlistLink 
+          };
+
           if (selectedUnitId === SHARED_ACADEMIC_ID) {
-              await setDoc(doc(firestore, 'campusSettings', 'academic-shared'), { formsDriveLink: editDriveLink }, { merge: true });
+              await setDoc(doc(firestore, 'campusSettings', 'academic-shared'), links, { merge: true });
           } else if (selectedUnitId) {
-              await setDoc(doc(firestore, 'units', selectedUnitId!), { formsDriveLink: editDriveLink }, { merge: true });
+              await setDoc(doc(firestore, 'units', selectedUnitId!), links, { merge: true });
           }
-          toast({ title: 'Drive Link Updated', description: 'Institutional repository link has been saved.' });
+          toast({ title: 'Master Links Updated', description: 'Institutional repository parameters have been saved.' });
       } catch (e) {
           console.error("Save Link Error:", e);
-          toast({ title: 'Error', description: 'Failed to update link.', variant: 'destructive' });
+          toast({ title: 'Error', description: 'Failed to update links.', variant: 'destructive' });
       } finally {
-          setIsSavingLink(false);
+          setIsSavingLinks(false);
       }
   };
 
@@ -190,6 +205,7 @@ export default function UnitFormsPage() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-12rem)]">
+        {/* Unit Directory Sidebar */}
         <div className={cn(
           "transition-all duration-300 overflow-hidden flex flex-col gap-2",
           isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6"
@@ -238,6 +254,7 @@ export default function UnitFormsPage() {
           </Card>
         </div>
 
+        {/* Workspace Area */}
         <div className="flex-1 min-w-0 flex flex-col relative">
           <Button
             variant="secondary"
@@ -267,84 +284,118 @@ export default function UnitFormsPage() {
                     <TabsContent value="roster" className="h-full m-0 animate-in fade-in slide-in-from-left-2 duration-300">
                         <ScrollArea className="h-full pr-4">
                             <div className="space-y-8 pb-10">
+                                {/* 1. Official Roster Access Card */}
                                 <Card className="border-primary/20 bg-primary/5 shadow-md overflow-hidden">
-                                    <div className="flex flex-col md:flex-row items-stretch p-0 divide-y md:divide-y-0 md:divide-x">
-                                        <div className="p-6 flex-1 space-y-4">
-                                            <div className="flex items-start gap-4">
-                                                <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg text-white shrink-0">
-                                                    <FolderKanban className="h-6 w-6" />
-                                                </div>
-                                                <div className="space-y-1 flex-1">
-                                                    <h4 className="text-sm font-black uppercase tracking-tight text-slate-900">Official Roster & Forms Drive</h4>
-                                                    <p className="text-[11px] text-muted-foreground leading-relaxed max-w-md">
-                                                        Master repository for all approved quality forms. Controlled by the QA Office.
-                                                    </p>
-                                                    {isAdmin && (
-                                                        <div className="flex items-center gap-2 mt-3 max-w-md p-3 bg-white rounded-lg border border-primary/20 shadow-inner">
-                                                            <div className="flex-1 space-y-1.5">
-                                                                <Label className="text-[9px] font-black uppercase text-primary tracking-widest">Update Master Repository Link</Label>
-                                                                <Input 
-                                                                    value={editDriveLink} 
-                                                                    onChange={(e) => setEditDriveLink(e.target.value)} 
-                                                                    placeholder="Paste Master GDrive Folder Link..."
-                                                                    className="h-8 text-[10px] bg-slate-50 border-primary/10"
-                                                                />
-                                                            </div>
-                                                            <Button size="sm" onClick={handleSaveDriveLink} disabled={isSavingLink} className="h-8 px-3 mt-4">
-                                                                {isSavingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                                                            </Button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            
-                                            {currentDriveLink ? (
-                                                <div className="pt-2">
+                                    <CardHeader className="bg-primary/10 border-b py-4">
+                                        <div className="flex items-center gap-2">
+                                            <FolderKanban className="h-5 w-5 text-primary" />
+                                            <CardTitle className="text-sm font-black uppercase tracking-tight">#1 Official Roster of Forms Access</CardTitle>
+                                        </div>
+                                        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Secure repository for approved EOMS documentation.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="p-6 space-y-6">
+                                        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                                            <div className="space-y-2 flex-1">
+                                                <p className="text-xs text-muted-foreground leading-relaxed font-medium">
+                                                    Click the button below to request access to the unit's official folder. All download attempts are logged for institutional quality auditing.
+                                                </p>
+                                                {currentRosterLink ? (
                                                     <Button 
                                                         onClick={() => setIsRosterLogOpen(true)}
                                                         className="w-full md:w-auto h-11 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
                                                     >
                                                         <ExternalLink className="h-4 w-4 mr-2" /> Access Official Roster
                                                     </Button>
-                                                </div>
-                                            ) : (
-                                                <div className="p-4 rounded-lg bg-amber-50 border border-amber-100 flex items-start gap-3">
-                                                    <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                                                    <p className="text-[10px] text-amber-700 font-bold uppercase">Pending Repository Setup by Administrator</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                        
-                                        <div className="md:w-1/2 p-0 bg-slate-100 flex flex-col">
-                                            <div className="p-3 border-b bg-white/50 flex items-center justify-between shrink-0">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-primary">Master List Preview</span>
-                                                <Badge variant="secondary" className="h-4 text-[8px] font-bold">PDF VIEWER</Badge>
-                                            </div>
-                                            <div className="flex-1 bg-muted min-h-[250px] relative">
-                                                {currentDriveLink ? (
-                                                    <iframe 
-                                                        src={getEmbedUrl(currentDriveLink)} 
-                                                        className="absolute inset-0 w-full h-full border-none bg-white"
-                                                        allow="autoplay"
-                                                    />
                                                 ) : (
-                                                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-20 p-8 text-center">
-                                                        <FileText className="h-10 w-10 mb-2" />
-                                                        <p className="text-[10px] font-bold uppercase">Preview Pending Admin Setup</p>
+                                                    <div className="p-4 rounded-lg bg-amber-50 border border-amber-100 flex items-start gap-3">
+                                                        <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                                                        <p className="text-[10px] text-amber-700 font-bold uppercase">Pending Repository Setup by Administrator</p>
                                                     </div>
                                                 )}
                                             </div>
+
+                                            {isAdmin && (
+                                                <div className="w-full md:w-[400px] p-4 bg-white rounded-xl border border-primary/20 shadow-inner space-y-4">
+                                                    <div className="space-y-1">
+                                                        <Label className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
+                                                            <LinkIcon className="h-3 w-3" /> #1 Official Roster folder Link
+                                                        </Label>
+                                                        <Input 
+                                                            value={editRosterLink} 
+                                                            onChange={(e) => setEditRosterLink(e.target.value)} 
+                                                            placeholder="Folder URL for downloading..."
+                                                            className="h-8 text-[10px] bg-slate-50"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
+                                                            <FileText className="h-3 w-3" /> #2 Masterlist PDF Link (Preview)
+                                                        </Label>
+                                                        <Input 
+                                                            value={editMasterlistLink} 
+                                                            onChange={(e) => setEditMasterlistLink(e.target.value)} 
+                                                            placeholder="PDF URL for the preview board..."
+                                                            className="h-8 text-[10px] bg-slate-50"
+                                                        />
+                                                    </div>
+                                                    <Button 
+                                                        size="sm" 
+                                                        onClick={handleSaveAdminLinks} 
+                                                        disabled={isSavingLinks} 
+                                                        className="w-full h-8 font-black uppercase text-[10px] tracking-widest"
+                                                    >
+                                                        {isSavingLinks ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Save className="h-3.5 w-3.5 mr-2" />}
+                                                        Save Administrative Links
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
+                                    </CardContent>
                                 </Card>
 
+                                {/* 2. Master List Preview Card */}
+                                <Card className="shadow-lg border-primary/10 overflow-hidden">
+                                    <CardHeader className="bg-muted/10 border-b py-4">
+                                        <div className="flex items-center gap-2">
+                                            <Eye className="h-5 w-5 text-primary" />
+                                            <CardTitle className="text-sm font-black uppercase tracking-tight">#2 Unit Masterlist of Forms/Records Preview</CardTitle>
+                                        </div>
+                                        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Identify the specific forms required for your processes before requesting a download from the Roster (#1).</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="p-0 bg-slate-100 min-h-[500px] relative shadow-inner">
+                                        {currentMasterlistLink ? (
+                                            <iframe 
+                                                src={getEmbedUrl(currentMasterlistLink)} 
+                                                className="absolute inset-0 w-full h-full border-none bg-white"
+                                                allow="autoplay"
+                                                title="Unit Masterlist Preview"
+                                            />
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground opacity-20 p-8 text-center gap-3">
+                                                <FileText className="h-16 w-16" />
+                                                <div className="space-y-1">
+                                                    <p className="text-sm font-black uppercase tracking-widest">Masterlist Unavailable</p>
+                                                    <p className="text-[10px] max-w-xs font-medium">The unit head or administrator has not yet uploaded the official PDF masterlist for this unit.</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                    <CardFooter className="bg-white border-t py-3 px-6">
+                                        <div className="flex items-start gap-3">
+                                            <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                                            <p className="text-[10px] text-muted-foreground italic leading-tight">
+                                                <strong>Standard Guidance:</strong> This preview allows users to cross-reference their operational requirements with the controlled forms roster. Refer to your unit's **Procedure Manual** to verify which codes are applicable to your specific tasks.
+                                            </p>
+                                        </div>
+                                    </CardFooter>
+                                </Card>
+
+                                {/* 3. Individual Forms Roster Table */}
                                 <Card className="shadow-sm border-primary/10 overflow-hidden">
                                     <CardHeader className="bg-muted/10 border-b py-4">
-                                        <div className="flex items-center justify-between">
-                                            <CardTitle className="text-xs font-black uppercase tracking-tight flex items-center gap-2">
-                                                <ShieldCheck className="h-4 w-4 text-primary" /> Active Controlled Forms List
-                                            </CardTitle>
-                                            <Badge variant="outline" className="bg-white font-black text-[10px]">{forms?.length || 0} FORMS</Badge>
+                                        <div className="flex items-center gap-2">
+                                            <ShieldCheck className="h-4 w-4 text-primary" />
+                                            <CardTitle className="text-xs font-black uppercase tracking-tight">Enrolled Controlled Forms Log</CardTitle>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="p-0">
@@ -354,22 +405,18 @@ export default function UnitFormsPage() {
                                                     <TableHead className="text-[10px] font-black uppercase pl-6">Code</TableHead>
                                                     <TableHead className="text-[10px] font-black uppercase">Official Title</TableHead>
                                                     <TableHead className="text-[10px] font-black uppercase text-center">Rev.</TableHead>
-                                                    {isAdmin && <TableHead className="text-[10px] font-black uppercase">Admin Reference Link</TableHead>}
                                                     <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
                                                 {isLoadingForms ? (
-                                                    <TableRow><TableCell colSpan={5} className="h-32 text-center"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" /></TableCell></TableRow>
+                                                    <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" /></TableCell></TableRow>
                                                 ) : forms?.length ? (
                                                     forms.sort((a,b) => a.formCode.localeCompare(b.formCode)).map(form => (
                                                         <TableRow key={form.id} className="hover:bg-muted/20 transition-colors">
                                                             <TableCell className="pl-6 font-mono text-xs font-bold text-primary">{form.formCode}</TableCell>
                                                             <TableCell className="text-[12px] font-bold text-slate-800">{form.formName}</TableCell>
                                                             <TableCell className="text-center"><Badge variant="secondary" className="h-4 text-[8px] font-bold uppercase">{form.revision}</Badge></TableCell>
-                                                            {isAdmin && (
-                                                                <TableCell className="max-w-[150px] truncate text-[10px] font-mono text-muted-foreground">{form.googleDriveLink}</TableCell>
-                                                            )}
                                                             <TableCell className="text-right pr-6">
                                                                 <div className="flex items-center justify-end gap-2">
                                                                     <Button 
@@ -393,7 +440,7 @@ export default function UnitFormsPage() {
                                                         </TableRow>
                                                     ))
                                                 ) : (
-                                                    <TableRow><TableCell colSpan={5} className="h-32 text-center text-[10px] font-bold text-muted-foreground uppercase opacity-20 italic">No individual forms enrolled yet.</TableCell></TableRow>
+                                                    <TableRow><TableCell colSpan={4} className="h-32 text-center text-[10px] font-bold text-muted-foreground uppercase opacity-20 italic">No individual forms enrolled in the system yet.</TableCell></TableRow>
                                                 )}
                                             </TableBody>
                                         </Table>
@@ -540,13 +587,13 @@ export default function UnitFormsPage() {
           />
       )}
 
-      {isRosterLogOpen && selectedUnitId && currentDriveLink && (
+      {isRosterLogOpen && selectedUnitId && currentRosterLink && (
           <FormDownloadDialog
             form={{ 
                 id: 'roster-folder', 
                 formName: 'Official Roster & Forms Folder', 
                 formCode: 'MASTER-ROSTER', 
-                googleDriveLink: currentDriveLink,
+                googleDriveLink: currentRosterLink,
                 unitId: selectedUnitId,
                 campusId: userProfile?.campusId || '',
                 revision: 'Latest',
