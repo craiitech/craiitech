@@ -144,8 +144,10 @@ export default function UnitFormsPage() {
   );
   const { data: forms, isLoading: isLoadingForms } = useCollection<UnitForm>(formsQuery);
 
-  // Temporarily setting requestsQuery to null per instruction to avoid permission crashes during initialization
-  const requestsQuery = null; 
+  const requestsQuery = useMemoFirebase(
+    () => (firestore && selectedUnitId ? query(collection(firestore, 'unitFormRequests'), where('unitId', '==', selectedUnitId), orderBy('createdAt', 'desc')) : null),
+    [firestore, selectedUnitId]
+  );
   const { data: requests, isLoading: isLoadingRequests } = useCollection<UnitFormRequest>(requestsQuery);
 
   const handleSaveDriveLink = async () => {
@@ -294,7 +296,7 @@ export default function UnitFormsPage() {
                                                 </div>
                                             </div>
                                             
-                                            {currentDriveLink && (
+                                            {currentDriveLink ? (
                                                 <div className="pt-2">
                                                     <Button 
                                                         onClick={() => setIsRosterLogOpen(true)}
@@ -302,6 +304,11 @@ export default function UnitFormsPage() {
                                                     >
                                                         <ExternalLink className="h-4 w-4 mr-2" /> Access Official Roster
                                                     </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="p-4 rounded-lg bg-amber-50 border border-amber-100 flex items-start gap-3">
+                                                    <Info className="h-4 w-4 text-amber-600 shrink-0" />
+                                                    <p className="text-[10px] text-amber-700 font-bold uppercase">Pending Repository Setup by Administrator</p>
                                                 </div>
                                             )}
                                         </div>
