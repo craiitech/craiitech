@@ -19,7 +19,9 @@ import {
     Printer, 
     FileText,
     Info,
-    ShieldCheck
+    ShieldCheck,
+    ChevronLeft,
+    TrendingUp
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
@@ -33,6 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -59,35 +62,34 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
   const isFinal = cycle.toLowerCase() === 'final';
   const colors: Record<number, { first: string, final: string }> = {
     2024: { 
-      first: 'bg-blue-50/20 hover:bg-blue-100/40 dark:bg-blue-900/5 dark:hover:bg-blue-900/10', 
-      final: 'bg-blue-100/40 hover:bg-blue-200/50 dark:bg-blue-900/20 dark:hover:bg-blue-900/30' 
+      first: 'bg-blue-50/20 hover:bg-blue-100/40', 
+      final: 'bg-blue-100/40 hover:bg-blue-200/50' 
     },
     2025: { 
-      first: 'bg-green-50/20 hover:bg-green-100/40 dark:bg-green-900/5 dark:hover:bg-green-900/10', 
-      final: 'bg-green-100/40 hover:bg-blue-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
+      first: 'bg-green-50/20 hover:bg-green-100/40', 
+      final: 'bg-green-100/40 hover:bg-blue-200/50' 
     },
     2026: { 
-      first: 'bg-amber-50/20 hover:bg-amber-100/40 dark:bg-amber-900/5 dark:hover:bg-amber-900/10', 
-      final: 'bg-amber-100/40 hover:bg-amber-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
+      first: 'bg-amber-50/20 hover:bg-amber-100/40', 
+      final: 'bg-amber-100/40 hover:bg-blue-200/50' 
     },
     2027: { 
-      first: 'bg-purple-50/20 hover:bg-purple-100/40 dark:bg-purple-900/5 dark:hover:bg-purple-900/10', 
-      final: 'bg-purple-100/40 hover:bg-blue-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
+      first: 'bg-purple-50/20 hover:bg-purple-100/40', 
+      final: 'bg-purple-100/40 hover:bg-blue-200/50' 
     },
     2028: { 
-      first: 'bg-rose-50/20 hover:bg-rose-100/40 dark:bg-rose-900/5 dark:hover:bg-rose-900/10', 
-      final: 'bg-rose-100/40 hover:bg-rose-200/50 dark:bg-green-900/20 dark:hover:bg-green-900/30' 
+      first: 'bg-rose-50/20 hover:bg-rose-100/40', 
+      final: 'bg-rose-100/40 hover:bg-blue-200/50' 
     },
   };
   
   const yearColor = colors[year] || { 
-    first: 'bg-slate-50/20 hover:bg-slate-100/40 dark:bg-slate-900/5 dark:hover:bg-slate-900/10', 
-    final: 'bg-slate-100/40 hover:bg-slate-200/50 dark:bg-slate-900/20 dark:hover:bg-slate-900/30' 
+    first: 'bg-slate-50/20 hover:bg-slate-100/40', 
+    final: 'bg-slate-100/40 hover:bg-slate-200/50' 
   };
   
   return isFinal ? yearColor.final : yearColor.first;
 };
-
 
 interface UnitSubmissionsViewProps {
   allSubmissions: Submission[] | null;
@@ -108,7 +110,6 @@ export function UnitSubmissionsView({
 }: UnitSubmissionsViewProps) {
   const router = useRouter();
   const firestore = useFirestore();
-  const { isAdmin } = useUser();
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
 
   const signatoryRef = useMemoFirebase(
@@ -124,24 +125,17 @@ export function UnitSubmissionsView({
   }, [userProfile, selectedUnitId]);
 
   const unitsToShow = useMemo(() => {
-    if (!allUnits || !userProfile?.campusId) {
-      return [];
-    }
-
+    if (!allUnits || !userProfile?.campusId) return [];
     let filtered = allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
-    
     const isUnitLevelOnly = userProfile.role === 'Unit Coordinator' || userProfile.role === 'Unit ODIMO';
     if (isUnitLevelOnly && userProfile.unitId) {
         filtered = filtered.filter(u => u.id === userProfile.unitId);
     }
-
     return filtered.sort((a, b) => a.name.localeCompare(b.name));
   }, [allUnits, userProfile]);
 
   const unitData = useMemo(() => {
-    if (!selectedUnitId || !allSubmissions || !userProfile?.campusId) {
-      return null;
-    }
+    if (!selectedUnitId || !allSubmissions || !userProfile?.campusId) return null;
     
     const yearSubmissions = allSubmissions.filter(s => 
         s.unitId === selectedUnitId && 
@@ -186,30 +180,13 @@ export function UnitSubmissionsView({
 
     const score = Math.round((approved / (totalPossible || 1)) * 100);
 
-    return { 
-        firstCycle: firstSubs, 
-        finalCycle: finalSubs, 
-        isFirstActionPlanNA, 
-        isFinalActionPlanNA,
-        missingFirst,
-        missingFinal,
-        chartData,
-        score,
-        totalPossible,
-        approved
-    };
+    return { firstCycle: firstSubs, finalCycle: finalSubs, isFirstActionPlanNA, isFinalActionPlanNA, missingFirst, missingFinal, chartData, score, totalPossible, approved };
   }, [selectedUnitId, allSubmissions, userProfile, selectedYear]);
-  
-  const handleUnitSelect = (unitId: string) => {
-    setSelectedUnitId(unitId);
-  }
 
   const handlePrintNotice = (type: 'Compliance' | 'Non-Compliance') => {
     if (!unitData || !selectedUnitId || !allUnits || !userProfile || !allCampuses) return;
-
     const unit = allUnits.find(u => u.id === selectedUnitId);
     const campus = allCampuses.find(c => c.id === userProfile.campusId);
-
     const props = {
         unitName: unit?.name || 'Unknown Unit',
         campusName: campus?.name || 'Institutional Campus',
@@ -221,325 +198,146 @@ export function UnitSubmissionsView({
         qaoDirector: signatories?.qaoDirector || 'DR. MARVIN RICK G. FORCADO',
         qmsHead: signatories?.qmsHead || 'QMS Head'
     };
-
     try {
-        const reportHtml = renderToStaticMarkup(
-            type === 'Compliance' ? <NoticeOfCompliance {...props} /> : <NoticeOfNonCompliance {...props} />
-        );
-
+        const reportHtml = renderToStaticMarkup(type === 'Compliance' ? <NoticeOfCompliance {...props} /> : <NoticeOfNonCompliance {...props} />);
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>QA Notice - ${props.unitName}</title>
-                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                    <style>
-                        @media print { 
-                            body { margin: 0; padding: 0; background: white; } 
-                            .no-print { display: none !important; }
-                        }
-                        body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }
-                    </style>
-                </head>
-                <body>
-                    <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Official Notice</button>
-                    </div>
-                    <div id="print-content">
-                        ${reportHtml}
-                    </div>
-                </body>
-                </html>
-            `);
+            printWindow.document.write(`<html><head><title>QA Notice</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } } body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Notice</button></div><div id="print-content">${reportHtml}</div></body></html>`);
             printWindow.document.close();
         }
-    } catch (err) {
-        console.error("Print error:", err);
-    }
+    } catch (err) { console.error("Print error:", err); }
   };
 
-  if (isLoading) {
-    return (
-        <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-    );
-  }
+  if (isLoading) return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1">
-        <ScrollArea className="h-[75vh] rounded-md border bg-muted/5">
-                {unitsToShow.length > 0 ? (
-                <div className="p-2 space-y-1">
-                    {unitsToShow.map(unit => (
-                    <Button
-                        key={unit.id}
-                        variant="ghost"
-                        onClick={() => handleUnitSelect(unit.id)}
-                        className={cn(
-                            "w-full justify-start text-left h-auto py-2.5 px-4 text-xs rounded-none border-l-2",
-                            selectedUnitId === unit.id 
-                                ? "bg-primary/10 text-primary border-primary font-bold shadow-sm" 
-                                : "border-transparent text-muted-foreground"
-                        )}
-                    >
-                        <Building className="mr-3 h-3.5 w-3.5 flex-shrink-0" />
-                        <span className="truncate">{unit.name}</span>
-                    </Button>
-                ))}
-                </div>
-                ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center p-8 gap-2">
-                    <Filter className="h-8 w-8 text-muted-foreground opacity-20" />
-                    <p className="text-xs text-muted-foreground font-medium">No units found assigned to your site.</p>
-                </div>
-                )}
-        </ScrollArea>
-        </div>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Searchable Header Dropdown */}
+      <Card className="border-primary/10 shadow-sm bg-muted/10">
+        <CardContent className="p-4 flex flex-col md:flex-row items-center gap-4">
+            <div className="flex-1 w-full space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-primary tracking-widest ml-1 flex items-center gap-1.5">
+                    <Building className="h-3 w-3" /> Select Unit / Office to View Profile
+                </label>
+                <Select value={selectedUnitId || ""} onValueChange={setSelectedUnitId}>
+                    <SelectTrigger className="bg-white h-11 font-bold shadow-sm">
+                        <SelectValue placeholder="Select Unit..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {unitsToShow.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+        </CardContent>
+      </Card>
 
-        <div className="md:col-span-2">
-        <ScrollArea className="h-[75vh] rounded-md border p-4 bg-muted/5">
-            {selectedUnitId && unitData ? (
-                <div className="space-y-8 pb-10">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
-                        <div className="space-y-1">
-                            <h3 className="font-black text-lg uppercase tracking-tight text-primary">
-                                {allUnits?.find(u => u.id === selectedUnitId)?.name}
-                            </h3>
-                            <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase">
-                                <CalendarIcon className="h-3 w-3" />
-                                Monitoring Cycle: {selectedYear}
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            {unitData.missingFirst.length + unitData.missingFinal.length === 0 ? (
-                                <Button size="sm" variant="outline" className="h-8 text-[10px] font-black uppercase text-emerald-600 border-emerald-200 hover:bg-emerald-50 shadow-sm" onClick={() => handlePrintNotice('Compliance')}>
-                                    <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Compliance Notice
-                                </Button>
-                            ) : (
-                                <Button size="sm" variant="outline" className="h-8 text-[10px] font-black uppercase text-rose-600 border-rose-200 hover:bg-rose-50 shadow-sm" onClick={() => handlePrintNotice('Non-Compliance')}>
-                                    <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Non-Compliance Notice
-                                </Button>
-                            )}
-                        </div>
-                    </div>
+      {selectedUnitId && unitData ? (
+          <div className="space-y-8 pb-20">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
+                  <div className="space-y-1">
+                      <h3 className="font-black text-xl uppercase tracking-tight text-primary">{allUnits?.find(u => u.id === selectedUnitId)?.name}</h3>
+                      <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                          <span className="flex items-center gap-1.5"><CalendarIcon className="h-3 w-3" /> Monitoring Cycle: {selectedYear}</span>
+                      </div>
+                  </div>
+                  <Button size="sm" variant="outline" className={cn("h-9 text-[10px] font-black uppercase shadow-sm bg-white", unitData.score >= 100 ? "text-emerald-600 border-emerald-200" : "text-rose-600 border-rose-200")} onClick={() => handlePrintNotice(unitData.score >= 100 ? 'Compliance' : 'Non-Compliance')}>
+                      <Printer className="h-4 w-4 mr-2" /> Print {unitData.score >= 100 ? 'Compliance' : 'Non-Compliance'} Notice
+                  </Button>
+              </div>
 
-                    {/* --- UNIT PERFORMANCE SCORECARD --- */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 border-b pb-6">
-                        <Card className="lg:col-span-1 flex flex-col items-center justify-between bg-background rounded-lg border shadow-sm p-4 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-2 opacity-5"><PieIcon className="h-12 w-12" /></div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">Verified Maturity</span>
-                            <ChartContainer config={{}} className="h-[140px] w-[140px]">
-                                <ResponsiveContainer>
-                                    <PieChart>
-                                        <Tooltip content={<ChartTooltipContent hideLabel />} />
-                                        <Pie
-                                            data={unitData.chartData}
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={35}
-                                            outerRadius={50}
-                                            paddingAngle={5}
-                                            dataKey="value"
-                                            label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
-                                        >
-                                            {unitData.chartData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={COLORS[entry.name] || '#cbd5e1'} />
-                                            ))}
-                                        </Pie>
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </ChartContainer>
-                            <div className="mt-4 text-center">
-                                <span className="text-3xl font-black tabular-nums tracking-tighter text-primary">{unitData.score}%</span>
-                                <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest mt-1">Institutional Maturity Target: 100%</p>
-                            </div>
-                            <div className="mt-4 pt-4 border-t w-full">
-                                <p className="text-[9px] text-muted-foreground leading-relaxed italic text-center">
-                                    <strong>Explanation:</strong> This index represents the overall compliance health of the unit. It is calculated by dividing the number of <strong>Approved</strong> documents by the total required for the academic year, excluding non-applicable items.
-                                </p>
-                            </div>
-                        </Card>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <Card className="lg:col-span-1 flex flex-col items-center justify-center bg-background rounded-2xl border-primary/10 shadow-lg p-8 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-4 opacity-5"><PieIcon className="h-20 w-20" /></div>
+                      <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-6">Unit Verified Maturity</span>
+                      <ChartContainer config={{}} className="h-[180px] w-[180px]">
+                          <ResponsiveContainer>
+                              <PieChart>
+                                  <Tooltip content={<ChartTooltipContent hideLabel />} />
+                                  <Pie data={unitData.chartData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
+                                      {unitData.chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[entry.name] || '#cbd5e1'} />)}
+                                  </Pie>
+                              </PieChart>
+                          </ResponsiveContainer>
+                      </ChartContainer>
+                      <div className="mt-6 text-center space-y-1">
+                          <span className="text-5xl font-black tabular-nums tracking-tighter text-primary">{unitData.score}%</span>
+                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.1em]">Quality Achievement Index</p>
+                      </div>
+                  </Card>
 
-                        <div className="lg:col-span-2 flex flex-col gap-4">
-                            <Card className="shadow-none border-dashed bg-muted/20 flex flex-col h-full">
-                                <CardHeader className="p-4 pb-2">
-                                    <div className="flex items-center gap-2">
-                                        <CheckCircle2 className="h-4 w-4 text-primary" />
-                                        <CardDescription className="text-[9px] font-black uppercase tracking-widest text-primary/70">Verified Achievement</CardDescription>
-                                    </div>
-                                    <CardTitle className="text-2xl font-black text-primary pt-1">
-                                        {unitData.approved} / {unitData.totalPossible} Documents
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-4 pt-0">
-                                    <p className="text-[10px] text-muted-foreground leading-relaxed">
-                                        <strong>Explanation:</strong> Count of documents that have undergone formal review and received institutional verification. Only <strong>Approved</strong> records contribute to the unit's final quality maturity score.
-                                    </p>
-                                </CardContent>
-                            </Card>
-                            
-                            <Card className={cn("shadow-none border-dashed flex flex-col h-full", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200")}>
-                                <CardHeader className="p-4 pb-2">
-                                    <div className="flex items-center gap-2">
-                                        {unitData.missingFirst.length + unitData.missingFinal.length > 0 ? <AlertTriangle className="h-4 w-4 text-red-600" /> : <ShieldCheck className="h-4 w-4 text-green-600" />}
-                                        <CardDescription className={cn("text-[9px] font-black uppercase tracking-widest", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-700" : "text-green-700")}>Remaining Gaps</CardDescription>
-                                    </div>
-                                    <CardTitle className={cn("text-2xl font-black pt-1", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-600" : "text-green-600")}>
-                                        {unitData.missingFirst.length + unitData.missingFinal.length} Outstanding Items
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-4 pt-0">
-                                    <p className={cn("text-[10px] leading-relaxed", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-red-800/70" : "text-green-800/70")}>
-                                        <strong>Explanation:</strong> Identifies documentation gaps that prevent 100% compliance. This includes reports that are either <strong>Missing</strong> from the registry or were <strong>Rejected</strong> and require corrective resubmission.
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
+                  <div className="lg:col-span-2 space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <Card className="shadow-none border-dashed bg-primary/5 border-primary/20 p-5">
+                              <div className="flex items-center gap-2 mb-2"><CheckCircle2 className="h-4 w-4 text-primary" /><span className="text-[10px] font-black uppercase text-primary/70">Verified Archive</span></div>
+                              <p className="text-3xl font-black text-primary">{unitData.approved} / {unitData.totalPossible}</p>
+                              <p className="text-[11px] text-muted-foreground mt-2 font-medium">Documents successfully reviewed and approved for this cycle.</p>
+                          </Card>
+                          <Card className={cn("shadow-none border-dashed p-5", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "bg-rose-50 border-rose-200" : "bg-emerald-50 border-emerald-200")}>
+                              <div className="flex items-center gap-2 mb-2">{unitData.missingFirst.length + unitData.missingFinal.length > 0 ? <AlertTriangle className="h-4 w-4 text-rose-600" /> : <ShieldCheck className="h-4 w-4 text-emerald-600" />}<span className={cn("text-[10px] font-black uppercase", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-rose-700" : "text-emerald-700")}>Outstanding Gaps</span></div>
+                              <p className={cn("text-3xl font-black", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-rose-600" : "text-emerald-600")}>{unitData.missingFirst.length + unitData.missingFinal.length} Items</p>
+                              <p className="text-[11px] text-muted-foreground mt-2 font-medium">Requirements either missing or requiring corrective resubmission.</p>
+                          </Card>
+                      </div>
 
-                    {/* --- CRITICAL GAPS SECTION --- */}
-                    {(unitData.missingFirst.length > 0 || unitData.missingFinal.length > 0) && (
-                        <div className="space-y-4">
-                            <h4 className="text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2 text-destructive">
-                                <FileWarning className="h-4 w-4" /> 
-                                Institutional Compliance Gaps
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {unitData.missingFirst.length > 0 && (
-                                    <div className="bg-destructive/5 rounded-lg p-4 border border-destructive/10">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-destructive mb-3">1st Cycle To-Do</p>
-                                        <ul className="space-y-1.5">
-                                            {unitData.missingFirst.map(doc => (
-                                                <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
-                                                    <AlertTriangle className="h-3 w-3 text-amber-500" /> {doc}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                                {unitData.missingFinal.length > 0 && (
-                                    <div className="bg-destructive/5 rounded-lg p-4 border border-destructive/10">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-destructive mb-3">Final Cycle To-Do</p>
-                                        <ul className="space-y-1.5">
-                                            {unitData.missingFinal.map(doc => (
-                                                <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
-                                                    <AlertTriangle className="h-3 w-3 text-amber-500" /> {doc}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
+                      {(unitData.missingFirst.length > 0 || unitData.missingFinal.length > 0) && (
+                          <div className="space-y-4">
+                              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 text-rose-600"><FileWarning className="h-4 w-4" /> Compliance Gap Audit</h4>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                  {unitData.missingFirst.length > 0 && (
+                                      <div className="bg-rose-50/50 rounded-xl p-5 border border-rose-100">
+                                          <p className="text-[9px] font-black uppercase text-rose-600 mb-3 bg-white w-fit px-2 py-0.5 rounded border border-rose-100">1st Cycle To-Do</p>
+                                          <ul className="space-y-1.5">{unitData.missingFirst.map(doc => <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700"><div className="h-1 w-1 rounded-full bg-rose-400" /> {doc}</li>)}</ul>
+                                      </div>
+                                  )}
+                                  {unitData.missingFinal.length > 0 && (
+                                      <div className="bg-rose-50/50 rounded-xl p-5 border border-rose-100">
+                                          <p className="text-[9px] font-black uppercase text-rose-600 mb-3 bg-white w-fit px-2 py-0.5 rounded border border-rose-100">Final Cycle To-Do</p>
+                                          <ul className="space-y-1.5">{unitData.missingFinal.map(doc => <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700"><div className="h-1 w-1 rounded-full bg-rose-400" /> {doc}</li>)}</ul>
+                                      </div>
+                                  )}
+                              </div>
+                          </div>
+                      )}
+                  </div>
+              </div>
 
-                    {unitData.missingFirst.length === 0 && unitData.missingFinal.length === 0 && (
-                        <div className="bg-green-50 p-6 rounded-lg border border-green-100 text-center space-y-2">
-                            <div className="mx-auto h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                                    <CheckCircle2 className="h-6 w-6 text-green-600" />
-                            </div>
-                            <h4 className="font-black text-sm uppercase text-green-800">Operational Excellence</h4>
-                            <p className="text-xs text-green-700/70 max-w-xs mx-auto">This unit has achieved 100% verified compliance for Academic Year {selectedYear}.</p>
-                        </div>
-                    )}
-
-                    {/* --- DETAILED LOG TABLES --- */}
-                    <div className="space-y-6 pt-4">
-                        <h4 className="text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2 text-primary">
-                            <CalendarIcon className="h-4 w-4" /> 
-                            Submission History
-                        </h4>
-                        <div className="space-y-3">
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 uppercase text-[9px] font-black">First Submission Cycle</Badge>
-                            <SubmissionTableForCycle submissions={unitData.firstCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} isAdmin={isAdmin} />
-                        </div>
-                        
-                        <div className="space-y-3">
-                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 uppercase text-[9px] font-black">Final Submission Cycle</Badge>
-                            <SubmissionTableForCycle submissions={unitData.finalCycle} onEyeClick={(id) => router.push(`/submissions/${id}`)} isAdmin={isAdmin} />
-                        </div>
-                    </div>
-                </div>
-            ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center gap-2 text-muted-foreground p-12">
-                    <Building className="h-12 w-12 opacity-10" />
-                    <p className="text-sm font-medium">Select a unit from the site tree to see their performance summary.</p>
-                </div>
-            )}
-        </ScrollArea>
-        </div>
+              <div className="space-y-6">
+                  <div className="flex items-center gap-3 border-b pb-2"><CalendarIcon className="h-5 w-5 text-primary" /><h4 className="text-sm font-black uppercase tracking-widest text-slate-900">Submission Registry Logs</h4></div>
+                  <div className="space-y-8">
+                      <div className="space-y-3"><Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 px-4 h-6 font-black text-[9px] uppercase">1st Cycle Registry</Badge><UnitTable cycleSubs={unitData.firstCycle} onView={(id) => router.push(`/submissions/${id}`)} /></div>
+                      <div className="space-y-3"><Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 px-4 h-6 font-black text-[9px] uppercase">Final Cycle Registry</Badge><UnitTable cycleSubs={unitData.finalCycle} onView={(id) => router.push(`/submissions/${id}`)} /></div>
+                  </div>
+              </div>
+          </div>
+      ) : (
+          <div className="h-full flex flex-col items-center justify-center text-center gap-2 text-muted-foreground py-20 border-dashed border-2 rounded-2xl">
+              <Building className="h-12 w-12 opacity-10" />
+              <p className="text-sm font-medium">Select a unit from the dropdown above to view its compliance history.</p>
+          </div>
+      )}
     </div>
   );
 }
 
-
-function SubmissionTableForCycle({ 
-    submissions, 
-    onEyeClick,
-    isAdmin
-}: { 
-    submissions: Submission[], 
-    onEyeClick: (id: string) => void,
-    isAdmin: boolean
-}) {
-    if (submissions.length === 0) {
-        return (
-            <div className="rounded-lg border border-dashed p-8 text-center bg-muted/10">
-                <p className="text-xs text-muted-foreground font-medium">No documents uploaded for this cycle.</p>
-            </div>
-        );
-    }
+function UnitTable({ cycleSubs, onView }: { cycleSubs: Submission[], onView: (id: string) => void }) {
+    if (cycleSubs.length === 0) return <div className="rounded-xl border border-dashed p-10 text-center bg-muted/5"><p className="text-xs text-muted-foreground font-bold uppercase tracking-widest opacity-40">No entries recorded</p></div>;
     return (
-         <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead className="text-[10px] font-bold uppercase">Report</TableHead>
-                    <TableHead className="text-[10px] font-bold uppercase text-center">Status</TableHead>
-                    <TableHead className="text-[10px] font-bold uppercase text-right">Action</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {submissions.map(sub => (
-                    <TableRow 
-                      key={sub.id}
-                      className={cn("transition-colors", getYearCycleRowColor(sub.year, sub.cycleId))}
-                    >
-                        <TableCell>
-                            <div className="flex flex-col">
-                                <span className="font-bold text-xs">{sub.reportType}</span>
-                                <span className="text-[9px] text-muted-foreground font-mono">{sub.controlNumber}</span>
-                            </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                            <Badge 
-                                className={cn(
-                                    "capitalize font-black text-[9px] px-2 py-0 border-none shadow-sm",
-                                    sub.statusId === 'approved' && "bg-emerald-600 text-white",
-                                    sub.statusId === 'rejected' && "bg-rose-600 text-white",
-                                    sub.statusId === 'submitted' && "bg-amber-500 text-amber-950",
-                                )}
-                            >
-                                {sub.statusId === 'submitted' ? 'AWAITING' : sub.statusId.toUpperCase()}
-                            </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                             <Button 
-                                variant="default" 
-                                size="sm" 
-                                onClick={() => onEyeClick(sub.id)} 
-                                className="h-7 text-[9px] font-bold bg-primary shadow-sm"
-                            >
-                                VIEW SUBMISSION
-                            </Button>
-                        </TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    )
+        <div className="rounded-xl border shadow-sm overflow-hidden bg-white">
+            <Table>
+                <TableHeader className="bg-muted/30">
+                    <TableRow><TableHead className="text-[10px] font-black uppercase pl-6 py-3">Report Details</TableHead><TableHead className="text-center text-[10px] font-black uppercase py-3">Status</TableHead><TableHead className="text-right text-[10px] font-black uppercase pr-6 py-3">Action</TableHead></TableRow>
+                </TableHeader>
+                <TableBody>
+                    {cycleSubs.map(sub => (
+                        <TableRow key={sub.id} className={cn("transition-colors", getYearCycleRowColor(sub.year, sub.cycleId))}>
+                            <TableCell className="pl-6 py-4"><div className="flex flex-col gap-1"><span className="font-bold text-sm text-slate-900">{sub.reportType}</span><span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">{sub.controlNumber}</span></div></TableCell>
+                            <TableCell className="text-center"><Badge className={cn("capitalize font-black text-[9px] px-2 py-0.5 border-none shadow-sm", sub.statusId === 'approved' && "bg-emerald-600 text-white", sub.statusId === 'rejected' && "bg-rose-600 text-white", sub.statusId === 'submitted' && "bg-amber-500 text-amber-950")}>{sub.statusId === 'submitted' ? 'AWAITING' : sub.statusId.toUpperCase()}</Badge></TableCell>
+                            <TableCell className="text-right pr-6"><Button variant="default" size="sm" onClick={() => onView(sub.id)} className="h-8 text-[10px] font-bold bg-primary shadow-sm">VIEW RECORD</Button></TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    );
 }

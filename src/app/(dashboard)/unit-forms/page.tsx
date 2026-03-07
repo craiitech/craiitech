@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -173,7 +174,7 @@ export default function UnitFormsPage() {
         <Button 
           variant="outline" 
           size="sm" 
-          className="lg:hidden" 
+          className="md:hidden" 
           onClick={() => setIsSidebarVisible(!isSidebarVisible)}
         >
           {isSidebarVisible ? <PanelLeftClose className="mr-2 h-4 w-4" /> : <PanelLeftOpen className="mr-2 h-4 w-4" />}
@@ -181,13 +182,13 @@ export default function UnitFormsPage() {
         </Button>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-12rem)]">
+      <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-12rem)]">
         {/* Unit Directory Sidebar */}
         <div className={cn(
           "transition-all duration-300 overflow-hidden flex flex-col gap-2",
-          isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6"
+          isSidebarVisible ? "w-full md:w-1/4 opacity-100" : "w-0 opacity-0 md:-ml-6"
         )}>
-          <Card className="flex flex-col h-[400px] lg:h-full shadow-sm border-primary/10">
+          <Card className="flex flex-col h-[400px] md:h-full shadow-sm border-primary/10">
             <CardHeader className="pb-4 bg-muted/30 border-b">
               <CardTitle className="text-xs font-black uppercase tracking-widest">Unit Directory</CardTitle>
               <div className="relative pt-2">
@@ -236,7 +237,7 @@ export default function UnitFormsPage() {
           <Button
             variant="secondary"
             size="icon"
-            className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden lg:flex hover:bg-primary hover:text-white transition-colors"
+            className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden md:flex hover:bg-primary hover:text-white transition-colors"
             onClick={() => setIsSidebarVisible(!isSidebarVisible)}
             title={isSidebarVisible ? "Hide Unit Directory" : "Show Unit Directory"}
           >
