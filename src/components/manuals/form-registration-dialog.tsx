@@ -320,7 +320,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit }: FormRegis
 
               <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
                 <div className="flex w-full items-center justify-between">
-                    <Button type="button" variant="ghost" className="font-black text-[10px] uppercase tracking-widest" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Discard Request</Button>
+                    <button type="button" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-slate-900 transition-colors" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Discard Request</button>
                     <div className="flex gap-2">
                         {step > 1 && (
                             <Button type="button" variant="outline" className="font-black text-[10px] uppercase tracking-widest h-10 px-6" onClick={() => setStep(prev => prev - 1)} disabled={isSubmitting}>

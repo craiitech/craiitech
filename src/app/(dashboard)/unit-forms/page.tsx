@@ -144,10 +144,8 @@ export default function UnitFormsPage() {
   );
   const { data: forms, isLoading: isLoadingForms } = useCollection<UnitForm>(formsQuery);
 
-  const requestsQuery = useMemoFirebase(
-    () => (firestore && selectedUnitId ? query(collection(firestore, 'unitFormRequests'), where('unitId', '==', selectedUnitId), orderBy('createdAt', 'desc')) : null),
-    [firestore, selectedUnitId]
-  );
+  // Listing of unitFormRequests is temporarily disabled as per user instruction to bypass permission errors
+  const requestsQuery = null; 
   const { data: requests, isLoading: isLoadingRequests } = useCollection<UnitFormRequest>(requestsQuery);
 
   const handleSaveDriveLink = async () => {
@@ -157,7 +155,7 @@ export default function UnitFormsPage() {
           if (selectedUnitId === SHARED_ACADEMIC_ID) {
               await setDoc(doc(firestore, 'campusSettings', 'academic-shared'), { formsDriveLink: editDriveLink }, { merge: true });
           } else if (selectedUnitId) {
-              await updateDoc(doc(firestore, 'units', selectedUnitId!), { formsDriveLink: editDriveLink });
+              await setDoc(doc(firestore, 'units', selectedUnitId!), { formsDriveLink: editDriveLink }, { merge: true });
           }
           toast({ title: 'Drive Link Updated', description: 'Institutional repository link has been saved.' });
       } catch (e) {
