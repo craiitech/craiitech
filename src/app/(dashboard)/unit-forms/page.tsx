@@ -31,7 +31,8 @@ import {
     Save,
     Layers,
     Download,
-    Eye
+    Eye,
+    Send
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
@@ -141,10 +142,10 @@ export default function UnitFormsPage() {
   );
   const { data: forms, isLoading: isLoadingForms } = useCollection<UnitForm>(formsQuery);
 
-  const requestsQuery = useMemoFirebase(
-    () => (firestore && selectedUnitId ? query(collection(firestore, 'unitFormRequests'), where('unitId', '==', selectedUnitId), orderBy('createdAt', 'desc')) : null),
-    [firestore, selectedUnitId]
-  );
+  /**
+   * Temporarily disabled listing of unitFormRequests as requested to bypass permission issues.
+   */
+  const requestsQuery = null; 
   const { data: requests, isLoading: isLoadingRequests } = useCollection<UnitFormRequest>(requestsQuery);
 
   const handleSaveDriveLink = async () => {
