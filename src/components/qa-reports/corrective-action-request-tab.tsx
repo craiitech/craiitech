@@ -165,15 +165,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     return Array.from(yrs).sort((a,b) => b.localeCompare(a));
   }, [rawCars]);
 
-  const stats = useMemo(() => {
-    if (!filteredCars) return { total: 0, open: 0, closed: 0, resolutionRate: 0 };
-    const total = filteredCars.length;
-    const open = filteredCars.filter(c => c.status !== 'Closed').length;
-    const closed = filteredCars.filter(c => c.status === 'Closed').length;
-    const resolutionRate = total > 0 ? Math.round((closed / total) * 100) : 0;
-    return { total, open, closed, resolutionRate };
-  }, [filteredCars]);
-
   const form = useForm<z.infer<typeof carSchema>>({
     resolver: zodResolver(carSchema),
     defaultValues: { 
@@ -191,19 +182,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     control: form.control,
     name: "actionSteps"
   });
-
-  const { fields: evidenceFields, append: appendEvidence, remove: removeEvidence } = useFieldArray({
-    control: form.control,
-    name: "evidences"
-  });
-
-  const { fields: verificationFields, append: appendVerification, remove: removeVerification } = useFieldArray({
-    control: form.control,
-    name: "verificationRecords"
-  });
-
-  const watchCarNumber = form.watch('carNumber');
-  const watchNcReportNumber = form.watch('ncReportNumber');
 
   const handlePrint = (car: CorrectiveActionRequest) => {
     const uName = unitMap.get(car.unitId) || 'Unknown Unit';
@@ -254,39 +232,17 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     setIsSubmitting(true);
     try {
       const carData: any = {
-        carNumber: values.carNumber,
-        ncReportNumber: values.ncReportNumber || '',
-        source: values.source,
-        procedureTitle: values.procedureTitle,
-        initiator: values.initiator,
-        natureOfFinding: values.natureOfFinding,
-        concerningClause: values.concerningClause,
-        concerningTopManagementName: values.concerningTopManagementName,
+        ...values,
         timeLimitForReply: Timestamp.fromDate(new Date(values.timeLimitForReply)),
-        unitId: values.unitId,
-        campusId: values.campusId,
-        unitHead: values.unitHead,
-        descriptionOfNonconformance: values.descriptionOfNonconformance,
         requestDate: Timestamp.fromDate(new Date(values.requestDate)),
-        preparedBy: values.preparedBy,
-        approvedBy: values.approvedBy,
-        rootCauseAnalysis: values.rootCauseAnalysis || '',
-        status: values.status,
         actionSteps: (values.actionSteps || []).map(step => ({
-            description: step.description || '',
-            type: step.type,
-            completionDate: Timestamp.fromDate(new Date(step.completionDate)),
-            status: step.status || 'Pending'
+            ...step,
+            completionDate: Timestamp.fromDate(new Date(step.completionDate))
         })),
-        evidences: values.evidences || [],
         verificationRecords: (values.verificationRecords || []).map(rec => ({
-            result: rec.result || '',
-            resultVerifiedBy: rec.resultVerifiedBy || '',
+            ...rec,
             resultVerificationDate: Timestamp.fromDate(new Date(rec.resultVerificationDate)),
-            effectivenessResult: rec.effectivenessResult || '',
-            effectivenessVerifiedBy: rec.effectivenessVerifiedBy || '',
-            effectivenessVerificationDate: Timestamp.fromDate(new Date(rec.effectivenessVerificationDate)),
-            remarks: rec.remarks || '',
+            effectivenessVerificationDate: Timestamp.fromDate(new Date(rec.effectivenessVerificationDate))
         })),
         updatedAt: serverTimestamp(),
       };
@@ -334,7 +290,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
           ...step,
           completionDate: safeDate(step.completionDate)
       })),
-      evidences: car.evidences || [],
       verificationRecords: (car.verificationRecords || []).map(rec => ({
           ...rec,
           resultVerificationDate: safeDate(rec.resultVerificationDate),
@@ -410,7 +365,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl">
+        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
             <DialogTitle>Issue Corrective Action Request (CAR)</DialogTitle>
             <DialogDescription>Capture non-conformance details and monitor the correction cycle.</DialogDescription>

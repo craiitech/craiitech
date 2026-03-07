@@ -8,6 +8,7 @@ import type { Unit, UnitForm, UnitFormRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { 
     PlusCircle, 
     Loader2, 
@@ -144,9 +145,9 @@ export default function UnitFormsPage() {
   );
   const { data: forms, isLoading: isLoadingForms } = useCollection<UnitForm>(formsQuery);
 
-  // Listing of unitFormRequests is temporarily disabled as per user instruction to bypass permission errors
+  // Temporarily setting request query to null to bypass permission error while rule is being updated
   const requestsQuery = null; 
-  const { data: requests, isLoading: isLoadingRequests } = useCollection<UnitFormRequest>(requestsQuery);
+  const { data: requests } = useCollection<UnitFormRequest>(requestsQuery);
 
   const handleSaveDriveLink = async () => {
       if (!firestore) return;
@@ -308,7 +309,7 @@ export default function UnitFormsPage() {
                                                 </div>
                                             ) : (
                                                 <div className="p-4 rounded-lg bg-amber-50 border border-amber-100 flex items-start gap-3">
-                                                    <Info className="h-4 w-4 text-amber-600 shrink-0" />
+                                                    <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                                                     <p className="text-[10px] text-amber-700 font-bold uppercase">Pending Repository Setup by Administrator</p>
                                                 </div>
                                             )}
