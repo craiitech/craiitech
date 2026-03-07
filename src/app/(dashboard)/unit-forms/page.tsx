@@ -13,7 +13,6 @@ import {
     PlusCircle, 
     Loader2, 
     FileText, 
-    History as HistoryIcon, 
     ExternalLink, 
     ListChecks, 
     Clock, 

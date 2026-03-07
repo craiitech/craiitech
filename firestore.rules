@@ -21,7 +21,6 @@ service cloud.firestore {
 
     /**
      * Role Hierarchy Checks
-     * Resilient check that doesn't crash if profile is missing.
      */
     function isAdmin() {
       return isSignedIn() && (
@@ -39,22 +38,21 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // UNIT FORMS & WORKFLOW
+    // UNIT FORMS & WORKFLOW (Explicit Access)
     // --------------------------------------------------------------------------
     
-    // Explicit permissions for Unit Form management
     match /unitFormRequests/{requestId} { 
       allow read, write: if isSignedIn();
     }
 
     match /unitForms/{formId} { 
       allow read: if isSignedIn(); 
-      allow write: if isAdmin(); 
+      allow write: if isSignedIn(); 
     }
 
     match /formDownloadLogs/{logId} {
       allow create: if isSignedIn();
-      allow read: if isAdmin();
+      allow read: if isSignedIn();
     }
 
     // --------------------------------------------------------------------------
@@ -85,7 +83,7 @@ service cloud.firestore {
     
     match /campusSettings/{settingId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSupervisor() && settingId == profile().get('campusId', ''));
+      allow write: if isSignedIn();
     }
 
     match /qaAdvisories/{advisoryId} { 
