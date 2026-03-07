@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc, updateDoc, serverTimestamp, orderBy } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, setDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import type { Unit, UnitForm, UnitFormRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -153,13 +153,14 @@ export default function UnitFormsPage() {
       setIsSavingLink(true);
       try {
           if (selectedUnitId === SHARED_ACADEMIC_ID) {
-              await updateDoc(doc(firestore, 'campusSettings', 'academic-shared'), { formsDriveLink: editDriveLink });
+              await setDoc(doc(firestore, 'campusSettings', 'academic-shared'), { formsDriveLink: editDriveLink }, { merge: true });
           } else if (selectedUnitId) {
-              await updateDoc(doc(firestore, 'units', selectedUnitId), { formsDriveLink: editDriveLink });
+              await updateDoc(doc(firestore, 'units', selectedUnitId!), { formsDriveLink: editDriveLink });
           }
           toast({ title: 'Drive Link Updated', description: 'Institutional repository link has been saved.' });
       } catch (e) {
-          toast({ title: 'Error', description: 'Failed to update link.', variant: 'destructive' });
+          console.error("Save Link Error:", e);
+          toast({ title: 'Error', description: 'Failed to update link. Please ensure the document exists.', variant: 'destructive' });
       } finally {
           setIsSavingLink(false);
       }
