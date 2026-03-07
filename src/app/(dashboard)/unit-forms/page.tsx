@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp, orderBy } from 'firebase/firestore';
-import type { Unit, UnitForm, UnitFormRequest } from '@/lib/types';
+import type { Unit, UnitForm } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,12 +14,9 @@ import {
     FileText, 
     ExternalLink, 
     ListChecks, 
-    Clock, 
-    CheckCircle2, 
     ShieldCheck, 
     Info, 
     Building, 
-    Activity, 
     ChevronRight, 
     Search, 
     PanelLeftClose, 
@@ -36,23 +33,13 @@ import {
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
-import { FormRequestReviewDialog } from '@/components/manuals/form-request-review-dialog';
 import { FormDownloadDialog } from '@/components/manuals/form-download-dialog';
-import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-
-const statusColors: Record<string, string> = {
-    'Submitted': 'bg-blue-100 text-blue-700',
-    'QA Review': 'bg-indigo-100 text-indigo-700',
-    'Returned for Correction': 'bg-rose-100 text-rose-700',
-    'Awaiting Presidential Approval': 'bg-amber-100 text-amber-700',
-    'Approved & Registered': 'bg-emerald-100 text-emerald-700',
-};
 
 const SHARED_ACADEMIC_ID = 'academic-shared';
 
@@ -65,7 +52,6 @@ export default function UnitFormsPage() {
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   
   const [isRegOpen, setIsRegOpen] = useState(false);
-  const [reviewRequestId, setReviewRequestId] = useState<string | null>(null);
   const [isSavingLinks, setIsSavingLinks] = useState(false);
   
   const [editRosterLink, setEditRosterLink] = useState('');
@@ -152,12 +138,6 @@ export default function UnitFormsPage() {
   );
   const { data: forms, isLoading: isLoadingForms } = useCollection<UnitForm>(formsQuery);
 
-  const requestsQuery = useMemoFirebase(
-    () => (firestore && selectedUnitId ? query(collection(firestore, 'unitFormRequests'), where('unitId', '==', selectedUnitId), orderBy('createdAt', 'desc')) : null),
-    [firestore, selectedUnitId]
-  );
-  const { data: requests, isLoading: isLoadingRequests } = useCollection<UnitFormRequest>(requestsQuery);
-
   const handleSaveAdminLinks = async () => {
       if (!firestore) return;
       setIsSavingLinks(true);
@@ -172,7 +152,7 @@ export default function UnitFormsPage() {
           } else if (selectedUnitId) {
               await setDoc(doc(firestore, 'units', selectedUnitId!), links, { merge: true });
           }
-          toast({ title: 'Master Links Updated', description: 'Institutional repository parameters have been saved.' });
+          toast({ title: 'Links Updated', description: 'Institutional repository parameters have been saved.' });
       } catch (e) {
           console.error("Save Link Error:", e);
           toast({ title: 'Error', description: 'Failed to update links.', variant: 'destructive' });
@@ -188,9 +168,7 @@ export default function UnitFormsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Unit Forms & Records</h2>
-          <p className="text-muted-foreground text-sm">
-            Registry of official controlled forms and registration request management.
-          </p>
+          <p className="text-muted-foreground text-sm">Registry of official controlled forms and registration request management.</p>
         </div>
         <Button 
           variant="outline" 
@@ -417,24 +395,14 @@ export default function UnitFormsPage() {
                                                             <TableCell className="text-[12px] font-bold text-slate-800">{form.formName}</TableCell>
                                                             <TableCell className="text-center"><Badge variant="secondary" className="h-4 text-[8px] font-bold uppercase">{form.revision}</Badge></TableCell>
                                                             <TableCell className="text-right pr-6">
-                                                                <div className="flex items-center justify-end gap-2">
-                                                                    <Button 
-                                                                        variant="outline" 
-                                                                        size="sm" 
-                                                                        className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5"
-                                                                        onClick={() => setPreviewDoc({ title: form.formName, url: getEmbedUrl(form.googleDriveLink) })}
-                                                                    >
-                                                                        <Eye className="h-3 w-3" /> Preview
-                                                                    </Button>
-                                                                    <Button 
-                                                                        variant="default" 
-                                                                        size="sm" 
-                                                                        className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5"
-                                                                        onClick={() => setDownloadingForm(form)}
-                                                                    >
-                                                                        <Download className="h-3 w-3" /> Request Download
-                                                                    </Button>
-                                                                </div>
+                                                                <Button 
+                                                                    variant="default" 
+                                                                    size="sm" 
+                                                                    className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5"
+                                                                    onClick={() => setDownloadingForm(form)}
+                                                                >
+                                                                    <Download className="h-3 w-3" /> Request Download
+                                                                </Button>
                                                             </TableCell>
                                                         </TableRow>
                                                     ))
@@ -450,99 +418,47 @@ export default function UnitFormsPage() {
                     </TabsContent>
 
                     <TabsContent value="register" className="h-full m-0 animate-in fade-in slide-in-from-right-2 duration-300">
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full overflow-hidden">
-                            <div className="lg:col-span-2 flex flex-col min-h-0">
-                                <ScrollArea className="flex-1 rounded-xl border bg-background shadow-sm">
-                                    <div className="p-6 space-y-8">
-                                        <div className="space-y-2">
-                                            <h3 className="text-lg font-black uppercase tracking-tight text-slate-900">Application for Form Registration</h3>
-                                            <p className="text-xs text-muted-foreground font-medium">Submit evidence for new or revised controlled forms. Institutional review follows submission.</p>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <Card className="bg-primary/5 border-primary/10">
-                                                <CardContent className="p-6 flex flex-col items-center text-center gap-4">
-                                                    <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-white shadow-lg"><Download className="h-6 w-6" /></div>
-                                                    <div className="space-y-1">
-                                                        <p className="text-xs font-black uppercase text-slate-800">1. Download Template</p>
-                                                        <p className="text-[10px] text-muted-foreground font-medium italic">Obtain the official DRF from the institutional vault.</p>
-                                                    </div>
-                                                    <Button type="button" size="sm" className="w-full font-black text-[10px] uppercase shadow-sm" asChild>
-                                                        <a href="https://drive.google.com/file/d/1yPdJGXQT1yhyXkENhtDHLaIMlxTnHYx3/view?usp=sharing" target="_blank" rel="noopener noreferrer">Access DRF Template</a>
-                                                    </Button>
-                                                </CardContent>
-                                            </Card>
-                                            <Card className="bg-indigo-50 border-indigo-100">
-                                                <CardContent className="p-6 flex flex-col items-center text-center gap-4">
-                                                    <div className="h-12 w-12 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg"><Send className="h-6 w-6" /></div>
-                                                    <div className="space-y-1">
-                                                        <p className="text-xs font-black uppercase text-slate-800">2. Submit Application</p>
-                                                        <p className="text-[10px] text-muted-foreground font-medium italic">Upload signed evidence and form links for QA review.</p>
-                                                    </div>
-                                                    <Button size="sm" variant="outline" className="w-full bg-white font-black text-[10px] uppercase shadow-sm border-indigo-200 text-indigo-700" onClick={() => setIsRegOpen(true)}>Launch Registration Wizard</Button>
-                                                </CardContent>
-                                            </Card>
-                                        </div>
-                                        <div className="p-6 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
-                                            <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                        <ScrollArea className="flex-1 rounded-xl border bg-background shadow-sm">
+                            <div className="p-6 space-y-8">
+                                <div className="space-y-2">
+                                    <h3 className="text-lg font-black uppercase tracking-tight text-slate-900">Application for Form Registration</h3>
+                                    <p className="text-xs text-muted-foreground font-medium">Submit evidence for new or revised controlled forms. Institutional review follows submission.</p>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <Card className="bg-primary/5 border-primary/10">
+                                        <CardContent className="p-6 flex flex-col items-center text-center gap-4">
+                                            <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-white shadow-lg"><Download className="h-6 w-6" /></div>
                                             <div className="space-y-1">
-                                                <p className="text-xs font-black uppercase text-amber-800 tracking-tight">Compliance Reminder</p>
-                                                <p className="text-[10px] text-amber-700 leading-relaxed font-medium italic">
-                                                    All registered forms must be explicitly derived from the current **Procedure Manual**. If a form is not documented, apply for a manual revision first.
-                                                </p>
+                                                <p className="text-xs font-black uppercase text-slate-800">1. Download Template</p>
+                                                <p className="text-[10px] text-muted-foreground font-medium italic">Obtain the official DRF from the institutional vault.</p>
                                             </div>
-                                        </div>
+                                            <Button type="button" size="sm" className="w-full font-black text-[10px] uppercase shadow-sm" asChild>
+                                                <a href="https://drive.google.com/file/d/1yPdJGXQT1yhyXkENhtDHLaIMlxTnHYx3/view?usp=sharing" target="_blank" rel="noopener noreferrer">Access DRF Template</a>
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                    <Card className="bg-indigo-50 border-indigo-100">
+                                        <CardContent className="p-6 flex flex-col items-center text-center gap-4">
+                                            <div className="h-12 w-12 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg"><Send className="h-6 w-6" /></div>
+                                            <div className="space-y-1">
+                                                <p className="text-xs font-black uppercase text-slate-800">2. Submit Application</p>
+                                                <p className="text-[10px] text-muted-foreground font-medium italic">Upload signed evidence and form links for QA review.</p>
+                                            </div>
+                                            <Button size="sm" variant="outline" className="w-full bg-white font-black text-[10px] uppercase shadow-sm border-indigo-200 text-indigo-700" onClick={() => setIsRegOpen(true)}>Launch Registration Wizard</Button>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                                <div className="p-6 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+                                    <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-black uppercase text-amber-800 tracking-tight">Compliance Reminder</p>
+                                        <p className="text-[10px] text-amber-700 leading-relaxed font-medium italic">
+                                            All registered forms must be explicitly derived from the current **Procedure Manual**. If a form is not documented, apply for a manual revision first.
+                                        </p>
                                     </div>
-                                </ScrollArea>
+                                </div>
                             </div>
-
-                            <div className="lg:col-span-1 flex flex-col min-h-0">
-                                <Card className="flex flex-col h-full overflow-hidden shadow-md border-primary/10">
-                                    <CardHeader className="bg-muted/10 border-b py-4">
-                                        <div className="flex items-center gap-2">
-                                            <HistoryIcon className="h-5 w-5 text-primary" />
-                                            <CardTitle className="text-sm font-black uppercase tracking-tight">Request Track & Trace</CardTitle>
-                                        </div>
-                                        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Lifecycle of current applications.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="p-0 flex-1 overflow-hidden bg-background">
-                                        <ScrollArea className="h-full">
-                                            <div className="divide-y">
-                                                {requests?.map(req => (
-                                                    <div 
-                                                        key={req.id} 
-                                                        className="p-4 hover:bg-muted/30 transition-colors group cursor-pointer"
-                                                        onClick={() => setReviewRequestId(req.id)}
-                                                    >
-                                                        <div className="space-y-3">
-                                                            <div className="flex items-center justify-between gap-2">
-                                                                <Badge className={cn("text-[8px] font-black uppercase h-4 px-1.5 border-none shadow-none", statusColors[req.status])}>
-                                                                    {req.status}
-                                                                </Badge>
-                                                                <span className="text-[10px] font-mono text-muted-foreground">{format(req.createdAt?.toDate ? req.createdAt.toDate() : new Date(), 'MMM dd, yy')}</span>
-                                                            </div>
-                                                            <p className="text-[11px] font-black text-slate-800 uppercase leading-tight">Registration Request</p>
-                                                            <div className="flex items-center justify-between pt-1">
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <Clock className="h-3 w-3 text-muted-foreground" />
-                                                                    <span className="text-[9px] font-bold text-muted-foreground uppercase">Current Holder: QA Office</span>
-                                                                </div>
-                                                                <ChevronRight className="h-3 w-3 text-primary opacity-0 group-hover:opacity-100 transition-all" />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                                {(!requests || requests.length === 0) && (
-                                                    <div className="py-20 text-center opacity-20 flex flex-col items-center gap-2">
-                                                        <Activity className="h-8 w-8" />
-                                                        <p className="text-[10px] font-black uppercase tracking-widest">No active requests</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </ScrollArea>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        </div>
+                        </ScrollArea>
                     </TabsContent>
                 </div>
             </Tabs>
@@ -551,10 +467,7 @@ export default function UnitFormsPage() {
                 <Building className="h-12 w-12 opacity-10 mb-4" />
                 <h4 className="font-black text-xs uppercase tracking-[0.2em]">Form Control Hub</h4>
                 <p className="text-[10px] mt-2 max-w-[250px] text-center leading-relaxed">
-                    {isAdmin 
-                        ? 'Select a unit from the directory to access its quality forms registry and manage official Drive repository links.' 
-                        : 'Select a unit from the directory to access its quality forms registry and manage registration requests.'
-                    }
+                    Select a unit from the directory to access its quality forms registry and manage official Drive repository links.
                 </p>
             </div>
           )}
@@ -566,14 +479,6 @@ export default function UnitFormsPage() {
             isOpen={isRegOpen} 
             onOpenChange={setIsRegOpen} 
             unit={selectedUnit as any} 
-          />
-      )}
-
-      {reviewRequestId && (
-          <FormRequestReviewDialog
-            requestId={reviewRequestId}
-            isOpen={!!reviewRequestId}
-            onOpenChange={(open) => !open && setReviewRequestId(null)}
           />
       )}
 

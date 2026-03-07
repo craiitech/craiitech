@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -28,7 +27,6 @@ import {
     ShieldCheck, 
     Link as LinkIcon, 
     FileText, 
-    ListChecks, 
     Send,
     ArrowRight,
     ChevronRight,
@@ -223,7 +221,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit }: FormRegis
                             <div className="p-4 ml-11 bg-blue-50 border border-blue-100 rounded-lg flex gap-3">
                                 <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
                                 <p className="text-[10px] text-blue-800 font-bold uppercase leading-relaxed">
-                                    Instruction: You have to add each form to be registered, by saving it to the units google drive, then sharing the actual google file link.
+                                    They have to add each form to be registered, by saving it to the units google drive, then sharing the actual google file link.
                                 </p>
                             </div>
 

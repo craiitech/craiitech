@@ -37,20 +37,19 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // UNIT FORMS & WORKFLOW (Explicit Access)
+    // UNIT FORMS & WORKFLOW
     // --------------------------------------------------------------------------
     
     match /unitFormRequests/{requestId} { 
-      allow read, list, get, write, create, update, delete: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
 
     match /unitForms/{formId} { 
-      allow read, list, get, write, create, update, delete: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
 
     match /formDownloadLogs/{logId} {
-      allow create: if isSignedIn();
-      allow read: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
 
     // --------------------------------------------------------------------------
