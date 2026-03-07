@@ -361,7 +361,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
           ) : (
             <Table>
-              <TableHeader className="bg-muted/50">
+              <TableHeader>
                 <TableRow>
                   <TableHead className="font-bold text-[10px] uppercase pl-6">CAR No. & Unit</TableHead>
                   <TableHead className="font-bold text-[10px] uppercase">Procedure / Findings</TableHead>

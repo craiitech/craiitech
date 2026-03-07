@@ -71,6 +71,7 @@ export default function UnitFormsPage() {
   
   const [previewDoc, setPreviewDoc] = useState<{ title: string; url: string } | null>(null);
   const [downloadingForm, setDownloadingForm] = useState<UnitForm | null>(null);
+  const [isRosterLogOpen, setIsRosterLogOpen] = useState(false);
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
@@ -88,7 +89,8 @@ export default function UnitFormsPage() {
     }
 
     if (searchTerm) {
-        filtered = filtered.filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase()));
+        const lower = searchTerm.toLowerCase();
+        filtered = filtered.filter(u => u.name.toLowerCase().includes(lower));
     }
 
     const items = filtered.map(u => ({ id: u.id, name: u.name, category: u.category, isShared: false }));
@@ -142,9 +144,7 @@ export default function UnitFormsPage() {
   );
   const { data: forms, isLoading: isLoadingForms } = useCollection<UnitForm>(formsQuery);
 
-  /**
-   * Temporarily disabled listing of unitFormRequests as requested to bypass permission issues.
-   */
+  // Temporarily setting requestsQuery to null per instruction to avoid permission crashes during initialization
   const requestsQuery = null; 
   const { data: requests, isLoading: isLoadingRequests } = useCollection<UnitFormRequest>(requestsQuery);
 
@@ -160,7 +160,7 @@ export default function UnitFormsPage() {
           toast({ title: 'Drive Link Updated', description: 'Institutional repository link has been saved.' });
       } catch (e) {
           console.error("Save Link Error:", e);
-          toast({ title: 'Error', description: 'Failed to update link. Please ensure the document exists.', variant: 'destructive' });
+          toast({ title: 'Error', description: 'Failed to update link. Ensure the target document exists.', variant: 'destructive' });
       } finally {
           setIsSavingLink(false);
       }
@@ -267,54 +267,64 @@ export default function UnitFormsPage() {
                         <ScrollArea className="h-full pr-4">
                             <div className="space-y-8 pb-10">
                                 <Card className="border-primary/20 bg-primary/5 shadow-md overflow-hidden">
-                                    <div className="flex flex-col md:flex-row items-center justify-between p-6 gap-6">
-                                        <div className="flex items-start gap-4">
-                                            <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg text-white shrink-0">
-                                                <FolderKanban className="h-6 w-6" />
-                                            </div>
-                                            <div className="space-y-1 flex-1">
-                                                <h4 className="text-sm font-black uppercase tracking-tight text-slate-900">Official Forms Drive</h4>
-                                                <p className="text-[11px] text-muted-foreground leading-relaxed max-w-md">
-                                                    Master repository for all approved quality forms. Controlled by the QA Office.
-                                                </p>
-                                                {isAdmin && (
-                                                    <div className="flex items-center gap-2 mt-3 max-w-md">
-                                                        <Input 
-                                                            value={editDriveLink} 
-                                                            onChange={(e) => setEditDriveLink(e.target.value)} 
-                                                            placeholder="Paste Master GDrive Folder Link..."
-                                                            className="h-8 text-[10px] bg-white"
-                                                        />
-                                                        <Button size="sm" onClick={handleSaveDriveLink} disabled={isSavingLink} className="h-8 px-3">
-                                                            {isSavingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                                                        </Button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="shrink-0 w-full md:w-auto">
-                                            {currentDriveLink ? (
-                                                <div className="flex flex-col items-center gap-2">
-                                                    {isAdmin ? (
-                                                        <Button asChild className="w-full h-11 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20">
-                                                            <a href={currentDriveLink} target="_blank" rel="noopener noreferrer">
-                                                                <ExternalLink className="h-4 w-4 mr-2" /> Access Official Roster
-                                                            </a>
-                                                        </Button>
-                                                    ) : (
-                                                        <div className="p-4 bg-white/80 backdrop-blur rounded-xl border border-primary/10 shadow-sm text-center">
-                                                            <p className="text-[9px] font-black uppercase text-primary tracking-widest">Digital Repository Active</p>
-                                                            <p className="text-[10px] text-muted-foreground mt-1">Links are restricted. Please use individual "Request Download" actions below.</p>
+                                    <div className="flex flex-col md:flex-row items-stretch p-0 divide-y md:divide-y-0 md:divide-x">
+                                        <div className="p-6 flex-1 space-y-4">
+                                            <div className="flex items-start gap-4">
+                                                <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg text-white shrink-0">
+                                                    <FolderKanban className="h-6 w-6" />
+                                                </div>
+                                                <div className="space-y-1 flex-1">
+                                                    <h4 className="text-sm font-black uppercase tracking-tight text-slate-900">Official Roster & Forms Drive</h4>
+                                                    <p className="text-[11px] text-muted-foreground leading-relaxed max-w-md">
+                                                        Master repository for all approved quality forms. Controlled by the QA Office.
+                                                    </p>
+                                                    {isAdmin && (
+                                                        <div className="flex items-center gap-2 mt-3 max-w-md">
+                                                            <Input 
+                                                                value={editDriveLink} 
+                                                                onChange={(e) => setEditDriveLink(e.target.value)} 
+                                                                placeholder="Paste Master GDrive Folder Link..."
+                                                                className="h-8 text-[10px] bg-white"
+                                                            />
+                                                            <Button size="sm" onClick={handleSaveDriveLink} disabled={isSavingLink} className="h-8 px-3">
+                                                                {isSavingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                                                            </Button>
                                                         </div>
                                                     )}
                                                 </div>
-                                            ) : (
-                                                <div className="p-3 px-6 rounded-lg bg-muted border border-dashed text-center">
-                                                    <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-2">
-                                                        <LinkIcon className="h-3 w-3" /> Drive area not yet set by Admin
-                                                    </p>
+                                            </div>
+                                            
+                                            {currentDriveLink && (
+                                                <div className="pt-2">
+                                                    <Button 
+                                                        onClick={() => setIsRosterLogOpen(true)}
+                                                        className="w-full md:w-auto h-11 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
+                                                    >
+                                                        <ExternalLink className="h-4 w-4 mr-2" /> Access Official Roster
+                                                    </Button>
                                                 </div>
                                             )}
+                                        </div>
+                                        
+                                        <div className="md:w-1/2 p-0 bg-slate-100 flex flex-col">
+                                            <div className="p-3 border-b bg-white/50 flex items-center justify-between shrink-0">
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-primary">Master List Preview</span>
+                                                <Badge variant="secondary" className="h-4 text-[8px] font-bold">PDF VIEWER</Badge>
+                                            </div>
+                                            <div className="flex-1 bg-muted min-h-[250px] relative">
+                                                {currentDriveLink ? (
+                                                    <iframe 
+                                                        src={getEmbedUrl(currentDriveLink)} 
+                                                        className="absolute inset-0 w-full h-full border-none bg-white"
+                                                        allow="autoplay"
+                                                    />
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-20 p-8 text-center">
+                                                        <FileText className="h-10 w-10 mb-2" />
+                                                        <p className="text-[10px] font-bold uppercase">Preview Pending Admin Setup</p>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </Card>
@@ -513,6 +523,25 @@ export default function UnitFormsPage() {
             unitId={selectedUnitId!}
             isOpen={!!downloadingForm}
             onOpenChange={(open) => !open && setDownloadingForm(null)}
+          />
+      )}
+
+      {isRosterLogOpen && selectedUnitId && currentDriveLink && (
+          <FormDownloadDialog
+            form={{ 
+                id: 'roster-folder', 
+                formName: 'Official Roster & Forms Folder', 
+                formCode: 'MASTER-ROSTER', 
+                googleDriveLink: currentDriveLink,
+                unitId: selectedUnitId,
+                campusId: userProfile?.campusId || '',
+                revision: 'Latest',
+                requestId: 'system',
+                createdAt: new Date()
+            }}
+            unitId={selectedUnitId}
+            isOpen={isRosterLogOpen}
+            onOpenChange={setIsRosterLogOpen}
           />
       )}
 
