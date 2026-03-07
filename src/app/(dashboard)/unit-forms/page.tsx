@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -32,7 +31,8 @@ import {
     Layers,
     Download,
     Eye,
-    Send
+    Send,
+    History as HistoryIcon
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
