@@ -130,7 +130,7 @@ export function FormRegistrationDialog({ isOpen, onOpenChange, unit }: FormRegis
             <div className="flex items-center gap-4">
                 {[1, 2, 3].map(s => (
                     <div key={s} className="flex items-center gap-2">
-                        <div className={cn("h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-black transition-colors", step === s ? "bg-primary text-white" : step > s ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500")}>
+                        <div className={cn("h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-black transition-colors", step === s ? "bg-primary text-white" : step > s ? "bg-emerald-50 text-white" : "bg-slate-200 text-slate-500")}>
                             {step > s ? <CheckCircle2 className="h-3 w-3" /> : s}
                         </div>
                         <span className={cn("text-[9px] font-black uppercase tracking-widest", step === s ? "text-primary" : "text-muted-foreground")}>
