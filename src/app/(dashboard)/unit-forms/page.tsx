@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, orderBy, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import type { Unit, UnitForm, UnitFormRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,16 +29,20 @@ import {
     Link as LinkIcon,
     FolderKanban,
     Save,
-    Layers
+    Layers,
+    Download
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
 import { FormRequestReviewDialog } from '@/components/manuals/form-request-review-dialog';
+import { FormDownloadDialog } from '@/components/manuals/form-download-dialog';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const statusColors: Record<string, string> = {
     'Submitted': 'bg-blue-100 text-blue-700',
@@ -62,6 +66,9 @@ export default function UnitFormsPage() {
   const [reviewRequestId, setReviewRequestId] = useState<string | null>(null);
   const [isSavingLink, setIsSavingLink] = useState(false);
   const [editDriveLink, setEditDriveLink] = useState('');
+  
+  const [previewDoc, setPreviewDoc] = useState<{ title: string; url: string } | null>(null);
+  const [downloadingForm, setDownloadingForm] = useState<UnitForm | null>(null);
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
@@ -137,8 +144,10 @@ export default function UnitFormsPage() {
   );
   const { data: forms, isLoading: isLoadingForms } = useCollection<UnitForm>(formsQuery);
 
-  // DISABLED AS REQUESTED TO BYPASS PERMISSION ERROR
-  const requestsQuery = null;
+  const requestsQuery = useMemoFirebase(
+    () => (firestore && selectedUnitId ? query(collection(firestore, 'unitFormRequests'), where('unitId', '==', selectedUnitId), orderBy('createdAt', 'desc')) : null),
+    [firestore, selectedUnitId]
+  );
   const { data: requests, isLoading: isLoadingRequests } = useCollection<UnitFormRequest>(requestsQuery);
 
   const canRegister = isAdmin || (selectedUnitId === SHARED_ACADEMIC_ID && userProfile?.role?.includes('Academic')) || (userProfile?.unitId === selectedUnitId);
@@ -159,6 +168,8 @@ export default function UnitFormsPage() {
           setIsSavingLink(false);
       }
   };
+
+  const getEmbedUrl = (url: string) => url.replace('/view', '/preview').replace('?usp=sharing', '');
 
   return (
     <div className="space-y-4">
@@ -182,7 +193,7 @@ export default function UnitFormsPage() {
 
       <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-12rem)]">
         <div className={cn(
-          "transition-all duration-300 overflow-hidden flex flex-col",
+          "transition-all duration-300 overflow-hidden flex flex-col gap-2",
           isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6"
         )}>
           <Card className="flex flex-col h-[400px] lg:h-full shadow-sm border-primary/10">
@@ -215,7 +226,7 @@ export default function UnitFormsPage() {
                           "w-full justify-start text-left h-auto py-3 px-4 rounded-none border-l-2 transition-all",
                           selectedUnitId === unit.id 
                             ? "bg-primary/5 text-primary border-primary font-bold shadow-inner" 
-                            : "border-transparent hover:bg-muted/50"
+                            : "border-transparent text-muted-foreground"
                         )}
                       >
                         {unit.isShared ? <Layers className="mr-3 h-3 w-3 flex-shrink-0 text-primary" /> : <Building className="mr-3 h-3 w-3 flex-shrink-0 opacity-40" />}
@@ -240,131 +251,198 @@ export default function UnitFormsPage() {
           </Button>
 
           {selectedUnit ? (
-            <ScrollArea className="flex-1 rounded-md border p-6 bg-muted/5">
-                <div className="space-y-8 pb-10">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
-                        <div className="space-y-1">
-                            <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
-                                <ListChecks className="h-6 w-6 text-primary" />
-                                {selectedUnit.name} Registry
-                            </h3>
-                            <p className="text-xs text-muted-foreground font-medium">Quality forms control and registration workspace.</p>
-                        </div>
-                        {canRegister && (
-                            <Button onClick={() => setIsRegOpen(true)} className="shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest h-9">
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Register New Form
-                            </Button>
-                        )}
-                    </div>
+            <Tabs defaultValue="roster" className="flex-1 flex flex-col min-h-0">
+                <div className="bg-background flex items-center justify-between border-b pb-2 shrink-0">
+                    <TabsList className="bg-muted p-1 h-10">
+                        <TabsTrigger value="roster" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                            <ListChecks className="h-3.5 w-3.5" /> Unit Forms
+                        </TabsTrigger>
+                        <TabsTrigger value="register" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                            <FileText className="h-3.5 w-3.5" /> Apply for New Form
+                        </TabsTrigger>
+                    </TabsList>
+                    <Badge variant="outline" className="h-6 font-black text-[10px] uppercase border-primary/20 bg-primary/5 text-primary">{selectedUnit.name}</Badge>
+                </div>
 
-                    <Card className="border-primary/20 bg-primary/5 shadow-md overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
-                        <div className="flex flex-col md:flex-row items-center justify-between p-6 gap-6">
-                            <div className="flex items-start gap-4">
-                                <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg text-white shrink-0">
-                                    <FolderKanban className="h-6 w-6" />
-                                </div>
-                                <div className="space-y-1 flex-1">
-                                    <h4 className="text-sm font-black uppercase tracking-tight text-slate-900">Institutional Forms Drive</h4>
-                                    <p className="text-[11px] text-muted-foreground leading-relaxed max-w-md">
-                                        All approved quality forms for this unit are physically maintained in this designated Google Drive area by the QA Office.
-                                    </p>
-                                    {isAdmin && (
-                                        <div className="flex items-center gap-2 mt-3 max-w-md">
-                                            <Input 
-                                                value={editDriveLink} 
-                                                onChange={(e) => setEditDriveLink(e.target.value)} 
-                                                placeholder="Paste Master GDrive Folder Link..."
-                                                className="h-8 text-[10px] bg-white"
-                                            />
-                                            <Button size="sm" onClick={handleSaveDriveLink} disabled={isSavingLink} className="h-8 px-3">
-                                                {isSavingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                                            </Button>
+                <div className="flex-1 overflow-hidden pt-4">
+                    <TabsContent value="roster" className="h-full m-0 animate-in fade-in slide-in-from-left-2 duration-300">
+                        <ScrollArea className="h-full pr-4">
+                            <div className="space-y-8 pb-10">
+                                <Card className="border-primary/20 bg-primary/5 shadow-md overflow-hidden">
+                                    <div className="flex flex-col md:flex-row items-center justify-between p-6 gap-6">
+                                        <div className="flex items-start gap-4">
+                                            <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg text-white shrink-0">
+                                                <FolderKanban className="h-6 w-6" />
+                                            </div>
+                                            <div className="space-y-1 flex-1">
+                                                <h4 className="text-sm font-black uppercase tracking-tight text-slate-900">Official Forms Drive</h4>
+                                                <p className="text-[11px] text-muted-foreground leading-relaxed max-w-md">
+                                                    Master repository for all approved quality forms. Controlled by the QA Office.
+                                                </p>
+                                                {isAdmin && (
+                                                    <div className="flex items-center gap-2 mt-3 max-w-md">
+                                                        <Input 
+                                                            value={editDriveLink} 
+                                                            onChange={(e) => setEditDriveLink(e.target.value)} 
+                                                            placeholder="Paste Master GDrive Folder Link..."
+                                                            className="h-8 text-[10px] bg-white"
+                                                        />
+                                                        <Button size="sm" onClick={handleSaveDriveLink} disabled={isSavingLink} className="h-8 px-3">
+                                                            {isSavingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="shrink-0 w-full md:w-auto">
-                                {currentDriveLink ? (
-                                    <Button asChild className="w-full h-11 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20 bg-indigo-600 text-white hover:bg-indigo-700">
-                                        <a href={currentDriveLink} target="_blank" rel="noopener noreferrer">
-                                            <ExternalLink className="h-4 w-4 mr-2" />
-                                            Access Official Roster
-                                        </a>
-                                    </Button>
-                                ) : (
-                                    <div className="p-3 px-6 rounded-lg bg-muted border border-dashed text-center">
-                                        <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-2">
-                                            <LinkIcon className="h-3 w-3" />
-                                            Drive area not yet set by Admin
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </Card>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2 space-y-6">
-                            <Card className="shadow-sm border-primary/10 overflow-hidden">
-                                <CardHeader className="bg-muted/10 border-b py-4">
-                                    <div className="flex items-center justify-between">
-                                        <CardTitle className="text-xs font-black uppercase tracking-tight flex items-center gap-2">
-                                            <ShieldCheck className="h-4 w-4 text-primary" />
-                                            Active Controlled Forms List
-                                        </CardTitle>
-                                        <Badge variant="outline" className="bg-white font-black text-[10px]">{forms?.length || 0} FORMS</Badge>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="p-0">
-                                    <Table>
-                                        <TableHeader className="bg-muted/30">
-                                            <TableRow>
-                                                <TableHead className="text-[10px] font-black uppercase pl-6">Code</TableHead>
-                                                <TableHead className="text-[10px] font-black uppercase">Official Title</TableHead>
-                                                <TableHead className="text-[10px] font-black uppercase text-center">Rev.</TableHead>
-                                                <TableHead className="text-right text-[10px] font-black uppercase pr-6">Source</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {isLoadingForms ? (
-                                                <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" /></TableCell></TableRow>
-                                            ) : forms?.length ? (
-                                                forms.sort((a,b) => a.formCode.localeCompare(b.formCode)).map(form => (
-                                                    <TableRow key={form.id} className="hover:bg-muted/20 transition-colors">
-                                                        <TableCell className="pl-6 font-mono text-xs font-bold text-primary">{form.formCode}</TableCell>
-                                                        <TableCell className="text-[12px] font-bold text-slate-800">{form.formName}</TableCell>
-                                                        <TableCell className="text-center"><Badge variant="secondary" className="h-4 text-[8px] font-bold uppercase">{form.revision}</Badge></TableCell>
-                                                        <TableCell className="text-right pr-6">
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                                                                <a href={form.googleDriveLink} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a>
-                                                            </Button>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))
+                                        <div className="shrink-0 w-full md:w-auto">
+                                            {currentDriveLink ? (
+                                                <div className="flex flex-col items-center gap-2">
+                                                    {isAdmin ? (
+                                                        <Button asChild className="w-full h-11 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20">
+                                                            <a href={currentDriveLink} target="_blank" rel="noopener noreferrer">
+                                                                <ExternalLink className="h-4 w-4 mr-2" /> Access Official Roster
+                                                            </a>
+                                                        </Button>
+                                                    ) : (
+                                                        <div className="p-4 bg-white/80 backdrop-blur rounded-xl border border-primary/10 shadow-sm text-center">
+                                                            <p className="text-[9px] font-black uppercase text-primary tracking-widest">Digital Repository Active</p>
+                                                            <p className="text-[10px] text-muted-foreground mt-1">Links are restricted. Please use individual "Request Download" actions below.</p>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             ) : (
-                                                <TableRow><TableCell colSpan={4} className="h-32 text-center text-[10px] font-bold text-muted-foreground uppercase opacity-20 italic">No individual forms enrolled yet.</TableCell></TableRow>
+                                                <div className="p-3 px-6 rounded-lg bg-muted border border-dashed text-center">
+                                                    <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-2">
+                                                        <LinkIcon className="h-3 w-3" /> Drive area not yet set by Admin
+                                                    </p>
+                                                </div>
                                             )}
-                                        </TableBody>
-                                    </Table>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        <div className="lg:col-span-1">
-                            <Card className="shadow-md border-primary/10 overflow-hidden bg-background">
-                                <CardHeader className="bg-muted/10 border-b py-4">
-                                    <div className="flex items-center gap-2">
-                                        <HistoryIcon className="h-5 w-5 text-primary" />
-                                        <CardTitle className="text-sm font-black uppercase tracking-tight">Request Track & Trace</CardTitle>
+                                        </div>
                                     </div>
-                                    <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Lifecycle of form registrations.</CardDescription>
-                                </CardHeader>
-                                <CardContent className="p-0">
-                                    <ScrollArea className="h-[400px]">
-                                        {isLoadingRequests ? (
-                                            <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20" /></div>
-                                        ) : (
+                                </Card>
+
+                                <Card className="shadow-sm border-primary/10 overflow-hidden">
+                                    <CardHeader className="bg-muted/10 border-b py-4">
+                                        <div className="flex items-center justify-between">
+                                            <CardTitle className="text-xs font-black uppercase tracking-tight flex items-center gap-2">
+                                                <ShieldCheck className="h-4 w-4 text-primary" /> Active Controlled Forms List
+                                            </CardTitle>
+                                            <Badge variant="outline" className="bg-white font-black text-[10px]">{forms?.length || 0} FORMS</Badge>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="p-0">
+                                        <Table>
+                                            <TableHeader className="bg-muted/30">
+                                                <TableRow>
+                                                    <TableHead className="text-[10px] font-black uppercase pl-6">Code</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase">Official Title</TableHead>
+                                                    <TableHead className="text-[10px] font-black uppercase text-center">Rev.</TableHead>
+                                                    {isAdmin && <TableHead className="text-[10px] font-black uppercase">Admin Link</TableHead>}
+                                                    <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {isLoadingForms ? (
+                                                    <TableRow><TableCell colSpan={5} className="h-32 text-center"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" /></TableCell></TableRow>
+                                                ) : forms?.length ? (
+                                                    forms.sort((a,b) => a.formCode.localeCompare(b.formCode)).map(form => (
+                                                        <TableRow key={form.id} className="hover:bg-muted/20 transition-colors">
+                                                            <TableCell className="pl-6 font-mono text-xs font-bold text-primary">{form.formCode}</TableCell>
+                                                            <TableCell className="text-[12px] font-bold text-slate-800">{form.formName}</TableCell>
+                                                            <TableCell className="text-center"><Badge variant="secondary" className="h-4 text-[8px] font-bold uppercase">{form.revision}</Badge></TableCell>
+                                                            {isAdmin && (
+                                                                <TableCell className="max-w-[150px] truncate text-[10px] font-mono text-muted-foreground">{form.googleDriveLink}</TableCell>
+                                                            )}
+                                                            <TableCell className="text-right pr-6">
+                                                                <div className="flex items-center justify-end gap-2">
+                                                                    <Button 
+                                                                        variant="outline" 
+                                                                        size="sm" 
+                                                                        className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5"
+                                                                        onClick={() => setPreviewDoc({ title: form.formName, url: getEmbedUrl(form.googleDriveLink) })}
+                                                                    >
+                                                                        <Eye className="h-3 w-3" /> Preview
+                                                                    </Button>
+                                                                    <Button 
+                                                                        variant="default" 
+                                                                        size="sm" 
+                                                                        className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5"
+                                                                        onClick={() => setDownloadingForm(form)}
+                                                                    >
+                                                                        <Download className="h-3 w-3" /> Request Download
+                                                                    </Button>
+                                                                </div>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                ) : (
+                                                    <TableRow><TableCell colSpan={5} className="h-32 text-center text-[10px] font-bold text-muted-foreground uppercase opacity-20 italic">No individual forms enrolled yet.</TableCell></TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </ScrollArea>
+                    </TabsContent>
+
+                    <TabsContent value="register" className="h-full m-0 animate-in fade-in slide-in-from-right-2 duration-300">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full overflow-hidden">
+                            <div className="lg:col-span-2 flex flex-col min-h-0">
+                                <ScrollArea className="flex-1 rounded-xl border bg-background shadow-sm">
+                                    <div className="p-6 space-y-8">
+                                        <div className="space-y-2">
+                                            <h3 className="text-lg font-black uppercase tracking-tight text-slate-900">Application for Form Registration</h3>
+                                            <p className="text-xs text-muted-foreground font-medium">Submit evidence for new or revised controlled forms. Institutional review follows submission.</p>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <Card className="bg-primary/5 border-primary/10">
+                                                <CardContent className="p-6 flex flex-col items-center text-center gap-4">
+                                                    <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-white shadow-lg"><Download className="h-6 w-6" /></div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-xs font-black uppercase text-slate-800">1. Download Template</p>
+                                                        <p className="text-[10px] text-muted-foreground font-medium italic">Obtain the official DRF from the institutional vault.</p>
+                                                    </div>
+                                                    <Button size="sm" className="w-full font-black text-[10px] uppercase shadow-sm" asChild>
+                                                        <a href="https://drive.google.com/file/d/1yPdJGXQT1yhyXkENhtDHLaIMlxTnHYx3/view?usp=sharing" target="_blank" rel="noopener noreferrer">Access DRF Template</a>
+                                                    </Button>
+                                                </CardContent>
+                                            </Card>
+                                            <Card className="bg-indigo-50 border-indigo-100">
+                                                <CardContent className="p-6 flex flex-col items-center text-center gap-4">
+                                                    <div className="h-12 w-12 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg"><Send className="h-6 w-6" /></div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-xs font-black uppercase text-slate-800">2. Submit Application</p>
+                                                        <p className="text-[10px] text-muted-foreground font-medium italic">Upload signed evidence and form links for QA review.</p>
+                                                    </div>
+                                                    <Button size="sm" variant="outline" className="w-full bg-white font-black text-[10px] uppercase shadow-sm border-indigo-200 text-indigo-700" onClick={() => setIsRegOpen(true)}>Launch Registration Wizard</Button>
+                                                </CardContent>
+                                            </Card>
+                                        </div>
+                                        <div className="p-6 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+                                            <Info className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                                            <div className="space-y-1">
+                                                <p className="text-xs font-black uppercase text-amber-800 tracking-tight">Compliance Reminder</p>
+                                                <p className="text-[10px] text-amber-700 leading-relaxed font-medium italic">
+                                                    All registered forms must be explicitly derived from the current **Procedure Manual**. If a form is not documented, apply for a manual revision first.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </ScrollArea>
+                            </div>
+
+                            <div className="lg:col-span-1 flex flex-col min-h-0">
+                                <Card className="flex flex-col h-full overflow-hidden shadow-md border-primary/10">
+                                    <CardHeader className="bg-muted/10 border-b py-4">
+                                        <div className="flex items-center gap-2">
+                                            <HistoryIcon className="h-5 w-5 text-primary" />
+                                            <CardTitle className="text-sm font-black uppercase tracking-tight">Request Track & Trace</CardTitle>
+                                        </div>
+                                        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Lifecycle of current applications.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="p-0 flex-1 overflow-hidden bg-background">
+                                        <ScrollArea className="h-full">
                                             <div className="divide-y">
                                                 {requests?.map(req => (
                                                     <div 
@@ -397,14 +475,14 @@ export default function UnitFormsPage() {
                                                     </div>
                                                 )}
                                             </div>
-                                        )}
-                                    </ScrollArea>
-                                </CardContent>
-                            </Card>
+                                        </ScrollArea>
+                                    </CardContent>
+                                </Card>
+                            </div>
                         </div>
-                    </div>
+                    </TabsContent>
                 </div>
-            </ScrollArea>
+            </Tabs>
           ) : (
             <div className="h-full flex flex-col items-center justify-center border border-dashed rounded-2xl bg-muted/5 text-muted-foreground p-12">
                 <Building className="h-12 w-12 opacity-10 mb-4" />
@@ -430,6 +508,45 @@ export default function UnitFormsPage() {
             onOpenChange={(open) => !open && setReviewRequestId(null)}
           />
       )}
+
+      {downloadingForm && (
+          <FormDownloadDialog
+            form={downloadingForm}
+            unitId={selectedUnitId!}
+            isOpen={!!downloadingForm}
+            onOpenChange={(open) => !open && setDownloadingForm(null)}
+          />
+      )}
+
+      <Dialog open={!!previewDoc} onOpenChange={() => setPreviewDoc(null)}>
+        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+          <DialogHeader className="p-4 border-b bg-slate-50 shrink-0">
+            <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                    <DialogTitle className="text-sm font-black uppercase tracking-tight">{previewDoc?.title}</DialogTitle>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Official Record Preview</p>
+                </div>
+                <Badge variant="secondary" className="h-5 text-[9px] font-bold bg-primary/10 text-primary border-primary/20">CONTROLLED FORM</Badge>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 bg-muted relative">
+            {previewDoc && (
+              <iframe 
+                src={previewDoc.url} 
+                className="absolute inset-0 w-full h-full border-none bg-white" 
+                allow="autoplay" 
+                title="QA Form Preview"
+              />
+            )}
+          </div>
+          <div className="p-3 border-t bg-card shrink-0 flex justify-between items-center px-6">
+              <p className="text-[9px] text-muted-foreground italic">Digital evidence integrity verified institutional repository.</p>
+              <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold text-primary" onClick={() => setPreviewDoc(null)}>
+                  Close Viewer
+              </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -109,6 +109,7 @@ export type Unit = {
 export type CampusSetting = {
     id: string;
     announcement?: string;
+    formsDriveLink?: string;
 }
 
 export type ActivityLog = {
@@ -385,6 +386,17 @@ export type UnitFormRequest = {
     createdAt: any;
     updatedAt: any;
 };
+
+export type FormDownloadLog = {
+    id: string;
+    unitId: string;
+    formId: string;
+    formName: string;
+    formCode: string;
+    requesterName: string;
+    requestDate: any; // Date
+    createdAt: any; // serverTimestamp()
+}
 
 export type AcademicProgram = {
   id: string;

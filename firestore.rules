@@ -50,6 +50,11 @@ service cloud.firestore {
       allow write: if isAdmin(); 
     }
 
+    match /formDownloadLogs/{id} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin();
+    }
+
     // --------------------------------------------------------------------------
     // CORE COLLECTIONS
     // --------------------------------------------------------------------------
