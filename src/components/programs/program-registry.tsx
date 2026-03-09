@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit, School, Layers, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2, Calendar, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { Edit, School, Layers, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2, Calendar, CheckCircle2, Clock, AlertTriangle, Hash } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -49,6 +49,9 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
               <TableHead className="text-[10px] font-black uppercase">Majors / Type</TableHead>
               <TableHead className="text-[10px] font-black uppercase">Date of COPC Award</TableHead>
               <TableHead className="text-[10px] font-black uppercase">Next Visit (AACCUP)</TableHead>
+              {!programs[0]?.isActive && (
+                <TableHead className="text-[10px] font-black uppercase">Board Referendum No.</TableHead>
+              )}
               <TableHead className="text-[10px] font-black uppercase">Status</TableHead>
               <TableHead className="text-right text-[10px] font-black uppercase pr-6">Actions</TableHead>
             </TableRow>
@@ -91,7 +94,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                             {program.name}
                         </span>
                         {!program.isActive && (
-                            <Badge variant="destructive" className="h-3 text-[7px] font-black px-1 uppercase tracking-tighter">SUBJECT FOR CLOSURE</Badge>
+                            <Badge variant="destructive" className="h-3 text-[7px] font-black px-1 uppercase tracking-tighter">CLOSED</Badge>
                         )}
                       </div>
                       <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest mt-0.5">{program.abbreviation} &bull; {program.level}</span>
@@ -181,6 +184,17 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                     </div>
                   </TableCell>
 
+                  {!program.isActive && (
+                    <TableCell>
+                        <div className="flex items-center gap-2">
+                            <Hash className="h-3 w-3 text-primary opacity-40" />
+                            <span className="text-xs font-black font-mono text-slate-700">
+                                {record?.ched?.closureReferendumNumber || '--'}
+                            </span>
+                        </div>
+                    </TableCell>
+                  )}
+
                   <TableCell>
                     {program.isActive ? (
                       <Badge className="bg-green-600 hover:bg-green-700 gap-1 h-5 text-[9px] uppercase tracking-tighter font-black">
@@ -188,7 +202,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                       </Badge>
                     ) : (
                       <Badge variant="destructive" className="gap-1 h-5 text-[9px] uppercase tracking-tighter font-black">
-                        <AlertTriangle className="h-2.5 w-2.5" /> Inactive
+                        <AlertTriangle className="h-2.5 w-2.5" /> Closed
                       </Badge>
                     )}
                   </TableCell>

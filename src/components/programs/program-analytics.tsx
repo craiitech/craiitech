@@ -97,12 +97,12 @@ const ACCREDITATION_LEVELS_ORDER = [
     'PSV', 'Non Accredited', 'Not Yet Subject'
 ];
 
-type ProgramCategory = 'Undergraduate' | 'Graduate' | 'Inactive';
+type ProgramCategory = 'Undergraduate' | 'Graduate' | 'Closed';
 
 const chartConfig = {
     Undergraduate: { label: 'Undergraduate (Active)', color: 'hsl(var(--primary))' },
     Graduate: { label: 'Graduate (Active)', color: 'hsl(var(--chart-2))' },
-    Inactive: { label: 'INACTIVE / SUBJECT FOR CLOSURE', color: 'hsl(var(--muted-foreground))' }
+    Closed: { label: 'CLOSED PROGRAMS', color: 'hsl(var(--muted-foreground))' }
 };
 
 export function ProgramAnalytics({ programs, compliances, campuses, units, isLoading, selectedYear }: ProgramAnalyticsProps) {
@@ -117,7 +117,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     const filteredCompliances = compliances.filter(c => filteredProgramIds.has(c.programId));
 
     const getProgramCategory = (p: AcademicProgram): ProgramCategory => {
-        if (!p.isActive) return 'Inactive';
+        if (!p.isActive) return 'Closed';
         return p.level === 'Graduate' ? 'Graduate' : 'Undergraduate';
     };
 
@@ -131,7 +131,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
     programs.forEach(p => {
         const category = getProgramCategory(p);
-        if (category === 'Inactive') inactiveCount++;
+        if (category === 'Closed') inactiveCount++;
         else activeCount++;
 
         const record = filteredCompliances.find(c => c.programId === p.id);
@@ -143,7 +143,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         };
         const hasCopc = (rec: ProgramComplianceRecord | undefined) => rec?.ched?.copcStatus === 'With COPC';
 
-        if (category === 'Inactive') {
+        if (category === 'Closed') {
             if (isAccredited(record)) inactiveAccredited++;
             if (hasCopc(record)) inactiveCopc++;
         } else {
@@ -153,9 +153,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     });
 
     // --- 2. Accreditation Level Summary ---
-    const accreditationDataMap: Record<string, { level: string, Undergraduate: number, Graduate: number, Inactive: number, total: number }> = {};
+    const accreditationDataMap: Record<string, { level: string, Undergraduate: number, Graduate: number, Closed: number, total: number }> = {};
     ACCREDITATION_LEVELS_ORDER.forEach(lvl => {
-        accreditationDataMap[lvl] = { level: lvl, Undergraduate: 0, Graduate: 0, Inactive: 0, total: 0 };
+        accreditationDataMap[lvl] = { level: lvl, Undergraduate: 0, Graduate: 0, Closed: 0, total: 0 };
     });
     
     programs.forEach(p => {
@@ -185,7 +185,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         .sort((a, b) => b.total - a.total);
 
     // --- 3. COPC Recognition Momentum ---
-    const copcYearlyMap: Record<string, { year: string, Undergraduate: number, Graduate: number, Inactive: number }> = {};
+    const copcYearlyMap: Record<string, { year: string, Undergraduate: number, Graduate: number, Closed: number }> = {};
     filteredCompliances.forEach(c => {
         if (c.ched?.copcStatus === 'With COPC' && c.ched.copcAwardDate) {
             const yearMatch = c.ched.copcAwardDate.match(/\d{4}/);
@@ -195,7 +195,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 if (p) {
                     const category = getProgramCategory(p);
                     if (!copcYearlyMap[year]) {
-                        copcYearlyMap[year] = { year, Undergraduate: 0, Graduate: 0, Inactive: 0 };
+                        copcYearlyMap[year] = { year, Undergraduate: 0, Graduate: 0, Closed: 0 };
                     }
                     copcYearlyMap[year][category]++;
                 }
@@ -226,7 +226,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 const current = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
                 const isAccredited = current && current.level !== 'Non Accredited' && current.level !== 'Preliminary Survey Visit (PSV)';
 
-                if (category === 'Inactive') {
+                if (category === 'Closed') {
                     if (hasCopc) inactiveCopcCount++;
                     if (isAccredited) inactiveAccreditedCount++;
                 } else {
@@ -347,16 +347,16 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         return [getEntryData(latest?.level || 'Non Accredited', latest?.statusValidityDate || 'No schedule set')];
     }).sort((a, b) => (a.priority !== b.priority) ? (a.priority - b.priority) : (a.sortValue - b.sortValue));
 
-    const distributionYearlyMap: Record<string, { year: string, Undergraduate: number, Graduate: number, Inactive: number }> = {};
+    const distributionYearlyMap: Record<string, { year: string, Undergraduate: number, Graduate: number, Closed: number }> = {};
     roadmapData.forEach(item => {
         if (item.year !== 'Other' && item.year !== 'Pending') {
-            if (!distributionYearlyMap[item.year]) distributionYearlyMap[item.year] = { year: item.year, Undergraduate: 0, Graduate: 0, Inactive: 0 };
+            if (!distributionYearlyMap[item.year]) distributionYearlyMap[item.year] = { year: item.year, Undergraduate: 0, Graduate: 0, Closed: 0 };
             distributionYearlyMap[item.year][item.category]++;
         }
     });
     const distributionSummary = Object.values(distributionYearlyMap).sort((a, b) => a.year.localeCompare(b.year));
 
-    const surveysYearlyMap: Record<string, { year: string, Undergraduate: number, Graduate: number, Inactive: number }> = {};
+    const surveysYearlyMap: Record<string, { year: string, Undergraduate: number, Graduate: number, Closed: number }> = {};
     filteredCompliances.forEach(c => {
         const prog = programs.find(p => p.id === c.programId);
         if (!prog) return;
@@ -365,7 +365,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             const yearMatch = m.dateOfSurvey?.match(/\d{4}/);
             if (yearMatch) {
                 const year = yearMatch[0];
-                if (!surveysYearlyMap[year]) surveysYearlyMap[year] = { year, Undergraduate: 0, Graduate: 0, Inactive: 0 };
+                if (!surveysYearlyMap[year]) surveysYearlyMap[year] = { year, Undergraduate: 0, Graduate: 0, Closed: 0 };
                 surveysYearlyMap[year][category]++;
             }
         });
@@ -424,8 +424,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                         <Badge variant="outline" className="h-4 text-[8px] font-black uppercase border-slate-300 text-slate-500 bg-white">
                                             {item.programLevel}
                                         </Badge>
-                                        {item.category === 'Inactive' && (
-                                            <Badge variant="destructive" className="h-4 text-[8px] font-black uppercase border-none">CLOSING</Badge>
+                                        {item.category === 'Closed' && (
+                                            <Badge variant="destructive" className="h-4 text-[8px] font-black uppercase border-none">CLOSED</Badge>
                                         )}
                                     </div>
                                 </div>
@@ -489,12 +489,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             <CardContent className="flex-1">
                 <div className="text-3xl font-black text-primary tabular-nums">{analytics?.activeCount} Active</div>
                 <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase">
-                    {analytics?.inactiveCount} Subject for Closure
+                    {analytics?.inactiveCount} Closed Programs
                 </p>
             </CardContent>
             <div className="p-3 bg-muted/10 border-t mt-auto">
                 <p className="text-[9px] text-muted-foreground italic leading-tight">
-                    <strong>Guide:</strong> Reflects total active program offerings versus those currently being phased out.
+                    <strong>Guide:</strong> Reflects total active program offerings versus those officially designated as closed.
                 </p>
             </div>
         </Card>
@@ -504,7 +504,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             <CardContent className="flex-1">
                 <div className="text-3xl font-black text-green-600 tabular-nums">{analytics?.activeCopc} Active</div>
                 <p className="text-[9px] font-bold text-green-600/70 mt-1 uppercase">
-                    {analytics?.inactiveCopc} Inactive Awards Verified
+                    {analytics?.inactiveCopc} Closed Awards Verified
                 </p>
             </CardContent>
             <div className="p-3 bg-emerald-100/20 border-t mt-auto">
@@ -519,11 +519,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             <CardContent className="flex-1">
                 <div className="text-3xl font-black text-amber-600 tabular-nums">{analytics?.activeAccredited} Active</div>
                 <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase">
-                    {analytics?.inactiveAccredited} Inactive Accredited
+                    {analytics?.inactiveAccredited} Closed Accredited
                 </p>
             </CardContent>
             <div className="p-3 bg-amber-100/20 border-t mt-auto">
-                <p className="text-[9px] text-amber-800/60 italic leading-tight">
+                <p className="text-[9px] text-emerald-800/60 italic leading-tight">
                     <strong>Guide:</strong> Measures high-level institutional quality via Level I or higher AACCUP accreditation status.
                 </p>
             </div>
@@ -614,7 +614,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '10px' }} />
                             <Bar dataKey="Undergraduate" fill={chartConfig.Undergraduate.color} radius={[0, 4, 4, 0]} barSize={10}><LabelList dataKey="Undergraduate" position="right" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Undergraduate.color }} /></Bar>
                             <Bar dataKey="Graduate" fill={chartConfig.Graduate.color} radius={[0, 4, 4, 0]} barSize={10}><LabelList dataKey="Graduate" position="right" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Graduate.color }} /></Bar>
-                            <Bar dataKey="Inactive" fill={chartConfig.Inactive.color} radius={[0, 4, 4, 0]} barSize={10}><LabelList dataKey="Inactive" position="right" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Inactive.color }} /></Bar>
+                            <Bar dataKey="Closed" fill={chartConfig.Closed.color} radius={[0, 4, 4, 0]} barSize={10}><LabelList dataKey="Closed" position="right" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Closed.color }} /></Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
@@ -643,7 +643,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold' }} />
                             <Bar dataKey="Undergraduate" fill={chartConfig.Undergraduate.color} radius={[4, 4, 0, 0]} barSize={25}><LabelList dataKey="Undergraduate" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Undergraduate.color }} /></Bar>
                             <Bar dataKey="Graduate" fill={chartConfig.Graduate.color} radius={[4, 4, 0, 0]} barSize={25}><LabelList dataKey="Graduate" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Graduate.color }} /></Bar>
-                            <Bar dataKey="Inactive" fill={chartConfig.Inactive.color} radius={[4, 4, 0, 0]} barSize={25}><LabelList dataKey="Inactive" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Inactive.color }} /></Bar>
+                            <Bar dataKey="Closed" fill={chartConfig.Closed.color} radius={[4, 4, 0, 0]} barSize={25}><LabelList dataKey="Closed" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Closed.color }} /></Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
@@ -674,7 +674,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold' }} />
                             <Bar dataKey="Undergraduate" fill={chartConfig.Undergraduate.color} radius={[4, 4, 0, 0]} barSize={25}><LabelList dataKey="Undergraduate" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Undergraduate.color }} /></Bar>
                             <Bar dataKey="Graduate" fill={chartConfig.Graduate.color} radius={[4, 4, 0, 0]} barSize={25}><LabelList dataKey="Graduate" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Graduate.color }} /></Bar>
-                            <Bar dataKey="Inactive" fill={chartConfig.Inactive.color} radius={[4, 4, 0, 0]} barSize={25}><LabelList dataKey="Inactive" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Inactive.color }} /></Bar>
+                            <Bar dataKey="Closed" fill={chartConfig.Closed.color} radius={[4, 4, 0, 0]} barSize={25}><LabelList dataKey="Closed" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Closed.color }} /></Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
@@ -689,7 +689,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     <Badge variant="secondary" className="bg-emerald-600 text-white text-[10px] font-black h-6 px-3">OVERALL SURVEYS: {analytics?.monitoredCount || 0}</Badge>
                 </div>
                 <CardDescription className="text-[10px] font-bold mt-1">
-                    <strong>Comprehensive Data Guide:</strong> Tracks history of successful survey completions. Shows the impact of now-inactive programs on the track record.
+                    <strong>Comprehensive Data Guide:</strong> Tracks history of successful survey completions. Shows the impact of now-closed programs on the track record.
                 </CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
@@ -703,7 +703,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold' }} />
                             <Bar dataKey="Undergraduate" fill="#10b981" radius={[4, 4, 0, 0]} barSize={25}><LabelList dataKey="Undergraduate" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: '#065f46' }} /></Bar>
                             <Bar dataKey="Graduate" fill="#6ee7b7" radius={[4, 4, 0, 0]} barSize={25}><LabelList dataKey="Graduate" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: '#065f46' }} /></Bar>
-                            <Bar dataKey="Inactive" fill={chartConfig.Inactive.color} radius={[4, 4, 0, 0]} barSize={25}><LabelList dataKey="Inactive" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Inactive.color }} /></Bar>
+                            <Bar dataKey="Closed" fill={chartConfig.Closed.color} radius={[4, 4, 0, 0]} barSize={25}><LabelList dataKey="Closed" position="top" style={{ fontSize: '9px', fontWeight: '900', fill: chartConfig.Closed.color }} /></Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
@@ -716,7 +716,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <CardHeader className="bg-muted/10 border-b py-4">
               <div className="flex items-center gap-2"><BarChart3 className="h-5 w-5 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Campus Parity Benchmarking</CardTitle></div>
               <CardDescription className="text-[10px] font-bold mt-1">
-                  <strong>Comprehensive Data Guide:</strong> Benchmarks site-level compliance across active and closing programs. Crucial for ensuring quality standards are maintained globally.
+                  <strong>Comprehensive Data Guide:</strong> Benchmarks site-level compliance across active and closed programs. Crucial for ensuring quality standards are maintained globally.
               </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
@@ -725,9 +725,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       <TableRow>
                           <TableHead className="font-black text-[10px] uppercase py-3 pl-6">Campus Site</TableHead>
                           <TableHead className="text-center font-black text-[10px] uppercase py-3">Active Accredited</TableHead>
-                          <TableHead className="text-center font-black text-[10px] uppercase py-3">Inactive Accredited</TableHead>
+                          <TableHead className="text-center font-black text-[10px] uppercase py-3">Closed Accredited</TableHead>
                           <TableHead className="text-center font-black text-[10px] uppercase py-3">Active COPC</TableHead>
-                          <TableHead className="text-right font-black text-[10px] uppercase py-3 pr-6">Inactive COPC</TableHead>
+                          <TableHead className="text-right font-black text-[10px] uppercase py-3 pr-6">Closed COPC</TableHead>
                       </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -763,7 +763,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                           const style = getYearStyle(total.year);
                           return (
                               <Badge key={total.year} variant="outline" className={cn("h-6 px-3 text-[10px] font-black border-none shadow-sm", style.bg, style.text)}>
-                                  {total.year}: {total.Undergraduate + total.Graduate + total.Inactive} SURVEYS
+                                  {total.year}: {total.Undergraduate + total.Graduate + total.Closed} SURVEYS
                               </Badge>
                           );
                       })}
@@ -778,18 +778,18 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                               <ShieldCheck className="h-3.5 w-3.5 mr-2" /> Active Portfolio
                           </TabsTrigger>
                           <TabsTrigger value="inactive" className="text-[10px] font-black uppercase px-6">
-                              <FileX className="h-3.5 w-3.5 mr-2" /> Closure Pipeline
+                              <FileX className="h-3.5 w-3.5 mr-2" /> Closed Portfolio
                           </TabsTrigger>
                       </TabsList>
                   </div>
                   <TabsContent value="active" className="m-0 border-none">
                       <ScrollArea className="h-[500px]">
-                          <RoadmapTable items={analytics?.roadmapData.filter(i => i.category !== 'Inactive') || []} />
+                          <RoadmapTable items={analytics?.roadmapData.filter(i => i.category !== 'Closed') || []} />
                       </ScrollArea>
                   </TabsContent>
                   <TabsContent value="inactive" className="m-0 border-none">
                       <ScrollArea className="h-[500px]">
-                          <RoadmapTable items={analytics?.roadmapData.filter(i => i.category === 'Inactive') || []} />
+                          <RoadmapTable items={analytics?.roadmapData.filter(i => i.category === 'Closed') || []} />
                       </ScrollArea>
                   </TabsContent>
               </Tabs>

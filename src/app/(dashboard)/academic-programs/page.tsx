@@ -21,7 +21,8 @@ import {
     CheckCircle2,
     Briefcase,
     ShieldAlert,
-    Info
+    Info,
+    FileX
 } from 'lucide-react';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
@@ -146,7 +147,7 @@ export default function AcademicProgramsPage() {
 
   /**
    * CALCULATE REGISTRY SUMMARY STATS
-   * Disaggregates stats for Active and Inactive programs.
+   * Disaggregates stats for Active and Closed programs.
    */
   const summaryStats = useMemo(() => {
     const total = filteredPrograms.length;
@@ -372,7 +373,7 @@ export default function AcademicProgramsPage() {
                         <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">Current Academic Offerings</p>
                         <div className="flex items-center gap-2 mt-2">
                             <Badge variant="outline" className="text-[8px] h-4 border-slate-200 text-slate-500 font-bold bg-white">
-                                {summaryStats.inactiveCount} SUBJECT FOR CLOSURE
+                                {summaryStats.inactiveCount} CLOSED PROGRAMS
                             </Badge>
                         </div>
                     </CardContent>
@@ -393,13 +394,13 @@ export default function AcademicProgramsPage() {
                         <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tight">Active Level I or Higher</p>
                         <div className="flex items-center gap-2 mt-2">
                             <Badge variant="outline" className="text-[8px] h-4 border-emerald-200 text-emerald-600 font-bold bg-white uppercase">
-                                {summaryStats.inactiveAccredited} Inactive Accredited
+                                {summaryStats.inactiveAccredited} Closed Accredited
                             </Badge>
                         </div>
                     </CardContent>
                     <div className="p-3 bg-emerald-100/20 border-t mt-auto">
                         <p className="text-[9px] text-emerald-800/60 italic leading-tight">
-                            <strong>Explanation:</strong> Percentage of active programs with a valid AACCUP status. Inactive accredited counts are excluded from health score.
+                            <strong>Explanation:</strong> Percentage of active programs with a valid AACCUP status. Closed accredited counts are excluded from health score.
                         </p>
                     </div>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><Award className="h-12 w-12 text-emerald-600" /></div>
@@ -414,7 +415,7 @@ export default function AcademicProgramsPage() {
                         <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase tracking-tight">Active Operating Authorities</p>
                         <div className="flex items-center gap-2 mt-2">
                             <Badge variant="outline" className="text-[8px] h-4 border-blue-200 text-blue-600 font-bold bg-white uppercase">
-                                {summaryStats.inactiveCopc} Inactive COPC
+                                {summaryStats.inactiveCopc} Closed COPC
                             </Badge>
                         </div>
                     </CardContent>
@@ -435,7 +436,7 @@ export default function AcademicProgramsPage() {
                         <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tight">Active Board-Regulated Programs</p>
                         <div className="flex items-center gap-2 mt-2">
                             <Badge variant="outline" className="text-[8px] h-4 border-amber-200 text-amber-600 font-bold bg-white uppercase">
-                                {summaryStats.inactiveBoardCount} Inactive Board
+                                {summaryStats.inactiveBoardCount} Closed Board
                             </Badge>
                         </div>
                     </CardContent>
@@ -455,7 +456,7 @@ export default function AcademicProgramsPage() {
                             <ShieldCheck className="h-3 w-3" /> Active Offerings ({summaryStats.activeCount})
                         </TabsTrigger>
                         <TabsTrigger value="inactive" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-7 data-[state=active]:bg-white data-[state=active]:text-destructive">
-                            <ShieldAlert className="h-3 w-3" /> Subject for Closure ({summaryStats.inactiveCount})
+                            <FileX className="h-3 w-3" /> Closed Programs ({summaryStats.inactiveCount})
                         </TabsTrigger>
                     </TabsList>
                 </div>
