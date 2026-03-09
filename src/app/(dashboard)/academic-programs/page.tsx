@@ -362,7 +362,7 @@ export default function AcademicProgramsPage() {
         </TabsContent>
 
         <TabsContent value="registry" className="space-y-6 animate-in fade-in duration-500">
-            {/* Dynamic Summary Cards with Differentiation and Comprehensive Explanations */}
+            {/* Dynamic Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
                     <CardHeader className="pb-2">
