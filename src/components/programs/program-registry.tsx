@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit, School, Layers, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2, Calendar, CheckCircle2, Clock, AlertTriangle, Hash } from 'lucide-react';
+import { Edit, School, Layers, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2, Calendar, CheckCircle2, Clock, AlertTriangle, Hash, Check, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -32,10 +32,12 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
             <BookOpen className="h-8 w-8 text-muted-foreground opacity-40" />
         </div>
         <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">No Programs Found</p>
-        <p className="text-xs text-muted-foreground mt-1 max-w-xs">There are no academic programs currently registered within your authorized scope.</p>
+        <p className="text-xs text-muted-foreground mt-1 max-w-xs">There are no programs currently registered within your authorized scope.</p>
       </div>
     );
   }
+
+  const isShowingActive = programs[0]?.isActive ?? true;
 
   return (
     <Card className="shadow-sm overflow-hidden border-primary/10">
@@ -47,11 +49,18 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
               <TableHead className="text-[10px] font-black uppercase">Campus</TableHead>
               <TableHead className="text-[10px] font-black uppercase">College / Unit</TableHead>
               <TableHead className="text-[10px] font-black uppercase">Majors / Type</TableHead>
+              
+              {isShowingActive && (
+                <TableHead className="text-[10px] font-black uppercase">Board Approval</TableHead>
+              )}
+
               <TableHead className="text-[10px] font-black uppercase">Date of COPC Award</TableHead>
               <TableHead className="text-[10px] font-black uppercase">Next Visit (AACCUP)</TableHead>
-              {!programs[0]?.isActive && (
+              
+              {!isShowingActive && (
                 <TableHead className="text-[10px] font-black uppercase">Board Referendum No.</TableHead>
               )}
+
               <TableHead className="text-[10px] font-black uppercase">Status</TableHead>
               <TableHead className="text-right text-[10px] font-black uppercase pr-6">Actions</TableHead>
             </TableRow>
@@ -63,6 +72,8 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
               const copcStatus = record?.ched?.copcStatus;
               const copcAwardDate = record?.ched?.copcAwardDate || 'N/A';
               
+              const hasBoardApproval = !!(record?.ched?.boardApprovalLink || (record?.ched?.majorBoardApprovals && record.ched.majorBoardApprovals.length > 0 && record.ched.majorBoardApprovals.some(a => a.link)));
+
               let accLabel = '';
               let nextVisit = 'TBA';
 
@@ -158,6 +169,20 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                           </div>
                       </div>
                   </TableCell>
+
+                  {isShowingActive && (
+                    <TableCell>
+                        {hasBoardApproval ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 h-5 text-[9px] font-black gap-1">
+                                <Check className="h-2.5 w-2.5" /> YES
+                            </Badge>
+                        ) : (
+                            <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 h-5 text-[9px] font-black gap-1">
+                                <X className="h-2.5 w-2.5" /> NO
+                            </Badge>
+                        )}
+                    </TableCell>
+                  )}
                   
                   <TableCell>
                     <div className="flex flex-col gap-1">
@@ -184,7 +209,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                     </div>
                   </TableCell>
 
-                  {!program.isActive && (
+                  {!isShowingActive && (
                     <TableCell>
                         <div className="flex items-center gap-2">
                             <Hash className="h-3 w-3 text-primary opacity-40" />
