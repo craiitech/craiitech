@@ -276,6 +276,15 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
     const sortTimeline = (data: Record<string, any>) => Object.values(data).sort((a, b) => a.year.localeCompare(b.year));
 
+    const roadmapYearBreakdown: Record<number, number> = {};
+    roadmapData.forEach(item => {
+        const yearMatch = item.validity.match(/\d{4}/);
+        if (yearMatch) {
+            const y = parseInt(yearMatch[0]);
+            roadmapYearBreakdown[y] = (roadmapYearBreakdown[y] || 0) + 1;
+        }
+    });
+
     return { 
         accreditationSummary: Object.values(accreditationDataMap).filter(d => d.total > 0),
         activeCount, inactiveCount, activeAccredited, activeCopc,
@@ -283,6 +292,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         velocityData: sortTimeline(velocityByYear),
         achievementHistoryData: sortTimeline(achievementByYear),
         roadmapData: roadmapData.sort((a, b) => a.status === 'OVERDUE' ? -1 : 1),
+        roadmapYearBreakdown,
         gadEnrollmentData: [{ name: 'Male', value: totalMaleEnrollment, fill: chartConfig.Male.color }, { name: 'Female', value: totalFemaleEnrollment, fill: chartConfig.Female.color }].filter(d => d.value > 0),
         gadFacultyData: [{ name: 'Male', value: totalMaleFaculty, fill: chartConfig.Male.color }, { name: 'Female', value: totalFemaleFaculty, fill: chartConfig.Female.color }].filter(d => d.value > 0),
         gadGraduationData: [{ name: 'Male', value: totalMaleGrads, fill: chartConfig.Male.color }, { name: 'Female', value: totalFemaleGrads, fill: chartConfig.Female.color }].filter(d => d.value > 0),
@@ -311,9 +321,28 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <Card className="border-destructive/30 shadow-xl overflow-hidden bg-destructive/5 relative">
               <div className="absolute top-0 left-0 w-1.5 h-full bg-destructive opacity-50" />
               <CardHeader className="bg-destructive/10 border-b py-4">
-                  <div className="flex items-center justify-between"><div className="flex items-center gap-2 text-destructive"><ShieldAlert className="h-5 w-5" /><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Registry Gaps: AY {selectedYear}</CardTitle></div><Badge variant="destructive" className="animate-pulse h-5 text-[9px] font-black uppercase">ALERTS</Badge></div>
+                  <div className="flex items-center justify-between"><div className="flex items-center gap-2 text-destructive"><ShieldAlert className="h-5 w-5" /><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Strategic Gaps: AY {selectedYear}</CardTitle></div><Badge variant="destructive" className="animate-pulse h-5 text-[9px] font-black uppercase">ALERTS</Badge></div>
               </CardHeader>
-              <CardContent className="p-0"><ScrollArea className="max-h-[300px]"><div className="p-6 space-y-4">{analytics.institutionalGaps.map((gap, i) => (<div key={i} className="flex items-start gap-4 bg-white p-4 rounded-xl border border-destructive/10"><div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0"><AlertTriangle className="h-4 w-4 text-destructive" /></div><div className="flex-1 min-w-0"><div className="flex items-center justify-between gap-2 mb-1"><p className="text-[10px] font-black text-destructive uppercase">{gap.type}</p><Badge variant="outline" className="h-4 text-[8px] font-black uppercase bg-slate-50">{gap.campus}</Badge></div><p className="text-xs font-bold text-slate-800 leading-snug">{gap.msg}</p></div></div>))}</div></ScrollArea></CardContent>
+              <CardContent className="p-0">
+                <ScrollArea className="max-h-[300px]">
+                    <div className="p-6 space-y-4">
+                        {analytics.institutionalGaps.map((gap, i) => (
+                            <div key={i} className="flex items-start gap-4 bg-white p-4 rounded-xl border border-destructive/10">
+                                <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                        <p className="text-[10px] font-black text-destructive uppercase">{gap.type}</p>
+                                        <Badge variant="outline" className="h-4 text-[8px] font-black uppercase bg-slate-50">{gap.campus}</Badge>
+                                    </div>
+                                    <p className="text-xs font-bold text-slate-800 leading-snug">{gap.msg}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </ScrollArea>
+              </CardContent>
           </Card>
       )}
 
@@ -323,7 +352,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {[
                   { title: 'Student Enrollment', data: analytics?.gadEnrollmentData, icon: <Users /> },
-                  { title: 'Registered Users', data: analytics?.gadFacultyData, icon: <UserCircle /> },
+                  { title: 'SYSTEM REGISTERED USERS', data: analytics?.gadFacultyData, icon: <UserCircle /> },
                   { title: 'Graduation Output', data: analytics?.gadGraduationData, icon: <GraduationCap /> },
                   { title: 'Graduate Tracing', data: analytics?.gadTracerData, icon: <Search /> },
                   { title: 'Board Performance', chart: 'bar', data: analytics?.boardPerfData, icon: <ShieldCheck /> }
@@ -447,7 +476,19 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
       {/* 5. INSTITUTIONAL SURVEY PIPELINE (ROADMAP) */}
       <Card className="shadow-xl border-primary/10 overflow-hidden">
           <CardHeader className="bg-muted/10 border-b py-6">
-              <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Flag className="h-6 w-6 text-primary" /><CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Pipeline (Roadmap)</CardTitle></div><Badge className="bg-primary text-white h-6 px-4 font-black uppercase text-[10px] tracking-widest shadow-sm">ACTIVE MONITORING LIST</Badge></div>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                    <Flag className="h-6 w-6 text-primary" />
+                    <CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Pipeline (Roadmap)</CardTitle>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    {Object.entries(analytics?.roadmapYearBreakdown || {}).sort((a,b) => Number(a[0]) - Number(b[0])).map(([y, count]) => (
+                        <Badge key={y} variant="outline" className="bg-white text-[10px] font-black border-primary/20 text-primary uppercase">
+                            {y}: {count} SURVEYS
+                        </Badge>
+                    ))}
+                </div>
+              </div>
               <CardDescription className="text-sm font-medium mt-2">Prioritized schedule of upcoming AACCUP surveys. Overdue status indicates missed quality cycle targets.</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
@@ -488,7 +529,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   </TableBody>
               </Table>
           </CardContent>
-          <CardFooter className="bg-muted/10 border-t py-4"><div className="flex items-center gap-3"><Info className="h-4 w-4 text-blue-600" /><p className="text-[10px] text-muted-foreground italic font-medium"><strong>Note:</strong> OVERDUE status indicates the set validity period or target month has passed without a recorded next survey milestone in the compliance workspace.</p></div></CardFooter>
+          <CardFooter className="bg-muted/10 border-t py-4"><div className="flex items-start gap-3"><Info className="h-4 w-4 text-blue-600" /><p className="text-[10px] text-muted-foreground italic font-medium"><strong>Guidance for usage:</strong> OVERDUE status indicates the set validity period or target month has passed without a recorded next survey milestone in the compliance workspace.</p></div></CardFooter>
       </Card>
     </div>
   );
