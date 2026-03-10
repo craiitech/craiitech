@@ -91,6 +91,9 @@ export default function Home() {
                         <Link href="/help">Support Center</Link>
                     </Button>
                     <Button variant="link" asChild className="text-white/40 hover:text-white">
+                        <Link href="/privacy">Data Privacy</Link>
+                    </Button>
+                    <Button variant="link" asChild className="text-white/40 hover:text-white">
                         <Link href="/terms">Terms & Conditions</Link>
                     </Button>
                     <Button variant="link" asChild className="text-white/40 hover:text-white">

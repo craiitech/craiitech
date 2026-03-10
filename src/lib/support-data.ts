@@ -20,6 +20,25 @@ export const faqs = [
     ],
   },
   {
+    role: 'Accessibility & Inclusivity (PWD Support)',
+    questions: [
+      {
+        question: 'What accessibility features are available for PWD users?',
+        answer: 'The portal is designed to be inclusive and offers several tools to assist users with visual or cognitive disabilities:',
+        answerBlocks: [
+          { content: '<strong>Font Size Scaling:</strong> Adjust the system-wide text size from 80% to 140% for better readability.' },
+          { content: '<strong>High Contrast Mode:</strong> Sharpens colors and borders for users with low vision.' },
+          { content: '<strong>Dyslexic-Friendly Font:</strong> Switches to specialized typography to improve reading for users with dyslexia.' },
+          { content: '<strong>Reduced Motion:</strong> Disables UI animations to assist users with vestibular disorders.' }
+        ]
+      },
+      {
+        question: 'How do I access and enable these accessibility features?',
+        answer: 'To personalize your experience, log in to the portal and navigate to <strong>Profile</strong> from the top-right user menu. Scroll down to the <strong>Accessibility & Inclusivity</strong> section where you can adjust the font slider or toggle specific modes. Changes are saved automatically to your institutional profile.'
+      }
+    ]
+  },
+  {
     role: 'Unit Coordinators & ODIMOs',
     questions: [
       {

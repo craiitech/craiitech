@@ -1,90 +1,60 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function TermsPage() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-3xl">Terms and Conditions</CardTitle>
-        <CardDescription>
-          Last Updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+    <Card className="shadow-lg border-primary/10">
+      <CardHeader className="bg-primary/5 border-b">
+        <CardTitle className="text-3xl font-black uppercase tracking-tight">Terms and Conditions</CardTitle>
+        <CardDescription className="font-bold">
+          Official Operating Procedures for the RSU EOMS Digital Portal
         </CardDescription>
       </CardHeader>
-      <CardContent className="prose prose-sm max-w-none text-muted-foreground space-y-6">
-        <p>
-          Welcome to the Romblon State University (RSU) Educational Organizations Management System (EOMS) Submission Portal. These terms and conditions outline the rules and regulations for the use of this portal. By accessing and using this portal, you accept these terms and conditions in full. Do not continue to use the RSU EOMS Submission Portal if you do not accept all of the terms and conditions stated on this page.
+      <CardContent className="prose prose-sm max-w-none text-muted-foreground space-y-8 pt-8">
+        <p className="leading-relaxed">
+          Welcome to the Romblon State University (RSU) Educational Organizations Management System (EOMS) Submission Portal. These terms outline the rules for using this portal. By accessing this system, you accept these terms in full.
         </p>
 
-        <section>
-          <h3 className="text-xl font-semibold text-card-foreground">1. User Accounts and Registration</h3>
+        <section className="space-y-3">
+          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 border-b pb-2">1. User Accounts & Institutional Responsibility</h3>
           <ul className="list-disc pl-6 space-y-2">
-            <li><strong>Eligibility:</strong> Access to this portal is restricted to authorized personnel of Romblon State University.</li>
-            <li><strong>Account Creation:</strong> You must register using your official RSU-provided email address. Providing false or misleading information may result in account termination.</li>
-            <li><strong>Account Security:</strong> You are responsible for maintaining the confidentiality of your account and password. You agree to accept responsibility for all activities that occur under your account. You must notify the Quality Assurance Office immediately upon becoming aware of any breach of security or unauthorized use of your account.</li>
-            <li><strong>Account Verification:</strong> All new accounts are subject to verification and approval by a system administrator. Access to the portal is granted only after successful verification.</li>
+            <li><strong>Eligibility:</strong> Access is strictly restricted to verified personnel of Romblon State University.</li>
+            <li><strong>Authentication:</strong> You must use your official RSU-provided email address. Sharing credentials with unauthorized persons is a violation of university security protocols.</li>
+            <li><strong>Accessibility:</strong> The portal provides accessibility tools (Font Scaling, High Contrast, etc.) to ensure inclusivity. Users are encouraged to utilize these tools to meet their specific needs.</li>
           </ul>
         </section>
 
-        <section>
-          <h3 className="text-xl font-semibold text-card-foreground">2. User Roles and Responsibilities</h3>
-          <p>Your permissions and access level are determined by the role assigned to you by the administrator. By using this portal, you agree to perform only the actions appropriate for your role.</p>
+        <section className="space-y-3">
+          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 border-b pb-2">2. Workflow & Document Integrity</h3>
+          <p>Users are accountable for the accuracy and completeness of all evidence logs submitted. Submissions must adhere to the **Complete Staff Work (CSW)** standard.</p>
           <ul className="list-disc pl-6 space-y-2">
-            <li><strong>Employee / Unit Coordinator:</strong> Responsible for the timely and accurate submission of required documents. You are accountable for the content and integrity of the files you submit.</li>
-            <li><strong>Unit ODIMO / Campus Director / Approver:</strong> Responsible for reviewing submissions from your designated unit or campus. You must provide clear and constructive feedback for any rejected submissions.</li>
-            <li><strong>Administrator:</strong> Responsible for the overall management of the portal, including user accounts, roles, and system settings. Administrators have the authority to manage all data within the system for maintenance and security purposes.</li>
+            <li><strong>Drafts:</strong> "Draft" mode is intended for preliminary review and does not constitute a final compliance record.</li>
+            <li><strong>Revisions:</strong> The system automatically increments revision numbers (Rev 00, 01, etc.). Users must ensure the latest approved revision is always available in the unit roster.</li>
+            <li><strong>Control:</strong> Document control numbers are system-generated and must be cited in all official university communications regarding EOMS.</li>
           </ul>
         </section>
 
-        <section>
-          <h3 className="text-xl font-semibold text-card-foreground">3. Acceptable Use Policy</h3>
-          <p>You agree not to use the portal for any of the following:</p>
+        <section className="space-y-3">
+          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 border-b pb-2">3. Prohibited Conduct</h3>
+          <p>Users are forbidden from:</p>
           <ul className="list-disc pl-6 space-y-2">
-            <li>Any purpose that is unlawful, illegal, fraudulent, or harmful.</li>
-            <li>To submit, store, or transmit any data that is malicious, contains viruses, or is otherwise technologically harmful.</li>
-            <li>To access or attempt to access any part of the portal, data, or user accounts for which you do not have explicit permission.</li>
-            <li>To share confidential information obtained from the portal with unauthorized individuals, in accordance with the Non-Disclosure Agreement.</li>
+            <li>Attempting to bypass role-based access controls or view data outside their assigned scope.</li>
+            <li>Submitting false or misleading evidence to artificially inflate compliance scores.</li>
+            <li>Utilizing the portal for any purpose not related to RSU's Quality Management System or institutional accreditation.</li>
           </ul>
         </section>
 
-        <section>
-          <h3 className="text-xl font-semibold text-card-foreground">4. Document Submissions and Content</h3>
-           <ul className="list-disc pl-6 space-y-2">
-            <li><strong>File Format and Links:</strong> All submissions must be made via a Google Drive link pointing to the correct document. You are responsible for ensuring the link is accessible ("Anyone with the link can view") to the approvers. The system uses an AI service to perform a basic check for link accessibility, but the final responsibility lies with the user.</li>
-            <li><strong>Intellectual Property:</strong> You retain ownership of the content you submit. However, by submitting, you grant Romblon State University a license to use, store, review, and manage these documents for the purposes of EOMS compliance, auditing, and quality assurance.</li>
-            <li><strong>Content Integrity:</strong> You warrant that all submitted documents are accurate, complete, and owned by you or that you have the right to submit them.</li>
-          </ul>
-        </section>
-        
-        <section>
-            <h3 className="text-xl font-semibold text-card-foreground">5. Termination</h3>
-            <p>
-                We may terminate or suspend your access to the portal immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms and Conditions. Upon termination, your right to use the portal will immediately cease.
-            </p>
-        </section>
-
-        <section>
-            <h3 className="text-xl font-semibold text-card-foreground">6. Disclaimer and Limitation of Liability</h3>
-             <ul className="list-disc pl-6 space-y-2">
-                <li>The portal is provided on an "AS IS" and "AS AVAILABLE" basis. Romblon State University makes no warranties, expressed or implied, and hereby disclaims all other warranties.</li>
-                <li>In no event shall Romblon State University, nor its developers or administrators, be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on the portal.</li>
-            </ul>
-        </section>
-
-        <section>
-          <h3 className="text-xl font-semibold text-card-foreground">7. Changes to Terms</h3>
+        <section className="space-y-3">
+          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 border-b pb-2">4. Disclaimer of Liability</h3>
           <p>
-            We reserve the right, at our sole discretion, to modify or replace these Terms at any time. We will provide notice of any changes by posting the new Terms and Conditions on this page. Your continued use of the portal after any such changes constitutes your acceptance of the new Terms and Conditions.
+            The portal is provided "as is" for institutional management purposes. While every effort is made to ensure data integrity, RSU is not liable for data loss due to user negligence or unauthorized Google Drive link modifications.
           </p>
         </section>
 
-        <section>
-            <h3 className="text-xl font-semibold text-card-foreground">8. Governing Law</h3>
-            <p>
-                These Terms shall be governed and construed in accordance with the laws of the Republic of the Philippines, without regard to its conflict of law provisions.
-            </p>
-        </section>
+        <div className="pt-8 mt-8 border-t text-[10px] uppercase font-bold text-center">
+            Last Updated: February 2025 • Issued by Quality Assurance Office
+        </div>
       </CardContent>
     </Card>
   );
