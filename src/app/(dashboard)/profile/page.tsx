@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Building, Briefcase, Accessibility, Zap, ShieldCheck, Activity } from 'lucide-react';
+import { Loader2, Mail, Building, Briefcase, Accessibility, Zap, ShieldCheck, Activity, Info, Save } from 'lucide-react';
 import type { Campus, Unit, Role } from '@/lib/types';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Label } from '@/components/ui/label';
