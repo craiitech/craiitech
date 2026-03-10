@@ -3,13 +3,14 @@
 
 import { useMemo } from 'react';
 import type { Unit, Submission, Campus, User as AppUser, Cycle } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trophy, Star, Building, TrendingUp } from 'lucide-react';
+import { Trophy, Star, Building, TrendingUp, Info } from 'lucide-react';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Progress } from '../ui/progress';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface LeaderboardProps {
   allSubmissions: Submission[] | null;
@@ -162,31 +163,33 @@ export function Leaderboard({
       </CardHeader>
       <CardContent className="pt-6">
         {leaderboardData.length > 0 ? (
-            <div className="space-y-3">
-            {leaderboardData.slice(0, 10).map((unit, index) => {
-                return (
-                    <div key={unit.id} className="space-y-2 rounded-lg border p-3 hover:bg-muted/30 transition-colors overflow-hidden">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 font-black text-primary text-[10px]">
-                                {index + 1}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold truncate leading-none mb-1">{unit.name}</p>
-                                <div className="flex items-center gap-1 text-[10px] text-muted-foreground uppercase tracking-tighter">
-                                    <Building className="h-2.5 w-2.5 shrink-0" />
-                                    <span className="truncate">{unit.campusName}</span>
+            <ScrollArea className="h-[450px] pr-4">
+                <div className="space-y-3">
+                {leaderboardData.slice(0, 20).map((unit, index) => {
+                    return (
+                        <div key={unit.id} className="space-y-2 rounded-lg border p-3 hover:bg-muted/30 transition-colors overflow-hidden">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 font-black text-primary text-[10px]">
+                                    {index + 1}
+                                </div>
+                                <div className="flex-1 min-0">
+                                    <p className="text-xs font-bold truncate leading-none mb-1">{unit.name}</p>
+                                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground uppercase tracking-tighter">
+                                        <Building className="h-2.5 w-2.5 shrink-0" />
+                                        <span className="truncate">{unit.campusName}</span>
+                                    </div>
+                                </div>
+                                <div className="text-right flex flex-col items-end shrink-0">
+                                    <StarRating percentage={unit.percentage} />
+                                    <p className="text-[9px] font-black text-primary mt-1">{unit.percentage}% Verified</p>
                                 </div>
                             </div>
-                            <div className="text-right flex flex-col items-end shrink-0">
-                                <StarRating percentage={unit.percentage} />
-                                <p className="text-[9px] font-black text-primary mt-1">{unit.percentage}% Verified</p>
-                            </div>
+                            <Progress value={unit.percentage} className="h-1" />
                         </div>
-                        <Progress value={unit.percentage} className="h-1" />
-                    </div>
-                )
-            })}
-            </div>
+                    )
+                })}
+                </div>
+            </ScrollArea>
         ) : (
             <div className="h-40 flex flex-col items-center justify-center text-muted-foreground text-center">
                 <TrendingUp className="h-8 w-8 mb-2 opacity-20" />
@@ -195,6 +198,14 @@ export function Leaderboard({
             </div>
         )}
       </CardContent>
+      <CardFooter className="bg-muted/5 border-t py-3">
+          <div className="flex items-start gap-2">
+              <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+              <p className="text-[9px] text-muted-foreground italic leading-tight">
+                  Rankings are determined by the percentage of mandatory EOMS documents that have reached the <strong>Approved</strong> status. Mere submission without verification does not contribute to the performance index.
+              </p>
+          </div>
+      </CardFooter>
     </Card>
   );
 }

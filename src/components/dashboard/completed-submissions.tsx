@@ -3,13 +3,14 @@
 
 import { useMemo } from 'react';
 import type { Unit, Submission, User as AppUser, Campus } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building, Heart, CheckCircle2 } from 'lucide-react';
+import { Building, Heart, CheckCircle2, Info } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
 import { Badge } from '../ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface CompletedSubmissionsProps {
   allUnits: Unit[] | null;
@@ -134,22 +135,32 @@ export function CompletedSubmissions({
                         </div>
                     </AccordionTrigger>
                     <AccordionContent className="pt-2">
-                         <List className="pl-2">
-                          {campus.completedUnits.map(unit => (
-                            <ListItem key={unit.id} className="flex justify-between items-center border-none p-2 hover:bg-green-50 transition-colors">
-                              <div className="flex items-center gap-3">
-                                <Building className="h-3.5 w-3.5 text-green-600" />
-                                <span className="text-xs font-bold text-slate-700">{unit.name}</span>
-                              </div>
-                              <CheckCircle2 className="h-3 w-3 text-green-500" />
-                            </ListItem>
-                          ))}
-                        </List>
+                        <ScrollArea className="h-[300px] pr-4">
+                            <List className="pl-2">
+                            {campus.completedUnits.map(unit => (
+                                <ListItem key={unit.id} className="flex justify-between items-center border-none p-2 hover:bg-green-50 transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <Building className="h-3.5 w-3.5 text-green-600" />
+                                    <span className="text-xs font-bold text-slate-700">{unit.name}</span>
+                                </div>
+                                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                </ListItem>
+                            ))}
+                            </List>
+                        </ScrollArea>
                     </AccordionContent>
                  </AccordionItem>
             ))}
         </Accordion>
       </CardContent>
+      <CardFooter className="bg-muted/5 border-t py-3">
+          <div className="flex items-start gap-2">
+              <Info className="h-3.5 w-3.5 text-green-600 shrink-0 mt-0.5" />
+              <p className="text-[9px] text-muted-foreground italic leading-tight">
+                  Displays units that have successfully passed the final verification for both the First and Final cycles of the Academic Year {selectedYear}.
+              </p>
+          </div>
+      </CardFooter>
     </Card>
   );
 }

@@ -3,14 +3,15 @@
 
 import { useMemo } from 'react';
 import type { Submission, Campus, Unit } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileWarning, School, CheckCircle, Building } from 'lucide-react';
+import { FileWarning, School, CheckCircle, Building, Info } from 'lucide-react';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const currentYear = new Date().getFullYear();
 const yearsList = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
@@ -157,23 +158,25 @@ export function IncompleteCampusSubmissions({
                     </div>
                 </AccordionTrigger>
                 <AccordionContent className="pt-2">
-                    <ul className="space-y-1 pl-2">
-                        {campus.incompleteUnits.map(unit => (
-                            <li key={unit.unitId}>
-                              <Button
-                                variant="ghost"
-                                className="flex h-auto w-full items-start justify-start gap-2 p-2 hover:bg-amber-50 group transition-colors"
-                                onClick={() => onUnitClick?.(unit.unitId, campus.campusId)}
-                              >
-                                <Building className="h-3.5 w-3.5 shrink-0 mt-0.5 text-muted-foreground group-hover:text-amber-600" />
-                                <div className="flex flex-col flex-1 items-start min-w-0">
-                                    <span className="text-xs font-bold text-card-foreground leading-tight truncate w-full">{unit.unitName}</span>
-                                    <span className="text-[10px] text-amber-600 font-black uppercase tracking-tighter">{unit.missingCount} REQUIRED ACTIONS</span>
-                                </div>
-                              </Button>
-                            </li>
-                        ))}
-                    </ul>
+                    <ScrollArea className="h-[300px] pr-4">
+                        <ul className="space-y-1 pl-2">
+                            {campus.incompleteUnits.map(unit => (
+                                <li key={unit.unitId}>
+                                <Button
+                                    variant="ghost"
+                                    className="flex h-auto w-full items-start justify-start gap-2 p-2 hover:bg-amber-50 group transition-colors"
+                                    onClick={() => onUnitClick?.(unit.unitId, campus.campusId)}
+                                >
+                                    <Building className="h-3.5 w-3.5 shrink-0 mt-0.5 text-muted-foreground group-hover:text-amber-600" />
+                                    <div className="flex flex-col flex-1 items-start min-w-0">
+                                        <span className="text-xs font-bold text-card-foreground leading-tight truncate w-full">{unit.unitName}</span>
+                                        <span className="text-[10px] text-amber-600 font-black uppercase tracking-tighter">{unit.missingCount} REQUIRED ACTIONS</span>
+                                    </div>
+                                </Button>
+                                </li>
+                            ))}
+                        </ul>
+                    </ScrollArea>
                 </AccordionContent>
                 </AccordionItem>
             ))}
@@ -186,6 +189,14 @@ export function IncompleteCampusSubmissions({
             </div>
         )}
       </CardContent>
+      <CardFooter className="bg-muted/5 border-t py-3">
+          <div className="flex items-start gap-2">
+              <Info className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-[9px] text-muted-foreground italic leading-tight">
+                  This card identifies specific units that have documentation gaps (either not submitted or not yet approved) for the selected academic year.
+              </p>
+          </div>
+      </CardFooter>
     </Card>
   );
 }

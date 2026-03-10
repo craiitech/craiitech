@@ -3,10 +3,10 @@
 
 import { useMemo, useState } from 'react';
 import type { Unit, Submission, User as AppUser, Campus } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building, AlertCircle, Send, Loader2, FileX } from 'lucide-react';
+import { Building, AlertCircle, Send, Loader2, FileX, Info } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface UnitsWithoutSubmissionsProps {
   allUnits: Unit[] | null;
@@ -189,30 +190,40 @@ export function UnitsWithoutSubmissions({
                         </div>
                     </AccordionTrigger>
                     <AccordionContent className="pt-2">
-                         <List className="pl-2">
-                          {campus.incompleteUnits.map(unit => (
-                            <ListItem key={unit.id} className="p-0 border-none">
-                              <Button
-                                variant="ghost"
-                                className="flex h-auto w-full cursor-pointer items-center justify-between p-2 hover:bg-background group"
-                                onClick={() => onUnitClick(unit.id, campus.campusId)}
-                              >
-                                  <div className="flex items-center gap-3">
-                                    <Building className="h-3.5 w-3.5 text-muted-foreground group-hover:text-destructive" />
-                                    <span className="text-xs font-bold text-slate-700 truncate">{unit.name}</span>
-                                  </div>
-                                  <Badge variant={unit.count === 0 ? 'destructive' : 'secondary'} className="text-[9px] font-black h-5">
-                                    {unit.count} / {unit.totalRequired}
-                                  </Badge>
-                              </Button>
-                            </ListItem>
-                          ))}
-                        </List>
+                        <ScrollArea className="h-[300px] pr-4">
+                            <List className="pl-2">
+                            {campus.incompleteUnits.map(unit => (
+                                <ListItem key={unit.id} className="p-0 border-none">
+                                <Button
+                                    variant="ghost"
+                                    className="flex h-auto w-full cursor-pointer items-center justify-between p-2 hover:bg-background group"
+                                    onClick={() => onUnitClick(unit.id, campus.campusId)}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Building className="h-3.5 w-3.5 text-muted-foreground group-hover:text-destructive" />
+                                        <span className="text-xs font-bold text-slate-700 truncate">{unit.name}</span>
+                                    </div>
+                                    <Badge variant={unit.count === 0 ? 'destructive' : 'secondary'} className="text-[9px] font-black h-5">
+                                        {unit.count} / {unit.totalRequired}
+                                    </Badge>
+                                </Button>
+                                </ListItem>
+                            ))}
+                            </List>
+                        </ScrollArea>
                     </AccordionContent>
                  </AccordionItem>
             ))}
         </Accordion>
       </CardContent>
+      <CardFooter className="bg-muted/5 border-t py-3">
+          <div className="flex items-start gap-2">
+              <Info className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+              <p className="text-[9px] text-muted-foreground italic leading-tight">
+                  This card identifies units that have <strong>not yet received an Approved status</strong> for any of the 6 mandatory documents in either cycle. These units are currently flagged as non-compliant for AY {selectedYear}.
+              </p>
+          </div>
+      </CardFooter>
     </Card>
 
     <AlertDialog open={isReminderDialogOpen} onOpenChange={setIsReminderDialogOpen}>

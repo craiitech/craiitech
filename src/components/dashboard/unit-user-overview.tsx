@@ -3,12 +3,13 @@
 
 import { useMemo } from 'react';
 import type { Unit, User as AppUser } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building, User } from 'lucide-react';
+import { Building, User, Info } from 'lucide-react';
 import { Badge } from '../ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface UnitUserOverviewProps {
   allUsers: AppUser[] | null;
@@ -83,36 +84,44 @@ export function UnitUserOverview({
                 </div>
               </AccordionTrigger>
               <AccordionContent>
-                {unit.users.length > 0 ? (
-                  <div className="space-y-3 pl-6">
-                    {unit.users.map(user => (
-                      <div key={user.id} className="flex items-center gap-3 rounded-md border p-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={user.avatar} alt={user.firstName} />
-                          <AvatarFallback>
-                            {user.firstName?.charAt(0)}
-                            {user.lastName?.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{user.firstName} {user.lastName}</p>
-                          <p className="text-xs text-muted-foreground">{user.role}</p>
+                <ScrollArea className="h-[300px] pr-4">
+                    {unit.users.length > 0 ? (
+                    <div className="space-y-3 pl-6">
+                        {unit.users.map(user => (
+                        <div key={user.id} className="flex items-center gap-3 rounded-md border p-2">
+                            <Avatar className="h-8 w-8">
+                            <AvatarImage src={user.avatar} alt={user.firstName} />
+                            <AvatarFallback>
+                                {user.firstName?.charAt(0)}
+                                {user.lastName?.charAt(0)}
+                            </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                            <p className="text-sm font-medium">{user.firstName} {user.lastName}</p>
+                            <p className="text-xs text-muted-foreground">{user.role}</p>
+                            </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="pl-6 text-sm text-muted-foreground">
-                    No registered users in this unit yet.
-                  </div>
-                )}
+                        ))}
+                    </div>
+                    ) : (
+                    <div className="pl-6 text-sm text-muted-foreground">
+                        No registered users in this unit yet.
+                    </div>
+                    )}
+                </ScrollArea>
               </AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
       </CardContent>
+      <CardFooter className="bg-muted/5 border-t py-3">
+          <div className="flex items-start gap-2">
+              <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+              <p className="text-[9px] text-muted-foreground italic leading-tight">
+                  This list includes all university personnel currently registered and mapped to units within this site. Supervisors can use this to verify authorized access for coordinators.
+              </p>
+          </div>
+      </CardFooter>
     </Card>
   );
 }
-
-    

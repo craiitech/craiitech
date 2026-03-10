@@ -9,6 +9,7 @@ import type { Submission, User as AppUser } from '@/lib/types';
 import { useMemo } from 'react';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     approved: 'default',
@@ -28,10 +29,10 @@ export function RecentActivity({ submissions, isLoading, users, userProfile }: R
   
   const recentSubmissions = useMemo(() => {
     if (!submissions) return [];
-    // Sort by date just in case they aren't already
+    // Increase limit to 10 for scroll area context
     return [...submissions]
       .sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime())
-      .slice(0, 5);
+      .slice(0, 10);
   }, [submissions]);
 
   if (isLoading) {
@@ -75,31 +76,33 @@ export function RecentActivity({ submissions, isLoading, users, userProfile }: R
 
 
   return (
-    <div className="space-y-6">
-      {recentSubmissions.map(submission => (
-        <div key={submission.id} className="flex items-center">
-            <Avatar className="h-9 w-9">
-                <AvatarImage src={getUserAvatar(submission.userId)} alt={getUserName(submission.userId)} />
-                <AvatarFallback>{getUserFallback(submission.userId)}</AvatarFallback>
-            </Avatar>
-            <div className="ml-4 space-y-1">
-                <p className="text-sm font-medium leading-none max-w-[180px] truncate" title={submission.reportType}>
-                    {submission.reportType}
-                </p>
-                <p className="text-xs text-muted-foreground capitalize">
-                   {submission.unitName} &bull; {submission.cycleId} Cycle {submission.year}
-                </p>
+    <ScrollArea className="h-[400px] pr-4">
+        <div className="space-y-6">
+        {recentSubmissions.map(submission => (
+            <div key={submission.id} className="flex items-center">
+                <Avatar className="h-9 w-9">
+                    <AvatarImage src={getUserAvatar(submission.userId)} alt={getUserName(submission.userId)} />
+                    <AvatarFallback>{getUserFallback(submission.userId)}</AvatarFallback>
+                </Avatar>
+                <div className="ml-4 space-y-1">
+                    <p className="text-sm font-medium leading-none max-w-[180px] truncate" title={submission.reportType}>
+                        {submission.reportType}
+                    </p>
+                    <p className="text-xs text-muted-foreground capitalize">
+                    {submission.unitName} &bull; {submission.cycleId} Cycle {submission.year}
+                    </p>
+                </div>
+                <div className="ml-auto font-medium text-right">
+                    <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
+                        {submission.statusId}
+                    </Badge>
+                    <p className="text-xs text-muted-foreground mt-1">
+                        by {getUserName(submission.userId)}
+                    </p>
+                </div>
             </div>
-            <div className="ml-auto font-medium text-right">
-                 <Badge variant={statusVariant[submission.statusId] ?? 'secondary'} className="capitalize">
-                    {submission.statusId}
-                </Badge>
-                 <p className="text-xs text-muted-foreground mt-1">
-                    by {getUserName(submission.userId)}
-                </p>
-            </div>
+        ))}
         </div>
-      ))}
-    </div>
+    </ScrollArea>
   );
 }

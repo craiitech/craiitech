@@ -551,11 +551,19 @@ export default function HomePage() {
           <Card className="col-span-4 lg:col-span-3">
             <CardHeader>
               <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Your last 5 submissions.</CardDescription>
+              <CardDescription>Your last 10 submissions across {selectedYear}.</CardDescription>
             </CardHeader>
             <CardContent>
               <RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} />
             </CardContent>
+            <CardFooter className="bg-muted/5 border-t py-3">
+                <div className="flex items-start gap-2">
+                    <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                    <p className="text-[9px] text-muted-foreground italic leading-tight">
+                        Displays the most recent document updates. Use this to track real-time progression of your unit's documentation cycle.
+                    </p>
+                </div>
+            </CardFooter>
           </Card>
         </div>
       </TabsContent>
@@ -671,11 +679,19 @@ export default function HomePage() {
                     <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
                 </div>
                 <ComplianceHeatmap units={unitsInCampus} submissions={submissions || []} selectedYear={selectedYear} />
-                <Card className="col-span-4"><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from your campus.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent>
+                <Card className="col-span-4"><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from your campus.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
             </div>
             <div className="lg:col-span-3 space-y-4">
                 <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
                  <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from your campus.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent>
+                <CardFooter className="bg-muted/5 border-t py-3">
+                    <div className="flex items-start gap-2">
+                        <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                        <p className="text-[9px] text-muted-foreground italic leading-tight">
+                            Real-time campus contribution log. High activity density indicates active document control and unit engagement.
+                        </p>
+                    </div>
+                </CardFooter></Card>
                 {selectedDetail && (<UnitSubmissionDetailCard unitId={selectedDetail.unitId} campusId={selectedDetail.campusId} allUnits={allUnits} allSubmissions={submissions} onClose={() => setSelectedDetail(null)} onViewSubmission={(id) => router.push(`/submissions/${id}`)} selectedYear={selectedYear} />)}
             </div>
         </div>
@@ -726,7 +742,15 @@ export default function HomePage() {
                 <Trophy className="h-5 w-5 text-yellow-500" />
                 <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
                 <Card><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from all users.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
-                 <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from all users.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent></Card>
+                 <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from all users.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent>
+                 <CardFooter className="bg-muted/5 border-t py-3">
+                    <div className="flex items-start gap-2">
+                        <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                        <p className="text-[9px] text-muted-foreground italic leading-tight">
+                            Institutional audit trail of latest evidence uploads. Use this to monitor university-wide documentation frequency.
+                        </p>
+                    </div>
+                </CardFooter></Card>
             </div>
         </div>
         {selectedDetail && (<UnitSubmissionDetailCard unitId={selectedDetail.unitId} campusId={selectedDetail.campusId} allUnits={allUnits} allSubmissions={submissions} onClose={() => setSelectedDetail(null)} onViewSubmission={(id) => router.push(`/submissions/${id}`)} selectedYear={selectedYear} />)}
