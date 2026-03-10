@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -309,16 +308,19 @@ export default function HomePage() {
         stat1: {
           title: 'Pending Approvals',
           value: submissions.filter((s) => s.statusId === 'submitted' && s.year === selectedYear).length,
+          description: `Pending review for ${selectedYear}`,
           icon: <Clock className="h-6 w-6 text-primary" />,
         },
         stat2: {
           title: 'Total Submissions',
           value: yearSubmissions.length,
+          description: `Total logs for ${selectedYear}`,
           icon: <FileText className="h-6 w-6 text-primary" />,
         },
         stat3: {
           title: 'Total Users',
           value: allUsersMap.size,
+          description: `Institutional registry for ${selectedYear}`,
           icon: <Users className="h-6 w-6 text-primary" />,
         },
       };
@@ -346,7 +348,7 @@ export default function HomePage() {
         stat3: {
           title: 'Campus Users',
           value: allUsersMap.size,
-          description: `Total registered in campus`,
+          description: `Registered personnel: ${selectedYear}`,
           icon: <Users className="h-6 w-6 text-primary" />,
         },
       };
@@ -355,19 +357,19 @@ export default function HomePage() {
             stat1: {
                 title: 'My Audits',
                 value: mySchedules?.length || 0,
-                description: 'Active and assigned schedules',
+                description: `Schedules for ${selectedYear}`,
                 icon: <ClipboardCheck className="h-6 w-6 text-primary" />,
             },
             stat2: {
                 title: 'Completed',
                 value: mySchedules?.filter(s => s.status === 'Completed').length || 0,
-                description: 'Finalized audit reports',
+                description: `Finalized reports: ${selectedYear}`,
                 icon: <CheckCircle className="h-6 w-6 text-primary" />,
             },
             stat3: {
                 title: 'In Progress',
                 value: mySchedules?.filter(s => s.status === 'In Progress').length || 0,
-                description: 'Ongoing conduct',
+                description: `Ongoing conduct: ${selectedYear}`,
                 icon: <Clock className="h-6 w-6 text-primary" />,
             },
         };
@@ -399,7 +401,7 @@ export default function HomePage() {
             stat3: {
               title: 'Overall Maturity',
               value: `${Math.round(((firstCycleCount + finalCycleCount) / (requiredFirstCycle + requiredFinalCycle)) * 100)}%`,
-              description: `Verification index`,
+              description: `Verification index: ${selectedYear}`,
               icon: <TrendingUp className="h-6 w-6 text-primary" />,
             },
         };
