@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { AcademicProgram, ProgramComplianceRecord, AccreditationRecord, Campus, Unit } from '@/lib/types';
+import type { AcademicProgram, ProgramComplianceRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { 
     BarChart, 
@@ -20,20 +20,7 @@ import {
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { 
-    Table, 
-    TableBody, 
-    TableCell, 
-    TableHead, 
-    TableHeader, 
-    TableRow 
-} from '@/components/ui/table';
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger
-} from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
     Award, 
     TrendingUp, 
@@ -41,7 +28,6 @@ import {
     School, 
     CheckCircle2,
     ShieldCheck,
-    ShieldAlert,
     Info,
     UserCircle,
     FileWarning,
@@ -49,26 +35,14 @@ import {
     LayoutGrid,
     Clock,
     BarChart3,
-    CalendarDays,
-    AlertTriangle,
-    Building,
-    LayoutList,
     Target,
     Zap,
     Users,
-    ChevronRight,
-    History,
-    FileX,
     GraduationCap,
-    HeartPulse,
     Search
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Progress } from '../ui/progress';
 import { useUser } from '@/firebase';
-import { ScrollArea } from '../ui/scroll-area';
-import { Timestamp } from 'firebase/firestore';
-import { format } from 'date-fns';
 
 interface ProgramAnalyticsProps {
   programs: AcademicProgram[];
@@ -78,21 +52,6 @@ interface ProgramAnalyticsProps {
   isLoading: boolean;
   selectedYear: number;
 }
-
-const YEAR_COLORS: Record<string, { bg: string, text: string, border: string, row: string }> = {
-    '2024': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', row: 'bg-blue-50/30' },
-    '2025': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200', row: 'bg-green-50/30' },
-    '2026': { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200', row: 'bg-amber-50/30' },
-    '2027': { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200', row: 'bg-purple-50/30' },
-    '2028': { bg: 'bg-rose-100', text: 'text-rose-700', border: 'border-rose-200', row: 'bg-rose-50/30' },
-    'Default': { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200', row: 'bg-transparent' }
-};
-
-const getYearStyle = (year: string) => {
-    if (year === 'Pending') return { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', row: 'bg-blue-50/30' };
-    if (Number(year) <= 2024) return YEAR_COLORS['2024'];
-    return YEAR_COLORS[year] || YEAR_COLORS['Default'];
-};
 
 const ACCREDITATION_LEVELS_ORDER = [
     'Level IV Re-accredited', 'Level IV Accredited',
@@ -115,9 +74,7 @@ const chartConfig = {
 };
 
 export function ProgramAnalytics({ programs, compliances, campuses, units, isLoading, selectedYear }: ProgramAnalyticsProps) {
-  const { userRole, isAdmin } = useUser();
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
-  const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
 
   const analytics = useMemo(() => {
     if (!programs.length) return null;
@@ -188,7 +145,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 });
             }
 
-            // Faculty Deduplication (Institutional scale)
+            // SYSTEM REGISTERED USER Deduplication
             if (record.faculty) {
                 const roster = [...(record.faculty.members || [])];
                 if (record.faculty.dean?.name) roster.push(record.faculty.dean as any);
@@ -285,27 +242,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         .filter(d => d.total > 0)
         .sort((a, b) => b.total - a.total);
 
-    // --- 4. COPC Recognition Momentum ---
-    const copcYearlyMap: Record<string, { year: string, Undergraduate: number, Graduate: number, Closed: number }> = {};
-    filteredCompliances.forEach(c => {
-        if (c.ched?.copcStatus === 'With COPC' && c.ched.copcAwardDate) {
-            const yearMatch = c.ched.copcAwardDate.match(/\d{4}/);
-            if (yearMatch) {
-                const year = yearMatch[0];
-                const p = programs.find(prog => prog.id === c.programId);
-                if (p) {
-                    const category = getProgramCategory(p);
-                    if (!copcYearlyMap[year]) {
-                        copcYearlyMap[year] = { year, Undergraduate: 0, Graduate: 0, Closed: 0 };
-                    }
-                    copcYearlyMap[year][category]++;
-                }
-            }
-        }
-    });
-    const copcHistoryData = Object.values(copcYearlyMap).sort((a, b) => a.year.localeCompare(b.year));
-
-    // --- 5. Campus Performance Aggregation ---
+    // --- 4. Campus Performance Aggregation ---
     const campusPerformanceData = campuses.map(campus => {
         const campusPrograms = programs.filter(p => p.campusId === campus.id);
         const total = campusPrograms.length;
@@ -313,27 +250,20 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         if (total === 0) return null;
 
         let activeAccreditedCount = 0;
-        let inactiveAccreditedCount = 0;
         let activeCopcCount = 0;
-        let inactiveCopcCount = 0;
 
         campusPrograms.forEach(p => {
             const record = filteredCompliances.find(c => c.programId === p.id);
             const category = getProgramCategory(p);
             
-            if (record) {
+            if (record && category !== 'Closed') {
                 const hasCopc = record.ched?.copcStatus === 'With COPC';
                 const milestones = record.accreditationRecords || [];
                 const current = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
                 const isAccredited = current && current.level !== 'Non Accredited' && current.level !== 'Preliminary Survey Visit (PSV)';
 
-                if (category === 'Closed') {
-                    if (hasCopc) inactiveCopcCount++;
-                    if (isAccredited) inactiveAccreditedCount++;
-                } else {
-                    if (hasCopc) activeCopcCount++;
-                    if (isAccredited) activeAccreditedCount++;
-                }
+                if (hasCopc) activeCopcCount++;
+                if (isAccredited) activeAccreditedCount++;
             }
         });
 
@@ -342,44 +272,17 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             name: campus.name,
             total,
             activeCount: campusPrograms.filter(p => p.isActive).length,
-            inactiveCount: campusPrograms.filter(p => !p.isActive).length,
             activeAccreditedCount,
-            inactiveAccreditedCount,
-            activeCopcCount,
-            inactiveCopcCount
+            activeCopcCount
         };
     }).filter(Boolean).sort((a: any, b: any) => b.total - a.total);
-
-    // --- 6. Missing Document Audit ---
-    const missingDocs: { programName: string, campusName: string, items: string[] }[] = [];
-    programs.forEach(p => {
-        const record = filteredCompliances.find(c => c.programId === p.id);
-        const campusName = campusMap.get(p.campusId) || 'Unknown';
-        const items: string[] = [];
-
-        if (!record) {
-            items.push(`Full AY ${selectedYear} Compliance Data`);
-        } else {
-            if (record.ched?.copcStatus !== 'With COPC') items.push("COPC Certificate");
-            if (!record.ched?.programCmoLink) items.push("Official CMO Link");
-            if (!p.isNewProgram && (!record.accreditationRecords || record.accreditationRecords.length === 0)) items.push("Accreditation Milestone");
-            if (!record.faculty?.members || record.faculty.members.length === 0) items.push("Faculty Staffing List");
-            if (!record.graduationRecords || record.graduationRecords.length === 0) items.push("Graduation Outcome Data");
-        }
-
-        if (items.length > 0) {
-            missingDocs.push({ programName: p.name, campusName, items });
-        }
-    });
 
     return { 
         accreditationSummary, 
         activeCount, inactiveCount,
         activeAccredited, inactiveAccredited,
         activeCopc, inactiveCopc,
-        copcHistoryData,
         campusPerformanceData,
-        missingDocs,
         gadEnrollmentData,
         gadFacultyData,
         gadGraduationData,
@@ -388,7 +291,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         totalPrograms: programs.length, 
         monitoredCount: filteredCompliances.length 
     };
-  }, [programs, compliances, campusMap, unitMap, selectedYear, campuses]);
+  }, [programs, compliances, campuses, selectedYear]);
 
   if (isLoading) {
     return (
@@ -472,9 +375,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                           </ResponsiveContainer>
                       </ChartContainer>
                   </CardContent>
-                  <CardFooter className="bg-muted/5 border-t py-2">
+                  <CardFooter className="bg-muted/5 border-t py-2 px-4">
                       <p className="text-[9px] text-muted-foreground italic leading-tight">
-                          <strong>Insight:</strong> Real-time student distribution based on semester registry logs.
+                          <strong>Guidance for usage:</strong> Aggregated headcount based on academic unit enrollment logs.
                       </p>
                   </CardFooter>
               </Card>
@@ -483,7 +386,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col">
                   <CardHeader className="pb-2 border-b bg-muted/10">
                       <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
-                          <UserCircle className="h-4 w-4 text-primary" /> Sex-Aggregated Faculty Profiles
+                          <UserCircle className="h-4 w-4 text-primary" /> Sex-Aggregated SYSTEM REGISTERED USER
                       </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-6 flex-1">
@@ -506,9 +409,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                           </ResponsiveContainer>
                       </ChartContainer>
                   </CardContent>
-                  <CardFooter className="bg-muted/5 border-t py-2">
+                  <CardFooter className="bg-muted/5 border-t py-2 px-4">
                       <p className="text-[9px] text-muted-foreground italic leading-tight">
-                          <strong>Insight:</strong> Deduplicated headcount of <strong>SYSTEM REGISTERED USERS</strong> (teaching staff).
+                          <strong>Guidance for usage:</strong> Unique headcount of teaching staff registered across all programs.
                       </p>
                   </CardFooter>
               </Card>
@@ -540,9 +443,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                           </ResponsiveContainer>
                       </ChartContainer>
                   </CardContent>
-                  <CardFooter className="bg-muted/5 border-t py-2">
+                  <CardFooter className="bg-muted/5 border-t py-2 px-4">
                       <p className="text-[9px] text-muted-foreground italic leading-tight">
-                          <strong>Insight:</strong> Accumulated graduate output distribution for the academic year.
+                          <strong>Guidance for usage:</strong> Institutional output distribution for the selected academic year.
                       </p>
                   </CardFooter>
               </Card>
@@ -575,9 +478,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                           <div className="h-full flex items-center justify-center opacity-20"><Target className="h-12 w-12" /></div>
                       )}
                   </CardContent>
-                  <CardFooter className="bg-muted/5 border-t py-2">
+                  <CardFooter className="bg-muted/5 border-t py-2 px-4">
                       <p className="text-[9px] text-muted-foreground italic leading-tight">
-                          <strong>Insight:</strong> Comparison between University passing rates and National benchmarks.
+                          <strong>Guidance for usage:</strong> Comparison of University passing rates against National benchmarks.
                       </p>
                   </CardFooter>
               </Card>
@@ -609,9 +512,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                           </ResponsiveContainer>
                       </ChartContainer>
                   </CardContent>
-                  <CardFooter className="bg-muted/5 border-t py-2">
+                  <CardFooter className="bg-muted/5 border-t py-2 px-4">
                       <p className="text-[9px] text-muted-foreground italic leading-tight">
-                          <strong>Insight:</strong> Sex distribution of graduates captured in official Tracer Studies.
+                          <strong>Guidance for usage:</strong> Distribution of graduates captured in official institutional tracking studies.
                       </p>
                   </CardFooter>
               </Card>
@@ -619,9 +522,14 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-6">
+        {/* ACCREDITATION PROFILE */}
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-muted/10 border-b py-4">
-                <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Maturity Profile</CardTitle>
+                <div className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Maturity Profile</CardTitle>
+                </div>
+                <CardDescription className="text-xs">Distribution of programs across AACCUP accreditation levels.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
                 <ChartContainer config={chartConfig} className="h-[350px] w-full">
@@ -639,11 +547,24 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     </ResponsiveContainer>
                 </ChartContainer>
             </CardContent>
+            <CardFooter className="bg-muted/5 border-t py-3">
+                <div className="flex items-start gap-2">
+                    <Zap className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-[9px] text-muted-foreground italic leading-tight">
+                        <strong>Guidance for usage:</strong> Higher segments in Level III and IV indicate mature institutional processes and excellence.
+                    </p>
+                </div>
+            </CardFooter>
         </Card>
 
+        {/* CAMPUS PARITY */}
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-muted/10 border-b py-4">
-                <CardTitle className="text-sm font-black uppercase tracking-tight">Campus Parity Benchmarking</CardTitle>
+                <div className="flex items-center gap-2">
+                    <School className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">Campus Parity Benchmarking</CardTitle>
+                </div>
+                <CardDescription className="text-xs">Active offerings with verified institutional authority per site.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
                 <Table>
@@ -667,6 +588,14 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     </TableBody>
                 </Table>
             </CardContent>
+            <CardFooter className="bg-muted/5 border-t py-3">
+                <div className="flex items-start gap-2">
+                    <Info className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
+                    <p className="text-[9px] text-muted-foreground italic leading-tight">
+                        <strong>Guidance for usage:</strong> Compares site-level quality metrics to identify sites requiring accelerated accreditation support.
+                    </p>
+                </div>
+            </CardFooter>
         </Card>
       </div>
     </div>
