@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -51,8 +50,6 @@ export function IncompleteCampusSubmissions({
       const incompleteUnits = unitsInThisCampus.map(unit => {
         const submissionsForUnitAndYear = allSubmissions.filter(s => s.unitId === unit.id && s.campusId === campus.id && s.year === selectedYear);
 
-        // CRITICAL: Logic based on APPROVED status, excluding N/A
-        
         // --- FIRST CYCLE ---
         const firstCycleApproved = submissionsForUnitAndYear.filter(s => s.cycleId === 'first' && s.statusId === 'approved');
         const firstCycleApprovedTypes = new Set(firstCycleApproved.map(s => s.reportType));
@@ -147,7 +144,7 @@ export function IncompleteCampusSubmissions({
       </CardHeader>
       <CardContent>
         {incompleteSubmissionsByCampus.length > 0 ? (
-            <Accordion type="multiple" className="w-full" defaultValue={incompleteSubmissionsByCampus.map(c => c.campusId)}>
+            <Accordion type="single" collapsible className="w-full" defaultValue={incompleteSubmissionsByCampus[0]?.campusId}>
             {incompleteSubmissionsByCampus.map(campus => (
                 <AccordionItem value={campus.campusId} key={campus.campusId} className="border-none">
                 <AccordionTrigger className="font-bold hover:no-underline py-3 px-2 hover:bg-muted/50 rounded-md">
@@ -158,7 +155,7 @@ export function IncompleteCampusSubmissions({
                     </div>
                 </AccordionTrigger>
                 <AccordionContent className="pt-2">
-                    <ScrollArea className="h-[400px] pr-4">
+                    <ScrollArea className="h-[300px] pr-4">
                         <ul className="space-y-1 pl-2">
                             {campus.incompleteUnits.map(unit => (
                                 <li key={unit.unitId}>

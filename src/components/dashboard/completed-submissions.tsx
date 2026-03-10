@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -66,7 +65,7 @@ export function CompletedSubmissions({
             ).size;
 
             const finalCycleRegistry = unitSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
-            const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
+            const isFinalActionPlanNA = finalRegistry?.riskRating === 'low';
             const requiredFinal = isFinalActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
             
             const finalCycleApproved = new Set(
@@ -125,7 +124,7 @@ export function CompletedSubmissions({
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-4">
-        <Accordion type="multiple" className="w-full" defaultValue={completedSubmissionsByCampus.map(c => c.campusId)}>
+        <Accordion type="single" collapsible className="w-full" defaultValue={completedSubmissionsByCampus[0]?.campusId}>
             {completedSubmissionsByCampus.map(campus => (
                  <AccordionItem value={campus.campusId} key={campus.campusId} className="border-none">
                     <AccordionTrigger className="font-bold hover:no-underline hover:bg-green-100/50 rounded-md px-2 py-3 transition-colors">
@@ -135,7 +134,7 @@ export function CompletedSubmissions({
                         </div>
                     </AccordionTrigger>
                     <AccordionContent className="pt-2">
-                        <ScrollArea className="h-[400px] pr-4">
+                        <ScrollArea className="h-[300px] pr-4">
                             <List className="pl-2">
                             {campus.completedUnits.map(unit => (
                                 <ListItem key={unit.id} className="flex justify-between items-center border-none p-2 hover:bg-green-50 transition-colors">

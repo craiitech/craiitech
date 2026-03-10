@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -180,7 +179,7 @@ export function UnitsWithoutSubmissions({
         )}
       </CardHeader>
       <CardContent>
-        <Accordion type="multiple" className="w-full" defaultValue={incompleteSubmissionsByCampus.map(c => c.campusId)}>
+        <Accordion type="single" collapsible className="w-full" defaultValue={incompleteSubmissionsByCampus[0]?.campusId}>
             {incompleteSubmissionsByCampus.map(campus => (
                  <AccordionItem value={campus.campusId} key={campus.campusId} className="border-none">
                     <AccordionTrigger className="font-bold hover:no-underline hover:bg-muted/50 rounded-md px-2 py-3">
@@ -190,7 +189,7 @@ export function UnitsWithoutSubmissions({
                         </div>
                     </AccordionTrigger>
                     <AccordionContent className="pt-2">
-                        <ScrollArea className="h-[400px] pr-4">
+                        <ScrollArea className="h-[300px] pr-4">
                             <List className="pl-2">
                             {campus.incompleteUnits.map(unit => (
                                 <ListItem key={unit.id} className="p-0 border-none">
