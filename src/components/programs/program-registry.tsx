@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit, School, Layers, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2, Calendar, CheckCircle2, Clock, AlertTriangle, Hash, Check, X } from 'lucide-react';
+import { Edit, School, Layers, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2, Calendar, CheckCircle2, Clock, AlertTriangle, Hash, Check, X, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -51,7 +51,10 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
               <TableHead className="text-[10px] font-black uppercase">Majors / Type</TableHead>
               
               {isShowingActive && (
-                <TableHead className="text-[10px] font-black uppercase">Board Approval</TableHead>
+                <>
+                  <TableHead className="text-[10px] font-black uppercase">Board Approval</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase"># of Faculty (M/F (TOTAL))</TableHead>
+                </>
               )}
 
               <TableHead className="text-[10px] font-black uppercase">Date of COPC Award</TableHead>
@@ -89,6 +92,21 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                   accLabel = 'Non-Accredited';
                   nextVisit = 'TBA';
               }
+
+              // Faculty Aggregation Logic
+              const facultyStats = (() => {
+                if (!record?.faculty) return { m: 0, f: 0, total: 0 };
+                const { dean, associateDean, hasAssociateDean, programChair, members } = record.faculty;
+                const roster = [];
+                if (dean?.name) roster.push(dean);
+                if (hasAssociateDean && associateDean?.name) roster.push(associateDean);
+                if (programChair?.name) roster.push(programChair);
+                if (members) roster.push(...members);
+
+                const m = roster.filter(p => p.sex === 'Male').length;
+                const f = roster.filter(p => p.sex === 'Female').length;
+                return { m, f, total: m + f };
+              })();
 
               return (
                 <TableRow 
@@ -171,17 +189,30 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                   </TableCell>
 
                   {isShowingActive && (
-                    <TableCell>
-                        {hasBoardApproval ? (
-                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 h-5 text-[9px] font-black gap-1">
-                                <Check className="h-2.5 w-2.5" /> YES
-                            </Badge>
-                        ) : (
-                            <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 h-5 text-[9px] font-black gap-1">
-                                <X className="h-2.5 w-2.5" /> NO
-                            </Badge>
-                        )}
-                    </TableCell>
+                    <>
+                      <TableCell>
+                          {hasBoardApproval ? (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 h-5 text-[9px] font-black gap-1">
+                                  <Check className="h-2.5 w-2.5" /> YES
+                              </Badge>
+                          ) : (
+                              <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 h-5 text-[9px] font-black gap-1">
+                                  <X className="h-2.5 w-2.5" /> NO
+                              </Badge>
+                          )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Users className="h-3.5 w-3.5 text-primary/40" />
+                          <div className="flex flex-col">
+                            <span className="text-xs font-black tabular-nums text-slate-800">
+                              {facultyStats.m} / {facultyStats.f}
+                            </span>
+                            <span className="text-[10px] font-bold text-primary">({facultyStats.total} TOTAL)</span>
+                          </div>
+                        </div>
+                      </TableCell>
+                    </>
                   )}
                   
                   <TableCell>
