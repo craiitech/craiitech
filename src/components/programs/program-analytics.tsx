@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -506,13 +507,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                           {card.chart === 'bar' ? (
                               <ChartContainer config={chartConfig} className="h-full w-full">
                                   <ResponsiveContainer>
-                                      <BarChart data={card.data} layout="vertical" margin={{ right: 40, left: 10 }}>
+                                      <BarChart data={card.data} layout="vertical" margin={{ right: 60, left: 10 }}>
                                           <XAxis type="number" hide domain={[0, 100]} />
                                           <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fontWeight: 'bold' }} width={80} axisLine={false} tickLine={false} />
                                           <RechartsTooltip content={<ChartTooltipContent />} />
                                           <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
                                           <Bar dataKey="rate" radius={[0, 4, 4, 0]} barSize={20}>
-                                              <LabelList dataKey="rate" position="right" formatter={(v: any) => `${v}%`} style={{ fontSize: '11px', fontWeight: '900' }} />
+                                              <LabelList dataKey="rate" position="right" formatter={(v: any) => `${v}%`} style={{ fontSize: '13px', fontWeight: '900', fill: 'currentColor' }} />
                                               {card.data?.map((e: any, j: any) => <Cell key={j} fill={e.fill} />)}
                                           </Bar>
                                       </BarChart>
@@ -531,10 +532,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                             paddingAngle={5} 
                                             dataKey="value"
                                             label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                                            labelLine={true}
                                           >
                                               {card.data?.map((e: any, j: any) => <Cell key={j} fill={e.fill} />)}
                                           </Pie>
-                                          <RechartsTooltip content={<ChartTooltipContent />} />
+                                          <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
                                           <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
                                       </PieChart>
                                   </ResponsiveContainer>
