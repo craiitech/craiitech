@@ -65,7 +65,7 @@ export function CompletedSubmissions({
             ).size;
 
             const finalCycleRegistry = unitSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
-            const isFinalActionPlanNA = finalRegistry?.riskRating === 'low';
+            const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
             const requiredFinal = isFinalActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE;
             
             const finalCycleApproved = new Set(
