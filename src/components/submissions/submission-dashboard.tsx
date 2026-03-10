@@ -45,6 +45,7 @@ interface SubmissionDashboardProps {
   cycles: Cycle[];
   allUnits: Unit[];
   isLoading: boolean;
+  selectedYear: string;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -58,7 +59,9 @@ const TIMELINESS_COLORS: Record<string, string> = {
   'Late': 'hsl(var(--destructive))',
 };
 
-export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }: SubmissionDashboardProps) {
+export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, selectedYear }: SubmissionDashboardProps) {
+  const displayYear = selectedYear === 'all' ? 'All Recorded Years' : `AY ${selectedYear}`;
+
   const analytics = useMemo(() => {
     if (!submissions || !cycles || !allUnits) return null;
 
@@ -184,7 +187,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
       <Card className="border-dashed py-20 flex flex-col items-center justify-center text-center bg-muted/5">
         <Activity className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
         <CardTitle className="text-xl font-black uppercase tracking-widest opacity-40">Submission Data Pending</CardTitle>
-        <CardDescription className="max-w-xs mx-auto">Visual analytics will activate once units begin logging evidence through the portal.</CardDescription>
+        <CardDescription className="max-w-xs mx-auto">Visual analytics for {displayYear} will activate once units begin logging evidence through the portal.</CardDescription>
       </Card>
     );
   }
@@ -194,7 +197,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
         <CardHeader className="bg-destructive/10 border-b py-3">
             <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-destructive flex items-center gap-2">
                 <FileWarning className="h-3.5 w-3.5" />
-                {title}
+                {title} ({displayYear})
             </CardTitle>
         </CardHeader>
         <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
@@ -232,7 +235,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 p-2 opacity-5"><FileText className="h-12 w-12" /></div>
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Volume Registry</CardTitle>
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Volume Registry - {displayYear}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-primary tabular-nums tracking-tighter">{analytics.total}</div>
@@ -242,7 +245,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
         <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 p-2 opacity-5"><CheckCircle2 className="h-12 w-12" /></div>
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Approval Maturity</CardTitle>
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Approval Maturity - {displayYear}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-emerald-600 tabular-nums tracking-tighter">{analytics.approvalRate}%</div>
@@ -252,7 +255,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
         <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 p-2 opacity-5"><Clock className="h-12 w-12" /></div>
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">Audit Queue</CardTitle>
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">Audit Queue - {displayYear}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-amber-600 tabular-nums tracking-tighter">{analytics.pending}</div>
@@ -262,7 +265,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
         <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 p-2 opacity-5"><TrendingUp className="h-12 w-12" /></div>
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Responsiveness</CardTitle>
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Responsiveness - {displayYear}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-blue-600 tabular-nums tracking-tighter">
@@ -288,7 +291,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
               <CalendarCheck className="h-5 w-5 text-primary" />
               <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Timeliness index</CardTitle>
             </div>
-            <CardDescription className="text-xs">Relationship between actual submission date and official cycle deadlines.</CardDescription>
+            <CardDescription className="text-xs">Relationship between actual submission date and official cycle deadlines for {displayYear}.</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row items-center justify-between gap-8">
@@ -336,7 +339,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
               <ShieldCheck className="h-5 w-5 text-primary" />
               <CardTitle className="text-sm font-black uppercase tracking-tight">Quality Maturity Lifecycle</CardTitle>
             </div>
-            <CardDescription className="text-xs">Real-time distribution of evidence status across the university scope.</CardDescription>
+            <CardDescription className="text-xs">Real-time distribution of evidence status across the university scope for {displayYear}.</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             <ChartContainer config={{}} className="h-[250px] w-full">
@@ -373,7 +376,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading }
           <CardHeader className="bg-muted/10 border-b py-4">
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
-              <CardTitle className="text-sm font-black uppercase tracking-tight">Documentation Density Profile</CardTitle>
+              <CardTitle className="text-sm font-black uppercase tracking-tight">Documentation Density Profile - {displayYear}</CardTitle>
             </div>
             <CardDescription className="text-xs">Distribution of logged evidence across the 6 core ISO 21001:2018 report types.</CardDescription>
           </CardHeader>

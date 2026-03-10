@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter, Download, ShieldCheck, XCircle, CheckCircle2, ChevronRight, LayoutList } from 'lucide-react';
@@ -393,6 +392,7 @@ export default function SubmissionsPage() {
                     cycles={cycles || []}
                     allUnits={dashboardUnits}
                     isLoading={isLoadingSubmissions || isLoadingCycles || isLoadingUnits}
+                    selectedYear={yearFilter}
                 />
             </TabsContent>
 
