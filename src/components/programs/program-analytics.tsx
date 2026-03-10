@@ -20,6 +20,7 @@ import {
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
     Award, 
@@ -384,7 +385,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               <CardHeader className="bg-destructive/10 border-b py-4">
                   <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-destructive">
-                          <ShieldAlert className="h-5 w-5" />
+                          <ShieldAlert className="h-5 w-5 text-destructive" />
                           <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Registry Gaps: AY {selectedYear}</CardTitle>
                       </div>
                       <Badge variant="destructive" className="animate-pulse shadow-sm h-5 text-[9px] font-black uppercase">SYSTEM ALERTS</Badge>
