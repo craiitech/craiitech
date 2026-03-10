@@ -42,7 +42,6 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ReactDOMServer from 'react-dom/server';
 import { AdminReport } from '@/components/reports/admin-report';
@@ -63,12 +62,10 @@ import {
     Radar,
     RadarChart,
     PolarGrid,
-    PolarAngleAxis,
-    PolarRadiusAxis
+    PolarAngleAxis
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 
 const cycles = ['first', 'final'] as const;
 
@@ -76,7 +73,7 @@ export default function ReportsPage() {
   const { userProfile, isAdmin, isUserLoading, isSupervisor } = useUser();
   const firestore = useFirestore();
 
-  const [selectedCampusId, setSelectedCampusId] = useState<string | null>(null);
+  const [selectedCampusId, setSelectedCampusId] = useState<string | null>('all');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   const canViewReports = isAdmin || isSupervisor;
@@ -196,7 +193,13 @@ export default function ReportsPage() {
   const visualAnalytics = useMemo(() => {
     if (!allCampuses || !allUnits) return null;
 
-    // 1. Campus Performance
+    // Filter program compliance records based on selected campus
+    const filteredCompliances = allCompliances?.filter(c => {
+        if (!selectedCampusId || selectedCampusId === 'all') return true;
+        return c.campusId === selectedCampusId;
+    }) || [];
+
+    // 1. Campus Performance (Always show all for benchmarking unless explicitly filtered)
     const campusPerf = allCampuses.map(c => {
         const campusUnits = allUnits.filter(u => u.campusIds?.includes(c.id));
         const campusSubs = processedSubmissions.filter(s => s.campusId === c.id);
@@ -210,7 +213,7 @@ export default function ReportsPage() {
         };
     });
 
-    // 2. GAD Reports
+    // 2. GAD Reports (Responds to Campus Filter)
     let totalMaleEnrolled = 0;
     let totalFemaleEnrolled = 0;
     let totalMaleFaculty = 0;
@@ -218,7 +221,10 @@ export default function ReportsPage() {
     let totalMaleGrads = 0;
     let totalFemaleGrads = 0;
 
-    allCompliances?.forEach(record => {
+    // Track unique faculty names per campus to avoid double counting shared staff across programs
+    const uniqueFacultySet = new Set<string>();
+
+    filteredCompliances.forEach(record => {
         // Enrollment
         const s1 = record.stats?.enrollment?.firstSemester;
         if (s1) {
@@ -227,17 +233,28 @@ export default function ReportsPage() {
                 totalFemaleEnrolled += Number(s1[lvl]?.female || 0);
             });
         }
-        // Faculty
+        
+        // SYSTEM REGISTERED USER (Faculty Registry)
         if (record.faculty) {
             const roster = [...(record.faculty.members || [])];
-            if (record.faculty.dean) roster.push(record.faculty.dean as any);
-            if (record.faculty.programChair) roster.push(record.faculty.programChair as any);
+            if (record.faculty.dean?.name) roster.push(record.faculty.dean as any);
+            if (record.faculty.programChair?.name) roster.push(record.faculty.programChair as any);
+            if (record.faculty.hasAssociateDean && record.faculty.associateDean?.name) {
+                roster.push(record.faculty.associateDean as any);
+            }
             
             roster.forEach(m => {
-                if (m.sex === 'Male') totalMaleFaculty++;
-                else if (m.sex === 'Female') totalFemaleFaculty++;
+                if (!m.name) return;
+                // Deduplicate by name and campus to ensure local site totals are accurate
+                const dedupKey = `${m.name}-${record.campusId}`.toLowerCase();
+                if (!uniqueFacultySet.has(dedupKey)) {
+                    uniqueFacultySet.add(dedupKey);
+                    if (m.sex === 'Male') totalMaleFaculty++;
+                    else if (m.sex === 'Female') totalFemaleFaculty++;
+                }
             });
         }
+
         // Graduates
         record.graduationRecords?.forEach(grad => {
             totalMaleGrads += Number(grad.maleCount || 0);
@@ -260,8 +277,13 @@ export default function ReportsPage() {
         { name: 'Female Graduates', value: totalFemaleGrads, fill: 'hsl(var(--chart-3))' }
     ].filter(d => d.value > 0);
 
-    // 3. Risk Distribution
-    const yearRisks = allRisks?.filter(r => r.year === selectedYear) || [];
+    // 3. Risk Distribution (Responds to Campus Filter)
+    const yearRisks = allRisks?.filter(r => {
+        const matchesYear = r.year === selectedYear;
+        const matchesCampus = (!selectedCampusId || selectedCampusId === 'all') || r.campusId === selectedCampusId;
+        return matchesYear && matchesCampus;
+    }) || [];
+
     const riskRatingData = [
         { name: 'High', value: yearRisks.filter(r => r.preTreatment?.rating === 'High').length, fill: 'hsl(var(--destructive))' },
         { name: 'Medium', value: yearRisks.filter(r => r.preTreatment?.rating === 'Medium').length, fill: 'hsl(var(--chart-3))' },
@@ -275,8 +297,20 @@ export default function ReportsPage() {
         fullMark: 100
     }));
 
-    return { campusPerf, gadEnrollmentData, gadFacultyData, gadGradsData, riskRatingData, radarData, totals: { students: totalMaleEnrolled + totalFemaleEnrolled, faculty: totalMaleFaculty + totalFemaleFaculty, grads: totalMaleGrads + totalFemaleGrads } };
-  }, [allCampuses, allUnits, processedSubmissions, allRisks, allCompliances, selectedYear]);
+    return { 
+        campusPerf, 
+        gadEnrollmentData, 
+        gadFacultyData, 
+        gadGradsData, 
+        riskRatingData, 
+        radarData, 
+        totals: { 
+            students: totalMaleEnrolled + totalFemaleEnrolled, 
+            faculty: totalMaleFaculty + totalFemaleFaculty, 
+            grads: totalMaleGrads + totalFemaleGrads 
+        } 
+    };
+  }, [allCampuses, allUnits, processedSubmissions, allRisks, allCompliances, selectedYear, selectedCampusId]);
 
   const handlePrint = () => {
     if (!isAdmin || !rawSubmissions || !allCampuses || !allUnits) return;
@@ -328,6 +362,28 @@ export default function ReportsPage() {
         </TabsList>
 
         <TabsContent value="visuals" className="space-y-6 animate-in fade-in duration-500">
+            {/* Context Filter Bar for Visuals */}
+            <Card className="border-primary/10 bg-primary/5">
+                <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-2 text-primary">
+                        <Info className="h-5 w-5" />
+                        <span className="text-xs font-black uppercase tracking-widest">Analytics Context: {selectedYear} Registry</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Campus Filter:</span>
+                        <Select value={selectedCampusId || 'all'} onValueChange={setSelectedCampusId}>
+                            <SelectTrigger className="w-[200px] h-8 bg-white border-primary/20 text-xs font-bold">
+                                <SelectValue placeholder="All Campuses" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Institutional (All Sites)</SelectItem>
+                                {allCampuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </CardContent>
+            </Card>
+
             {visualAnalytics ? (
                 <>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -414,7 +470,7 @@ export default function ReportsPage() {
                             </CardContent>
                         </Card>
 
-                        {/* SYSTEM REGISTERED USER GAD (formerly Faculty) */}
+                        {/* SYSTEM REGISTERED USER GAD */}
                         <Card className="shadow-md border-primary/10 flex flex-col">
                             <CardHeader className="pb-2 border-b bg-emerald-50/30">
                                 <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
@@ -510,6 +566,7 @@ export default function ReportsPage() {
                         <Select onValueChange={setSelectedCampusId} value={selectedCampusId || ''} disabled={!isAdmin}>
                             <SelectTrigger className="bg-white font-bold h-10"><SelectValue placeholder="Select a campus..." /></SelectTrigger>
                             <SelectContent>
+                                <SelectItem value="all">All Sites</SelectItem>
                                 {allCampuses?.map(campus => <SelectItem key={campus.id} value={campus.id}>{campus.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
@@ -519,7 +576,7 @@ export default function ReportsPage() {
                                     <TableRow><TableHead className="text-[10px] font-black uppercase">Units in {allCampuses?.find(c => c.id === selectedCampusId)?.name || 'Selection'}</TableHead></TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {selectedCampusId && allUnits?.filter(u => u.campusIds?.includes(selectedCampusId)).map(unit => (
+                                    {(selectedCampusId === 'all' ? allUnits : allUnits?.filter(u => u.campusIds?.includes(selectedCampusId || '')) )?.map(unit => (
                                         <TableRow key={unit.id} className="hover:bg-white transition-colors">
                                             <TableCell className="text-[11px] font-bold text-slate-700">{unit.name}</TableCell>
                                         </TableRow>
