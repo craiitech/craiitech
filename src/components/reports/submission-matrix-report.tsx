@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -6,7 +7,7 @@ import type { Campus, Cycle } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Check, X, Printer, Loader2 } from 'lucide-react';
+import { Check, X, Printer, Loader2, Info } from 'lucide-react';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Button } from '../ui/button';
@@ -32,10 +33,6 @@ interface SubmissionMatrixReportProps {
   onYearChange: (year: number) => void;
 }
 
-/**
- * PRINT TEMPLATE COMPONENT
- * Minimal, high-contrast version for official print-outs.
- */
 const MatrixPrintView = ({ data, year }: { data: MatrixData, year: number }) => (
   <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
     <div style={{ textAlign: 'center', marginBottom: '30px' }}>
@@ -164,12 +161,12 @@ export function SubmissionMatrixReport({
   const renderCell = (status: 'submitted' | 'missing' | 'not-applicable' | undefined) => {
     switch (status) {
       case 'submitted':
-        return <Check className="h-4 w-4 text-green-500 mx-auto" />;
+        return <div className="bg-emerald-100 p-1 rounded-full"><Check className="h-3 w-3 text-emerald-600 mx-auto" /></div>;
       case 'not-applicable':
-        return <span className="text-[10px] font-bold text-muted-foreground mx-auto block text-center">N/A</span>;
+        return <span className="text-[10px] font-black text-muted-foreground/40 mx-auto block text-center">N/A</span>;
       case 'missing':
       default:
-        return <X className="h-4 w-4 text-red-500 mx-auto" />;
+        return <div className="bg-rose-50 p-1 rounded-full"><X className="h-3 w-3 text-rose-400 mx-auto" /></div>;
     }
   };
 
@@ -177,20 +174,12 @@ export function SubmissionMatrixReport({
     <Card className="max-w-full overflow-hidden border-primary/10 shadow-lg">
       <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-muted/10 border-b py-6">
         <div className="min-w-0 pr-4">
-          <CardTitle className="text-xl font-black uppercase tracking-tight">Institutional Submission Matrix</CardTitle>
+          <CardTitle className="text-xl font-black uppercase tracking-tight">Documentation Accountability Matrix</CardTitle>
           <CardDescription className="max-xl text-xs font-medium">
-            Cross-sectional compliance summary for {selectedYear}. <Check className="inline h-3 w-3 text-green-500" /> Approved, <X className="inline h-3 w-3 text-red-500" /> Missing, "N/A" Not Applicable.
+            Visual compliance summary for {selectedYear}. <Check className="inline h-3 w-3 text-green-500" /> Approved, <X className="inline h-3 w-3 text-red-500" /> Missing, "N/A" Not Applicable.
           </CardDescription>
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          <Select value={String(selectedYear)} onValueChange={(v) => onYearChange(Number(v))}>
-            <SelectTrigger className="w-[120px] h-9 bg-white font-bold shadow-sm">
-              <SelectValue placeholder="Select Year" />
-            </SelectTrigger>
-            <SelectContent>
-              {years.map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
-            </SelectContent>
-          </Select>
           <Button 
             variant="outline" 
             size="sm" 
@@ -199,7 +188,7 @@ export function SubmissionMatrixReport({
             className="h-9 bg-white shadow-sm font-bold gap-2"
           >
             {isPrinting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
-            Print Matrix
+            Print Official Matrix
           </Button>
         </div>
       </CardHeader>
@@ -238,7 +227,7 @@ export function SubmissionMatrixReport({
                             {units.map(({ unitId, unitName, statuses }) => {
                                 const uId = String(unitId).trim().toLowerCase();
                                 return (
-                                    <TableRow key={uId} className="hover:bg-muted/10">
+                                    <TableRow key={uId} className="hover:bg-muted/10 transition-colors">
                                     <TableCell className="font-bold sticky left-0 bg-background border-r z-10 text-[11px] whitespace-nowrap">
                                         {unitName}
                                     </TableCell>
@@ -263,7 +252,7 @@ export function SubmissionMatrixReport({
                             {units.length === 0 && (
                                 <TableRow>
                                 <TableCell colSpan={submissionTypes.length * 2 + 1} className="text-center h-24 text-muted-foreground italic text-xs">
-                                    No units with recorded submissions found for this campus site.
+                                    No compliance data recorded.
                                 </TableCell>
                                 </TableRow>
                             )}
@@ -276,9 +265,9 @@ export function SubmissionMatrixReport({
           })}
             {matrixData.length === 0 && (
                 <div className="text-center py-20 text-muted-foreground border border-dashed rounded-lg m-6 bg-muted/5">
-                    <Printer className="h-10 w-10 mx-auto opacity-10 mb-4" />
-                    <p className="font-bold text-xs uppercase tracking-widest">No compliance data available</p>
-                    <p className="text-[10px] mt-1">Try selecting a different academic year.</p>
+                    <Info className="h-10 w-10 mx-auto opacity-10 mb-4" />
+                    <p className="font-bold text-xs uppercase tracking-widest">Registry Empty</p>
+                    <p className="text-[10px] mt-1">Select an active year to view compliance matrix.</p>
                 </div>
             )}
         </Accordion>
