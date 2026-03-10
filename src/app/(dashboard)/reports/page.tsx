@@ -251,8 +251,8 @@ export default function ReportsPage() {
     ].filter(d => d.value > 0);
 
     const gadFacultyData = [
-        { name: 'Male Faculty', value: totalMaleFaculty, fill: 'hsl(var(--chart-4))' },
-        { name: 'Female Faculty', value: totalFemaleFaculty, fill: 'hsl(var(--chart-5))' }
+        { name: 'Male', value: totalMaleFaculty, fill: 'hsl(var(--chart-4))' },
+        { name: 'Female', value: totalFemaleFaculty, fill: 'hsl(var(--chart-5))' }
     ].filter(d => d.value > 0);
 
     const gadGradsData = [
@@ -414,11 +414,11 @@ export default function ReportsPage() {
                             </CardContent>
                         </Card>
 
-                        {/* Faculty GAD */}
+                        {/* SYSTEM REGISTERED USER GAD (formerly Faculty) */}
                         <Card className="shadow-md border-primary/10 flex flex-col">
                             <CardHeader className="pb-2 border-b bg-emerald-50/30">
                                 <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
-                                    <Briefcase className="h-4 w-4 text-emerald-600" /> Faculty Sex Distribution
+                                    <Briefcase className="h-4 w-4 text-emerald-600" /> SYSTEM REGISTERED USER Sex Distribution
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-6 flex-1">
@@ -434,7 +434,7 @@ export default function ReportsPage() {
                                 </ChartContainer>
                                 <div className="mt-4 text-center">
                                     <p className="text-2xl font-black text-slate-800">{visualAnalytics.totals.faculty}</p>
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Faculty Roster</p>
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Total SYSTEM REGISTERED USER Roster</p>
                                 </div>
                             </CardContent>
                         </Card>
