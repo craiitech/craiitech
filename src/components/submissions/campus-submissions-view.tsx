@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -17,6 +16,7 @@ import {
     AlertTriangle, 
     CheckCircle2, 
     ShieldCheck, 
+    ShieldAlert,
     Printer, 
     LayoutList,
     ChevronLeft,
@@ -496,7 +496,7 @@ export function CampusSubmissionsView({
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <Card className="md:col-span-1 border-primary/10 shadow-lg p-8 bg-gradient-to-br from-primary/10 to-background flex flex-col items-center justify-center relative overflow-hidden">
-                            <div className="absolute top-0 left-0 p-4 opacity-5"><TrendingUp className="h-20 w-20" /></div>
+                            <div className="absolute top-0 right-0 p-4 opacity-5"><TrendingUp className="h-20 w-20" /></div>
                             <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/60 mb-6">Site Maturity Index</span>
                             <div className="relative h-40 w-40">
                                 <svg className="h-full w-full" viewBox="0 0 100 100">
