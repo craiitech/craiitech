@@ -76,7 +76,7 @@ type ProgramCategory = 'Undergraduate' | 'Graduate' | 'Inactive';
 const chartConfig = {
     Undergraduate: { label: 'Undergraduate', color: 'hsl(var(--primary))' },
     Graduate: { label: 'Graduate', color: 'hsl(var(--chart-2))' },
-    Inactive: { label: 'Inactive Programs', color: 'hsl(var(--muted-foreground))' },
+    Inactive: { label: 'Closed Programs', color: 'hsl(var(--muted-foreground))' },
     Male: { label: 'Male', color: 'hsl(var(--chart-1))' },
     Female: { label: 'Female', color: 'hsl(var(--chart-2))' },
     School: { label: 'Institutional Rate', color: 'hsl(var(--primary))' },
@@ -189,6 +189,33 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             }
         }
 
+        const milestones = record?.accreditationRecords || [];
+        const currentMilestone = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
+        const validityStr = currentMilestone?.statusValidityDate || 'TBA';
+
+        let status: any = 'TBA';
+        if (p.isActive) {
+            if (currentMilestone?.lifecycleStatus === 'Waiting for Official Result') {
+                status = 'AWAITING RESULT';
+            } else {
+                const yearMatch = validityStr.match(/\d{4}/);
+                const dYear = yearMatch ? parseInt(yearMatch[0]) : 0;
+                if (dYear > 0 && dYear < currentYearNum) status = 'OVERDUE';
+                else if (dYear >= currentYearNum) status = 'COMPLIANT';
+            }
+        }
+
+        roadmapData.push({
+            id: p.id,
+            name: p.name,
+            level: p.level,
+            campus: cName,
+            currentLevel: currentMilestone?.level || 'Non-Accredited',
+            validity: validityStr,
+            status,
+            isActive: p.isActive
+        });
+
         if (record) {
             const copcYear = record.ched?.copcAwardDate?.match(/\d{4}/)?.[0];
             if (copcYear) {
@@ -197,7 +224,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 copcByYear[copcYear].total++;
             }
 
-            const milestones = record.accreditationRecords || [];
             milestones.forEach(m => {
                 const surveyYear = m.dateOfSurvey?.match(/\d{4}/)?.[0];
                 if (surveyYear) {
@@ -207,7 +233,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 }
             });
 
-            const currentMilestone = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
             const validityYear = currentMilestone?.statusValidityDate?.match(/\d{4}/)?.[0];
             if (validityYear) {
                 if (!velocityByYear[validityYear]) velocityByYear[validityYear] = { year: validityYear, Undergraduate: 0, Graduate: 0, Inactive: 0, total: 0 };
@@ -215,32 +240,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 velocityByYear[validityYear].total++;
             }
 
-            if (p.isActive) {
-                let status: 'COMPLIANT' | 'OVERDUE' | 'AWAITING RESULT' | 'RESULT PENDING' | 'TBA' = 'TBA';
-                let validityStr = currentMilestone?.statusValidityDate || 'TBA';
-                
-                if (currentMilestone?.lifecycleStatus === 'Waiting for Official Result') {
-                    status = 'AWAITING RESULT';
-                } else {
-                    const yearMatch = validityStr.match(/\d{4}/);
-                    const dYear = yearMatch ? parseInt(yearMatch[0]) : 0;
-                    if (dYear > 0 && dYear < currentYearNum) status = 'OVERDUE';
-                    else if (dYear >= currentYearNum) status = 'COMPLIANT';
-                }
-
-                roadmapData.push({
-                    id: p.id,
-                    name: p.name,
-                    level: p.level,
-                    campus: cName,
-                    currentLevel: currentMilestone?.level || 'Non-Accredited',
-                    validity: validityStr,
-                    status
-                });
-            }
-        }
-
-        if (record) {
             const s1 = record.stats?.enrollment?.firstSemester;
             if (s1) {
                 ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach((lvl: any) => {
@@ -299,6 +298,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
     const roadmapYearBreakdown: Record<number, number> = {};
     roadmapData.forEach(item => {
+        if (!item.isActive) return;
         const yearMatch = item.validity.match(/\d{4}/);
         if (yearMatch) {
             const y = parseInt(yearMatch[0]);
@@ -341,7 +341,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">{analytics?.inactiveCount} Subject for Closure</p>
             </CardContent>
             <CardFooter className="bg-muted/5 border-t py-2 px-4">
-                <p className="text-[8px] text-muted-foreground italic leading-tight"><strong>Guide:</strong> Reflects total active program offerings versus those currently being phased out.</p>
+                <p className="text-[8px] text-muted-foreground italic leading-tight"><strong>Guidance for usage:</strong> Reflects total active program offerings versus those currently being phased out.</p>
             </CardFooter>
         </Card>
 
@@ -355,7 +355,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tighter">{analytics?.inactiveCopc} Inactive Awards Verified</p>
             </CardContent>
             <CardFooter className="bg-emerald-50/30 border-t py-2 px-4">
-                <p className="text-[8px] text-emerald-800/60 italic leading-tight"><strong>Guide:</strong> Tracks programs with an official CHED Certificate of Program Compliance (COPC).</p>
+                <p className="text-[8px] text-emerald-800/60 italic leading-tight"><strong>Guidance for usage:</strong> Tracks programs with an official CHED Certificate of Program Compliance (COPC).</p>
             </CardFooter>
         </Card>
 
@@ -369,7 +369,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tighter">{analytics?.inactiveAccredited} Inactive Accredited</p>
             </CardContent>
             <CardFooter className="bg-amber-50/30 border-t py-2 px-4">
-                <p className="text-[8px] text-amber-800/60 italic leading-tight"><strong>Guide:</strong> Measures high-level institutional quality via Level I or higher AACCUP accreditation status.</p>
+                <p className="text-[8px] text-amber-800/60 italic leading-tight"><strong>Guidance for usage:</strong> Measures high-level institutional quality via Level I or higher AACCUP accreditation status.</p>
             </CardFooter>
         </Card>
 
@@ -383,7 +383,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase tracking-tighter">Total Verified AY {selectedYear} Data</p>
             </CardContent>
             <CardFooter className="bg-blue-50/30 border-t py-2 px-4">
-                <p className="text-[8px] text-blue-800/60 italic leading-tight"><strong>Guide:</strong> Total number of programs with finalized and verified compliance evidence for this year.</p>
+                <p className="text-[8px] text-blue-800/60 italic leading-tight"><strong>Guidance for usage:</strong> Total number of programs with finalized and verified compliance evidence for this year.</p>
             </CardFooter>
         </Card>
       </div>
@@ -435,7 +435,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           </CardContent>
           <CardFooter className="bg-rose-100/30 border-t py-3 px-6">
               <p className="text-[10px] text-rose-800 leading-relaxed font-bold italic">
-                  <span className="font-black not-italic uppercase tracking-widest mr-2">Strategic Note:</span>
+                  <span className="font-black not-italic uppercase tracking-widest mr-2">Guidance for usage:</span>
                   Identification of these gaps is mandatory for ISO 21001:2018 compliance tracking. High gap counts signify institutional risk during external audits.
               </p>
           </CardFooter>
@@ -444,46 +444,56 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
       {/* 3. STRATEGIC GAD PANEL */}
       <div className="space-y-4">
           <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs border-b pb-2"><Users className="h-4 w-4" /> Gender & Development (GAD) Compliance Metrics</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
-                  { title: 'Student Enrollment', data: analytics?.gadEnrollmentData, icon: <Users /> },
-                  { title: 'SYSTEM REGISTERED USERS', data: analytics?.gadFacultyData, icon: <UserCircle /> },
-                  { title: 'Graduation Output', data: analytics?.gadGraduationData, icon: <GraduationCap /> },
-                  { title: 'Graduate Tracing', data: analytics?.gadTracerData, icon: <Search /> },
-                  { title: 'Board Performance', chart: 'bar', data: analytics?.boardPerfData, icon: <ShieldCheck /> }
+                  { title: 'Student Enrollment Breakdown', data: analytics?.gadEnrollmentData, icon: <Users /> },
+                  { title: 'SYSTEM REGISTERED USERS Registry', data: analytics?.gadFacultyData, icon: <UserCircle /> },
+                  { title: 'Graduation Output Analysis', data: analytics?.gadGraduationData, icon: <GraduationCap /> },
+                  { title: 'Graduate Employability Tracing', data: analytics?.gadTracerData, icon: <Search /> },
+                  { title: 'Institutional Board Performance', chart: 'bar', data: analytics?.boardPerfData, icon: <ShieldCheck /> }
               ].map((card, i) => (
-                  <Card key={i} className="shadow-md flex flex-col border-primary/10 overflow-hidden group hover:shadow-lg transition-all">
-                      <CardHeader className="p-3 bg-muted/10 border-b"><CardTitle className="text-[10px] font-black uppercase flex items-center gap-2">{card.icon} {card.title}</CardTitle></CardHeader>
-                      <CardContent className="pt-4 flex-1">
+                  <Card key={i} className="shadow-md flex flex-col border-primary/10 overflow-hidden group hover:shadow-lg transition-all h-[320px]">
+                      <CardHeader className="p-4 bg-muted/10 border-b shrink-0"><CardTitle className="text-[11px] font-black uppercase flex items-center gap-2">{card.icon} {card.title}</CardTitle></CardHeader>
+                      <CardContent className="p-6 flex-1 flex items-center justify-center overflow-hidden">
                           {card.chart === 'bar' ? (
-                              <ChartContainer config={chartConfig} className="h-24">
+                              <ChartContainer config={chartConfig} className="h-full w-full">
                                   <ResponsiveContainer>
-                                      <BarChart data={card.data} layout="vertical">
+                                      <BarChart data={card.data} layout="vertical" margin={{ right: 40, left: 10 }}>
                                           <XAxis type="number" hide domain={[0, 100]} />
-                                          <YAxis dataKey="name" type="category" hide />
+                                          <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fontWeight: 'bold' }} width={80} axisLine={false} tickLine={false} />
                                           <RechartsTooltip content={<ChartTooltipContent />} />
-                                          <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '8px', textTransform: 'uppercase', fontWeight: 'bold' }} />
-                                          <Bar dataKey="rate" radius={[0, 4, 4, 0]} barSize={12}>
-                                              <LabelList dataKey="rate" position="right" formatter={(v: any) => `${v}%`} style={{ fontSize: '10px', fontWeight: '900' }} />
+                                          <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
+                                          <Bar dataKey="rate" radius={[0, 4, 4, 0]} barSize={20}>
+                                              <LabelList dataKey="rate" position="right" formatter={(v: any) => `${v}%`} style={{ fontSize: '11px', fontWeight: '900' }} />
+                                              {card.data?.map((e: any, j: any) => <Cell key={j} fill={e.fill} />)}
                                           </Bar>
                                       </BarChart>
                                   </ResponsiveContainer>
                               </ChartContainer>
                           ) : (
-                              <ChartContainer config={chartConfig} className="h-24">
+                              <ChartContainer config={chartConfig} className="h-full w-full">
                                   <ResponsiveContainer>
                                       <PieChart>
-                                          <Pie data={card.data} cx="50%" cy="50%" innerRadius={20} outerRadius={35} paddingAngle={2} dataKey="value">
-                                              <LabelList dataKey="value" position="outside" style={{ fontSize: '8px', fontWeight: 'bold' }} />
+                                          <Pie 
+                                            data={card.data} 
+                                            cx="50%" 
+                                            cy="50%" 
+                                            innerRadius={50} 
+                                            outerRadius={75} 
+                                            paddingAngle={5} 
+                                            dataKey="value"
+                                            label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                                          >
                                               {card.data?.map((e: any, j: any) => <Cell key={j} fill={e.fill} />)}
                                           </Pie>
-                                          <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '8px', textTransform: 'uppercase', fontWeight: 'bold' }} />
+                                          <RechartsTooltip content={<ChartTooltipContent />} />
+                                          <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
                                       </PieChart>
                                   </ResponsiveContainer>
                               </ChartContainer>
                           )}
                       </CardContent>
-                      <CardFooter className="p-2 border-t bg-muted/5"><p className="text-[8px] text-muted-foreground italic leading-tight"><strong>Guidance for usage:</strong> Monitors institutional parity objectives.</p></CardFooter>
+                      <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight"><strong>Guidance for usage:</strong> Monitors institutional parity and outcome objectives aligned with GAD standards.</p></CardFooter>
                   </Card>
               ))}
           </div>
@@ -500,12 +510,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       <Badge variant="outline" className="h-5 text-[10px] font-black bg-primary/5 text-primary border-primary/20">OVERALL TOTAL: {analytics?.activeCount}</Badge>
                   </div>
                   <CardDescription className="text-[11px] font-medium leading-relaxed mt-1">
-                      <span className="font-black text-slate-800 uppercase tracking-tighter mr-1">Comprehensive Data Guide:</span>
+                      <span className="font-black text-slate-800 uppercase tracking-tighter mr-1">Guidance for usage:</span>
                       Analyzes the distribution of programs across AACCUP levels. Concentrations in levels III & IV signify advanced maturity.
                   </CardDescription>
               </CardHeader>
               <CardContent className="pt-10 flex-1">
-                  <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                  <ChartContainer config={chartConfig} className="h-[350px] w-full">
                       <ResponsiveContainer>
                           <BarChart data={analytics?.accreditationSummary} layout="vertical" margin={{ left: 40, right: 60 }}>
                               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
@@ -527,9 +537,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       </ResponsiveContainer>
                   </ChartContainer>
               </CardContent>
-              <CardFooter className="bg-muted/5 border-t py-3 px-6">
-                  <p className="text-[10px] text-muted-foreground italic leading-tight"><strong>Guidance for usage:</strong> High Level III/IV counts signify institutional maturity.</p>
-              </CardFooter>
           </Card>
 
           {/* 2. INSTITUTIONAL RECOGNITION MOMENTUM (COPC) */}
@@ -540,12 +547,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       <Badge variant="outline" className="h-5 text-[10px] font-black bg-emerald-50 text-emerald-700 border-emerald-200">INSTITUTIONAL TOTAL: {analytics?.activeCopc}</Badge>
                   </div>
                   <CardDescription className="text-[11px] font-medium leading-relaxed mt-1">
-                      <span className="font-black text-slate-800 uppercase tracking-tighter mr-1">Comprehensive Data Guide:</span>
+                      <span className="font-black text-slate-800 uppercase tracking-tighter mr-1">Guidance for usage:</span>
                       Tracks the timeline of COPC issuance by CHED. Steady yearly growth indicates successful regulatory alignment.
                   </CardDescription>
               </CardHeader>
               <CardContent className="pt-10 flex-1">
-                  <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                  <ChartContainer config={chartConfig} className="h-[350px] w-full">
                       <ResponsiveContainer>
                           <BarChart data={analytics?.copcMomentumData} margin={{ top: 20 }}>
                               <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
@@ -553,18 +560,20 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                               <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                               <RechartsTooltip content={<ChartTooltipContent />} />
                               <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '30px' }} />
-                              <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30} />
-                              <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30} />
+                              <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30}>
+                                  <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
+                              </Bar>
+                              <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30}>
+                                  <LabelList dataKey="Graduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
+                              </Bar>
                               <Bar dataKey="Inactive" stackId="a" fill={chartConfig.Inactive.color} radius={[4, 4, 0, 0]} barSize={30}>
+                                  <LabelList dataKey="Inactive" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
                                   <LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#059669' }} />
                               </Bar>
                           </BarChart>
                       </ResponsiveContainer>
                   </ChartContainer>
               </CardContent>
-              <CardFooter className="bg-muted/5 border-t py-3 px-6">
-                  <p className="text-[10px] text-muted-foreground italic leading-tight"><strong>Guidance for usage:</strong> Tracks the pace of regulatory approval fulfillment.</p>
-              </CardFooter>
           </Card>
       </div>
 
@@ -573,10 +582,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <Card className="shadow-md border-primary/10 flex flex-col overflow-hidden">
               <CardHeader className="bg-muted/10 border-b py-4">
                   <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Clock className="h-5 w-5 text-blue-600" /><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle></div><Badge variant="outline" className="h-5 text-[9px] font-black bg-blue-50 text-blue-700 border-blue-200">OVERALL PIPELINE</Badge></div>
-                  <CardDescription className="text-xs">Projects future audit workload based on set schedules. Facilitates resource planning.</CardDescription>
+                  <CardDescription className="text-xs">
+                    <span className="font-black text-slate-800 uppercase tracking-tighter mr-1">Guidance for usage:</span>
+                    Projects future audit workload based on set schedules. Facilitates resource planning.
+                  </CardDescription>
               </CardHeader>
               <CardContent className="pt-10 flex-1">
-                  <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                  <ChartContainer config={chartConfig} className="h-[350px] w-full">
                       <ResponsiveContainer>
                           <BarChart data={analytics?.velocityData}>
                               <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
@@ -593,19 +605,19 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       </ResponsiveContainer>
                   </ChartContainer>
               </CardContent>
-              <CardFooter className="bg-muted/5 border-t py-3 px-6">
-                  <p className="text-[10px] text-muted-foreground italic leading-tight"><strong>Guidance for usage:</strong> Identifies upcoming peaks in internal audit activity.</p>
-              </CardFooter>
           </Card>
 
           {/* 6. ACCREDITATION ACHIEVEMENT HISTORY */}
           <Card className="shadow-md border-primary/10 flex flex-col overflow-hidden">
               <CardHeader className="bg-muted/10 border-b py-4">
                   <div className="flex items-center justify-between"><div className="flex items-center gap-2"><History className="h-5 w-5 text-indigo-600" /><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle></div><Badge variant="outline" className="h-5 text-[9px] font-black bg-indigo-50 text-indigo-700 border-indigo-200">HISTORICAL SURVEYS</Badge></div>
-                  <CardDescription className="text-xs">Tracks history of successful survey completions across academic cycles.</CardDescription>
+                  <CardDescription className="text-xs">
+                    <span className="font-black text-slate-800 uppercase tracking-tighter mr-1">Guidance for usage:</span>
+                    Tracks history of successful survey completions across academic cycles.
+                  </CardDescription>
               </CardHeader>
               <CardContent className="pt-10 flex-1">
-                  <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                  <ChartContainer config={chartConfig} className="h-[350px] w-full">
                       <ResponsiveContainer>
                           <BarChart data={analytics?.achievementHistoryData}>
                               <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
@@ -622,77 +634,121 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       </ResponsiveContainer>
                   </ChartContainer>
               </CardContent>
-              <CardFooter className="bg-muted/5 border-t py-3 px-6">
-                  <p className="text-[10px] text-muted-foreground italic leading-tight"><strong>Guidance for usage:</strong> Benchmarks institutional growth over historical periods.</p>
-              </CardFooter>
           </Card>
       </div>
 
       {/* 7. INSTITUTIONAL SURVEY PIPELINE (ROADMAP) */}
-      <Card className="shadow-xl border-primary/10 overflow-hidden">
-          <CardHeader className="bg-muted/10 border-b py-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                    <Flag className="h-6 w-6 text-primary" />
-                    <CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Pipeline (Roadmap)</CardTitle>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                    {Object.entries(analytics?.roadmapYearBreakdown || {}).sort((a,b) => Number(a[0]) - Number(b[0])).map(([y, count]) => (
-                        <Badge key={y} variant="outline" className={cn("text-[10px] font-black border-none h-6 px-3 uppercase shadow-sm", getYearBadgeStyle(y))}>
-                            {y}: {count} SURVEYS
-                        </Badge>
-                    ))}
-                </div>
-              </div>
-              <CardDescription className="text-sm font-medium mt-2">Prioritized schedule of upcoming AACCUP surveys. Overdue status indicates missed quality cycle targets.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-              <Table>
-                  <TableHeader className="bg-muted/50">
-                      <TableRow>
-                          <TableHead className="pl-8 text-[10px] font-black uppercase py-4">Academic Program Offering</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase py-4">Campus Site</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase py-4">Current Level</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase py-4">Schedule / Validity</TableHead>
-                          <TableHead className="text-right pr-8 text-[10px] font-black uppercase py-4">Status</TableHead>
-                      </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                      {analytics?.roadmapData.map(item => (
-                          <TableRow key={item.id} className="hover:bg-muted/20 transition-colors group">
-                              <TableCell className="pl-8 py-5">
-                                  <div className="flex flex-col gap-1">
-                                      <span className="font-black text-sm text-slate-900 leading-none group-hover:text-primary transition-colors">{item.name}</span>
-                                      <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{item.level}</span>
-                                  </div>
-                              </TableCell>
-                              <TableCell className="py-5"><div className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-tighter"><School className="h-3.5 w-3.5 opacity-40" /> {item.campus}</div></TableCell>
-                              <TableCell className="py-5"><Badge variant="outline" className="h-5 text-[9px] font-black text-primary border-primary/20 bg-primary/5 uppercase">{item.currentLevel}</Badge></TableCell>
-                              <TableCell className="py-5">
-                                  <div className="flex flex-col gap-1.5">
-                                      <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">{item.validity}</span>
-                                      <Badge variant="outline" className={cn("text-[8px] font-black uppercase tracking-tighter w-fit h-4 border-none", getYearBadgeStyle(item.validity.match(/\d{4}/)?.[0] || ''))}>
-                                          FISCAL YEAR {item.validity.match(/\d{4}/)?.[0] || 'TBA'}
-                                      </Badge>
-                                  </div>
-                              </TableCell>
-                              <TableCell className="text-right pr-8 py-5">
-                                  <Badge className={cn(
-                                      "text-[10px] font-black uppercase border-none px-3 shadow-sm",
-                                      item.status === 'COMPLIANT' ? "bg-emerald-600 text-white" : 
-                                      item.status === 'OVERDUE' ? "bg-rose-600 text-white animate-pulse" : 
-                                      item.status === 'AWAITING RESULT' ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400"
-                                  )}>
-                                      {item.status}
-                                  </Badge>
-                              </TableCell>
+      <div className="space-y-6">
+          <div className="flex items-center gap-3 border-b pb-2">
+              <Flag className="h-6 w-6 text-primary" />
+              <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Institutional Survey Pipeline (Roadmap)</h3>
+          </div>
+
+          {/* ACTIVE PIPELINE */}
+          <Card className="shadow-xl border-primary/10 overflow-hidden">
+              <CardHeader className="bg-primary/5 border-b py-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                        <ShieldCheck className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-lg font-black uppercase tracking-tight">Active Program Roadmap</CardTitle>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {Object.entries(analytics?.roadmapYearBreakdown || {}).sort((a,b) => Number(a[0]) - Number(b[0])).map(([y, count]) => (
+                            <Badge key={y} variant="outline" className={cn("text-[10px] font-black border-none h-6 px-3 uppercase shadow-sm", getYearBadgeStyle(y))}>
+                                {y}: {count} SURVEYS
+                            </Badge>
+                        ))}
+                    </div>
+                  </div>
+                  <CardDescription className="text-sm font-medium mt-2">Prioritized schedule of upcoming AACCUP surveys for active offerings.</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                  <Table>
+                      <TableHeader className="bg-muted/50">
+                          <TableRow>
+                              <TableHead className="pl-8 text-[10px] font-black uppercase py-4">Academic Program Offering</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase py-4">Campus Site</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase py-4">Current Level</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase py-4">Schedule / Validity</TableHead>
+                              <TableHead className="text-right pr-8 text-[10px] font-black uppercase py-4">Status</TableHead>
                           </TableRow>
-                      ))}
-                  </TableBody>
-              </Table>
-          </CardContent>
-          <CardFooter className="bg-muted/10 border-t py-4"><div className="flex items-start gap-3"><Info className="h-4 w-4 text-blue-600" /><p className="text-[10px] text-muted-foreground italic font-medium"><strong>Guidance for usage:</strong> OVERDUE status indicates the set validity period has passed without a recorded next survey milestone.</p></div></CardFooter>
-      </Card>
+                      </TableHeader>
+                      <TableBody>
+                          {analytics?.roadmapData.filter(i => i.isActive).map(item => (
+                              <TableRow key={item.id} className="hover:bg-muted/20 transition-colors group">
+                                  <TableCell className="pl-8 py-5">
+                                      <div className="flex flex-col gap-1">
+                                          <span className="font-black text-sm text-slate-900 leading-none group-hover:text-primary transition-colors">{item.name}</span>
+                                          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{item.level}</span>
+                                      </div>
+                                  </TableCell>
+                                  <TableCell className="py-5"><div className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-tighter"><School className="h-3.5 w-3.5 opacity-40" /> {item.campus}</div></TableCell>
+                                  <TableCell className="py-5"><Badge variant="outline" className="h-5 text-[9px] font-black text-primary border-primary/20 bg-primary/5 uppercase">{item.currentLevel}</Badge></TableCell>
+                                  <TableCell className="py-5">
+                                      <div className="flex flex-col gap-1.5">
+                                          <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">{item.validity}</span>
+                                          <Badge variant="outline" className={cn("text-[8px] font-black uppercase tracking-tighter w-fit h-4 border-none", getYearBadgeStyle(item.validity.match(/\d{4}/)?.[0] || ''))}>
+                                              FISCAL YEAR {item.validity.match(/\d{4}/)?.[0] || 'TBA'}
+                                          </Badge>
+                                      </div>
+                                  </TableCell>
+                                  <TableCell className="text-right pr-8 py-5">
+                                      <Badge className={cn(
+                                          "text-[10px] font-black uppercase border-none px-3 shadow-sm",
+                                          item.status === 'COMPLIANT' ? "bg-emerald-600 text-white" : 
+                                          item.status === 'OVERDUE' ? "bg-rose-600 text-white animate-pulse" : 
+                                          item.status === 'AWAITING RESULT' ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400"
+                                      )}>
+                                          {item.status}
+                                      </Badge>
+                                  </TableCell>
+                              </TableRow>
+                          ))}
+                      </TableBody>
+                  </Table>
+              </CardContent>
+              <CardFooter className="bg-muted/10 border-t py-4"><div className="flex items-start gap-3"><Info className="h-4 w-4 text-blue-600" /><p className="text-[10px] text-muted-foreground italic font-medium"><strong>Guidance for usage:</strong> OVERDUE status indicates the set validity period has passed without a recorded next survey milestone.</p></div></CardFooter>
+          </Card>
+
+          {/* CLOSED PROGRAM ARCHIVE */}
+          <Card className="shadow-md border-slate-200 overflow-hidden bg-slate-50/50">
+              <CardHeader className="bg-slate-100 border-b py-4">
+                  <div className="flex items-center gap-2">
+                      <FileX className="h-5 w-5 text-slate-500" />
+                      <CardTitle className="text-sm font-black uppercase tracking-tight text-slate-600">Closed Program History Archive</CardTitle>
+                  </div>
+                  <CardDescription className="text-[10px] font-bold uppercase">Legacy quality records for programs no longer in active operation.</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                  <Table>
+                      <TableHeader className="bg-slate-200/50">
+                          <TableRow>
+                              <TableHead className="pl-8 text-[9px] font-black uppercase">Historical Offering</TableHead>
+                              <TableHead className="text-[9px] font-black uppercase">Last Level Held</TableHead>
+                              <TableHead className="text-right pr-8 text-[9px] font-black uppercase">Legacy Validity</TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {analytics?.roadmapData.filter(i => !i.isActive).map(item => (
+                              <TableRow key={item.id} className="opacity-60 grayscale hover:grayscale-0 transition-all">
+                                  <TableCell className="pl-8 py-3">
+                                      <div className="flex flex-col">
+                                          <span className="font-bold text-xs text-slate-700">{item.name}</span>
+                                          <span className="text-[8px] font-black text-muted-foreground uppercase">{item.campus}</span>
+                                      </div>
+                                  </TableCell>
+                                  <TableCell><Badge variant="outline" className="h-4 text-[8px] uppercase">{item.currentLevel}</Badge></TableCell>
+                                  <TableCell className="text-right pr-8 text-[9px] font-mono">{item.validity}</TableCell>
+                              </TableRow>
+                          ))}
+                          {analytics?.roadmapData.filter(i => !i.isActive).length === 0 && (
+                              <TableRow><TableCell colSpan={3} className="text-center py-8 text-[10px] italic text-muted-foreground">No historical records found.</TableCell></TableRow>
+                          )}
+                      </TableBody>
+                  </Table>
+              </CardContent>
+          </Card>
+      </div>
     </div>
   );
 }
