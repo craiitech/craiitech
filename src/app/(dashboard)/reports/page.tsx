@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Campus, Unit, Submission, User as AppUser, Cycle, Risk, ProgramComplianceRecord } from '@/lib/types';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import {
   Table,
@@ -383,6 +383,7 @@ export default function ReportsPage() {
                                             <LabelList dataKey="A" position="top" style={{ fontSize: '10px', fontWeight: 'bold', fill: 'hsl(var(--primary))' }} formatter={(v: any) => `${v}%`} />
                                         </Radar>
                                         <Tooltip content={<ChartTooltipContent />} />
+                                        <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'black' }} />
                                     </RadarChart>
                                 </ResponsiveContainer>
                             </ChartContainer>
@@ -405,7 +406,7 @@ export default function ReportsPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="pt-6 flex-1">
-                            <ChartContainer config={{}} className="h-[300px] w-full">
+                            <ChartContainer config={{}} className="h-[350px] w-full">
                                 <ResponsiveContainer>
                                     <BarChart data={visualAnalytics.campusPerf}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -447,13 +448,14 @@ export default function ReportsPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-6 flex-1">
-                                <ChartContainer config={{}} className="h-[200px] w-full">
+                                <ChartContainer config={{}} className="h-[250px] w-full">
                                     <ResponsiveContainer>
                                         <PieChart>
                                             <Pie data={visualAnalytics.gadEnrollmentData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
                                                 {visualAnalytics.gadEnrollmentData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}
                                             </Pie>
                                             <Tooltip content={<ChartTooltipContent hideLabel />} />
+                                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'black' }} />
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
@@ -476,13 +478,14 @@ export default function ReportsPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-6 flex-1">
-                                <ChartContainer config={{}} className="h-[200px] w-full">
+                                <ChartContainer config={{}} className="h-[250px] w-full">
                                     <ResponsiveContainer>
                                         <PieChart>
                                             <Pie data={visualAnalytics.gadFacultyData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
                                                 {visualAnalytics.gadFacultyData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}
                                             </Pie>
                                             <Tooltip content={<ChartTooltipContent hideLabel />} />
+                                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'black' }} />
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
@@ -505,13 +508,14 @@ export default function ReportsPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-6 flex-1">
-                                <ChartContainer config={{}} className="h-[200px] w-full">
+                                <ChartContainer config={{}} className="h-[250px] w-full">
                                     <ResponsiveContainer>
                                         <PieChart>
                                             <Pie data={visualAnalytics.gadGradsData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
                                                 {visualAnalytics.gadGradsData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}
                                             </Pie>
                                             <Tooltip content={<ChartTooltipContent hideLabel />} />
+                                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'black' }} />
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
@@ -546,9 +550,10 @@ export default function ReportsPage() {
                                     <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 'black' }} />
                                     <YAxis tick={{ fontSize: 10 }} />
                                     <Tooltip content={<ChartTooltipContent />} />
+                                    <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', fontWeight: 'black', textTransform: 'uppercase', paddingBottom: '10px' }} />
                                     <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={60}>
                                         <LabelList dataKey="value" position="top" style={{ fontSize: '11px', fontWeight: '900' }} />
-                                        {visualAnalytics.riskRatingData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}
+                                        {visualAnalytics.riskRatingData.map((entry, idx) => <Cell key={`cell-${idx}`} fill={entry.fill} />)}
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
