@@ -24,17 +24,25 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Building, Briefcase } from 'lucide-react';
+import { Loader2, Mail, Building, Briefcase, Accessibility, Zap, ShieldCheck, Activity } from 'lucide-react';
 import type { Campus, Unit, Role } from '@/lib/types';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, { message: 'First name is required.' }),
   lastName: z.string().min(1, { message: 'Last name is required.' }),
+  accessibility: z.object({
+    highContrast: z.boolean().default(false),
+    dyslexicFont: z.boolean().default(false),
+    reducedMotion: z.boolean().default(false),
+  }).optional(),
 });
 
 export default function ProfilePage() {
@@ -50,6 +58,11 @@ export default function ProfilePage() {
     defaultValues: {
       firstName: '',
       lastName: '',
+      accessibility: {
+        highContrast: false,
+        dyslexicFont: false,
+        reducedMotion: false,
+      }
     },
   });
 
@@ -58,6 +71,11 @@ export default function ProfilePage() {
       form.reset({
         firstName: userProfile.firstName,
         lastName: userProfile.lastName,
+        accessibility: {
+          highContrast: userProfile.accessibility?.highContrast || false,
+          dyslexicFont: userProfile.accessibility?.dyslexicFont || false,
+          reducedMotion: userProfile.accessibility?.reducedMotion || false,
+        }
       });
     }
   }, [userProfile, form]);
@@ -80,7 +98,7 @@ export default function ProfilePage() {
 
 
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
-    if (!user) {
+    if (!user || !firestore) {
       toast({
         title: 'Error',
         description: 'You must be logged in to update your profile.',
@@ -95,13 +113,14 @@ export default function ProfilePage() {
       await updateDoc(userDocRef, {
         firstName: values.firstName,
         lastName: values.lastName,
+        accessibility: values.accessibility,
       });
 
-      logSessionActivity('User updated their profile name', { action: 'update_profile' });
+      logSessionActivity('User updated their profile and accessibility preferences', { action: 'update_profile' });
 
       toast({
         title: 'Profile Updated',
-        description: 'Your name has been successfully updated.',
+        description: 'Your information and accessibility settings have been successfully updated.',
       });
 
       router.push('/dashboard');
@@ -121,93 +140,169 @@ export default function ProfilePage() {
   const isLoading = isUserLoading || isLoadingCampuses || isLoadingUnits;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
        <div>
-        <h2 className="text-2xl font-bold tracking-tight">My Profile</h2>
+        <h2 className="text-2xl font-bold tracking-tight">My Profile & Settings</h2>
         <p className="text-muted-foreground">
-          View and update your personal information.
+          View your institutional data and personalize your accessibility experience.
         </p>
       </div>
       
-       <Card className="max-w-2xl">
-        <CardHeader>
-            <CardTitle>Edit Your Profile</CardTitle>
-            <CardDescription>Only your first and last name can be changed.</CardDescription>
-        </CardHeader>
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-                <CardContent className="space-y-6">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="shadow-md border-primary/10">
+              <CardHeader className="bg-muted/30 border-b">
+                  <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4" />
+                    Institutional Identity
+                  </CardTitle>
+                  <CardDescription className="text-xs">Your verified profile details within RSU.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="firstName"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel className="text-[10px] font-bold uppercase">First Name</FormLabel>
+                              <FormControl>
+                              <Input placeholder="First Name" {...field} className="h-9 font-bold" />
+                              </FormControl>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                        <FormField
+                          control={form.control}
+                          name="lastName"
+                          render={({ field }) => (
+                          <FormItem>
+                              <FormLabel className="text-[10px] font-bold uppercase">Last Name</FormLabel>
+                              <FormControl>
+                              <Input placeholder="Last Name" {...field} className="h-9 font-bold" />
+                              </FormControl>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                  </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase text-muted-foreground">Email</Label>
+                      <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground font-medium">
+                        <Mail className="mr-2 h-3.5 w-3.5" />
+                        {userProfile?.email}
+                      </div>
+                  </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <FormField
-                            control={form.control}
-                            name="firstName"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>First Name</FormLabel>
-                                <FormControl>
-                                <Input placeholder="John" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="lastName"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Last Name</FormLabel>
-                                <FormControl>
-                                <Input placeholder="Doe" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
-                    </div>
-                     <div className="space-y-2">
-                        <Label>Email</Label>
-                        <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">
-                          <Mail className="mr-2 h-4 w-4" />
-                          {userProfile?.email}
-                        </div>
-                    </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                          <Label className="text-[10px] font-bold uppercase text-muted-foreground">Role</Label>
+                          <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground font-medium">
+                            <Briefcase className="mr-2 h-3.5 w-3.5" />
+                            {userProfile?.role}
+                          </div>
+                      </div>
                         <div className="space-y-2">
-                            <Label>Role</Label>
-                            <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">
-                              <Briefcase className="mr-2 h-4 w-4" />
-                              {userProfile?.role}
-                            </div>
-                        </div>
-                         <div className="space-y-2">
-                            <Label>Campus</Label>
-                             <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">
-                              <Building className="mr-2 h-4 w-4" />
-                              {isLoading ? '...' : campusName}
-                            </div>
-                        </div>
-                    </div>
-                     <div className="space-y-2">
-                        <Label>Unit</Label>
-                        <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">
-                          <Building className="mr-2 h-4 w-4" />
-                          {isLoading ? '...' : unitName}
-                        </div>
-                    </div>
+                          <Label className="text-[10px] font-bold uppercase text-muted-foreground">Campus</Label>
+                            <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground font-medium">
+                            <Building className="mr-2 h-3.5 w-3.5" />
+                            {isLoading ? '...' : campusName}
+                          </div>
+                      </div>
+                  </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase text-muted-foreground">Unit / Office</Label>
+                      <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground font-medium">
+                        <Building className="mr-2 h-3.5 w-3.5" />
+                        {isLoading ? '...' : unitName}
+                      </div>
+                  </div>
+              </CardContent>
+            </Card>
 
-                </CardContent>
-                <CardFooter>
-                    <Button type="submit" disabled={isSubmitting || isLoading}>
-                        {isSubmitting ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : null}
-                        Save Changes
-                    </Button>
-                </CardFooter>
-            </form>
-        </Form>
-       </Card>
+            <Card className="shadow-md border-primary/10 flex flex-col">
+              <CardHeader className="bg-primary/5 border-b">
+                  <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                    <Accessibility className="h-4 w-4" />
+                    Accessibility & Inclusivity
+                  </CardTitle>
+                  <CardDescription className="text-xs">Customize the interface to suit your visual and cognitive needs.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-6 flex-1">
+                  <FormField
+                    control={form.control}
+                    name="accessibility.highContrast"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-4 shadow-sm bg-muted/5">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-sm font-bold flex items-center gap-2">
+                            <Zap className="h-3.5 w-3.5 text-amber-500" /> High Contrast Mode
+                          </FormLabel>
+                          <FormDescription className="text-[10px]">Increases readability by sharpening colors and border definitions.</FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="accessibility.dyslexicFont"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-4 shadow-sm bg-muted/5">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-sm font-bold flex items-center gap-2">
+                            <Briefcase className="h-3.5 w-3.5 text-blue-500" /> Dyslexic-Friendly Layout
+                          </FormLabel>
+                          <FormDescription className="text-[10px]">Optimizes character spacing and line height for improved cognitive flow.</FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="accessibility.reducedMotion"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-4 shadow-sm bg-muted/5">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-sm font-bold flex items-center gap-2">
+                            <Activity className="h-3.5 w-3.5 text-indigo-500" /> Reduced Motion
+                          </FormLabel>
+                          <FormDescription className="text-[10px]">Disables UI animations and transitions to prevent vestibular triggers.</FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="p-4 rounded-lg bg-blue-50 border border-blue-100 mt-4">
+                    <div className="flex gap-3">
+                      <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                      <p className="text-[10px] text-blue-800 leading-relaxed italic">
+                        <strong>Inclusivity Standard:</strong> These settings are persistent across devices and sessions, ensuring a consistent and accessible environment for all institutional users as mandated by RSU EOMS accessibility protocols.
+                      </p>
+                    </div>
+                  </div>
+              </CardContent>
+              <CardFooter className="bg-muted/10 border-t py-4">
+                  <Button type="submit" disabled={isSubmitting || isLoading} className="w-full shadow-lg shadow-primary/20 font-black uppercase text-xs tracking-widest">
+                      {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                      Save Profile & Preferences
+                  </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        </form>
+      </Form>
     </div>
   );
 }

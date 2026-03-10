@@ -5,6 +5,12 @@ export type Role = {
   description?: string;
 };
 
+export type UserAccessibility = {
+  highContrast?: boolean;
+  dyslexicFont?: boolean;
+  reducedMotion?: boolean;
+};
+
 export type User = {
   id: string;
   email: string;
@@ -18,6 +24,7 @@ export type User = {
   verified: boolean;
   ndaAccepted?: boolean;
   lastSeen?: any;
+  accessibility?: UserAccessibility;
 };
 
 export type Status = 'Pending' | 'Approved' | 'Rejected' | 'Submitted';

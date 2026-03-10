@@ -1,3 +1,4 @@
+
 @import "react-day-picker/dist/style.css";
 
 @tailwind base;
@@ -111,6 +112,48 @@
     background: hsl(var(--sidebar-background));
     background-clip: content-box;
   }
+}
+
+/* Accessibility Overrides */
+.accessibility-high-contrast {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+  --primary: 233 47% 20%;
+  --border: 0 0% 0%;
+  --input: 0 0% 0%;
+  --ring: 0 0% 0%;
+  --muted: 0 0% 95%;
+  --muted-foreground: 0 0% 10%;
+}
+
+.accessibility-high-contrast * {
+  border-width: 1.5px !important;
+}
+
+.accessibility-dyslexic-font {
+  letter-spacing: 0.05em !important;
+  word-spacing: 0.15em !important;
+  line-height: 1.8 !important;
+}
+
+.accessibility-dyslexic-font p, 
+.accessibility-dyslexic-font span, 
+.accessibility-dyslexic-font h1, 
+.accessibility-dyslexic-font h2, 
+.accessibility-dyslexic-font h3, 
+.accessibility-dyslexic-font h4, 
+.accessibility-dyslexic-font h5, 
+.accessibility-dyslexic-font h6, 
+.accessibility-dyslexic-font button, 
+.accessibility-dyslexic-font input, 
+.accessibility-dyslexic-font textarea {
+  font-family: 'Open Sans', sans-serif !important;
+}
+
+.accessibility-reduced-motion * {
+  transition-duration: 0ms !important;
+  animation-duration: 0ms !important;
+  animation-iteration-count: 1 !important;
 }
 
 @layer components {

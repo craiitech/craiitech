@@ -1,3 +1,4 @@
+
 'use client';
 
 import { redirect, usePathname, useRouter } from 'next/navigation';
@@ -20,6 +21,7 @@ import { ActivityLogProvider } from '@/lib/activity-log-provider';
 import { Header } from '@/components/dashboard/header';
 import { Chatbot } from '@/components/dashboard/chatbot';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 const LoadingSkeleton = () => (
   <div className="flex items-start">
@@ -184,41 +186,53 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, userProfile, isUserLoading, isAdmin, userRole, pathname]);
 
+  const accessibilityClasses = useMemo(() => {
+    if (!userProfile?.accessibility) return '';
+    const { highContrast, dyslexicFont, reducedMotion } = userProfile.accessibility;
+    return cn(
+      highContrast && 'accessibility-high-contrast',
+      dyslexicFont && 'accessibility-dyslexic-font',
+      reducedMotion && 'accessibility-reduced-motion'
+    );
+  }, [userProfile?.accessibility]);
+
 
   if (isUserLoading) return <LoadingSkeleton />;
 
   return (
     <ActivityLogProvider>
-      <SidebarProvider>
-        <Sidebar variant="sidebar" collapsible="icon">
-          <SidebarHeader className="items-center justify-center text-center p-4">
-            {displayAvatar && (
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={displayAvatar} alt={displayName || 'User'} />
-                <AvatarFallback>{fallbackAvatar}</AvatarFallback>
-              </Avatar>
-            )}
-            <div className="mt-2 text-center">
-              <p className="font-semibold text-lg">{displayName}</p>
-              <p className="text-sm text-sidebar-primary font-medium">{displayRole}</p>
-              {userLocation && (
-                <div className="flex items-center justify-center gap-1 text-sm text-sidebar-foreground/80 mt-1">
-                  <Building2 className="h-4 w-4" />
-                  <span>{userLocation}</span>
-                </div>
+      <div className={cn("flex min-h-screen w-full", accessibilityClasses)}>
+        <SidebarProvider>
+          <Sidebar variant="sidebar" collapsible="icon">
+            <SidebarHeader className="items-center justify-center text-center p-4">
+              {displayAvatar && (
+                <Avatar className="h-20 w-20">
+                  <AvatarImage src={displayAvatar} alt={displayName || 'User'} />
+                  <AvatarFallback>{fallbackAvatar}</AvatarFallback>
+                </Avatar>
               )}
-            </div>
-          </SidebarHeader>
-          <SidebarContent className="p-4">
-            <SidebarNav notificationCount={notificationCount} />
-          </SidebarContent>
-        </Sidebar>
-        <SidebarInset>
-          <Header notificationCount={notificationCount} />
-          <main className="p-4 lg:p-8 bg-background/90">{children}</main>
-          <Chatbot />
-        </SidebarInset>
-      </SidebarProvider>
+              <div className="mt-2 text-center">
+                <p className="font-semibold text-lg">{displayName}</p>
+                <p className="text-sm text-sidebar-primary font-medium">{displayRole}</p>
+                {userLocation && (
+                  <div className="flex items-center justify-center gap-1 text-sm text-sidebar-foreground/80 mt-1">
+                    <Building2 className="h-4 w-4" />
+                    <span>{userLocation}</span>
+                  </div>
+                )}
+              </div>
+            </SidebarHeader>
+            <SidebarContent className="p-4">
+              <SidebarNav notificationCount={notificationCount} />
+            </SidebarContent>
+          </Sidebar>
+          <SidebarInset>
+            <Header notificationCount={notificationCount} />
+            <main className="p-4 lg:p-8 bg-background/90">{children}</main>
+            <Chatbot />
+          </SidebarInset>
+        </SidebarProvider>
+      </div>
     </ActivityLogProvider>
   );
 }
