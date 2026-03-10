@@ -1,6 +1,3 @@
-
-'use server';
-
 export const faqs = [
   {
     role: 'General',
