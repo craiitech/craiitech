@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -38,7 +37,8 @@ import {
     GraduationCap, 
     Briefcase,
     Info,
-    Target
+    Target,
+    CheckCircle2
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
