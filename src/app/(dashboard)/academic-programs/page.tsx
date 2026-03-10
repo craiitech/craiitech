@@ -22,7 +22,9 @@ import {
     Briefcase,
     ShieldAlert,
     Info,
-    FileX
+    FileX,
+    Users,
+    UserCheck
 } from 'lucide-react';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
@@ -151,7 +153,7 @@ export default function AcademicProgramsPage() {
    */
   const summaryStats = useMemo(() => {
     const total = filteredPrograms.length;
-    if (total === 0) return { total: 0, activeCount: 0, inactiveCount: 0, accreditedRate: 0, copcRate: 0, activeBoardCount: 0, inactiveBoardCount: 0, activeAccredited: 0, inactiveAccredited: 0, activeCopc: 0, inactiveCopc: 0 };
+    if (total === 0) return { total: 0, activeCount: 0, inactiveCount: 0, accreditedRate: 0, copcRate: 0, activeBoardCount: 0, inactiveBoardCount: 0, activeAccredited: 0, inactiveAccredited: 0, activeCopc: 0, inactiveCopc: 0, facultyAlignmentRate: 0 };
 
     let activeCount = 0;
     let inactiveCount = 0;
@@ -161,6 +163,7 @@ export default function AcademicProgramsPage() {
     let inactiveCopc = 0;
     let activeBoardCount = 0;
     let inactiveBoardCount = 0;
+    let activeFacultyAligned = 0;
 
     filteredPrograms.forEach(p => {
         if (p.isActive) activeCount++;
@@ -174,11 +177,16 @@ export default function AcademicProgramsPage() {
             return current && current.level !== 'Non Accredited' && !current.level.includes('PSV');
         };
         const hasCopc = (rec: ProgramComplianceRecord | undefined) => rec?.ched?.copcStatus === 'With COPC';
+        const isFacultyAligned = (rec: ProgramComplianceRecord | undefined) => {
+            if (!rec || !rec.faculty || !rec.faculty.members || rec.faculty.members.length === 0) return false;
+            return rec.faculty.members.every(m => m.isAlignedWithCMO === 'Aligned');
+        };
 
         if (p.isActive) {
             if (isAccredited(record)) activeAccredited++;
             if (hasCopc(record)) activeCopc++;
             if (p.isBoardProgram) activeBoardCount++;
+            if (isFacultyAligned(record)) activeFacultyAligned++;
         } else {
             if (isAccredited(record)) inactiveAccredited++;
             if (hasCopc(record)) inactiveCopc++;
@@ -192,6 +200,7 @@ export default function AcademicProgramsPage() {
         inactiveCount,
         accreditedRate: Math.round((activeAccredited / (activeCount || 1)) * 100),
         copcRate: Math.round((activeCopc / (activeCount || 1)) * 100),
+        facultyAlignmentRate: Math.round((activeFacultyAligned / (activeCount || 1)) * 100),
         activeBoardCount,
         inactiveBoardCount,
         activeAccredited,
@@ -363,14 +372,14 @@ export default function AcademicProgramsPage() {
 
         <TabsContent value="registry" className="space-y-6 animate-in fade-in duration-500">
             {/* Dynamic Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Scope Portfolio</CardTitle>
                     </CardHeader>
                     <CardContent className="flex-1">
                         <div className="text-3xl font-black text-primary tabular-nums">{summaryStats.activeCount} Active</div>
-                        <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">Current Academic Offerings</p>
+                        <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">Current Offerings</p>
                         <div className="flex items-center gap-2 mt-2">
                             <Badge variant="outline" className="text-[8px] h-4 border-slate-200 text-slate-500 font-bold bg-white">
                                 {summaryStats.inactiveCount} CLOSED PROGRAMS
@@ -379,7 +388,7 @@ export default function AcademicProgramsPage() {
                     </CardContent>
                     <div className="p-3 bg-muted/10 border-t mt-auto">
                         <p className="text-[9px] text-muted-foreground italic leading-tight">
-                            <strong>Explanation:</strong> Count of currently offered degree programs versus those officially designated for terminal closure.
+                            Count of currently offered degree programs.
                         </p>
                     </div>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><Layers className="h-12 w-12" /></div>
@@ -400,7 +409,7 @@ export default function AcademicProgramsPage() {
                     </CardContent>
                     <div className="p-3 bg-emerald-100/20 border-t mt-auto">
                         <p className="text-[9px] text-emerald-800/60 italic leading-tight">
-                            <strong>Explanation:</strong> Percentage of active programs with a valid AACCUP status. Closed accredited counts are excluded from health score.
+                            Percentage of active programs with valid AACCUP status.
                         </p>
                     </div>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><Award className="h-12 w-12 text-emerald-600" /></div>
@@ -421,10 +430,31 @@ export default function AcademicProgramsPage() {
                     </CardContent>
                     <div className="p-3 bg-blue-100/20 border-t mt-auto">
                         <p className="text-[9px] text-emerald-800/60 italic leading-tight">
-                            <strong>Explanation:</strong> Verification of CHED COPC awards. Only programs with "With COPC" status are marked as compliant.
+                            Verification of official CHED COPC awards.
                         </p>
                     </div>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><CheckCircle2 className="h-12 w-12 text-blue-600" /></div>
+                </Card>
+
+                <Card className="bg-purple-50 border-purple-100 shadow-sm relative overflow-hidden flex flex-col">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-700">Faculty Resource Alignment</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1">
+                        <div className="text-3xl font-black text-purple-600 tabular-nums">{summaryStats.facultyAlignmentRate}%</div>
+                        <p className="text-[9px] font-bold text-purple-600/70 mt-1 uppercase tracking-tight">100% Aligned Faculty Lists</p>
+                        <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="outline" className="text-[8px] h-4 border-purple-200 text-purple-600 font-bold bg-white uppercase">
+                                RESOURCE INTEGRITY
+                            </Badge>
+                        </div>
+                    </CardContent>
+                    <div className="p-3 bg-purple-100/20 border-t mt-auto">
+                        <p className="text-[9px] text-purple-800/60 italic leading-tight">
+                            Active programs where all staff meet CMO qualifications.
+                        </p>
+                    </div>
+                    <div className="absolute top-0 right-0 p-2 opacity-5"><Users className="h-12 w-12 text-purple-600" /></div>
                 </Card>
 
                 <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden flex flex-col">
@@ -433,7 +463,7 @@ export default function AcademicProgramsPage() {
                     </CardHeader>
                     <CardContent className="flex-1">
                         <div className="text-3xl font-black text-amber-600 tabular-nums">{summaryStats.activeBoardCount}</div>
-                        <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tight">Active Board-Regulated Programs</p>
+                        <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tight">Active Board-Regulated Tracks</p>
                         <div className="flex items-center gap-2 mt-2">
                             <Badge variant="outline" className="text-[8px] h-4 border-amber-200 text-amber-600 font-bold bg-white uppercase">
                                 {summaryStats.inactiveBoardCount} Closed Board
@@ -442,7 +472,7 @@ export default function AcademicProgramsPage() {
                     </CardContent>
                     <div className="p-3 bg-amber-100/20 border-t mt-auto">
                         <p className="text-[9px] text-emerald-800/60 italic leading-tight">
-                            <strong>Explanation:</strong> Count of programs subject to PRC licensure exams. Used to prioritize quality assurance for regulated professional tracks.
+                            Count of programs subject to PRC licensure exams.
                         </p>
                     </div>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><Briefcase className="h-12 w-12 text-amber-600" /></div>
