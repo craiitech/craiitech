@@ -52,6 +52,7 @@ import {
     Check,
     ArrowDownToLine
 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
 interface ProgramAnalyticsProps {
@@ -596,8 +597,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                               <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
                               <RechartsTooltip content={<ChartTooltipContent />} />
                               <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '30px' }} />
-                              <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30} />
-                              <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30} />
+                              <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30}>
+                                  <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
+                              </Bar>
+                              <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30}>
+                                  <LabelList dataKey="Graduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
+                              </Bar>
                               <Bar dataKey="Inactive" stackId="a" fill={chartConfig.Inactive.color} radius={[4, 4, 0, 0]} barSize={30}>
                                   <LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#2563eb' }} />
                               </Bar>
@@ -625,8 +630,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                               <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
                               <RechartsTooltip content={<ChartTooltipContent />} />
                               <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '30px' }} />
-                              <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30} />
-                              <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30} />
+                              <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30}>
+                                  <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
+                              </Bar>
+                              <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30}>
+                                  <LabelList dataKey="Graduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
+                              </Bar>
                               <Bar dataKey="Inactive" stackId="a" fill={chartConfig.Inactive.color} radius={[4, 4, 0, 0]} barSize={30}>
                                   <LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#4f46e5' }} />
                               </Bar>
@@ -644,110 +653,127 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Institutional Survey Pipeline (Roadmap)</h3>
           </div>
 
-          {/* ACTIVE PIPELINE */}
-          <Card className="shadow-xl border-primary/10 overflow-hidden">
-              <CardHeader className="bg-primary/5 border-b py-6">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-center gap-2">
-                        <ShieldCheck className="h-5 w-5 text-primary" />
-                        <CardTitle className="text-lg font-black uppercase tracking-tight">Active Program Roadmap</CardTitle>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        {Object.entries(analytics?.roadmapYearBreakdown || {}).sort((a,b) => Number(a[0]) - Number(b[0])).map(([y, count]) => (
-                            <Badge key={y} variant="outline" className={cn("text-[10px] font-black border-none h-6 px-3 uppercase shadow-sm", getYearBadgeStyle(y))}>
-                                {y}: {count} SURVEYS
-                            </Badge>
-                        ))}
-                    </div>
-                  </div>
-                  <CardDescription className="text-sm font-medium mt-2">Prioritized schedule of upcoming AACCUP surveys for active offerings.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                  <Table>
-                      <TableHeader className="bg-muted/50">
-                          <TableRow>
-                              <TableHead className="pl-8 text-[10px] font-black uppercase py-4">Academic Program Offering</TableHead>
-                              <TableHead className="text-[10px] font-black uppercase py-4">Campus Site</TableHead>
-                              <TableHead className="text-[10px] font-black uppercase py-4">Current Level</TableHead>
-                              <TableHead className="text-[10px] font-black uppercase py-4">Schedule / Validity</TableHead>
-                              <TableHead className="text-right pr-8 text-[10px] font-black uppercase py-4">Status</TableHead>
-                          </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                          {analytics?.roadmapData.filter(i => i.isActive).map(item => (
-                              <TableRow key={item.id} className="hover:bg-muted/20 transition-colors group">
-                                  <TableCell className="pl-8 py-5">
-                                      <div className="flex flex-col gap-1">
-                                          <span className="font-black text-sm text-slate-900 leading-none group-hover:text-primary transition-colors">{item.name}</span>
-                                          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{item.level}</span>
-                                      </div>
-                                  </TableCell>
-                                  <TableCell className="py-5"><div className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-tighter"><School className="h-3.5 w-3.5 opacity-40" /> {item.campus}</div></TableCell>
-                                  <TableCell className="py-5"><Badge variant="outline" className="h-5 text-[9px] font-black text-primary border-primary/20 bg-primary/5 uppercase">{item.currentLevel}</Badge></TableCell>
-                                  <TableCell className="py-5">
-                                      <div className="flex flex-col gap-1.5">
-                                          <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">{item.validity}</span>
-                                          <Badge variant="outline" className={cn("text-[8px] font-black uppercase tracking-tighter w-fit h-4 border-none", getYearBadgeStyle(item.validity.match(/\d{4}/)?.[0] || ''))}>
-                                              FISCAL YEAR {item.validity.match(/\d{4}/)?.[0] || 'TBA'}
-                                          </Badge>
-                                      </div>
-                                  </TableCell>
-                                  <TableCell className="text-right pr-8 py-5">
-                                      <Badge className={cn(
-                                          "text-[10px] font-black uppercase border-none px-3 shadow-sm",
-                                          item.status === 'COMPLIANT' ? "bg-emerald-600 text-white" : 
-                                          item.status === 'OVERDUE' ? "bg-rose-600 text-white animate-pulse" : 
-                                          item.status === 'AWAITING RESULT' ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400"
-                                      )}>
-                                          {item.status}
-                                      </Badge>
-                                  </TableCell>
-                              </TableRow>
-                          ))}
-                      </TableBody>
-                  </Table>
-              </CardContent>
-              <CardFooter className="bg-muted/10 border-t py-4"><div className="flex items-start gap-3"><Info className="h-4 w-4 text-blue-600" /><p className="text-[10px] text-muted-foreground italic font-medium"><strong>Guidance for usage:</strong> OVERDUE status indicates the set validity period has passed without a recorded next survey milestone.</p></div></CardFooter>
-          </Card>
+          <Tabs defaultValue="active" className="space-y-4">
+            <TabsList className="bg-muted p-1 border shadow-sm w-fit">
+                <TabsTrigger value="active" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                    <ShieldCheck className="h-3.5 w-3.5" /> Active Program Offerings
+                </TabsTrigger>
+                <TabsTrigger value="inactive" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                    <FileX className="h-3.5 w-3.5" /> Closed Program History Archive
+                </TabsTrigger>
+            </TabsList>
 
-          {/* CLOSED PROGRAM ARCHIVE */}
-          <Card className="shadow-md border-slate-200 overflow-hidden bg-slate-50/50">
-              <CardHeader className="bg-slate-100 border-b py-4">
-                  <div className="flex items-center gap-2">
-                      <FileX className="h-5 w-5 text-slate-500" />
-                      <CardTitle className="text-sm font-black uppercase tracking-tight text-slate-600">Closed Program History Archive</CardTitle>
-                  </div>
-                  <CardDescription className="text-[10px] font-bold uppercase">Legacy quality records for programs no longer in active operation.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                  <Table>
-                      <TableHeader className="bg-slate-200/50">
-                          <TableRow>
-                              <TableHead className="pl-8 text-[9px] font-black uppercase">Historical Offering</TableHead>
-                              <TableHead className="text-[9px] font-black uppercase">Last Level Held</TableHead>
-                              <TableHead className="text-right pr-8 text-[9px] font-black uppercase">Legacy Validity</TableHead>
-                          </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                          {analytics?.roadmapData.filter(i => !i.isActive).map(item => (
-                              <TableRow key={item.id} className="opacity-60 grayscale hover:grayscale-0 transition-all">
-                                  <TableCell className="pl-8 py-3">
-                                      <div className="flex flex-col">
-                                          <span className="font-bold text-xs text-slate-700">{item.name}</span>
-                                          <span className="text-[8px] font-black text-muted-foreground uppercase">{item.campus}</span>
-                                      </div>
-                                  </TableCell>
-                                  <TableCell><Badge variant="outline" className="h-4 text-[8px] uppercase">{item.currentLevel}</Badge></TableCell>
-                                  <TableCell className="text-right pr-8 text-[9px] font-mono">{item.validity}</TableCell>
-                              </TableRow>
-                          ))}
-                          {analytics?.roadmapData.filter(i => !i.isActive).length === 0 && (
-                              <TableRow><TableCell colSpan={3} className="text-center py-8 text-[10px] italic text-muted-foreground">No historical records found.</TableCell></TableRow>
-                          )}
-                      </TableBody>
-                  </Table>
-              </CardContent>
-          </Card>
+            <TabsContent value="active" className="animate-in fade-in slide-in-from-left-2 duration-300">
+                <Card className="shadow-xl border-primary/10 overflow-hidden">
+                    <CardHeader className="bg-primary/5 border-b py-6">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                                <ShieldCheck className="h-5 w-5 text-primary" />
+                                <CardTitle className="text-lg font-black uppercase tracking-tight">Active Program Roadmap</CardTitle>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {Object.entries(analytics?.roadmapYearBreakdown || {}).sort((a,b) => Number(a[0]) - Number(b[0])).map(([y, count]) => (
+                                    <Badge key={y} variant="outline" className={cn("text-[10px] font-black border-none h-6 px-3 uppercase shadow-sm", getYearBadgeStyle(y))}>
+                                        {y}: {count} SURVEYS
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+                        <CardDescription className="text-sm font-medium mt-2">Prioritized schedule of upcoming AACCUP surveys for active offerings.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <ScrollArea className="h-[500px]">
+                            <Table>
+                                <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                                    <TableRow>
+                                        <TableHead className="pl-8 text-[10px] font-black uppercase py-4">Academic Program Offering</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase py-4">Campus Site</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase py-4">Current Level</TableHead>
+                                        <TableHead className="text-[10px] font-black uppercase py-4">Schedule / Validity</TableHead>
+                                        <TableHead className="text-right pr-8 text-[10px] font-black uppercase py-4">Status</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {analytics?.roadmapData.filter(i => i.isActive).map(item => (
+                                        <TableRow key={item.id} className="hover:bg-muted/20 transition-colors group">
+                                            <TableCell className="pl-8 py-5">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="font-black text-sm text-slate-900 leading-none group-hover:text-primary transition-colors">{item.name}</span>
+                                                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{item.level}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="py-5"><div className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-tighter"><School className="h-3.5 w-3.5 opacity-40" /> {item.campus}</div></TableCell>
+                                            <TableCell className="py-5"><Badge variant="outline" className="h-5 text-[9px] font-black text-primary border-primary/20 bg-primary/5 uppercase">{item.currentLevel}</Badge></TableCell>
+                                            <TableCell className="py-5">
+                                                <div className="flex flex-col gap-1.5">
+                                                    <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">{item.validity}</span>
+                                                    <Badge variant="outline" className={cn("text-[8px] font-black uppercase tracking-tighter w-fit h-4 border-none", getYearBadgeStyle(item.validity.match(/\d{4}/)?.[0] || ''))}>
+                                                        FISCAL YEAR {item.validity.match(/\d{4}/)?.[0] || 'TBA'}
+                                                    </Badge>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right pr-8 py-5">
+                                                <Badge className={cn(
+                                                    "text-[10px] font-black uppercase border-none px-3 shadow-sm",
+                                                    item.status === 'COMPLIANT' ? "bg-emerald-600 text-white" : 
+                                                    item.status === 'OVERDUE' ? "bg-rose-600 text-white animate-pulse" : 
+                                                    item.status === 'AWAITING RESULT' ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400"
+                                                )}>
+                                                    {item.status}
+                                                </Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                    </CardContent>
+                    <CardFooter className="bg-muted/10 border-t py-4"><div className="flex items-start gap-3"><Info className="h-4 w-4 text-blue-600" /><p className="text-[10px] text-muted-foreground italic font-medium"><strong>Guidance for usage:</strong> OVERDUE status indicates the set validity period has passed without a recorded next survey milestone.</p></div></CardFooter>
+                </Card>
+            </TabsContent>
+
+            <TabsContent value="inactive" className="animate-in fade-in slide-in-from-right-2 duration-300">
+                <Card className="shadow-md border-slate-200 overflow-hidden bg-slate-50/50">
+                    <CardHeader className="bg-slate-100 border-b py-4">
+                        <div className="flex items-center gap-2">
+                            <FileX className="h-5 w-5 text-slate-500" />
+                            <CardTitle className="text-sm font-black uppercase tracking-tight text-slate-600">Closed Program History Archive</CardTitle>
+                        </div>
+                        <CardDescription className="text-[10px] font-bold uppercase">Legacy quality records for programs no longer in active operation.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <ScrollArea className="h-[400px]">
+                            <Table>
+                                <TableHeader className="bg-slate-200/50 sticky top-0 z-10">
+                                    <TableRow>
+                                        <TableHead className="pl-8 text-[9px] font-black uppercase">Historical Offering</TableHead>
+                                        <TableHead className="text-[9px] font-black uppercase">Last Level Held</TableHead>
+                                        <TableHead className="text-right pr-8 text-[9px] font-black uppercase">Legacy Validity</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {analytics?.roadmapData.filter(i => !i.isActive).map(item => (
+                                        <TableRow key={item.id} className="opacity-60 grayscale hover:grayscale-0 transition-all">
+                                            <TableCell className="pl-8 py-3">
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-xs text-slate-700">{item.name}</span>
+                                                    <span className="text-[8px] font-black text-muted-foreground uppercase">{item.campus}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell><Badge variant="outline" className="h-4 text-[8px] uppercase">{item.currentLevel}</Badge></TableCell>
+                                            <TableCell className="text-right pr-8 text-[9px] font-mono">{item.validity}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {analytics?.roadmapData.filter(i => !i.isActive).length === 0 && (
+                                        <TableRow><TableCell colSpan={3} className="text-center py-8 text-[10px] italic text-muted-foreground">No historical records found.</TableCell></TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+          </Tabs>
       </div>
     </div>
   );
