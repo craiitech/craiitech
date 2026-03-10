@@ -28,12 +28,13 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Building, Briefcase, Accessibility, Zap, ShieldCheck, Activity, Info, Save } from 'lucide-react';
+import { Loader2, Mail, Building, Briefcase, Accessibility, Zap, ShieldCheck, Activity, Info, Save, Type } from 'lucide-react';
 import type { Campus, Unit, Role } from '@/lib/types';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { Slider } from '@/components/ui/slider';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, { message: 'First name is required.' }),
@@ -42,8 +43,12 @@ const profileSchema = z.object({
     highContrast: z.boolean().default(false),
     dyslexicFont: z.boolean().default(false),
     reducedMotion: z.boolean().default(false),
+    fontSize: z.number().default(1.0),
   }).optional(),
 });
+
+const fontSizeMap = [0.8, 1.0, 1.2, 1.4];
+const fontSizeLabels = ['Small (80%)', 'Default (100%)', 'Large (120%)', 'Extra Large (140%)'];
 
 export default function ProfilePage() {
   const { user, userProfile, isUserLoading } = useUser();
@@ -62,6 +67,7 @@ export default function ProfilePage() {
         highContrast: false,
         dyslexicFont: false,
         reducedMotion: false,
+        fontSize: 1.0,
       }
     },
   });
@@ -75,6 +81,7 @@ export default function ProfilePage() {
           highContrast: userProfile.accessibility?.highContrast || false,
           dyslexicFont: userProfile.accessibility?.dyslexicFont || false,
           reducedMotion: userProfile.accessibility?.reducedMotion || false,
+          fontSize: userProfile.accessibility?.fontSize || 1.0,
         }
       });
     }
@@ -138,6 +145,9 @@ export default function ProfilePage() {
   };
   
   const isLoading = isUserLoading || isLoadingCampuses || isLoadingUnits;
+
+  const currentFontSize = form.watch('accessibility.fontSize') || 1.0;
+  const currentFontSizeIndex = fontSizeMap.indexOf(currentFontSize);
 
   return (
     <div className="space-y-6">
@@ -230,6 +240,29 @@ export default function ProfilePage() {
                   <CardDescription className="text-xs">Customize the interface to suit your visual and cognitive needs.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6 flex-1">
+                  <div className="space-y-4 p-4 rounded-lg border bg-muted/5 shadow-sm">
+                    <div className="space-y-1">
+                        <FormLabel className="text-sm font-bold flex items-center gap-2">
+                            <Type className="h-3.5 w-3.5 text-primary" /> Font Size Scaling
+                        </FormLabel>
+                        <p className="text-[10px] text-muted-foreground">Adjust the system-wide text size for optimal readability.</p>
+                    </div>
+                    <div className="pt-2 px-2">
+                        <Slider 
+                            min={0} 
+                            max={3} 
+                            step={1} 
+                            value={[currentFontSizeIndex]} 
+                            onValueChange={(vals) => form.setValue('accessibility.fontSize', fontSizeMap[vals[0]])}
+                        />
+                        <div className="flex justify-between mt-2 text-[9px] font-black uppercase text-muted-foreground tracking-tighter">
+                            <span>Small</span>
+                            <span className="text-primary font-black">{fontSizeLabels[currentFontSizeIndex]}</span>
+                            <span>X-Large</span>
+                        </div>
+                    </div>
+                  </div>
+
                   <FormField
                     control={form.control}
                     name="accessibility.highContrast"

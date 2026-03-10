@@ -186,6 +186,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, userProfile, isUserLoading, isAdmin, userRole, pathname]);
 
+  // Apply Font Size Scaling Globally to the document root
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const scale = userProfile?.accessibility?.fontSize || 1.0;
+      document.documentElement.style.fontSize = `${scale * 100}%`;
+    }
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.documentElement.style.fontSize = ''; // Reset on unmount or logout
+      }
+    };
+  }, [userProfile?.accessibility?.fontSize]);
+
   const accessibilityClasses = useMemo(() => {
     if (!userProfile?.accessibility) return '';
     const { highContrast, dyslexicFont, reducedMotion } = userProfile.accessibility;

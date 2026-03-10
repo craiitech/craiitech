@@ -9,6 +9,7 @@ export type UserAccessibility = {
   highContrast?: boolean;
   dyslexicFont?: boolean;
   reducedMotion?: boolean;
+  fontSize?: number;
 };
 
 export type User = {
@@ -326,14 +327,14 @@ export type CorrectiveActionRequest = {
     source: 'Audit Finding' | 'Legal Non-compliance' | 'Non-conforming Service' | 'Others';
     procedureTitle: string;
     initiator: string;
-    natureOfFinding: 'NC' | 'OFI';
+    nature of Finding: 'NC' | 'OFI';
     concerningClause: string;
     concerningTopManagementName?: string;
-    timeLimitForReply: any; // Timestamp
+    timeLimit for Reply: any; // Timestamp
     unitId: string;
     campusId: string;
     unitHead: string;
-    descriptionOfNonconformance: string;
+    description of Nonconformance: string;
     requestDate: any; // Timestamp
     preparedBy: string;
     approvedBy: string;
