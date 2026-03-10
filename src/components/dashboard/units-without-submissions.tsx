@@ -190,7 +190,7 @@ export function UnitsWithoutSubmissions({
                         </div>
                     </AccordionTrigger>
                     <AccordionContent className="pt-2">
-                        <ScrollArea className="h-[300px] pr-4">
+                        <ScrollArea className="h-[400px] pr-4">
                             <List className="pl-2">
                             {campus.incompleteUnits.map(unit => (
                                 <ListItem key={unit.id} className="p-0 border-none">

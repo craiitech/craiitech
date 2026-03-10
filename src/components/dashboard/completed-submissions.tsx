@@ -135,7 +135,7 @@ export function CompletedSubmissions({
                         </div>
                     </AccordionTrigger>
                     <AccordionContent className="pt-2">
-                        <ScrollArea className="h-[300px] pr-4">
+                        <ScrollArea className="h-[400px] pr-4">
                             <List className="pl-2">
                             {campus.completedUnits.map(unit => (
                                 <ListItem key={unit.id} className="flex justify-between items-center border-none p-2 hover:bg-green-50 transition-colors">

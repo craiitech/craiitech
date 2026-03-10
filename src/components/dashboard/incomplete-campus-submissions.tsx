@@ -158,7 +158,7 @@ export function IncompleteCampusSubmissions({
                     </div>
                 </AccordionTrigger>
                 <AccordionContent className="pt-2">
-                    <ScrollArea className="h-[300px] pr-4">
+                    <ScrollArea className="h-[400px] pr-4">
                         <ul className="space-y-1 pl-2">
                             {campus.incompleteUnits.map(unit => (
                                 <li key={unit.unitId}>

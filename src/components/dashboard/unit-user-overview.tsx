@@ -84,7 +84,7 @@ export function UnitUserOverview({
                 </div>
               </AccordionTrigger>
               <AccordionContent>
-                <ScrollArea className="h-[300px] pr-4">
+                <ScrollArea className="h-[400px] pr-4">
                     {unit.users.length > 0 ? (
                     <div className="space-y-3 pl-6">
                         {unit.users.map(user => (
