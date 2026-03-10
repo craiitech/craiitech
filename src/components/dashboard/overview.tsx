@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -61,8 +60,8 @@ export function Overview({ submissions, isLoading }: OverviewProps) {
   
    if (!submissions || submissions.length === 0) {
     return (
-      <div className="flex h-[350px] w-full items-center justify-center text-muted-foreground">
-        No submission data to display.
+      <div className="flex h-[350px] w-full items-center justify-center text-muted-foreground font-black uppercase tracking-[0.2em]">
+        NO DATA YET!
       </div>
     );
   }

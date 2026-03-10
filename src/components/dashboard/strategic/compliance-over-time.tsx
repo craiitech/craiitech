@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import type { Submission, Cycle, Unit } from '@/lib/types';
 import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/app/(dashboard)/dashboard/page';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { TrendingUp, Target } from 'lucide-react';
+import { TrendingUp, Target, Activity } from 'lucide-react';
 
 interface ComplianceOverTimeProps {
   allSubmissions: Submission[] | null;
@@ -54,20 +54,27 @@ export function ComplianceOverTime({ allSubmissions, allCycles, allUnits }: Comp
         <CardDescription className="text-xs">Year-over-year submission completion percentage across all university units.</CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
-        <ChartContainer config={{}} className="h-[300px] w-full">
-            <ResponsiveContainer>
-                <LineChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                    <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
-                    <YAxis unit="%" domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
-                    <Tooltip content={<ChartTooltipContent />} />
-                    <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }} />
-                    <Line type="monotone" dataKey="Completion Rate" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 6, fill: 'hsl(var(--primary))' }} activeDot={{ r: 8 }}>
-                        <LabelList dataKey="Completion Rate" position="top" style={{ fontSize: '11px', fontWeight: '900', fill: 'hsl(var(--primary))' }} formatter={(v: number) => `${v}%`} />
-                    </Line>
-                </LineChart>
-            </ResponsiveContainer>
-        </ChartContainer>
+        {chartData.length > 0 ? (
+            <ChartContainer config={{}} className="h-[300px] w-full">
+                <ResponsiveContainer>
+                    <LineChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                        <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
+                        <YAxis unit="%" domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }} />
+                        <Line type="monotone" dataKey="Completion Rate" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 6, fill: 'hsl(var(--primary))' }} activeDot={{ r: 8 }}>
+                            <LabelList dataKey="Completion Rate" position="top" style={{ fontSize: '11px', fontWeight: '900', fill: 'hsl(var(--primary))' }} formatter={(v: number) => `${v}%`} />
+                        </Line>
+                    </LineChart>
+                </ResponsiveContainer>
+            </ChartContainer>
+        ) : (
+            <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+                <Activity className="h-12 w-12 mb-2" />
+                <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
+            </div>
+        )}
       </CardContent>
       <CardFooter className="bg-muted/5 border-t py-4 px-6">
         <div className="flex items-start gap-3">

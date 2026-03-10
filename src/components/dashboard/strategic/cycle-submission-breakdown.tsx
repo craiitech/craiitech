@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import type { Submission } from '@/lib/types';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { FileText, Info } from 'lucide-react';
+import { FileText, Info, Activity } from 'lucide-react';
 
 interface CycleSubmissionBreakdownProps {
   allSubmissions: Submission[] | null;
@@ -38,6 +38,8 @@ export function CycleSubmissionBreakdown({ allSubmissions, selectedYear }: Cycle
     return Object.values(dataMap);
   }, [allSubmissions, selectedYear]);
 
+  const hasData = useMemo(() => chartData.some(d => d['First Cycle'] > 0 || d['Final Cycle'] > 0), [chartData]);
+
   return (
     <Card className="shadow-md border-primary/10 overflow-hidden">
       <CardHeader className="bg-muted/10 border-b py-4">
@@ -48,26 +50,33 @@ export function CycleSubmissionBreakdown({ allSubmissions, selectedYear }: Cycle
         <CardDescription className="text-xs">Aggregate count of submissions per core EOMS document for AY {selectedYear}.</CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
-        <ChartContainer config={{}} className="h-[450px] w-full">
-          <ResponsiveContainer>
-            <BarChart
-              data={chartData}
-              margin={{ top: 20, right: 30, left: 0, bottom: 100 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} tick={{ fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
-              <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
-              <Tooltip content={<ChartTooltipContent />} />
-              <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '30px', fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }} />
-              <Bar dataKey="First Cycle" fill="hsl(var(--chart-1))" radius={[2, 2, 0, 0]}>
-                  <LabelList dataKey="First Cycle" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--chart-1))' }} />
-              </Bar>
-              <Bar dataKey="Final Cycle" fill="hsl(var(--chart-2))" radius={[2, 2, 0, 0]}>
-                  <LabelList dataKey="Final Cycle" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--chart-2))' }} />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartContainer>
+        {hasData ? (
+            <ChartContainer config={{}} className="h-[450px] w-full">
+            <ResponsiveContainer>
+                <BarChart
+                data={chartData}
+                margin={{ top: 20, right: 30, left: 0, bottom: 100 }}
+                >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} tick={{ fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                <Tooltip content={<ChartTooltipContent />} />
+                <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '30px', fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }} />
+                <Bar dataKey="First Cycle" fill="hsl(var(--chart-1))" radius={[2, 2, 0, 0]}>
+                    <LabelList dataKey="First Cycle" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--chart-1))' }} />
+                </Bar>
+                <Bar dataKey="Final Cycle" fill="hsl(var(--chart-2))" radius={[2, 2, 0, 0]}>
+                    <LabelList dataKey="Final Cycle" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--chart-2))' }} />
+                </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+            </ChartContainer>
+        ) : (
+            <div className="h-[450px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+                <Activity className="h-12 w-12 mb-2" />
+                <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
+            </div>
+        )}
       </CardContent>
       <CardFooter className="bg-muted/5 border-t py-4 px-6">
         <div className="flex items-start gap-3">

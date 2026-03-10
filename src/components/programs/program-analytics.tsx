@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -548,7 +547,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     icon: <Users /> 
                   },
                   { 
-                    title: `Faculty Composition (M: ${analytics?.totalMaleFaculty}, F: ${analytics?.totalFemaleFaculty}, Total: ${analytics?.totalFaculty})`, 
+                    title: `Faculty Distribution (M: ${analytics?.totalMaleFaculty}, F: ${analytics?.totalFemaleFaculty}, Total: ${analytics?.totalFaculty})`, 
                     data: analytics?.gadFacultyData, 
                     icon: <UserCircle /> 
                   },
@@ -559,43 +558,50 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   <Card key={i} className="shadow-md flex flex-col border-primary/10 overflow-hidden group hover:shadow-lg transition-all h-[320px]">
                       <CardHeader className="p-4 bg-muted/10 border-b shrink-0"><CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 leading-tight">{card.icon} {card.title}</CardTitle></CardHeader>
                       <CardContent className="p-6 flex-1 flex items-center justify-center overflow-hidden">
-                          {card.chart === 'bar' ? (
-                              <ChartContainer config={chartConfig} className="h-full w-full">
-                                  <ResponsiveContainer>
-                                      <BarChart data={card.data} layout="vertical" margin={{ right: 60, left: 10 }}>
-                                          <XAxis type="number" hide domain={[0, 100]} />
-                                          <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fontWeight: 'bold' }} width={80} axisLine={false} tickLine={false} />
-                                          <RechartsTooltip content={<ChartTooltipContent />} />
-                                          <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
-                                          <Bar dataKey="rate" radius={[0, 4, 4, 0]} barSize={20}>
-                                              <LabelList dataKey="rate" position="right" formatter={(v: any) => `${v}%`} style={{ fontSize: '14px', fontWeight: '900', fill: 'currentColor' }} />
-                                              {card.data?.map((e: any, j: any) => <Cell key={j} fill={e.fill} />)}
-                                          </Bar>
-                                      </BarChart>
-                                  </ResponsiveContainer>
-                              </ChartContainer>
+                          {card.data && card.data.length > 0 ? (
+                              card.chart === 'bar' ? (
+                                <ChartContainer config={chartConfig} className="h-full w-full">
+                                    <ResponsiveContainer>
+                                        <BarChart data={card.data} layout="vertical" margin={{ right: 60, left: 10 }}>
+                                            <XAxis type="number" hide domain={[0, 100]} />
+                                            <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fontWeight: 'bold' }} width={80} axisLine={false} tickLine={false} />
+                                            <RechartsTooltip content={<ChartTooltipContent />} />
+                                            <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
+                                            <Bar dataKey="rate" radius={[0, 4, 4, 0]} barSize={20}>
+                                                <LabelList dataKey="rate" position="right" formatter={(v: any) => `${v}%`} style={{ fontSize: '14px', fontWeight: '900', fill: 'currentColor' }} />
+                                                {card.data?.map((e: any, j: any) => <Cell key={j} fill={e.fill} />)}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
+                            ) : (
+                                <ChartContainer config={chartConfig} className="h-full w-full">
+                                    <ResponsiveContainer>
+                                        <PieChart>
+                                            <Pie 
+                                              data={card.data} 
+                                              cx="50%" 
+                                              cy="50%" 
+                                              innerRadius={50} 
+                                              outerRadius={75} 
+                                              paddingAngle={5} 
+                                              dataKey="value"
+                                              label={renderPieLabel}
+                                              labelLine={false}
+                                            >
+                                                {card.data?.map((e: any, j: any) => <Cell key={j} fill={e.fill} />)}
+                                            </Pie>
+                                            <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                                            <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
+                            )
                           ) : (
-                              <ChartContainer config={chartConfig} className="h-full w-full">
-                                  <ResponsiveContainer>
-                                      <PieChart>
-                                          <Pie 
-                                            data={card.data} 
-                                            cx="50%" 
-                                            cy="50%" 
-                                            innerRadius={50} 
-                                            outerRadius={75} 
-                                            paddingAngle={5} 
-                                            dataKey="value"
-                                            label={renderPieLabel}
-                                            labelLine={false}
-                                          >
-                                              {card.data?.map((e: any, j: any) => <Cell key={j} fill={e.fill} />)}
-                                          </Pie>
-                                          <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
-                                          <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
-                                      </PieChart>
-                                  </ResponsiveContainer>
-                              </ChartContainer>
+                              <div className="flex flex-col items-center justify-center text-center space-y-2 opacity-40">
+                                  <Activity className="h-8 w-8" />
+                                  <p className="text-[11px] font-black uppercase tracking-widest">NO DATA YET!</p>
+                              </div>
                           )}
                       </CardContent>
                       <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight"><strong>Guidance for usage:</strong> Monitors institutional parity and outcome objectives aligned with GAD standards.</p></CardFooter>
@@ -620,27 +626,34 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   </CardDescription>
               </CardHeader>
               <CardContent className="pt-10 flex-1">
-                  <ChartContainer config={chartConfig} className="h-[350px] w-full">
-                      <ResponsiveContainer>
-                          <BarChart data={analytics?.accreditationSummary} layout="vertical" margin={{ left: 40, right: 60 }}>
-                              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
-                              <XAxis type="number" hide />
-                              <YAxis dataKey="level" type="category" tick={{ fontSize: 9, fontWeight: 700 }} width={140} axisLine={false} tickLine={false} />
-                              <RechartsTooltip content={<ChartTooltipContent />} />
-                              <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '30px' }} />
-                              <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={12}>
-                                  <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
-                              </Bar>
-                              <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={12}>
-                                  <LabelList dataKey="Graduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
-                              </Bar>
-                              <Bar dataKey="Inactive" stackId="a" fill={chartConfig.Inactive.color} radius={[0, 4, 4, 0]} barSize={12}>
-                                  <LabelList dataKey="Inactive" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
-                                  <LabelList dataKey="total" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--primary))' }} />
-                              </Bar>
-                          </BarChart>
-                      </ResponsiveContainer>
-                  </ChartContainer>
+                  {analytics && analytics.accreditationSummary.length > 0 ? (
+                      <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                        <ResponsiveContainer>
+                            <BarChart data={analytics?.accreditationSummary} layout="vertical" margin={{ left: 40, right: 60 }}>
+                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
+                                <XAxis type="number" hide />
+                                <YAxis dataKey="level" type="category" tick={{ fontSize: 9, fontWeight: 700 }} width={140} axisLine={false} tickLine={false} />
+                                <RechartsTooltip content={<ChartTooltipContent />} />
+                                <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '30px' }} />
+                                <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={12}>
+                                    <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
+                                </Bar>
+                                <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={12}>
+                                    <LabelList dataKey="Graduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
+                                </Bar>
+                                <Bar dataKey="Inactive" stackId="a" fill={chartConfig.Inactive.color} radius={[0, 4, 4, 0]} barSize={12}>
+                                    <LabelList dataKey="Inactive" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
+                                    <LabelList dataKey="total" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--primary))' }} />
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                  ) : (
+                      <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+                          <Activity className="h-12 w-12 mb-2" />
+                          <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
+                      </div>
+                  )}
               </CardContent>
           </Card>
 
@@ -657,27 +670,34 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   </CardDescription>
               </CardHeader>
               <CardContent className="pt-10 flex-1">
-                  <ChartContainer config={chartConfig} className="h-[350px] w-full">
-                      <ResponsiveContainer>
-                          <BarChart data={analytics?.copcMomentumData} margin={{ top: 20 }}>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                              <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
-                              <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                              <RechartsTooltip content={<ChartTooltipContent />} />
-                              <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '30px' }} />
-                              <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30}>
-                                  <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
-                              </Bar>
-                              <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30}>
-                                  <LabelList dataKey="Graduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
-                              </Bar>
-                              <Bar dataKey="Inactive" stackId="a" fill={chartConfig.Inactive.color} radius={[4, 4, 0, 0]} barSize={30}>
-                                  <LabelList dataKey="Inactive" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
-                                  <LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#059669' }} />
-                              </Bar>
-                          </BarChart>
-                      </ResponsiveContainer>
-                  </ChartContainer>
+                  {analytics && analytics.copcMomentumData.length > 0 ? (
+                      <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                        <ResponsiveContainer>
+                            <BarChart data={analytics?.copcMomentumData} margin={{ top: 20 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                                <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                                <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                                <RechartsTooltip content={<ChartTooltipContent />} />
+                                <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '30px' }} />
+                                <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30}>
+                                    <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
+                                </Bar>
+                                <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30}>
+                                    <LabelList dataKey="Graduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
+                                </Bar>
+                                <Bar dataKey="Inactive" stackId="a" fill={chartConfig.Inactive.color} radius={[4, 4, 0, 0]} barSize={30}>
+                                    <LabelList dataKey="Inactive" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
+                                    <LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#059669' }} />
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                  ) : (
+                      <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+                          <Activity className="h-12 w-12 mb-2" />
+                          <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
+                      </div>
+                  )}
               </CardContent>
           </Card>
       </div>
@@ -693,26 +713,33 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   </CardDescription>
               </CardHeader>
               <CardContent className="pt-10 flex-1">
-                  <ChartContainer config={chartConfig} className="h-[350px] w-full">
-                      <ResponsiveContainer>
-                          <BarChart data={analytics?.velocityData}>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                              <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} />
-                              <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
-                              <RechartsTooltip content={<ChartTooltipContent />} />
-                              <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '30px' }} />
-                              <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30}>
-                                  <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
-                              </Bar>
-                              <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30}>
-                                  <LabelList dataKey="Graduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
-                              </Bar>
-                              <Bar dataKey="Inactive" stackId="a" fill={chartConfig.Inactive.color} radius={[4, 4, 0, 0]} barSize={30}>
-                                  <LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#2563eb' }} />
-                              </Bar>
-                          </BarChart>
-                      </ResponsiveContainer>
-                  </ChartContainer>
+                  {analytics && analytics.velocityData.length > 0 ? (
+                      <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                        <ResponsiveContainer>
+                            <BarChart data={analytics?.velocityData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                                <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} />
+                                <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+                                <RechartsTooltip content={<ChartTooltipContent />} />
+                                <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '30px' }} />
+                                <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30}>
+                                    <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
+                                </Bar>
+                                <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30}>
+                                    <LabelList dataKey="Graduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
+                                </Bar>
+                                <Bar dataKey="Inactive" stackId="a" fill={chartConfig.Inactive.color} radius={[4, 4, 0, 0]} barSize={30}>
+                                    <LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#2563eb' }} />
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                  ) : (
+                      <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+                          <Activity className="h-12 w-12 mb-2" />
+                          <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
+                      </div>
+                  )}
               </CardContent>
           </Card>
 
@@ -726,26 +753,33 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   </CardDescription>
               </CardHeader>
               <CardContent className="pt-10 flex-1">
-                  <ChartContainer config={chartConfig} className="h-[350px] w-full">
-                      <ResponsiveContainer>
-                          <BarChart data={analytics?.achievementHistoryData}>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                              <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} />
-                              <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
-                              <RechartsTooltip content={<ChartTooltipContent />} />
-                              <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '30px' }} />
-                              <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30}>
-                                  <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
-                              </Bar>
-                              <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30}>
-                                  <LabelList dataKey="Graduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
-                              </Bar>
-                              <Bar dataKey="Inactive" stackId="a" fill={chartConfig.Inactive.color} radius={[4, 4, 0, 0]} barSize={30}>
-                                  <LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#4f46e5' }} />
-                              </Bar>
-                          </BarChart>
-                      </ResponsiveContainer>
-                  </ChartContainer>
+                  {analytics && analytics.achievementHistoryData.length > 0 ? (
+                      <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                        <ResponsiveContainer>
+                            <BarChart data={analytics?.achievementHistoryData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                                <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} />
+                                <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+                                <RechartsTooltip content={<ChartTooltipContent />} />
+                                <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '30px' }} />
+                                <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30}>
+                                    <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
+                                </Bar>
+                                <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30}>
+                                    <LabelList dataKey="Graduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
+                                </Bar>
+                                <Bar dataKey="Inactive" stackId="a" fill={chartConfig.Inactive.color} radius={[4, 4, 0, 0]} barSize={30}>
+                                    <LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#4f46e5' }} />
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </ChartContainer>
+                  ) : (
+                      <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+                          <Activity className="h-12 w-12 mb-2" />
+                          <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
+                      </div>
+                  )}
               </CardContent>
           </Card>
       </div>
@@ -787,69 +821,76 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     </CardHeader>
                     <CardContent className="p-0">
                         <ScrollArea className="h-[500px]">
-                            <Table>
-                                <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                                    <TableRow>
-                                        <TableHead className="pl-8 py-4">
-                                            <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('name')}>
-                                                Academic Program Offering {getSortIcon('name')}
-                                            </Button>
-                                        </TableHead>
-                                        <TableHead className="py-4">
-                                            <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('campus')}>
-                                                Campus Site {getSortIcon('campus')}
-                                            </Button>
-                                        </TableHead>
-                                        <TableHead className="py-4">
-                                            <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('currentLevel')}>
-                                                Current Level {getSortIcon('currentLevel')}
-                                            </Button>
-                                        </TableHead>
-                                        <TableHead className="py-4">
-                                            <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('validity')}>
-                                                Schedule / Validity {getSortIcon('validity')}
-                                            </Button>
-                                        </TableHead>
-                                        <TableHead className="text-right pr-8 py-4">
-                                            <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent ml-auto" onClick={() => requestSort('status')}>
-                                                Status {getSortIcon('status')}
-                                            </Button>
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {sortedRoadmap.filter(i => i.isActive).map(item => (
-                                        <TableRow key={item.id} className="hover:bg-muted/20 transition-colors group">
-                                            <TableCell className="pl-8 py-5">
-                                                <div className="flex flex-col gap-1">
-                                                    <span className="font-black text-sm text-slate-900 leading-none group-hover:text-primary transition-colors">{item.name}</span>
-                                                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{item.level}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="py-5"><div className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-tighter"><School className="h-3.5 w-3.5 opacity-40" /> {item.campus}</div></TableCell>
-                                            <TableCell className="py-5"><Badge variant="outline" className="h-5 text-[9px] font-black text-primary border-primary/20 bg-primary/5 uppercase">{item.currentLevel}</Badge></TableCell>
-                                            <TableCell className="py-5">
-                                                <div className="flex flex-col gap-1.5">
-                                                    <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">{item.validity}</span>
-                                                    <Badge variant="outline" className={cn("text-[8px] font-black uppercase tracking-tighter w-fit h-4 border-none", getYearBadgeStyle(item.validity.match(/\d{4}/)?.[0] || ''))}>
-                                                        FISCAL YEAR {item.validity.match(/\d{4}/)?.[0] || 'TBA'}
-                                                    </Badge>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-right pr-8 py-5">
-                                                <Badge className={cn(
-                                                    "text-[10px] font-black uppercase border-none px-3 shadow-sm",
-                                                    item.status === 'COMPLIANT' ? "bg-emerald-600 text-white" : 
-                                                    item.status === 'OVERDUE' ? "bg-rose-600 text-white animate-pulse" : 
-                                                    item.status === 'AWAITING RESULT' ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400"
-                                                )}>
-                                                    {item.status}
-                                                </Badge>
-                                            </TableCell>
+                            {sortedRoadmap.filter(i => i.isActive).length > 0 ? (
+                                <Table>
+                                    <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                                        <TableRow>
+                                            <TableHead className="pl-8 py-4">
+                                                <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('name')}>
+                                                    Academic Program Offering {getSortIcon('name')}
+                                                </Button>
+                                            </TableHead>
+                                            <TableHead className="py-4">
+                                                <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('campus')}>
+                                                    Campus Site {getSortIcon('campus')}
+                                                </Button>
+                                            </TableHead>
+                                            <TableHead className="py-4">
+                                                <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('currentLevel')}>
+                                                    Current Level {getSortIcon('currentLevel')}
+                                                </Button>
+                                            </TableHead>
+                                            <TableHead className="py-4">
+                                                <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('validity')}>
+                                                    Schedule / Validity {getSortIcon('validity')}
+                                                </Button>
+                                            </TableHead>
+                                            <TableHead className="text-right pr-8 py-4">
+                                                <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent ml-auto" onClick={() => requestSort('status')}>
+                                                    Status {getSortIcon('status')}
+                                                </Button>
+                                            </TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {sortedRoadmap.filter(i => i.isActive).map(item => (
+                                            <TableRow key={item.id} className="hover:bg-muted/20 transition-colors group">
+                                                <TableCell className="pl-8 py-5">
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="font-black text-sm text-slate-900 leading-none group-hover:text-primary transition-colors">{item.name}</span>
+                                                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{item.level}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="py-5"><div className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-tighter"><School className="h-3.5 w-3.5 opacity-40" /> {item.campus}</div></TableCell>
+                                                <TableCell className="py-5"><Badge variant="outline" className="h-5 text-[9px] font-black text-primary border-primary/20 bg-primary/5 uppercase">{item.currentLevel}</Badge></TableCell>
+                                                <TableCell className="py-5">
+                                                    <div className="flex flex-col gap-1.5">
+                                                        <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">{item.validity}</span>
+                                                        <Badge variant="outline" className={cn("text-[8px] font-black uppercase tracking-tighter w-fit h-4 border-none", getYearBadgeStyle(item.validity.match(/\d{4}/)?.[0] || ''))}>
+                                                            FISCAL YEAR {item.validity.match(/\d{4}/)?.[0] || 'TBA'}
+                                                        </Badge>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-right pr-8 py-5">
+                                                    <Badge className={cn(
+                                                        "text-[10px] font-black uppercase border-none px-3 shadow-sm",
+                                                        item.status === 'COMPLIANT' ? "bg-emerald-600 text-white" : 
+                                                        item.status === 'OVERDUE' ? "bg-rose-600 text-white animate-pulse" : 
+                                                        item.status === 'AWAITING RESULT' ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400"
+                                                    )}>
+                                                        {item.status}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            ) : (
+                                <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+                                    <Activity className="h-12 w-12 mb-2" />
+                                    <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
+                                </div>
+                            )}
                         </ScrollArea>
                     </CardContent>
                     <CardFooter className="bg-muted/10 border-t py-4"><div className="flex items-start gap-3"><Info className="h-4 w-4 text-blue-600" /><p className="text-[10px] text-muted-foreground italic font-medium"><strong>Guidance for usage:</strong> OVERDUE status indicates the set validity period has passed without a recorded next survey milestone.</p></div></CardFooter>
@@ -867,44 +908,48 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     </CardHeader>
                     <CardContent className="p-0">
                         <ScrollArea className="h-[400px]">
-                            <Table>
-                                <TableHeader className="bg-slate-200/50 sticky top-0 z-10">
-                                    <TableRow>
-                                        <TableHead className="pl-8 py-4">
-                                            <Button variant="ghost" className="p-0 text-[9px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('name')}>
-                                                Historical Offering {getSortIcon('name')}
-                                            </Button>
-                                        </TableHead>
-                                        <TableHead className="py-4">
-                                            <Button variant="ghost" className="p-0 text-[9px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('currentLevel')}>
-                                                Last Level Held {getSortIcon('currentLevel')}
-                                            </Button>
-                                        </TableHead>
-                                        <TableHead className="text-right pr-8 py-4">
-                                            <Button variant="ghost" className="p-0 text-[9px] font-black uppercase hover:bg-transparent ml-auto" onClick={() => requestSort('validity')}>
-                                                Legacy Validity {getSortIcon('validity')}
-                                            </Button>
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {sortedRoadmap.filter(i => !i.isActive).map(item => (
-                                        <TableRow key={item.id} className="opacity-60 grayscale hover:grayscale-0 transition-all">
-                                            <TableCell className="pl-8 py-3">
-                                                <div className="flex flex-col">
-                                                    <span className="font-bold text-xs text-slate-700">{item.name}</span>
-                                                    <span className="text-[8px] font-black text-muted-foreground uppercase">{item.campus}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell><Badge variant="outline" className="h-4 text-[8px] uppercase">{item.currentLevel}</Badge></TableCell>
-                                            <TableCell className="text-right pr-8 text-[9px] font-mono">{item.validity}</TableCell>
+                            {sortedRoadmap.filter(i => !i.isActive).length > 0 ? (
+                                <Table>
+                                    <TableHeader className="bg-slate-200/50 sticky top-0 z-10">
+                                        <TableRow>
+                                            <TableHead className="pl-8 py-4">
+                                                <Button variant="ghost" className="p-0 text-[9px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('name')}>
+                                                    Historical Offering {getSortIcon('name')}
+                                                </Button>
+                                            </TableHead>
+                                            <TableHead className="py-4">
+                                                <Button variant="ghost" className="p-0 text-[9px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('currentLevel')}>
+                                                    Last Level Held {getSortIcon('currentLevel')}
+                                                </Button>
+                                            </TableHead>
+                                            <TableHead className="text-right pr-8 py-4">
+                                                <Button variant="ghost" className="p-0 text-[9px] font-black uppercase hover:bg-transparent ml-auto" onClick={() => requestSort('validity')}>
+                                                    Legacy Validity {getSortIcon('validity')}
+                                                </Button>
+                                            </TableHead>
                                         </TableRow>
-                                    ))}
-                                    {sortedRoadmap.filter(i => !i.isActive).length === 0 && (
-                                        <TableRow><TableCell colSpan={3} className="text-center py-8 text-[10px] italic text-muted-foreground">No historical records found.</TableCell></TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {sortedRoadmap.filter(i => !i.isActive).map(item => (
+                                            <TableRow key={item.id} className="opacity-60 grayscale hover:grayscale-0 transition-all">
+                                                <TableCell className="pl-8 py-3">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-xs text-slate-700">{item.name}</span>
+                                                        <span className="text-[8px] font-black text-muted-foreground uppercase">{item.campus}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell><Badge variant="outline" className="h-4 text-[8px] uppercase">{item.currentLevel}</Badge></TableCell>
+                                                <TableCell className="text-right pr-8 text-[9px] font-mono">{item.validity}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            ) : (
+                                <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+                                    <Activity className="h-12 w-12 mb-2" />
+                                    <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
+                                </div>
+                            )}
                         </ScrollArea>
                     </CardContent>
                 </Card>

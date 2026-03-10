@@ -5,7 +5,7 @@ import { FunnelChart, Funnel, LabelList, Tooltip, ResponsiveContainer } from 're
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Risk } from '@/lib/types';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { LayoutList, Info } from 'lucide-react';
+import { LayoutList, Info, Activity } from 'lucide-react';
 
 interface RiskFunnelProps {
   allRisks: Risk[] | null;
@@ -31,6 +31,8 @@ export function RiskFunnel({ allRisks, selectedYear }: RiskFunnelProps) {
     ];
   }, [allRisks, selectedYear]);
 
+  const hasData = useMemo(() => funnelData.some(d => d.value > 0), [funnelData]);
+
   return (
     <Card className="shadow-md border-primary/10 overflow-hidden">
       <CardHeader className="bg-muted/10 border-b">
@@ -41,16 +43,23 @@ export function RiskFunnel({ allRisks, selectedYear }: RiskFunnelProps) {
         <CardDescription className="text-xs">Processing lifecycle of identified identifying factors for {selectedYear}.</CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
-        <ChartContainer config={{}} className="h-[300px] w-full">
-            <ResponsiveContainer>
-                <FunnelChart>
-                    <Tooltip content={<ChartTooltipContent />} />
-                    <Funnel dataKey="value" data={funnelData} isAnimationActive>
-                        <LabelList position="right" fill="#000" stroke="none" dataKey="name" style={{ fontSize: '10px', fontWeight: 'bold' }} />
-                    </Funnel>
-                </FunnelChart>
-            </ResponsiveContainer>
-        </ChartContainer>
+        {hasData ? (
+            <ChartContainer config={{}} className="h-[300px] w-full">
+                <ResponsiveContainer>
+                    <FunnelChart>
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Funnel dataKey="value" data={funnelData} isAnimationActive>
+                            <LabelList position="right" fill="#000" stroke="none" dataKey="name" style={{ fontSize: '10px', fontWeight: 'bold' }} />
+                        </Funnel>
+                    </FunnelChart>
+                </ResponsiveContainer>
+            </ChartContainer>
+        ) : (
+            <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+                <Activity className="h-12 w-12 mb-2" />
+                <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
+            </div>
+        )}
       </CardContent>
       <CardFooter className="bg-muted/5 border-t py-4 px-6">
         <div className="flex items-start gap-3">

@@ -5,7 +5,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tool
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import type { Submission, Risk, Campus, ManagementReviewOutput } from '@/lib/types';
-import { ShieldCheck, Info, Target } from 'lucide-react';
+import { ShieldCheck, Info, Target, Activity } from 'lucide-react';
 
 interface MaturityRadarProps {
   campuses: Campus[];
@@ -47,6 +47,8 @@ export function MaturityRadar({ campuses, submissions, risks, mrOutputs, selecte
     });
   }, [campuses, submissions, risks, mrOutputs, selectedYear]);
 
+  const hasData = useMemo(() => radarData.some(d => d.Documentation > 0 || d['Risk Management'] > 0 || d['Decision Resolution'] > 0), [radarData]);
+
   return (
     <Card className="shadow-lg border-primary/10 overflow-hidden">
       <CardHeader className="bg-muted/10 border-b">
@@ -57,20 +59,27 @@ export function MaturityRadar({ campuses, submissions, risks, mrOutputs, selecte
         <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Comparative performance across key ISO 21001 pillars for {selectedYear}.</CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
-        <ChartContainer config={{}} className="h-[350px] w-full">
-          <ResponsiveContainer>
-            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-              <PolarGrid strokeOpacity={0.1} />
-              <PolarAngleAxis dataKey="campus" tick={{ fontSize: 10, fontWeight: 'bold' }} />
-              <PolarRadiusAxis angle={30} domain={[0, 100]} hide />
-              <Tooltip content={<ChartTooltipContent />} />
-              <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
-              <Radar name="Documentation" dataKey="Documentation" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.3} />
-              <Radar name="Risk Mgmt" dataKey="Risk Management" stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.3} />
-              <Radar name="MR Actions" dataKey="Decision Resolution" stroke="hsl(var(--chart-3))" fill="hsl(var(--chart-3))" fillOpacity={0.3} />
-            </RadarChart>
-          </ResponsiveContainer>
-        </ChartContainer>
+        {hasData ? (
+            <ChartContainer config={{}} className="h-[350px] w-full">
+            <ResponsiveContainer>
+                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                <PolarGrid strokeOpacity={0.1} />
+                <PolarAngleAxis dataKey="campus" tick={{ fontSize: 10, fontWeight: 'bold' }} />
+                <PolarRadiusAxis angle={30} domain={[0, 100]} hide />
+                <Tooltip content={<ChartTooltipContent />} />
+                <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
+                <Radar name="Documentation" dataKey="Documentation" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.3} />
+                <Radar name="Risk Mgmt" dataKey="Risk Management" stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.3} />
+                <Radar name="MR Actions" dataKey="Decision Resolution" stroke="hsl(var(--chart-3))" fill="hsl(var(--chart-3))" fillOpacity={0.3} />
+                </RadarChart>
+            </ResponsiveContainer>
+            </ChartContainer>
+        ) : (
+            <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+                <Activity className="h-12 w-12 mb-2" />
+                <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
+            </div>
+        )}
       </CardContent>
       <CardFooter className="bg-muted/5 border-t py-4 px-6">
         <div className="flex items-start gap-3">

@@ -5,7 +5,7 @@ import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Responsive
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Risk } from '@/lib/types';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { ShieldAlert, Zap, Info } from 'lucide-react';
+import { ShieldAlert, Zap, Info, Activity } from 'lucide-react';
 
 interface RiskMatrixProps {
   allRisks: Risk[] | null;
@@ -43,23 +43,32 @@ export function RiskMatrix({ allRisks, selectedYear }: RiskMatrixProps) {
         <CardDescription className="text-xs">Open risks for {selectedYear} plotted by likelihood vs. consequence.</CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
-        <ChartContainer config={{}} className="h-[300px] w-full">
-            <ResponsiveContainer>
-                <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                    <XAxis type="number" dataKey="x" name="Consequence" unit="" domain={[0, 6]} ticks={[1,2,3,4,5]} fontSize={10} label={{ value: 'Consequence Impact', position: 'insideBottom', offset: -10, fontSize: 9, fontWeight: 'black' }} />
-                    <YAxis type="number" dataKey="y" name="Likelihood" unit="" domain={[0, 6]} ticks={[1,2,3,4,5]} fontSize={10} label={{ value: 'Likelihood of Occurrence', angle: -90, position: 'insideLeft', offset: 15, fontSize: 9, fontWeight: 'black' }} />
-                    <ZAxis type="number" dataKey="z" range={[100, 1000]} name="magnitude" />
-                    <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
-                    <Scatter name="Risks" data={riskData} />
-                </ScatterChart>
-            </ResponsiveContainer>
-        </ChartContainer>
-        <div className="flex justify-center gap-4 text-[9px] font-black uppercase tracking-tighter mt-4 border-t pt-4">
-            <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-rose-600" /> High Magnitude</div>
-            <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-amber-500" /> Medium Magnitude</div>
-            <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-emerald-600" /> Low Magnitude</div>
-        </div>
+        {riskData.length > 0 ? (
+            <>
+            <ChartContainer config={{}} className="h-[300px] w-full">
+                <ResponsiveContainer>
+                    <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                        <XAxis type="number" dataKey="x" name="Consequence" unit="" domain={[0, 6]} ticks={[1,2,3,4,5]} fontSize={10} label={{ value: 'Consequence Impact', position: 'insideBottom', offset: -10, fontSize: 9, fontWeight: 'black' }} />
+                        <YAxis type="number" dataKey="y" name="Likelihood" unit="" domain={[0, 6]} ticks={[1,2,3,4,5]} fontSize={10} label={{ value: 'Likelihood of Occurrence', angle: -90, position: 'insideLeft', offset: 15, fontSize: 9, fontWeight: 'black' }} />
+                        <ZAxis type="number" dataKey="z" range={[100, 1000]} name="magnitude" />
+                        <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<ChartTooltipContent />} />
+                        <Scatter name="Risks" data={riskData} />
+                    </ScatterChart>
+                </ResponsiveContainer>
+            </ChartContainer>
+            <div className="flex justify-center gap-4 text-[9px] font-black uppercase tracking-tighter mt-4 border-t pt-4">
+                <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-rose-600" /> High Magnitude</div>
+                <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-amber-500" /> Medium Magnitude</div>
+                <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-emerald-600" /> Low Magnitude</div>
+            </div>
+            </>
+        ) : (
+            <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+                <Activity className="h-12 w-12 mb-2" />
+                <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
+            </div>
+        )}
       </CardContent>
       <CardFooter className="bg-muted/5 border-t py-4 px-6">
         <div className="flex items-start gap-3">

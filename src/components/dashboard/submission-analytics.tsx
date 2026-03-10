@@ -114,7 +114,7 @@ export function SubmissionAnalytics({ allSubmissions, allUnits, isLoading, isAdm
       return (
           <div className="py-20 text-center border rounded-xl border-dashed bg-muted/5">
               <Activity className="h-12 w-12 mx-auto text-muted-foreground opacity-20 mb-4" />
-              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">No analytic data for {selectedYear}</p>
+              <p className="text-xl font-black text-muted-foreground uppercase tracking-widest">NO DATA YET!</p>
           </div>
       )
   }

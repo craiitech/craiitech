@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -57,10 +56,10 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
 
   if (!aggregatedData) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-center border rounded-lg border-dashed">
+      <div className="flex flex-col items-center justify-center h-64 text-center border rounded-lg border-dashed bg-muted/5">
         <Activity className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
-        <h3 className="text-lg font-medium">Insufficient Quality Data</h3>
-        <p className="text-sm text-muted-foreground">Conduct a software quality evaluation to see maturity analytics.</p>
+        <h3 className="text-xl font-black text-muted-foreground uppercase tracking-[0.2em]">NO DATA YET!</h3>
+        <p className="text-sm text-muted-foreground mt-2">Conduct a software quality evaluation to see maturity analytics.</p>
       </div>
     );
   }

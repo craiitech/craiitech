@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -122,7 +121,7 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
     return (
       <Card className="border-dashed py-20 flex flex-col items-center justify-center text-center bg-muted/5">
         <Activity className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
-        <CardTitle className="text-xl font-black uppercase tracking-widest opacity-40">No Visual Insights for {selectedYear}</CardTitle>
+        <CardTitle className="text-xl font-black uppercase tracking-widest opacity-40">NO DATA YET!</CardTitle>
         <CardDescription className="max-w-xs mx-auto">Populate the registry with risks or opportunities to activate the Strategic Decision Support Dashboard.</CardDescription>
       </Card>
     );
@@ -297,7 +296,7 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
             ) : (
                 <div className="h-40 flex flex-col items-center justify-center text-muted-foreground opacity-40 italic">
                     <Activity className="h-8 w-8 mb-2" />
-                    <p className="text-xs">Complete 'Final Assessments' for entries to activate Effectiveness Analytics.</p>
+                    <p className="text-xl font-black uppercase tracking-widest">NO DATA YET!</p>
                 </div>
             )}
           </CardContent>
