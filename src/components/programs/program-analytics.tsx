@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { AcademicProgram, ProgramComplianceRecord, AccreditationRecord, CurriculumRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { 
@@ -50,7 +50,8 @@ import {
     FileX,
     Layout,
     Check,
-    ArrowDownToLine
+    ArrowDownToLine,
+    ArrowUpDown
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
@@ -101,8 +102,11 @@ const getYearBadgeStyle = (yearStr: string) => {
     return colors[year % colors.length];
 };
 
+type SortKey = 'name' | 'campus' | 'currentLevel' | 'validity' | 'status';
+
 export function ProgramAnalytics({ programs, compliances, campuses, units, isLoading, selectedYear }: ProgramAnalyticsProps) {
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
+  const [roadmapSortConfig, setRoadmapSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' }>({ key: 'status', direction: 'asc' });
 
   const analytics = useMemo(() => {
     if (!programs.length) return null;
@@ -313,7 +317,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         copcMomentumData: sortTimeline(copcByYear),
         velocityData: sortTimeline(velocityByYear),
         achievementHistoryData: sortTimeline(achievementByYear),
-        roadmapData: roadmapData.sort((a, b) => a.status === 'OVERDUE' ? -1 : 1),
+        roadmapData,
         roadmapYearBreakdown,
         gadEnrollmentData: [{ name: 'Male', value: totalMaleEnrollment, fill: chartConfig.Male.color }, { name: 'Female', value: totalFemaleEnrollment, fill: chartConfig.Female.color }].filter(d => d.value > 0),
         gadFacultyData: [{ name: 'Male', value: totalMaleFaculty, fill: chartConfig.Male.color }, { name: 'Female', value: totalFemaleFaculty, fill: chartConfig.Female.color }].filter(d => d.value > 0),
@@ -324,6 +328,47 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         monitoredCount: filteredCompliances.length 
     };
   }, [programs, compliances, campuses, campusMap, selectedYear]);
+
+  const sortedRoadmap = useMemo(() => {
+    if (!analytics?.roadmapData) return [];
+    const { key, direction } = roadmapSortConfig;
+    
+    return [...analytics.roadmapData].sort((a, b) => {
+        let valA = a[key];
+        let valB = b[key];
+
+        // Custom chronological year-based sort for Validity
+        if (key === 'validity') {
+            const getYear = (s: string) => {
+                const match = s.match(/\d{4}/);
+                return match ? parseInt(match[0]) : 9999;
+            };
+            valA = getYear(valA);
+            valB = getYear(valB);
+        }
+
+        if (valA < valB) return direction === 'asc' ? -1 : 1;
+        if (valA > valB) return direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+  }, [analytics?.roadmapData, roadmapSortConfig]);
+
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (roadmapSortConfig.key === key && roadmapSortConfig.direction === 'asc') {
+        direction = 'desc';
+    }
+    setRoadmapSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    return (
+        <ArrowUpDown className={cn(
+            "h-3 w-3 transition-colors", 
+            roadmapSortConfig.key === key ? "text-primary opacity-100" : "text-muted-foreground opacity-20"
+        )} />
+    );
+  };
 
   if (isLoading) return <div className="space-y-6"><Skeleton className="h-24 w-full" /><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}</div></div>;
 
@@ -391,6 +436,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
       {/* 2. INSTITUTIONAL GAPS REGISTRY */}
       <Card className="border-rose-200 shadow-xl overflow-hidden bg-rose-50/10 relative">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-rose-600 opacity-50" />
           <CardHeader className="bg-rose-50 border-b py-4">
               <div className="flex items-center justify-between">
                   <div className="space-y-1">
@@ -686,15 +732,35 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             <Table>
                                 <TableHeader className="bg-muted/50 sticky top-0 z-10">
                                     <TableRow>
-                                        <TableHead className="pl-8 text-[10px] font-black uppercase py-4">Academic Program Offering</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase py-4">Campus Site</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase py-4">Current Level</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase py-4">Schedule / Validity</TableHead>
-                                        <TableHead className="text-right pr-8 text-[10px] font-black uppercase py-4">Status</TableHead>
+                                        <TableHead className="pl-8 py-4">
+                                            <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('name')}>
+                                                Academic Program Offering {getSortIcon('name')}
+                                            </Button>
+                                        </TableHead>
+                                        <TableHead className="py-4">
+                                            <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('campus')}>
+                                                Campus Site {getSortIcon('campus')}
+                                            </Button>
+                                        </TableHead>
+                                        <TableHead className="py-4">
+                                            <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('currentLevel')}>
+                                                Current Level {getSortIcon('currentLevel')}
+                                            </Button>
+                                        </TableHead>
+                                        <TableHead className="py-4">
+                                            <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('validity')}>
+                                                Schedule / Validity {getSortIcon('validity')}
+                                            </Button>
+                                        </TableHead>
+                                        <TableHead className="text-right pr-8 py-4">
+                                            <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent ml-auto" onClick={() => requestSort('status')}>
+                                                Status {getSortIcon('status')}
+                                            </Button>
+                                        </TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {analytics?.roadmapData.filter(i => i.isActive).map(item => (
+                                    {sortedRoadmap.filter(i => i.isActive).map(item => (
                                         <TableRow key={item.id} className="hover:bg-muted/20 transition-colors group">
                                             <TableCell className="pl-8 py-5">
                                                 <div className="flex flex-col gap-1">
@@ -746,13 +812,25 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             <Table>
                                 <TableHeader className="bg-slate-200/50 sticky top-0 z-10">
                                     <TableRow>
-                                        <TableHead className="pl-8 text-[9px] font-black uppercase">Historical Offering</TableHead>
-                                        <TableHead className="text-[9px] font-black uppercase">Last Level Held</TableHead>
-                                        <TableHead className="text-right pr-8 text-[9px] font-black uppercase">Legacy Validity</TableHead>
+                                        <TableHead className="pl-8 py-4">
+                                            <Button variant="ghost" className="p-0 text-[9px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('name')}>
+                                                Historical Offering {getSortIcon('name')}
+                                            </Button>
+                                        </TableHead>
+                                        <TableHead className="py-4">
+                                            <Button variant="ghost" className="p-0 text-[9px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('currentLevel')}>
+                                                Last Level Held {getSortIcon('currentLevel')}
+                                            </Button>
+                                        </TableHead>
+                                        <TableHead className="text-right pr-8 py-4">
+                                            <Button variant="ghost" className="p-0 text-[9px] font-black uppercase hover:bg-transparent ml-auto" onClick={() => requestSort('validity')}>
+                                                Legacy Validity {getSortIcon('validity')}
+                                            </Button>
+                                        </TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {analytics?.roadmapData.filter(i => !i.isActive).map(item => (
+                                    {sortedRoadmap.filter(i => !i.isActive).map(item => (
                                         <TableRow key={item.id} className="opacity-60 grayscale hover:grayscale-0 transition-all">
                                             <TableCell className="pl-8 py-3">
                                                 <div className="flex flex-col">
@@ -764,7 +842,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                             <TableCell className="text-right pr-8 text-[9px] font-mono">{item.validity}</TableCell>
                                         </TableRow>
                                     ))}
-                                    {analytics?.roadmapData.filter(i => !i.isActive).length === 0 && (
+                                    {sortedRoadmap.filter(i => !i.isActive).length === 0 && (
                                         <TableRow><TableCell colSpan={3} className="text-center py-8 text-[10px] italic text-muted-foreground">No historical records found.</TableCell></TableRow>
                                     )}
                                 </TableBody>
