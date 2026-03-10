@@ -39,10 +39,11 @@ import {
     Zap,
     Users,
     GraduationCap,
-    Search
+    Search,
+    AlertTriangle,
+    ShieldAlert
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useUser } from '@/firebase';
 
 interface ProgramAnalyticsProps {
   programs: AcademicProgram[];
@@ -112,12 +113,18 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     let totalNationalRate = 0;
     let boardCount = 0;
 
+    // Institutional Gaps Accumulator
+    const institutionalGaps: { type: string; msg: string; priority: 'High' | 'Medium'; campus: string }[] = [];
+    const currentYearNum = new Date().getFullYear();
+
     programs.forEach(p => {
         const category = getProgramCategory(p);
         if (category === 'Closed') inactiveCount++;
         else activeCount++;
 
         const record = filteredCompliances.find(c => c.programId === p.id);
+        const cName = campusMap.get(p.campusId) || 'Unknown Site';
+
         const isAccredited = (rec: ProgramComplianceRecord | undefined) => {
             if (!rec || !rec.accreditationRecords || rec.accreditationRecords.length === 0) return false;
             const milestones = rec.accreditationRecords;
@@ -132,6 +139,35 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         } else {
             if (isAccredited(record)) activeAccredited++;
             if (hasCopc(record)) activeCopc++;
+        }
+
+        // --- GAP ANALYSIS (Institutional Level) ---
+        if (p.isActive) {
+            if (!record) {
+                institutionalGaps.push({ type: 'Registry Gap', msg: `${p.name}: No compliance data recorded for AY ${selectedYear}.`, priority: 'High', campus: cName });
+            } else {
+                if (record.ched?.copcStatus !== 'With COPC') {
+                    institutionalGaps.push({ type: 'Authority', msg: `${p.name}: Operating without verified COPC status.`, priority: 'High', campus: cName });
+                }
+                
+                // Faculty Check
+                const facultyRoster = record.faculty?.members || [];
+                const alignedCount = facultyRoster.filter(m => m.isAlignedWithCMO === 'Aligned').length;
+                if (facultyRoster.length > 0 && alignedCount < facultyRoster.length) {
+                    institutionalGaps.push({ type: 'Resource', msg: `${p.name}: ${facultyRoster.length - alignedCount} faculty members not aligned with CMO requirements.`, priority: 'Medium', campus: cName });
+                }
+
+                // Accreditation Overdue Check
+                if (!p.isNewProgram) {
+                    const milestones = record.accreditationRecords || [];
+                    const current = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
+                    const validityDate = current?.statusValidityDate;
+                    const yearMatch = validityDate?.match(/\d{4}/);
+                    if (yearMatch && parseInt(yearMatch[0]) < currentYearNum) {
+                        institutionalGaps.push({ type: 'Quality', msg: `${p.name}: Accreditation is OVERDUE (Expired: ${validityDate}).`, priority: 'High', campus: cName });
+                    }
+                }
+            }
         }
 
         // --- GAD GATHERING ---
@@ -206,8 +242,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     ].filter(d => d.value > 0);
 
     const boardPerfData = boardCount > 0 ? [
-        { name: 'School', rate: Math.round(totalSchoolRate / boardCount), fill: chartConfig.School.color },
-        { name: 'National', rate: Math.round(totalNationalRate / boardCount), fill: chartConfig.National.color }
+        { name: 'Institutional Rate', rate: Math.round(totalSchoolRate / boardCount), fill: chartConfig.School.color },
+        { name: 'National Average', rate: Math.round(totalNationalRate / boardCount), fill: chartConfig.National.color }
     ] : [];
 
     // --- 3. Accreditation Level Summary ---
@@ -288,10 +324,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         gadGraduationData,
         gadTracerData,
         boardPerfData,
+        institutionalGaps,
         totalPrograms: programs.length, 
         monitoredCount: filteredCompliances.length 
     };
-  }, [programs, compliances, campuses, selectedYear]);
+  }, [programs, compliances, campuses, campusMap, selectedYear]);
 
   if (isLoading) {
     return (
@@ -340,6 +377,45 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         </Card>
       </div>
 
+      {/* --- CRITICAL OVERSIGHT: INSTITUTIONAL GAPS --- */}
+      {analytics && analytics.institutionalGaps.length > 0 && (
+          <Card className="border-destructive/30 shadow-xl overflow-hidden bg-destructive/5 relative">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-destructive opacity-50" />
+              <CardHeader className="bg-destructive/10 border-b py-4">
+                  <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-destructive">
+                          <ShieldAlert className="h-5 w-5" />
+                          <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Registry Gaps: AY {selectedYear}</CardTitle>
+                      </div>
+                      <Badge variant="destructive" className="animate-pulse shadow-sm h-5 text-[9px] font-black uppercase">SYSTEM ALERTS</Badge>
+                  </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                  <ScrollArea className="max-h-[300px]">
+                      <div className="p-6 space-y-4">
+                          {analytics.institutionalGaps.map((gap, i) => (
+                              <div key={i} className="flex items-start gap-4 bg-white p-4 rounded-xl border border-destructive/10 shadow-sm hover:border-destructive/30 transition-all">
+                                  <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                      <div className="flex items-center justify-between gap-2 mb-1">
+                                          <p className="text-[10px] font-black text-destructive uppercase tracking-[0.1em]">{gap.type}</p>
+                                          <Badge variant="outline" className="h-4 text-[8px] font-black uppercase bg-slate-50">{gap.campus}</Badge>
+                                      </div>
+                                      <p className="text-xs font-bold text-slate-800 leading-snug">{gap.msg}</p>
+                                  </div>
+                              </div>
+                          ))}
+                      </div>
+                  </ScrollArea>
+              </CardContent>
+              <CardFooter className="bg-destructive/5 border-t py-2 px-6">
+                  <p className="text-[9px] text-destructive font-bold uppercase italic">These flags identify systemic weaknesses across the university registry.</p>
+              </CardFooter>
+          </Card>
+      )}
+
       {/* --- GAD & OUTCOMES DASHBOARD --- */}
       <div className="space-y-4 pt-4">
           <div className="flex items-center gap-2 text-primary">
@@ -382,7 +458,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   </CardFooter>
               </Card>
 
-              {/* 2. FACULTY GAD */}
+              {/* 2. FACULTY GAD (SYSTEM REGISTERED USER) */}
               <Card className="shadow-md border-primary/10 overflow-hidden flex flex-col">
                   <CardHeader className="pb-2 border-b bg-muted/10">
                       <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
@@ -589,7 +665,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 </Table>
             </CardContent>
             <CardFooter className="bg-muted/5 border-t py-3">
-                <div className="flex items-start gap-2">
+                <div className="flex items-start gap-3">
                     <Info className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
                     <p className="text-[9px] text-muted-foreground italic leading-tight">
                         <strong>Guidance for usage:</strong> Compares site-level quality metrics to identify sites requiring accelerated accreditation support.
