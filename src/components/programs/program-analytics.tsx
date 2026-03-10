@@ -49,7 +49,8 @@ import {
     History,
     FileX,
     Layout,
-    Check
+    Check,
+    ArrowDownToLine
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -80,6 +81,26 @@ const chartConfig = {
     Female: { label: 'Female', color: 'hsl(var(--chart-2))' },
     School: { label: 'Institutional Rate', color: 'hsl(var(--primary))' },
     National: { label: 'National Average', color: 'hsl(var(--muted-foreground))' }
+};
+
+/**
+ * Helper to generate stable color coding for years.
+ */
+const getYearBadgeStyle = (yearStr: string) => {
+    const year = parseInt(yearStr);
+    if (isNaN(year)) return "bg-slate-100 text-slate-600 border-slate-200";
+    
+    const colors = [
+        "bg-blue-50 text-blue-700 border-blue-200",
+        "bg-emerald-50 text-emerald-700 border-emerald-200",
+        "bg-amber-50 text-amber-700 border-amber-200",
+        "bg-purple-50 text-purple-700 border-purple-200",
+        "bg-rose-50 text-rose-700 border-rose-200",
+        "bg-indigo-50 text-indigo-700 border-indigo-200",
+        "bg-cyan-50 text-cyan-700 border-cyan-200"
+    ];
+    
+    return colors[year % colors.length];
 };
 
 export function ProgramAnalytics({ programs, compliances, campuses, units, isLoading, selectedYear }: ProgramAnalyticsProps) {
@@ -385,7 +406,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               <div className="flex items-center justify-between">
                   <div className="space-y-1">
                       <div className="flex items-center gap-2 text-rose-600">
-                          <ShieldAlert className="h-5 w-5" />
+                          <ShieldAlert className="h-5 w-5 text-rose-600" />
                           <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Gaps Registry</CardTitle>
                       </div>
                       <CardDescription className="text-[10px] font-bold text-rose-700/70 uppercase">Critical documentation deficiencies impacting maturity index for AY {selectedYear}.</CardDescription>
@@ -584,7 +605,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 </div>
                 <div className="flex flex-wrap gap-2">
                     {Object.entries(analytics?.roadmapYearBreakdown || {}).sort((a,b) => Number(a[0]) - Number(b[0])).map(([y, count]) => (
-                        <Badge key={y} variant="outline" className="bg-white text-[10px] font-black border-primary/20 text-primary uppercase">
+                        <Badge key={y} variant="outline" className={cn("text-[10px] font-black border-none h-6 px-3 uppercase shadow-sm", getYearBadgeStyle(y))}>
                             {y}: {count} SURVEYS
                         </Badge>
                     ))}
@@ -614,7 +635,14 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                               </TableCell>
                               <TableCell className="py-5"><div className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-tighter"><School className="h-3.5 w-3.5 opacity-40" /> {item.campus}</div></TableCell>
                               <TableCell className="py-5"><Badge variant="outline" className="h-5 text-[9px] font-black text-primary border-primary/20 bg-primary/5 uppercase">{item.currentLevel}</Badge></TableCell>
-                              <TableCell className="py-5"><div className="flex flex-col gap-1"><span className="text-xs font-black text-slate-700 uppercase tracking-tighter">{item.validity}</span><span className="text-[9px] font-black text-muted-foreground uppercase tracking-tighter">FISCAL YEAR {item.validity.match(/\d{4}/)?.[0] || 'TBA'}</span></div></TableCell>
+                              <TableCell className="py-5">
+                                  <div className="flex flex-col gap-1.5">
+                                      <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">{item.validity}</span>
+                                      <Badge variant="outline" className={cn("text-[8px] font-black uppercase tracking-tighter w-fit h-4 border-none", getYearBadgeStyle(item.validity.match(/\d{4}/)?.[0] || ''))}>
+                                          FISCAL YEAR {item.validity.match(/\d{4}/)?.[0] || 'TBA'}
+                                      </Badge>
+                                  </div>
+                              </TableCell>
                               <TableCell className="text-right pr-8 py-5">
                                   <Badge className={cn(
                                       "text-[10px] font-black uppercase border-none px-3 shadow-sm",
