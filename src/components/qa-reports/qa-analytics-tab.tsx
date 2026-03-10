@@ -10,7 +10,7 @@ import {
     Pie, 
     Cell, 
     ResponsiveContainer, 
-    Tooltip, 
+    Tooltip as RechartsTooltip, 
     BarChart, 
     Bar, 
     XAxis, 
@@ -140,7 +140,7 @@ export function QaAnalyticsTab() {
       <div className="flex flex-col items-center justify-center py-20 text-center border rounded-xl border-dashed bg-muted/5">
         <Activity className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
         <h3 className="text-lg font-bold">Institutional Quality Dashboard</h3>
-        <p className="text-sm text-muted-foreground max-w-sm">Analytics will synchronize once reports, MR sessions, or CARs are registered in the system.</p>
+        <p className="text-sm text-muted-foreground max-sm ms-auto">Analytics will synchronize once reports, MR sessions, or CARs are registered in the system.</p>
       </div>
     );
   }
@@ -256,7 +256,7 @@ export function QaAnalyticsTab() {
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold' }} />
                             <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
-                            <Tooltip content={<ChartTooltipContent />} />
+                            <RechartsTooltip content={<ChartTooltipContent />} />
                             <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }} />
                             <Bar dataKey="Open" stackId="a" fill="hsl(var(--destructive))" barSize={40}>
                                 <LabelList dataKey="Open" position="center" style={{ fontSize: '10px', fontWeight: '900', fill: 'white' }} />
@@ -301,7 +301,7 @@ export function QaAnalyticsTab() {
                 <ChartContainer config={{}} className="h-[250px] w-full">
                     <ResponsiveContainer>
                         <PieChart>
-                            <Tooltip content={<ChartTooltipContent hideLabel />} />
+                            <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
                             <Pie
                                 data={analytics.carStatusData}
                                 cx="50%"
@@ -354,7 +354,7 @@ export function QaAnalyticsTab() {
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
                             <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
-                            <Tooltip content={<ChartTooltipContent />} />
+                            <RechartsTooltip content={<ChartTooltipContent />} />
                             <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={60}>
                                 <LabelList dataKey="value" position="top" style={{ fontSize: '11px', fontWeight: '900', fill: 'hsl(var(--foreground))' }} />
                                 {analytics.findingData.map((entry, index) => (
