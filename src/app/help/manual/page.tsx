@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -9,7 +8,7 @@ import {
 } from '@/components/ui/accordion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldCheck, BookOpen, ClipboardCheck, FileText, TrendingUp, Search, Database, History, Target, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, BookOpen, ClipboardCheck, FileText, TrendingUp, Search, Database, History, Target, ShieldAlert, CheckCircle2, Info } from 'lucide-react';
 
 const manualSections = [
   {
