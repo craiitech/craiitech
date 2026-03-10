@@ -103,13 +103,6 @@ export function SidebarNav({
       active: pathname.startsWith('/qa-reports'),
       icon: <FolderKanban />,
     },
-    {
-      href: '/software-quality',
-      label: 'Software Quality',
-      active: pathname.startsWith('/software-quality'),
-      roles: ['Admin'],
-      icon: <HistoryIcon />,
-    },
      {
       href: '/reports',
       label: 'Reports',
@@ -128,6 +121,13 @@ export function SidebarNav({
       href: '/audit-log',
       label: 'System Audit Log',
       active: pathname.startsWith('/audit-log'),
+      roles: ['Admin'],
+      icon: <HistoryIcon />,
+    },
+    {
+      href: '/software-quality',
+      label: 'Software Quality',
+      active: pathname.startsWith('/software-quality'),
       roles: ['Admin'],
       icon: <HistoryIcon />,
     },
