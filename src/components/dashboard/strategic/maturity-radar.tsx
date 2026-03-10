@@ -1,13 +1,11 @@
-
 'use client';
 
 import { useMemo } from 'react';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip, Legend, PolarRadiusAxis } from 'recharts';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import type { Submission, Risk, Campus, ManagementReviewOutput } from '@/lib/types';
-import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Info, Target } from 'lucide-react';
 
 interface MaturityRadarProps {
   campuses: Campus[];
@@ -27,9 +25,8 @@ export function MaturityRadar({ campuses, submissions, risks, mrOutputs, selecte
       const campusActions = mrOutputs.filter(o => o.assignments?.some(a => a.campusId === campus.id));
 
       // Axis 1: Documentation Maturity (Approved / Required)
-      // For simplicity, we approximate required as 12 per unit (average)
       const approvedCount = campusSubmissions.filter(s => s.statusId === 'approved').length;
-      const docMaturity = Math.min(100, (approvedCount / 50) * 100); // Normalize to institutional scale
+      const docMaturity = Math.min(100, (approvedCount / 50) * 100); 
 
       // Axis 2: Risk Proactivity (Closed / Total)
       const totalRisks = campusRisks.length;
@@ -51,21 +48,23 @@ export function MaturityRadar({ campuses, submissions, risks, mrOutputs, selecte
   }, [campuses, submissions, risks, mrOutputs, selectedYear]);
 
   return (
-    <Card className="shadow-lg border-primary/10">
+    <Card className="shadow-lg border-primary/10 overflow-hidden">
       <CardHeader className="bg-muted/10 border-b">
-        <CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-primary" />
-            Institutional Maturity Profile
-        </CardTitle>
-        <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Comparative performance across key ISO 21001 pillars.</CardDescription>
+        <div className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Maturity Profile</CardTitle>
+        </div>
+        <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Comparative performance across key ISO 21001 pillars for {selectedYear}.</CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
-        <ChartContainer config={{}} className="h-[300px] w-full">
+        <ChartContainer config={{}} className="h-[350px] w-full">
           <ResponsiveContainer>
             <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
               <PolarGrid strokeOpacity={0.1} />
               <PolarAngleAxis dataKey="campus" tick={{ fontSize: 10, fontWeight: 'bold' }} />
+              <PolarRadiusAxis angle={30} domain={[0, 100]} hide />
               <Tooltip content={<ChartTooltipContent />} />
+              <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
               <Radar name="Documentation" dataKey="Documentation" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.3} />
               <Radar name="Risk Mgmt" dataKey="Risk Management" stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.3} />
               <Radar name="MR Actions" dataKey="Decision Resolution" stroke="hsl(var(--chart-3))" fill="hsl(var(--chart-3))" fillOpacity={0.3} />
@@ -73,6 +72,16 @@ export function MaturityRadar({ campuses, submissions, risks, mrOutputs, selecte
           </ResponsiveContainer>
         </ChartContainer>
       </CardContent>
+      <CardFooter className="bg-muted/5 border-t py-4 px-6">
+        <div className="flex items-start gap-3">
+            <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+                <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+                    <strong>Strategic Insight:</strong> This radar chart identifies the "shape" of your quality system. A balanced radar indicates consistent adherence across modules. Sharp indentations suggest specific pillars (e.g., Risk Closure) that may require targeted administrative intervention or resource allocation.
+                </p>
+            </div>
+        </div>
+      </CardFooter>
     </Card>
   );
 }
