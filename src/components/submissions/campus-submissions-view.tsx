@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -124,6 +125,12 @@ export function CampusSubmissionsView({
   );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
+  const campusMap = useMemo(() => {
+    const map = new Map(allCampuses?.map(c => [c.id, c.name]));
+    map.set('university-wide', 'University-Wide');
+    return map;
+  }, [allCampuses]);
+
   const unitMap = useMemo(() => new Map(allUnits?.map(u => [u.id, u.name])), [allUnits]);
 
   const campusGroups = useMemo(() => {
@@ -148,20 +155,17 @@ export function CampusSubmissionsView({
     const unitPerformance = campusUnits.map(unit => {
         const unitSubs = yearSubmissions.filter(s => s.unitId === unit.id);
         
-        const firstRegistry = unitSubs.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
-        const isFirstActionPlanNA = firstRegistry?.riskRating === 'low';
+        const ror = unitSubs.find(s => s.reportType === 'Risk and Opportunity Registry');
+        const isActionPlanNA = ror?.riskRating === 'low';
         
-        const finalRegistry = unitSubs.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
-        const isFinalActionPlanNA = finalRegistry?.riskRating === 'low';
-
         const approved = unitSubs.filter(s => s.statusId === 'approved').length;
-        const totalPossible = (submissionTypes.length * 2) - (isFirstActionPlanNA ? 1 : 0) - (isFinalActionPlanNA ? 1 : 0);
+        const totalPossible = (submissionTypes.length * 2) - (isActionPlanNA ? 2 : 0); // Simplified for both cycles
         
-        const getMissing = (cycleId: 'first' | 'final', isNA: boolean) => {
+        const getMissing = (cycleId: 'first' | 'final') => {
             const approvedSet = new Set(unitSubs.filter(s => s.cycleId === cycleId && s.statusId === 'approved').map(s => s.reportType));
             return submissionTypes.filter(type => {
                 if (approvedSet.has(type)) return false;
-                if (type === 'Risk and Opportunity Action Plan' && isNA) return false;
+                if (type === 'Risk and Opportunity Action Plan' && isActionPlanNA) return false;
                 return true;
             });
         };
@@ -172,8 +176,8 @@ export function CampusSubmissionsView({
             score: Math.round((approved / (totalPossible || 1)) * 100),
             approvedCount: approved,
             totalPossible,
-            missingFirst: getMissing('first', isFirstActionPlanNA),
-            missingFinal: getMissing('final', isFinalActionPlanNA)
+            missingFirst: getMissing('first'),
+            missingFinal: getMissing('final')
         };
     });
 
@@ -291,8 +295,6 @@ export function CampusSubmissionsView({
     } catch (err) { console.error("Print error:", err); }
   };
 
-  if (isLoading) return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -379,7 +381,7 @@ export function CampusSubmissionsView({
         </div>
 
         {/* WORKSPACE: Rendering Logic */}
-        <div className="flex-1 min-w-0 flex flex-col relative">
+        <div className="flex-1 min-0 flex flex-col relative">
           <Button
             variant="secondary"
             size="icon"
@@ -421,7 +423,7 @@ export function CampusSubmissionsView({
                         </ChartContainer>
                         <div className="mt-6 text-center space-y-1">
                             <span className="text-5xl font-black tabular-nums tracking-tighter text-primary">{unitData.score}%</span>
-                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.1em]">Goal Fulfilment</p>
+                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.1em]">Quality Achievement Index</p>
                         </div>
                     </Card>
 
@@ -471,7 +473,7 @@ export function CampusSubmissionsView({
               </div>
             </ScrollArea>
           ) : selectedCampusId && campusSummary ? (
-            /* --- CAMPUS OVERVIEW VIEW (RESTORED) --- */
+            /* --- CAMPUS OVERVIEW VIEW --- */
             <ScrollArea className="h-full pr-4">
                 <div className="space-y-8 animate-in fade-in duration-500 pb-10">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
