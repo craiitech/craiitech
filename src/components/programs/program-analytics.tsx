@@ -127,11 +127,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     let activeCopc = 0;
     let inactiveCopc = 0;
 
-    let totalMaleEnrollment = 0;
-    let totalFemaleEnrollment = 0;
-    let sem1Total = 0;
-    let sem2Total = 0;
-    let summerTotal = 0;
+    let sem1Male = 0, sem1Female = 0;
+    let sem2Male = 0, sem2Female = 0;
+    let summerMale = 0, summerFemale = 0;
 
     let totalMaleGrads = 0;
     let totalFemaleGrads = 0;
@@ -256,29 +254,20 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
             if (s1) {
                 ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach((lvl: any) => {
-                    const m = Number(s1[lvl]?.male || 0);
-                    const f = Number(s1[lvl]?.female || 0);
-                    totalMaleEnrollment += m;
-                    totalFemaleEnrollment += f;
-                    sem1Total += (m + f);
+                    sem1Male += Number(s1[lvl]?.male || 0);
+                    sem1Female += Number(s1[lvl]?.female || 0);
                 });
             }
             if (s2) {
                 ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach((lvl: any) => {
-                    const m = Number(s2[lvl]?.male || 0);
-                    const f = Number(s2[lvl]?.female || 0);
-                    totalMaleEnrollment += m;
-                    totalFemaleEnrollment += f;
-                    sem2Total += (m + f);
+                    sem2Male += Number(s2[lvl]?.male || 0);
+                    sem2Female += Number(s2[lvl]?.female || 0);
                 });
             }
             if (sum) {
                 ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach((lvl: any) => {
-                    const m = Number(sum[lvl]?.male || 0);
-                    const f = Number(sum[lvl]?.female || 0);
-                    totalMaleEnrollment += m;
-                    totalFemaleEnrollment += f;
-                    summerTotal += (m + f);
+                    summerMale += Number(sum[lvl]?.male || 0);
+                    summerFemale += Number(sum[lvl]?.female || 0);
                 });
             }
 
@@ -290,7 +279,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 
                 roster.forEach(m => {
                     if (!m.name || m.name.trim() === '') return;
-                    // Deduplicate faculty within the scope but count them towards the summary
                     const key = `${m.name.trim()}-${p.campusId}`.toLowerCase();
                     if (!uniqueFacultySet.has(key)) {
                         uniqueFacultySet.add(key);
@@ -344,6 +332,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         }
     });
 
+    const makePieData = (m: number, f: number) => {
+        return [
+            { name: 'Male', value: m, fill: chartConfig.Male.color },
+            { name: 'Female', value: f, fill: chartConfig.Female.color }
+        ].filter(d => d.value > 0);
+    }
+
     return { 
         accreditationSummary: Object.values(accreditationDataMap).filter(d => d.total > 0),
         activeCount, inactiveCount, activeAccredited, inactiveAccredited, activeCopc, inactiveCopc,
@@ -352,11 +347,16 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         achievementHistoryData: sortTimeline(achievementByYear),
         roadmapData,
         roadmapYearBreakdown,
-        totalEnrollment: totalMaleEnrollment + totalFemaleEnrollment,
-        sem1Total, sem2Total, summerTotal,
+        totalEnrollment: sem1Male + sem1Female + sem2Male + sem2Female + summerMale + summerFemale,
+        sem1Total: sem1Male + sem1Female,
+        sem2Total: sem2Male + sem2Female,
+        summerTotal: summerMale + summerFemale,
+        sem1Male, sem1Female, sem2Male, sem2Female, summerMale, summerFemale,
         totalMaleFaculty, totalFemaleFaculty, totalFaculty: totalMaleFaculty + totalFemaleFaculty,
-        gadEnrollmentData: [{ name: 'Male', value: totalMaleEnrollment, fill: chartConfig.Male.color }, { name: 'Female', value: totalFemaleEnrollment, fill: chartConfig.Female.color }].filter(d => d.value > 0),
-        gadFacultyData: [{ name: 'Male', value: totalMaleFaculty, fill: chartConfig.Male.color }, { name: 'Female', value: totalFemaleFaculty, fill: chartConfig.Female.color }].filter(d => d.value > 0),
+        gadEnrollment1stData: makePieData(sem1Male, sem1Female),
+        gadEnrollment2ndData: makePieData(sem2Male, sem2Female),
+        gadEnrollmentSummerData: makePieData(summerMale, summerFemale),
+        gadFacultyData: makePieData(totalMaleFaculty, totalFemaleFaculty),
         gadGraduationData: [{ name: 'Male', value: totalMaleGrads, fill: chartConfig.Male.color }, { name: 'Female', value: totalFemaleGrads, fill: chartConfig.Female.color }].filter(d => d.value > 0),
         gadTracerData: [{ name: 'Male', value: totalMaleTraced, fill: chartConfig.Male.color }, { name: 'Female', value: totalFemaleTraced, fill: chartConfig.Female.color }].filter(d => d.value > 0),
         boardPerfData: boardCount > 0 ? [{ name: 'School', rate: Math.round(totalSchoolRate / boardCount), fill: chartConfig.School.color }, { name: 'National', rate: Math.round(totalNationalRate / boardCount), fill: chartConfig.National.color }] : [],
@@ -373,7 +373,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         let valA = a[key];
         let valB = b[key];
 
-        // Custom chronological year-based sort for Validity
         if (key === 'validity') {
             const getYear = (s: string) => {
                 const match = s.match(/\d{4}/);
@@ -412,7 +411,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
 
     return (
-      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-sm font-black">
+      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[14px] font-black">
         {`${(percent * 100).toFixed(0)}%`}
       </text>
     );
@@ -540,17 +539,116 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
       <div className="space-y-4">
           <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs border-b pb-2"><Users className="h-4 w-4" /> Gender & Development (GAD) Compliance Metrics</div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              
+              {/* 1ST SEMESTER ENROLLMENT */}
+              <Card className="shadow-md flex flex-col border-primary/10 overflow-hidden group hover:shadow-lg transition-all h-[320px]">
+                  <CardHeader className="p-4 bg-muted/10 border-b shrink-0">
+                    <CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 leading-tight">
+                        <Users /> 1st Semester Enrollment (Total: {analytics?.sem1Total} | M: {analytics?.sem1Male}, F: {analytics?.sem1Female})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 flex-1 flex items-center justify-center overflow-hidden">
+                      {analytics?.gadEnrollment1stData.length ? (
+                        <ChartContainer config={chartConfig} className="h-full w-full">
+                            <ResponsiveContainer>
+                                <PieChart>
+                                    <Pie data={analytics.gadEnrollment1stData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value" label={renderPieLabel} labelLine={false}>
+                                        {analytics.gadEnrollment1stData.map((e, j) => <Cell key={j} fill={e.fill} />)}
+                                    </Pie>
+                                    <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                                    <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-center space-y-2 opacity-40"><Activity className="h-8 w-8" /><p className="text-[11px] font-black uppercase tracking-widest">NO DATA YET!</p></div>
+                      )}
+                  </CardContent>
+                  <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight">1st Semester Male/Female distribution.</p></CardFooter>
+              </Card>
+
+              {/* 2ND SEMESTER ENROLLMENT */}
+              <Card className="shadow-md flex flex-col border-primary/10 overflow-hidden group hover:shadow-lg transition-all h-[320px]">
+                  <CardHeader className="p-4 bg-muted/10 border-b shrink-0">
+                    <CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 leading-tight">
+                        <Users /> 2nd Semester Enrollment (Total: {analytics?.sem2Total} | M: {analytics?.sem2Male}, F: {analytics?.sem2Female})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 flex-1 flex items-center justify-center overflow-hidden">
+                      {analytics?.gadEnrollment2ndData.length ? (
+                        <ChartContainer config={chartConfig} className="h-full w-full">
+                            <ResponsiveContainer>
+                                <PieChart>
+                                    <Pie data={analytics.gadEnrollment2ndData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value" label={renderPieLabel} labelLine={false}>
+                                        {analytics.gadEnrollment2ndData.map((e, j) => <Cell key={j} fill={e.fill} />)}
+                                    </Pie>
+                                    <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                                    <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-center space-y-2 opacity-40"><Activity className="h-8 w-8" /><p className="text-[11px] font-black uppercase tracking-widest">NO DATA YET!</p></div>
+                      )}
+                  </CardContent>
+                  <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight">2nd Semester Male/Female distribution.</p></CardFooter>
+              </Card>
+
+              {/* SUMMER ENROLLMENT */}
+              <Card className="shadow-md flex flex-col border-primary/10 overflow-hidden group hover:shadow-lg transition-all h-[320px]">
+                  <CardHeader className="p-4 bg-muted/10 border-b shrink-0">
+                    <CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 leading-tight">
+                        <Users /> Summer/Mid-Year Enrollment (Total: {analytics?.summerTotal} | M: {analytics?.summerMale}, F: {analytics?.summerFemale})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 flex-1 flex items-center justify-center overflow-hidden">
+                      {analytics?.gadEnrollmentSummerData.length ? (
+                        <ChartContainer config={chartConfig} className="h-full w-full">
+                            <ResponsiveContainer>
+                                <PieChart>
+                                    <Pie data={analytics.gadEnrollmentSummerData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value" label={renderPieLabel} labelLine={false}>
+                                        {analytics.gadEnrollmentSummerData.map((e, j) => <Cell key={j} fill={e.fill} />)}
+                                    </Pie>
+                                    <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                                    <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-center space-y-2 opacity-40"><Activity className="h-8 w-8" /><p className="text-[11px] font-black uppercase tracking-widest">NO DATA YET!</p></div>
+                      )}
+                  </CardContent>
+                  <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight">Summer term Male/Female distribution.</p></CardFooter>
+              </Card>
+
+              {/* FACULTY DISTRIBUTION */}
+              <Card className="shadow-md flex flex-col border-primary/10 overflow-hidden group hover:shadow-lg transition-all h-[320px]">
+                  <CardHeader className="p-4 bg-muted/10 border-b shrink-0">
+                    <CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 leading-tight">
+                        <UserCircle /> Faculty Distribution (M: {analytics?.totalMaleFaculty}, F: {analytics?.totalFemaleFaculty}, Total: {analytics?.totalFaculty})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 flex-1 flex items-center justify-center overflow-hidden">
+                      {analytics?.gadFacultyData.length ? (
+                        <ChartContainer config={chartConfig} className="h-full w-full">
+                            <ResponsiveContainer>
+                                <PieChart>
+                                    <Pie data={analytics.gadFacultyData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value" label={renderPieLabel} labelLine={false}>
+                                        {analytics.gadFacultyData.map((e, j) => <Cell key={j} fill={e.fill} />)}
+                                    </Pie>
+                                    <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                                    <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-center space-y-2 opacity-40"><Activity className="h-8 w-8" /><p className="text-[11px] font-black uppercase tracking-widest">NO DATA YET!</p></div>
+                      )}
+                  </CardContent>
+                  <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight">Unique headcount of teaching staff registered across all programs.</p></CardFooter>
+              </Card>
+
               {[
-                  { 
-                    title: `Student Enrollment (Total: ${analytics?.totalEnrollment}) - 1st: ${analytics?.sem1Total} | 2nd: ${analytics?.sem2Total} | Summer: ${analytics?.summerTotal}`, 
-                    data: analytics?.gadEnrollmentData, 
-                    icon: <Users /> 
-                  },
-                  { 
-                    title: `Faculty Distribution (M: ${analytics?.totalMaleFaculty}, F: ${analytics?.totalFemaleFaculty}, Total: ${analytics?.totalFaculty})`, 
-                    data: analytics?.gadFacultyData, 
-                    icon: <UserCircle /> 
-                  },
                   { title: 'Graduation Output Analysis', data: analytics?.gadGraduationData, icon: <GraduationCap /> },
                   { title: 'Graduate Employability Tracing', data: analytics?.gadTracerData, icon: <Search /> },
                   { title: 'Institutional Board Performance', chart: 'bar', data: analytics?.boardPerfData, icon: <ShieldCheck /> }
@@ -578,17 +676,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                 <ChartContainer config={chartConfig} className="h-full w-full">
                                     <ResponsiveContainer>
                                         <PieChart>
-                                            <Pie 
-                                              data={card.data} 
-                                              cx="50%" 
-                                              cy="50%" 
-                                              innerRadius={50} 
-                                              outerRadius={75} 
-                                              paddingAngle={5} 
-                                              dataKey="value"
-                                              label={renderPieLabel}
-                                              labelLine={false}
-                                            >
+                                            <Pie data={card.data} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value" label={renderPieLabel} labelLine={false}>
                                                 {card.data?.map((e: any, j: any) => <Cell key={j} fill={e.fill} />)}
                                             </Pie>
                                             <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
@@ -598,13 +686,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                 </ChartContainer>
                             )
                           ) : (
-                              <div className="flex flex-col items-center justify-center text-center space-y-2 opacity-40">
-                                  <Activity className="h-8 w-8" />
-                                  <p className="text-[11px] font-black uppercase tracking-widest">NO DATA YET!</p>
-                              </div>
+                              <div className="flex flex-col items-center justify-center text-center space-y-2 opacity-40"><Activity className="h-8 w-8" /><p className="text-[11px] font-black uppercase tracking-widest">NO DATA YET!</p></div>
                           )}
                       </CardContent>
-                      <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight"><strong>Guidance for usage:</strong> Monitors institutional parity and outcome objectives aligned with GAD standards.</p></CardFooter>
+                      <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight">Institutional output distribution aligned with GAD standards.</p></CardFooter>
                   </Card>
               ))}
           </div>
@@ -649,10 +734,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                         </ResponsiveContainer>
                     </ChartContainer>
                   ) : (
-                      <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
-                          <Activity className="h-12 w-12 mb-2" />
-                          <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
-                      </div>
+                      <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground opacity-40"><Activity className="h-12 w-12 mb-2" /><p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p></div>
                   )}
               </CardContent>
           </Card>
@@ -693,10 +775,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                         </ResponsiveContainer>
                     </ChartContainer>
                   ) : (
-                      <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
-                          <Activity className="h-12 w-12 mb-2" />
-                          <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
-                      </div>
+                      <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground opacity-40"><Activity className="h-12 w-12 mb-2" /><p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p></div>
                   )}
               </CardContent>
           </Card>
@@ -735,10 +814,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                         </ResponsiveContainer>
                     </ChartContainer>
                   ) : (
-                      <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
-                          <Activity className="h-12 w-12 mb-2" />
-                          <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
-                      </div>
+                      <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground opacity-40"><Activity className="h-12 w-12 mb-2" /><p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p></div>
                   )}
               </CardContent>
           </Card>
@@ -775,10 +851,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                         </ResponsiveContainer>
                     </ChartContainer>
                   ) : (
-                      <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
-                          <Activity className="h-12 w-12 mb-2" />
-                          <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
-                      </div>
+                      <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground opacity-40"><Activity className="h-12 w-12 mb-2" /><p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p></div>
                   )}
               </CardContent>
           </Card>
@@ -886,10 +959,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                     </TableBody>
                                 </Table>
                             ) : (
-                                <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
-                                    <Activity className="h-12 w-12 mb-2" />
-                                    <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
-                                </div>
+                                <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground opacity-40"><Activity className="h-12 w-12 mb-2" /><p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p></div>
                             )}
                         </ScrollArea>
                     </CardContent>
@@ -945,10 +1015,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                     </TableBody>
                                 </Table>
                             ) : (
-                                <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
-                                    <Activity className="h-12 w-12 mb-2" />
-                                    <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
-                                </div>
+                                <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground opacity-40"><Activity className="h-12 w-12 mb-2" /><p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p></div>
                             )}
                         </ScrollArea>
                     </CardContent>
