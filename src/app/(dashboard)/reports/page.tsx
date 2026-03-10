@@ -25,10 +25,8 @@ import {
     Loader2, 
     School, 
     Users, 
-    FileCheck2, 
     Printer, 
     BarChart3, 
-    PieChart as PieIcon, 
     TrendingUp, 
     ShieldCheck, 
     Activity, 
@@ -38,7 +36,8 @@ import {
     Briefcase,
     Info,
     Target,
-    CheckCircle2
+    CheckCircle2,
+    Zap
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -62,12 +61,11 @@ import {
     Radar,
     RadarChart,
     PolarGrid,
-    PolarAngleAxis
+    PolarAngleAxis,
+    LabelList
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Badge } from '@/components/ui/badge';
-
-const cycles = ['first', 'final'] as const;
 
 export default function ReportsPage() {
   const { userProfile, isAdmin, isUserLoading, isSupervisor } = useUser();
@@ -84,9 +82,6 @@ export default function ReportsPage() {
     }
   }, [isAdmin, userProfile]);
 
-  /**
-   * DATA FETCHING
-   */
   const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
@@ -139,9 +134,6 @@ export default function ReportsPage() {
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
 
-  /**
-   * DATA PROCESSING
-   */
   const processedSubmissions = useMemo(() => {
     if (!rawSubmissions) return [];
     return rawSubmissions.filter(s => s.year === selectedYear);
@@ -169,12 +161,13 @@ export default function ReportsPage() {
       const unitStatuses = campusUnits.map(unit => {
         const uId = String(unit.id).trim();
         const statuses: Record<string, 'submitted' | 'missing' | 'not-applicable'> = {};
+        const cycles = ['first', 'final'] as const;
         cycles.forEach(cycleId => {
-            const rorKey = `${cId}-${uId}-Risk and Opportunity Registry-${cycleId}`.toLowerCase();
+            const rorKey = `${cId}-${uId}-risk and opportunity registry-${cycleId}`.toLowerCase();
             const rorSubmission = submissionMap.get(rorKey);
             const isActionPlanNA = String(rorSubmission?.riskRating || '').toLowerCase() === 'low';
             submissionTypes.forEach(reportType => {
-                const submissionKey = `${cId}-${uId}-${reportType}-${cycleId}`.toLowerCase();
+                const submissionKey = `${cId}-${uId}-${reportType.toLowerCase()}-${cycleId}`.toLowerCase();
                 if (reportType === 'Risk and Opportunity Action Plan' && isActionPlanNA) statuses[submissionKey] = 'not-applicable';
                 else if (submissionMap.has(submissionKey)) statuses[submissionKey] = 'submitted';
                 else statuses[submissionKey] = 'missing';
@@ -187,19 +180,14 @@ export default function ReportsPage() {
     }).filter(Boolean as any).sort((a:any, b:any) => a.campusName.localeCompare(b.campusName));
   }, [rawSubmissions, allCampuses, allUnits, selectedYear, isSupervisor, isAdmin, userProfile, isUserLoading]);
 
-  /**
-   * VISUAL ANALYTICS COMPUTATION
-   */
   const visualAnalytics = useMemo(() => {
     if (!allCampuses || !allUnits) return null;
 
-    // Filter program compliance records based on selected campus
     const filteredCompliances = allCompliances?.filter(c => {
         if (!selectedCampusId || selectedCampusId === 'all') return true;
         return c.campusId === selectedCampusId;
     }) || [];
 
-    // 1. Campus Performance (Always show all for benchmarking unless explicitly filtered)
     const campusPerf = allCampuses.map(c => {
         const campusUnits = allUnits.filter(u => u.campusIds?.includes(c.id));
         const campusSubs = processedSubmissions.filter(s => s.campusId === c.id);
@@ -213,7 +201,6 @@ export default function ReportsPage() {
         };
     });
 
-    // 2. GAD Reports (Responds to Campus Filter)
     let totalMaleEnrolled = 0;
     let totalFemaleEnrolled = 0;
     let totalMaleFaculty = 0;
@@ -221,11 +208,9 @@ export default function ReportsPage() {
     let totalMaleGrads = 0;
     let totalFemaleGrads = 0;
 
-    // Track unique faculty names per campus to avoid double counting shared staff across programs
     const uniqueFacultySet = new Set<string>();
 
     filteredCompliances.forEach(record => {
-        // Enrollment
         const s1 = record.stats?.enrollment?.firstSemester;
         if (s1) {
             ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach((lvl: any) => {
@@ -234,7 +219,6 @@ export default function ReportsPage() {
             });
         }
         
-        // SYSTEM REGISTERED USER (Faculty Registry)
         if (record.faculty) {
             const roster = [...(record.faculty.members || [])];
             if (record.faculty.dean?.name) roster.push(record.faculty.dean as any);
@@ -245,8 +229,7 @@ export default function ReportsPage() {
             
             roster.forEach(m => {
                 if (!m.name) return;
-                // Deduplicate by name and campus to ensure local site totals are accurate
-                const dedupKey = `${m.name}-${record.campusId}`.toLowerCase();
+                const dedupKey = `${m.name.trim()}-${record.campusId}`.toLowerCase();
                 if (!uniqueFacultySet.has(dedupKey)) {
                     uniqueFacultySet.add(dedupKey);
                     if (m.sex === 'Male') totalMaleFaculty++;
@@ -255,7 +238,6 @@ export default function ReportsPage() {
             });
         }
 
-        // Graduates
         record.graduationRecords?.forEach(grad => {
             totalMaleGrads += Number(grad.maleCount || 0);
             totalFemaleGrads += Number(grad.femaleCount || 0);
@@ -277,7 +259,6 @@ export default function ReportsPage() {
         { name: 'Female Graduates', value: totalFemaleGrads, fill: 'hsl(var(--chart-3))' }
     ].filter(d => d.value > 0);
 
-    // 3. Risk Distribution (Responds to Campus Filter)
     const yearRisks = allRisks?.filter(r => {
         const matchesYear = r.year === selectedYear;
         const matchesCampus = (!selectedCampusId || selectedCampusId === 'all') || r.campusId === selectedCampusId;
@@ -288,9 +269,8 @@ export default function ReportsPage() {
         { name: 'High', value: yearRisks.filter(r => r.preTreatment?.rating === 'High').length, fill: 'hsl(var(--destructive))' },
         { name: 'Medium', value: yearRisks.filter(r => r.preTreatment?.rating === 'Medium').length, fill: 'hsl(var(--chart-3))' },
         { name: 'Low', value: yearRisks.filter(r => r.preTreatment?.rating === 'Low').length, fill: 'hsl(var(--chart-2))' },
-    ].filter(d => d.value > 0);
+    ].filter(d => d.value >= 0);
 
-    // 4. Maturity Radar
     const radarData = campusPerf.map(c => ({
         subject: c.name,
         A: c.Maturity,
@@ -331,7 +311,7 @@ export default function ReportsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Institutional Reports</h2>
-          <p className="text-muted-foreground text-sm">Comprehensive university-wide analytics and directory.</p>
+          <p className="text-muted-foreground text-sm">Comprehensive university-wide analytics and system directory.</p>
         </div>
         <div className="flex items-center gap-3">
             <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
@@ -339,7 +319,7 @@ export default function ReportsPage() {
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                    {[2024, 2025, 2026, 2027].map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
+                    {[2024, 2025, 2026, 2027, 2028].map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
                 </SelectContent>
             </Select>
             {isAdmin && (
@@ -362,7 +342,6 @@ export default function ReportsPage() {
         </TabsList>
 
         <TabsContent value="visuals" className="space-y-6 animate-in fade-in duration-500">
-            {/* Context Filter Bar for Visuals */}
             <Card className="border-primary/10 bg-primary/5">
                 <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-2 text-primary">
@@ -370,7 +349,7 @@ export default function ReportsPage() {
                         <span className="text-xs font-black uppercase tracking-widest">Analytics Context: {selectedYear} Registry</span>
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Campus Filter:</span>
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Site Filter:</span>
                         <Select value={selectedCampusId || 'all'} onValueChange={setSelectedCampusId}>
                             <SelectTrigger className="w-[200px] h-8 bg-white border-primary/20 text-xs font-bold">
                                 <SelectValue placeholder="All Campuses" />
@@ -387,7 +366,6 @@ export default function ReportsPage() {
             {visualAnalytics ? (
                 <>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* RADAR MATURITY */}
                     <Card className="lg:col-span-1 shadow-lg border-primary/10 overflow-hidden flex flex-col">
                         <CardHeader className="bg-muted/10 border-b">
                             <CardTitle className="text-sm font-black uppercase flex items-center gap-2">
@@ -401,18 +379,24 @@ export default function ReportsPage() {
                                     <RadarChart cx="50%" cy="50%" outerRadius="80%" data={visualAnalytics.radarData}>
                                         <PolarGrid strokeOpacity={0.1} />
                                         <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                                        <Radar name="Maturity" dataKey="A" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.4} />
+                                        <Radar name="Maturity %" dataKey="A" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.4}>
+                                            <LabelList dataKey="A" position="top" style={{ fontSize: '10px', fontWeight: 'bold', fill: 'hsl(var(--primary))' }} formatter={(v: any) => `${v}%`} />
+                                        </Radar>
                                         <Tooltip content={<ChartTooltipContent />} />
                                     </RadarChart>
                                 </ResponsiveContainer>
                             </ChartContainer>
                         </CardContent>
                         <CardFooter className="bg-muted/5 border-t py-3">
-                            <p className="text-[9px] text-muted-foreground italic leading-tight">Measures % of approved EOMS documentation across campuses.</p>
+                            <div className="flex items-start gap-2">
+                                <Zap className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                                <p className="text-[9px] text-muted-foreground italic leading-tight">
+                                    <strong>Analytical Perspective:</strong> This profile tracks verified documentation maturity across different campuses. A balanced radar signifies consistent adherence to ISO 21001 standards university-wide.
+                                </p>
+                            </div>
                         </CardFooter>
                     </Card>
 
-                    {/* CAMPUS BAR CHART */}
                     <Card className="lg:col-span-2 shadow-lg border-primary/10 overflow-hidden flex flex-col">
                         <CardHeader className="bg-muted/10 border-b">
                             <CardTitle className="text-sm font-black uppercase flex items-center gap-2">
@@ -429,23 +413,33 @@ export default function ReportsPage() {
                                         <YAxis tick={{ fontSize: 10 }} />
                                         <Tooltip content={<ChartTooltipContent />} />
                                         <Legend wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'black', paddingTop: '10px' }} />
-                                        <Bar dataKey="Approved" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
-                                        <Bar dataKey="Pending" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="Approved" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]}>
+                                            <LabelList dataKey="Approved" position="top" style={{ fontSize: '10px', fontWeight: 'bold' }} />
+                                        </Bar>
+                                        <Bar dataKey="Pending" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]}>
+                                            <LabelList dataKey="Pending" position="top" style={{ fontSize: '10px', fontWeight: 'bold' }} />
+                                        </Bar>
                                     </BarChart>
                                 </ResponsiveContainer>
                             </ChartContainer>
                         </CardContent>
+                        <CardFooter className="bg-muted/5 border-t py-3">
+                            <div className="flex items-start gap-2">
+                                <Zap className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                                <p className="text-[9px] text-muted-foreground italic leading-tight">
+                                    <strong>Analytical Perspective:</strong> Benchmarks total approved documents against those awaiting verification. High "Pending" values suggest a need for accelerated review cycles at specific sites.
+                                </p>
+                            </div>
+                        </CardFooter>
                     </Card>
                 </div>
 
-                {/* GAD & GENDER REPORTS SECTION */}
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 text-primary">
                         <Users2 className="h-5 w-5" />
-                        <h3 className="text-lg font-black uppercase tracking-tight">Gender & Development (GAD) Dashboard</h3>
+                        <h3 className="text-lg font-black uppercase tracking-tight">Gender & Development (GAD) Summary</h3>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {/* Student Enrollment GAD */}
                         <Card className="shadow-md border-primary/10 flex flex-col">
                             <CardHeader className="pb-2 border-b bg-blue-50/30">
                                 <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
@@ -464,17 +458,21 @@ export default function ReportsPage() {
                                     </ResponsiveContainer>
                                 </ChartContainer>
                                 <div className="mt-4 text-center">
-                                    <p className="text-2xl font-black text-slate-800">{visualAnalytics.totals.students}</p>
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Enrolled Registry</p>
+                                    <p className="text-2xl font-black text-slate-800 tabular-nums">{visualAnalytics.totals.students}</p>
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Enrollment</p>
                                 </div>
                             </CardContent>
+                            <CardFooter className="bg-muted/5 border-t py-2 px-4">
+                                <p className="text-[8px] text-muted-foreground italic leading-tight">
+                                    <strong>Guidance for usage:</strong> Aggregated headcount based on academic unit enrollment logs.
+                                </p>
+                            </CardFooter>
                         </Card>
 
-                        {/* SYSTEM REGISTERED USER GAD */}
                         <Card className="shadow-md border-primary/10 flex flex-col">
                             <CardHeader className="pb-2 border-b bg-emerald-50/30">
                                 <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
-                                    <Briefcase className="h-4 w-4 text-emerald-600" /> SYSTEM REGISTERED USER Sex Distribution
+                                    <Briefcase className="h-4 w-4 text-emerald-600" /> SYSTEM REGISTERED USER
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-6 flex-1">
@@ -489,13 +487,17 @@ export default function ReportsPage() {
                                     </ResponsiveContainer>
                                 </ChartContainer>
                                 <div className="mt-4 text-center">
-                                    <p className="text-2xl font-black text-slate-800">{visualAnalytics.totals.faculty}</p>
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Total SYSTEM REGISTERED USER Roster</p>
+                                    <p className="text-2xl font-black text-slate-800 tabular-nums">{visualAnalytics.totals.faculty}</p>
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Deduplicated Personnel</p>
                                 </div>
                             </CardContent>
+                            <CardFooter className="bg-muted/5 border-t py-2 px-4">
+                                <p className="text-[8px] text-muted-foreground italic leading-tight">
+                                    <strong>Guidance for usage:</strong> Unique headcount of teaching staff registered across all programs.
+                                </p>
+                            </CardFooter>
                         </Card>
 
-                        {/* Graduation GAD */}
                         <Card className="shadow-md border-primary/10 flex flex-col">
                             <CardHeader className="pb-2 border-b bg-purple-50/30">
                                 <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
@@ -514,23 +516,29 @@ export default function ReportsPage() {
                                     </ResponsiveContainer>
                                 </ChartContainer>
                                 <div className="mt-4 text-center">
-                                    <p className="text-2xl font-black text-slate-800">{visualAnalytics.totals.grads}</p>
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Graduates Logged</p>
+                                    <p className="text-2xl font-black text-slate-800 tabular-nums">{visualAnalytics.totals.grads}</p>
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Graduates</p>
                                 </div>
                             </CardContent>
+                            <CardFooter className="bg-muted/5 border-t py-2 px-4">
+                                <p className="text-[8px] text-muted-foreground italic leading-tight">
+                                    <strong>Guidance for usage:</strong> Institutional output distribution for the selected academic year.
+                                </p>
+                            </CardFooter>
                         </Card>
                     </div>
                 </div>
 
-                {/* RISK DISTRIBUTION */}
-                <Card className="shadow-lg border-primary/10 overflow-hidden">
-                    <CardHeader className="bg-muted/10 border-b">
-                        <CardTitle className="text-sm font-black uppercase flex items-center gap-2">
+                <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
+                    <CardHeader className="bg-muted/10 border-b py-4">
+                        <div className="flex items-center gap-2">
                             <Target className="h-5 w-5 text-primary" />
-                            Institutional Risk Distribution Profile
-                        </CardTitle>
+                            <CardTitle className="text-sm font-black uppercase flex items-center gap-2">
+                                Institutional Risk Distribution Profile
+                            </CardTitle>
+                        </div>
                     </CardHeader>
-                    <CardContent className="pt-6">
+                    <CardContent className="pt-6 flex-1">
                         <ChartContainer config={{}} className="h-[250px] w-full">
                             <ResponsiveContainer>
                                 <BarChart data={visualAnalytics.riskRatingData}>
@@ -539,12 +547,21 @@ export default function ReportsPage() {
                                     <YAxis tick={{ fontSize: 10 }} />
                                     <Tooltip content={<ChartTooltipContent />} />
                                     <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={60}>
+                                        <LabelList dataKey="value" position="top" style={{ fontSize: '11px', fontWeight: '900' }} />
                                         {visualAnalytics.riskRatingData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
                         </ChartContainer>
                     </CardContent>
+                    <CardFooter className="bg-muted/5 border-t py-3">
+                        <div className="flex items-start gap-2">
+                            <Zap className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                            <p className="text-[9px] text-muted-foreground italic leading-tight">
+                                <strong>Analytical Perspective:</strong> Illustrates the university's risk appetite and prioritization. High concentrations in the "High" category indicate areas requiring immediate management intervention or resource allocation.
+                            </p>
+                        </div>
+                    </CardFooter>
                 </Card>
                 </>
             ) : (
