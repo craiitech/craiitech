@@ -130,6 +130,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
     let totalMaleEnrollment = 0;
     let totalFemaleEnrollment = 0;
+    let sem1Total = 0;
+    let sem2Total = 0;
+    let summerTotal = 0;
+
     let totalMaleGrads = 0;
     let totalFemaleGrads = 0;
     let totalMaleTraced = 0;
@@ -248,18 +252,46 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             }
 
             const s1 = record.stats?.enrollment?.firstSemester;
+            const s2 = record.stats?.enrollment?.secondSemester;
+            const sum = record.stats?.enrollment?.midYearTerm;
+
             if (s1) {
                 ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach((lvl: any) => {
-                    totalMaleEnrollment += Number(s1[lvl]?.male || 0);
-                    totalFemaleEnrollment += Number(s1[lvl]?.female || 0);
+                    const m = Number(s1[lvl]?.male || 0);
+                    const f = Number(s1[lvl]?.female || 0);
+                    totalMaleEnrollment += m;
+                    totalFemaleEnrollment += f;
+                    sem1Total += (m + f);
                 });
             }
+            if (s2) {
+                ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach((lvl: any) => {
+                    const m = Number(s2[lvl]?.male || 0);
+                    const f = Number(s2[lvl]?.female || 0);
+                    totalMaleEnrollment += m;
+                    totalFemaleEnrollment += f;
+                    sem2Total += (m + f);
+                });
+            }
+            if (sum) {
+                ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach((lvl: any) => {
+                    const m = Number(sum[lvl]?.male || 0);
+                    const f = Number(sum[lvl]?.female || 0);
+                    totalMaleEnrollment += m;
+                    totalFemaleEnrollment += f;
+                    summerTotal += (m + f);
+                });
+            }
+
             if (record.faculty) {
                 const roster = [...(record.faculty.members || [])];
                 if (record.faculty.dean?.name) roster.push(record.faculty.dean as any);
+                if (record.faculty.associateDean?.name && record.faculty.hasAssociateDean) roster.push(record.faculty.associateDean as any);
                 if (record.faculty.programChair?.name) roster.push(record.faculty.programChair as any);
+                
                 roster.forEach(m => {
-                    if (!m.name) return;
+                    if (!m.name || m.name.trim() === '') return;
+                    // Deduplicate faculty within the scope but count them towards the summary
                     const key = `${m.name.trim()}-${p.campusId}`.toLowerCase();
                     if (!uniqueFacultySet.has(key)) {
                         uniqueFacultySet.add(key);
@@ -321,6 +353,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         achievementHistoryData: sortTimeline(achievementByYear),
         roadmapData,
         roadmapYearBreakdown,
+        totalEnrollment: totalMaleEnrollment + totalFemaleEnrollment,
+        sem1Total, sem2Total, summerTotal,
+        totalMaleFaculty, totalFemaleFaculty, totalFaculty: totalMaleFaculty + totalFemaleFaculty,
         gadEnrollmentData: [{ name: 'Male', value: totalMaleEnrollment, fill: chartConfig.Male.color }, { name: 'Female', value: totalFemaleEnrollment, fill: chartConfig.Female.color }].filter(d => d.value > 0),
         gadFacultyData: [{ name: 'Male', value: totalMaleFaculty, fill: chartConfig.Male.color }, { name: 'Female', value: totalFemaleFaculty, fill: chartConfig.Female.color }].filter(d => d.value > 0),
         gadGraduationData: [{ name: 'Male', value: totalMaleGrads, fill: chartConfig.Male.color }, { name: 'Female', value: totalFemaleGrads, fill: chartConfig.Female.color }].filter(d => d.value > 0),
@@ -372,6 +407,18 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     );
   };
 
+  const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+    const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+
+    return (
+      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-sm font-black">
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
+
   if (isLoading) return <div className="space-y-6"><Skeleton className="h-24 w-full" /><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}</div></div>;
 
   return (
@@ -417,7 +464,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tighter">{analytics?.inactiveAccredited} Inactive Accredited</p>
             </CardContent>
             <CardFooter className="bg-amber-50/30 border-t py-2 px-4">
-                <p className="text-[8px] text-amber-800/60 italic leading-tight"><strong>Guidance for usage:</strong> Measures high-level institutional quality via Level I or higher AACCUP accreditation status.</p>
+                <p className="text-[8px] text-emerald-800/60 italic leading-tight"><strong>Guidance for usage:</strong> Measures high-level institutional quality via Level I or higher AACCUP accreditation status.</p>
             </CardFooter>
         </Card>
 
@@ -495,14 +542,22 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs border-b pb-2"><Users className="h-4 w-4" /> Gender & Development (GAD) Compliance Metrics</div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
-                  { title: 'Student Enrollment Breakdown', data: analytics?.gadEnrollmentData, icon: <Users /> },
-                  { title: 'SYSTEM REGISTERED USERS Registry', data: analytics?.gadFacultyData, icon: <UserCircle /> },
+                  { 
+                    title: `Student Enrollment (Total: ${analytics?.totalEnrollment}) - 1st: ${analytics?.sem1Total} | 2nd: ${analytics?.sem2Total} | Summer: ${analytics?.summerTotal}`, 
+                    data: analytics?.gadEnrollmentData, 
+                    icon: <Users /> 
+                  },
+                  { 
+                    title: `Faculty Composition (M: ${analytics?.totalMaleFaculty}, F: ${analytics?.totalFemaleFaculty}, Total: ${analytics?.totalFaculty})`, 
+                    data: analytics?.gadFacultyData, 
+                    icon: <UserCircle /> 
+                  },
                   { title: 'Graduation Output Analysis', data: analytics?.gadGraduationData, icon: <GraduationCap /> },
                   { title: 'Graduate Employability Tracing', data: analytics?.gadTracerData, icon: <Search /> },
                   { title: 'Institutional Board Performance', chart: 'bar', data: analytics?.boardPerfData, icon: <ShieldCheck /> }
               ].map((card, i) => (
                   <Card key={i} className="shadow-md flex flex-col border-primary/10 overflow-hidden group hover:shadow-lg transition-all h-[320px]">
-                      <CardHeader className="p-4 bg-muted/10 border-b shrink-0"><CardTitle className="text-[11px] font-black uppercase flex items-center gap-2">{card.icon} {card.title}</CardTitle></CardHeader>
+                      <CardHeader className="p-4 bg-muted/10 border-b shrink-0"><CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 leading-tight">{card.icon} {card.title}</CardTitle></CardHeader>
                       <CardContent className="p-6 flex-1 flex items-center justify-center overflow-hidden">
                           {card.chart === 'bar' ? (
                               <ChartContainer config={chartConfig} className="h-full w-full">
@@ -513,7 +568,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                           <RechartsTooltip content={<ChartTooltipContent />} />
                                           <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
                                           <Bar dataKey="rate" radius={[0, 4, 4, 0]} barSize={20}>
-                                              <LabelList dataKey="rate" position="right" formatter={(v: any) => `${v}%`} style={{ fontSize: '13px', fontWeight: '900', fill: 'currentColor' }} />
+                                              <LabelList dataKey="rate" position="right" formatter={(v: any) => `${v}%`} style={{ fontSize: '14px', fontWeight: '900', fill: 'currentColor' }} />
                                               {card.data?.map((e: any, j: any) => <Cell key={j} fill={e.fill} />)}
                                           </Bar>
                                       </BarChart>
@@ -531,8 +586,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                             outerRadius={75} 
                                             paddingAngle={5} 
                                             dataKey="value"
-                                            label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
-                                            labelLine={true}
+                                            label={renderPieLabel}
+                                            labelLine={false}
                                           >
                                               {card.data?.map((e: any, j: any) => <Cell key={j} fill={e.fill} />)}
                                           </Pie>
