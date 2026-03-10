@@ -1,5 +1,5 @@
 
-'use client';
+'use server';
 
 export const faqs = [
   {
@@ -8,17 +8,17 @@ export const faqs = [
       {
         question: 'Who can use this application?',
         answer:
-          'This application is not for general use. Access is restricted to authorized employees of Romblon State University who are directly involved in the Educational Organizations Management System (EOMS) process. All accounts require verification by the Quality Assurance Office.',
+          'This application is restricted to authorized employees of Romblon State University involved in the EOMS process. All accounts require verification by the Quality Assurance Office.',
       },
       {
         question: 'What are the core EOMS documents required?',
         answer:
-          'The system tracks 6 mandatory documents per cycle: SWOT Analysis, Needs and Expectation of Interested Parties, Operational Plan, Quality Objectives Monitoring, Risk and Opportunity Registry, and the Risk and Opportunity Action Plan (required for Medium/High risks).',
+          'The system tracks 6 mandatory documents: SWOT, Needs & Expectations, Operational Plan, Quality Objectives, Risk Registry, and the Risk Action Plan (mandatory for Medium/High risks).',
       },
       {
-        question: 'How does account verification work?',
+        question: 'How do I handle my profile details?',
         answer:
-          'After registration, you must accept a Non-Disclosure Agreement (NDA). Your account enters a pending state until an Admin verifies your identity and institutional role. You will be notified via email once access is granted.',
+          'Users can update their first and last names via the Profile page. Institutional details like Campus, Unit, and Role are locked after verification and can only be changed by an Administrator.',
       },
     ],
   },
@@ -26,24 +26,24 @@ export const faqs = [
     role: 'Unit Coordinators & ODIMOs',
     questions: [
       {
-        question: 'How do I handle document revisions?',
+        question: 'What is the "Draft" submission mode?',
         answer:
-          'The portal uses automated revision control. Any update to a previously submitted or rejected document automatically increments the Revision Number (e.g., from Rev 00 to Rev 01). Each revision is assigned a new official Document Control Number.',
+          'Draft mode allows you to submit a raw Google Doc for content review before securing official signatures. Final mode is for scanned, signed PDFs that complete the compliance checklist.',
       },
       {
-        question: 'Is the Risk Action Plan always mandatory?',
+        question: 'How do I manage the CHED Program Monitoring Workspace?',
         answer:
-          'No. The "Risk and Opportunity Action Plan" is only mandatory if your "Risk and Opportunity Registry" entry resulted in a Medium or High rating. Low-rated risks are exempt and marked as N/A in your compliance checklist.',
+          'Navigate to your academic program. You must maintain five core modules: CHED/RQAT authority, Accreditation milestones, Faculty staffing (sex-disaggregated), Curriculum notation, and Outcome results.',
       },
       {
-        question: 'What is Unit Monitoring?',
+        question: 'How do I register a new unit form?',
         answer:
-          'It is an on-site audit where QA Representatives verify physical compliance (7S, signages, facilities) and documentary evidence. Results are logged in the Monitoring Hub and contribute to your unit\'s performance score.',
+          'In "Unit Forms & Records", download the DRF template, secure signatures, and submit a Registration Request. Once verified by QA and the President, the form is enrolled in your unit\'s official roster.',
       },
       {
-        question: 'How do I resubmit a rejected document?',
+        question: 'What happens if my risk rating is "Low"?',
         answer:
-          'Navigate to the submission details page of the rejected report. Review the conversation history for feedback, paste your new Google Drive link, and click "Submit Corrected Revision".',
+          'If your Risk Registry entry magnitude is below 5, the "Risk Action Plan" is marked as N/A. You are still required to submit the Registry document itself.',
       },
     ],
   },
@@ -51,19 +51,19 @@ export const faqs = [
     role: 'Campus Directors & Supervisors',
     questions: [
       {
-        question: 'How do I track unit compliance gaps?',
+        question: 'How do I monitor site-wide maturity?',
         answer:
-          'Use the "Submissions Hub" and select the "Site Matrix" or "Unit Explorer" tab. The system provides real-time "Maturity Indices" based on approved documents. You can generate printable "Notices of Non-Compliance" for units with outstanding requirements.',
+          'Use the "Site Matrix" in the Submission Hub. Clicking on your campus displays an aggregate dashboard with maturity scores, unit leaderboards, and gap identifications.',
       },
       {
-        question: 'What is the IQA Hub?',
+        question: 'What are Consolidated Notices?',
         answer:
-          'The Internal Quality Audit (IQA) Hub allows for strategic planning and itinerary management. Auditors use it to log objective evidence against ISO 21001:2018 clauses during the audit conduct.',
+          'Supervisors can generate a single "Notice of Compliance" for a fully compliant campus, or a "Notice of Non-Compliance" listing all units with outstanding requirements for the selected year.',
       },
       {
-        question: 'Can I approve my own submissions?',
+        question: 'How do I track Actionable Decisions?',
         answer:
-          'No. To maintain audit integrity, the system automatically filters your own submissions out of your approval queue.',
+          'The "Actionable Decisions" hub lists all tasks assigned to your site from Management Reviews. You must provide implementation updates and evidence to close these items.',
       },
     ],
   },
@@ -71,19 +71,19 @@ export const faqs = [
     role: 'Administrators',
     questions: [
       {
-        question: 'What is the Risk Registry Bridge?',
+        question: 'How do I perform a system backup?',
         answer:
-          'It is a tool on the Submission Details page that allows Admins to directly record risks from a unit\'s uploaded document into the digital Risk Register database, ensuring data parity even if the unit failed to log it manually.',
+          'In Settings > Data & Backups, you can download a multi-sheet XLSX snapshot of the entire database or export the permanent System Audit Log for external quality audits.',
       },
       {
-        question: 'How do I manage the EOMS Manual?',
+        question: 'How do I manage the Institutional Roadmap?',
         answer:
-          'Admins can populate and update the 10 core sections of the official RSU EOMS Manual via the Settings page. This manual is used as a reference during monitoring visits.',
+          'The roadmap is automatically generated from the Accreditation records in the Program Monitoring module. Admins can oversee upcoming survey dates and identify overdue quality milestones.',
       },
       {
-        question: 'Can I re-review a rejected submission?',
+        question: 'Can I re-open a closed decision or CAR?',
         answer:
-          'Yes. As an Admin, you have a "Review" override capability on rejected submissions, allowing you to re-open the approval checklist without waiting for a user resubmission.',
+          'Yes. Administrators have override permissions to update the status of any registry entry, including those marked as Closed, to ensure documentation accuracy.',
       },
     ],
   },

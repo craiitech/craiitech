@@ -7,33 +7,29 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldCheck, BookOpen, ClipboardCheck, FileText, TrendingUp, Search } from 'lucide-react';
+import { ShieldCheck, BookOpen, ClipboardCheck, FileText, TrendingUp, Search, Database, History, Target, ShieldAlert, CheckCircle2 } from 'lucide-react';
 
 const manualSections = [
   {
-    role: 'General (For All Users)',
+    role: 'Institutional Standards (All Users)',
     sections: [
       {
         title: 'Document Control & Revision Logic',
         content: `
-          <p>Every document submitted to the portal is subject to <strong>ISO Document Control</strong> standards:</p>
+          <p>The portal enforces strict ISO Document Control standards for all evidence logs:</p>
           <ul class="list-disc space-y-2 pl-6">
-            <li><strong>Control Numbers:</strong> Generated automatically based on Unit Prefix, Revision No., and Date.</li>
-            <li><strong>Revisions:</strong> Initial submissions start at <strong>Revision 00</strong>. Any update or resubmission increments this (Rev 01, 02, etc.).</li>
-            <li><strong>Fuzzy Matching:</strong> The system automatically identifies documents based on content (e.g., a file named "2025 SWOT" is correctly mapped to "SWOT Analysis").</li>
+            <li><strong>Control Numbers:</strong> Standardized strings (e.g., RSU-UNIT-REV-DOC-DATE) generated automatically upon submission.</li>
+            <li><strong>Revision Tracking:</strong> Submissions start at <strong>Revision 00</strong>. Updates to existing or rejected records increment this automatically (Rev 01, 02, etc.).</li>
+            <li><strong>Draft vs. Final:</strong> Drafts are for content checking (raw docs). Finals are for official filing (signed PDFs).</li>
           </ul>
         `,
       },
       {
-        title: 'The Support Agent (Chatbot)',
+        title: 'Academic Year (AY) Context',
         content: `
-          <p>Accessible via the message icon in the bottom-right corner of your dashboard.</p>
-          <ul class="list-disc space-y-2 pl-6">
-            <li>The AI agent is trained on this manual and can answer specific questions about workflows.</li>
-            <li>It can suggest risk mitigation strategies using the <strong>AI Treatment Suggestion</strong> tool in the Risk Register.</li>
-          </ul>
+          <p>Analytics and registries are scoped by Academic Year. Ensure you have selected the correct <strong>AY Filter</strong> in your dashboard to view the relevant compliance matrix and stats.</p>
         `,
       }
     ],
@@ -44,7 +40,7 @@ const manualSections = [
         {
             title: 'Submitting the 6 Core EOMS Documents',
             content: `
-                <p>The system focuses on the 6 primary strategic planning documents:</p>
+                <p>The system tracks six primary strategic documents per cycle:</p>
                 <ol class="list-decimal space-y-2 pl-6">
                     <li>SWOT Analysis</li>
                     <li>Needs and Expectation of Interested Parties</li>
@@ -53,29 +49,39 @@ const manualSections = [
                     <li>Risk and Opportunity Registry</li>
                     <li>Risk and Opportunity Action Plan</li>
                 </ol>
-                <p class="mt-2"><strong>Note on the Action Plan:</strong> If your Risk Registry entry is rated <strong>Low</strong>, the Action Plan becomes "Not Applicable" (N/A) and is not required for your compliance score.</p>
+                <p class="mt-2"><strong>The Action Plan Rule:</strong> If your Risk Registry entry magnitude is <strong>Low (1-4)</strong>, the Action Plan is N/A. Ratings of <strong>5-25 (Med/High)</strong> trigger a mandatory submission.</p>
             `
         },
         {
-            title: 'Managing the Risk Register',
+            title: 'Managing the Digital Risk Register',
             content: `
-                <p>The Digital Risk Register is a two-step process:</p>
+                <p>Individual risks must be encoded in the database before document submission:</p>
                 <ul class="list-disc space-y-2 pl-6">
-                    <li><strong>Step 1 (Analysis):</strong> Determine Likelihood and Consequence (1-5). Magnitude = L x C.</li>
-                    <li><strong>Step 2 (Treatment):</strong> Required for ratings of 5 or higher. Use the "AI Suggest" button for professional ISO-aligned strategies.</li>
-                    <li><strong>Closing Risks:</strong> Change status to "Closed" and provide <strong>Post-Treatment Analysis</strong> (Residual Risk) and evidence of implementation.</li>
+                    <li><strong>Baseline Analysis:</strong> Determine Likelihood and Consequence (1-5). Use the <strong>AI Suggest</strong> tool for mitigation strategies.</li>
+                    <li><strong>Post-Treatment:</strong> For closing risks, record the actual implementation results and residual impact.</li>
+                    <li><strong>Closure:</strong> Changing status to "Closed" signifies that mitigation is complete and verified.</li>
                 </ul>
             `
         },
         {
             title: 'Program Monitoring Workspace',
             content: `
-                <p>Units offering academic programs must maintain the <strong>Compliance Workspace</strong>:</p>
+                <p>Maintain five compliance pillars for degree offerings:</p>
                 <ul class="list-disc space-y-2 pl-6">
-                    <li><strong>CHED & RQAT:</strong> Upload COPC certificates and BOR resolutions.</li>
-                    <li><strong>Accreditation:</strong> Track AACCUP levels and next survey schedules.</li>
-                    <li><strong>Faculty:</strong> Maintain a disaggregated registry of Core and Teaching faculty.</li>
-                    <li><strong>Outcomes:</strong> Log graduation counts and Tracer Study results.</li>
+                    <li><strong>CHED/RQAT:</strong> Upload COPC certificates and BOR resolutions. For phased-out programs, upload <strong>Closure Authority</strong> evidence.</li>
+                    <li><strong>Accreditation:</strong> Log AACCUP levels and survey results per specialization/major.</li>
+                    <li><strong>Faculty:</strong> Maintain a <strong>"SYSTEM REGISTERED USER"</strong> list with sex-disaggregated data.</li>
+                    <li><strong>Outcomes:</strong> Log graduation counts, Board Exam performance, and Tracer results.</li>
+                </ul>
+            `
+        },
+        {
+            title: 'Unit Forms & Records',
+            content: `
+                <p>Manage your unit's controlled forms roster:</p>
+                <ul class="list-disc space-y-2 pl-6">
+                    <li><strong>Registration:</strong> Apply for new form enrollment using the signed <strong>DRF (Document Registration Form)</strong>.</li>
+                    <li><strong>Roster Access:</strong> Only approved forms appear in the unit roster for download. All downloads are logged for quality auditing.</li>
                 </ul>
             `
         }
@@ -85,24 +91,24 @@ const manualSections = [
       role: 'Campus Directors & Supervisors',
       sections: [
           {
-              title: 'Generating Formal Notices',
+              title: 'Consolidated Site Matrix',
               content: `
-                <p>Supervisors can enforce compliance using the <strong>Notices System</strong>:</p>
+                <p>Oversight tools for site-level management:</p>
                  <ul class="list-disc space-y-2 pl-6">
-                    <li><strong>Notice of Compliance:</strong> A certificate-style notice for units with 100% verified approval.</li>
-                    <li><strong>Notice of Non-Compliance:</strong> A formal memo listing specific missing or unapproved documents.</li>
-                    <li>Both are accessible via the <strong>Submissions Hub -> Unit Explorer</strong>.</li>
+                    <li><strong>Site Maturity:</strong> View aggregate performance across all units in your campus.</li>
+                    <li><strong>Institutional Notices:</strong> Generate printable <strong>Notices of Compliance</strong> (for 100% parity) or <strong>Notices of Non-Compliance</strong> (to flag missing docs).</li>
+                    <li><strong>Unit Explorer:</strong> Drill down into specific unit profiles to verify individual document status.</li>
                 </ul>
               `
           },
           {
-              title: 'Decision Support Dashboards',
+              title: 'Strategic Decision Support',
               content: `
-                <p>Use visual analytics to drive institutional growth:</p>
+                <p>Utilize visual data to drive improvements:</p>
                  <ul class="list-disc space-y-2 pl-6">
-                    <li><strong>Maturity Radar:</strong> Compares your campus against university-wide quality benchmarks.</li>
-                    <li><strong>Compliance Heatmap:</strong> Identifies which units are struggling with specific report types.</li>
-                    <li><strong>Leaderboard:</strong> Highlights top-performing units based on <strong>Verified Approvals</strong>.</li>
+                    <li><strong>Survey Pipeline:</strong> Monitor color-coded quality targets and validity periods for academic programs.</li>
+                    <li><strong>GAD Compliance:</strong> Track sex-disaggregated institutional outputs (Enrollment, Faculty, Graduation).</li>
+                    <li><strong>Decision Resolution:</strong> Provide updates on actionable decisions assigned to your site from Management Reviews.</li>
                 </ul>
               `
           }
@@ -112,24 +118,35 @@ const manualSections = [
       role: 'Administrators',
       sections: [
           {
-              title: 'Risk Registry Bridge',
+              title: 'Institutional Data & Backups',
               content: `
-                <p>To ensure no risk data is missed:</p>
+                <p>Ensure data redundancy and external audit readiness:</p>
                  <ul class="list-disc space-y-2 pl-6">
-                    <li>Open any "Risk and Opportunity Registry" submission.</li>
-                    <li>Click <strong>"Record in Risk Registry"</strong>.</li>
-                    <li>The system pre-fills the unit details, allowing you to log the risk data directly from the document into the database.</li>
+                    <li><strong>Institutional Snapshot:</strong> Generate a multi-sheet XLSX file containing all registries.</li>
+                    <li><strong>Audit Trail Export:</strong> Download the permanent system activity log (Who, What, When).</li>
+                    <li><strong>Manual Snapshots:</strong> High-priority for <strong>ISO 21001:2018 Clause 7.5</strong> compliance.</li>
                 </ul>
               `
           },
           {
               title: 'IQA Strategic Planning',
               content: `
-                <p>Manage the full Internal Quality Audit lifecycle:</p>
+                <p>Manage the university-wide audit lifecycle:</p>
                  <ul class="list-disc space-y-2 pl-6">
-                    <li><strong>Plan:</strong> Establish the institutional framework and lead auditor.</li>
-                    <li><strong>Schedule:</strong> Provision unit-level itineraries and assigned clauses.</li>
-                    <li><strong>Report:</strong> Generate the final consolidated Evidence Log sheets.</li>
+                    <li><strong>Framework:</strong> Establish institutional audit plans and lead auditors.</li>
+                    <li><strong>Itineraries:</strong> Provision specific unit schedules and map ISO clauses to be verified.</li>
+                    <li><strong>Evidence Logs:</strong> Consolidate auditor findings into final Evidence Log reports for printing.</li>
+                </ul>
+              `
+          },
+          {
+              title: 'Quality Reports & CARs',
+              content: `
+                <p>Formal oversight documentation:</p>
+                 <ul class="list-disc space-y-2 pl-6">
+                    <li><strong>CAR Registry:</strong> Issue and track <strong>Corrective Action Requests</strong> based on non-conformances.</li>
+                    <li><strong>MR Outputs:</strong> Record decisions from Management Review sessions and assign accountability.</li>
+                    <li><strong>Vault Management:</strong> Maintain the institutional archive of EQA and IQA summary reports.</li>
                 </ul>
               `
           }
@@ -150,43 +167,47 @@ export default function UserManualPage() {
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="p-4 rounded-xl border bg-muted/20 flex items-center gap-3">
-                <FileText className="h-5 w-5 text-primary" />
-                <span className="text-xs font-bold uppercase">6 Core Reports</span>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div className="p-4 rounded-xl border bg-muted/20 flex flex-col items-center gap-2 text-center">
+                <FileText className="h-6 w-6 text-primary" />
+                <span className="text-[9px] font-black uppercase">Core Reports</span>
             </div>
-            <div className="p-4 rounded-xl border bg-muted/20 flex items-center gap-3">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                <span className="text-xs font-bold uppercase">Maturity Radar</span>
+            <div className="p-4 rounded-xl border bg-muted/20 flex flex-col items-center gap-2 text-center">
+                <TrendingUp className="h-6 w-6 text-primary" />
+                <span className="text-[9px] font-black uppercase">Decision Support</span>
             </div>
-            <div className="p-4 rounded-xl border bg-muted/20 flex items-center gap-3">
-                <ClipboardCheck className="h-5 w-5 text-primary" />
-                <span className="text-xs font-bold uppercase">IQA Conduct</span>
+            <div className="p-4 rounded-xl border bg-muted/20 flex flex-col items-center gap-2 text-center">
+                <ClipboardCheck className="h-6 w-6 text-primary" />
+                <span className="text-[9px] font-black uppercase">IQA Conduct</span>
+            </div>
+            <div className="p-4 rounded-xl border bg-muted/20 flex flex-col items-center gap-2 text-center">
+                <Database className="h-6 w-6 text-primary" />
+                <span className="text-[9px] font-black uppercase">Data Backups</span>
             </div>
         </div>
 
         <Alert className="mb-10 bg-primary/5 border-primary/20">
           <ShieldCheck className="h-5 w-5 text-primary" />
-          <AlertTitle className="font-bold text-primary">Authorized Operations Only</AlertTitle>
+          <AlertTitle className="font-bold text-primary uppercase text-xs">Security & Transparency Standards</AlertTitle>
           <AlertDescription className="text-sm font-medium">
-            Every action performed in this portal—including logins, file views, and status changes—is recorded in the <strong>Permanent System Audit Log</strong> for institutional transparency and security.
+            Every action—logins, document views, status transitions, and data exports—is recorded in the <strong>Permanent System Audit Log</strong>. This ensures institutional accountability and full traceability for external quality audits.
           </AlertDescription>
         </Alert>
 
         <Accordion type="multiple" className="w-full space-y-4">
           {manualSections.map((roleSection) => (
             <div key={roleSection.role} className="space-y-2">
-              <div className="flex items-center gap-2 mb-4 mt-8 bg-slate-50 p-2 rounded-lg border">
-                  <div className="h-2 w-2 rounded-full bg-primary" />
+              <div className="flex items-center gap-2 mb-4 mt-8 bg-slate-50 p-3 rounded-lg border">
+                  <Target className="h-4 w-4 text-primary" />
                   <h3 className="text-lg font-black uppercase tracking-widest text-slate-800">
                     {roleSection.role}
                   </h3>
               </div>
               {roleSection.sections.map((section, index) => (
-                <AccordionItem key={`${roleSection.role}-${index}`} value={`${roleSection.role}-${index}`} className="border rounded-lg px-4 hover:bg-muted/10 transition-colors">
-                  <AccordionTrigger className="text-sm font-bold uppercase hover:no-underline">{section.title}</AccordionTrigger>
+                <AccordionItem key={`${roleSection.role}-${index}`} value={`${roleSection.role}-${index}`} className="border rounded-xl px-4 hover:bg-muted/10 transition-colors bg-white">
+                  <AccordionTrigger className="text-xs font-black uppercase hover:no-underline py-4 text-slate-700">{section.title}</AccordionTrigger>
                   <AccordionContent>
-                    <div className="prose prose-sm max-w-none text-muted-foreground space-y-3 pt-2" dangerouslySetInnerHTML={{ __html: section.content }} />
+                    <div className="prose prose-sm max-w-none text-muted-foreground space-y-3 pt-2 pb-4 leading-relaxed" dangerouslySetInnerHTML={{ __html: section.content }} />
                   </AccordionContent>
                 </AccordionItem>
               ))}
@@ -194,6 +215,17 @@ export default function UserManualPage() {
           ))}
         </Accordion>
       </CardContent>
+      <CardFooter className="bg-muted/10 border-t py-6 px-8">
+        <div className="flex items-start gap-4">
+            <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+                <p className="text-xs font-black uppercase text-slate-800">Technical Support</p>
+                <p className="text-xs text-muted-foreground font-medium">
+                    For technical issues, bug reports, or access resets, please contact the <strong>Center for Research in Artificial Intelligence and Information Technologies (CRAIITech)</strong> or use the internal Chatbot agent available on your dashboard.
+                </p>
+            </div>
+        </div>
+      </CardFooter>
     </Card>
   );
 }
