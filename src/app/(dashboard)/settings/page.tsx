@@ -24,6 +24,7 @@ import { EomsPolicyManualManagement } from '@/components/admin/eoms-policy-manua
 import { UnitGroupingExplorer } from '@/components/admin/unit-grouping-explorer';
 import { AdvisoryManagement } from '@/components/advisories/advisory-management';
 import { SignatoryManagement } from '@/components/admin/signatory-management';
+import { DataBackupManagement } from '@/components/admin/data-backup-management';
 
 
 export default function SettingsPage() {
@@ -66,6 +67,7 @@ export default function SettingsPage() {
             <TabsTrigger value="eoms-policy-manual">RSU EOMS Manual</TabsTrigger>
             <TabsTrigger value="cycles">Cycles &amp; Deadlines</TabsTrigger>
             <TabsTrigger value="campus-settings">Campus Settings</TabsTrigger>
+            <TabsTrigger value="backups">Data &amp; Backups</TabsTrigger>
             <TabsTrigger value="error-reports">Error Reports</TabsTrigger>
           </TabsList>
           <TabsContent value="users" className="space-y-4">
@@ -102,6 +104,9 @@ export default function SettingsPage() {
             <CampusSettingsManagement />
             <Separator />
             <AnnouncementManagement />
+          </TabsContent>
+          <TabsContent value="backups" className="space-y-4">
+            <DataBackupManagement />
           </TabsContent>
            <TabsContent value="error-reports" className="space-y-4">
             <ErrorReportManagement />
