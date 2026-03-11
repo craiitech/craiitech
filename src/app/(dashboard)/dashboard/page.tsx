@@ -267,6 +267,12 @@ export default function HomePage() {
    const allCampusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(allCampusesQuery);
   
+  const campusMap = useMemo(() => {
+    const map = new Map<string, string>();
+    campuses?.forEach(c => map.set(c.id, c.name));
+    return map;
+  }, [campuses]);
+
   const allCyclesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'cycles') : null, [firestore]);
   const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(allCyclesQuery);
 
@@ -738,7 +744,8 @@ export default function HomePage() {
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
             <div className="lg:col-span-4 space-y-4">
                 {unitsInCampus.length === 0 && !isLoading && (
-                    <Alert><AlertCircle className="h-4 w-4" /><AlertTitle>Campus Setup Required</AlertTitle><AlertDescription className="flex items-center justify-between"><span>Your campus does not have any units assigned. Please set up units to begin tracking submissions.</span><Button onClick={() => router.push('/settings')}><Settings className="mr-2 h-4 w-4" />Setup Units</Button></AlertDescription></Alert>
+                    <Alert><AlertCircle className="h-4 w-4" /><AlertTitle>Campus Setup Required</AlertTitle><AlertDescription className="flex items-center justify-between"><span>Your campus does not have any units assigned. Please set up units to begin tracking submissions.</span><Button onClick={() => router.push('/settings')}>
+                                <Settings className="mr-2 h-4 w-4" />Setup Units</Button></AlertDescription></Alert>
                 )}
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                     {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
