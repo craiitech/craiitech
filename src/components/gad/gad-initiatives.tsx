@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -85,7 +86,7 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
 
   const filteredInitiatives = useMemo(() => {
-    let filtered = initiatives;
+    let filtered = initiatives || [];
     
     // Strict Scoping for Coordinators
     if (isGadCoordinator && userProfile?.unitId) {
@@ -94,7 +95,7 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
 
     return filtered.filter(i => 
         i.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        unitMap.get(i.unitId)?.toLowerCase().includes(searchTerm.toLowerCase())
+        (unitMap.get(i.unitId)?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
   }, [initiatives, searchTerm, unitMap, isGadCoordinator, userProfile?.unitId]);
 
