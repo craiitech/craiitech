@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -53,6 +52,11 @@ export function GADOverview({ initiatives, compliances, selectedYear }: GADOverv
                 <Progress value={stats.utilizationRate} className="h-1 bg-emerald-100" />
                 <p className="text-[9px] font-bold text-emerald-600 mt-2 uppercase">Actual Utilization: ₱{stats.totalUtilized.toLocaleString()}</p>
             </CardContent>
+            <div className="p-3 bg-green-100/20 border-t mt-auto">
+                <p className="text-[9px] text-green-800/60 italic leading-tight">
+                    <strong>Guidance for usage:</strong> Percentage of the allocated GAD budget that has been officially utilized.
+                </p>
+            </div>
         </Card>
 
         <Card className="shadow-sm border-blue-100 bg-blue-50/10 flex flex-col relative overflow-hidden">

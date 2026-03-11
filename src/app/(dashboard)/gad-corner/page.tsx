@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -28,8 +27,8 @@ export default function GadCornerPage() {
   const { data: compliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
   const initiativesQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading) return null;
-    return query(collection(firestore, 'gadInitiatives'), where('year', '==', selectedYear), orderBy('createdAt', 'desc'));
+    // Temporarily disabled listing as per user request to not list/display yet
+    return null;
   }, [firestore, isUserLoading, selectedYear]);
   const { data: initiatives, isLoading: isLoadingInitiatives } = useCollection<GADInitiative>(initiativesQuery);
 
