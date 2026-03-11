@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -85,18 +86,11 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
 
   const filteredInitiatives = useMemo(() => {
-    let filtered = initiatives || [];
-    
-    // Scoping check for unit users - ensure they only see their unit's data
-    if (isGadCoordinator && userProfile?.unitId) {
-        filtered = filtered.filter(i => i.unitId === userProfile.unitId);
-    }
-
-    return filtered.filter(i => 
+    return initiatives.filter(i => 
         i.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (unitMap.get(i.unitId)?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
-  }, [initiatives, searchTerm, unitMap, isGadCoordinator, userProfile?.unitId]);
+  }, [initiatives, searchTerm, unitMap]);
 
   const form = useForm<z.infer<typeof initiativeSchema>>({
     resolver: zodResolver(initiativeSchema),
@@ -144,7 +138,7 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
     if (!firestore || !window.confirm('Delete this initiative permanently?')) return;
     try {
       await deleteDoc(doc(firestore, 'gadInitiatives', id));
-      toast({ title: 'Advisory Removed', description: 'The record has been deleted.' });
+      toast({ title: 'Record Removed', description: 'The record has been deleted.' });
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to delete record.', variant: 'destructive' });
     }

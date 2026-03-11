@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -33,43 +34,25 @@ export default function GadCornerPage() {
 
   /**
    * SCOPED COMPLIANCES FETCHING
-   * Pulls academic data for SDD calculations
+   * Pulls academic data for SDD calculations - strictly scoped to the selected unit
    */
   const compliancesQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !userProfile) return null;
+    if (!firestore || isUserLoading || !userProfile || selectedUnitId === 'all') return null;
     const baseRef = collection(firestore, 'programCompliances');
-    
-    // Scoping logic
-    let q = query(baseRef, where('academicYear', '==', selectedYear));
-    
-    if (selectedUnitId !== 'all') {
-        q = query(q, where('unitId', '==', selectedUnitId));
-    } else if (!isAdmin && isSupervisor) {
-        q = query(q, where('campusId', '==', userProfile.campusId));
-    }
-
-    return q;
-  }, [firestore, isUserLoading, selectedYear, selectedUnitId, isAdmin, isSupervisor, userProfile]);
+    return query(baseRef, where('academicYear', '==', selectedYear), where('unitId', '==', selectedUnitId));
+  }, [firestore, isUserLoading, selectedYear, selectedUnitId, userProfile]);
   
   const { data: compliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
   /**
    * SCOPED GAD INITIATIVES FETCHING
+   * Strictly scoped to the selected unit
    */
   const initiativesQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !userProfile) return null;
+    if (!firestore || isUserLoading || !userProfile || selectedUnitId === 'all') return null;
     const baseRef = collection(firestore, 'gadInitiatives');
-    
-    let q = query(baseRef, where('year', '==', selectedYear));
-
-    if (selectedUnitId !== 'all') {
-        q = query(q, where('unitId', '==', selectedUnitId));
-    } else if (!isAdmin && isSupervisor) {
-        q = query(q, where('campusId', '==', userProfile.campusId));
-    }
-
-    return q;
-  }, [firestore, isUserLoading, selectedYear, selectedUnitId, isAdmin, isSupervisor, userProfile]);
+    return query(baseRef, where('year', '==', selectedYear), where('unitId', '==', selectedUnitId));
+  }, [firestore, isUserLoading, selectedYear, selectedUnitId, userProfile]);
   
   const { data: initiatives, isLoading: isLoadingInitiatives } = useCollection<GADInitiative>(initiativesQuery);
 
@@ -87,7 +70,7 @@ export default function GadCornerPage() {
   }, [units, isAdmin, isSupervisor, userProfile]);
 
   const currentUnitName = useMemo(() => {
-    if (selectedUnitId === 'all') return 'Institutional Overview';
+    if (selectedUnitId === 'all') return 'Select Unit to View Analytics';
     return units?.find(u => u.id === selectedUnitId)?.name || 'Unknown Unit';
   }, [units, selectedUnitId]);
 
@@ -120,7 +103,6 @@ export default function GadCornerPage() {
                             <SelectValue placeholder="Select Unit" />
                         </SelectTrigger>
                         <SelectContent>
-                            {(isAdmin || isSupervisor) && <SelectItem value="all">Institutional View</SelectItem>}
                             {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -156,40 +138,50 @@ export default function GadCornerPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="animate-in fade-in duration-500">
-          <GADOverview 
-            initiatives={initiatives || []} 
-            compliances={compliances || []}
-            selectedYear={selectedYear}
-            unitName={currentUnitName}
-          />
-        </TabsContent>
+        {selectedUnitId === 'all' ? (
+            <div className="flex flex-col items-center justify-center h-64 text-center border rounded-lg border-dashed bg-muted/5">
+                <Building className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
+                <h3 className="text-lg font-bold text-muted-foreground">Select a Unit to Load GAD Data</h3>
+                <p className="text-sm text-muted-foreground mt-1">Use the Context Filter at the top right to select a specific office or department.</p>
+            </div>
+        ) : (
+            <>
+                <TabsContent value="overview" className="animate-in fade-in duration-500">
+                <GADOverview 
+                    initiatives={initiatives || []} 
+                    compliances={compliances || []}
+                    selectedYear={selectedYear}
+                    unitName={currentUnitName}
+                />
+                </TabsContent>
 
-        <TabsContent value="sdd">
-          <SDDHub 
-            compliances={compliances || []} 
-            campuses={campuses || []} 
-            units={units || []}
-            selectedYear={selectedYear}
-            unitName={currentUnitName}
-          />
-        </TabsContent>
+                <TabsContent value="sdd">
+                <SDDHub 
+                    compliances={compliances || []} 
+                    campuses={campuses || []} 
+                    units={units || []}
+                    selectedYear={selectedYear}
+                    unitName={currentUnitName}
+                />
+                </TabsContent>
 
-        <TabsContent value="initiatives">
-          <GADInitiatives 
-            initiatives={initiatives || []}
-            campuses={campuses || []}
-            units={units || []}
-            selectedYear={selectedYear}
-          />
-        </TabsContent>
+                <TabsContent value="initiatives">
+                <GADInitiatives 
+                    initiatives={initiatives || []}
+                    campuses={campuses || []}
+                    units={units || []}
+                    selectedYear={selectedYear}
+                />
+                </TabsContent>
 
-        <TabsContent value="mainstreaming">
-          <GADMainstreaming 
-            units={units || []}
-            selectedYear={selectedYear}
-          />
-        </TabsContent>
+                <TabsContent value="mainstreaming">
+                <GADMainstreaming 
+                    units={units || []}
+                    selectedYear={selectedYear}
+                />
+                </TabsContent>
+            </>
+        )}
       </Tabs>
     </div>
   );

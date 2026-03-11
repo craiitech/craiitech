@@ -1,11 +1,11 @@
+
 'use client';
 
 import { useMemo } from 'react';
 import type { GADInitiative, ProgramComplianceRecord } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import { ShieldCheck, CheckCircle2, AlertTriangle, Activity, HandHeart, Target, Landmark, Info } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, HandHeart, Target, Landmark, Info, Activity } from 'lucide-react';
 
 interface GADOverviewProps {
   initiatives: GADInitiative[];
@@ -154,9 +154,8 @@ export function GADOverview({ initiatives, compliances, selectedYear, unitName }
                         <p className="text-xs font-bold text-amber-800">Unit FY {selectedYear} Accomplishment</p>
                     </div>
                 </div>
-                <Separator />
                 <div className="mt-6 p-4 rounded-xl bg-white border border-amber-100 flex items-start gap-3">
-                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                     <p className="text-[10px] text-amber-800 leading-relaxed italic font-medium">
                         Units must update their <strong>Accomplishment Status</strong> monthly to maintain accurate institutional reporting.
                     </p>
