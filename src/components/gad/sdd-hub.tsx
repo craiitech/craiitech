@@ -26,11 +26,12 @@ interface SDDHubProps {
   campuses: Campus[];
   units: Unit[];
   selectedYear: number;
+  unitName?: string;
 }
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))'];
 
-export function SDDHub({ compliances, campuses, units, selectedYear }: SDDHubProps) {
+export function SDDHub({ compliances, campuses, units, selectedYear, unitName }: SDDHubProps) {
   const aggregatedData = useMemo(() => {
     let totalMaleEnrolled = 0;
     let totalFemaleEnrolled = 0;
@@ -99,19 +100,19 @@ export function SDDHub({ compliances, campuses, units, selectedYear }: SDDHubPro
       <Card className="border-primary/20 bg-primary/5 shadow-sm">
         <CardHeader className="py-4">
             <div className="flex items-center gap-2 text-primary mb-1">
-                <Info className="h-4 w-4" />
-                <span className="text-[10px] font-black uppercase tracking-widest">PCW Compliance Standard</span>
+                <Info className="h-4 w-4 text-primary" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Unit SDD Registry</span>
             </div>
-            <CardTitle className="text-lg font-black uppercase tracking-tight">Sex-Disaggregated Data (SDD) Hub</CardTitle>
-            <CardDescription className="text-xs">Consolidated headcount analysis derived from verified academic monitoring records for AY {selectedYear}.</CardDescription>
+            <CardTitle className="text-lg font-black uppercase tracking-tight">Sex-Disaggregated Data (SDD) Hub: {unitName}</CardTitle>
+            <CardDescription className="text-xs">Consolidated headcount analysis derived from this unit's verified academic monitoring records for AY {selectedYear}.</CardDescription>
         </CardHeader>
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-            { title: 'Student Population', data: aggregatedData.enrollment, total: aggregatedData.totals.students, icon: <Users className="h-5 w-5 text-primary" />, desc: 'Disaggregated Enrollment' },
-            { title: 'Personnel Distribution', data: aggregatedData.faculty, total: aggregatedData.totals.faculty, icon: <UserCircle className="h-5 w-5 text-emerald-600" />, desc: 'System Registered User' },
-            { title: 'Graduation Output', data: aggregatedData.graduation, total: aggregatedData.totals.grads, icon: <GraduationCap className="h-5 w-5 text-purple-600" />, desc: 'Degree Completion Audit' }
+            { title: 'Student Population', data: aggregatedData.enrollment, total: aggregatedData.totals.students, icon: <Users className="h-5 w-5 text-primary" />, desc: 'Unit Enrollment' },
+            { title: 'Personnel Distribution', data: aggregatedData.faculty, total: aggregatedData.totals.faculty, icon: <UserCircle className="h-5 w-5 text-emerald-600" />, desc: 'Unit Registered Users' },
+            { title: 'Graduation Output', data: aggregatedData.graduation, total: aggregatedData.totals.grads, icon: <GraduationCap className="h-5 w-5 text-purple-600" />, desc: 'Degree Completion' }
         ].map((hub, i) => (
             <Card key={i} className="shadow-lg flex flex-col border-primary/10 overflow-hidden group hover:shadow-xl transition-all h-[400px]">
                 <CardHeader className="p-4 bg-muted/10 border-b shrink-0 text-center">
@@ -150,12 +151,12 @@ export function SDDHub({ compliances, campuses, units, selectedYear }: SDDHubPro
                     ) : (
                         <div className="flex flex-col items-center justify-center text-center opacity-20 space-y-3">
                             <PieIcon className="h-12 w-12" />
-                            <p className="text-[10px] font-black uppercase tracking-widest">NO DATA YET!</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest">NO DATA FOR THIS UNIT</p>
                         </div>
                     )}
                 </CardContent>
                 <CardFooter className="bg-muted/5 border-t py-3 px-6 shrink-0">
-                    <p className="text-[9px] text-muted-foreground italic leading-tight text-center">Source: Verified Program Monitoring AY {selectedYear}</p>
+                    <p className="text-[9px] text-muted-foreground italic leading-tight text-center">Source: Unit Academic Monitoring AY {selectedYear}</p>
                 </CardFooter>
             </Card>
         ))}
@@ -174,10 +175,7 @@ export function SDDHub({ compliances, campuses, units, selectedYear }: SDDHubPro
             </div>
             <div className="space-y-2">
                 <p className="text-sm text-slate-700 leading-relaxed">
-                    Sex-disaggregated data is more than a headcount; it is the <strong>baseline for gender-responsive planning</strong>. The university uses these metrics to identify gender gaps in enrollment, degree choice, and faculty leadership roles.
-                </p>
-                <p className="text-xs text-muted-foreground italic">
-                    Note: SDD data shown here is aggregated from <strong>Approved</strong> compliance records. Units with pending records may not be reflected in the current totals.
+                    Unit-specific SDD is vital for identifying localized gender gaps. Ensure your <strong>Program Compliance Records</strong> are updated quarterly to maintain accurate institutional analytics.
                 </p>
             </div>
         </CardContent>

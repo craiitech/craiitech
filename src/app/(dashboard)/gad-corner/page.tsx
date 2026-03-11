@@ -1,39 +1,75 @@
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { Campus, Unit, ProgramComplianceRecord, GADInitiative } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, HandHeart, Users, BarChart3, ListChecks, Target } from 'lucide-react';
+import { Loader2, HandHeart, Users, BarChart3, ListChecks, Target, Building } from 'lucide-react';
 import { SDDHub } from '@/components/gad/sdd-hub';
 import { GADOverview } from '@/components/gad/gad-overview';
 import { GADInitiatives } from '@/components/gad/gad-initiatives';
 import { GADMainstreaming } from '@/components/gad/gad-mainstreaming';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
 export default function GadCornerPage() {
-  const { userProfile, isAdmin, isUserLoading, userRole } = useUser();
+  const { userProfile, isAdmin, isUserLoading, userRole, isSupervisor } = useUser();
   const firestore = useFirestore();
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [selectedUnitId, setSelectedUnitId] = useState<string>('all');
 
+  // Initialize selected unit based on role
+  useEffect(() => {
+    if (userProfile && !isUserLoading) {
+        if (userProfile.unitId) {
+            setSelectedUnitId(userProfile.unitId);
+        }
+    }
+  }, [userProfile, isUserLoading]);
+
+  /**
+   * SCOPED COMPLIANCES FETCHING
+   * Pulls academic data for SDD calculations
+   */
   const compliancesQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading) return null;
-    return query(collection(firestore, 'programCompliances'), where('academicYear', '==', selectedYear));
-  }, [firestore, isUserLoading, selectedYear]);
+    if (!firestore || isUserLoading || !userProfile) return null;
+    const baseRef = collection(firestore, 'programCompliances');
+    
+    // Scoping logic
+    let q = query(baseRef, where('academicYear', '==', selectedYear));
+    
+    if (selectedUnitId !== 'all') {
+        q = query(q, where('unitId', '==', selectedUnitId));
+    } else if (!isAdmin && isSupervisor) {
+        q = query(q, where('campusId', '==', userProfile.campusId));
+    }
+
+    return q;
+  }, [firestore, isUserLoading, selectedYear, selectedUnitId, isAdmin, isSupervisor, userProfile]);
+  
   const { data: compliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
   /**
-   * GAD INITIATIVES FETCHING
-   * Temporarily disabled as per user request to hold off on listing initiatives.
+   * SCOPED GAD INITIATIVES FETCHING
    */
   const initiativesQuery = useMemoFirebase(() => {
-    return null; // Query disabled temporarily
-  }, [firestore, isUserLoading, userProfile, userRole, isAdmin, selectedYear]);
+    if (!firestore || isUserLoading || !userProfile) return null;
+    const baseRef = collection(firestore, 'gadInitiatives');
+    
+    let q = query(baseRef, where('year', '==', selectedYear));
+
+    if (selectedUnitId !== 'all') {
+        q = query(q, where('unitId', '==', selectedUnitId));
+    } else if (!isAdmin && isSupervisor) {
+        q = query(q, where('campusId', '==', userProfile.campusId));
+    }
+
+    return q;
+  }, [firestore, isUserLoading, selectedYear, selectedUnitId, isAdmin, isSupervisor, userProfile]);
   
   const { data: initiatives, isLoading: isLoadingInitiatives } = useCollection<GADInitiative>(initiativesQuery);
 
@@ -43,15 +79,19 @@ export default function GadCornerPage() {
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
 
-  const isLoading = isUserLoading || isLoadingCompliances;
+  const filteredUnitsList = useMemo(() => {
+    if (!units) return [];
+    if (isAdmin) return units;
+    if (isSupervisor) return units.filter(u => u.campusIds?.includes(userProfile?.campusId || ''));
+    return units.filter(u => u.id === userProfile?.unitId);
+  }, [units, isAdmin, isSupervisor, userProfile]);
 
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const currentUnitName = useMemo(() => {
+    if (selectedUnitId === 'all') return 'Institutional Overview';
+    return units?.find(u => u.id === selectedUnitId)?.name || 'Unknown Unit';
+  }, [units, selectedUnitId]);
+
+  const isLoading = isUserLoading || isLoadingCompliances || isLoadingInitiatives;
 
   return (
     <div className="space-y-6">
@@ -61,15 +101,35 @@ export default function GadCornerPage() {
             <HandHeart className="h-8 w-8 text-primary" />
             GAD Corner
           </h2>
-          <p className="text-muted-foreground">
-            Gender and Development initiatives following PCW standards for institutional reporting.
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-muted-foreground text-sm">
+                Gender and Development Hub &bull; 
+            </p>
+            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black uppercase text-[10px]">
+                {currentUnitName}
+            </Badge>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+            {(isAdmin || isSupervisor) && (
+                <div className="flex flex-col items-end">
+                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block">Context Filter</label>
+                    <Select value={selectedUnitId} onValueChange={setSelectedUnitId}>
+                        <SelectTrigger className="w-[220px] h-9 font-bold bg-white shadow-sm">
+                            <Building className="h-3 w-3 mr-2 opacity-40" />
+                            <SelectValue placeholder="Select Unit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {(isAdmin || isSupervisor) && <SelectItem value="all">Institutional View</SelectItem>}
+                            {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
             <div className="flex flex-col items-end">
                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block">Fiscal Year</label>
                 <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                    <SelectTrigger className="w-[140px] h-9 font-bold bg-white shadow-sm">
+                    <SelectTrigger className="w-[120px] h-9 font-bold bg-white shadow-sm">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -83,10 +143,10 @@ export default function GadCornerPage() {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="bg-muted p-1 border shadow-sm w-full md:w-auto h-auto grid grid-cols-2 md:inline-flex">
           <TabsTrigger value="overview" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
-            <BarChart3 className="h-4 w-4" /> Strategic Overview
+            <BarChart3 className="h-4 w-4" /> Unit Overview
           </TabsTrigger>
           <TabsTrigger value="sdd" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
-            <Users className="h-4 w-4" /> SDD Hub
+            <Users className="h-4 w-4" /> Unit SDD Hub
           </TabsTrigger>
           <TabsTrigger value="initiatives" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
             <Target className="h-4 w-4" /> GAD Initiatives
@@ -101,6 +161,7 @@ export default function GadCornerPage() {
             initiatives={initiatives || []} 
             compliances={compliances || []}
             selectedYear={selectedYear}
+            unitName={currentUnitName}
           />
         </TabsContent>
 
@@ -110,6 +171,7 @@ export default function GadCornerPage() {
             campuses={campuses || []} 
             units={units || []}
             selectedYear={selectedYear}
+            unitName={currentUnitName}
           />
         </TabsContent>
 

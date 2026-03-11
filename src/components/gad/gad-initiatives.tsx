@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -79,7 +78,7 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
   const [editingInitiative, setEditingInitiative] = useState<GADInitiative | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const isGadCoordinator = userRole?.toLowerCase().includes('coordinator') && !isAdmin;
+  const isGadCoordinator = (userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO') && !isAdmin;
   const canManage = isAdmin || userRole?.toLowerCase().includes('coordinator') || userRole?.toLowerCase().includes('director');
 
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
@@ -88,7 +87,7 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
   const filteredInitiatives = useMemo(() => {
     let filtered = initiatives || [];
     
-    // Strict Scoping for Coordinators
+    // Scoping check for unit users - ensure they only see their unit's data
     if (isGadCoordinator && userProfile?.unitId) {
         filtered = filtered.filter(i => i.unitId === userProfile.unitId);
     }
@@ -145,7 +144,7 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
     if (!firestore || !window.confirm('Delete this initiative permanently?')) return;
     try {
       await deleteDoc(doc(firestore, 'gadInitiatives', id));
-      toast({ title: 'Initiative Removed', description: 'The record has been deleted.' });
+      toast({ title: 'Advisory Removed', description: 'The record has been deleted.' });
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to delete record.', variant: 'destructive' });
     }
@@ -173,14 +172,14 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search projects or units..."
+            placeholder="Search projects..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9 h-10 shadow-sm"
           />
         </div>
         {canManage && (
-          <Button onClick={() => { setEditingInitiative(null); form.reset(); setIsDialogOpen(true); }} className="h-10 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest">
+          <Button onClick={() => { setEditingInitiative(null); form.reset({ campusId: userProfile?.campusId || '', unitId: userProfile?.unitId || '', title: '', description: '', budget: 0, utilizedAmount: 0, beneficiariesMale: 0, beneficiariesFemale: 0, status: 'Planned' }); setIsDialogOpen(true); }} className="h-10 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest">
             <PlusCircle className="mr-2 h-4 w-4" /> Register GAD Project
           </Button>
         )}
@@ -257,7 +256,7 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
                   <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-2 opacity-20">
                         <HandHeart className="h-10 w-10" />
-                        <p className="text-[10px] font-black uppercase tracking-widest">No projects registered</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest">No unit projects registered</p>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -273,7 +272,7 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
                 <Target className="h-5 w-5" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Project Enrollment</span>
             </div>
-            <DialogTitle>{editingInitiative ? 'Update' : 'Register'} GAD Initiative</DialogTitle>
+            <DialogTitle>{editingInitiative ? 'Update' : 'Register'} Unit GAD Initiative</DialogTitle>
             <DialogDescription className="text-xs">Capture metadata for the GAD Plan and Budget (GPB) alignment.</DialogDescription>
           </DialogHeader>
           

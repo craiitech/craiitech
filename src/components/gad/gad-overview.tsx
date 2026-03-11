@@ -11,9 +11,10 @@ interface GADOverviewProps {
   initiatives: GADInitiative[];
   compliances: ProgramComplianceRecord[];
   selectedYear: number;
+  unitName?: string;
 }
 
-export function GADOverview({ initiatives, compliances, selectedYear }: GADOverviewProps) {
+export function GADOverview({ initiatives, compliances, selectedYear, unitName }: GADOverviewProps) {
   const stats = useMemo(() => {
     const totalBudget = initiatives.reduce((acc, i) => acc + (i.budget || 0), 0);
     const totalUtilized = initiatives.reduce((acc, i) => acc + (i.utilizedAmount || 0), 0);
@@ -34,7 +35,7 @@ export function GADOverview({ initiatives, compliances, selectedYear }: GADOverv
         <Card className="shadow-sm border-primary/10 relative overflow-hidden flex flex-col">
             <div className="absolute top-0 right-0 p-2 opacity-5"><Landmark className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
-                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total GAD Budget Registry</CardDescription>
+                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Budget Registry</CardDescription>
                 <CardTitle className="text-2xl font-black text-primary tabular-nums">₱{stats.totalBudget.toLocaleString()}</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
@@ -54,7 +55,7 @@ export function GADOverview({ initiatives, compliances, selectedYear }: GADOverv
             </CardContent>
             <div className="p-3 bg-green-100/20 border-t mt-auto">
                 <p className="text-[9px] text-green-800/60 italic leading-tight">
-                    <strong>Guidance for usage:</strong> Percentage of the allocated GAD budget that has been officially utilized.
+                    Percentage of the unit's allocated GAD budget used.
                 </p>
             </div>
         </Card>
@@ -72,7 +73,7 @@ export function GADOverview({ initiatives, compliances, selectedYear }: GADOverv
 
         <Card className="shadow-sm border-purple-100 bg-purple-50/10 flex flex-col relative overflow-hidden">
             <CardHeader className="pb-2">
-                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-purple-700">Reach Distribution</CardDescription>
+                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-purple-700">Unit Reach Distribution</CardDescription>
                 <CardTitle className="text-2xl font-black text-purple-600 tabular-nums">{stats.maleBen + stats.femaleBen}</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
@@ -86,7 +87,7 @@ export function GADOverview({ initiatives, compliances, selectedYear }: GADOverv
             <CardHeader className="bg-primary/5 border-b py-4">
                 <div className="flex items-center gap-2">
                     <ShieldCheck className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-sm font-black uppercase tracking-tight">GAD Mainstreaming Context</CardTitle>
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">GAD Mainstreaming Context: {unitName}</CardTitle>
                 </div>
             </CardHeader>
             <CardContent className="p-8 space-y-6">
@@ -95,23 +96,23 @@ export function GADOverview({ initiatives, compliances, selectedYear }: GADOverv
                     <div className="space-y-2">
                         <h4 className="font-black text-slate-900 uppercase text-sm">Institutional Commitment: The 5% Mandate</h4>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                            Following the guidelines of the <strong>Philippine Commission on Women (PCW)</strong>, Romblon State University is mandated to allocate at least <strong>5%</strong> of its total budget to Gender and Development initiatives. This dashboard tracks the planning, execution, and disaggregated impact of those funds across all campuses.
+                            Following the guidelines of the <strong>Philippine Commission on Women (PCW)</strong>, each unit at Romblon State University is tasked with integrating gender-responsive planning into its operations. This unit-level dashboard tracks the local planning, execution, and disaggregated impact of GAD-aligned projects.
                         </p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                        <h5 className="text-[10px] font-black uppercase tracking-widest text-primary border-b pb-1">Core Pillars of GAD Reporting</h5>
+                        <h5 className="text-[10px] font-black uppercase tracking-widest text-primary border-b pb-1">Unit GAD Responsibilities</h5>
                         <ul className="space-y-3">
                             {[
-                                { title: 'Sex-Disaggregated Data (SDD)', desc: 'Baseline headcount of students, faculty, and staff by sex.' },
-                                { title: 'GAD Plan and Budget (GPB)', desc: 'Official annual roadmap for gender-responsive projects.' },
-                                { title: 'GAD Accomplishment Report (GAR)', desc: 'Evidence-based reporting of utilized funds and reached targets.' }
+                                { title: 'Local SDD Maintenance', desc: 'Accurate headcount of students and faculty by sex.' },
+                                { title: 'Unit GPB Contribution', desc: 'Local roadmap for gender-responsive activities.' },
+                                { title: 'Accomplishment Reporting', desc: 'Quarterly logs of utilized funds and reached targets.' }
                             ].map((p, i) => (
                                 <li key={i} className="flex items-start gap-3 group">
                                     <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-primary group-hover:text-white transition-colors">
-                                        <CheckCircle2 className="h-3 w-3" />
+                                        <CheckCircle2 className="h-3.5 w-3.5" />
                                     </div>
                                     <div className="space-y-0.5">
                                         <p className="text-xs font-bold text-slate-800">{p.title}</p>
@@ -125,7 +126,7 @@ export function GADOverview({ initiatives, compliances, selectedYear }: GADOverv
                         <HandHeart className="h-12 w-12 text-indigo-600 mb-4 opacity-40" />
                         <p className="text-xs font-black text-indigo-900 uppercase mb-2">PCW Standard Alignment</p>
                         <p className="text-[10px] text-indigo-700 font-medium italic leading-relaxed">
-                            "The RSU EOMS Portal ensures that GAD is not merely a section of a report, but a verified institutional performance pillar."
+                            "GAD integration is a unit-wide responsibility, ensuring institutional parity in quality and inclusivity."
                         </p>
                     </div>
                 </div>
@@ -150,14 +151,14 @@ export function GADOverview({ initiatives, compliances, selectedYear }: GADOverv
                     </div>
                     <div className="text-center space-y-1">
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Initiative Completion Index</p>
-                        <p className="text-xs font-bold text-amber-800">FY {selectedYear} Accomplishment</p>
+                        <p className="text-xs font-bold text-amber-800">Unit FY {selectedYear} Accomplishment</p>
                     </div>
                 </div>
                 <Separator />
                 <div className="mt-6 p-4 rounded-xl bg-white border border-amber-100 flex items-start gap-3">
                     <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                     <p className="text-[10px] text-amber-800 leading-relaxed italic font-medium">
-                        Units are encouraged to submit their <strong>GAD Accomplishment Reports</strong> quarterly to maintain a balanced institutional index.
+                        Units must update their <strong>Accomplishment Status</strong> monthly to maintain accurate institutional reporting.
                     </p>
                 </div>
             </CardContent>
