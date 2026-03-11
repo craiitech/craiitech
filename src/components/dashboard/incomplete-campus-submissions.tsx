@@ -118,7 +118,7 @@ export function IncompleteCampusSubmissions({
   }
 
   return (
-    <Card className="border-amber-200">
+    <Card className="border-amber-200 h-fit flex flex-col">
       <CardHeader>
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
@@ -142,49 +142,51 @@ export function IncompleteCampusSubmissions({
             </div>
         </div>
       </CardHeader>
-      <CardContent>
-        {incompleteSubmissionsByCampus.length > 0 ? (
-            <Accordion type="single" collapsible className="w-full" defaultValue={incompleteSubmissionsByCampus[0]?.campusId}>
-            {incompleteSubmissionsByCampus.map(campus => (
-                <AccordionItem value={campus.campusId} key={campus.campusId} className="border-none">
-                <AccordionTrigger className="font-bold hover:no-underline py-3 px-2 hover:bg-muted/50 rounded-md">
-                    <div className="flex items-center gap-3">
-                        <School className="h-4 w-4 text-primary shrink-0" />
-                        <span className="text-xs uppercase tracking-tight">{campus.campusName}</span>
-                        <Badge variant="outline" className="h-5 text-[9px] font-black">{campus.incompleteUnits.length} UNITS</Badge>
+      <CardContent className="p-0">
+        <ScrollArea className="h-[450px]">
+            <div className="p-6 pt-0">
+                {incompleteSubmissionsByCampus.length > 0 ? (
+                    <Accordion type="single" collapsible className="w-full">
+                    {incompleteSubmissionsByCampus.map(campus => (
+                        <AccordionItem value={campus.campusId} key={campus.campusId} className="border-none">
+                        <AccordionTrigger className="font-bold hover:no-underline py-3 px-2 hover:bg-muted/50 rounded-md transition-colors">
+                            <div className="flex items-center gap-3">
+                                <School className="h-4 w-4 text-primary shrink-0" />
+                                <span className="text-xs uppercase tracking-tight">{campus.campusName}</span>
+                                <Badge variant="outline" className="h-5 text-[9px] font-black">{campus.incompleteUnits.length} UNITS</Badge>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="pt-2">
+                            <ul className="space-y-1 pl-2">
+                                {campus.incompleteUnits.map(unit => (
+                                    <li key={unit.unitId}>
+                                    <Button
+                                        variant="ghost"
+                                        className="flex h-auto w-full items-start justify-start gap-2 p-2 hover:bg-amber-50 group transition-colors"
+                                        onClick={() => onUnitClick?.(unit.unitId, campus.campusId)}
+                                    >
+                                        <Building className="h-3.5 w-3.5 shrink-0 mt-0.5 text-muted-foreground group-hover:text-amber-600" />
+                                        <div className="flex flex-col flex-1 items-start min-w-0">
+                                            <span className="text-xs font-bold text-card-foreground leading-tight truncate w-full">{unit.unitName}</span>
+                                            <span className="text-[10px] text-amber-600 font-black uppercase tracking-tighter">{unit.missingCount} REQUIRED ACTIONS</span>
+                                        </div>
+                                    </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </AccordionContent>
+                        </AccordionItem>
+                    ))}
+                    </Accordion>
+                ) : (
+                    <div className="flex flex-col items-center justify-center text-center text-sm text-muted-foreground h-40 border border-dashed rounded-lg">
+                        <CheckCircle className="h-8 w-8 text-green-500 mb-2 opacity-20" />
+                        <p className="font-bold text-xs uppercase tracking-widest">Institutionally Compliant</p>
+                        <p className="text-[10px] max-w-[200px] mt-1">All units have achieved 100% verified approval for {selectedYear}.</p>
                     </div>
-                </AccordionTrigger>
-                <AccordionContent className="pt-2">
-                    <ScrollArea className="h-[300px] pr-4">
-                        <ul className="space-y-1 pl-2">
-                            {campus.incompleteUnits.map(unit => (
-                                <li key={unit.unitId}>
-                                <Button
-                                    variant="ghost"
-                                    className="flex h-auto w-full items-start justify-start gap-2 p-2 hover:bg-amber-50 group transition-colors"
-                                    onClick={() => onUnitClick?.(unit.unitId, campus.campusId)}
-                                >
-                                    <Building className="h-3.5 w-3.5 shrink-0 mt-0.5 text-muted-foreground group-hover:text-amber-600" />
-                                    <div className="flex flex-col flex-1 items-start min-w-0">
-                                        <span className="text-xs font-bold text-card-foreground leading-tight truncate w-full">{unit.unitName}</span>
-                                        <span className="text-[10px] text-amber-600 font-black uppercase tracking-tighter">{unit.missingCount} REQUIRED ACTIONS</span>
-                                    </div>
-                                </Button>
-                                </li>
-                            ))}
-                        </ul>
-                    </ScrollArea>
-                </AccordionContent>
-                </AccordionItem>
-            ))}
-            </Accordion>
-        ) : (
-             <div className="flex flex-col items-center justify-center text-center text-sm text-muted-foreground h-40 border border-dashed rounded-lg">
-                <CheckCircle className="h-8 w-8 text-green-500 mb-2 opacity-20" />
-                <p className="font-bold text-xs uppercase tracking-widest">Institutionally Compliant</p>
-                <p className="text-[10px] max-w-[200px] mt-1">All units have achieved 100% verified approval for {selectedYear}.</p>
+                )}
             </div>
-        )}
+        </ScrollArea>
       </CardContent>
       <CardFooter className="bg-muted/5 border-t py-3">
           <div className="flex items-start gap-2">

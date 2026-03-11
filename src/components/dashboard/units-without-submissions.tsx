@@ -81,7 +81,6 @@ export function UnitsWithoutSubmissions({
 
             const totalRequired = requiredFirst + requiredFinal;
 
-            // CRITICAL: Compliance based on APPROVED count
             const approvedSubmissions = new Set(
                 unitSubmissions.filter(s => s.statusId === 'approved').map(s => `${s.reportType}-${s.cycleId}`)
             );
@@ -160,7 +159,7 @@ export function UnitsWithoutSubmissions({
 
   return (
     <>
-    <Card className="border-destructive/20 bg-destructive/5">
+    <Card className="border-destructive/20 bg-destructive/5 h-fit flex flex-col">
       <CardHeader className="flex flex-row items-start justify-between pb-4">
         <div>
             <CardTitle className="flex items-center gap-2 text-destructive">
@@ -178,42 +177,45 @@ export function UnitsWithoutSubmissions({
             </Button>
         )}
       </CardHeader>
-      <CardContent>
-        <Accordion type="single" collapsible className="w-full" defaultValue={incompleteSubmissionsByCampus[0]?.campusId}>
-            {incompleteSubmissionsByCampus.map(campus => (
-                 <AccordionItem value={campus.campusId} key={campus.campusId} className="border-none">
-                    <AccordionTrigger className="font-bold hover:no-underline hover:bg-muted/50 rounded-md px-2 py-3">
-                        <div className="flex items-center gap-3">
-                            <span className="text-xs uppercase tracking-tight">{campus.campusName}</span>
-                            <Badge variant="destructive" className="h-5 text-[9px] font-black">{campus.incompleteUnits.length} UNITS</Badge>
-                        </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-2">
-                        <ScrollArea className="h-[300px] pr-4">
-                            <List className="pl-2">
-                            {campus.incompleteUnits.map(unit => (
-                                <ListItem key={unit.id} className="p-0 border-none">
-                                <Button
-                                    variant="ghost"
-                                    className="flex h-auto w-full cursor-pointer items-center justify-between p-2 hover:bg-background group"
-                                    onClick={() => onUnitClick(unit.id, campus.campusId)}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <Building className="h-3.5 w-3.5 text-muted-foreground group-hover:text-destructive" />
-                                        <span className="text-xs font-bold text-slate-700 truncate">{unit.name}</span>
-                                    </div>
-                                    <Badge variant={unit.count === 0 ? 'destructive' : 'secondary'} className="text-[9px] font-black h-5">
-                                        {unit.count} / {unit.totalRequired}
-                                    </Badge>
-                                </Button>
-                                </ListItem>
-                            ))}
-                            </List>
-                        </ScrollArea>
-                    </AccordionContent>
-                 </AccordionItem>
-            ))}
-        </Accordion>
+      <CardContent className="p-0">
+        <ScrollArea className="h-[450px]">
+            <div className="p-6 pt-0">
+                <Accordion type="single" collapsible className="w-full">
+                    {incompleteSubmissionsByCampus.map(campus => (
+                        <AccordionItem value={campus.campusId} key={campus.campusId} className="border-none">
+                            <AccordionTrigger className="font-bold hover:no-underline hover:bg-muted/50 rounded-md px-2 py-3 transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <Building className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-xs uppercase tracking-tight">{campus.campusName}</span>
+                                    <Badge variant="destructive" className="h-5 text-[9px] font-black">{campus.incompleteUnits.length} UNITS</Badge>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="pt-2">
+                                <List className="pl-2">
+                                {campus.incompleteUnits.map(unit => (
+                                    <ListItem key={unit.id} className="p-0 border-none">
+                                    <Button
+                                        variant="ghost"
+                                        className="flex h-auto w-full cursor-pointer items-center justify-between p-2 hover:bg-background group"
+                                        onClick={() => onUnitClick(unit.id, campus.campusId)}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <FileX className="h-3.5 w-3.5 text-muted-foreground group-hover:text-destructive" />
+                                            <span className="text-xs font-bold text-slate-700 truncate">{unit.name}</span>
+                                        </div>
+                                        <Badge variant={unit.count === 0 ? 'destructive' : 'secondary'} className="text-[9px] font-black h-5">
+                                            {unit.count} / {unit.totalRequired}
+                                        </Badge>
+                                    </Button>
+                                    </ListItem>
+                                ))}
+                                </List>
+                            </AccordionContent>
+                        </AccordionItem>
+                    ))}
+                </Accordion>
+            </div>
+        </ScrollArea>
       </CardContent>
       <CardFooter className="bg-muted/5 border-t py-3">
           <div className="flex items-start gap-2">
