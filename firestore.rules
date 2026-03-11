@@ -43,13 +43,13 @@ service cloud.firestore {
     
     match /gadInitiatives/{id} {
       allow read, list: if isSignedIn();
-      allow create, update: if isSignedIn() && (isAdmin() || (hasProfile() && profile().role.matches('(?i).*(coordinator|director|odimo).*')));
+      allow create, update: if isSignedIn() && (isAdmin() || (hasProfile() && profile().role.matches('(?i).*(coordinator|director|odimo|admin).*')));
       allow delete: if isAdmin();
     }
 
     match /gadMainstreaming/{id} {
       allow read, list: if isSignedIn();
-      allow write: if isSignedIn() && (isAdmin() || (hasProfile() && profile().role.matches('(?i).*(coordinator|director|odimo).*')));
+      allow write: if isSignedIn() && (isAdmin() || (hasProfile() && profile().role.matches('(?i).*(coordinator|director|odimo|admin).*')));
     }
 
     // --------------------------------------------------------------------------
@@ -145,7 +145,6 @@ service cloud.firestore {
     }
 
     match /appFeedbacks/{feedbackId} {
-      allow spying: if false;
       allow read: if isAdmin();
       allow create: if isSignedIn();
     }
