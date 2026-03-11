@@ -56,6 +56,7 @@ export function GADOverview({ initiatives, compliances, selectedYear }: GADOverv
         </Card>
 
         <Card className="shadow-sm border-blue-100 bg-blue-50/10 flex flex-col relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-2 opacity-5"><CheckCircle2 className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
                 <CardDescription className="text-[10px] font-black uppercase tracking-widest text-blue-700">Target Fulfillment</CardDescription>
                 <CardTitle className="text-2xl font-black text-blue-600 tabular-nums">{stats.completionRate}%</CardTitle>
