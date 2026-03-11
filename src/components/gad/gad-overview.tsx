@@ -5,7 +5,7 @@ import type { GADInitiative, ProgramComplianceRecord } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { ShieldCheck, CheckCircle2, AlertTriangle, Activity, HandHeart, Target, Landmark } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, AlertTriangle, Activity, HandHeart, Target, Landmark, Info } from 'lucide-react';
 
 interface GADOverviewProps {
   initiatives: GADInitiative[];
