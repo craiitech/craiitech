@@ -2,6 +2,10 @@
 
 We are proud to announce the official rollout of the **RSU EOMS Portal**, a state-of-the-art digital solution designed to elevate Romblon State University's commitment to academic excellence and institutional quality! 🎓🏛️
 
+### 🌐 New Official Home
+The portal has officially moved! You can now access the system at our new permanent domain:
+👉 **[https://eoms.rsu.edu.ph](https://eoms.rsu.edu.ph)**
+
 Developed through a strategic collaboration between the **Center for Research in Artificial Intelligence and Information Technologies (CRAIITech)** and the **Quality Assurance Office (QAO)**, this platform serves as the central nervous system for our Educational Organizations Management System (EOMS), aligned with **ISO 21001:2018** standards.
 
 ### 🌟 What makes the EOMS Portal a game-changer?
