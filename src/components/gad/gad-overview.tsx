@@ -1,13 +1,11 @@
-
 'use client';
 
 import { useMemo } from 'react';
 import type { GADInitiative, ProgramComplianceRecord } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { TrendingUp, Target, Info, ShieldCheck, CheckCircle2, AlertTriangle, Activity, HandHeart, Landmark } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
+import { ShieldCheck, CheckCircle2, AlertTriangle, Activity, HandHeart, Target, Landmark } from 'lucide-react';
 
 interface GADOverviewProps {
   initiatives: GADInitiative[];
@@ -47,7 +45,7 @@ export function GADOverview({ initiatives, compliances, selectedYear }: GADOverv
         <Card className="shadow-sm border-emerald-100 bg-emerald-50/10 flex flex-col relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-5"><Activity className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
-                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Utilization Rate</CardTitle>
+                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Utilization Rate</CardDescription>
                 <CardTitle className="text-2xl font-black text-emerald-600 tabular-nums">{stats.utilizationRate}%</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
@@ -58,7 +56,7 @@ export function GADOverview({ initiatives, compliances, selectedYear }: GADOverv
 
         <Card className="shadow-sm border-blue-100 bg-blue-50/10 flex flex-col relative overflow-hidden">
             <CardHeader className="pb-2">
-                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-blue-700">Target Fulfillment</CardTitle>
+                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-blue-700">Target Fulfillment</CardDescription>
                 <CardTitle className="text-2xl font-black text-blue-600 tabular-nums">{stats.completionRate}%</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
@@ -68,7 +66,7 @@ export function GADOverview({ initiatives, compliances, selectedYear }: GADOverv
 
         <Card className="shadow-sm border-purple-100 bg-purple-50/10 flex flex-col relative overflow-hidden">
             <CardHeader className="pb-2">
-                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-purple-700">Reach Distribution</CardTitle>
+                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-purple-700">Reach Distribution</CardDescription>
                 <CardTitle className="text-2xl font-black text-purple-600 tabular-nums">{stats.maleBen + stats.femaleBen}</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
