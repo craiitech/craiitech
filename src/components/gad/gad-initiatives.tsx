@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -27,7 +26,8 @@ import {
     Calendar,
     Landmark,
     Info,
-    PieChart as PieIcon
+    PieChart as PieIcon,
+    ShieldCheck
 } from 'lucide-react';
 import { 
     DropdownMenu, 
@@ -54,6 +54,7 @@ import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
 
 interface GADInitiativesProps {
   initiatives: GADInitiative[];
