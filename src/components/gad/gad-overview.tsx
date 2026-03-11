@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -34,7 +35,7 @@ export function GADOverview({ initiatives, compliances, selectedYear }: GADOverv
         <Card className="shadow-sm border-primary/10 relative overflow-hidden flex flex-col">
             <div className="absolute top-0 right-0 p-2 opacity-5"><Landmark className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
-                <CardDescription className="text-[10px] font-black uppercase tracking-widest">Total GAD Budget Registry</CardDescription>
+                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total GAD Budget Registry</CardDescription>
                 <CardTitle className="text-2xl font-black text-primary tabular-nums">₱{stats.totalBudget.toLocaleString()}</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
