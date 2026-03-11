@@ -52,10 +52,11 @@ export function SDDHub({ compliances, campuses, units, selectedYear, unitName }:
         if (record.faculty) {
             const roster = [...(record.faculty.members || [])];
             if (record.faculty.dean?.name) roster.push(record.faculty.dean as any);
+            if (record.faculty.associateDean?.name && record.faculty.hasAssociateDean) roster.push(record.faculty.associateDean as any);
             if (record.faculty.programChair?.name) roster.push(record.faculty.programChair as any);
             
             roster.forEach(m => {
-                if (!m.name) return;
+                if (!m.name || m.name.trim() === '') return;
                 const key = `${m.name.trim()}-${record.campusId}`.toLowerCase();
                 if (!uniqueFacultySet.has(key)) {
                     uniqueFacultySet.add(key);

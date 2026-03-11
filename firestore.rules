@@ -145,6 +145,7 @@ service cloud.firestore {
     }
 
     match /appFeedbacks/{feedbackId} {
+      allow spying: if false;
       allow read: if isAdmin();
       allow create: if isSignedIn();
     }
