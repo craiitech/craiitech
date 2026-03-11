@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -5,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   useUser,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, Megaphone, ListChecks } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, Megaphone, ListChecks, HandHeart } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
 
@@ -59,6 +60,12 @@ export function SidebarNav({
       active: pathname.startsWith('/academic-programs'),
       roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <BookOpen />,
+    },
+    {
+      href: '/gad-corner',
+      label: 'GAD Corner',
+      active: pathname.startsWith('/gad-corner'),
+      icon: <HandHeart />,
     },
     {
       href: '/submissions',

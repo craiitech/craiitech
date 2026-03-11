@@ -605,3 +605,27 @@ export type QaAuditReport = {
     standard: string;
     createdAt: any; 
 };
+
+export type GADInitiative = {
+    id: string;
+    title: string;
+    description: string;
+    campusId: string;
+    unitId: string;
+    year: number;
+    budget: number;
+    utilizedAmount: number;
+    beneficiariesMale: number;
+    beneficiariesFemale: number;
+    status: 'Planned' | 'In Progress' | 'Completed' | 'Cancelled';
+    createdAt: any;
+    updatedAt: any;
+};
+
+export type GADMainstreamingChecklist = {
+    id: string; // unitId-year
+    unitId: string;
+    year: number;
+    scores: Record<string, boolean>;
+    updatedAt: any;
+};

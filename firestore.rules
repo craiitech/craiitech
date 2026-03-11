@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -34,6 +35,21 @@ service cloud.firestore {
 
     function isSupervisor() {
       return isSignedIn() && hasProfile() && profile().role.matches('(?i)^(Campus Director|Campus ODIMO|Admin|Vice President.*|Director.*)$');
+    }
+
+    // --------------------------------------------------------------------------
+    // GAD CORNER & PCW REPORTING
+    // --------------------------------------------------------------------------
+    
+    match /gadInitiatives/{id} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && (isAdmin() || profile().role.matches('(?i).*(coordinator|director|odimo).*'));
+      allow delete: if isAdmin();
+    }
+
+    match /gadMainstreaming/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (isAdmin() || profile().role.matches('(?i).*(coordinator|director|odimo).*'));
     }
 
     // --------------------------------------------------------------------------
