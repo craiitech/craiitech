@@ -1,7 +1,19 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import type { Submission, Unit, User as AppUser, Signatories, Campus, Risk, UnitMonitoringRecord } from '@/lib/types';
+import type { 
+    Submission, 
+    Unit, 
+    User as AppUser, 
+    Signatories, 
+    Campus, 
+    Risk, 
+    UnitMonitoringRecord,
+    ProgramComplianceRecord,
+    AuditFinding,
+    CorrectiveActionRequest,
+    ManagementReviewOutput
+} from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -139,6 +151,24 @@ export function UnitSubmissionsView({
   }, [firestore, selectedUnitId]);
   const { data: unitMonitoring } = useCollection<UnitMonitoringRecord>(monitoringQuery);
 
+  const compliancesQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedUnitId || !selectedYear) return null;
+    return query(collection(firestore, 'programCompliances'), where('unitId', '==', selectedUnitId), where('academicYear', '==', Number(selectedYear)));
+  }, [firestore, selectedUnitId, selectedYear]);
+  const { data: unitCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
+
+  const carQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedUnitId) return null;
+    return query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', selectedUnitId));
+  }, [firestore, selectedUnitId]);
+  const { data: unitCars } = useCollection<CorrectiveActionRequest>(carQuery);
+
+  const mrOutputsQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedUnitId) return null;
+    return collection(firestore, 'managementReviewOutputs');
+  }, [firestore, selectedUnitId]);
+  const { data: mrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
+
   const unitData = useMemo(() => {
     if (!selectedUnitId || !allSubmissions || !userProfile?.campusId) return null;
     
@@ -220,7 +250,6 @@ export function UnitSubmissionsView({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Horizontal Selector Header */}
       <Card className="border-primary/10 shadow-sm bg-muted/10">
         <CardContent className="p-4 flex flex-col md:flex-row items-center gap-4">
             <div className="flex-1 w-full space-y-1.5">
@@ -253,11 +282,13 @@ export function UnitSubmissionsView({
                   </Button>
               </div>
 
-              {/* STRATEGIC SWOT MODULE */}
               <StrategicSwotAnalysis 
                 submissions={unitData.yearSubmissions}
                 risks={unitRisks || []}
                 monitoringRecords={unitMonitoring || []}
+                programCompliances={unitCompliances || []}
+                correctiveActionRequests={unitCars || []}
+                mrOutputs={mrOutputs?.filter(o => o.assignments?.some(a => a.unitId === selectedUnitId)) || []}
                 scope="unit"
                 name={currentUnit.name}
                 selectedYear={Number(selectedYear)}

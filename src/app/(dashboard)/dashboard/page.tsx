@@ -56,7 +56,21 @@ import {
   orderBy,
   limit,
 } from 'firebase/firestore';
-import type { Submission, User as AppUser, Unit, Campus, Cycle, Risk, ManagementReviewOutput, AuditSchedule, QaAdvisory, UnitMonitoringRecord } from '@/lib/types';
+import type { 
+    Submission, 
+    User as AppUser, 
+    Unit, 
+    Campus, 
+    Cycle, 
+    Risk, 
+    ManagementReviewOutput, 
+    AuditSchedule, 
+    QaAdvisory, 
+    UnitMonitoringRecord,
+    ProgramComplianceRecord,
+    AuditFinding,
+    CorrectiveActionRequest
+} from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle, AlertCloseButton } from '@/components/ui/alert';
@@ -189,13 +203,43 @@ export default function HomePage() {
 
   // Fetch monitoring records for SWOT (Unit Level)
   const monitoringQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile || isAdmin || isCampusSupervisor) return null;
-    return query(collection(firestore, 'unitMonitoringRecords'), where('unitId', '==', userProfile.unitId));
+    if (!firestore || !userProfile) return null;
+    const baseRef = collection(firestore, 'unitMonitoringRecords');
+    if (isAdmin) return baseRef;
+    if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
+    return query(baseRef, where('unitId', '==', userProfile.unitId));
   }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
   const { data: monitoringRecords } = useCollection<UnitMonitoringRecord>(monitoringQuery);
 
-  // Fetch MR Outputs for Strategic Hub
-  const mrOutputsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'managementReviewOutputs') : null), [firestore]);
+  // --- EXTENDED PERFORMANCE DATA FETCHING ---
+  const compliancesQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile) return null;
+    const baseRef = collection(firestore, 'programCompliances');
+    if (isAdmin) return baseRef;
+    if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
+    return query(baseRef, where('unitId', '==', userProfile.unitId));
+  }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
+  const { data: programCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
+
+  const carQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile) return null;
+    const baseRef = collection(firestore, 'correctiveActionRequests');
+    if (isAdmin) return baseRef;
+    if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
+    return query(baseRef, where('unitId', '==', userProfile.unitId));
+  }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
+  const { data: correctiveActionRequests } = useCollection<CorrectiveActionRequest>(carQuery);
+
+  const findingsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile) return null;
+    return collection(firestore, 'auditFindings');
+  }, [firestore, userProfile]);
+  const { data: auditFindings } = useCollection<AuditFinding>(findingsQuery);
+
+  const mrOutputsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile) return null;
+    return collection(firestore, 'managementReviewOutputs');
+  }, [firestore, userProfile]);
   const { data: mrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
 
   // Fetch users based on role
@@ -547,12 +591,16 @@ export default function HomePage() {
             {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
         </div>
 
-        {/* UNIT STRATEGIC SWOT */}
+        {/* COMPREHENSIVE UNIT STRATEGIC SWOT */}
         {!isLoading && currentUnit && (
             <StrategicSwotAnalysis 
                 submissions={submissions?.filter(s => s.unitId === userProfile?.unitId && s.year === selectedYear) || []}
                 risks={risks?.filter(r => r.unitId === userProfile?.unitId && r.year === selectedYear) || []}
-                monitoringRecords={monitoringRecords || []}
+                monitoringRecords={monitoringRecords?.filter(r => r.unitId === userProfile?.unitId) || []}
+                programCompliances={programCompliances?.filter(c => c.unitId === userProfile?.unitId && c.academicYear === selectedYear) || []}
+                auditFindings={auditFindings?.filter(f => submissions?.some(s => s.id === f.auditScheduleId && s.unitId === userProfile?.unitId))} // Simplified filter
+                correctiveActionRequests={correctiveActionRequests?.filter(car => car.unitId === userProfile?.unitId) || []}
+                mrOutputs={mrOutputs?.filter(o => o.assignments?.some(a => a.unitId === userProfile?.unitId)) || []}
                 scope="unit"
                 name={currentUnit.name}
                 selectedYear={selectedYear}
@@ -697,6 +745,23 @@ export default function HomePage() {
                     {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
                     {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
                 </div>
+                
+                {/* COMPREHENSIVE CAMPUS SWOT */}
+                {!isLoading && userProfile?.campusId && (
+                    <StrategicSwotAnalysis 
+                        submissions={submissions?.filter(s => s.campusId === userProfile.campusId && s.year === selectedYear) || []}
+                        risks={risks?.filter(r => r.campusId === userProfile.campusId && r.year === selectedYear) || []}
+                        monitoringRecords={monitoringRecords?.filter(r => r.campusId === userProfile.campusId) || []}
+                        programCompliances={programCompliances?.filter(c => c.campusId === userProfile.campusId && c.academicYear === selectedYear) || []}
+                        auditFindings={auditFindings || []} 
+                        correctiveActionRequests={correctiveActionRequests?.filter(car => car.campusId === userProfile.campusId) || []}
+                        mrOutputs={mrOutputs?.filter(o => o.assignments?.some(a => a.campusId === userProfile.campusId)) || []}
+                        scope="campus"
+                        name={campusMap.get(userProfile.campusId) || 'Campus'}
+                        selectedYear={selectedYear}
+                    />
+                )}
+
                 <Card className="col-span-4"><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from your campus.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
                 <div className="grid gap-4 md:grid-cols-2">
                     <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
@@ -752,6 +817,23 @@ export default function HomePage() {
           {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
           {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
         </div>
+        
+        {/* COMPREHENSIVE INSTITUTIONAL SWOT */}
+        {!isLoading && (
+            <StrategicSwotAnalysis 
+                submissions={submissions?.filter(s => s.year === selectedYear) || []}
+                risks={risks?.filter(r => r.year === selectedYear) || []}
+                monitoringRecords={monitoringRecords || []}
+                programCompliances={programCompliances?.filter(c => c.academicYear === selectedYear) || []}
+                auditFindings={auditFindings || []} 
+                correctiveActionRequests={correctiveActionRequests || []}
+                mrOutputs={mrOutputs || []}
+                scope="campus"
+                name="University-Wide"
+                selectedYear={selectedYear}
+            />
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
             <div className="lg:col-span-4 space-y-4">
                  <Card className="col-span-4"><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from all users.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>

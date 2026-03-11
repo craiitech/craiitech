@@ -1,7 +1,18 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import type { Submission, Unit, Campus, Signatories, Risk, UnitMonitoringRecord } from '@/lib/types';
+import type { 
+    Submission, 
+    Unit, 
+    Campus, 
+    Signatories, 
+    Risk, 
+    UnitMonitoringRecord, 
+    ProgramComplianceRecord, 
+    AuditFinding, 
+    CorrectiveActionRequest, 
+    ManagementReviewOutput 
+} from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -126,7 +137,7 @@ export function CampusSubmissionsView({
   );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
-  // Fetch contextual data for SWOT analysis
+  // Fetch contextual data for comprehensive SWOT analysis
   const risksQuery = useMemoFirebase(() => {
     if (!firestore || !selectedCampusId || !selectedYear) return null;
     return query(collection(firestore, 'risks'), where('campusId', '==', selectedCampusId), where('year', '==', Number(selectedYear)));
@@ -138,6 +149,30 @@ export function CampusSubmissionsView({
     return query(collection(firestore, 'unitMonitoringRecords'), where('campusId', '==', selectedCampusId));
   }, [firestore, selectedCampusId]);
   const { data: campusMonitoring } = useCollection<UnitMonitoringRecord>(monitoringQuery);
+
+  const compliancesQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedCampusId || !selectedYear) return null;
+    return query(collection(firestore, 'programCompliances'), where('campusId', '==', selectedCampusId), where('academicYear', '==', Number(selectedYear)));
+  }, [firestore, selectedCampusId, selectedYear]);
+  const { data: campusCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
+
+  const carQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedCampusId) return null;
+    return query(collection(firestore, 'correctiveActionRequests'), where('campusId', '==', selectedCampusId));
+  }, [firestore, selectedCampusId]);
+  const { data: campusCars } = useCollection<CorrectiveActionRequest>(carQuery);
+
+  const mrOutputsQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedCampusId) return null;
+    return collection(firestore, 'managementReviewOutputs');
+  }, [firestore, selectedCampusId]);
+  const { data: mrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
+
+  const auditFindingsQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedCampusId) return null;
+    return collection(firestore, 'auditFindings');
+  }, [firestore, selectedCampusId]);
+  const { data: auditFindings } = useCollection<AuditFinding>(auditFindingsQuery);
 
   const campusMap = useMemo(() => {
     const map = new Map(allCampuses?.map(c => [c.id, c.name]));
@@ -158,7 +193,6 @@ export function CampusSubmissionsView({
 
   /**
    * CAMPUS-WIDE ANALYTICS
-   * Calculates aggregated performance for all units in the selected campus.
    */
   const campusSummary = useMemo(() => {
     if (!selectedCampusId || !allSubmissions || !allUnits) return null;
@@ -173,7 +207,7 @@ export function CampusSubmissionsView({
         const isActionPlanNA = ror?.riskRating === 'low';
         
         const approved = unitSubs.filter(s => s.statusId === 'approved').length;
-        const totalPossible = (submissionTypes.length * 2) - (isActionPlanNA ? 2 : 0); // Simplified for both cycles
+        const totalPossible = (submissionTypes.length * 2) - (isActionPlanNA ? 2 : 0);
         
         const getMissing = (cycleId: 'first' | 'final') => {
             const approvedSet = new Set(unitSubs.filter(s => s.cycleId === cycleId && s.statusId === 'approved').map(s => s.reportType));
@@ -367,7 +401,6 @@ export function CampusSubmissionsView({
                       </AccordionTrigger>
                       <AccordionContent className="pb-0">
                         <div className="flex flex-col">
-                          {/* Campus Overview Option */}
                           <Button
                             variant="ghost"
                             onClick={() => { setSelectedCampusId(campus.id); setSelectedUnitId(null); }}
@@ -408,7 +441,7 @@ export function CampusSubmissionsView({
           </Card>
         </div>
 
-        {/* WORKSPACE: Rendering Logic */}
+        {/* WORKSPACE Area */}
         <div className="flex-1 min-0 flex flex-col relative">
           <Button
             variant="secondary"
@@ -421,7 +454,6 @@ export function CampusSubmissionsView({
           </Button>
 
           {selectedUnitId && unitData ? (
-            /* --- UNIT SPECIFIC VIEW --- */
             <ScrollArea className="h-full pr-4">
               <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-10">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
@@ -440,11 +472,16 @@ export function CampusSubmissionsView({
                     submissions={unitData.allUnitSubmissions}
                     risks={campusRisks?.filter(r => r.unitId === selectedUnitId) || []}
                     monitoringRecords={campusMonitoring?.filter(r => r.unitId === selectedUnitId) || []}
+                    programCompliances={campusCompliances?.filter(c => c.unitId === selectedUnitId) || []}
+                    auditFindings={auditFindings || []}
+                    correctiveActionRequests={campusCars?.filter(c => c.unitId === selectedUnitId) || []}
+                    mrOutputs={mrOutputs?.filter(o => o.assignments?.some(a => a.unitId === selectedUnitId)) || []}
                     scope="unit"
                     name={unitMap.get(selectedUnitId) || 'Unit'}
                     selectedYear={Number(selectedYear)}
                 />
 
+                {/* Rest of UI components remain for detail tracking */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <Card className="md:col-span-1 flex flex-col items-center justify-center bg-background rounded-2xl border-primary/10 shadow-lg p-8">
                         <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-6 text-center">Unit Verified Maturity</span>
@@ -477,40 +514,11 @@ export function CampusSubmissionsView({
                                 <p className="text-[11px] text-muted-foreground mt-2 font-medium">Requirements missing or rejected.</p>
                             </Card>
                         </div>
-
-                        {(unitData.missingFirst.length > 0 || unitData.missingFinal.length > 0) && (
-                            <div className="space-y-4 bg-rose-50/30 p-5 rounded-xl border border-rose-100">
-                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 text-rose-600"><FileWarning className="h-4 w-4" /> Compliance Gap Audit</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                    {unitData.missingFirst.length > 0 && (
-                                        <div className="space-y-2">
-                                            <p className="text-[9px] font-black uppercase text-rose-600 border-b border-rose-200 pb-1">1st Cycle Registry</p>
-                                            <ul className="list-disc pl-8 space-y-1.5">{unitData.missingFirst.map(doc => <li key={doc} className="text-[11px] font-bold text-slate-700">{doc}</li>)}</ul>
-                                        </div>
-                                    )}
-                                    {unitData.missingFinal.length > 0 && (
-                                        <div className="space-y-2">
-                                            <p className="text-[9px] font-black uppercase text-rose-600 border-b border-rose-200 pb-1">Final Cycle Registry</p>
-                                            <ul className="list-disc pl-8 space-y-1.5">{unitData.missingFinal.map(doc => <li key={doc} className="text-[11px] font-bold text-slate-700">{doc}</li>)}</ul>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="space-y-6">
-                    <div className="flex items-center gap-3 border-b pb-2"><CalendarIcon className="h-5 w-5 text-primary" /><h4 className="text-sm font-black uppercase tracking-widest text-slate-900">Submission History Logs</h4></div>
-                    <div className="grid grid-cols-1 gap-8">
-                        <div className="space-y-3"><Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 px-4 h-6 font-black text-[9px] uppercase">1st Cycle Logs</Badge><UnitTable cycleSubs={unitData.firstCycle} onView={(id) => router.push(`/submissions/${id}`)} isAdmin={isGlobalAdmin} onDeleteClick={onDeleteClick} /></div>
-                        <div className="space-y-3"><Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 px-4 h-6 font-black text-[9px] uppercase">Final Cycle Logs</Badge><UnitTable cycleSubs={unitData.finalCycle} onView={(id) => router.push(`/submissions/${id}`)} isAdmin={isGlobalAdmin} onDeleteClick={onDeleteClick} /></div>
                     </div>
                 </div>
               </div>
             </ScrollArea>
           ) : selectedCampusId && campusSummary ? (
-            /* --- CAMPUS OVERVIEW VIEW --- */
             <ScrollArea className="h-full pr-4">
                 <div className="space-y-8 animate-in fade-in duration-500 pb-10">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
@@ -518,23 +526,24 @@ export function CampusSubmissionsView({
                             <h3 className="font-black text-2xl uppercase tracking-tight text-primary">{campusMap.get(selectedCampusId)}</h3>
                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Site Performance Dashboard &bull; AY {selectedYear}</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="h-9 text-[10px] font-black uppercase bg-white border-primary/20 text-primary shadow-sm"
-                                onClick={() => handlePrintCampusNotice(campusSummary.avgScore >= 100 ? 'Compliance' : 'Non-Compliance')}
-                            >
-                                <Printer className="h-4 w-4 mr-2" />
-                                Print Consolidated Notice
-                            </Button>
-                        </div>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-9 text-[10px] font-black uppercase bg-white border-primary/20 text-primary shadow-sm"
+                            onClick={() => handlePrintCampusNotice(campusSummary.avgScore >= 100 ? 'Compliance' : 'Non-Compliance')}
+                        >
+                            <Printer className="h-4 w-4 mr-2" />
+                            Print Consolidated Notice
+                        </Button>
                     </div>
 
                     <StrategicSwotAnalysis 
                         submissions={campusSummary.allCampusSubmissions}
                         risks={campusRisks || []}
                         monitoringRecords={campusMonitoring || []}
+                        programCompliances={campusCompliances || []}
+                        correctiveActionRequests={campusCars || []}
+                        mrOutputs={mrOutputs?.filter(o => o.assignments?.some(a => a.campusId === selectedCampusId)) || []}
                         scope="campus"
                         name={campusMap.get(selectedCampusId) || 'Campus'}
                         selectedYear={Number(selectedYear)}
@@ -553,115 +562,14 @@ export function CampusSubmissionsView({
                             </div>
                             <p className="mt-6 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Average Across {campusSummary.totalUnits} Units</p>
                         </Card>
-
-                        <div className="md:col-span-2 space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <Card className="p-5 border-emerald-100 bg-emerald-50/30">
-                                    <div className="flex items-center gap-2 mb-2 text-emerald-700"><CheckCircle2 className="h-4 w-4" /><span className="text-[10px] font-black uppercase">Verified Compliant</span></div>
-                                    <p className="text-3xl font-black text-emerald-600">{campusSummary.fullyCompliant} / {campusSummary.totalUnits}</p>
-                                    <p className="text-[10px] text-muted-foreground mt-1 font-bold">Units with 100% verified parity.</p>
-                                </Card>
-                                <Card className="p-5 border-rose-100 bg-rose-50/30">
-                                    <div className="flex items-center gap-2 mb-2 text-rose-700"><ShieldAlert className="h-4 w-4" /><span className="text-[10px] font-black uppercase">Institutional Risk</span></div>
-                                    <p className="text-3xl font-black text-rose-600">{campusSummary.totalUnits - campusSummary.fullyCompliant}</p>
-                                    <p className="text-[10px] text-muted-foreground mt-1 font-bold">Units with outstanding documentation gaps.</p>
-                                </Card>
-                            </div>
-                            
-                            <Card className="border-primary/10 shadow-md">
-                                <CardHeader className="bg-muted/10 py-3 border-b">
-                                    <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                                        <Trophy className="h-4 w-4 text-yellow-500" />
-                                        Excellence Registry Leaderboard
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-0">
-                                    <div className="divide-y">
-                                        {campusSummary.unitPerformance.slice(0, 5).map((unit, idx) => (
-                                            <div key={unit.id} className="flex items-center justify-between p-3 hover:bg-muted/30 transition-colors">
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <span className="text-[10px] font-black text-muted-foreground opacity-40">{idx + 1}</span>
-                                                    <span className="text-xs font-bold truncate pr-4">{unit.name}</span>
-                                                </div>
-                                                <div className="flex items-center gap-3 shrink-0">
-                                                    <Badge variant="outline" className={cn("text-[9px] font-black border-none h-5 px-2", unit.score === 100 ? "bg-emerald-100 text-emerald-700" : "bg-primary/5 text-primary")}>
-                                                        {unit.score}% VERIFIED
-                                                    </Badge>
-                                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedUnitId(unit.id)}>
-                                                        <ChevronRight className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
-
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2 border-b pb-2">
-                            <ListChecks className="h-5 w-5 text-primary" />
-                            <h4 className="text-sm font-black uppercase tracking-widest text-slate-900">Comprehensive Site Compliance Table</h4>
-                        </div>
-                        <Card className="shadow-lg border-primary/10 overflow-hidden">
-                            <Table>
-                                <TableHeader className="bg-muted/50">
-                                    <TableRow>
-                                        <TableHead className="pl-6 text-[10px] font-black uppercase">Unit / Office Name</TableHead>
-                                        <TableHead className="text-center text-[10px] font-black uppercase">Approved</TableHead>
-                                        <TableHead className="text-center text-[10px] font-black uppercase">Maturity %</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase">Outstanding Gaps (Count)</TableHead>
-                                        <TableHead className="text-right pr-6 text-[10px] font-black uppercase">Action</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {campusSummary.unitPerformance.map(unit => (
-                                        <TableRow key={unit.id} className="hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => setSelectedUnitId(unit.id)}>
-                                            <TableCell className="pl-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <Building className="h-4 w-4 text-primary opacity-40" />
-                                                    <span className="text-xs font-bold text-slate-800">{unit.name}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-center font-bold text-xs tabular-nums text-primary">{unit.approvedCount} / {unit.totalPossible}</TableCell>
-                                            <TableCell className="text-center">
-                                                <div className="flex flex-col items-center gap-1.5">
-                                                    <span className={cn("text-[11px] font-black tabular-nums", unit.score === 100 ? "text-emerald-600" : "text-slate-700")}>{unit.score}%</span>
-                                                    <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
-                                                        <div className={cn("h-full", unit.score === 100 ? "bg-emerald-500" : "bg-primary")} style={{ width: `${unit.score}%` }} />
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <Badge variant={unit.score === 100 ? 'default' : 'destructive'} className="h-5 text-[9px] font-black uppercase border-none shadow-sm">
-                                                        {unit.missingFirst.length + unit.missingFinal.length} GAPS
-                                                    </Badge>
-                                                    {unit.score < 100 && (
-                                                        <span className="text-[10px] text-muted-foreground font-medium italic">Requires audit followup</span>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-right pr-6">
-                                                <Button variant="ghost" size="sm" className="h-8 text-[9px] font-black uppercase text-primary gap-1">
-                                                    Manage Profile <ChevronRight className="h-3 w-3" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </Card>
                     </div>
                 </div>
             </ScrollArea>
           ) : (
-            /* --- EMPTY STATE --- */
             <div className="h-full flex flex-col items-center justify-center text-center gap-2 text-muted-foreground border-dashed border-2 rounded-2xl bg-muted/5 animate-in fade-in duration-500">
                 <School className="h-12 w-12 opacity-10 mb-2" />
                 <p className="text-sm font-bold uppercase tracking-widest">Select an Institutional Site</p>
-                <p className="text-xs max-w-xs">Browse the campus directory on the left to view comprehensive site performance or specific unit documentation profiles.</p>
+                <p className="text-xs max-w-xs">Browse the campus directory on the left to view comprehensive site performance SWOT.</p>
             </div>
           )}
         </div>
@@ -670,7 +578,7 @@ export function CampusSubmissionsView({
   );
 }
 
-function UnitTable({ cycleSubs, onView, isAdmin, onDeleteClick }: { cycleSubs: Submission[], onView: (id: string) => void, isAdmin: boolean, onDeleteClick: (sub: Submission) => void }) {
+function UnitTable({ cycleSubs, onView, isAdmin, onDeleteClick }: { cycleSubs: Submission[], onView: (id: string) => void, isAdmin?: boolean, onDeleteClick?: (sub: Submission) => void }) {
     if (cycleSubs.length === 0) return <div className="rounded-xl border border-dashed p-8 text-center bg-muted/5"><p className="text-xs text-muted-foreground font-bold uppercase tracking-widest opacity-40">No entries recorded</p></div>;
     return (
         <div className="rounded-xl border shadow-sm overflow-hidden bg-white">
@@ -685,7 +593,7 @@ function UnitTable({ cycleSubs, onView, isAdmin, onDeleteClick }: { cycleSubs: S
                             <TableCell className="text-center"><Badge className={cn("capitalize font-black text-[9px] px-2 py-0.5 border-none shadow-sm", sub.statusId === 'approved' && "bg-emerald-600 text-white", sub.statusId === 'rejected' && "bg-rose-600 text-white", sub.statusId === 'submitted' && "bg-amber-500 text-amber-950")}>{sub.statusId === 'submitted' ? 'AWAITING' : sub.statusId.toUpperCase()}</Badge></TableCell>
                             <TableCell className="text-right pr-6 space-x-2">
                                 <Button variant="default" size="sm" onClick={() => onView(sub.id)} className="h-8 text-[10px] font-bold bg-primary shadow-sm">VIEW RECORD</Button>
-                                {isAdmin && (
+                                {isAdmin && onDeleteClick && (
                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => onDeleteClick(sub)}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>

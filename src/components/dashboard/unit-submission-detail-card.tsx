@@ -1,7 +1,16 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { Submission, Unit, Risk, UnitMonitoringRecord } from '@/lib/types';
+import type { 
+    Submission, 
+    Unit, 
+    Risk, 
+    UnitMonitoringRecord, 
+    ProgramComplianceRecord, 
+    AuditFinding, 
+    CorrectiveActionRequest, 
+    ManagementReviewOutput 
+} from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, CheckCircle, Circle, AlertCircle, Eye } from 'lucide-react';
@@ -56,7 +65,7 @@ export function UnitSubmissionDetailCard({
   const firestore = useFirestore();
   const unit = useMemo(() => allUnits?.find(u => u.id === unitId), [allUnits, unitId]);
 
-  // Fetch contextual data for SWOT
+  // Fetch contextual data for comprehensive SWOT
   const risksQuery = useMemoFirebase(() => {
     if (!firestore || !unitId || !selectedYear) return null;
     return query(collection(firestore, 'risks'), where('unitId', '==', unitId), where('year', '==', selectedYear));
@@ -68,6 +77,30 @@ export function UnitSubmissionDetailCard({
     return query(collection(firestore, 'unitMonitoringRecords'), where('unitId', '==', unitId));
   }, [firestore, unitId]);
   const { data: unitMonitoring } = useCollection<UnitMonitoringRecord>(monitoringQuery);
+
+  const compliancesQuery = useMemoFirebase(() => {
+    if (!firestore || !unitId || !selectedYear) return null;
+    return query(collection(firestore, 'programCompliances'), where('unitId', '==', unitId), where('academicYear', '==', selectedYear));
+  }, [firestore, unitId, selectedYear]);
+  const { data: unitCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
+
+  const carQuery = useMemoFirebase(() => {
+    if (!firestore || !unitId) return null;
+    return query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', unitId));
+  }, [firestore, unitId]);
+  const { data: unitCars } = useCollection<CorrectiveActionRequest>(carQuery);
+
+  const findingsQuery = useMemoFirebase(() => {
+    if (!firestore || !unitId) return null;
+    return collection(firestore, 'auditFindings'); // Simplified for prototype
+  }, [firestore, unitId]);
+  const { data: auditFindings } = useCollection<AuditFinding>(findingsQuery);
+
+  const mrOutputsQuery = useMemoFirebase(() => {
+    if (!firestore || !unitId) return null;
+    return collection(firestore, 'managementReviewOutputs'); // Simplified for prototype
+  }, [firestore, unitId]);
+  const { data: mrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
 
   const unitSubmissions = useMemo(() => {
     if (!allSubmissions || !unitId || !campusId) {
@@ -161,6 +194,10 @@ export function UnitSubmissionDetailCard({
                     submissions={unitSubmissions.yearSubmissions}
                     risks={unitRisks || []}
                     monitoringRecords={unitMonitoring || []}
+                    programCompliances={unitCompliances || []}
+                    auditFindings={auditFindings || []}
+                    correctiveActionRequests={unitCars || []}
+                    mrOutputs={mrOutputs || []}
                     scope="unit"
                     name={unit.name}
                     selectedYear={selectedYear}
