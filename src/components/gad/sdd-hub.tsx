@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -19,7 +18,7 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Badge } from '@/components/ui/badge';
-import { Users, GraduationCap, UserCircle, School, Info, Activity, PieChart as PieIcon } from 'lucide-react';
+import { Users, GraduationCap, UserCircle, School, Info, Activity, PieChart as PieIcon, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SDDHubProps {
