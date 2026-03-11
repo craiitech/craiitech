@@ -1,30 +1,23 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Unit, GADMainstreamingChecklist } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
     ShieldCheck, 
-    ListChecks, 
     ChevronRight, 
     CheckCircle2, 
     Target, 
     Info, 
-    AlertTriangle,
     History,
-    Save,
     Loader2
 } from 'lucide-react';
 import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 
 interface GADMainstreamingProps {
   units: Unit[];
@@ -48,8 +41,17 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  const isGadCoordinator = userRole?.toLowerCase().includes('coordinator') && !isAdmin;
+
   // Scoped to current unit for coordinators, or allowed selection for admins
   const [activeUnitId, setActiveUnitId] = useState<string>(userProfile?.unitId || units[0]?.id || '');
+
+  // Role-based locking: Force coordinator to their specific unit
+  useEffect(() => {
+    if (isGadCoordinator && userProfile?.unitId) {
+        setActiveUnitId(userProfile.unitId);
+    }
+  }, [isGadCoordinator, userProfile?.unitId]);
 
   const checklistId = `${activeUnitId}-${selectedYear}`;
   const checklistRef = useMemoFirebase(
@@ -65,8 +67,8 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
   const handleToggle = async (itemId: string) => {
     if (!firestore || !userProfile || isSubmitting) return;
     
-    const isUnitCoordinator = userRole?.toLowerCase().includes('coordinator');
-    if (!isAdmin && isUnitCoordinator && userProfile.unitId !== activeUnitId) {
+    // Safety check: coordinators can only toggle their own unit
+    if (!isAdmin && isGadCoordinator && userProfile.unitId !== activeUnitId) {
         toast({ title: 'Access Denied', description: 'You can only update mainstreaming status for your assigned unit.', variant: 'destructive' });
         return;
     }
@@ -92,8 +94,8 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-20rem)] overflow-hidden">
-      {/* Unit Directory Sidebar */}
-      <Card className={cn("lg:col-span-1 flex flex-col overflow-hidden shadow-sm border-primary/10", !isAdmin && "hidden lg:flex")}>
+      {/* Unit Directory Sidebar - Hidden for GAD Coordinators */}
+      <Card className={cn("lg:col-span-1 flex flex-col overflow-hidden shadow-sm border-primary/10", isGadCoordinator && "hidden lg:hidden")}>
         <CardHeader className="bg-muted/30 border-b pb-4 shrink-0">
           <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Unit Selection</CardTitle>
         </CardHeader>
@@ -119,8 +121,8 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
         </CardContent>
       </Card>
 
-      {/* Main Checklist Workspace */}
-      <Card className="lg:col-span-2 flex flex-col overflow-hidden shadow-lg border-primary/10">
+      {/* Main Checklist Workspace - Full width if sidebar hidden */}
+      <Card className={cn("flex flex-col overflow-hidden shadow-lg border-primary/10", isGadCoordinator ? "lg:col-span-3" : "lg:col-span-2")}>
         <CardHeader className="bg-primary/5 border-b py-6 shrink-0">
             <div className="flex items-center justify-between">
                 <div className="space-y-1">

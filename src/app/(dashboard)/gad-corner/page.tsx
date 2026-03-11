@@ -5,7 +5,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { Campus, Unit, ProgramComplianceRecord, GADInitiative } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, HandHeart, Users, BarChart3, ListChecks, Target, Info, ShieldCheck, ClipboardList } from 'lucide-react';
+import { Loader2, HandHeart, Users, BarChart3, ListChecks, Target } from 'lucide-react';
 import { SDDHub } from '@/components/gad/sdd-hub';
 import { GADOverview } from '@/components/gad/gad-overview';
 import { GADInitiatives } from '@/components/gad/gad-initiatives';
@@ -27,9 +27,25 @@ export default function GadCornerPage() {
   const { data: compliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
   const initiativesQuery = useMemoFirebase(() => {
-    // Temporarily disabled listing as per user request to not list/display yet
-    return null;
-  }, [firestore, isUserLoading, selectedYear]);
+    if (!firestore || isUserLoading || !userProfile) return null;
+    const baseRef = collection(firestore, 'gadInitiatives');
+    
+    // SCOPING: GAD Unit Coordinators see only their unit's projects
+    const isUnitLevel = userRole?.toLowerCase().includes('coordinator') || userRole === 'Unit ODIMO';
+    if (isUnitLevel && !isAdmin) {
+        return query(baseRef, where('unitId', '==', userProfile.unitId), where('year', '==', selectedYear));
+    }
+
+    // SCOPING: Campus Directors see their campus projects
+    const isCampusLevel = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+    if (isCampusLevel && !isAdmin) {
+        return query(baseRef, where('campusId', '==', userProfile.campusId), where('year', '==', selectedYear));
+    }
+
+    // Admin/Auditor see everything for the year
+    return query(baseRef, where('year', '==', selectedYear));
+  }, [firestore, isUserLoading, userProfile, userRole, isAdmin, selectedYear]);
+  
   const { data: initiatives, isLoading: isLoadingInitiatives } = useCollection<GADInitiative>(initiativesQuery);
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);

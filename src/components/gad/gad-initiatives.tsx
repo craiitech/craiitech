@@ -2,32 +2,25 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import type { GADInitiative, Campus, Unit } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
     Loader2, 
     PlusCircle, 
     Search, 
-    Filter, 
-    Building2, 
-    Users, 
-    TrendingUp, 
-    Clock, 
-    CheckCircle2, 
     Trash2, 
     Edit, 
     MoreHorizontal,
     Target,
     HandHeart,
-    Calendar,
     Landmark,
     Info,
-    PieChart as PieIcon,
-    ShieldCheck
+    ShieldCheck,
+    Users,
+    ChevronRight
 } from 'lucide-react';
 import { 
     DropdownMenu, 
@@ -84,17 +77,25 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
   const [editingInitiative, setEditingInitiative] = useState<GADInitiative | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const isGadCoordinator = userRole?.toLowerCase().includes('coordinator') && !isAdmin;
   const canManage = isAdmin || userRole?.toLowerCase().includes('coordinator') || userRole?.toLowerCase().includes('director');
 
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
 
   const filteredInitiatives = useMemo(() => {
-    return initiatives.filter(i => 
+    let filtered = initiatives;
+    
+    // Strict Scoping for Coordinators
+    if (isGadCoordinator && userProfile?.unitId) {
+        filtered = filtered.filter(i => i.unitId === userProfile.unitId);
+    }
+
+    return filtered.filter(i => 
         i.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         unitMap.get(i.unitId)?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [initiatives, searchTerm, unitMap]);
+  }, [initiatives, searchTerm, unitMap, isGadCoordinator, userProfile?.unitId]);
 
   const form = useForm<z.infer<typeof initiativeSchema>>({
     resolver: zodResolver(initiativeSchema),
@@ -184,8 +185,7 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
       </div>
 
       <Card className="shadow-md border-primary/10 overflow-hidden">
-        <CardContent className="p-0">
-          <Table>
+        <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead className="text-[10px] font-black uppercase pl-6 py-4">Initiative & Unit</TableHead>
@@ -255,14 +255,13 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
                   <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-2 opacity-20">
                         <HandHeart className="h-10 w-10" />
-                        <p className="text-[10px] font-black uppercase tracking-widest">No projects registered for {selectedYear}</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest">No projects registered</p>
                     </div>
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
-        </CardContent>
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -294,10 +293,20 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
                             <FormField control={form.control} name="campusId" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-black uppercase">Campus Site</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl><SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></FormItem>
+                                <FormItem><FormLabel className="text-xs font-black uppercase">Campus Site</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={isGadCoordinator}>
+                                        <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl>
+                                        <SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </FormItem>
                             )} />
                             <FormField control={form.control} name="unitId" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-black uppercase">Executing Unit</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl><SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></FormItem>
+                                <FormItem><FormLabel className="text-xs font-black uppercase">Executing Unit</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} disabled={isGadCoordinator}>
+                                        <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl>
+                                        <SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </FormItem>
                             )} />
                         </div>
 
