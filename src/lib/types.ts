@@ -26,6 +26,7 @@ export type User = {
   ndaAccepted?: boolean;
   lastSeen?: any;
   accessibility?: UserAccessibility;
+  lastSeenVersion?: string; // Track the last changelog version seen by the user
 };
 
 export type Status = 'Pending' | 'Approved' | 'Rejected' | 'Submitted';
@@ -327,14 +328,14 @@ export type CorrectiveActionRequest = {
     source: 'Audit Finding' | 'Legal Non-compliance' | 'Non-conforming Service' | 'Others';
     procedureTitle: string;
     initiator: string;
-    nature of Finding: 'NC' | 'OFI';
+    natureOfFinding: 'NC' | 'OFI';
     concerningClause: string;
     concerningTopManagementName?: string;
-    timeLimit for Reply: any; // Timestamp
+    timeLimitForReply: any; // Timestamp
     unitId: string;
     campusId: string;
     unitHead: string;
-    description of Nonconformance: string;
+    descriptionOfNonconformance: string;
     requestDate: any; // Timestamp
     preparedBy: string;
     approvedBy: string;

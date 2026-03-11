@@ -12,7 +12,7 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/dashboard/sidebar-nav';
-import { useEffect, useMemo, useCallback, useRef } from 'react';
+import { useEffect, useMemo, useCallback, useRef, useState } from 'react';
 import type { Campus, Unit, Submission } from '@/lib/types';
 import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -22,6 +22,9 @@ import { Header } from '@/components/dashboard/header';
 import { Chatbot } from '@/components/dashboard/chatbot';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { WhatsNewDialog } from '@/components/dashboard/whats-new-dialog';
+
+const CURRENT_SYSTEM_VERSION = '2.5.0'; // Current release version
 
 const LoadingSkeleton = () => (
   <div className="flex items-start">
@@ -85,6 +88,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const { toast } = useToast();
   const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, isSupervisor } = useUser();
+  const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
+
+  // LOGIC: Detect if user needs to see the "What's New" pop-up
+  useEffect(() => {
+    if (!isUserLoading && userProfile && userProfile.verified) {
+        if (userProfile.lastSeenVersion !== CURRENT_SYSTEM_VERSION) {
+            // Delay slightly for a smoother UX after dashboard load
+            const timer = setTimeout(() => setIsWhatsNewOpen(true), 1500);
+            return () => clearTimeout(timer);
+        }
+    }
+  }, [isUserLoading, userProfile]);
+
+  const handleAcknowledgeUpdates = async () => {
+    if (!user || !firestore) return;
+    try {
+        const userRef = doc(firestore, 'users', user.uid);
+        await updateDoc(userRef, { lastSeenVersion: CURRENT_SYSTEM_VERSION });
+        setIsWhatsNewOpen(false);
+    } catch (e) {
+        setIsWhatsNewOpen(false); // Close anyway to avoid trapping the user
+    }
+  };
 
   useEffect(() => {
     if (!user || !firestore) return;
@@ -246,6 +272,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </SidebarInset>
         </SidebarProvider>
       </div>
+      
+      <WhatsNewDialog 
+        isOpen={isWhatsNewOpen}
+        onOpenChange={setIsWhatsNewOpen}
+        onAcknowledge={handleAcknowledgeUpdates}
+      />
     </ActivityLogProvider>
   );
 }
