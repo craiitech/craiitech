@@ -27,7 +27,8 @@ import {
     Users,
     Award,
     ClipboardCheck,
-    ListChecks
+    ListChecks,
+    School
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
