@@ -231,7 +231,7 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
 
-            <Card className="shadow-md border-primary/10 flex flex-col">
+            <Card id="accessibility" className="shadow-md border-primary/10 flex flex-col scroll-mt-20">
               <CardHeader className="bg-primary/5 border-b">
                   <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
                     <Accessibility className="h-4 w-4" />

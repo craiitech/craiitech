@@ -1,6 +1,7 @@
+
 'use client';
 
-import { LogOut, Bell, User as UserIcon, Settings } from 'lucide-react';
+import { LogOut, Bell, User as UserIcon, Settings, Accessibility } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,6 +14,12 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { User as FirebaseAuthUser } from 'firebase/auth';
 import type { User as AppUser } from '@/lib/types';
 import { useRouter } from 'next/navigation';
@@ -59,23 +66,53 @@ export function UserNav({ user, userProfile, notificationCount }: UserNavProps) 
   const fallback = `${firstName?.charAt(0) ?? ''}${lastName?.charAt(0) ?? ''}`;
 
   return (
-    <div className="flex items-center gap-4">
-        <Button 
-            variant="ghost" 
-            size="icon" 
-            className="relative h-9 w-9 rounded-full" 
-            onClick={handleNotificationClick}
-        >
-            <Bell className="h-5 w-5"/>
-            {notificationCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-[10px] font-bold text-white items-center justify-center">
-                        {notificationCount}
-                    </span>
-                </span>
-            )}
-        </Button>
+    <div className="flex items-center gap-2 sm:gap-4">
+        <TooltipProvider>
+            {/* Accessibility / PWD Shortcut */}
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-9 w-9 rounded-full text-primary hover:bg-primary/5" 
+                        asChild
+                    >
+                        <Link href="/profile#accessibility">
+                            <Accessibility className="h-5 w-5"/>
+                        </Link>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p className="text-[10px] font-bold uppercase">Accessibility Settings (PWD)</p>
+                </TooltipContent>
+            </Tooltip>
+
+            {/* Notification Bell */}
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="relative h-9 w-9 rounded-full" 
+                        onClick={handleNotificationClick}
+                    >
+                        <Bell className="h-5 w-5"/>
+                        {notificationCount > 0 && (
+                            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-[10px] font-bold text-white items-center justify-center">
+                                    {notificationCount}
+                                </span>
+                            </span>
+                        )}
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p className="text-[10px] font-bold uppercase">Notifications</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+
         <DropdownMenu>
         <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
