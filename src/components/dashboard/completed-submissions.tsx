@@ -72,8 +72,9 @@ export function CompletedSubmissions({
                 unitSubmissions.filter(s => s.cycleId === 'final' && s.statusId === 'approved').map(s => s.reportType)
             ).size;
 
-            const isComplete = firstCycleApproved >= requiredFirst && finalCycleApproved >= requiredFinal && totalRequired > 0;
             const totalRequired = requiredFirst + requiredFinal;
+            const approvedCount = firstCycleApproved + finalCycleApproved;
+            const isComplete = approvedCount >= totalRequired && totalRequired > 0;
             
             return {
                 id: unit.id,
@@ -116,39 +117,39 @@ export function CompletedSubmissions({
   return (
     <Card className="border-green-200 bg-green-50/10 shadow-sm h-fit flex flex-col">
       <CardHeader className="bg-green-50/50 border-b pb-4">
-        <CardTitle className="flex items-center gap-2 text-green-700">
-            <CheckCircle2 className="h-5 w-5" />
+        <CardTitle className="flex items-center gap-2 text-green-700 text-sm font-black uppercase">
+            <CheckCircle2 className="h-4 w-4" />
             Verified Compliant Units
         </CardTitle>
-        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-green-600/70">
-            Units with 100% <strong>Approved</strong> documents for {selectedYear}.
+        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-green-600/70 mt-1">
+            100% <strong>Approved</strong> units for AY {selectedYear}.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-[450px]">
-            <div className="p-6 pt-0">
-                <Accordion type="single" collapsible className="w-full" defaultValue={completedSubmissionsByCampus[0]?.campusId}>
+            <div className="p-4">
+                <Accordion type="single" collapsible className="w-full">
                     {completedSubmissionsByCampus.map(campus => (
                         <AccordionItem value={campus.campusId} key={campus.campusId} className="border-none">
-                            <AccordionTrigger className="font-bold hover:no-underline hover:bg-green-100/50 rounded-md px-2 py-3 transition-colors">
-                                <div className="flex items-center gap-3">
-                                    <School className="h-4 w-4 text-green-600 shrink-0" />
-                                    <span className="text-xs uppercase tracking-tight">{campus.campusName}</span>
-                                    <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 h-5 text-[9px] font-black">{campus.completedUnits.length} UNITS</Badge>
+                            <AccordionTrigger className="font-bold hover:no-underline hover:bg-green-100/50 rounded-md px-2 py-2 transition-colors text-xs">
+                                <div className="flex items-center gap-2">
+                                    <School className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                                    <span className="uppercase tracking-tighter truncate max-w-[140px]">{campus.campusName}</span>
+                                    <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 h-4 text-[8px] font-black">{campus.completedUnits.length}</Badge>
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent className="pt-2">
-                                <List className="pl-2">
+                                <ul className="space-y-1 pl-2">
                                 {campus.completedUnits.map(unit => (
-                                    <ListItem key={unit.id} className="flex justify-between items-center border-none p-2 hover:bg-green-50 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <Building className="h-3.5 w-3.5 text-green-600" />
-                                        <span className="text-xs font-bold text-slate-700">{unit.name}</span>
-                                    </div>
-                                    <CheckCircle2 className="h-3 w-3 text-green-500" />
-                                    </ListItem>
+                                    <li key={unit.id} className="flex justify-between items-center p-2 rounded-md hover:bg-green-50 transition-colors">
+                                        <div className="flex items-center gap-2">
+                                            <Building className="h-3 w-3 text-green-600" />
+                                            <span className="text-[11px] font-bold text-slate-700 truncate text-left">{unit.name}</span>
+                                        </div>
+                                        <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                                    </li>
                                 ))}
-                                </List>
+                                </ul>
                             </AccordionContent>
                         </AccordionItem>
                     ))}
@@ -160,7 +161,7 @@ export function CompletedSubmissions({
           <div className="flex items-start gap-2">
               <Info className="h-3.5 w-3.5 text-green-600 shrink-0 mt-0.5" />
               <p className="text-[9px] text-muted-foreground italic leading-tight">
-                  Displays units that have successfully passed the final verification for both the First and Final cycles of the Academic Year {selectedYear}.
+                  Units that have passed final verification for AY {selectedYear}.
               </p>
           </div>
       </CardFooter>

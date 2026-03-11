@@ -598,7 +598,7 @@ export default function HomePage() {
                 risks={risks?.filter(r => r.unitId === userProfile?.unitId && r.year === selectedYear) || []}
                 monitoringRecords={monitoringRecords?.filter(r => r.unitId === userProfile?.unitId) || []}
                 programCompliances={programCompliances?.filter(c => c.unitId === userProfile?.unitId && c.academicYear === selectedYear) || []}
-                auditFindings={auditFindings?.filter(f => submissions?.some(s => s.id === f.auditScheduleId && s.unitId === userProfile?.unitId))} // Simplified filter
+                auditFindings={auditFindings || []}
                 correctiveActionRequests={correctiveActionRequests?.filter(car => car.unitId === userProfile?.unitId) || []}
                 mrOutputs={mrOutputs?.filter(o => o.assignments?.some(a => a.unitId === userProfile?.unitId)) || []}
                 scope="unit"
@@ -762,14 +762,14 @@ export default function HomePage() {
                     />
                 )}
 
-                <Card className="col-span-4"><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from your campus.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
-                <div className="grid gap-4 md:grid-cols-2">
-                    <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
-                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
-                </div>
+                <Card><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from your campus.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
                 <ComplianceHeatmap units={unitsInCampus} submissions={submissions || []} selectedYear={selectedYear} />
             </div>
             <div className="lg:col-span-3 space-y-4">
+                <div className="space-y-4">
+                    <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
+                    <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
+                </div>
                 <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
                  <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from your campus.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent>
                 <CardFooter className="bg-muted/5 border-t py-3">
@@ -836,16 +836,15 @@ export default function HomePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
             <div className="lg:col-span-4 space-y-4">
-                 <Card className="col-span-4"><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from all users.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
-                 <IncompleteCampusSubmissions allSubmissions={submissions} allCampuses={campuses} allUnits={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} />
-                <div className="grid gap-4 md:grid-cols-2">
+                 <Card><CardHeader><CardTitle>Submissions Overview</CardTitle><CardDescription>Monthly submissions from all users.</CardDescription></CardHeader><CardContent className="pl-2"><Overview submissions={submissions} isLoading={isLoading} /></CardContent></Card>
+                 <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={mrOutputs || []} selectedYear={selectedYear} />
+            </div>
+             <div className="lg:col-span-3 space-y-4">
+                <IncompleteCampusSubmissions allSubmissions={submissions} allCampuses={campuses} allUnits={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} />
+                <div className="grid grid-cols-1 gap-4">
                     <CompletedSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} />
                     <UnitsWithoutSubmissions allUnits={allUnits} allCampuses={campuses} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} isAdmin={isAdmin} isCampusSupervisor={isCampusSupervisor} onUnitClick={(unitId, campusId) => setSelectedDetail({ unitId, campusId })} selectedYear={selectedYear} />
                 </div>
-                <MaturityRadar campuses={campuses || []} submissions={submissions || []} risks={risks || []} mrOutputs={mrOutputs || []} selectedYear={selectedYear} />
-            </div>
-             <div className="lg:col-span-3 space-y-4">
-                <Trophy className="h-5 w-5 text-yellow-500" />
                 <Leaderboard allSubmissions={submissions} allUnits={allUnits} allCampuses={campuses} allCycles={allCycles} isLoading={isLoading} userProfile={userProfile} isCampusSupervisor={isCampusSupervisor} selectedYear={selectedYear} onYearChange={setSelectedYear} />
                  <Card><CardHeader><CardTitle>Recent Activity</CardTitle><CardDescription>The latest submissions from all users.</CardDescription></CardHeader><CardContent><RecentActivity submissions={submissions} isLoading={isLoading} users={allUsersMap} userProfile={userProfile} /></CardContent>
                  <CardFooter className="bg-muted/5 border-t py-3">

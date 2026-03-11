@@ -5,7 +5,7 @@ import type { Unit, Submission, User as AppUser, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { List, ListItem } from '@/components/ui/list';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building, AlertCircle, Send, Loader2, FileX, Info } from 'lucide-react';
+import { Building, AlertCircle, Send, Loader2, FileX, Info, School, CheckCircle } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/app/(dashboard)/dashboard/page';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
@@ -91,12 +91,12 @@ export function UnitsWithoutSubmissions({
                 count: approvedSubmissions.size,
                 totalRequired: totalRequired
             };
-        }).filter(unit => unit.count < unit.totalRequired);
+        }).filter(unit => unit.count === 0); // Strictly zero approved
         
         return {
             campusId: campus.id,
             campusName: campus.name,
-            incompleteUnits: incompleteUnits.sort((a,b) => a.count - b.count)
+            incompleteUnits: incompleteUnits
         };
     }).filter(campus => campus.incompleteUnits.length > 0);
 
@@ -146,7 +146,6 @@ export function UnitsWithoutSubmissions({
           <div className="space-y-4">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
           </div>
         </CardContent>
       </Card>
@@ -159,57 +158,56 @@ export function UnitsWithoutSubmissions({
 
   return (
     <>
-    <Card className="border-destructive/20 bg-destructive/5 h-fit flex flex-col">
-      <CardHeader className="flex flex-row items-start justify-between pb-4">
-        <div>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-                <FileX className="h-5 w-5" />
-                Zero-Approved Units
-            </CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            Units with no verified documentation for {selectedYear}.
-            </CardDescription>
+    <Card className="border-destructive/20 bg-destructive/5 h-fit flex flex-col shadow-sm">
+      <CardHeader className="bg-destructive/10 border-b pb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+            <div>
+                <CardTitle className="text-sm font-black uppercase text-destructive flex items-center gap-2">
+                    <FileX className="h-4 w-4" />
+                    Zero-Approved Units
+                </CardTitle>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">
+                Units with no verified documentation.
+                </CardDescription>
+            </div>
+            {isAdmin && (
+                <Button variant="outline" size="sm" onClick={() => setIsReminderDialogOpen(true)} className="h-7 text-[9px] font-black uppercase bg-white">
+                    <Send className="mr-1.5 h-3 w-3"/> Remind All
+                </Button>
+            )}
         </div>
-        {isAdmin && (
-            <Button variant="outline" size="sm" onClick={() => setIsReminderDialogOpen(true)} className="h-8 bg-white">
-                <Send className="mr-2 h-3.5 w-3.5"/>
-                Remind All
-            </Button>
-        )}
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-[450px]">
-            <div className="p-6 pt-0">
+            <div className="p-4">
                 <Accordion type="single" collapsible className="w-full">
                     {incompleteSubmissionsByCampus.map(campus => (
                         <AccordionItem value={campus.campusId} key={campus.campusId} className="border-none">
-                            <AccordionTrigger className="font-bold hover:no-underline hover:bg-muted/50 rounded-md px-2 py-3 transition-colors">
-                                <div className="flex items-center gap-3">
-                                    <Building className="h-4 w-4 text-muted-foreground" />
-                                    <span className="text-xs uppercase tracking-tight">{campus.campusName}</span>
-                                    <Badge variant="destructive" className="h-5 text-[9px] font-black">{campus.incompleteUnits.length} UNITS</Badge>
+                            <AccordionTrigger className="font-bold hover:no-underline py-2 px-2 hover:bg-muted/50 rounded-md transition-colors text-xs">
+                                <div className="flex items-center gap-2">
+                                    <School className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                    <span className="uppercase tracking-tighter truncate max-w-[140px]">{campus.campusName}</span>
+                                    <Badge variant="destructive" className="h-4 text-[8px] font-black">{campus.incompleteUnits.length}</Badge>
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent className="pt-2">
-                                <List className="pl-2">
+                                <ul className="space-y-1 pl-2">
                                 {campus.incompleteUnits.map(unit => (
-                                    <ListItem key={unit.id} className="p-0 border-none">
+                                    <li key={unit.id}>
                                     <Button
                                         variant="ghost"
                                         className="flex h-auto w-full cursor-pointer items-center justify-between p-2 hover:bg-background group"
                                         onClick={() => onUnitClick(unit.id, campus.campusId)}
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <FileX className="h-3.5 w-3.5 text-muted-foreground group-hover:text-destructive" />
-                                            <span className="text-xs font-bold text-slate-700 truncate">{unit.name}</span>
+                                        <div className="flex items-center gap-2">
+                                            <FileX className="h-3 w-3 text-muted-foreground group-hover:text-destructive" />
+                                            <span className="text-[11px] font-bold text-slate-700 truncate text-left">{unit.name}</span>
                                         </div>
-                                        <Badge variant={unit.count === 0 ? 'destructive' : 'secondary'} className="text-[9px] font-black h-5">
-                                            {unit.count} / {unit.totalRequired}
-                                        </Badge>
+                                        <Badge variant="destructive" className="text-[8px] font-black h-4">0%</Badge>
                                     </Button>
-                                    </ListItem>
+                                    </li>
                                 ))}
-                                </List>
+                                </ul>
                             </AccordionContent>
                         </AccordionItem>
                     ))}
@@ -221,7 +219,7 @@ export function UnitsWithoutSubmissions({
           <div className="flex items-start gap-2">
               <Info className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
               <p className="text-[9px] text-muted-foreground italic leading-tight">
-                  This card identifies units that have <strong>not yet received an Approved status</strong> for any of the 6 mandatory documents in either cycle. These units are currently flagged as non-compliant for AY {selectedYear}.
+                  Units that have not yet received an <strong>Approved</strong> status for any mandatory documents in {selectedYear}.
               </p>
           </div>
       </CardFooter>
@@ -232,7 +230,7 @@ export function UnitsWithoutSubmissions({
             <AlertDialogHeader>
                 <AlertDialogTitle>Confirm Verification Reminders</AlertDialogTitle>
                 <AlertDialogDescription>
-                    This will post a compliance reminder to the dashboard of all users in the {incompleteSubmissionsByCampus.length} campus(es) with unverified submissions for {selectedYear}. This emphasizes <strong>Approval</strong> over mere submission.
+                    This will post a compliance reminder to the dashboard of all users in the {incompleteSubmissionsByCampus.length} campus(es) with zero-approved submissions for {selectedYear}.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

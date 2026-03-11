@@ -118,42 +118,32 @@ export function IncompleteCampusSubmissions({
   }
 
   return (
-    <Card className="border-amber-200 h-fit flex flex-col">
-      <CardHeader>
+    <Card className="border-amber-200 h-fit flex flex-col shadow-sm">
+      <CardHeader className="bg-amber-50/30 border-b pb-4">
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
-                 <CardTitle className="flex items-center gap-2 text-amber-700">
-                    <FileWarning className="h-5 w-5" />
+                 <CardTitle className="text-sm font-black uppercase text-amber-700 flex items-center gap-2">
+                    <FileWarning className="h-4 w-4" />
                     Pending Verification
                 </CardTitle>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Units with reports awaiting upload or final approval.
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">
+                Gaps identified for AY {selectedYear}.
                 </CardDescription>
-            </div>
-            <div className="w-full sm:w-[120px]">
-                <Select value={String(selectedYear)} onValueChange={(v) => onYearChange(Number(v))}>
-                    <SelectTrigger className="h-8 text-xs bg-white">
-                    <SelectValue placeholder="Year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                    {yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                    </SelectContent>
-                </Select>
             </div>
         </div>
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-[450px]">
-            <div className="p-6 pt-0">
+            <div className="p-4">
                 {incompleteSubmissionsByCampus.length > 0 ? (
                     <Accordion type="single" collapsible className="w-full">
                     {incompleteSubmissionsByCampus.map(campus => (
                         <AccordionItem value={campus.campusId} key={campus.campusId} className="border-none">
-                        <AccordionTrigger className="font-bold hover:no-underline py-3 px-2 hover:bg-muted/50 rounded-md transition-colors">
-                            <div className="flex items-center gap-3">
-                                <School className="h-4 w-4 text-primary shrink-0" />
-                                <span className="text-xs uppercase tracking-tight">{campus.campusName}</span>
-                                <Badge variant="outline" className="h-5 text-[9px] font-black">{campus.incompleteUnits.length} UNITS</Badge>
+                        <AccordionTrigger className="font-bold hover:no-underline py-2 px-2 hover:bg-muted/50 rounded-md transition-colors text-xs">
+                            <div className="flex items-center gap-2">
+                                <School className="h-3.5 w-3.5 text-primary shrink-0" />
+                                <span className="uppercase tracking-tighter truncate max-w-[140px]">{campus.campusName}</span>
+                                <Badge variant="outline" className="h-4 text-[8px] font-black">{campus.incompleteUnits.length}</Badge>
                             </div>
                         </AccordionTrigger>
                         <AccordionContent className="pt-2">
@@ -165,10 +155,10 @@ export function IncompleteCampusSubmissions({
                                         className="flex h-auto w-full items-start justify-start gap-2 p-2 hover:bg-amber-50 group transition-colors"
                                         onClick={() => onUnitClick?.(unit.unitId, campus.campusId)}
                                     >
-                                        <Building className="h-3.5 w-3.5 shrink-0 mt-0.5 text-muted-foreground group-hover:text-amber-600" />
+                                        <Building className="h-3 w-3 shrink-0 mt-0.5 text-muted-foreground group-hover:text-amber-600" />
                                         <div className="flex flex-col flex-1 items-start min-w-0">
-                                            <span className="text-xs font-bold text-card-foreground leading-tight truncate w-full">{unit.unitName}</span>
-                                            <span className="text-[10px] text-amber-600 font-black uppercase tracking-tighter">{unit.missingCount} REQUIRED ACTIONS</span>
+                                            <span className="text-[11px] font-bold text-card-foreground leading-tight truncate w-full">{unit.unitName}</span>
+                                            <span className="text-[9px] text-amber-600 font-black uppercase tracking-tighter">{unit.missingCount} Gaps</span>
                                         </div>
                                     </Button>
                                     </li>
@@ -179,10 +169,9 @@ export function IncompleteCampusSubmissions({
                     ))}
                     </Accordion>
                 ) : (
-                    <div className="flex flex-col items-center justify-center text-center text-sm text-muted-foreground h-40 border border-dashed rounded-lg">
-                        <CheckCircle className="h-8 w-8 text-green-500 mb-2 opacity-20" />
-                        <p className="font-bold text-xs uppercase tracking-widest">Institutionally Compliant</p>
-                        <p className="text-[10px] max-w-[200px] mt-1">All units have achieved 100% verified approval for {selectedYear}.</p>
+                    <div className="flex flex-col items-center justify-center text-center text-sm text-muted-foreground py-10 opacity-20">
+                        <CheckCircle className="h-8 w-8 text-green-500 mb-2" />
+                        <p className="font-black text-xs uppercase tracking-widest">Compliant</p>
                     </div>
                 )}
             </div>
@@ -192,7 +181,7 @@ export function IncompleteCampusSubmissions({
           <div className="flex items-start gap-2">
               <Info className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
               <p className="text-[9px] text-muted-foreground italic leading-tight">
-                  This card identifies specific units that have documentation gaps (either not submitted or not yet approved) for the selected academic year.
+                  Identifies specific units with missing or rejected documents for AY {selectedYear}.
               </p>
           </div>
       </CardFooter>
