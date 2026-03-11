@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import type { Submission, Unit, User as AppUser, Signatories, Campus } from '@/lib/types';
+import type { Submission, Unit, User as AppUser, Signatories, Campus, Risk, UnitMonitoringRecord } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -40,8 +39,9 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { NoticeOfCompliance, NoticeOfNonCompliance } from './notices-print-templates';
-import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
-import { doc, Timestamp } from 'firebase/firestore';
+import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
+import { doc, Timestamp, collection, query, where } from 'firebase/firestore';
+import { StrategicSwotAnalysis } from './strategic-swot-analysis';
 
 const COLORS: Record<string, string> = {
     Approved: 'hsl(142 71% 45%)',
@@ -77,7 +77,7 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
   
   const yearColor = colors[year] || { 
     first: 'bg-slate-50/20 hover:bg-slate-100/40', 
-    final: 'bg-slate-100/40 hover:bg-slate-200/50' 
+    final: 'bg-slate-100/40 hover:bg-blue-200/50' 
   };
   
   return isFinal ? yearColor.final : yearColor.first;
@@ -126,6 +126,19 @@ export function UnitSubmissionsView({
     return filtered.sort((a, b) => a.name.localeCompare(b.name));
   }, [allUnits, userProfile]);
 
+  // Fetch contextual data for SWOT analysis
+  const risksQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedUnitId || !selectedYear) return null;
+    return query(collection(firestore, 'risks'), where('unitId', '==', selectedUnitId), where('year', '==', Number(selectedYear)));
+  }, [firestore, selectedUnitId, selectedYear]);
+  const { data: unitRisks } = useCollection<Risk>(risksQuery);
+
+  const monitoringQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedUnitId) return null;
+    return query(collection(firestore, 'unitMonitoringRecords'), where('unitId', '==', selectedUnitId));
+  }, [firestore, selectedUnitId]);
+  const { data: unitMonitoring } = useCollection<UnitMonitoringRecord>(monitoringQuery);
+
   const unitData = useMemo(() => {
     if (!selectedUnitId || !allSubmissions || !userProfile?.campusId) return null;
     
@@ -172,7 +185,7 @@ export function UnitSubmissionsView({
 
     const score = Math.round((approved / (totalPossible || 1)) * 100);
 
-    return { firstCycle: firstSubs, finalCycle: finalSubs, isFirstActionPlanNA, isFinalActionPlanNA, missingFirst, missingFinal, chartData, score, totalPossible, approved };
+    return { firstCycle: firstSubs, finalCycle: finalSubs, isFirstActionPlanNA, isFinalActionPlanNA, missingFirst, missingFinal, chartData, score, totalPossible, approved, yearSubmissions };
   }, [selectedUnitId, allSubmissions, userProfile, selectedYear]);
 
   const handlePrintNotice = (type: 'Compliance' | 'Non-Compliance') => {
@@ -203,6 +216,8 @@ export function UnitSubmissionsView({
 
   if (isLoading) return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
+  const currentUnit = allUnits?.find(u => u.id === selectedUnitId);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Horizontal Selector Header */}
@@ -224,11 +239,11 @@ export function UnitSubmissionsView({
         </CardContent>
       </Card>
 
-      {selectedUnitId && unitData ? (
+      {selectedUnitId && unitData && currentUnit ? (
           <div className="space-y-8 pb-20">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
                   <div className="space-y-1">
-                      <h3 className="font-black text-xl uppercase tracking-tight text-primary">{allUnits?.find(u => u.id === selectedUnitId)?.name}</h3>
+                      <h3 className="font-black text-xl uppercase tracking-tight text-primary">{currentUnit.name}</h3>
                       <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                           <span className="flex items-center gap-1.5"><CalendarIcon className="h-3 w-3" /> Monitoring Cycle: {selectedYear}</span>
                       </div>
@@ -237,6 +252,16 @@ export function UnitSubmissionsView({
                       <Printer className="h-4 w-4 mr-2" /> Print {unitData.score >= 100 ? 'Compliance' : 'Non-Compliance'} Notice
                   </Button>
               </div>
+
+              {/* STRATEGIC SWOT MODULE */}
+              <StrategicSwotAnalysis 
+                submissions={unitData.yearSubmissions}
+                risks={unitRisks || []}
+                monitoringRecords={unitMonitoring || []}
+                scope="unit"
+                name={currentUnit.name}
+                selectedYear={Number(selectedYear)}
+              />
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <Card className="lg:col-span-1 flex flex-col items-center justify-center bg-background rounded-2xl border-primary/10 shadow-lg p-8 relative overflow-hidden">

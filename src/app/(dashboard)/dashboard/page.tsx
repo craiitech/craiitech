@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -57,7 +56,7 @@ import {
   orderBy,
   limit,
 } from 'firebase/firestore';
-import type { Submission, User as AppUser, Unit, Campus, Cycle, Risk, ManagementReviewOutput, AuditSchedule, QaAdvisory } from '@/lib/types';
+import type { Submission, User as AppUser, Unit, Campus, Cycle, Risk, ManagementReviewOutput, AuditSchedule, QaAdvisory, UnitMonitoringRecord } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle, AlertCloseButton } from '@/components/ui/alert';
@@ -99,6 +98,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ComplianceHeatmap } from '@/components/dashboard/strategic/compliance-heatmap';
 import { MaturityRadar } from '@/components/dashboard/strategic/maturity-radar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { StrategicSwotAnalysis } from '@/components/submissions/strategic-swot-analysis';
 
 
 export const TOTAL_REPORTS_PER_CYCLE = 6;
@@ -186,6 +186,13 @@ export default function HomePage() {
   }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
+
+  // Fetch monitoring records for SWOT (Unit Level)
+  const monitoringQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile || isAdmin || isCampusSupervisor) return null;
+    return query(collection(firestore, 'unitMonitoringRecords'), where('unitId', '==', userProfile.unitId));
+  }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
+  const { data: monitoringRecords } = useCollection<UnitMonitoringRecord>(monitoringQuery);
 
   // Fetch MR Outputs for Strategic Hub
   const mrOutputsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'managementReviewOutputs') : null), [firestore]);
@@ -511,6 +518,7 @@ export default function HomePage() {
   }
 
   const renderUnitUserHome = () => {
+    const currentUnit = allUnits?.find(u => u.id === userProfile?.unitId);
     return (
     <Tabs defaultValue="overview" className="space-y-4">
       <TabsList className="grid grid-cols-2 md:inline-flex md:h-10 md:w-auto h-auto">
@@ -538,6 +546,18 @@ export default function HomePage() {
             {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
             {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
         </div>
+
+        {/* UNIT STRATEGIC SWOT */}
+        {!isLoading && currentUnit && (
+            <StrategicSwotAnalysis 
+                submissions={submissions?.filter(s => s.unitId === userProfile?.unitId && s.year === selectedYear) || []}
+                risks={risks?.filter(r => r.unitId === userProfile?.unitId && r.year === selectedYear) || []}
+                monitoringRecords={monitoringRecords || []}
+                scope="unit"
+                name={currentUnit.name}
+                selectedYear={selectedYear}
+            />
+        )}
 
          <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
         <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />

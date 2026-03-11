@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useMemo } from 'react';
-import type { Submission, Unit } from '@/lib/types';
+import type { Submission, Unit, Risk, UnitMonitoringRecord } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, CheckCircle, Circle, AlertCircle, Eye } from 'lucide-react';
@@ -10,6 +9,9 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
 import { submissionTypes } from '@/app/(dashboard)/submissions/new/page';
 import { cn } from '@/lib/utils';
+import { StrategicSwotAnalysis } from '../submissions/strategic-swot-analysis';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 
 interface UnitSubmissionDetailCardProps {
   unitId: string;
@@ -51,34 +53,48 @@ export function UnitSubmissionDetailCard({
   onViewSubmission,
   selectedYear,
 }: UnitSubmissionDetailCardProps) {
+  const firestore = useFirestore();
   const unit = useMemo(() => allUnits?.find(u => u.id === unitId), [allUnits, unitId]);
+
+  // Fetch contextual data for SWOT
+  const risksQuery = useMemoFirebase(() => {
+    if (!firestore || !unitId || !selectedYear) return null;
+    return query(collection(firestore, 'risks'), where('unitId', '==', unitId), where('year', '==', selectedYear));
+  }, [firestore, unitId, selectedYear]);
+  const { data: unitRisks } = useCollection<Risk>(risksQuery);
+
+  const monitoringQuery = useMemoFirebase(() => {
+    if (!firestore || !unitId) return null;
+    return query(collection(firestore, 'unitMonitoringRecords'), where('unitId', '==', unitId));
+  }, [firestore, unitId]);
+  const { data: unitMonitoring } = useCollection<UnitMonitoringRecord>(monitoringQuery);
 
   const unitSubmissions = useMemo(() => {
     if (!allSubmissions || !unitId || !campusId) {
-      return { firstCycle: new Map(), finalCycle: new Map() };
+      return { firstCycle: new Map(), finalCycle: new Map(), yearSubmissions: [] };
     }
-    const submissionsForUnit = allSubmissions.filter(
+    const yearSubmissions = allSubmissions.filter(
       s => s.unitId === unitId && s.campusId === campusId && s.year === selectedYear
     );
 
-    const firstCycleRegistry = submissionsForUnit.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
+    const firstCycleRegistry = yearSubmissions.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
     const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
 
-    const finalCycleRegistry = submissionsForUnit.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
+    const finalCycleRegistry = yearSubmissions.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
     const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
 
     const firstCycle = new Map(
-      submissionsForUnit
+      yearSubmissions
         .filter(s => s.cycleId === 'first')
         .map(s => [s.reportType, s])
     );
     const finalCycle = new Map(
-      submissionsForUnit
+      yearSubmissions
         .filter(s => s.cycleId === 'final')
         .map(s => [s.reportType, s])
     );
 
-    return { firstCycle, finalCycle, isFirstActionPlanNA, isFinalActionPlanNA };
+    return { firstCycle, finalCycle, isFirstActionPlanNA, isFinalActionPlanNA, yearSubmissions };
   }, [allSubmissions, unitId, campusId, selectedYear]);
   
   if (!unit) return null;
@@ -132,15 +148,24 @@ export function UnitSubmissionDetailCard({
       <CardHeader className="flex flex-row items-start justify-between bg-primary/5 pb-4 rounded-t-lg border-b">
         <div className="min-w-0 pr-4">
           <CardTitle className="text-sm font-black uppercase tracking-tight truncate" title={unit.name}>{unit.name}</CardTitle>
-          <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Audit Registry Tracker &bull; {selectedYear}</CardDescription>
+          <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Audit Registry Tracker & bull; {selectedYear}</CardDescription>
         </div>
         <Button variant="ghost" size="icon" onClick={onClose} className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive shrink-0">
           <X className="h-4 w-4" />
         </Button>
       </CardHeader>
-      <CardContent className="pt-6 bg-muted/5">
-        <ScrollArea className="h-[55vh] pr-4">
-            <div className="space-y-6">
+      <CardContent className="pt-6 bg-muted/5 p-0">
+        <ScrollArea className="h-[70vh]">
+            <div className="p-6 space-y-6">
+                <StrategicSwotAnalysis 
+                    submissions={unitSubmissions.yearSubmissions}
+                    risks={unitRisks || []}
+                    monitoringRecords={unitMonitoring || []}
+                    scope="unit"
+                    name={unit.name}
+                    selectedYear={selectedYear}
+                />
+                
                 {renderSubmissionList('First', unitSubmissions.firstCycle, unitSubmissions.isFirstActionPlanNA)}
                 {renderSubmissionList('Final', unitSubmissions.finalCycle, unitSubmissions.isFinalActionPlanNA)}
             </div>

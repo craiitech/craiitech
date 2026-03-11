@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import type { Submission, Unit, Campus, Signatories } from '@/lib/types';
+import type { Submission, Unit, Campus, Signatories, Risk, UnitMonitoringRecord } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -50,8 +50,9 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, B
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { NoticeOfCompliance, NoticeOfNonCompliance, CampusNoticeOfCompliance, CampusNoticeOfNonCompliance } from './notices-print-templates';
-import { useUser, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { doc, Timestamp } from 'firebase/firestore';
+import { useUser, useFirestore, useMemoFirebase, useDoc, useCollection } from '@/firebase';
+import { doc, Timestamp, collection, query, where } from 'firebase/firestore';
+import { StrategicSwotAnalysis } from './strategic-swot-analysis';
 
 const COLORS: Record<string, string> = {
     Approved: 'hsl(142 71% 45%)',
@@ -125,6 +126,19 @@ export function CampusSubmissionsView({
   );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
+  // Fetch contextual data for SWOT analysis
+  const risksQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedCampusId || !selectedYear) return null;
+    return query(collection(firestore, 'risks'), where('campusId', '==', selectedCampusId), where('year', '==', Number(selectedYear)));
+  }, [firestore, selectedCampusId, selectedYear]);
+  const { data: campusRisks } = useCollection<Risk>(risksQuery);
+
+  const monitoringQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedCampusId) return null;
+    return query(collection(firestore, 'unitMonitoringRecords'), where('campusId', '==', selectedCampusId));
+  }, [firestore, selectedCampusId]);
+  const { data: campusMonitoring } = useCollection<UnitMonitoringRecord>(monitoringQuery);
+
   const campusMap = useMemo(() => {
     const map = new Map(allCampuses?.map(c => [c.id, c.name]));
     map.set('university-wide', 'University-Wide');
@@ -177,7 +191,8 @@ export function CampusSubmissionsView({
             approvedCount: approved,
             totalPossible,
             missingFirst: getMissing('first'),
-            missingFinal: getMissing('final')
+            missingFinal: getMissing('final'),
+            allUnitSubmissions: unitSubs
         };
     });
 
@@ -188,7 +203,8 @@ export function CampusSubmissionsView({
         avgScore,
         totalUnits: unitPerformance.length,
         fullyCompliant,
-        unitPerformance: unitPerformance.sort((a,b) => b.score - a.score)
+        unitPerformance: unitPerformance.sort((a,b) => b.score - a.score),
+        allCampusSubmissions: yearSubmissions
     };
   }, [selectedCampusId, allSubmissions, allUnits, selectedYear]);
 
@@ -237,7 +253,19 @@ export function CampusSubmissionsView({
 
     const score = Math.round((approved / (totalPossible || 1)) * 100);
 
-    return { firstCycle: firstSubs, finalCycle: finalSubs, isFirstActionPlanNA, isFinalActionPlanNA, missingFirst, missingFinal, chartData, score, totalPossible, approved };
+    return { 
+        firstCycle: firstSubs, 
+        finalCycle: finalSubs, 
+        isFirstActionPlanNA, 
+        isFinalActionPlanNA, 
+        missingFirst, 
+        missingFinal, 
+        chartData, 
+        score, 
+        totalPossible, 
+        approved,
+        allUnitSubmissions: unitSubmissions
+    };
   }, [selectedUnitId, selectedCampusId, allSubmissions, selectedYear]);
 
   /**
@@ -408,6 +436,15 @@ export function CampusSubmissionsView({
                     </Button>
                 </div>
 
+                <StrategicSwotAnalysis 
+                    submissions={unitData.allUnitSubmissions}
+                    risks={campusRisks?.filter(r => r.unitId === selectedUnitId) || []}
+                    monitoringRecords={campusMonitoring?.filter(r => r.unitId === selectedUnitId) || []}
+                    scope="unit"
+                    name={unitMap.get(selectedUnitId) || 'Unit'}
+                    selectedYear={Number(selectedYear)}
+                />
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <Card className="md:col-span-1 flex flex-col items-center justify-center bg-background rounded-2xl border-primary/10 shadow-lg p-8">
                         <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-6 text-center">Unit Verified Maturity</span>
@@ -493,6 +530,15 @@ export function CampusSubmissionsView({
                             </Button>
                         </div>
                     </div>
+
+                    <StrategicSwotAnalysis 
+                        submissions={campusSummary.allCampusSubmissions}
+                        risks={campusRisks || []}
+                        monitoringRecords={campusMonitoring || []}
+                        scope="campus"
+                        name={campusMap.get(selectedCampusId) || 'Campus'}
+                        selectedYear={Number(selectedYear)}
+                    />
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <Card className="md:col-span-1 border-primary/10 shadow-lg p-8 bg-gradient-to-br from-primary/10 to-background flex flex-col items-center justify-center relative overflow-hidden">
