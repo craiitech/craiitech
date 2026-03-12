@@ -25,6 +25,7 @@ import { UnitGroupingExplorer } from '@/components/admin/unit-grouping-explorer'
 import { AdvisoryManagement } from '@/components/advisories/advisory-management';
 import { SignatoryManagement } from '@/components/admin/signatory-management';
 import { DataBackupManagement } from '@/components/admin/data-backup-management';
+import { GadSettingsManagement } from '@/components/admin/gad-settings-management';
 
 
 export default function SettingsPage() {
@@ -58,6 +59,7 @@ export default function SettingsPage() {
           <TabsList className="grid h-auto w-full grid-cols-2 md:inline-flex md:h-10 md:w-auto">
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="signatories">Signatories</TabsTrigger>
+            <TabsTrigger value="gad">GAD Corner</TabsTrigger>
             <TabsTrigger value="campuses">Campuses</TabsTrigger>
             <TabsTrigger value="units">Units</TabsTrigger>
             <TabsTrigger value="unit-grouping">Unit Explorer</TabsTrigger>
@@ -75,6 +77,9 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="signatories" className="space-y-4">
             <SignatoryManagement />
+          </TabsContent>
+          <TabsContent value="gad" className="space-y-4">
+            <GadSettingsManagement />
           </TabsContent>
           <TabsContent value="campuses" className="space-y-4">
             <CampusManagement />

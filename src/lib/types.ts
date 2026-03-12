@@ -131,6 +131,12 @@ export type CampusSetting = {
     masterlistUpdatedAt?: string;
 }
 
+export type GadSettings = {
+    leadershipUnitId?: string;
+    updatedAt?: any;
+    updatedBy?: string;
+}
+
 export type ActivityLog = {
     id: string;
     userId: string;
@@ -336,7 +342,7 @@ export type CorrectiveActionRequest = {
     source: 'Audit Finding' | 'Legal Non-compliance' | 'Non-conforming Service' | 'Others';
     procedureTitle: string;
     initiator: string;
-    nature of finding: 'NC' | 'OFI';
+    natureOfFinding: 'NC' | 'OFI';
     concerningClause: string;
     concerningTopManagementName?: string;
     timeLimitForReply: any; // Timestamp

@@ -2,9 +2,9 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
-import type { Campus, Unit, ProgramComplianceRecord, GADInitiative } from '@/lib/types';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
+import type { Campus, Unit, ProgramComplianceRecord, GADInitiative, GadSettings } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, HandHeart, Users, BarChart3, ListChecks, Target, Building } from 'lucide-react';
 import { SDDHub } from '@/components/gad/sdd-hub';
@@ -23,18 +23,39 @@ export default function GadCornerPage() {
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedUnitId, setSelectedUnitId] = useState<string>('all');
 
-  // Initialize selected unit based on role
+  // Fetch Institutional GAD Settings
+  const gadSettingsRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system', 'gadSettings') : null),
+    [firestore]
+  );
+  const { data: gadSettings } = useDoc<GadSettings>(gadSettingsRef);
+
+  /**
+   * GLOBAL OVERVIEW LOGIC
+   * A user has global oversight if they are:
+   * 1. A system Admin
+   * 2. Belong to the designated GAD Leadership Unit (e.g., GAD Office)
+   */
+  const isInstitutionalViewer = useMemo(() => {
+    if (isAdmin) return true;
+    if (gadSettings?.leadershipUnitId && userProfile?.unitId === gadSettings.leadershipUnitId) return true;
+    return false;
+  }, [isAdmin, gadSettings, userProfile]);
+
+  // Initialize selected unit based on role and designated authority
   useEffect(() => {
     if (userProfile && !isUserLoading) {
-        if (userProfile.unitId) {
+        if (isInstitutionalViewer) {
+            setSelectedUnitId('all');
+        } else if (userProfile.unitId) {
             setSelectedUnitId(userProfile.unitId);
         }
     }
-  }, [userProfile, isUserLoading]);
+  }, [userProfile, isUserLoading, isInstitutionalViewer]);
 
   /**
    * SCOPED COMPLIANCES FETCHING
-   * Pulls academic data for SDD calculations - strictly scoped to the selected unit
+   * Pulls academic data for SDD calculations
    */
   const compliancesQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !userProfile || selectedUnitId === 'all') return null;
@@ -46,11 +67,14 @@ export default function GadCornerPage() {
 
   /**
    * SCOPED GAD INITIATIVES FETCHING
-   * Strictly scoped to the selected unit
    */
   const initiativesQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !userProfile || selectedUnitId === 'all') return null;
+    if (!firestore || isUserLoading || !userProfile) return null;
     const baseRef = collection(firestore, 'gadInitiatives');
+    
+    if (selectedUnitId === 'all') {
+        return query(baseRef, where('year', '==', selectedYear));
+    }
     return query(baseRef, where('year', '==', selectedYear), where('unitId', '==', selectedUnitId));
   }, [firestore, isUserLoading, selectedYear, selectedUnitId, userProfile]);
   
@@ -64,13 +88,13 @@ export default function GadCornerPage() {
 
   const filteredUnitsList = useMemo(() => {
     if (!units) return [];
-    if (isAdmin) return units;
+    if (isInstitutionalViewer) return units;
     if (isSupervisor) return units.filter(u => u.campusIds?.includes(userProfile?.campusId || ''));
     return units.filter(u => u.id === userProfile?.unitId);
-  }, [units, isAdmin, isSupervisor, userProfile]);
+  }, [units, isInstitutionalViewer, isSupervisor, userProfile]);
 
   const currentUnitName = useMemo(() => {
-    if (selectedUnitId === 'all') return 'Select Unit to View Analytics';
+    if (selectedUnitId === 'all') return 'University-Wide Overview';
     return units?.find(u => u.id === selectedUnitId)?.name || 'Unknown Unit';
   }, [units, selectedUnitId]);
 
@@ -94,7 +118,7 @@ export default function GadCornerPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-            {(isAdmin || isSupervisor) && (
+            {(isInstitutionalViewer || isSupervisor) && (
                 <div className="flex flex-col items-end">
                     <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block">Context Filter</label>
                     <Select value={selectedUnitId} onValueChange={setSelectedUnitId}>
@@ -103,6 +127,7 @@ export default function GadCornerPage() {
                             <SelectValue placeholder="Select Unit" />
                         </SelectTrigger>
                         <SelectContent>
+                            {(isInstitutionalViewer || isSupervisor) && <SelectItem value="all">All Units (Overview)</SelectItem>}
                             {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -125,10 +150,10 @@ export default function GadCornerPage() {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="bg-muted p-1 border shadow-sm w-full md:w-auto h-auto grid grid-cols-2 md:inline-flex">
           <TabsTrigger value="overview" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
-            <BarChart3 className="h-4 w-4" /> Unit Overview
+            <BarChart3 className="h-4 w-4" /> Strategic Overview
           </TabsTrigger>
           <TabsTrigger value="sdd" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
-            <Users className="h-4 w-4" /> Unit SDD Hub
+            <Users className="h-4 w-4" /> SDD Hub
           </TabsTrigger>
           <TabsTrigger value="initiatives" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
             <Target className="h-4 w-4" /> GAD Initiatives
@@ -138,50 +163,40 @@ export default function GadCornerPage() {
           </TabsTrigger>
         </TabsList>
 
-        {selectedUnitId === 'all' ? (
-            <div className="flex flex-col items-center justify-center h-64 text-center border rounded-lg border-dashed bg-muted/5">
-                <Building className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
-                <h3 className="text-lg font-bold text-muted-foreground">Select a Unit to Load GAD Data</h3>
-                <p className="text-sm text-muted-foreground mt-1">Use the Context Filter at the top right to select a specific office or department.</p>
-            </div>
-        ) : (
-            <>
-                <TabsContent value="overview" className="animate-in fade-in duration-500">
-                <GADOverview 
-                    initiatives={initiatives || []} 
-                    compliances={compliances || []}
-                    selectedYear={selectedYear}
-                    unitName={currentUnitName}
-                />
-                </TabsContent>
+        <TabsContent value="overview" className="animate-in fade-in duration-500">
+          <GADOverview 
+            initiatives={initiatives || []} 
+            compliances={compliances || []}
+            selectedYear={selectedYear}
+            unitName={currentUnitName}
+          />
+        </TabsContent>
 
-                <TabsContent value="sdd">
-                <SDDHub 
-                    compliances={compliances || []} 
-                    campuses={campuses || []} 
-                    units={units || []}
-                    selectedYear={selectedYear}
-                    unitName={currentUnitName}
-                />
-                </TabsContent>
+        <TabsContent value="sdd">
+          <SDDHub 
+            compliances={compliances || []} 
+            campuses={campuses || []} 
+            units={units || []}
+            selectedYear={selectedYear}
+            unitName={currentUnitName}
+          />
+        </TabsContent>
 
-                <TabsContent value="initiatives">
-                <GADInitiatives 
-                    initiatives={initiatives || []}
-                    campuses={campuses || []}
-                    units={units || []}
-                    selectedYear={selectedYear}
-                />
-                </TabsContent>
+        <TabsContent value="initiatives">
+          <GADInitiatives 
+            initiatives={initiatives || []}
+            campuses={campuses || []}
+            units={units || []}
+            selectedYear={selectedYear}
+          />
+        </TabsContent>
 
-                <TabsContent value="mainstreaming">
-                <GADMainstreaming 
-                    units={units || []}
-                    selectedYear={selectedYear}
-                />
-                </TabsContent>
-            </>
-        )}
+        <TabsContent value="mainstreaming">
+          <GADMainstreaming 
+            units={units || []}
+            selectedYear={selectedYear}
+          />
+        </TabsContent>
       </Tabs>
     </div>
   );
