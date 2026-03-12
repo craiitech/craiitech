@@ -24,7 +24,9 @@ import {
     Info,
     FileX,
     Users,
-    UserCheck
+    UserCheck,
+    Trophy,
+    Star
 } from 'lucide-react';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
@@ -32,6 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProgramAnalytics } from '@/components/programs/program-analytics';
+import { MaturityStrengths } from '@/components/programs/maturity-strengths';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -354,6 +357,9 @@ export default function AcademicProgramsPage() {
             <TabsTrigger value="analytics" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
                 <BarChart3 className="h-4 w-4" /> Decision Support
             </TabsTrigger>
+            <TabsTrigger value="strengths" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
+                <Trophy className="h-4 w-4 text-amber-500" /> Maturity Strengths
+            </TabsTrigger>
             <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
                 <Layers className="h-4 w-4" /> Program Registry
             </TabsTrigger>
@@ -361,6 +367,17 @@ export default function AcademicProgramsPage() {
 
         <TabsContent value="analytics" className="animate-in fade-in duration-500">
             <ProgramAnalytics 
+                programs={filteredPrograms}
+                compliances={rawCompliances || []}
+                campuses={campuses || []}
+                units={units || []}
+                isLoading={isLoading}
+                selectedYear={selectedYear}
+            />
+        </TabsContent>
+
+        <TabsContent value="strengths" className="animate-in fade-in duration-500">
+            <MaturityStrengths 
                 programs={filteredPrograms}
                 compliances={rawCompliances || []}
                 campuses={campuses || []}
