@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,8 +33,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ShieldCheck, HandHeart, Info } from 'lucide-react';
-import type { GadSettings, Unit } from '@/lib/types';
+import { Loader2, ShieldCheck, HandHeart, Info, School, Building } from 'lucide-react';
+import type { GadSettings, Unit, Campus } from '@/lib/types';
 
 const gadSettingsSchema = z.object({
   leadershipUnitId: z.string().min(1, 'Please select the institutional GAD leadership unit.'),
@@ -44,12 +44,19 @@ export function GadSettingsManagement() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedCampusId, setSelectedCampusId] = useState<string>('');
 
   const gadSettingsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'system', 'gadSettings') : null),
     [firestore]
   );
   const { data: currentSettings, isLoading: isLoadingSettings } = useDoc<GadSettings>(gadSettingsRef);
+
+  const campusesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'campuses') : null),
+    [firestore]
+  );
+  const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
   const unitsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'units') : null),
@@ -64,13 +71,24 @@ export function GadSettingsManagement() {
     },
   });
 
+  // Filter units based on selected campus
+  const filteredUnits = useMemo(() => {
+    if (!units || !selectedCampusId) return [];
+    return units
+      .filter(u => u.campusIds?.includes(selectedCampusId))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [units, selectedCampusId]);
+
+  // Effect to resolve campus and unit from existing settings
   useEffect(() => {
-    if (currentSettings) {
-      form.reset({
-        leadershipUnitId: currentSettings.leadershipUnitId || '',
-      });
+    if (currentSettings?.leadershipUnitId && units && !selectedCampusId) {
+      const targetUnit = units.find(u => u.id === currentSettings.leadershipUnitId);
+      if (targetUnit && targetUnit.campusIds && targetUnit.campusIds.length > 0) {
+        setSelectedCampusId(targetUnit.campusIds[0]);
+        form.setValue('leadershipUnitId', targetUnit.id);
+      }
     }
-  }, [currentSettings, form]);
+  }, [currentSettings, units, selectedCampusId, form]);
 
   const onSubmit = async (values: z.infer<typeof gadSettingsSchema>) => {
     if (!firestore) return;
@@ -96,7 +114,9 @@ export function GadSettingsManagement() {
     }
   };
 
-  if (isLoadingSettings || isLoadingUnits) {
+  const isLoading = isLoadingSettings || isLoadingUnits || isLoadingCampuses;
+
+  if (isLoading) {
     return (
       <div className="flex h-40 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -119,20 +139,42 @@ export function GadSettingsManagement() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="space-y-6 pt-6">
+            
+            {/* STEP 1: SELECT CAMPUS */}
+            <div className="space-y-2">
+                <FormLabel className="text-xs font-bold uppercase text-slate-700">Step 1: Select Site / Campus</FormLabel>
+                <Select value={selectedCampusId} onValueChange={(val) => { setSelectedCampusId(val); form.setValue('leadershipUnitId', ''); }}>
+                    <SelectTrigger className="h-11 font-bold">
+                        <School className="h-4 w-4 mr-2 opacity-40" />
+                        <SelectValue placeholder="Select Campus" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {campuses?.sort((a,b) => a.name.localeCompare(b.name)).map((campus) => (
+                            <SelectItem key={campus.id} value={campus.id}>
+                                {campus.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground italic">Filtering units by site ensures the correct department is identified.</p>
+            </div>
+
+            {/* STEP 2: SELECT UNIT */}
             <FormField
               control={form.control}
               name="leadershipUnitId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase text-slate-700">Institutional GAD Leadership Unit</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                  <FormLabel className="text-xs font-bold uppercase text-slate-700">Step 2: Institutional GAD Leadership Unit</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedCampusId}>
                     <FormControl>
                       <SelectTrigger className="h-11 font-bold">
-                        <SelectValue placeholder="Select Unit / Office" />
+                        <Building className="h-4 w-4 mr-2 opacity-40" />
+                        <SelectValue placeholder={selectedCampusId ? "Select Unit / Office" : "Waiting for Campus selection..."} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {units?.sort((a,b) => a.name.localeCompare(b.name)).map((unit) => (
+                      {filteredUnits.map((unit) => (
                         <SelectItem key={unit.id} value={unit.id}>
                           {unit.name}
                         </SelectItem>
@@ -158,7 +200,7 @@ export function GadSettingsManagement() {
             </div>
           </CardContent>
           <CardFooter className="bg-muted/10 border-t py-4">
-            <Button type="submit" disabled={isSubmitting} className="shadow-lg shadow-primary/20 font-black uppercase tracking-widest text-[10px]">
+            <Button type="submit" disabled={isSubmitting || !selectedCampusId || !form.watch('leadershipUnitId')} className="shadow-lg shadow-primary/20 font-black uppercase tracking-widest text-[10px]">
               {isSubmitting ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
