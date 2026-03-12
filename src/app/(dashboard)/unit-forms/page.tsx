@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -24,6 +23,7 @@ import {
     Save,
     Layers,
     FileText,
+    FilePlus,
     Eye,
     Send,
     History as HistoryIcon,
@@ -272,7 +272,7 @@ export default function UnitFormsPage() {
           <Button
             variant="secondary"
             size="icon"
-            className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden md:flex hover:bg-primary hover:text-white transition-colors"
+            className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden lg:flex hover:bg-primary hover:text-white transition-colors"
             onClick={() => setIsSidebarVisible(!isSidebarVisible)}
             title={isSidebarVisible ? "Hide Unit Directory" : "Show Unit Directory"}
           >
