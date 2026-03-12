@@ -13,7 +13,6 @@
         "role": { "type": "string" },
         "campusId": { "type": "string" },
         "unitId": { "type": "string" },
-        "department": { "type": "string" },
         "verified": { "type": "boolean" },
         "ndaAccepted": { "type": "boolean" }
       },

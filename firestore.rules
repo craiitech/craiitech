@@ -128,12 +128,7 @@ service cloud.firestore {
     match /procedureManuals/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
     match /eomsPolicyManuals/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
 
-    match /system/signatories {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    match /system/gadSettings {
+    match /system/{docId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
