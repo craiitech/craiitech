@@ -2,10 +2,22 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Loader2, CalendarSearch, BarChart3, List, Search, Building, Layers, Filter, Shield, TrendingUp, Printer } from 'lucide-react';
+import { PlusCircle, Loader2, CalendarSearch, BarChart3, List, Search, Building, Layers, Filter, Shield, TrendingUp, Printer, Activity, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import type { Risk, User as AppUser, Unit, Campus, Signatories } from '@/lib/types';
+import type { 
+    Risk, 
+    User as AppUser, 
+    Unit, 
+    Campus, 
+    Signatories, 
+    Submission, 
+    UnitMonitoringRecord, 
+    ProgramComplianceRecord, 
+    AuditFinding, 
+    CorrectiveActionRequest, 
+    ManagementReviewOutput 
+} from '@/lib/types';
 import { useState, useMemo, useEffect } from 'react';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
@@ -18,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { RORPrintTemplate } from '@/components/risk/ror-print-template';
 import { useToast } from '@/hooks/use-toast';
+import { StrategicSwotAnalysis } from '@/components/submissions/strategic-swot-analysis';
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
@@ -94,6 +107,51 @@ export default function RiskRegisterPage() {
     }, [firestore, userProfile, selectedYear, isAdmin, isSupervisor]);
 
     const { data: allRisks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
+
+    /**
+     * CONTEXTUAL DATA HARVESTING FOR SWOT
+     */
+    const submissionsQuery = useMemoFirebase(() => {
+        if (!firestore || !userProfile) return null;
+        const baseRef = collection(firestore, 'submissions');
+        if (isAdmin) return query(baseRef, where('year', '==', selectedYear));
+        if (isSupervisor) return query(baseRef, where('year', '==', selectedYear), where('campusId', '==', userProfile.campusId));
+        return query(baseRef, where('year', '==', selectedYear), where('unitId', '==', userProfile.unitId));
+    }, [firestore, userProfile, selectedYear, isAdmin, isSupervisor]);
+    const { data: harvestedSubmissions } = useCollection<Submission>(submissionsQuery);
+
+    const monitoringQuery = useMemoFirebase(() => {
+        if (!firestore || !userProfile) return null;
+        const baseRef = collection(firestore, 'unitMonitoringRecords');
+        if (isAdmin) return baseRef;
+        if (isSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
+        return query(baseRef, where('unitId', '==', userProfile.unitId));
+    }, [firestore, userProfile, isAdmin, isSupervisor]);
+    const { data: harvestedMonitoring } = useCollection<UnitMonitoringRecord>(monitoringQuery);
+
+    const compliancesQuery = useMemoFirebase(() => {
+        if (!firestore || !userProfile) return null;
+        const baseRef = collection(firestore, 'programCompliances');
+        if (isAdmin) return query(baseRef, where('academicYear', '==', selectedYear));
+        if (isSupervisor) return query(baseRef, where('academicYear', '==', selectedYear), where('campusId', '==', userProfile.campusId));
+        return query(baseRef, where('academicYear', '==', selectedYear), where('unitId', '==', userProfile.unitId));
+    }, [firestore, userProfile, selectedYear, isAdmin, isSupervisor]);
+    const { data: harvestedCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
+
+    const carQuery = useMemoFirebase(() => {
+        if (!firestore || !userProfile) return null;
+        const baseRef = collection(firestore, 'correctiveActionRequests');
+        if (isAdmin) return baseRef;
+        if (isSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
+        return query(baseRef, where('unitId', '==', userProfile.unitId));
+    }, [firestore, userProfile, isAdmin, isSupervisor]);
+    const { data: harvestedCars } = useCollection<CorrectiveActionRequest>(carQuery);
+
+    const findingsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditFindings') : null), [firestore]);
+    const { data: harvestedFindings } = useCollection<AuditFinding>(findingsQuery);
+
+    const mrOutputsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'managementReviewOutputs') : null), [firestore]);
+    const { data: harvestedMrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
     
     const campusDataQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
     const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusDataQuery);
@@ -146,7 +204,6 @@ export default function RiskRegisterPage() {
 
     /**
      * GLOBAL FILTER LOGIC
-     * Applies search filters to the retrieved scoped dataset.
      */
     const filteredRisks = useMemo(() => {
         if (!allRisks) return [];
@@ -191,15 +248,9 @@ export default function RiskRegisterPage() {
         setIsFormOpen(true);
     };
 
-    /**
-     * UNIT-SPECIFIC PRINT LOGIC
-     * Groups filtered risks by unit and generates separate forms.
-     * Optimized for 11x13 Landscape paper.
-     */
     const handlePrintROR = () => {
         if (!filteredRisks.length || !userProfile) return;
 
-        // Group the currently filtered risks by unit
         const risksByUnit: Record<string, Risk[]> = {};
         filteredRisks.forEach(risk => {
             if (!risksByUnit[risk.unitId]) {
@@ -267,7 +318,13 @@ export default function RiskRegisterPage() {
     
     const isLoading = isUserLoading || isLoadingRisks || isLoadingUsers || isLoadingUnits || isLoadingCampuses;
 
-    const canLogRisk = isAdmin || !isSupervisor;
+    const currentScopeName = useMemo(() => {
+        if (unitFilter !== 'all') return unitMap.get(unitFilter) || 'Selected Unit';
+        if (campusFilter !== 'all') return campusMap.get(campusFilter) || 'Selected Campus';
+        return "University-Wide";
+    }, [unitFilter, campusFilter, unitMap, campusMap]);
+
+    const currentScopeType = unitFilter !== 'all' ? 'unit' : 'campus';
 
   return (
     <>
@@ -303,7 +360,7 @@ export default function RiskRegisterPage() {
                     <Printer className="mr-2 h-4 w-4" />
                     Print Registry
                 </Button>
-                {canLogRisk && (
+                {!isSupervisor && (
                     <Button onClick={handleNewRisk} className="h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest">
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Log New Entry
@@ -370,6 +427,22 @@ export default function RiskRegisterPage() {
               </div>
           </CardContent>
       </Card>
+
+      {/* STRATEGIC STRENGTHS & GAPS (Harvested Data Analysis) */}
+      {!isLoading && (
+          <StrategicSwotAnalysis 
+            submissions={harvestedSubmissions || []}
+            risks={allRisks || []}
+            monitoringRecords={harvestedMonitoring || []}
+            programCompliances={harvestedCompliances || []}
+            auditFindings={harvestedFindings || []}
+            correctiveActionRequests={harvestedCars || []}
+            mrOutputs={harvestedMrOutputs || []}
+            scope={currentScopeType}
+            name={currentScopeName}
+            selectedYear={selectedYear}
+          />
+      )}
 
       <Tabs defaultValue="visual-insights" className="space-y-4">
         <TabsList className="bg-muted/50 p-1 border">
