@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,6 +42,7 @@ const gadSettingsSchema = z.object({
 
 export function GadSettingsManagement() {
   const firestore = useFirestore();
+  const { userProfile } = useUser();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedCampusId, setSelectedCampusId] = useState<string>('');
@@ -79,24 +80,32 @@ export function GadSettingsManagement() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [units, selectedCampusId]);
 
-  // Effect to resolve campus and unit from existing settings
+  // Robust state restoration from database
   useEffect(() => {
-    if (currentSettings?.leadershipUnitId && units && !selectedCampusId) {
+    if (currentSettings?.leadershipUnitId && units && units.length > 0) {
       const targetUnit = units.find(u => u.id === currentSettings.leadershipUnitId);
       if (targetUnit && targetUnit.campusIds && targetUnit.campusIds.length > 0) {
-        setSelectedCampusId(targetUnit.campusIds[0]);
-        form.setValue('leadershipUnitId', targetUnit.id);
+        // If campus isn't set, or the current selected unit isn't in the selected campus, sync it.
+        if (!selectedCampusId || !targetUnit.campusIds.includes(selectedCampusId)) {
+            setSelectedCampusId(targetUnit.campusIds[0]);
+        }
+        
+        // Ensure the form value is set correctly
+        if (form.getValues('leadershipUnitId') !== targetUnit.id) {
+            form.setValue('leadershipUnitId', targetUnit.id);
+        }
       }
     }
-  }, [currentSettings, units, selectedCampusId, form]);
+  }, [currentSettings, units, form, selectedCampusId]);
 
   const onSubmit = async (values: z.infer<typeof gadSettingsSchema>) => {
-    if (!firestore) return;
+    if (!firestore || !userProfile) return;
     setIsSubmitting(true);
     try {
       await setDoc(doc(firestore, 'system', 'gadSettings'), {
         ...values,
         updatedAt: serverTimestamp(),
+        updatedBy: userProfile.id,
       }, { merge: true });
       toast({ 
         title: 'GAD Authority Updated', 
@@ -106,7 +115,7 @@ export function GadSettingsManagement() {
       console.error('Error updating GAD settings:', error);
       toast({
         title: 'Update Failed',
-        description: 'Could not update GAD settings. Please check your permissions.',
+        description: 'Could not update GAD settings.',
         variant: 'destructive',
       });
     } finally {
