@@ -23,7 +23,7 @@ export default function GadCornerPage() {
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedUnitId, setSelectedUnitId] = useState<string>('all');
 
-  // Fetch Institutional GAD Settings
+  // Fetch Institutional GAD Settings to identify the GAD Leadership Unit
   const gadSettingsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'system', 'gadSettings') : null),
     [firestore]
@@ -32,7 +32,7 @@ export default function GadCornerPage() {
 
   /**
    * GLOBAL OVERVIEW LOGIC
-   * A user has global oversight if they are:
+   * A user has global institutional oversight if they are:
    * 1. A system Admin
    * 2. Belong to the designated GAD Leadership Unit (e.g., GAD Office)
    */
@@ -54,29 +54,50 @@ export default function GadCornerPage() {
   }, [userProfile, isUserLoading, isInstitutionalViewer]);
 
   /**
-   * SCOPED COMPLIANCES FETCHING
+   * AGGREGATED COMPLIANCES FETCHING
    * Pulls academic data for SDD calculations
    */
   const compliancesQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !userProfile || selectedUnitId === 'all') return null;
+    if (!firestore || isUserLoading || !userProfile) return null;
     const baseRef = collection(firestore, 'programCompliances');
+    
+    // Aggregation Logic: 
+    // 1. Institutional Viewers get all units
+    // 2. Site Supervisors get all units in their campus
+    // 3. Unit level gets specific unit
+    if (selectedUnitId === 'all') {
+        if (isInstitutionalViewer) {
+            return query(baseRef, where('academicYear', '==', selectedYear));
+        }
+        if (isSupervisor) {
+            return query(baseRef, where('academicYear', '==', selectedYear), where('campusId', '==', userProfile.campusId));
+        }
+        return null;
+    }
+    
     return query(baseRef, where('academicYear', '==', selectedYear), where('unitId', '==', selectedUnitId));
-  }, [firestore, isUserLoading, selectedYear, selectedUnitId, userProfile]);
+  }, [firestore, isUserLoading, selectedYear, selectedUnitId, userProfile, isInstitutionalViewer, isSupervisor]);
   
   const { data: compliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
   /**
-   * SCOPED GAD INITIATIVES FETCHING
+   * AGGREGATED GAD INITIATIVES FETCHING
    */
   const initiativesQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !userProfile) return null;
     const baseRef = collection(firestore, 'gadInitiatives');
     
     if (selectedUnitId === 'all') {
-        return query(baseRef, where('year', '==', selectedYear));
+        if (isInstitutionalViewer) {
+            return query(baseRef, where('year', '==', selectedYear));
+        }
+        if (isSupervisor) {
+            return query(baseRef, where('year', '==', selectedYear), where('campusId', '==', userProfile.campusId));
+        }
+        return null;
     }
     return query(baseRef, where('year', '==', selectedYear), where('unitId', '==', selectedUnitId));
-  }, [firestore, isUserLoading, selectedYear, selectedUnitId, userProfile]);
+  }, [firestore, isUserLoading, selectedYear, selectedUnitId, userProfile, isInstitutionalViewer, isSupervisor]);
   
   const { data: initiatives, isLoading: isLoadingInitiatives } = useCollection<GADInitiative>(initiativesQuery);
 
@@ -94,9 +115,11 @@ export default function GadCornerPage() {
   }, [units, isInstitutionalViewer, isSupervisor, userProfile]);
 
   const currentUnitName = useMemo(() => {
-    if (selectedUnitId === 'all') return 'University-Wide Overview';
+    if (selectedUnitId === 'all') {
+        return isInstitutionalViewer ? 'University-Wide Overview' : 'Campus-Wide Overview';
+    }
     return units?.find(u => u.id === selectedUnitId)?.name || 'Unknown Unit';
-  }, [units, selectedUnitId]);
+  }, [units, selectedUnitId, isInstitutionalViewer]);
 
   const isLoading = isUserLoading || isLoadingCompliances || isLoadingInitiatives;
 
@@ -127,8 +150,14 @@ export default function GadCornerPage() {
                             <SelectValue placeholder="Select Unit" />
                         </SelectTrigger>
                         <SelectContent>
-                            {(isInstitutionalViewer || isSupervisor) && <SelectItem value="all">All Units (Overview)</SelectItem>}
-                            {filteredUnitsList.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                            {(isInstitutionalViewer || isSupervisor) && (
+                                <SelectItem value="all" className="font-black text-primary italic">
+                                    {isInstitutionalViewer ? 'All Units (Institutional)' : 'All Units (Site Overview)'}
+                                </SelectItem>
+                            )}
+                            {filteredUnitsList.sort((a,b) => a.name.localeCompare(b.name)).map(u => (
+                                <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 </div>
@@ -193,7 +222,7 @@ export default function GadCornerPage() {
 
         <TabsContent value="mainstreaming">
           <GADMainstreaming 
-            units={units || []}
+            units={selectedUnitId === 'all' ? filteredUnitsList : units.filter(u => u.id === selectedUnitId)}
             selectedYear={selectedYear}
           />
         </TabsContent>
