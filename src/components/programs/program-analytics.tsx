@@ -198,21 +198,27 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         }
 
         const milestones = record?.accreditationRecords || [];
+        // Prioritize 'Current' but check for 'Waiting for Official Result' for status logic
+        const milestoneWaitingResult = milestones.find(m => m.lifecycleStatus === 'Waiting for Official Result');
         const currentMilestone = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
         const validityStr = currentMilestone?.statusValidityDate || 'TBA';
 
-        let status: any = 'TBA';
+        let status: any = 'NON-ACCREDITED';
         if (p.isActive) {
             if (p.isNewProgram) {
                 status = 'NEW PROGRAM';
-            } else if (currentMilestone?.lifecycleStatus === 'Waiting for Official Result') {
+            } else if (milestoneWaitingResult) {
                 status = 'AWAITING RESULT';
             } else if (validityStr !== 'TBA') {
                 const yearMatch = validityStr.match(/\d{4}/);
                 const dYear = yearMatch ? parseInt(yearMatch[0]) : 0;
                 if (dYear > 0 && dYear < currentYearNum) status = 'OVERDUE';
                 else if (dYear >= currentYearNum) status = 'COMPLIANT';
+            } else {
+                status = 'SCHEDULE PENDING';
             }
+        } else {
+            status = 'CLOSED';
         }
 
         roadmapData.push({
@@ -379,7 +385,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         if (key === 'validity') {
             const getSortValue = (s: string) => {
                 if (s === 'NEW PROGRAM') return 999999; // Push new programs to end
-                if (s === 'TBA') return 999998;
+                if (s === 'TBA' || s === 'SCHEDULE PENDING') return 999998;
                 const match = s.match(/\d{4}/);
                 const year = match ? parseInt(match[0]) : 0;
                 
@@ -408,7 +414,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     if (roadmapSortConfig.key === key && roadmapSortConfig.direction === 'asc') {
         direction = 'desc';
     }
-    setRoadmapSortConfig({ key, direction });
+    setSortConfig({ key, direction });
+  };
+
+  const setSortConfig = (config: { key: SortKey, direction: 'asc' | 'desc' }) => {
+    setRoadmapSortConfig(config);
   };
 
   const getSortIcon = (key: SortKey) => {
@@ -968,7 +978,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                                         item.status === 'OVERDUE' ? "bg-rose-600 text-white animate-pulse" : 
                                                         item.status === 'AWAITING RESULT' ? "bg-blue-600 text-white" : 
                                                         item.status === 'NEW PROGRAM' ? "bg-amber-500 text-amber-950" :
-                                                        "bg-slate-100 text-slate-400"
+                                                        item.status === 'NON-ACCREDITED' ? "bg-slate-100 text-slate-400" :
+                                                        "bg-indigo-600 text-white"
                                                     )}>
                                                         {item.status}
                                                     </Badge>
