@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -235,7 +234,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         if (record) {
             const copcYear = record.ched?.copcAwardDate?.match(/\d{4}/)?.[0];
             if (copcYear) {
-                if (!copcByYear[copcYear]) copcByYear[copcYear] = { year: copcYear, Undergraduate: 0, Graduate: 0, Inactive: 0, total: number = 0 };
+                if (!copcByYear[copcYear]) copcByYear[copcYear] = { year: copcYear, Undergraduate: 0, Graduate: 0, Inactive: 0, total: 0 };
                 copcByYear[copcYear][category]++;
                 copcByYear[copcYear].total++;
             }
@@ -623,7 +622,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 flex-1 flex items-center justify-center overflow-hidden">
-                      {analytics?.gadEnrollmentsummerData.length ? (
+                      {analytics?.gadEnrollmentSummerData.length ? (
                         <ChartContainer config={chartConfig} className="h-full w-full">
                             <ResponsiveContainer>
                                 <PieChart>
