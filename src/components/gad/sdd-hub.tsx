@@ -90,7 +90,44 @@ export function SDDHub({ compliances, campuses, units, selectedYear, unitName }:
     };
   }, [compliances]);
 
-  const renderLabel = ({ percent }: any) => `${(percent * 100).toFixed(0)}%`;
+  const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+    const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+
+    return (
+      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[12px] font-black">
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
+
+  const hubDefinitions = [
+    { 
+        title: 'Student Population', 
+        data: aggregatedData.enrollment, 
+        total: aggregatedData.totals.students, 
+        icon: <Users className="h-5 w-5 text-primary" />, 
+        desc: 'Unit Enrollment',
+        explanation: 'Headcount distribution of current students disaggregated by sex. Essential for planning gender-responsive student services and facility allocation.'
+    },
+    { 
+        title: 'Personnel Distribution', 
+        data: aggregatedData.faculty, 
+        total: aggregatedData.totals.faculty, 
+        icon: <UserCircle className="h-5 w-5 text-emerald-600" />, 
+        desc: 'Unit Registered Users',
+        explanation: 'Gender profile of teaching and administrative staff. Used to monitor parity in staffing and identify gaps in representation across university units.'
+    },
+    { 
+        title: 'Graduation Output', 
+        data: aggregatedData.graduation, 
+        total: aggregatedData.totals.grads, 
+        icon: <GraduationCap className="h-5 w-5 text-purple-600" />, 
+        desc: 'Degree Completion',
+        explanation: 'Historical count of graduates by sex. This metric measures the long-term effectiveness of the university’s inclusivity efforts in degree completion.'
+    }
+  ];
 
   return (
     <div className="space-y-6">
@@ -101,33 +138,29 @@ export function SDDHub({ compliances, campuses, units, selectedYear, unitName }:
                 <span className="text-[10px] font-black uppercase tracking-widest">Unit SDD Registry</span>
             </div>
             <CardTitle className="text-lg font-black uppercase tracking-tight">Sex-Disaggregated Data (SDD) Hub: {unitName}</CardTitle>
-            <CardDescription className="text-xs">Consolidated headcount analysis derived from this unit's verified academic monitoring records for AY {selectedYear}.</CardDescription>
+            <CardDescription className="text-xs">Consolidated headcount analysis derived from verified academic monitoring records for AY {selectedYear}.</CardDescription>
         </CardHeader>
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[
-            { title: 'Student Population', data: aggregatedData.enrollment, total: aggregatedData.totals.students, icon: <Users className="h-5 w-5 text-primary" />, desc: 'Unit Enrollment' },
-            { title: 'Personnel Distribution', data: aggregatedData.faculty, total: aggregatedData.totals.faculty, icon: <UserCircle className="h-5 w-5 text-emerald-600" />, desc: 'Unit Registered Users' },
-            { title: 'Graduation Output', data: aggregatedData.graduation, total: aggregatedData.totals.grads, icon: <GraduationCap className="h-5 w-5 text-purple-600" />, desc: 'Degree Completion' }
-        ].map((hub, i) => (
-            <Card key={i} className="shadow-lg flex flex-col border-primary/10 overflow-hidden group hover:shadow-xl transition-all h-[400px]">
+        {hubDefinitions.map((hub, i) => (
+            <Card key={i} className="shadow-lg flex flex-col border-primary/10 overflow-hidden group hover:shadow-xl transition-all min-h-[520px]">
                 <CardHeader className="p-4 bg-muted/10 border-b shrink-0 text-center">
                     <div className="mx-auto h-10 w-10 rounded-full bg-white flex items-center justify-center mb-2 shadow-sm group-hover:scale-110 transition-transform">{hub.icon}</div>
                     <CardTitle className="text-xs font-black uppercase tracking-widest leading-tight">{hub.title}</CardTitle>
                 </CardHeader>
-                <CardContent className="p-6 flex-1 flex flex-col items-center justify-center overflow-hidden">
+                <CardContent className="p-6 flex-1 flex flex-col items-center overflow-hidden">
                     {hub.data.length > 0 ? (
-                        <div className="w-full h-full flex flex-col items-center">
-                            <ChartContainer config={{}} className="h-[200px] w-full">
-                                <ResponsiveContainer>
+                        <div className="w-full flex-1 flex flex-col items-center">
+                            <ChartContainer config={{}} className="h-[220px] w-full mb-4">
+                                <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
                                         <Pie 
                                             data={hub.data} 
                                             cx="50%" 
                                             cy="50%" 
                                             innerRadius={50} 
-                                            outerRadius={75} 
+                                            outerRadius={80} 
                                             paddingAngle={5} 
                                             dataKey="value" 
                                             label={renderLabel}
@@ -136,24 +169,33 @@ export function SDDHub({ compliances, campuses, units, selectedYear, unitName }:
                                             {hub.data.map((e, j) => <Cell key={j} fill={e.fill} />)}
                                         </Pie>
                                         <Tooltip content={<ChartTooltipContent hideLabel />} />
-                                        <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
+                                        <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
                                     </PieChart>
                                 </ResponsiveContainer>
                             </ChartContainer>
-                            <div className="mt-4 text-center">
+                            <div className="text-center mt-2">
                                 <p className="text-3xl font-black text-slate-800 tabular-nums">{hub.total.toLocaleString()}</p>
                                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{hub.desc}</p>
                             </div>
+                            
+                            <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-100 w-full">
+                                <div className="flex items-start gap-2">
+                                    <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                                    <p className="text-[10px] text-slate-600 leading-relaxed font-medium italic">
+                                        {hub.explanation}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center text-center opacity-20 space-y-3">
+                        <div className="flex flex-col items-center justify-center text-center flex-1 opacity-20 space-y-3">
                             <PieIcon className="h-12 w-12" />
                             <p className="text-[10px] font-black uppercase tracking-widest">NO DATA FOR THIS UNIT</p>
                         </div>
                     )}
                 </CardContent>
                 <CardFooter className="bg-muted/5 border-t py-3 px-6 shrink-0">
-                    <p className="text-[9px] text-muted-foreground italic leading-tight text-center">Source: Unit Academic Monitoring AY {selectedYear}</p>
+                    <p className="text-[9px] text-muted-foreground italic leading-tight text-center w-full">Verified Analytics AY {selectedYear}</p>
                 </CardFooter>
             </Card>
         ))}
@@ -171,8 +213,8 @@ export function SDDHub({ compliances, campuses, units, selectedYear, unitName }:
                 <ShieldCheck className="h-6 w-6" />
             </div>
             <div className="space-y-2">
-                <p className="text-sm text-slate-700 leading-relaxed">
-                    Unit-specific SDD is vital for identifying localized gender gaps. Ensure your <strong>Program Compliance Records</strong> are updated quarterly to maintain accurate institutional analytics.
+                <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                    Unit-specific SDD is vital for identifying localized gender gaps. Ensure your <strong>Program Compliance Records</strong> are updated quarterly to maintain accurate institutional analytics. This data directly feeds into the university's Gender and Development Plan and Budget (GPB).
                 </p>
             </div>
         </CardContent>
