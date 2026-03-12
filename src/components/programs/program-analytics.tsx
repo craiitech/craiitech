@@ -107,7 +107,7 @@ type SortKey = 'name' | 'campus' | 'currentLevel' | 'validity' | 'status';
 
 export function ProgramAnalytics({ programs, compliances, campuses, units, isLoading, selectedYear }: ProgramAnalyticsProps) {
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
-  const [roadmapSortConfig, setRoadmapSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' }>({ key: 'status', direction: 'asc' });
+  const [roadmapSortConfig, setRoadmapSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' }>({ key: 'validity', direction: 'asc' });
 
   const analytics = useMemo(() => {
     if (!programs.length) return null;
@@ -203,9 +203,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
         let status: any = 'TBA';
         if (p.isActive) {
-            if (currentMilestone?.lifecycleStatus === 'Waiting for Official Result') {
+            if (p.isNewProgram) {
+                status = 'NEW PROGRAM';
+            } else if (currentMilestone?.lifecycleStatus === 'Waiting for Official Result') {
                 status = 'AWAITING RESULT';
-            } else {
+            } else if (validityStr !== 'TBA') {
                 const yearMatch = validityStr.match(/\d{4}/);
                 const dYear = yearMatch ? parseInt(yearMatch[0]) : 0;
                 if (dYear > 0 && dYear < currentYearNum) status = 'OVERDUE';
@@ -218,8 +220,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             name: p.name,
             level: p.level,
             campus: cName,
-            currentLevel: currentMilestone?.level || 'Non-Accredited',
-            validity: validityStr,
+            currentLevel: currentMilestone?.level || (p.isNewProgram ? 'Not Yet Subject' : 'Non-Accredited'),
+            validity: p.isNewProgram ? 'NEW PROGRAM' : validityStr,
             status,
             isActive: p.isActive
         });
@@ -373,13 +375,26 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         let valA = a[key];
         let valB = b[key];
 
+        // Advanced sorting for dates/validity
         if (key === 'validity') {
-            const getYear = (s: string) => {
+            const getSortValue = (s: string) => {
+                if (s === 'NEW PROGRAM') return 999999; // Push new programs to end
+                if (s === 'TBA') return 999998;
                 const match = s.match(/\d{4}/);
-                return match ? parseInt(match[0]) : 9999;
+                const year = match ? parseInt(match[0]) : 0;
+                
+                // Add month value if present to refine sort within the same year
+                const monthStr = s.split(' ')[0].toLowerCase();
+                const months: Record<string, number> = { 
+                    jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, 
+                    jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 
+                };
+                const monthVal = months[monthStr.substring(0, 3)] || 0;
+                
+                return (year * 100) + monthVal;
             };
-            valA = getYear(valA);
-            valB = getYear(valB);
+            valA = getSortValue(valA);
+            valB = getSortValue(valB);
         }
 
         if (valA < valB) return direction === 'asc' ? -1 : 1;
@@ -939,9 +954,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                                 <TableCell className="py-5">
                                                     <div className="flex flex-col gap-1.5">
                                                         <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">{item.validity}</span>
-                                                        <Badge variant="outline" className={cn("text-[8px] font-black uppercase tracking-tighter w-fit h-4 border-none", getYearBadgeStyle(item.validity.match(/\d{4}/)?.[0] || ''))}>
-                                                            FISCAL YEAR {item.validity.match(/\d{4}/)?.[0] || 'TBA'}
-                                                        </Badge>
+                                                        {item.validity !== 'NEW PROGRAM' && item.validity !== 'TBA' && (
+                                                            <Badge variant="outline" className={cn("text-[8px] font-black uppercase tracking-tighter w-fit h-4 border-none", getYearBadgeStyle(item.validity.match(/\d{4}/)?.[0] || ''))}>
+                                                                FISCAL YEAR {item.validity.match(/\d{4}/)?.[0] || 'TBA'}
+                                                            </Badge>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-right pr-8 py-5">
@@ -949,7 +966,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                                         "text-[10px] font-black uppercase border-none px-3 shadow-sm",
                                                         item.status === 'COMPLIANT' ? "bg-emerald-600 text-white" : 
                                                         item.status === 'OVERDUE' ? "bg-rose-600 text-white animate-pulse" : 
-                                                        item.status === 'AWAITING RESULT' ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400"
+                                                        item.status === 'AWAITING RESULT' ? "bg-blue-600 text-white" : 
+                                                        item.status === 'NEW PROGRAM' ? "bg-amber-500 text-amber-950" :
+                                                        "bg-slate-100 text-slate-400"
                                                     )}>
                                                         {item.status}
                                                     </Badge>
@@ -963,7 +982,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             )}
                         </ScrollArea>
                     </CardContent>
-                    <CardFooter className="bg-muted/10 border-t py-4"><div className="flex items-start gap-3"><Info className="h-4 w-4 text-blue-600" /><p className="text-[10px] text-muted-foreground italic font-medium"><strong>Guidance for usage:</strong> OVERDUE status indicates the set validity period has passed without a recorded next survey milestone.</p></div></CardFooter>
+                    <CardFooter className="bg-muted/10 border-t py-4"><div className="flex items-start gap-3"><Info className="h-4 w-4 text-blue-600" /><p className="text-[10px] text-muted-foreground italic font-medium"><strong>Guidance for usage:</strong> OVERDUE status indicates the set validity period has passed without a recorded next survey milestone. NEW PROGRAM status identifies offerings not yet integrated into the formal accreditation cycle.</p></div></CardFooter>
                 </Card>
             </TabsContent>
 
