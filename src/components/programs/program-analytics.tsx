@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -71,7 +72,7 @@ const ACCREDITATION_LEVELS_ORDER = [
     'Level III Re-accredited', 'Level III Accredited',
     'Level II Re-accredited', 'Level II Accredited',
     'Level I Re-accredited', 'Level I Accredited',
-    'PSV', 'Non Accredited', 'Not Yet Subject'
+    'PSV', 'AWAITING RESULT', 'Not Yet Subject'
 ];
 
 type ProgramCategory = 'Undergraduate' | 'Graduate' | 'Inactive';
@@ -198,24 +199,23 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         }
 
         const milestones = record?.accreditationRecords || [];
-        // Prioritize 'Current' but check for 'Waiting for Official Result' for status logic
         const milestoneWaitingResult = milestones.find(m => m.lifecycleStatus === 'Waiting for Official Result');
         const currentMilestone = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
-        const validityStr = currentMilestone?.statusValidityDate || 'TBA';
+        const validityStr = currentMilestone?.statusValidityDate || 'AWAITING RESULT';
 
-        let status: any = 'NON-ACCREDITED';
+        let status: any = 'AWAITING RESULT';
         if (p.isActive) {
             if (p.isNewProgram) {
                 status = 'NEW PROGRAM';
             } else if (milestoneWaitingResult) {
                 status = 'AWAITING RESULT';
-            } else if (validityStr !== 'TBA') {
+            } else if (validityStr && validityStr !== 'AWAITING RESULT' && validityStr !== 'TBA' && validityStr !== 'SCHEDULE PENDING') {
                 const yearMatch = validityStr.match(/\d{4}/);
                 const dYear = yearMatch ? parseInt(yearMatch[0]) : 0;
                 if (dYear > 0 && dYear < currentYearNum) status = 'OVERDUE';
                 else if (dYear >= currentYearNum) status = 'COMPLIANT';
             } else {
-                status = 'SCHEDULE PENDING';
+                status = 'AWAITING RESULT';
             }
         } else {
             status = 'CLOSED';
@@ -226,8 +226,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             name: p.name,
             level: p.level,
             campus: cName,
-            currentLevel: currentMilestone?.level || (p.isNewProgram ? 'Not Yet Subject' : 'Non-Accredited'),
-            validity: p.isNewProgram ? 'NEW PROGRAM' : validityStr,
+            currentLevel: currentMilestone?.level || (p.isNewProgram ? 'Not Yet Subject' : 'AWAITING RESULT'),
+            validity: p.isNewProgram ? 'NEW PROGRAM' : (validityStr === 'TBA' ? 'AWAITING RESULT' : validityStr),
             status,
             isActive: p.isActive
         });
@@ -235,7 +235,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         if (record) {
             const copcYear = record.ched?.copcAwardDate?.match(/\d{4}/)?.[0];
             if (copcYear) {
-                if (!copcByYear[copcYear]) copcByYear[copcYear] = { year: copcYear, Undergraduate: 0, Graduate: 0, Inactive: 0, total: 0 };
+                if (!copcByYear[copcYear]) copcByYear[copcYear] = { year: copcYear, Undergraduate: 0, Graduate: 0, Inactive: 0, total: number = 0 };
                 copcByYear[copcYear][category]++;
                 copcByYear[copcYear].total++;
             }
@@ -316,13 +316,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     ACCREDITATION_LEVELS_ORDER.forEach(lvl => accreditationDataMap[lvl] = { level: lvl, Undergraduate: 0, Graduate: 0, Inactive: 0, total: 0 });
     programs.forEach(p => {
         const cat = getProgramCategory(p);
-        let lvlKey = 'Non Accredited';
+        let lvlKey = 'AWAITING RESULT';
         if (p.isNewProgram) lvlKey = 'Not Yet Subject';
         else {
             const rec = filteredCompliances.find(c => c.programId === p.id);
             const mil = rec?.accreditationRecords || [];
             const cur = mil.find(m => m.lifecycleStatus === 'Current') || mil[mil.length - 1];
-            lvlKey = cur?.level || 'Non Accredited';
+            lvlKey = cur?.level || 'AWAITING RESULT';
             if (lvlKey.includes('PSV')) lvlKey = 'PSV';
         }
         if (accreditationDataMap[lvlKey]) { accreditationDataMap[lvlKey][cat]++; accreditationDataMap[lvlKey].total++; }
@@ -381,21 +381,20 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         let valA = a[key];
         let valB = b[key];
 
-        // Advanced sorting for dates/validity
         if (key === 'validity') {
             const getSortValue = (s: string) => {
-                if (s === 'NEW PROGRAM') return 999999; // Push new programs to end
-                if (s === 'TBA' || s === 'SCHEDULE PENDING') return 999998;
+                if (s === 'NEW PROGRAM') return 999999;
+                if (s === 'AWAITING RESULT' || s === 'SCHEDULE PENDING' || s === 'TBA') return 999998;
+                
                 const match = s.match(/\d{4}/);
                 const year = match ? parseInt(match[0]) : 0;
                 
-                // Add month value if present to refine sort within the same year
-                const monthStr = s.split(' ')[0].toLowerCase();
                 const months: Record<string, number> = { 
                     jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, 
                     jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 
                 };
-                const monthVal = months[monthStr.substring(0, 3)] || 0;
+                const monthStr = s.split(' ')[0].toLowerCase().substring(0, 3);
+                const monthVal = months[monthStr] || 0;
                 
                 return (year * 100) + monthVal;
             };
@@ -565,7 +564,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs border-b pb-2"><Users className="h-4 w-4" /> Gender & Development (GAD) Compliance Metrics</div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               
-              {/* 1ST SEMESTER ENROLLMENT */}
               <Card className="shadow-md flex flex-col border-primary/10 overflow-hidden group hover:shadow-lg transition-all h-[320px]">
                   <CardHeader className="p-4 bg-muted/10 border-b shrink-0">
                     <CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 leading-tight">
@@ -592,7 +590,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight">1st Semester Male/Female distribution.</p></CardFooter>
               </Card>
 
-              {/* 2ND SEMESTER ENROLLMENT */}
               <Card className="shadow-md flex flex-col border-primary/10 overflow-hidden group hover:shadow-lg transition-all h-[320px]">
                   <CardHeader className="p-4 bg-muted/10 border-b shrink-0">
                     <CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 leading-tight">
@@ -619,7 +616,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight">2nd Semester Male/Female distribution.</p></CardFooter>
               </Card>
 
-              {/* SUMMER ENROLLMENT */}
               <Card className="shadow-md flex flex-col border-primary/10 overflow-hidden group hover:shadow-lg transition-all h-[320px]">
                   <CardHeader className="p-4 bg-muted/10 border-b shrink-0">
                     <CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 leading-tight">
@@ -627,7 +623,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 flex-1 flex items-center justify-center overflow-hidden">
-                      {analytics?.gadEnrollmentSummerData.length ? (
+                      {analytics?.gadEnrollmentsummerData.length ? (
                         <ChartContainer config={chartConfig} className="h-full w-full">
                             <ResponsiveContainer>
                                 <PieChart>
@@ -646,7 +642,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                   <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight">Summer term Male/Female distribution.</p></CardFooter>
               </Card>
 
-              {/* FACULTY DISTRIBUTION */}
               <Card className="shadow-md flex flex-col border-primary/10 overflow-hidden group hover:shadow-lg transition-all h-[320px]">
                   <CardHeader className="p-4 bg-muted/10 border-b shrink-0">
                     <CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 leading-tight">
@@ -720,10 +715,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           </div>
       </div>
 
-      {/* 4. CORE STRATEGIC REPORTS GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* 1. ACCREDITATION MATURITY PROFILE */}
           <Card className="shadow-md border-primary/10 flex flex-col overflow-hidden">
               <CardHeader className="bg-muted/10 border-b py-4">
                   <div className="flex items-center justify-between">
@@ -764,7 +756,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               </CardContent>
           </Card>
 
-          {/* 2. INSTITUTIONAL RECOGNITION MOMENTUM (COPC) */}
           <Card className="shadow-md border-primary/10 flex flex-col overflow-hidden">
               <CardHeader className="bg-muted/10 border-b py-4">
                   <div className="flex items-center justify-between">
@@ -807,7 +798,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* 5. ACCREDITATION MILESTONE VELOCITY */}
           <Card className="shadow-md border-primary/10 flex flex-col overflow-hidden">
               <CardHeader className="bg-muted/10 border-b py-4">
                   <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Clock className="h-5 w-5 text-blue-600" /><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle></div><Badge variant="outline" className="h-5 text-[9px] font-black bg-blue-50 text-blue-700 border-blue-200">OVERALL PIPELINE</Badge></div>
@@ -844,7 +834,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               </CardContent>
           </Card>
 
-          {/* 6. ACCREDITATION ACHIEVEMENT HISTORY */}
           <Card className="shadow-md border-primary/10 flex flex-col overflow-hidden">
               <CardHeader className="bg-muted/10 border-b py-4">
                   <div className="flex items-center justify-between"><div className="flex items-center gap-2"><History className="h-5 w-5 text-indigo-600" /><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle></div><Badge variant="outline" className="h-5 text-[9px] font-black bg-indigo-50 text-indigo-700 border-indigo-200">HISTORICAL SURVEYS</Badge></div>
@@ -915,7 +904,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                 ))}
                             </div>
                         </div>
-                        <CardDescription className="text-sm font-medium mt-2">Prioritized schedule of upcoming AACCUP surveys for active offerings.</CardDescription>
+                        <CardDescription className="text-sm font-medium mt-2">Chronological schedule of quality milestones. Ascending priority by validity date.</CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
                         <ScrollArea className="h-[500px]">
@@ -940,7 +929,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                             </TableHead>
                                             <TableHead className="py-4">
                                                 <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('validity')}>
-                                                    Schedule / Validity {getSortIcon('validity')}
+                                                    Validity Date {getSortIcon('validity')}
                                                 </Button>
                                             </TableHead>
                                             <TableHead className="text-right pr-8 py-4">
@@ -963,10 +952,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                                 <TableCell className="py-5"><Badge variant="outline" className="h-5 text-[9px] font-black text-primary border-primary/20 bg-primary/5 uppercase">{item.currentLevel}</Badge></TableCell>
                                                 <TableCell className="py-5">
                                                     <div className="flex flex-col gap-1.5">
-                                                        <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">{item.validity}</span>
-                                                        {item.validity !== 'NEW PROGRAM' && item.validity !== 'TBA' && (
+                                                        <span className={cn("text-xs font-black uppercase tracking-tighter", item.validity === 'AWAITING RESULT' ? "text-blue-600" : "text-slate-700")}>{item.validity}</span>
+                                                        {item.validity !== 'NEW PROGRAM' && item.validity !== 'AWAITING RESULT' && (
                                                             <Badge variant="outline" className={cn("text-[8px] font-black uppercase tracking-tighter w-fit h-4 border-none", getYearBadgeStyle(item.validity.match(/\d{4}/)?.[0] || ''))}>
-                                                                FISCAL YEAR {item.validity.match(/\d{4}/)?.[0] || 'TBA'}
+                                                                AY {item.validity.match(/\d{4}/)?.[0] || ''}
                                                             </Badge>
                                                         )}
                                                     </div>
@@ -978,7 +967,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                                         item.status === 'OVERDUE' ? "bg-rose-600 text-white animate-pulse" : 
                                                         item.status === 'AWAITING RESULT' ? "bg-blue-600 text-white" : 
                                                         item.status === 'NEW PROGRAM' ? "bg-amber-500 text-amber-950" :
-                                                        item.status === 'NON-ACCREDITED' ? "bg-slate-100 text-slate-400" :
                                                         "bg-indigo-600 text-white"
                                                     )}>
                                                         {item.status}
@@ -993,7 +981,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             )}
                         </ScrollArea>
                     </CardContent>
-                    <CardFooter className="bg-muted/10 border-t py-4"><div className="flex items-start gap-3"><Info className="h-4 w-4 text-blue-600" /><p className="text-[10px] text-muted-foreground italic font-medium"><strong>Guidance for usage:</strong> OVERDUE status indicates the set validity period has passed without a recorded next survey milestone. NEW PROGRAM status identifies offerings not yet integrated into the formal accreditation cycle.</p></div></CardFooter>
+                    <CardFooter className="bg-muted/10 border-t py-4"><div className="flex items-start gap-3"><Info className="h-4 w-4 text-blue-600" /><p className="text-[10px] text-muted-foreground italic font-medium"><strong>Process Order:</strong> This roadmap is sorted chronologically by validity date. Items appearing at the top are the most urgent quality priorities for the current fiscal year cycle.</p></div></CardFooter>
                 </Card>
             </TabsContent>
 
