@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -222,7 +221,7 @@ export default function GadCornerPage() {
 
         <TabsContent value="mainstreaming">
           <GADMainstreaming 
-            units={selectedUnitId === 'all' ? filteredUnitsList : units.filter(u => u.id === selectedUnitId)}
+            units={selectedUnitId === 'all' ? filteredUnitsList : (units?.filter(u => u.id === selectedUnitId) || [])}
             selectedYear={selectedYear}
           />
         </TabsContent>
