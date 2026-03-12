@@ -346,7 +346,7 @@ export function GADInitiatives({ initiatives, campuses, units, selectedYear }: G
           <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
             <div className="flex w-full items-center justify-between">
                 <Button type="button" variant="ghost" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground" onClick={() => setIsDialogOpen(false)}>Discard</Button>
-                <Button type="submit" form="initiative-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] tracking-widest h-11">
+                <Button type="submit" form="initiative-form" disabled={isSubmitting} className="min-w-[200px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] tracking-widest h-11">
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ShieldCheck className="h-4 w-4 mr-2" />}
                     {editingInitiative ? 'Save Changes' : 'Register Project'}
                 </Button>

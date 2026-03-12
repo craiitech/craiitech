@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -61,7 +62,7 @@ export default function GadCornerPage() {
     const baseRef = collection(firestore, 'programCompliances');
     
     // Aggregation Logic: 
-    // 1. Institutional Viewers get all units
+    // 1. Institutional Viewers get all units (or selected unit)
     // 2. Site Supervisors get all units in their campus
     // 3. Unit level gets specific unit
     if (selectedUnitId === 'all') {

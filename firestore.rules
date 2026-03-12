@@ -38,6 +38,15 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
+    // SYSTEM CONFIGURATION (GAD Settings, Signatories)
+    // --------------------------------------------------------------------------
+    
+    match /system/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // --------------------------------------------------------------------------
     // GAD CORNER & PCW REPORTING
     // --------------------------------------------------------------------------
     
@@ -127,11 +136,6 @@ service cloud.firestore {
     match /isoClauses/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
     match /procedureManuals/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
     match /eomsPolicyManuals/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
-
-    match /system/{docId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
 
     match /activityLogs/{logId} {
       allow read: if isAdmin();
