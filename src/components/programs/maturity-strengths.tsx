@@ -17,7 +17,9 @@ import {
     School,
     Zap,
     GraduationCap,
-    Heart
+    Heart,
+    Activity,
+    Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
@@ -107,7 +109,8 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
         const record = compliances.find(c => c.programId === p.id);
         if (!record?.boardPerformance || record.boardPerformance.length === 0) return false;
         const latest = record.boardPerformance[record.boardPerformance.length - 1];
-        return latest.overallPassRate > latest.nationalPassingRate;
+        if (!latest) return false; // Fixed: Defensive check for undefined element
+        return (latest.overallPassRate || 0) > (latest.nationalPassingRate || 0);
     }).map(p => p.abbreviation);
 
     if (boardLeaders.length > 0) {
