@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import type { Unit, UnitForm } from '@/lib/types';
+import type { Unit, UnitForm, CampusSetting } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +29,10 @@ import {
     History as HistoryIcon,
     Info,
     ListChecks,
-    ExternalLink
+    ExternalLink,
+    Hash,
+    Calendar,
+    PlusCircle
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
@@ -39,6 +43,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { format } from 'date-fns';
 
 const SHARED_ACADEMIC_ID = 'academic-shared';
 
@@ -54,7 +59,12 @@ export default function UnitFormsPage() {
   const [isSavingLinks, setIsSavingLinks] = useState(false);
   
   const [editRosterLink, setEditRosterLink] = useState('');
+  const [editRosterRevision, setEditRosterRevision] = useState('');
+  const [editRosterDate, setEditRosterDate] = useState('');
+  
   const [editMasterlistLink, setEditMasterlistLink] = useState('');
+  const [editMasterlistRevision, setEditMasterlistRevision] = useState('');
+  const [editMasterlistDate, setEditMasterlistDate] = useState('');
   
   const [previewDoc, setPreviewDoc] = useState<{ title: string; url: string } | null>(null);
   const [downloadingForm, setDownloadingForm] = useState<UnitForm | null>(null);
@@ -114,22 +124,45 @@ export default function UnitFormsPage() {
   }, [allUnits, selectedUnitId]);
 
   const academicSharedRef = useMemoFirebase(() => (firestore ? doc(firestore, 'campusSettings', 'academic-shared') : null), [firestore]);
-  const { data: sharedSettings } = useDoc<any>(academicSharedRef);
+  const { data: sharedSettings } = useDoc<CampusSetting>(academicSharedRef);
 
-  const currentRosterLink = useMemo(() => {
-      if (selectedUnitId === SHARED_ACADEMIC_ID) return sharedSettings?.formsDriveLink || '';
-      return (selectedUnit as Unit)?.formsDriveLink || '';
+  const activeRosterData = useMemo(() => {
+      if (selectedUnitId === SHARED_ACADEMIC_ID) return { 
+          link: sharedSettings?.formsDriveLink || '', 
+          rev: sharedSettings?.formsDriveRevision || '00', 
+          date: sharedSettings?.formsDriveUpdatedAt || 'TBA' 
+      };
+      const unit = selectedUnit as Unit;
+      return { 
+          link: unit?.formsDriveLink || '', 
+          rev: unit?.formsDriveRevision || '00', 
+          date: unit?.formsDriveUpdatedAt || 'TBA' 
+      };
   }, [selectedUnitId, sharedSettings, selectedUnit]);
 
-  const currentMasterlistLink = useMemo(() => {
-      if (selectedUnitId === SHARED_ACADEMIC_ID) return sharedSettings?.masterlistPdfLink || '';
-      return (selectedUnit as Unit)?.masterlistPdfLink || '';
+  const activeMasterlistData = useMemo(() => {
+      if (selectedUnitId === SHARED_ACADEMIC_ID) return { 
+          link: sharedSettings?.masterlistPdfLink || '', 
+          rev: sharedSettings?.masterlistRevision || '00', 
+          date: sharedSettings?.masterlistUpdatedAt || 'TBA' 
+      };
+      const unit = selectedUnit as Unit;
+      return { 
+          link: unit?.masterlistPdfLink || '', 
+          rev: unit?.masterlistRevision || '00', 
+          date: unit?.masterlistUpdatedAt || 'TBA' 
+      };
   }, [selectedUnitId, sharedSettings, selectedUnit]);
 
   useEffect(() => {
-      setEditRosterLink(currentRosterLink);
-      setEditMasterlistLink(currentMasterlistLink);
-  }, [currentRosterLink, currentMasterlistLink]);
+      setEditRosterLink(activeRosterData.link);
+      setEditRosterRevision(activeRosterData.rev);
+      setEditRosterDate(activeRosterData.date === 'TBA' ? format(new Date(), 'yyyy-MM-dd') : activeRosterData.date);
+      
+      setEditMasterlistLink(activeMasterlistData.link);
+      setEditMasterlistRevision(activeMasterlistData.rev);
+      setEditMasterlistDate(activeMasterlistData.date === 'TBA' ? format(new Date(), 'yyyy-MM-dd') : activeMasterlistData.date);
+  }, [activeRosterData, activeMasterlistData]);
 
   const formsQuery = useMemoFirebase(
     () => (firestore && selectedUnitId ? query(collection(firestore, 'unitForms'), where('unitId', '==', selectedUnitId)) : null),
@@ -143,7 +176,11 @@ export default function UnitFormsPage() {
       try {
           const links = { 
               formsDriveLink: editRosterLink, 
-              masterlistPdfLink: editMasterlistLink 
+              formsDriveRevision: editRosterRevision,
+              formsDriveUpdatedAt: editRosterDate,
+              masterlistPdfLink: editMasterlistLink, 
+              masterlistRevision: editMasterlistRevision,
+              masterlistUpdatedAt: editMasterlistDate
           };
 
           if (selectedUnitId === SHARED_ACADEMIC_ID) {
@@ -151,7 +188,7 @@ export default function UnitFormsPage() {
           } else if (selectedUnitId) {
               await setDoc(doc(firestore, 'units', selectedUnitId!), links, { merge: true });
           }
-          toast({ title: 'Links Updated', description: 'Institutional repository parameters have been saved.' });
+          toast({ title: 'Repository Updated', description: 'Institutional repository parameters and revision history have been saved.' });
       } catch (e) {
           console.error("Save Link Error:", e);
           toast({ title: 'Error', description: 'Failed to update links.', variant: 'destructive' });
@@ -263,19 +300,36 @@ export default function UnitFormsPage() {
                                 {/* 1. Official Roster Access Card */}
                                 <Card className="border-primary/20 bg-primary/5 shadow-md overflow-hidden">
                                     <CardHeader className="bg-primary/10 border-b py-4">
-                                        <div className="flex items-center gap-2">
-                                            <FolderKanban className="h-5 w-5 text-primary" />
-                                            <CardTitle className="text-sm font-black uppercase tracking-tight">#1 Official Roster of Forms Access</CardTitle>
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <FolderKanban className="h-5 w-5 text-primary" />
+                                                <CardTitle className="text-sm font-black uppercase tracking-tight">#1 Official Roster of Forms Access</CardTitle>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Badge variant="secondary" className="h-5 text-[9px] font-black uppercase border-none bg-white/50">
+                                                    Rev {activeRosterData.rev}
+                                                </Badge>
+                                                <Badge variant="outline" className="h-5 text-[9px] font-bold border-primary/20 bg-white">
+                                                    {activeRosterData.date}
+                                                </Badge>
+                                            </div>
                                         </div>
                                         <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Secure repository for approved EOMS documentation.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="p-6 space-y-6">
-                                        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                                            <div className="space-y-2 flex-1">
-                                                <p className="text-xs text-muted-foreground leading-relaxed font-medium">
-                                                    Click the button below to request access to the unit's official folder. All download attempts are logged for institutional quality auditing.
-                                                </p>
-                                                {currentRosterLink ? (
+                                        <div className="flex flex-col xl:flex-row items-start justify-between gap-6">
+                                            <div className="space-y-4 flex-1">
+                                                <div className="p-4 bg-white rounded-xl border border-dashed flex gap-4">
+                                                    <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                                                    <div className="space-y-1">
+                                                        <p className="text-xs font-black uppercase text-slate-800">Operational Continuity</p>
+                                                        <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+                                                            This folder contains the complete, verified, and officially signed roster of forms for <strong>{selectedUnit.name}</strong>. Access is restricted to authorized unit personnel.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                
+                                                {activeRosterData.link ? (
                                                     <Button 
                                                         onClick={() => setIsRosterLogOpen(true)}
                                                         className="w-full md:w-auto h-11 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
@@ -291,37 +345,56 @@ export default function UnitFormsPage() {
                                             </div>
 
                                             {isAdmin && (
-                                                <div className="w-full md:w-[400px] p-4 bg-white rounded-xl border border-primary/20 shadow-inner space-y-4">
-                                                    <div className="space-y-1.5">
-                                                        <Label className="text-[9px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
-                                                            <LinkIcon className="h-3 w-3" /> #1 Official Roster folder Link
-                                                        </Label>
-                                                        <Input 
-                                                            value={editRosterLink} 
-                                                            onChange={(e) => setEditRosterLink(e.target.value)} 
-                                                            placeholder="Folder URL for downloading..."
-                                                            className="h-8 text-[10px] bg-slate-50"
-                                                        />
+                                                <div className="w-full xl:w-[450px] p-5 bg-white rounded-2xl border border-primary/20 shadow-xl space-y-4 animate-in slide-in-from-right-4 duration-500">
+                                                    <div className="flex items-center gap-2 border-b pb-2 mb-2">
+                                                        <PlusCircle className="h-4 w-4 text-primary" />
+                                                        <h4 className="text-[10px] font-black uppercase text-slate-900">Log New Roster Revision</h4>
                                                     </div>
-                                                    <div className="space-y-1.5">
-                                                        <Label className="text-[9px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
-                                                            <FileText className="h-3 w-3" /> #2 Masterlist PDF Link (Preview)
-                                                        </Label>
-                                                        <Input 
-                                                            value={editMasterlistLink} 
-                                                            onChange={(e) => setEditMasterlistLink(e.target.value)} 
-                                                            placeholder="PDF URL for the preview board..."
-                                                            className="h-8 text-[10px] bg-slate-50"
-                                                        />
+                                                    <div className="space-y-3">
+                                                        <div className="space-y-1">
+                                                            <Label className="text-[9px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
+                                                                <LinkIcon className="h-3 w-3" /> Folder Link
+                                                            </Label>
+                                                            <Input 
+                                                                value={editRosterLink} 
+                                                                onChange={(e) => setEditRosterLink(e.target.value)} 
+                                                                placeholder="Folder URL..."
+                                                                className="h-8 text-[10px] bg-slate-50"
+                                                            />
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[9px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
+                                                                    <Hash className="h-3 w-3" /> Rev No.
+                                                                </Label>
+                                                                <Input 
+                                                                    value={editRosterRevision} 
+                                                                    onChange={(e) => setEditRosterRevision(e.target.value)} 
+                                                                    placeholder="e.g. 01"
+                                                                    className="h-8 text-[10px] bg-slate-50"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[9px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
+                                                                    <Calendar className="h-3 w-3" /> Effective
+                                                                </Label>
+                                                                <Input 
+                                                                    type="date"
+                                                                    value={editRosterDate} 
+                                                                    onChange={(e) => setEditRosterDate(e.target.value)} 
+                                                                    className="h-8 text-[10px] bg-slate-50"
+                                                                />
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                     <Button 
                                                         size="sm" 
                                                         onClick={handleSaveAdminLinks} 
                                                         disabled={isSavingLinks} 
-                                                        className="w-full h-8 font-black uppercase text-[10px] tracking-widest"
+                                                        className="w-full h-9 font-black uppercase text-[10px] tracking-widest shadow-md"
                                                     >
                                                         {isSavingLinks ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Save className="h-3.5 w-3.5 mr-2" />}
-                                                        Save Administrative Links
+                                                        Commit Roster Update
                                                     </Button>
                                                 </div>
                                             )}
@@ -332,16 +405,26 @@ export default function UnitFormsPage() {
                                 {/* 2. Master List Preview Card */}
                                 <Card className="shadow-lg border-primary/10 overflow-hidden">
                                     <CardHeader className="bg-muted/10 border-b py-4">
-                                        <div className="flex items-center gap-2">
-                                            <Eye className="h-5 w-5 text-primary" />
-                                            <CardTitle className="text-sm font-black uppercase tracking-tight">#2 Unit Masterlist of Forms/Records Preview</CardTitle>
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Eye className="h-5 w-5 text-primary" />
+                                                <CardTitle className="text-sm font-black uppercase tracking-tight">#2 Unit Masterlist of Forms/Records Preview</CardTitle>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Badge variant="secondary" className="h-5 text-[9px] font-black uppercase border-none bg-primary/5 text-primary">
+                                                    Rev {activeMasterlistData.rev}
+                                                </Badge>
+                                                <Badge variant="outline" className="h-5 text-[9px] font-bold border-primary/20 bg-white">
+                                                    {activeMasterlistData.date}
+                                                </Badge>
+                                            </div>
                                         </div>
-                                        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Identify the specific forms required for your processes before requesting a download from the Roster (#1).</CardDescription>
+                                        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Identify required forms before requesting a download from the Roster (#1).</CardDescription>
                                     </CardHeader>
                                     <CardContent className="p-0 bg-slate-100 min-h-[500px] relative shadow-inner">
-                                        {currentMasterlistLink ? (
+                                        {activeMasterlistData.link ? (
                                             <iframe 
-                                                src={getEmbedUrl(currentMasterlistLink)} 
+                                                src={getEmbedUrl(activeMasterlistData.link)} 
                                                 className="absolute inset-0 w-full h-full border-none bg-white"
                                                 allow="autoplay"
                                                 title="Unit Masterlist Preview"
@@ -351,18 +434,73 @@ export default function UnitFormsPage() {
                                                 <FileText className="h-16 w-16" />
                                                 <div className="space-y-1">
                                                     <p className="text-sm font-black uppercase tracking-widest">Masterlist Unavailable</p>
-                                                    <p className="text-[10px] max-w-xs font-medium">The unit head or administrator has not yet uploaded the official PDF masterlist for this unit.</p>
+                                                    <p className="text-[10px] max-w-xs font-medium">The official PDF masterlist has not yet been logged for this unit.</p>
                                                 </div>
                                             </div>
                                         )}
                                     </CardContent>
-                                    <CardFooter className="bg-white border-t py-3 px-6">
-                                        <div className="flex items-start gap-3">
+                                    <CardFooter className="bg-white border-t py-4 px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                                        <div className="flex items-start gap-3 flex-1">
                                             <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
                                             <p className="text-[10px] text-muted-foreground italic leading-tight">
-                                                <strong>Standard Guidance:</strong> This preview allows users to cross-reference their operational requirements with the controlled forms roster. Refer to your unit's **Procedure Manual** to verify which codes are applicable to your specific tasks.
+                                                <strong>Institutional Standard:</strong> This preview allows users to cross-reference their operational requirements with the controlled forms roster. Refer to your unit's **Procedure Manual** to verify applicable codes.
                                             </p>
                                         </div>
+
+                                        {isAdmin && (
+                                            <div className="w-full md:w-[450px] p-5 bg-slate-50 rounded-2xl border border-primary/10 shadow-sm space-y-4">
+                                                <div className="flex items-center gap-2 border-b pb-2 mb-2">
+                                                    <FilePlus className="h-4 w-4 text-primary" />
+                                                    <h4 className="text-[10px] font-black uppercase text-slate-900">Log New Masterlist Revision</h4>
+                                                </div>
+                                                <div className="space-y-3">
+                                                    <div className="space-y-1">
+                                                        <Label className="text-[9px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
+                                                            <LinkIcon className="h-3 w-3" /> Masterlist Link (PDF Preview)
+                                                        </Label>
+                                                        <Input 
+                                                            value={editMasterlistLink} 
+                                                            onChange={(e) => setEditMasterlistLink(e.target.value)} 
+                                                            placeholder="PDF Link..."
+                                                            className="h-8 text-[10px] bg-white"
+                                                        />
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div className="space-y-1">
+                                                            <Label className="text-[9px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
+                                                                <Hash className="h-3 w-3" /> Rev No.
+                                                            </Label>
+                                                            <Input 
+                                                                value={editMasterlistRevision} 
+                                                                onChange={(e) => setEditMasterlistRevision(e.target.value)} 
+                                                                placeholder="e.g. 01"
+                                                                className="h-8 text-[10px] bg-white"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-[9px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
+                                                                <Calendar className="h-3 w-3" /> Effective
+                                                            </Label>
+                                                            <Input 
+                                                                type="date"
+                                                                value={editMasterlistDate} 
+                                                                onChange={(e) => setEditMasterlistDate(e.target.value)} 
+                                                                className="h-8 text-[10px] bg-white"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <Button 
+                                                    size="sm" 
+                                                    onClick={handleSaveAdminLinks} 
+                                                    disabled={isSavingLinks} 
+                                                    className="w-full h-9 font-black uppercase text-[10px] tracking-widest bg-slate-800 hover:bg-slate-900"
+                                                >
+                                                    {isSavingLinks ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Save className="h-3.5 w-3.5 mr-2" />}
+                                                    Commit Masterlist Update
+                                                </Button>
+                                            </div>
+                                        )}
                                     </CardFooter>
                                 </Card>
 
@@ -490,16 +628,16 @@ export default function UnitFormsPage() {
           />
       )}
 
-      {isRosterLogOpen && selectedUnitId && currentRosterLink && (
+      {isRosterLogOpen && selectedUnitId && activeRosterData.link && (
           <FormDownloadDialog
             form={{ 
                 id: 'roster-folder', 
                 formName: 'Official Roster & Forms Folder', 
                 formCode: 'MASTER-ROSTER', 
-                googleDriveLink: currentRosterLink,
+                googleDriveLink: activeRosterData.link,
                 unitId: selectedUnitId,
                 campusId: userProfile?.campusId || '',
-                revision: 'Latest',
+                revision: activeRosterData.rev,
                 requestId: 'system',
                 createdAt: new Date()
             }}

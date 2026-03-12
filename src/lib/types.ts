@@ -113,14 +113,22 @@ export type Unit = {
     vicePresidentId?: string;
     campusIds?: string[];
     formsDriveLink?: string; // Admin-set Google Drive area for registered forms
+    formsDriveRevision?: string;
+    formsDriveUpdatedAt?: string;
     masterlistPdfLink?: string; // Admin-set Link for the PDF Preview
+    masterlistRevision?: string;
+    masterlistUpdatedAt?: string;
 }
 
 export type CampusSetting = {
     id: string;
     announcement?: string;
     formsDriveLink?: string;
+    formsDriveRevision?: string;
+    formsDriveUpdatedAt?: string;
     masterlistPdfLink?: string;
+    masterlistRevision?: string;
+    masterlistUpdatedAt?: string;
 }
 
 export type ActivityLog = {
@@ -328,7 +336,7 @@ export type CorrectiveActionRequest = {
     source: 'Audit Finding' | 'Legal Non-compliance' | 'Non-conforming Service' | 'Others';
     procedureTitle: string;
     initiator: string;
-    natureOfFinding: 'NC' | 'OFI';
+    nature of finding: 'NC' | 'OFI';
     concerningClause: string;
     concerningTopManagementName?: string;
     timeLimitForReply: any; // Timestamp
