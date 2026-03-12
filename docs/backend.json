@@ -43,6 +43,15 @@
         "accreditationHead": { "type": "string" },
         "updatedAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "GadSettings": {
+      "title": "GadSettings",
+      "type": "object",
+      "properties": {
+        "leadershipUnitId": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "type": "string" }
+      }
     }
   },
   "auth": {
@@ -52,7 +61,8 @@
     "structure": [
       { "path": "/users/{userId}", "definition": { "entityName": "User" } },
       { "path": "/qaAdvisories/{advisoryId}", "definition": { "entityName": "QaAdvisory" } },
-      { "path": "/system/signatories", "definition": { "entityName": "Signatories" } }
+      { "path": "/system/signatories", "definition": { "entityName": "Signatories" } },
+      { "path": "/system/gadSettings", "definition": { "entityName": "GadSettings" } }
     ]
   }
 }
