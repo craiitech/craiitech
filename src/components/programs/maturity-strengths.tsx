@@ -19,7 +19,8 @@ import {
     GraduationCap,
     Heart,
     Activity,
-    Loader2
+    Loader2,
+    Trophy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
@@ -109,7 +110,7 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
         const record = compliances.find(c => c.programId === p.id);
         if (!record?.boardPerformance || record.boardPerformance.length === 0) return false;
         const latest = record.boardPerformance[record.boardPerformance.length - 1];
-        if (!latest) return false; // Fixed: Defensive check for undefined element
+        if (!latest) return false;
         return (latest.overallPassRate || 0) > (latest.nationalPassingRate || 0);
     }).map(p => p.abbreviation);
 
@@ -130,7 +131,7 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
         strengthsList.push({
             title: 'Higher Education Scope',
             description: `Strong portfolio of ${graduatePrograms.length} active Master's/Doctoral offerings.`,
-            impact: 'Positions RSU as a center for advanced research and professional development in the region.',
+            impact: 'Positions RSU  as a center for advanced research and professional development in the region.',
             icon: <GraduationCap className="h-6 w-6 text-indigo-600" />,
             programs: graduatePrograms,
             category: 'Accreditation'
