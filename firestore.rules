@@ -38,7 +38,7 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // INTERNAL QUALITY AUDIT (IQA) & COMPLIANCE
+    // INTERNAL QUALITY AUDIT (IQA) & COMPLIANCE - HIGHEST PRIORITY
     // --------------------------------------------------------------------------
     
     match /auditPlans/{id} {
@@ -182,7 +182,6 @@ service cloud.firestore {
     match /units/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
     match /roles/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
     match /cycles/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
-    match /isoClauses/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
     match /procedureManuals/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
     match /eomsPolicyManuals/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
 
