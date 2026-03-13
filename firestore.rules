@@ -96,8 +96,12 @@ service cloud.firestore {
     match /submissions/{id} { allow read, list: if isSignedIn(); allow write: if isSignedIn(); }
     match /risks/{id} { allow read, list: if isSignedIn(); allow write: if isSignedIn(); }
     match /unitMonitoringRecords/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin() || (isSupervisor() && profile().role == 'Campus ODIMO'); }
+    
+    // IQA Rules
+    match /auditPlans/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
     match /auditSchedules/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin() || isAuditor(); }
     match /auditFindings/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin() || isAuditor(); }
+    
     match /correctiveActionRequests/{carId} { allow read, list: if isSignedIn(); allow write: if isAdmin() || isAuditor() || isSupervisor(); }
     match /correctiveActionPlans/{id} { allow read, list: if isSignedIn(); allow write: if isSignedIn(); }
     match /academicPrograms/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
