@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import type { Submission, Cycle, Unit } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { 
     PieChart, 
     Pie, 
@@ -31,7 +31,11 @@ import {
     Info, 
     Activity, 
     Target,
-    ShieldCheck
+    ShieldCheck,
+    Zap,
+    Trophy,
+    RotateCw,
+    Check
 } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 import { isBefore, isAfter } from 'date-fns';
@@ -159,6 +163,48 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
     const firstCycleMissing = calculateMissingForCycle('first');
     const finalCycleMissing = calculateMissingForCycle('final');
 
+    // 6. DERIVE STRENGTHS
+    const strengths = [];
+    const timelinessRate = Math.round((onTimeCount / (total || 1)) * 100);
+    
+    if (timelinessRate >= 80) {
+        strengths.push({
+            title: "Process Discipline",
+            desc: `${timelinessRate}% On-Time submission rate across the university sites.`,
+            icon: <CalendarCheck className="h-4 w-4 text-emerald-600" />,
+            tag: "PUNCTUALITY"
+        });
+    }
+
+    if (approvalRate >= 70) {
+        strengths.push({
+            title: "Verification Velocity",
+            desc: `${approvalRate}% of all logged evidence reached 'Approved' status within the audit cycle.`,
+            icon: <CheckCircle2 className="h-4 w-4 text-emerald-600" />,
+            tag: "QUALITY"
+        });
+    }
+
+    const feedbackLoopUnitsCount = new Set(submissions.filter(s => s.revision > 0 && s.statusId === 'approved').map(s => s.unitId)).size;
+    if (feedbackLoopUnitsCount > 0) {
+        strengths.push({
+            title: "Refinement Integrity",
+            desc: `${feedbackLoopUnitsCount} units successfully closed the feedback loop by submitting approved revisions.`,
+            icon: <RotateCw className="h-4 w-4 text-emerald-600" />,
+            tag: "IMPROVEMENT"
+        });
+    }
+
+    const parityUnits = firstCycleMissing.filter(m => m.percentage === 100).length + finalCycleMissing.filter(m => m.percentage === 100).length;
+    if (parityUnits > 0) {
+        strengths.push({
+            title: "Cycle Parity Success",
+            desc: `Achieved 100% institutional completion for ${parityUnits} core EOMS document categories.`,
+            icon: <Trophy className="h-4 w-4 text-emerald-600" />,
+            tag: "EXCELLENCE"
+        });
+    }
+
     return { 
         total, 
         approvalRate, 
@@ -167,7 +213,8 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
         timelinessData, 
         reportData,
         firstCycleMissing,
-        finalCycleMissing
+        finalCycleMissing,
+        strengths
     };
   }, [submissions, cycles, allUnits]);
 
@@ -276,6 +323,56 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
         </Card>
       </div>
 
+      {/* NEW: INSTITUTIONAL MATURITY STRENGTHS */}
+      <Card className="border-emerald-200 shadow-xl overflow-hidden bg-emerald-50/10 relative">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-600 opacity-50" />
+          <CardHeader className="bg-emerald-50 border-b py-4">
+              <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-emerald-700">
+                          <Zap className="h-5 w-5 text-emerald-600" />
+                          <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Maturity Strengths</CardTitle>
+                      </div>
+                      <CardDescription className="text-[10px] font-bold text-emerald-800/60 uppercase">High-performance metrics derived from verified evidence logs for {displayYear}.</CardDescription>
+                  </div>
+                  <Trophy className="h-10 w-10 text-emerald-600/10" />
+              </div>
+          </CardHeader>
+          <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {analytics.strengths.length > 0 ? (
+                      analytics.strengths.map((strength, idx) => (
+                          <div key={idx} className="flex flex-col gap-2 p-4 rounded-xl bg-white border border-emerald-100 shadow-sm transition-all hover:scale-105 duration-300">
+                              <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                      <div className="h-7 w-7 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                                          {strength.icon}
+                                      </div>
+                                      <span className="text-xs font-black text-slate-900 uppercase tracking-tighter">{strength.title}</span>
+                                  </div>
+                                  <Badge variant="outline" className="h-4 text-[7px] font-black border-emerald-200 text-emerald-700 uppercase">{strength.tag}</Badge>
+                              </div>
+                              <p className="text-[10px] text-slate-600 leading-relaxed font-medium italic">"{strength.desc}"</p>
+                          </div>
+                      ))
+                  ) : (
+                      <div className="col-span-full py-10 flex flex-col items-center justify-center opacity-20">
+                          <Activity className="h-8 w-8" />
+                          <p className="text-[10px] font-black uppercase mt-2">Calibrating system strengths...</p>
+                      </div>
+                  )}
+              </div>
+          </CardContent>
+          <CardFooter className="bg-emerald-100/20 border-t py-3 px-6">
+              <div className="flex items-start gap-3">
+                  <Check className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <p className="text-[9px] text-emerald-800 leading-relaxed font-medium italic">
+                      <strong>Institutional Recognition:</strong> These strengths represent objective benchmarks of quality where the university is meeting or exceeding its documentation control targets. Use these metrics in Management Review sessions to identify and propagate best practices.
+                  </p>
+              </div>
+          </CardFooter>
+      </Card>
+
       {/* Institutional Gaps Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {renderMissingCard("Parity Gap Analysis: First Submission Cycle", analytics.firstCycleMissing)}
@@ -312,7 +409,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
                                     <Cell key={`cell-${index}`} fill={entry.fill} />
                                 ))}
                             </Pie>
-                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'black', paddingTop: '20px' }} />
+                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontStyle: 'bold', paddingTop: '20px' }} />
                         </PieChart>
                     </ResponsiveContainer>
                 </ChartContainer>
@@ -358,7 +455,7 @@ export function SubmissionDashboard({ submissions, cycles, allUnits, isLoading, 
                                 <Cell key={`cell-${index}`} fill={entry.fill} />
                             ))}
                         </Pie>
-                        <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'black', paddingTop: '20px' }} />
+                        <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontStyle: 'bold', paddingTop: '20px' }} />
                     </PieChart>
                 </ResponsiveContainer>
             </ChartContainer>
