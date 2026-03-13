@@ -38,26 +38,27 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // CORE IQA & COMPLIANCE (Top Priority)
+    // TOP PRIORITY: IQA & COMPLIANCE ACCESS
     // --------------------------------------------------------------------------
     
     match /auditPlans/{planId} {
-      allow read: if request.auth != null;
+      // Allow all authenticated institutional users to view audit plans
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
     match /auditSchedules/{scheduleId} {
-      allow read: if request.auth != null;
+      allow read: if isSignedIn();
       allow write: if isAdmin() || isAuditor();
     }
 
     match /auditFindings/{findingId} {
-      allow read: if request.auth != null;
+      allow read: if isSignedIn();
       allow write: if isAdmin() || isAuditor();
     }
 
     match /isoClauses/{clauseId} {
-      allow read: if request.auth != null;
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
