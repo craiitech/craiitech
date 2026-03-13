@@ -38,6 +38,30 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
+    // INTERNAL QUALITY AUDIT (IQA) & COMPLIANCE
+    // --------------------------------------------------------------------------
+    
+    match /auditPlans/{id} {
+      allow read, list: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /auditSchedules/{id} {
+      allow read, list: if isSignedIn();
+      allow write: if isAdmin() || isAuditor();
+    }
+
+    match /auditFindings/{id} {
+      allow read, list: if isSignedIn();
+      allow write: if isAdmin() || isAuditor();
+    }
+
+    match /isoClauses/{id} {
+      allow read, list: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // --------------------------------------------------------------------------
     // SYSTEM CONFIGURATION (GAD Settings, Signatories)
     // --------------------------------------------------------------------------
     
@@ -93,19 +117,40 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /submissions/{id} { allow read, list: if isSignedIn(); allow write: if isSignedIn(); }
-    match /risks/{id} { allow read, list: if isSignedIn(); allow write: if isSignedIn(); }
-    match /unitMonitoringRecords/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin() || (isSupervisor() && profile().role == 'Campus ODIMO'); }
+    match /submissions/{id} { 
+      allow read, list: if isSignedIn(); 
+      allow write: if isSignedIn(); 
+    }
+
+    match /risks/{id} { 
+      allow read, list: if isSignedIn(); 
+      allow write: if isSignedIn(); 
+    }
+
+    match /unitMonitoringRecords/{id} { 
+      allow read, list: if isSignedIn(); 
+      allow write: if isAdmin() || (isSupervisor() && profile().role == 'Campus ODIMO'); 
+    }
     
-    // IQA Rules
-    match /auditPlans/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
-    match /auditSchedules/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin() || isAuditor(); }
-    match /auditFindings/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin() || isAuditor(); }
-    
-    match /correctiveActionRequests/{carId} { allow read, list: if isSignedIn(); allow write: if isAdmin() || isAuditor() || isSupervisor(); }
-    match /correctiveActionPlans/{id} { allow read, list: if isSignedIn(); allow write: if isSignedIn(); }
-    match /academicPrograms/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
-    match /programCompliances/{id} { allow read, list: if isSignedIn(); allow write: if isSignedIn(); }
+    match /correctiveActionRequests/{carId} { 
+      allow read, list: if isSignedIn(); 
+      allow write: if isAdmin() || isAuditor() || isSupervisor(); 
+    }
+
+    match /correctiveActionPlans/{id} { 
+      allow read, list: if isSignedIn(); 
+      allow write: if isSignedIn(); 
+    }
+
+    match /academicPrograms/{id} { 
+      allow read, list: if isSignedIn(); 
+      allow write: if isAdmin() || isSupervisor(); 
+    }
+
+    match /programCompliances/{id} { 
+      allow read, list: if isSignedIn(); 
+      allow write: if isSignedIn(); 
+    }
     
     match /campusSettings/{settingId} {
       allow read, list: if isSignedIn();
