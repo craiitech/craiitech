@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 import type { CorrectiveActionRequest, ManagementReview, ManagementReviewOutput, QaAuditReport } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { 
@@ -35,7 +35,9 @@ import {
     Info,
     Zap,
     Target,
-    ShieldCheck
+    ShieldCheck,
+    Gavel,
+    History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
@@ -51,23 +53,56 @@ const FINDING_COLORS: Record<string, string> = {
   OFI: 'hsl(var(--chart-3))',
 };
 
+type InsightItem = {
+    title: string;
+    description: string;
+    tag: string;
+    priority?: 'High' | 'Medium' | 'Low';
+};
+
 export function QaAnalyticsTab() {
+  const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
 
-  const carQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'correctiveActionRequests') : null), [firestore]);
+  const isInstitutionalViewer = isAdmin || userRole === 'Auditor';
+
+  // Scoped Data Fetching
+  const carQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile) return null;
+    const baseRef = collection(firestore, 'correctiveActionRequests');
+    if (isInstitutionalViewer) return baseRef;
+    if (userProfile.unitId) return query(baseRef, where('unitId', '==', userProfile.unitId));
+    return query(baseRef, where('campusId', '==', userProfile.campusId));
+  }, [firestore, userProfile, isInstitutionalViewer]);
   const { data: cars, isLoading: isLoadingCars } = useCollection<CorrectiveActionRequest>(carQuery);
 
   const mrQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'managementReviews') : null), [firestore]);
   const { data: mrs } = useCollection<ManagementReview>(mrQuery);
 
-  const mrOutputsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'managementReviewOutputs') : null), [firestore]);
-  const { data: mrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
+  const mrOutputsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile) return null;
+    const baseRef = collection(firestore, 'managementReviewOutputs');
+    if (isInstitutionalViewer) return baseRef;
+    // Assignments is an array of objects, so we fetch all and filter in useMemo for more complex logic
+    return baseRef; 
+  }, [firestore, userProfile, isInstitutionalViewer]);
+  const { data: rawMrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
 
-  const reportsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'qaAuditReports') : null), [firestore]);
+  const reportsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile) return null;
+    const baseRef = collection(firestore, 'qaAuditReports');
+    if (isInstitutionalViewer) return baseRef;
+    return query(baseRef, where('campusIds', 'array-contains', userProfile.campusId));
+  }, [firestore, userProfile, isInstitutionalViewer]);
   const { data: auditReports } = useCollection<QaAuditReport>(reportsQuery);
 
   const analytics = useMemo(() => {
-    if (!cars || !mrOutputs || !mrs || !auditReports) return null;
+    if (!cars || !rawMrOutputs || !mrs || !auditReports || !userProfile) return null;
+
+    // Filter MR Outputs for non-admins (since array-contains-any is complex, we filter in memory)
+    const outputs = isInstitutionalViewer 
+        ? rawMrOutputs 
+        : rawMrOutputs.filter(o => o.assignments?.some(a => a.unitId === userProfile.unitId || a.campusId === userProfile.campusId));
 
     const carStatusCounts: Record<string, number> = { Open: 0, 'In Progress': 0, Closed: 0 };
     cars.forEach(car => {
@@ -96,8 +131,7 @@ export function QaAnalyticsTab() {
     });
 
     const yearlyDecisionStats: Record<number, { year: number, Open: number, 'On-going': number, Closed: number }> = {};
-    
-    mrOutputs.forEach(output => {
+    outputs.forEach(output => {
         const year = mrYearMap.get(output.mrId) || new Date().getFullYear();
         if (!yearlyDecisionStats[year]) {
             yearlyDecisionStats[year] = { year, Open: 0, 'On-going': 0, Closed: 0 };
@@ -109,8 +143,62 @@ export function QaAnalyticsTab() {
 
     const decisionTrendData = Object.values(yearlyDecisionStats).sort((a, b) => a.year - b.year);
 
-    const closedOutputs = mrOutputs.filter(o => o.status === 'Closed').length;
-    const mrResolutionRate = mrOutputs.length > 0 ? Math.round((closedOutputs / mrOutputs.length) * 100) : 0;
+    const closedOutputs = outputs.filter(o => o.status === 'Closed').length;
+    const mrResolutionRate = outputs.length > 0 ? Math.round((closedOutputs / outputs.length) * 100) : 0;
+
+    // --- SWOT Analysis Logic ---
+    const strengths: InsightItem[] = [];
+    const gaps: InsightItem[] = [];
+
+    // Strength: Audit Readiness
+    if (auditReports.length > 0) {
+        strengths.push({ 
+            title: isInstitutionalViewer ? 'Audit Registry Maturity' : 'Site Transparency', 
+            description: `Maintaining a vault of ${auditReports.length} verified ${isInstitutionalViewer ? 'institutional' : 'local'} audit records.`,
+            tag: '[ISO 9.2]'
+        });
+    }
+
+    // Strength: Correction Effectiveness
+    const carClosureRate = cars.length > 0 ? (carStatusCounts.Closed / cars.length) : 1;
+    if (carClosureRate >= 0.75 && cars.length > 0) {
+        strengths.push({
+            title: 'Corrective Velocity',
+            description: 'Demonstrating high efficiency in resolving and closing identified non-conformities.',
+            tag: '[ISO 10.2]'
+        });
+    }
+
+    // Strength: Governance Alignment
+    if (mrResolutionRate > 70 && outputs.length > 0) {
+        strengths.push({
+            title: 'Strategic Decision Fulfillment',
+            description: 'Successful implementation of the majority of actionable decisions from top management.',
+            tag: '[ISO 9.3]'
+        });
+    }
+
+    // Gaps: Open NCs
+    const openNCs = cars.filter(c => c.status !== 'Closed' && c.natureOfFinding === 'NC').length;
+    if (openNCs > 0) {
+        gaps.push({
+            title: 'Outstanding Non-Conformances',
+            description: `${openNCs} critical gaps in the standard remain unresolved and require priority action.`,
+            tag: '[Correction Pending]',
+            priority: 'High'
+        });
+    }
+
+    // Gaps: Decision Backlog
+    const openDecisions = outputs.filter(o => o.status === 'Open' || o.status === 'On-going').length;
+    if (openDecisions > 0) {
+        gaps.push({
+            title: 'Implementation Backlog',
+            description: `${openDecisions} management decisions are currently past due or pending unit-level implementation.`,
+            tag: '[MR Action Gap]',
+            priority: 'Medium'
+        });
+    }
 
     return {
       totalCars: cars.length,
@@ -118,13 +206,15 @@ export function QaAnalyticsTab() {
       closedCars: carStatusCounts.Closed,
       totalAudits: auditReports.length,
       totalMrSessions: mrs.length,
-      totalDecisions: mrOutputs.length,
+      totalDecisions: outputs.length,
       mrResolutionRate,
       carStatusData,
       findingData,
-      decisionTrendData
+      decisionTrendData,
+      strengths,
+      gaps
     };
-  }, [cars, mrOutputs, mrs, auditReports]);
+  }, [cars, rawMrOutputs, mrs, auditReports, userProfile, isInstitutionalViewer]);
 
   if (isLoadingCars) {
     return (
@@ -147,7 +237,66 @@ export function QaAnalyticsTab() {
 
   return (
     <div className="space-y-6">
-      {/* Executive KPIs */}
+      {/* 1. STRATEGIC INSIGHTS GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x border rounded-2xl shadow-lg bg-background overflow-hidden">
+          <div className="flex flex-col">
+              <div className="bg-emerald-50 px-6 py-3 border-b flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Institutional Strength Registry</span>
+              </div>
+              <div className="p-6 space-y-4">
+                  {analytics.strengths.length > 0 ? (
+                      analytics.strengths.map((item, idx) => (
+                          <div key={idx} className="space-y-1.5 group">
+                              <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                                      <span className="text-xs font-black text-slate-800 uppercase tracking-tight group-hover:text-emerald-600 transition-colors">{item.title}</span>
+                                  </div>
+                                  <Badge className="bg-emerald-100 text-emerald-700 border-none h-4 px-1.5 text-[8px] font-black">{item.tag}</Badge>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground leading-relaxed italic">"{item.description}"</p>
+                          </div>
+                      ))
+                  ) : (
+                      <p className="text-[10px] text-muted-foreground italic opacity-50 py-10 text-center">Calibrating institutional strengths...</p>
+                  )}
+              </div>
+          </div>
+
+          <div className="flex flex-col">
+              <div className="bg-rose-50 px-6 py-3 border-b flex items-center gap-2">
+                  <ShieldAlert className="h-4 w-4 text-rose-600" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-rose-700">Priority Areas for Improvement</span>
+              </div>
+              <div className="p-6 space-y-4">
+                  {analytics.gaps.length > 0 ? (
+                      analytics.gaps.map((item, idx) => (
+                          <div key={idx} className="space-y-1.5 group">
+                              <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                      <AlertTriangle className="h-3.5 w-3.5 text-rose-600" />
+                                      <span className="text-xs font-black text-slate-800 uppercase tracking-tight group-hover:text-rose-600 transition-colors">{item.title}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                      {item.priority === 'High' && <Badge variant="destructive" className="h-4 px-1 text-[7px] font-black uppercase">Critical</Badge>}
+                                      <Badge className="bg-rose-100 text-rose-700 border-none h-4 px-1.5 text-[8px] font-black">{item.tag}</Badge>
+                                  </div>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground leading-relaxed italic">"{item.description}"</p>
+                          </div>
+                      ))
+                  ) : (
+                      <div className="py-10 flex flex-col items-center justify-center opacity-20">
+                          <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+                          <p className="text-[10px] font-black uppercase mt-2">No Gaps Detected</p>
+                      </div>
+                  )}
+              </div>
+          </div>
+      </div>
+
+      {/* 2. Executive KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
           <div className="absolute top-0 right-0 p-2 opacity-5"><ShieldAlert className="h-12 w-12" /></div>
