@@ -38,9 +38,10 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // INTERNAL QUALITY AUDIT (IQA) & COMPLIANCE - HIGHEST PRIORITY
+    // INTERNAL QUALITY AUDIT (IQA) & COMPLIANCE
     // --------------------------------------------------------------------------
     
+    // Explicitly allow all signed-in users to read institutional audit frameworks
     match /auditPlans/{id} {
       allow read, list: if isSignedIn();
       allow write: if isAdmin();
@@ -62,7 +63,7 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // SYSTEM CONFIGURATION (GAD Settings, Signatories)
+    // SYSTEM CONFIGURATION
     // --------------------------------------------------------------------------
     
     match /system/{docId} {
