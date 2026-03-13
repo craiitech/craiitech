@@ -7,7 +7,7 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%; /* #F8FAFC - Lighter, airier background */
+    --background: 210 40% 98%; /* #F8FAFC - Airy background */
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
@@ -25,8 +25,8 @@
     --destructive-foreground: 210 40% 98%;
     --border: 240 6% 90%;
     --input: 240 6% 90%;
-    --ring: 233 47% 49%; /* #3F51B5 */
-    --radius: 1rem; /* Increased base radius for the floating look */
+    --ring: 233 47% 49%;
+    --radius: 1rem;
     --chart-1: 233 47% 49%;
     --chart-2: 188 100% 39%;
     --chart-3: 288 80% 70%;
