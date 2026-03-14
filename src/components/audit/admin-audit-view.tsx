@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -34,7 +33,8 @@ export function AdminAuditView() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false);
+  const [isPlanDialogOpen] = useState(false); // Placeholder for logic if needed, but I'll stick to provided state names
+  const [isPlanDialogOpenLocal, setIsPlanDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<AuditPlan | null>(null);
 
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
@@ -174,7 +174,7 @@ export function AdminAuditView() {
 
         <Card className="shadow-md border-primary/10">
           <CardHeader className="bg-muted/30 border-b">
-            <CardTitle>Institutional Audit Registry</CardTitle>
+            <CardTitle>University Internal Quality Audit (IQA) Registry</CardTitle>
             <CardDescription>Browse existing plans and manage the lifecycle of scheduled audits.</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
@@ -201,9 +201,9 @@ export function AdminAuditView() {
         </Card>
       </div>
 
-      {isPlanDialogOpen && (
+      {isPlanDialogOpenLocal && (
         <AuditPlanDialog
-          isOpen={isPlanDialogOpen}
+          isOpen={isPlanDialogOpenLocal}
           onOpenChange={setIsPlanDialogOpen}
           plan={editingPlan}
           campuses={campuses || []}
