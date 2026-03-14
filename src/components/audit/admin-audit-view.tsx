@@ -37,8 +37,9 @@ export function AdminAuditView() {
   const { toast } = useToast();
   
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
-  const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false);
+  const [isPlanDialogOpen] = useState(false); // Controlled via PlanList callbacks
   const [editingPlan, setEditingPlan] = useState<AuditPlan | null>(null);
+  const [isPlanDialogOpenState, setIsPlanDialogOpenState] = useState(false);
 
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [selectedPlanForScheduling, setSelectedPlanForScheduling] = useState<AuditPlan | null>(null);
@@ -74,12 +75,12 @@ export function AdminAuditView() {
 
   const handleNewPlan = () => {
     setEditingPlan(null);
-    setIsPlanDialogOpen(true);
+    setIsPlanDialogOpenState(true);
   };
 
   const handleEditPlan = (plan: AuditPlan) => {
     setEditingPlan(plan);
-    setIsPlanDialogOpen(true);
+    setIsPlanDialogOpenState(true);
   };
 
   const handleScheduleAudit = (plan: AuditPlan) => {
@@ -249,7 +250,7 @@ export function AdminAuditView() {
       </Tabs>
 
       {/* Dialogs */}
-      <AuditPlanDialog isOpen={isPlanDialogOpen} onOpenChange={setIsPlanDialogOpen} plan={editingPlan} campuses={campuses || []} />
+      <AuditPlanDialog isOpen={isPlanDialogOpenState} onOpenChange={setIsPlanDialogOpenState} plan={editingPlan} campuses={campuses || []} />
       
       {isScheduleDialogOpen && selectedPlanForScheduling && (
         <AuditScheduleDialog
