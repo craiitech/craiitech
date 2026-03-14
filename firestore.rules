@@ -10,30 +10,24 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function hasProfile() {
-      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
-    }
-
-    function profile() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
-    /**
-     * Role Hierarchy Checks
-     */
     function isAdmin() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
-        (hasProfile() && profile().role.matches('(?i).*admin.*'))
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches('(?i).*admin.*'))
       );
     }
 
     function isAuditor() {
-      return isSignedIn() && hasProfile() && profile().role.matches('(?i).*auditor.*');
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches('(?i).*auditor.*');
     }
 
     function isSupervisor() {
-      return isSignedIn() && hasProfile() && profile().role.matches('(?i)^(Campus Director|Campus ODIMO|Admin|Vice President.*|Director.*)$');
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches('(?i)^(Campus Director|Campus ODIMO|Admin|Vice President.*|Director.*)$');
     }
 
     // --------------------------------------------------------------------------
@@ -41,24 +35,23 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /auditPlans/{planId} {
-      // Direct explicit check to prevent any shadowing issues
-      allow read: if request.auth != null;
-      allow write: if isAdmin();
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
     }
 
     match /auditSchedules/{scheduleId} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin() || isAuditor();
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin() || isAuditor();
     }
 
     match /auditFindings/{findingId} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin() || isAuditor();
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin() || isAuditor();
     }
 
     match /isoClauses/{clauseId} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin();
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
     }
 
     // --------------------------------------------------------------------------
@@ -76,13 +69,13 @@ service cloud.firestore {
     
     match /gadInitiatives/{id} {
       allow read: if isSignedIn();
-      allow create, update: if isSignedIn() && (isAdmin() || (hasProfile() && profile().role.matches('(?i).*(coordinator|director|odimo|admin).*')));
+      allow create, update: if isSignedIn() && (isAdmin() || isSupervisor());
       allow delete: if isAdmin();
     }
 
     match /gadMainstreaming/{id} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() && (isAdmin() || (hasProfile() && profile().role.matches('(?i).*(coordinator|director|odimo|admin).*')));
+      allow write: if isSignedIn() && (isAdmin() || isSupervisor());
     }
 
     // --------------------------------------------------------------------------
@@ -129,7 +122,7 @@ service cloud.firestore {
 
     match /unitMonitoringRecords/{id} { 
       allow read: if isSignedIn(); 
-      allow write: if isAdmin() || (isSupervisor() && hasProfile() && profile().role == 'Campus ODIMO'); 
+      allow write: if isAdmin() || isSupervisor(); 
     }
     
     match /correctiveActionRequests/{carId} { 
