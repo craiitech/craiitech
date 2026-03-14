@@ -1,15 +1,17 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, Database, LayoutList } from 'lucide-react';
+import { PlusCircle, Loader2, Database, LayoutList, BarChart3, ListChecks, Filter } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, doc, deleteDoc } from 'firebase/firestore';
-import type { AuditPlan, Campus, User, Unit, AuditSchedule, ISOClause } from '@/lib/types';
+import type { AuditPlan, Campus, User, Unit, AuditSchedule, ISOClause, AuditFinding } from '@/lib/types';
 import { AuditPlanDialog } from './audit-plan-dialog';
 import { AuditScheduleDialog } from './audit-schedule-dialog';
 import { AuditPlanList } from './audit-plan-list';
+import { AuditAnalytics } from './audit-analytics';
 import { seedIsoClausesClient } from '@/lib/iso-seeder';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -24,17 +26,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
-/**
- * ADMIN AUDIT MANAGEMENT HUB
- * The primary workspace for establishing institutional audit frameworks.
- */
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+
 export function AdminAuditView() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [isPlanDialogOpen] = useState(false); // Placeholder for logic if needed, but I'll stick to provided state names
-  const [isPlanDialogOpenLocal, setIsPlanDialogOpen] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<AuditPlan | null>(null);
 
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
@@ -54,6 +57,9 @@ export function AdminAuditView() {
   const schedulesQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'auditSchedules')) : null), [firestore]);
   const { data: schedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(schedulesQuery);
   
+  const findingsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditFindings') : null), [firestore]);
+  const { data: findings, isLoading: isLoadingFindings } = useCollection<AuditFinding>(findingsQuery);
+
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
   
@@ -128,7 +134,7 @@ export function AdminAuditView() {
     } catch(error) {
          toast({
             title: 'Seeding Failed',
-            description: 'Please trigger the seeding again. Ensure you have an active internet connection.',
+            description: 'Please trigger the seeding again.',
             variant: 'destructive',
         });
     } finally {
@@ -136,80 +142,115 @@ export function AdminAuditView() {
     }
   }
   
-  const isLoading = isLoadingPlans || isLoadingCampuses || isLoadingUsers || isLoadingUnits || isLoadingSchedules || isLoadingClauses;
+  const isLoading = isLoadingPlans || isLoadingCampuses || isLoadingUsers || isLoadingUnits || isLoadingSchedules || isLoadingClauses || isLoadingFindings;
 
   return (
-    <>
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                <LayoutList className="h-6 w-6 text-primary" />
-                IQA Strategic Planning
-            </h2>
-            <p className="text-muted-foreground font-medium">Create institutional audit frameworks and manage unit-level schedules.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={handleNewPlan} disabled={isLoadingClauses && !isoClauses} className="shadow-lg shadow-primary/20">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Create New Audit Plan
-            </Button>
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+              <LayoutList className="h-6 w-6 text-primary" />
+              IQA Strategic Planning
+          </h2>
+          <p className="text-muted-foreground font-medium">Analyze results and manage the institutional audit itinerary.</p>
         </div>
-
-        {/* Database Readiness Alert */}
-        {!isLoadingClauses && (!isoClauses || isoClauses.length === 0) && (
-            <Alert className="border-amber-200 bg-amber-50">
-                <Database className="h-4 w-4 text-amber-600" />
-                <AlertTitle className="text-amber-800 font-bold">Standard Clauses Missing</AlertTitle>
-                <AlertDescription className="flex flex-col md:flex-row md:items-center justify-between gap-4 text-amber-700 mt-2">
-                    <span>The ISO 21001:2018 Clause database is empty. You must seed the standard clauses before auditors can map findings during conduct.</span>
-                    <Button variant="outline" size="sm" onClick={handleSeedClauses} disabled={isSeeding} className="bg-white">
-                        {isSeeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Database className="mr-2 h-4 w-4"/>}
-                        Seed Standard Clauses
-                    </Button>
-                </AlertDescription>
-            </Alert>
-        )}
-
-        <Card className="shadow-md border-primary/10">
-          <CardHeader className="bg-muted/30 border-b">
-            <CardTitle>University Internal Quality Audit (IQA) Registry</CardTitle>
-            <CardDescription>Browse existing plans and manage the lifecycle of scheduled audits.</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            {isLoading ? (
-                <div className="flex flex-col justify-center items-center h-64 gap-2">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Synchronizing Registry...</p>
-                </div>
-            ) : (
-                <AuditPlanList 
-                    plans={auditPlans || []}
-                    schedules={schedules || []}
-                    campuses={campuses || []}
-                    users={users || []}
-                    units={units || []}
-                    onEditPlan={handleEditPlan}
-                    onDeletePlan={setDeletingPlan}
-                    onScheduleAudit={handleScheduleAudit}
-                    onEditSchedule={handleEditSchedule}
-                    onDeleteSchedule={setDeletingSchedule}
-                />
-            )}
-          </CardContent>
-        </Card>
+        <div className="flex items-center gap-3">
+            <div className="flex flex-col items-end">
+                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 flex items-center gap-1">
+                    <Filter className="h-2.5 w-2.5" /> Audit Cycle Year
+                </label>
+                <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                    <SelectTrigger className="w-[140px] h-9 bg-white font-bold shadow-sm">
+                        <SelectValue placeholder="Year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {years.map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+            <Button onClick={handleNewPlan} disabled={isLoadingClauses && !isoClauses} className="h-9 mt-5 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                New Audit Plan
+            </Button>
+        </div>
       </div>
 
-      {isPlanDialogOpenLocal && (
-        <AuditPlanDialog
-          isOpen={isPlanDialogOpenLocal}
-          onOpenChange={setIsPlanDialogOpen}
-          plan={editingPlan}
-          campuses={campuses || []}
-        />
+      {!isLoadingClauses && (!isoClauses || isoClauses.length === 0) && (
+          <Alert className="border-amber-200 bg-amber-50">
+              <Database className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-800 font-bold">Standard Clauses Missing</AlertTitle>
+              <AlertDescription className="flex flex-col md:flex-row md:items-center justify-between gap-4 text-amber-700 mt-2">
+                  <span>The ISO 21001:2018 Clause database is empty. This is required for auditing.</span>
+                  <Button variant="outline" size="sm" onClick={handleSeedClauses} disabled={isSeeding} className="bg-white">
+                      {isSeeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Database className="mr-2 h-4 w-4"/>}
+                      Seed Clauses
+                  </Button>
+              </AlertDescription>
+          </Alert>
       )}
 
+      <Tabs defaultValue="analytics" className="space-y-6">
+        <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
+            <TabsTrigger value="analytics" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                <BarChart3 className="h-3.5 w-3.5" /> Audit Intelligence
+            </TabsTrigger>
+            <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                <ListChecks className="h-3.5 w-3.5" /> Itinerary Management
+            </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="analytics" className="animate-in fade-in duration-500">
+            <AuditAnalytics 
+                plans={auditPlans || []}
+                schedules={schedules || []}
+                findings={findings || []}
+                isoClauses={isoClauses || []}
+                units={units || []}
+                campuses={campuses || []}
+                isLoading={isLoading}
+                selectedYear={selectedYear}
+            />
+        </TabsContent>
+
+        <TabsContent value="registry" className="animate-in fade-in duration-500">
+            <Card className="shadow-md border-primary/10 overflow-hidden">
+                <CardHeader className="bg-muted/30 border-b py-4">
+                    <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-black uppercase tracking-widest">University Internal Quality Audit (IQA) Registry</CardTitle>
+                        <Badge variant="outline" className="h-5 text-[10px] font-black bg-white uppercase">AY {selectedYear} Session Log</Badge>
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                    {isLoading ? (
+                        <div className="flex flex-col justify-center items-center h-64 gap-2">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Synchronizing Registry...</p>
+                        </div>
+                    ) : (
+                        <AuditPlanList 
+                            plans={auditPlans?.filter(p => p.year === selectedYear) || []}
+                            schedules={schedules?.filter(s => {
+                                const plan = auditPlans?.find(p => p.id === s.auditPlanId);
+                                return plan?.year === selectedYear;
+                            }) || []}
+                            campuses={campuses || []}
+                            users={users || []}
+                            units={units || []}
+                            onEditPlan={handleEditPlan}
+                            onDeletePlan={setDeletingPlan}
+                            onScheduleAudit={handleScheduleAudit}
+                            onEditSchedule={handleEditSchedule}
+                            onDeleteSchedule={setDeletingSchedule}
+                        />
+                    )}
+                </CardContent>
+            </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialogs */}
+      <AuditPlanDialog isOpen={isPlanDialogOpen} onOpenChange={setIsPlanDialogOpen} plan={editingPlan} campuses={campuses || []} />
+      
       {isScheduleDialogOpen && selectedPlanForScheduling && (
         <AuditScheduleDialog
             isOpen={isScheduleDialogOpen}
@@ -229,7 +270,6 @@ export function AdminAuditView() {
                 <AlertDialogTitle>Remove Audit Plan?</AlertDialogTitle>
                 <AlertDialogDescription>
                     This will permanently delete the institutional plan <strong>"{deletingPlan?.title}"</strong>. 
-                    Warning: This action will not automatically delete the itinerary entries (schedules) but will leave them without a parent plan.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -248,8 +288,7 @@ export function AdminAuditView() {
             <AlertDialogHeader>
                 <AlertDialogTitle>Delete Itinerary Entry?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    You are about to delete the audit session for <strong>{deletingSchedule?.targetName}</strong> scheduled on {deletingSchedule?.scheduledDate?.toDate?.() ? format(deletingSchedule.scheduledDate.toDate(), 'MM/dd/yyyy') : '...'}. 
-                    This action cannot be undone.
+                    You are about to delete the audit session for <strong>{deletingSchedule?.targetName}</strong>.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -261,6 +300,6 @@ export function AdminAuditView() {
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }
