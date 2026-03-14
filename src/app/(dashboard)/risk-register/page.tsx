@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -445,7 +444,7 @@ export default function RiskRegisterPage() {
       )}
 
       <Tabs defaultValue="visual-insights" className="space-y-4">
-        <TabsList className="bg-muted/50 p-1 border">
+        <TabsList className="bg-muted/50 p-1 border animate-tab-highlight rounded-md">
             <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
                 <BarChart3 className="h-4 w-4" /> Visual Insights
             </TabsTrigger>
@@ -465,7 +464,7 @@ export default function RiskRegisterPage() {
         <TabsContent value="detailed-register" className="animate-in fade-in duration-500">
             <Tabs defaultValue="risks" className="space-y-4">
                 <div className="flex items-center justify-between">
-                    <TabsList className="bg-muted/30 p-1 border shadow-sm h-9">
+                    <TabsList className="bg-muted/30 p-1 border shadow-sm h-9 animate-tab-highlight rounded-md">
                         <TabsTrigger value="risks" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-7 data-[state=active]:bg-white data-[state=active]:text-destructive">
                             <Shield className="h-3.5 w-3.5" /> Risks
                         </TabsTrigger>

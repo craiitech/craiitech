@@ -353,7 +353,7 @@ export default function AcademicProgramsPage() {
       </Card>
 
       <Tabs defaultValue="analytics" className="space-y-6">
-        <TabsList className="bg-muted p-1 border shadow-sm">
+        <TabsList className="bg-muted p-1 border shadow-sm animate-tab-highlight rounded-md">
             <TabsTrigger value="analytics" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
                 <BarChart3 className="h-4 w-4" /> Decision Support
             </TabsTrigger>
@@ -498,7 +498,7 @@ export default function AcademicProgramsPage() {
 
             <Tabs defaultValue="active" className="space-y-4">
                 <div className="flex items-center justify-between">
-                    <TabsList className="bg-muted/50 p-1 border shadow-sm h-9">
+                    <TabsList className="bg-muted/50 p-1 border shadow-sm h-9 animate-tab-highlight rounded-md">
                         <TabsTrigger value="active" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-7 data-[state=active]:bg-white">
                             <ShieldCheck className="h-3 w-3" /> Active Offerings ({summaryStats.activeCount})
                         </TabsTrigger>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -56,7 +55,7 @@ export default function SettingsPage() {
           </p>
         </div>
         <Tabs defaultValue="users" className="space-y-4">
-          <TabsList className="grid h-auto w-full grid-cols-2 md:inline-flex md:h-10 md:w-auto">
+          <TabsList className="grid h-auto w-full grid-cols-2 md:inline-flex md:h-10 md:w-auto animate-tab-highlight rounded-md p-1 bg-muted">
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="signatories">Signatories</TabsTrigger>
             <TabsTrigger value="gad">GAD Corner</TabsTrigger>

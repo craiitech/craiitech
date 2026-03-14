@@ -36,7 +36,6 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -375,7 +374,7 @@ export default function SubmissionsPage() {
         </Card>
 
         <Tabs defaultValue="visual-insights" className="space-y-4">
-            <TabsList className="bg-muted/50 p-1 border">
+            <TabsList className="bg-muted/50 p-1 border animate-tab-highlight rounded-md">
                 <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
                     <BarChart3 className="h-4 w-4" /> Visual Insights
                 </TabsTrigger>
@@ -399,7 +398,7 @@ export default function SubmissionsPage() {
             <TabsContent value="all-submissions" className="animate-in fade-in duration-500 space-y-4">
                 <Tabs value={activeDetailedTab} onValueChange={setActiveDetailedTab} className="w-full">
                     <ScrollArea className="w-full">
-                        <TabsList className="bg-muted/30 p-1 border h-auto flex whitespace-nowrap">
+                        <TabsList className="bg-muted/30 p-1 border h-auto flex whitespace-nowrap animate-tab-highlight rounded-md">
                             <TabsTrigger value="all" className="text-[9px] font-black uppercase px-4 py-2">All Documents</TabsTrigger>
                             {submissionTypes.map((type) => (
                                 <TabsTrigger 
@@ -524,7 +523,7 @@ export default function SubmissionsPage() {
                                                                     "capitalize font-black text-[9px] px-2 py-0.5 shadow-sm border-none",
                                                                     sub.statusId === 'approved' && "bg-emerald-600 text-white",
                                                                     sub.statusId === 'rejected' && "bg-rose-600 text-white",
-                                                                    sub.statusId === 'submitted' && "bg-amber-500 text-amber-950",
+                                                                    sub.statusId === 'submitted' && "bg-amber-50 text-amber-950",
                                                                     sub.statusId === 'pending' && "bg-slate-50 text-white"
                                                                 )}
                                                             >

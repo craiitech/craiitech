@@ -571,7 +571,7 @@ export default function HomePage() {
     const currentUnit = allUnits?.find(u => u.id === userProfile?.unitId);
     return (
     <Tabs defaultValue="overview" className="space-y-4">
-      <TabsList className="grid grid-cols-2 md:inline-flex md:h-10 md:w-auto h-auto">
+      <TabsList className="grid grid-cols-2 md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted">
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="actions">Submission Checklist</TabsTrigger>
         <TabsTrigger value="history">History</TabsTrigger>
@@ -650,7 +650,7 @@ export default function HomePage() {
           <CardHeader><CardTitle>Verified Documentation Checklist</CardTitle><CardDescription>Only <strong>Approved</strong> documents contribute to your unit's compliance progress for {selectedYear}.</CardDescription></CardHeader>
           <CardContent>
               <Tabs defaultValue="first-cycle" className="space-y-4">
-                 <TabsList><TabsTrigger value="first-cycle">First Cycle</TabsTrigger><TabsTrigger value="final-cycle">Final Cycle</TabsTrigger></TabsList>
+                 <TabsList className="animate-tab-highlight rounded-md p-1 bg-muted"><TabsTrigger value="first-cycle">First Cycle</TabsTrigger><TabsTrigger value="final-cycle">Final Cycle</TabsTrigger></TabsList>
                 <TabsContent value="first-cycle">{renderSubmissionChecklist('first', firstCycleStatusMap)}</TabsContent>
                 <TabsContent value="final-cycle">{renderSubmissionChecklist('final', finalCycleStatusMap)}</TabsContent>
               </Tabs>
@@ -734,7 +734,7 @@ export default function HomePage() {
 
   const renderSupervisorHome = () => (
     <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid grid-cols-2 lg:inline-flex lg:h-10 lg:w-auto h-auto">
+        <TabsList className="grid grid-cols-2 lg:inline-flex lg:h-10 lg:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted">
             <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
             <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
             <TabsTrigger value="users"><User className="mr-2 h-4 w-4" />Users</TabsTrigger>
@@ -813,7 +813,7 @@ export default function HomePage() {
 
   const renderAdminHome = () => (
     <Tabs defaultValue="overview" className="space-y-4">
-      <TabsList className="grid grid-cols-3 md:inline-flex md:h-10 md:w-auto h-auto">
+      <TabsList className="grid grid-cols-3 md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted">
         <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
         <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
         <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>

@@ -378,7 +378,7 @@ export default function MonitoringPage() {
             </Card>
         ) : (
             <Tabs defaultValue="performance" className="space-y-4">
-                <TabsList className="bg-muted p-1 border shadow-sm w-full md:w-auto h-auto grid grid-cols-2 md:inline-flex">
+                <TabsList className="bg-muted p-1 border shadow-sm w-full md:w-auto h-auto grid grid-cols-2 md:inline-flex animate-tab-highlight rounded-md">
                     <TabsTrigger value="performance" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
                         <LayoutDashboard className="h-4 w-4" /> Performance
                     </TabsTrigger>

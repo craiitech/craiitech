@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -76,7 +75,7 @@ export default function SoftwareQualityDashboardPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-white border shadow-sm">
+          <TabsList className="bg-white border shadow-sm animate-tab-highlight rounded-md">
               <TabsTrigger value="audit" className="gap-2 px-6">
                   <BarChart3 className="h-4 w-4" /> Quality Profile
               </TabsTrigger>

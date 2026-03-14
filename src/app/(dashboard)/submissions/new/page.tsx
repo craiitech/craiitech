@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -384,41 +383,43 @@ export default function NewSubmissionPage() {
                 ) : isCycleSelected ? (
                     <ScrollArea className="h-[400px] pr-2">
                         <div className="space-y-2">
-                            {submissionTypes.map((reportType) => {
-                            const submission = submissionStatusMap.get(reportType);
-                            const isActionPlan = reportType === 'Risk and Opportunity Action Plan';
-                            const registryFormSubmission = submissionStatusMap.get('Risk and Opportunity Registry');
-                            const isActionPlanNA = isActionPlan && registryFormSubmission?.riskRating === 'low';
-                            const isSelected = selectedReport === reportType;
-                            return (
-                                <div
-                                    key={reportType}
-                                    role="button"
-                                    aria-disabled={isActionPlanNA}
-                                    onClick={() => handleSelectReport(reportType)}
-                                    className={cn(
-                                        "flex w-full items-center justify-between p-3 text-left rounded-lg border transition-colors",
-                                        isSelected ? "bg-muted ring-2 ring-primary" : "hover:bg-muted/50",
-                                        isActionPlanNA ? "cursor-not-allowed opacity-50 bg-muted/30" : "cursor-pointer"
-                                    )}
-                                >
-                                    <div className="flex flex-1 items-center gap-3">
-                                        {getIconForStatus(isActionPlanNA ? 'n/a' : submission?.statusId)}
-                                        <span className="font-medium text-xs flex-1">{reportType}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {isActionPlanNA ? (
-                                            <Badge variant="secondary" className="text-[9px]">N/A</Badge>
-                                        ) : submission && (
-                                            <Badge variant={statusVariant[submission.statusId]} className="capitalize text-[9px]">
-                                                {getStatusText(submission.statusId)}
-                                            </Badge>
+                            <TabsList className="flex flex-col w-full h-auto bg-transparent gap-2 animate-tab-highlight rounded-xl p-1">
+                                {submissionTypes.map((reportType) => {
+                                const submission = submissionStatusMap.get(reportType);
+                                const isActionPlan = reportType === 'Risk and Opportunity Action Plan';
+                                const registryFormSubmission = submissionStatusMap.get('Risk and Opportunity Registry');
+                                const isActionPlanNA = isActionPlan && registryFormSubmission?.riskRating === 'low';
+                                const isSelected = selectedReport === reportType;
+                                return (
+                                    <div
+                                        key={reportType}
+                                        role="button"
+                                        aria-disabled={isActionPlanNA}
+                                        onClick={() => handleSelectReport(reportType)}
+                                        className={cn(
+                                            "flex w-full items-center justify-between p-3 text-left rounded-lg border transition-colors",
+                                            isSelected ? "bg-muted ring-2 ring-primary" : "hover:bg-muted/50 bg-white",
+                                            isActionPlanNA ? "cursor-not-allowed opacity-50 bg-muted/30" : "cursor-pointer"
                                         )}
-                                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                    >
+                                        <div className="flex flex-1 items-center gap-3">
+                                            {getIconForStatus(isActionPlanNA ? 'n/a' : submission?.statusId)}
+                                            <span className="font-medium text-xs flex-1">{reportType}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {isActionPlanNA ? (
+                                                <Badge variant="secondary" className="text-[9px]">N/A</Badge>
+                                            ) : submission && (
+                                                <Badge variant={statusVariant[submission.statusId]} className="capitalize text-[9px]">
+                                                    {getStatusText(submission.statusId)}
+                                                </Badge>
+                                            )}
+                                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                            })}
+                                );
+                                })}
+                            </TabsList>
                         </div>
                     </ScrollArea>
                 ) : (

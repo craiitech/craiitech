@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -51,7 +50,7 @@ export default function QaReportsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-white border shadow-sm grid grid-cols-2 md:grid-cols-6 h-auto p-1">
+        <TabsList className="bg-white border shadow-sm grid grid-cols-2 md:grid-cols-6 h-auto p-1 animate-tab-highlight rounded-md">
           <TabsTrigger value="overview" className="gap-2 px-4 py-2 font-bold uppercase text-[10px]">
             <BarChart3 className="h-3.5 w-3.5" /> Overview
           </TabsTrigger>
