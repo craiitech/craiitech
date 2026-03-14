@@ -14,53 +14,73 @@ service cloud.firestore {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches('(?i).*admin.*'))
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '').matches('(?i).*admin.*'))
       );
     }
 
     function isAuditor() {
       return isSignedIn() && 
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches('(?i).*auditor.*');
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '').matches('(?i).*auditor.*');
     }
 
     function isSupervisor() {
       return isSignedIn() && 
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.matches('(?i)^(Campus Director|Campus ODIMO|Admin|Vice President.*|Director.*)$');
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '').matches('(?i)^(Campus Director|Campus ODIMO|Admin|Vice President.*|Director.*)$');
     }
 
     // --------------------------------------------------------------------------
-    // TOP PRIORITY: IQA & COMPLIANCE ACCESS
+    // IQA & INSTITUTIONAL REGISTRIES (TOP PRIORITY)
     // --------------------------------------------------------------------------
     
     match /auditPlans/{planId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isAdmin();
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
 
     match /auditSchedules/{scheduleId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create, update, delete: if isAdmin() || isAuditor();
     }
 
     match /auditFindings/{findingId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create, update, delete: if isAdmin() || isAuditor();
     }
 
     match /isoClauses/{clauseId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isAdmin();
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /campuses/{id} { 
+      allow read: if isSignedIn(); 
+      allow write: if isAdmin(); 
+    }
+
+    match /units/{id} { 
+      allow read: if isSignedIn(); 
+      allow write: if isAdmin(); 
     }
 
     // --------------------------------------------------------------------------
-    // SYSTEM CONFIGURATION
+    // SYSTEM CONFIGURATION & AUTHORITY
     // --------------------------------------------------------------------------
     
     match /system/{docId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
+    }
+
+    match /roles_admin/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /roles/{id} { 
+      allow read: if isSignedIn(); 
+      allow write: if isAdmin(); 
     }
 
     // --------------------------------------------------------------------------
@@ -79,23 +99,7 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // UNIT FORMS & WORKFLOW
-    // --------------------------------------------------------------------------
-    
-    match /unitFormRequests/{requestId} { 
-      allow read, write: if isSignedIn();
-    }
-
-    match /unitForms/{formId} { 
-      allow read, write: if isSignedIn();
-    }
-
-    match /formDownloadLogs/{logId} {
-      allow read, write: if isSignedIn();
-    }
-
-    // --------------------------------------------------------------------------
-    // CORE COLLECTIONS
+    // CORE WORKFLOW COLLECTIONS
     // --------------------------------------------------------------------------
     
     match /users/{userId} {
@@ -103,11 +107,6 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
       allow delete: if isAdmin();
-    }
-    
-    match /roles_admin/{userId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
     }
 
     match /submissions/{id} { 
@@ -166,12 +165,9 @@ service cloud.firestore {
       allow write: if isAdmin() || isAuditor();
     }
 
-    match /campuses/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /units/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /roles/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /cycles/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /procedureManuals/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /eomsPolicyManuals/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /cycles/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
 
     match /activityLogs/{logId} {
       allow read: if isAdmin();
