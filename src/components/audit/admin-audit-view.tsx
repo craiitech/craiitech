@@ -3,8 +3,10 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { PlusCircle, Loader2, Database, LayoutList, BarChart3, ListChecks, Filter } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, doc, deleteDoc } from 'firebase/firestore';
 import type { AuditPlan, Campus, User, Unit, AuditSchedule, ISOClause, AuditFinding } from '@/lib/types';
 import { AuditPlanDialog } from './audit-plan-dialog';
@@ -27,7 +29,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 
 const currentYear = new Date().getFullYear();
 const yearsList = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -37,7 +38,6 @@ export function AdminAuditView() {
   const { toast } = useToast();
   
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
-  const [isPlanDialogOpen] = useState(false); // Controlled via PlanList callbacks
   const [editingPlan, setEditingPlan] = useState<AuditPlan | null>(null);
   const [isPlanDialogOpenState, setIsPlanDialogOpenState] = useState(false);
 
