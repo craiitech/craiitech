@@ -63,11 +63,8 @@ export default function AuditExecutionPage() {
   );
   const { data: schedule, isLoading: isLoadingSchedule } = useDoc<AuditSchedule>(scheduleDocRef);
 
-  const planRef = useMemoFirebase(
-    () => (firestore && schedule?.auditPlanId ? doc(firestore, 'auditPlans', schedule.auditPlanId) : null),
-    [firestore, schedule?.auditPlanId]
-  );
-  const { data: plan } = useDoc<AuditPlan>(planRef);
+  // ELIMINATED: AuditPlan fetch to prevent permission errors for institutional users.
+  // The schedule now carries the denormalized auditNumber.
 
   const findingsQuery = useMemoFirebase(
     () => (firestore && scheduleId ? query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', scheduleId)) : null),
@@ -164,7 +161,6 @@ export default function AuditExecutionPage() {
                 schedule={schedule}
                 findings={findings}
                 clauses={clausesInScope}
-                plan={plan || undefined}
                 signatories={signatories || undefined}
             />
         );

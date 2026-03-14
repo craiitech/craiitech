@@ -197,6 +197,7 @@ export type AuditPlan = {
 export type AuditSchedule = {
     id: string;
     auditPlanId: string;
+    auditNumber?: string; // Denormalized for access without AuditPlan get
     auditorId: string | null;
     auditorName: string | null;
     targetId: string; // unitId or userId

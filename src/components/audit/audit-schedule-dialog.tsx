@@ -174,6 +174,7 @@ export function AuditScheduleDialog({
 
         const scheduleData = {
           auditPlanId: plan.id,
+          auditNumber: plan.auditNumber || '', // DENORMALIZED: Stores parent plan info
           targetId: values.targetId,
           targetType: 'Unit',
           targetName,

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { AuditSchedule, AuditFinding, ISOClause, AuditPlan, Signatories } from '@/lib/types';
+import type { AuditSchedule, AuditFinding, ISOClause, Signatories } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { clauseQuestions } from '@/lib/audit-questions';
@@ -12,11 +12,10 @@ interface AuditPrintTemplateProps {
   schedule: AuditSchedule;
   findings: AuditFinding[];
   clauses: ISOClause[];
-  plan?: AuditPlan;
   signatories?: Signatories;
 }
 
-export function AuditPrintTemplate({ schedule, findings, clauses, plan, signatories }: AuditPrintTemplateProps) {
+export function AuditPrintTemplate({ schedule, findings, clauses, signatories }: AuditPrintTemplateProps) {
   const conductDate = schedule.scheduledDate instanceof Timestamp 
     ? schedule.scheduledDate.toDate() 
     : new Date(schedule.scheduledDate);
@@ -54,7 +53,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, plan, signator
         </div>
         <div className="grid grid-cols-4">
             <div className="p-2 border-r border-black font-bold">
-                <span className="opacity-60 mr-2">AUDIT NO:</span> {plan?.auditNumber || '--'}
+                <span className="opacity-60 mr-2">AUDIT NO:</span> {schedule.auditNumber || '--'}
             </div>
             <div className="p-2 border-r border-black font-bold">
                 <span className="opacity-60 mr-2">AUDITOR:</span> {schedule.auditorName || 'TBA'}
