@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -26,11 +25,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+const yearsList = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
 export function AdminAuditView() {
   const firestore = useFirestore();
@@ -164,7 +164,7 @@ export function AdminAuditView() {
                         <SelectValue placeholder="Year" />
                     </SelectTrigger>
                     <SelectContent>
-                        {years.map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
+                        {yearsList.map(y => <SelectItem key={y} value={String(y)}>AY {y}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>
