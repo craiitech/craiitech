@@ -94,14 +94,19 @@ export default function LogoutPage() {
         // Attempt direct upload simulation if link exists
         if (backupSettings?.targetDriveLink) {
             setBackupStatus('Synchronizing to Institutional Vault...');
-            // Convert workbook to base64 for server action
-            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
-            const uploadResult = await uploadBackupToDrive(wbout, fileName, backupSettings.targetDriveLink);
-            
-            if (uploadResult.success) {
-                toast({ title: 'Repository Updated', description: 'Institutional snapshot synchronized successfully.' });
-            } else {
-                toast({ title: 'Cloud Sync Failed', description: 'Could not reach the repository. Local copy will still download.', variant: 'destructive' });
+            try {
+                // Convert workbook to base64 for server action
+                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+                const uploadResult = await uploadBackupToDrive(wbout, fileName, backupSettings.targetDriveLink);
+                
+                if (uploadResult.success) {
+                    toast({ title: 'Repository Updated', description: 'Institutional snapshot synchronized successfully.' });
+                } else {
+                    toast({ title: 'Cloud Sync Failed', description: 'Could not reach the repository. Local copy will still download.', variant: 'destructive' });
+                }
+            } catch (syncError) {
+                console.error("Cloud sync failed:", syncError);
+                toast({ title: 'Sync Error', description: 'File exceeds server limit or network failed. Local copy will download.', variant: 'destructive' });
             }
         }
 
@@ -112,7 +117,7 @@ export default function LogoutPage() {
         setView('feedback');
     } catch (e) {
         console.error("Backup failed", e);
-        toast({ title: 'Backup Error', variant: 'destructive' });
+        toast({ title: 'Backup Error', description: 'Could not generate the institutional snapshot.', variant: 'destructive' });
         setView('feedback'); // Move to feedback even if backup fails to let user logout
     } finally {
         setIsBackingUp(false);
