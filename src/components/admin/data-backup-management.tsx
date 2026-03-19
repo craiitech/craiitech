@@ -29,7 +29,7 @@ export function DataBackupManagement() {
 
   // Fetch Current Backup Settings
   const backupSettingsRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'system', 'backupSettings') : null),
+    () => (firestore && doc(firestore, 'system', 'backupSettings')),
     [firestore]
   );
   const { data: settings, isLoading: isLoadingSettings } = useDoc<BackupSettings>(backupSettingsRef);
@@ -159,9 +159,12 @@ export function DataBackupManagement() {
                 </div>
                 <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex gap-3">
                     <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-blue-800 leading-relaxed font-medium italic">
-                        <strong>Workflow:</strong> When an Admin logs out, the system will prompt for a backup. If confirmed, the system aggregates all data into an Excel file and prepares it for synchronization to this repository.
-                    </p>
+                    <div className="space-y-1">
+                        <p className="text-xs font-black uppercase text-blue-800">Direct Upload Note</p>
+                        <p className="text-[11px] text-blue-800 leading-relaxed font-medium italic">
+                            <strong>Technical Requirement:</strong> For background synchronization to work automatically, the university's Google Workspace must have a <strong>Service Account</strong> configured with write access to the target folder. Currently, the system will simulate the upload and trigger a download as a fail-safe.
+                        </p>
+                    </div>
                 </div>
             </div>
         </CardContent>

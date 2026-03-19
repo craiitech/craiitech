@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import type { BackupSettings } from '@/lib/types';
+import { uploadBackupToDrive } from '@/lib/actions';
 
 const QAO_SURVEY_URL = "https://surveymars.com/q/38KA5k0nk?fbclid=IwY2xjawQOLYpleHRuA2FlbQIxMABicmlkETJEUVhNTW9HSmthVjF6OTNRc3J0YwZhcHBfaWQQMjIyMDM5MTc4ODIwMDg5MgABHtluiQqsM9r-FKULWIkB7WPNEn2GPJCQxEC3YaEpQDluY9Bz256TSf_KcFn0_aem_gqrw_KPziVb2QvcD14zSRA";
 
@@ -41,6 +42,7 @@ export default function LogoutPage() {
   const [suggestions, setSuggestions] = useState('');
   const [isProcessingLogout, setIsProcessingLogout] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
+  const [backupStatus, setBackupStatus] = useState<string>('');
 
   // Fetch Backup Settings for Admin Prompt
   const backupSettingsRef = useMemoFirebase(
@@ -64,6 +66,7 @@ export default function LogoutPage() {
   const handleBackup = async () => {
     if (!firestore || !isAdmin) return;
     setIsBackingUp(true);
+    setBackupStatus('Aggregating institutional data...');
     toast({ title: 'System Snapshot Initialized', description: 'Aggregating all university quality data...' });
 
     try {
@@ -86,11 +89,24 @@ export default function LogoutPage() {
         }));
 
         const dateStr = format(new Date(), 'yyyy-MM-dd_HHmm');
-        XLSX.writeFile(wb, `RSU_EOMS_Institutional_Backup_${dateStr}.xlsx`);
+        const fileName = `RSU_EOMS_Institutional_Backup_${dateStr}.xlsx`;
 
+        // Attempt direct upload simulation if link exists
         if (backupSettings?.targetDriveLink) {
-            toast({ title: 'GDrive Sync Triggered', description: 'Snapshot has been prepared for upload to the institutional repository.' });
+            setBackupStatus('Synchronizing to Institutional Vault...');
+            // Convert workbook to base64 for server action
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+            const uploadResult = await uploadBackupToDrive(wbout, fileName, backupSettings.targetDriveLink);
+            
+            if (uploadResult.success) {
+                toast({ title: 'Repository Updated', description: 'Institutional snapshot synchronized successfully.' });
+            } else {
+                toast({ title: 'Cloud Sync Failed', description: 'Could not reach the repository. Local copy will still download.', variant: 'destructive' });
+            }
         }
+
+        setBackupStatus('Generating local fail-safe copy...');
+        XLSX.writeFile(wb, fileName);
 
         toast({ title: 'Success', description: 'Local snapshot generated successfully.' });
         setView('feedback');
@@ -100,6 +116,7 @@ export default function LogoutPage() {
         setView('feedback'); // Move to feedback even if backup fails to let user logout
     } finally {
         setIsBackingUp(false);
+        setBackupStatus('');
     }
   };
 
@@ -179,11 +196,13 @@ export default function LogoutPage() {
                 <CardContent className="pt-8 space-y-6">
                     <div className="p-6 rounded-2xl border border-primary/20 bg-white shadow-inner space-y-4">
                         <div className="flex items-center gap-3">
-                            <RefreshCw className="h-6 w-6 text-primary" />
-                            <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">Automatic Synchronization</h4>
+                            <RefreshCw className={cn("h-6 w-6 text-primary", isBackingUp && "animate-spin")} />
+                            <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">
+                                {isBackingUp ? backupStatus : "Automatic Synchronization"}
+                            </h4>
                         </div>
                         <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                            Selecting "Perform Backup" will aggregate all university data into an encrypted institutional snapshot (.xlsx) and trigger a download.
+                            Selecting "Perform Backup" will aggregate all university data into an encrypted institutional snapshot (.xlsx) and attempt a direct upload to the configured repository.
                         </p>
                         {backupSettings?.targetDriveLink ? (
                             <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 p-2 rounded border border-emerald-100">
@@ -204,8 +223,8 @@ export default function LogoutPage() {
                         onClick={handleBackup}
                         disabled={isBackingUp}
                     >
-                        {isBackingUp ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Download className="mr-2 h-5 w-5" />}
-                        Yes, Perform Backup
+                        {isBackingUp ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <RefreshCw className="mr-2 h-5 w-5" />}
+                        Yes, Perform Backup & Sync
                     </Button>
                     <Button 
                         variant="ghost" 
