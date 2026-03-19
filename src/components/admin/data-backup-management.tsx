@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,16 +7,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Database, FileSpreadsheet, Loader2, ShieldCheck, History, Info, Link as LinkIcon, Save, RefreshCw } from 'lucide-react';
+import { Database, FileSpreadsheet, Loader2, ShieldCheck, History, Info, Link as LinkIcon, Save, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import type { BackupSettings } from '@/lib/types';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 /**
  * DATA BACKUP MANAGEMENT COMPONENT
- * Implements Phase 1 of the redundancy plan: Manual Institutional Data Export.
- * Only accessible to Administrators via System Settings.
+ * Manages institutional data redundancy and cloud synchronization targets.
  */
 export function DataBackupManagement() {
   const firestore = useFirestore();
@@ -57,15 +56,12 @@ export function DataBackupManagement() {
     }
   };
 
-  // Utility to fetch all documents from a collection and flatten timestamps
   const exportCollection = async (collectionName: string) => {
     if (!firestore) return [];
     const snapshot = await getDocs(collection(firestore, collectionName));
     return snapshot.docs.map(doc => {
         const data = doc.data();
         const processed: Record<string, any> = { id: doc.id };
-        
-        // Flatten simple data and convert Timestamps to ISO strings for Excel compatibility
         for (const [key, value] of Object.entries(data)) {
             if (value instanceof Timestamp) {
                 processed[key] = value.toDate().toISOString();
@@ -84,10 +80,9 @@ export function DataBackupManagement() {
     setIsExporting(true);
     
     try {
-      toast({ title: 'Backup Initialized', description: 'Aggregating institutional data from Firestore...' });
+      toast({ title: 'Backup Initialized', description: 'Aggregating institutional data...' });
 
-      // Parallel fetching for speed
-      const [submissions, risks, users, units, campuses, programs, compliances] = await Promise.all([
+      const datasets = await Promise.all([
         exportCollection('submissions'),
         exportCollection('risks'),
         exportCollection('users'),
@@ -98,23 +93,19 @@ export function DataBackupManagement() {
       ]);
 
       const wb = XLSX.utils.book_new();
-
-      // Append core datasets as separate sheets
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(submissions), 'Submissions');
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(risks), 'Risks');
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(users), 'Users');
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(units), 'Units');
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(campuses), 'Campuses');
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(programs), 'Programs');
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(compliances), 'Compliance_Records');
+      const names = ['Submissions', 'Risks', 'Users', 'Units', 'Campuses', 'Programs', 'Compliance'];
+      
+      datasets.forEach((data, i) => {
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), names[i]);
+      });
 
       const dateStr = format(new Date(), 'yyyy-MM-dd_HHmm');
       XLSX.writeFile(wb, `RSU_EOMS_Institutional_Backup_${dateStr}.xlsx`);
 
-      toast({ title: 'Backup Complete', description: 'Institutional snapshot has been downloaded successfully.' });
+      toast({ title: 'Local Snapshot Ready', description: 'XLSX file generated and downloaded.' });
     } catch (error) {
       console.error('Backup Error:', error);
-      toast({ title: 'Backup Failed', description: 'An error occurred during data aggregation.', variant: 'destructive' });
+      toast({ title: 'Backup Failed', variant: 'destructive' });
     } finally {
       setIsExporting(false);
     }
@@ -124,28 +115,36 @@ export function DataBackupManagement() {
     <div className="space-y-6 animate-in fade-in duration-500">
       
       {/* Institutional Backup Target Configuration */}
-      <Card className="shadow-md border-primary/20 bg-primary/5">
+      <Card className="shadow-md border-primary/20 bg-primary/5 overflow-hidden">
         <CardHeader className="bg-primary/10 border-b py-4">
             <div className="flex items-center gap-2 mb-1">
                 <RefreshCw className="h-5 w-5 text-primary" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Automation Settings</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Automation Registry</span>
             </div>
             <CardTitle>Institutional Backup Repository</CardTitle>
             <CardDescription>Configure the target Google Drive link for automated institutional snapshots.</CardDescription>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 space-y-6">
             <div className="space-y-4">
+                <Alert variant="destructive" className="bg-white border-destructive/30">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle className="text-xs font-black uppercase tracking-tight">Configuration Prerequisite</AlertTitle>
+                    <AlertDescription className="text-[11px] leading-relaxed font-medium">
+                        <strong>Important:</strong> For "Direct Cloud Upload" to function, you must have a <strong>Google Service Account Key</strong> configured in the project environment variables. Without this key, the system will provide a local download only as a secure fail-safe.
+                    </AlertDescription>
+                </Alert>
+
                 <div className="space-y-2">
                     <Label className="text-xs font-black uppercase text-slate-700 flex items-center gap-2">
                         <LinkIcon className="h-3.5 w-3.5" />
-                        Target Google Drive Link (For Direct Upload)
+                        Target Google Drive Link (Root Backup Folder)
                     </Label>
                     <div className="flex gap-2">
                         <Input 
                             value={driveLink}
                             onChange={(e) => setDriveLink(e.target.value)}
                             placeholder="https://drive.google.com/..."
-                            className="bg-white font-bold h-11"
+                            className="bg-white font-bold h-11 border-primary/20"
                         />
                         <Button 
                             onClick={handleSaveSettings} 
@@ -157,15 +156,6 @@ export function DataBackupManagement() {
                         </Button>
                     </div>
                 </div>
-                <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex gap-3">
-                    <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                        <p className="text-xs font-black uppercase text-blue-800">Direct Upload Note</p>
-                        <p className="text-[11px] text-blue-800 leading-relaxed font-medium italic">
-                            <strong>Technical Requirement:</strong> For background synchronization to work automatically, the university's Google Workspace must have a <strong>Service Account</strong> configured with write access to the target folder. Currently, the system will simulate the upload and trigger a download as a fail-safe.
-                        </p>
-                    </div>
-                </div>
             </div>
         </CardContent>
       </Card>
@@ -175,11 +165,11 @@ export function DataBackupManagement() {
             <CardHeader className="bg-muted/30 border-b py-4">
             <div className="flex items-center gap-2 mb-1">
                 <Database className="h-5 w-5 text-primary" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Portable Data Redundancy</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Data Redundancy Protocol</span>
             </div>
             <CardTitle>Manual Snapshot (XLSX)</CardTitle>
             <CardDescription>
-                Generate a comprehensive Excel workbook containing all registered records across EOMS modules.
+                Generate a comprehensive multi-sheet Excel workbook of all university data.
             </CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
@@ -187,19 +177,19 @@ export function DataBackupManagement() {
                 <div className="p-4 rounded-xl bg-white border border-primary/10 shadow-sm space-y-3">
                     <h4 className="text-[10px] font-black uppercase text-slate-800 flex items-center gap-2">
                         <Info className="h-4 w-4 text-blue-600" />
-                        Encapsulated Datasets:
+                        Snapshotted Datasets:
                     </h4>
                     <ul className="grid grid-cols-2 gap-2 text-[9px] font-bold text-muted-foreground uppercase tracking-tight">
                         <li className="flex items-center gap-1.5"><ShieldCheck className="h-3 w-3 text-primary" /> Submissions</li>
-                        <li className="flex items-center gap-1.5"><ShieldCheck className="h-3 w-3 text-primary" /> Risk Register</li>
-                        <li className="flex items-center gap-1.5"><ShieldCheck className="h-3 w-3 text-primary" /> User Registry</li>
-                        <li className="flex items-center gap-1.5"><ShieldCheck className="h-3 w-3 text-primary" /> Campus Units</li>
-                        <li className="flex items-center gap-1.5"><ShieldCheck className="h-3 w-3 text-primary" /> Academic Programs</li>
+                        <li className="flex items-center gap-1.5"><ShieldCheck className="h-3 w-3 text-primary" /> Risks Registry</li>
+                        <li className="flex items-center gap-1.5"><ShieldCheck className="h-3 w-3 text-primary" /> Users & Roles</li>
+                        <li className="flex items-center gap-1.5"><ShieldCheck className="h-3 w-3 text-primary" /> Campus Sites</li>
+                        <li className="flex items-center gap-1.5"><ShieldCheck className="h-3 w-3 text-primary" /> Program Registry</li>
                         <li className="flex items-center gap-1.5"><ShieldCheck className="h-3 w-3 text-primary" /> Compliance Matrix</li>
                     </ul>
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-relaxed italic font-medium">
-                    This snapshot provides a point-in-time record of all university quality data. It can be used for local backups or as evidence during ISO certification audits.
+                    This provides a point-in-time record essential for ISO certification maintenance.
                 </p>
             </div>
             </CardContent>
@@ -219,15 +209,15 @@ export function DataBackupManagement() {
             <CardHeader className="bg-amber-50 border-b py-4">
             <div className="flex items-center gap-2 mb-1">
                 <History className="h-5 w-5 text-amber-600" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">Audit Compliance Requirement</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">Accountability Record</span>
             </div>
             <CardTitle>System Activity Logs</CardTitle>
-            <CardDescription>Export the permanent system audit trail for security and accountability reviews.</CardDescription>
+            <CardDescription>Export the permanent system audit trail for security reviews.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1">
                 <div className="p-4 rounded-xl bg-white/50 border border-amber-100 space-y-3 shadow-inner">
                     <p className="text-[11px] text-amber-800 leading-relaxed font-medium italic">
-                        The audit trail records every administrative interaction, login event, and status transition. Maintaining a portable copy of these logs is essential for institutional transparency and internal quality auditing (IQA).
+                        The audit trail records every login, document view, and status change. Maintaining a copy is required for internal quality audits (IQA).
                     </p>
                 </div>
             </CardContent>
@@ -243,7 +233,7 @@ export function DataBackupManagement() {
                             const wb = XLSX.utils.book_new();
                             XLSX.utils.book_append_sheet(wb, ws, 'Audit_Trail');
                             XLSX.writeFile(wb, `RSU_EOMS_Audit_Log_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
-                            toast({ title: 'Logs Exported', description: 'The permanent system audit trail has been saved locally.' });
+                            toast({ title: 'Logs Exported' });
                         } catch(e) {
                             toast({ title: 'Export Failed', variant: 'destructive' });
                         } finally {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -67,8 +66,7 @@ export default function LogoutPage() {
     if (!firestore || !isAdmin) return;
     setIsBackingUp(true);
     setBackupStatus('Aggregating institutional data...');
-    toast({ title: 'System Snapshot Initialized', description: 'Aggregating all university quality data...' });
-
+    
     try {
         const collections = ['submissions', 'risks', 'users', 'units', 'campuses', 'academicPrograms', 'programCompliances'];
         const wb = XLSX.utils.book_new();
@@ -91,34 +89,42 @@ export default function LogoutPage() {
         const dateStr = format(new Date(), 'yyyy-MM-dd_HHmm');
         const fileName = `RSU_EOMS_Institutional_Backup_${dateStr}.xlsx`;
 
-        // Attempt direct upload simulation if link exists
+        // 1. SYNC PHASE (Cloud)
         if (backupSettings?.targetDriveLink) {
             setBackupStatus('Synchronizing to Institutional Vault...');
             try {
-                // Convert workbook to base64 for server action
                 const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
-                const uploadResult = await uploadBackupToDrive(wbout, fileName, backupSettings.targetDriveLink);
+                const syncResult = await uploadBackupToDrive(wbout, fileName, backupSettings.targetDriveLink);
                 
-                if (uploadResult.success) {
-                    toast({ title: 'Repository Updated', description: 'Institutional snapshot synchronized successfully.' });
+                if (syncResult.success) {
+                    toast({ title: 'Cloud Sync Successful', description: 'Snapshot synchronized with the repository.' });
                 } else {
-                    toast({ title: 'Cloud Sync Failed', description: 'Could not reach the repository. Local copy will still download.', variant: 'destructive' });
+                    // Check if it's a configuration warning
+                    if (syncResult.isConfigurationError) {
+                        toast({ 
+                            title: 'Sync Warning', 
+                            description: 'Direct upload requires a Service Account Key. Please check settings. Local copy will download.', 
+                            variant: 'destructive' 
+                        });
+                    } else {
+                        toast({ title: 'Sync Error', description: 'Cloud repository unreachable. Falling back to local download.', variant: 'destructive' });
+                    }
                 }
             } catch (syncError) {
-                console.error("Cloud sync failed:", syncError);
-                toast({ title: 'Sync Error', description: 'File exceeds server limit or network failed. Local copy will download.', variant: 'destructive' });
+                console.error("Sync transit failed:", syncError);
             }
         }
 
+        // 2. DOWNLOAD PHASE (Fail-safe)
         setBackupStatus('Generating local fail-safe copy...');
         XLSX.writeFile(wb, fileName);
 
-        toast({ title: 'Success', description: 'Local snapshot generated successfully.' });
+        toast({ title: 'Backup Saved', description: 'Institutional snapshot generated successfully.' });
         setView('feedback');
     } catch (e) {
-        console.error("Backup failed", e);
-        toast({ title: 'Backup Error', description: 'Could not generate the institutional snapshot.', variant: 'destructive' });
-        setView('feedback'); // Move to feedback even if backup fails to let user logout
+        console.error("Backup process failed", e);
+        toast({ title: 'Backup Error', description: 'Critical error during data aggregation.', variant: 'destructive' });
+        setView('feedback');
     } finally {
         setIsBackingUp(false);
         setBackupStatus('');
@@ -128,14 +134,13 @@ export default function LogoutPage() {
   const handleFinalLogout = async (skipFeedback = false) => {
     if (!auth || !user) return;
     
-    // Trigger the mandatory QAO External Evaluation alert and link FIRST
+    // Trigger the mandatory QAO External Evaluation
     triggerExternalEvaluation();
     
     setIsProcessingLogout(true);
     setView('processing');
 
     try {
-      // 1. Save internal feedback if provided
       if (!skipFeedback && rating > 0 && firestore) {
         await addDoc(collection(firestore, 'appFeedbacks'), {
           userId: user.uid,
@@ -147,24 +152,14 @@ export default function LogoutPage() {
         });
       }
 
-      // 2. Perform the secure sign-out
       await signOut(auth);
       clearSessionLogs();
       
-      toast({
-        title: "Successfully Logged Out",
-        description: "You have been securely signed out of the portal.",
-      });
-      
-      // 3. Return to landing page
+      toast({ title: "Securely Signed Out" });
       router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
-      toast({
-        title: "Logout Error",
-        description: "There was an issue signing you out. Please try again.",
-        variant: 'destructive',
-      });
+      toast({ title: "Logout Error", variant: 'destructive' });
       setIsProcessingLogout(false);
       setView('feedback');
     }
@@ -185,7 +180,7 @@ export default function LogoutPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4 dark:bg-gray-900">
-      <Card className="w-full max-w-xl shadow-2xl animate-in fade-in zoom-in duration-300 border-primary/10">
+      <Card className="w-full max-w-xl shadow-2xl animate-in fade-in zoom-in duration-300 border-primary/10 overflow-hidden">
         
         {view === 'backup' && (
             <div className="animate-in fade-in slide-in-from-top-4 duration-500">
@@ -203,16 +198,16 @@ export default function LogoutPage() {
                         <div className="flex items-center gap-3">
                             <RefreshCw className={cn("h-6 w-6 text-primary", isBackingUp && "animate-spin")} />
                             <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">
-                                {isBackingUp ? backupStatus : "Automatic Synchronization"}
+                                {isBackingUp ? backupStatus : "Automated Redundancy Protocol"}
                             </h4>
                         </div>
                         <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                            Selecting "Perform Backup" will aggregate all university data into an encrypted institutional snapshot (.xlsx) and attempt a direct upload to the configured repository.
+                            Selecting "Perform Backup" will aggregate all university data into an encrypted institutional snapshot (.xlsx) and initiate synchronization to the configured repository.
                         </p>
                         {backupSettings?.targetDriveLink ? (
                             <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 p-2 rounded border border-emerald-100">
                                 <ShieldCheck className="h-3.5 w-3.5" />
-                                Target Repository Configured: Google Drive Sync Ready
+                                Sync Target Configured: {backupSettings.targetDriveLink.substring(0, 40)}...
                             </div>
                         ) : (
                             <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 bg-amber-50 p-2 rounded border border-amber-100">
