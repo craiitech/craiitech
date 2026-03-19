@@ -10,8 +10,8 @@ export const metadata: Metadata = {
   title: 'RSU EOMS Submission Portal',
   description: 'Romblon State University EOMS Submission Portal',
   icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon.ico',
+    icon: '/rsupage.png',
+    shortcut: '/rsupage.png',
     apple: '/rsupage.png',
   },
   manifest: '/manifest.json',
