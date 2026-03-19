@@ -137,6 +137,12 @@ export type GadSettings = {
     updatedBy?: string;
 }
 
+export type BackupSettings = {
+    targetDriveLink?: string;
+    lastConfiguredAt?: any;
+    lastConfiguredBy?: string;
+}
+
 export type ActivityLog = {
     id: string;
     userId: string;
