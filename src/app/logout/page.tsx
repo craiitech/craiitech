@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -12,7 +13,7 @@ import {
   CardTitle,
   CardFooter,
 } from '@/components/ui/card';
-import { Loader2, Star, Send, LogOut, MessageSquareText, MonitorCheck, Database, RefreshCw, ShieldCheck, Download, AlertTriangle } from 'lucide-react';
+import { Loader2, Star, Send, LogOut, MessageSquareText, MonitorCheck, Database, RefreshCw, ShieldCheck, Download, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { collection, addDoc, serverTimestamp, doc, getDocs, Timestamp } from 'firebase/firestore';
@@ -89,37 +90,17 @@ export default function LogoutPage() {
         const dateStr = format(new Date(), 'yyyy-MM-dd_HHmm');
         const fileName = `RSU_EOMS_Institutional_Backup_${dateStr}.xlsx`;
 
-        // 1. SYNC PHASE (Cloud)
+        // 1. OPEN TARGET REPOSITORY (New Workflow)
         if (backupSettings?.targetDriveLink) {
-            setBackupStatus('Synchronizing to Institutional Vault...');
-            try {
-                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
-                const syncResult = await uploadBackupToDrive(wbout, fileName, backupSettings.targetDriveLink);
-                
-                if (syncResult.success) {
-                    toast({ title: 'Cloud Sync Successful', description: 'Snapshot synchronized with the repository.' });
-                } else {
-                    // Check if it's a configuration warning
-                    if (syncResult.isConfigurationError) {
-                        toast({ 
-                            title: 'Sync Warning', 
-                            description: 'Direct upload requires a Service Account Key. Please check settings. Local copy will download.', 
-                            variant: 'destructive' 
-                        });
-                    } else {
-                        toast({ title: 'Sync Error', description: 'Cloud repository unreachable. Falling back to local download.', variant: 'destructive' });
-                    }
-                }
-            } catch (syncError) {
-                console.error("Sync transit failed:", syncError);
-            }
+            setBackupStatus('Opening Institutional Repository...');
+            window.open(backupSettings.targetDriveLink, '_blank');
         }
 
         // 2. DOWNLOAD PHASE (Fail-safe)
-        setBackupStatus('Generating local fail-safe copy...');
+        setBackupStatus('Generating institutional snapshot...');
         XLSX.writeFile(wb, fileName);
 
-        toast({ title: 'Backup Saved', description: 'Institutional snapshot generated successfully.' });
+        toast({ title: 'Backup Successful', description: 'Snapshot generated and repository opened.' });
         setView('feedback');
     } catch (e) {
         console.error("Backup process failed", e);
@@ -202,12 +183,12 @@ export default function LogoutPage() {
                             </h4>
                         </div>
                         <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                            Selecting "Perform Backup" will aggregate all university data into an encrypted institutional snapshot (.xlsx) and initiate synchronization to the configured repository.
+                            Selecting "Perform Backup" will generate a comprehensive institutional snapshot (.xlsx) for your records and automatically open the target Google Drive folder for upload.
                         </p>
                         {backupSettings?.targetDriveLink ? (
                             <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 p-2 rounded border border-emerald-100">
                                 <ShieldCheck className="h-3.5 w-3.5" />
-                                Sync Target Configured: {backupSettings.targetDriveLink.substring(0, 40)}...
+                                Repository Target: {backupSettings.targetDriveLink.substring(0, 40)}...
                             </div>
                         ) : (
                             <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 bg-amber-50 p-2 rounded border border-amber-100">
@@ -224,7 +205,7 @@ export default function LogoutPage() {
                         disabled={isBackingUp}
                     >
                         {isBackingUp ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <RefreshCw className="mr-2 h-5 w-5" />}
-                        Yes, Perform Backup & Sync
+                        Yes, Perform Backup
                     </Button>
                     <Button 
                         variant="ghost" 
@@ -355,3 +336,5 @@ export default function LogoutPage() {
     </div>
   );
 }
+
+    
