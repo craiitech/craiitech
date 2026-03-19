@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -10,9 +11,9 @@ export const metadata: Metadata = {
   title: 'RSU EOMS Submission Portal',
   description: 'Romblon State University EOMS Submission Portal',
   icons: {
-    icon: '/rsupage.png',
-    shortcut: '/rsupage.png',
-    apple: '/rsupage.png',
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
   },
   manifest: '/manifest.json',
 };
