@@ -69,10 +69,27 @@ export default function LogoutPage() {
     setBackupStatus('Aggregating institutional data...');
     
     try {
-        const collections = ['submissions', 'risks', 'users', 'units', 'campuses', 'academicPrograms', 'programCompliances'];
+        const collectionsToBackup = [
+            'submissions', 
+            'risks', 
+            'unitMonitoringRecords', 
+            'auditPlans', 
+            'auditSchedules', 
+            'auditFindings', 
+            'correctiveActionRequests', 
+            'managementReviewOutputs',
+            'academicPrograms', 
+            'programCompliances',
+            'users', 
+            'units', 
+            'campuses', 
+            'qaAdvisories', 
+            'procedureManuals', 
+            'eomsPolicyManuals'
+        ];
         const wb = XLSX.utils.book_new();
 
-        await Promise.all(collections.map(async (colName) => {
+        await Promise.all(collectionsToBackup.map(async (colName) => {
             const snap = await getDocs(collection(firestore, colName));
             const data = snap.docs.map(d => {
                 const docData = d.data();
@@ -88,7 +105,7 @@ export default function LogoutPage() {
         }));
 
         const dateStr = format(new Date(), 'yyyy-MM-dd_HHmm');
-        const fileName = `RSU_EOMS_Institutional_Backup_${dateStr}.xlsx`;
+        const fileName = `RSU_EOMS_Full_Institutional_Backup_${dateStr}.xlsx`;
 
         // 1. OPEN TARGET REPOSITORY
         if (backupSettings?.targetDriveLink) {
@@ -100,7 +117,7 @@ export default function LogoutPage() {
         setBackupStatus('Generating institutional snapshot...');
         XLSX.writeFile(wb, fileName);
 
-        toast({ title: 'Backup Successful', description: 'Snapshot generated and repository opened.' });
+        toast({ title: 'Backup Successful', description: 'Comprehensive snapshot generated and repository opened.' });
         setView('feedback');
     } catch (e) {
         console.error("Backup process failed", e);
@@ -171,7 +188,7 @@ export default function LogoutPage() {
                     </div>
                     <CardTitle className="text-2xl font-black uppercase tracking-tight">Institutional Continuity Gate</CardTitle>
                     <CardDescription className="text-sm">
-                        Administrator Access: Would you like to perform a system backup before ending your session?
+                        Administrator Access: Would you like to perform a full system backup before ending your session?
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-8 space-y-6">
@@ -179,11 +196,11 @@ export default function LogoutPage() {
                         <div className="flex items-center gap-3">
                             <RefreshCw className={cn("h-6 w-6 text-primary", isBackingUp && "animate-spin")} />
                             <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">
-                                {isBackingUp ? backupStatus : "Automated Redundancy Protocol"}
+                                {isBackingUp ? backupStatus : "Full Documentation Redundancy"}
                             </h4>
                         </div>
                         <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                            Selecting "Perform Backup" will generate a comprehensive institutional snapshot (.xlsx) for your records and automatically open the target Google Drive folder for upload.
+                            Selecting "Perform Backup" will generate a complete institutional snapshot (.xlsx) including all submitted documents, audits, and registries for all campuses and years.
                         </p>
                         {backupSettings?.targetDriveLink ? (
                             <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 p-2 rounded border border-emerald-100">
