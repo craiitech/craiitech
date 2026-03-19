@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -24,7 +23,6 @@ import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import type { BackupSettings } from '@/lib/types';
-import { uploadBackupToDrive } from '@/lib/actions';
 
 const QAO_SURVEY_URL = "https://surveymars.com/q/38KA5k0nk?fbclid=IwY2xjawQOLYpleHRuA2FlbQIxMABicmlkETJEUVhNTW9HSmthVjF6OTNRc3J0YwZhcHBfaWQQMjIyMDM5MTc4ODIwMDg5MgABHtluiQqsM9r-FKULWIkB7WPNEn2GPJCQxEC3YaEpQDluY9Bz256TSf_KcFn0_aem_gqrw_KPziVb2QvcD14zSRA";
 
@@ -36,6 +34,7 @@ export default function LogoutPage() {
   const { user, userProfile, firestore, isUserLoading, isAdmin } = useUser();
 
   const [view, setView] = useState<'backup' | 'feedback' | 'processing'>('feedback');
+  const [hasShownBackupPrompt, setHasShownBackupPrompt] = useState(false);
   const [rating, setRating] = useState<number>(0);
   const [hoveredRating, setHoveredRating] = useState<number>(0);
   const [comments, setComments] = useState('');
@@ -51,12 +50,13 @@ export default function LogoutPage() {
   );
   const { data: backupSettings } = useDoc<BackupSettings>(backupSettingsRef);
 
-  // If user is Admin, we show the backup view first
-  useMemo(() => {
-    if (isAdmin && view === 'feedback' && !isProcessingLogout) {
+  // Initial redirect to backup view for Admins
+  useEffect(() => {
+    if (isAdmin && !hasShownBackupPrompt && !isProcessingLogout) {
         setView('backup');
+        setHasShownBackupPrompt(true);
     }
-  }, [isAdmin, view, isProcessingLogout]);
+  }, [isAdmin, hasShownBackupPrompt, isProcessingLogout]);
 
   const triggerExternalEvaluation = () => {
     alert("Before you exit, kindly Evaluate your experience with us, kindly search for Quality Assurance Office and the services you have availed with us");
@@ -90,7 +90,7 @@ export default function LogoutPage() {
         const dateStr = format(new Date(), 'yyyy-MM-dd_HHmm');
         const fileName = `RSU_EOMS_Institutional_Backup_${dateStr}.xlsx`;
 
-        // 1. OPEN TARGET REPOSITORY (New Workflow)
+        // 1. OPEN TARGET REPOSITORY
         if (backupSettings?.targetDriveLink) {
             setBackupStatus('Opening Institutional Repository...');
             window.open(backupSettings.targetDriveLink, '_blank');
@@ -336,5 +336,3 @@ export default function LogoutPage() {
     </div>
   );
 }
-
-    
