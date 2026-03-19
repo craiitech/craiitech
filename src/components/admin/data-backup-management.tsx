@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Database, FileSpreadsheet, Loader2, ShieldCheck, History, Info, Link as LinkIcon, Save, CloudSync } from 'lucide-react';
+import { Database, FileSpreadsheet, Loader2, ShieldCheck, History, Info, Link as LinkIcon, Save, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
@@ -127,7 +127,7 @@ export function DataBackupManagement() {
       <Card className="shadow-md border-primary/20 bg-primary/5">
         <CardHeader className="bg-primary/10 border-b py-4">
             <div className="flex items-center gap-2 mb-1">
-                <CloudSync className="h-5 w-5 text-primary" />
+                <RefreshCw className="h-5 w-5 text-primary" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-primary">Automation Settings</span>
             </div>
             <CardTitle>Institutional Backup Repository</CardTitle>

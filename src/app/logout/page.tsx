@@ -13,10 +13,10 @@ import {
   CardTitle,
   CardFooter,
 } from '@/components/ui/card';
-import { Loader2, Star, Send, LogOut, MessageSquareText, MonitorCheck, Database, CloudSync, ShieldCheck, Download, AlertTriangle } from 'lucide-react';
+import { Loader2, Star, Send, LogOut, MessageSquareText, MonitorCheck, Database, RefreshCw, ShieldCheck, Download, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSessionActivity } from '@/lib/activity-log-provider';
-import { collection, addDoc, serverTimestamp, doc, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDocs, Timestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -179,7 +179,7 @@ export default function LogoutPage() {
                 <CardContent className="pt-8 space-y-6">
                     <div className="p-6 rounded-2xl border border-primary/20 bg-white shadow-inner space-y-4">
                         <div className="flex items-center gap-3">
-                            <CloudSync className="h-6 w-6 text-primary" />
+                            <RefreshCw className="h-6 w-6 text-primary" />
                             <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">Automatic Synchronization</h4>
                         </div>
                         <p className="text-sm text-slate-600 leading-relaxed font-medium">
