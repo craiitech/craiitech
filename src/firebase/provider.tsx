@@ -116,7 +116,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       (firebaseUser) => {
         if (firebaseUser) {
-          setUserAuthState({ user: firebaseUser, iAuthLoading: false, userError: null });
+          setUserAuthState({ user: firebaseUser, isAuthLoading: false, userError: null });
         } else {
           // User is logged out
           setUserAuthState({ user: null, isAuthLoading: false, userError: null });
@@ -124,7 +124,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         }
       },
       (error) => {
-        console.error("FirebaseProvider: onAuthStateChanged error:", error);
         setUserAuthState({ user: null, isAuthLoading: false, userError: error });
         toast({
           title: 'Authentication Error',

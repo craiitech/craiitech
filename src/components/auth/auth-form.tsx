@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -113,7 +112,6 @@ export function AuthForm({ initialTab }: AuthFormProps) {
           router.push('/dashboard');
         }
     } catch (err) {
-        console.error('Error processing auth result:', err);
         setAuthError('An error occurred while setting up your institutional profile. Please try again.');
         setIsSubmitting(false);
     }
@@ -131,7 +129,6 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             })
             .catch((error) => {
                 const errorCode = (error as AuthError).code;
-                console.error('Redirect Result Error:', errorCode, error);
                 if (errorCode !== 'auth/redirect-cancelled-by-user') {
                     setAuthError(firebaseErrorMap[errorCode] || `Sign-in failed (${errorCode}). Please check your connection or Whitelisted Domains.`);
                 }
@@ -182,7 +179,6 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         const result = await signInWithEmailAndPassword(auth, email, password);
         await handleAuthResult(result);
     } catch (error) {
-        console.error('Sign in error:', error);
         const errorCode = (error as AuthError).code;
         setAuthError(firebaseErrorMap[errorCode] || `Sign-in failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         setIsSubmitting(false);
@@ -213,7 +209,6 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       );
       await handleAuthResult(userCredential);
     } catch (error) {
-      console.error('Sign up error:', error);
       const errorCode = (error as AuthError).code;
       setAuthError(firebaseErrorMap[errorCode] || `Registration failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setIsSubmitting(false);
@@ -237,7 +232,6 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       })
       .catch((error) => {
         const errorCode = (error as AuthError).code;
-        console.warn('Google popup interaction failed/blocked:', errorCode);
         
         // If popup is blocked or closed, fallback to redirect
         const shouldRedirect = 

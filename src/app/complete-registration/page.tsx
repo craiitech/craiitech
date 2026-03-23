@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -30,6 +29,7 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormDescription as FormDesc,
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
@@ -161,7 +161,6 @@ export default function CompleteRegistrationPage() {
         router.push('/awaiting-verification');
       }
     } catch (error) {
-      console.error('Error completing registration:', error);
       toast({
         title: 'Update Failed',
         description: error instanceof Error ? error.message : 'An unknown error occurred.',
