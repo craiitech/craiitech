@@ -7,7 +7,23 @@ import type { Submission, Comment, Unit, Cycle, Risk } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
-import { CheckCircle, Circle, Download, FileCheck, Scan, Link as LinkIcon, AlertCircle, XCircle, ChevronRight, Loader2, ArrowLeft, ShieldAlert, Info, Eye, Image as ImageIcon } from 'lucide-react';
+import { 
+    CheckCircle, 
+    Circle, 
+    Download, 
+    FileCheck, 
+    Scan, 
+    Link as LinkIcon, 
+    AlertCircle, 
+    XCircle, 
+    ChevronRight, 
+    Loader2, 
+    ArrowLeft, 
+    ShieldAlert, 
+    Info, 
+    Eye, 
+    Image as ImageIcon 
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +48,8 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 
 
 export const submissionTypes = [
@@ -383,43 +401,44 @@ export default function NewSubmissionPage() {
                 ) : isCycleSelected ? (
                     <ScrollArea className="h-[400px] pr-2">
                         <div className="space-y-2">
-                            <TabsList className="flex flex-col w-full h-auto bg-transparent gap-2 animate-tab-highlight rounded-xl p-1">
-                                {submissionTypes.map((reportType) => {
-                                const submission = submissionStatusMap.get(reportType);
-                                const isActionPlan = reportType === 'Risk and Opportunity Action Plan';
-                                const registryFormSubmission = submissionStatusMap.get('Risk and Opportunity Registry');
-                                const isActionPlanNA = isActionPlan && registryFormSubmission?.riskRating === 'low';
-                                const isSelected = selectedReport === reportType;
-                                return (
-                                    <div
-                                        key={reportType}
-                                        role="button"
-                                        aria-disabled={isActionPlanNA}
-                                        onClick={() => handleSelectReport(reportType)}
-                                        className={cn(
-                                            "flex w-full items-center justify-between p-3 text-left rounded-lg border transition-colors",
-                                            isSelected ? "bg-muted ring-2 ring-primary" : "hover:bg-muted/50 bg-white",
-                                            isActionPlanNA ? "cursor-not-allowed opacity-50 bg-muted/30" : "cursor-pointer"
-                                        )}
-                                    >
-                                        <div className="flex flex-1 items-center gap-3">
-                                            {getIconForStatus(isActionPlanNA ? 'n/a' : submission?.statusId)}
-                                            <span className="font-medium text-xs flex-1">{reportType}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {isActionPlanNA ? (
-                                                <Badge variant="secondary" className="text-[9px]">N/A</Badge>
-                                            ) : submission && (
-                                                <Badge variant={statusVariant[submission.statusId]} className="capitalize text-[9px]">
-                                                    {getStatusText(submission.statusId)}
-                                                </Badge>
+                            <Tabs value={selectedReport || ""} onValueChange={handleSelectReport}>
+                                <TabsList className="flex flex-col w-full h-auto bg-transparent gap-2 animate-tab-highlight rounded-xl p-1">
+                                    {submissionTypes.map((reportType) => {
+                                    const submission = submissionStatusMap.get(reportType);
+                                    const isActionPlan = reportType === 'Risk and Opportunity Action Plan';
+                                    const registryFormSubmission = submissionStatusMap.get('Risk and Opportunity Registry');
+                                    const isActionPlanNA = isActionPlan && registryFormSubmission?.riskRating === 'low';
+                                    const isSelected = selectedReport === reportType;
+                                    return (
+                                        <TabsTrigger
+                                            key={reportType}
+                                            value={reportType}
+                                            disabled={isActionPlanNA}
+                                            className={cn(
+                                                "flex w-full items-center justify-between p-3 text-left rounded-lg border transition-colors",
+                                                isSelected ? "bg-muted ring-2 ring-primary data-[state=active]:bg-muted data-[state=active]:text-foreground" : "hover:bg-muted/50 bg-white",
+                                                isActionPlanNA ? "cursor-not-allowed opacity-50 bg-muted/30" : "cursor-pointer"
                                             )}
-                                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                        </div>
-                                    </div>
-                                );
-                                })}
-                            </TabsList>
+                                        >
+                                            <div className="flex flex-1 items-center gap-3">
+                                                {getIconForStatus(isActionPlanNA ? 'n/a' : submission?.statusId)}
+                                                <span className="font-medium text-xs flex-1">{reportType}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {isActionPlanNA ? (
+                                                    <Badge variant="secondary" className="text-[9px]">N/A</Badge>
+                                                ) : submission && (
+                                                    <Badge variant={statusVariant[submission.statusId]} className="capitalize text-[9px]">
+                                                        {getStatusText(submission.statusId)}
+                                                    </Badge>
+                                                )}
+                                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                            </div>
+                                        </TabsTrigger>
+                                    );
+                                    })}
+                                </TabsList>
+                            </Tabs>
                         </div>
                     </ScrollArea>
                 ) : (
@@ -592,15 +611,13 @@ export default function NewSubmissionPage() {
                                         <AlertDialogContent>
                                             <AlertDialogHeader>
                                                 <AlertDialogTitle>Update Confirmation</AlertDialogTitle>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogDescription>
-                                                        A submission for this report was made in the First Cycle. Are there any updates for the Final Cycle?
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
+                                                <AlertDialogDescription>
+                                                    A submission for this report was made in the First Cycle. Are there any updates for the Final Cycle?
+                                                </AlertDialogDescription>
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
                                                 <AlertDialogCancel onClick={handleCarryOverSubmission} disabled={isCarryingOver}>
-                                                    {isCarryingOver && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                                    {isCarryingOver && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                     No, No Updates
                                                 </AlertDialogCancel>
                                                 <AlertDialogAction onClick={() => setShowFormForUpdate(true)}>
