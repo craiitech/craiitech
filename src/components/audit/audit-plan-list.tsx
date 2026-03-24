@@ -1,10 +1,10 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { AuditPlan, AuditSchedule, Campus, User, Unit } from '@/lib/types';
+import type { AuditPlan, AuditSchedule, Campus, User, Unit, Signatories } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe } from 'lucide-react';
+import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -16,7 +16,11 @@ import {
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, doc } from 'firebase/firestore';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { AuditPlanPrintTemplate } from './audit-plan-print-template';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuditPlanListProps {
   plans: AuditPlan[];
@@ -41,12 +45,20 @@ export function AuditPlanList({
     onEditSchedule,
     onDeleteSchedule
 }: AuditPlanListProps) {
+  const firestore = useFirestore();
+  const { toast } = useToast();
     
   const campusMap = useMemo(() => {
     const map = new Map(campuses.map(c => [c.id, c.name]));
     map.set('university-wide', 'University-Wide Audit');
     return map;
   }, [campuses]);
+
+  const signatoryRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
+    [firestore]
+  );
+  const { data: signatories } = useDoc<Signatories>(signatoryRef);
   
   const sortedPlans = useMemo(() => {
     return [...plans].sort((a,b) => b.year - a.year || a.title.localeCompare(b.title));
@@ -68,6 +80,57 @@ export function AuditPlanList({
 
       if (isNaN(date.getTime())) return 'TBA';
       return format(date, 'MM/dd/yyyy | hh:mm a');
+  };
+
+  const handlePrintPlan = (plan: AuditPlan) => {
+    const planSchedules = schedules.filter(s => s.auditPlanId === plan.id);
+    const cName = campusMap.get(plan.campusId) || 'Institutional';
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <AuditPlanPrintTemplate 
+                plan={plan} 
+                schedules={planSchedules} 
+                campusName={cName} 
+                signatories={signatories || undefined} 
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Audit Plan - ${plan.auditNumber}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @media print { 
+                            body { margin: 0; padding: 0; background: white; } 
+                            .no-print { display: none !important; }
+                            table { page-break-inside: auto; }
+                            tr { page-break-inside: avoid; page-break-after: auto; }
+                        }
+                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Detailed Audit Plan</button>
+                    </div>
+                    <div id="print-content">
+                        ${reportHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) {
+        console.error("Print error:", err);
+        toast({ title: "Print Failed", description: "Could not generate the plan template.", variant: "destructive" });
+    }
   };
 
   if (plans.length === 0) {
@@ -179,7 +242,15 @@ export function AuditPlanList({
                         <ListChecks className="h-5 w-5 text-primary" />
                         <h4 className="text-sm font-black uppercase tracking-widest text-slate-900">Audit Itinerary Entries</h4>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={(e) => { e.stopPropagation(); handlePrintPlan(plan); }} 
+                            className="h-9 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm gap-2 text-primary border-primary/20 hover:bg-primary/5"
+                        >
+                            <Printer className="h-3.5 w-3.5"/> Print Audit Plan
+                        </Button>
                         <Button 
                             variant="outline" 
                             size="sm" 
