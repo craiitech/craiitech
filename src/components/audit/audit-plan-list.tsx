@@ -284,6 +284,7 @@ export function AuditPlanList({
                         <TableHeader className="bg-slate-50">
                             <TableRow className="hover:bg-transparent">
                                 <TableHead className="text-[10px] font-black uppercase py-4 pl-8">Timeline & Itinerary Focus</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase py-4 text-center">Process Type</TableHead>
                                 <TableHead className="text-[10px] font-black uppercase py-4">ISO Clauses</TableHead>
                                 <TableHead className="text-[10px] font-black uppercase py-4">Procedure / Personnel</TableHead>
                                 <TableHead className="text-[10px] font-black uppercase py-4 text-right pr-8">Actions</TableHead>
@@ -307,6 +308,15 @@ export function AuditPlanList({
                                                 </span>
                                             </div>
                                         </div>
+                                    </TableCell>
+                                    <TableCell className="py-6 text-center">
+                                        {schedule.processCategory ? (
+                                            <Badge variant="outline" className="text-[9px] font-black uppercase border-primary/20 bg-primary/5 text-primary whitespace-nowrap">
+                                                {schedule.processCategory.replace(' Processes', '')}
+                                            </Badge>
+                                        ) : (
+                                            <span className="text-[10px] text-muted-foreground italic">Not set</span>
+                                        )}
                                     </TableCell>
                                     <TableCell className="py-6">
                                         <div className="flex flex-wrap gap-1 max-w-[180px]">
