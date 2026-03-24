@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -703,6 +704,7 @@ export default function HomePage() {
                             <TableRow>
                                 <TableHead>Auditee</TableHead>
                                 <TableHead>Date</TableHead>
+                                <TableHead>Time</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -712,6 +714,10 @@ export default function HomePage() {
                                 <TableRow key={s.id}>
                                     <TableCell className="font-bold">{s.targetName}</TableCell>
                                     <TableCell>{format(s.scheduledDate.toDate(), 'PP')}</TableCell>
+                                    <TableCell className="text-xs font-medium tabular-nums">
+                                        {format(s.scheduledDate.toDate(), 'p')}
+                                        {s.endScheduledDate && ` - ${format(s.endScheduledDate.toDate(), 'p')}`}
+                                    </TableCell>
                                     <TableCell><Badge variant="secondary">{s.status}</Badge></TableCell>
                                     <TableCell className="text-right">
                                         <Button variant="outline" size="sm" onClick={() => router.push(`/audit/${s.id}`)}>
