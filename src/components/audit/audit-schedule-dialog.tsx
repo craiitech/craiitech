@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -26,6 +27,8 @@ import {
   SelectGroup,
   SelectLabel,
 } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -34,8 +37,8 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { doc, addDoc, collection, Timestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useMemo, useState, useEffect } from 'react';
-import type { AuditPlan, User, Unit, ISOClause, AuditSchedule, UnitCategory } from '@/lib/types';
-import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database, UserCheck } from 'lucide-react';
+import type { AuditPlan, User, Unit, ISOClause, AuditSchedule, UnitCategory, AuditGroup } from '@/lib/types';
+import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database, UserCheck, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { Badge } from '../ui/badge';
@@ -56,6 +59,7 @@ interface AuditScheduleDialogProps {
 
 const formSchema = z.object({
   targetId: z.string().min(1, 'Auditee Unit/Office is required'),
+  processCategory: z.enum(['Management Processes', 'Operation Processes', 'Support Processes']),
   procedureDescription: z.string().min(5, 'Procedure detail is required.'),
   scheduledDate: z.string().regex(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/, 'Date must be in MM/DD/YYYY format'),
   startTime: z.string().min(1, 'Start time is required'),
@@ -68,6 +72,8 @@ const formSchema = z.object({
     message: "End time must be after start time",
     path: ["endTime"]
 });
+
+const auditGroups: AuditGroup[] = ['Management Processes', 'Operation Processes', 'Support Processes'];
 
 export function AuditScheduleDialog({
   isOpen,
@@ -115,6 +121,7 @@ export function AuditScheduleDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       targetId: '',
+      processCategory: 'Operation Processes',
       scheduledDate: '',
       isoClausesToAudit: [],
       startTime: '09:00',
@@ -131,6 +138,7 @@ export function AuditScheduleDialog({
         
         form.reset({
             targetId: schedule.targetId,
+            processCategory: schedule.processCategory || 'Operation Processes',
             scheduledDate: format(start, 'MM/dd/yyyy'),
             startTime: format(start, 'HH:mm'),
             endTime: format(end, 'HH:mm'),
@@ -141,6 +149,7 @@ export function AuditScheduleDialog({
     } else if (!schedule && isOpen) {
         form.reset({
             targetId: '',
+            processCategory: 'Operation Processes',
             scheduledDate: '',
             isoClausesToAudit: [],
             startTime: '09:00',
@@ -178,6 +187,7 @@ export function AuditScheduleDialog({
           targetId: values.targetId,
           targetType: 'Unit',
           targetName,
+          processCategory: values.processCategory,
           procedureDescription: values.procedureDescription,
           scheduledDate: Timestamp.fromDate(startDateTime),
           endScheduledDate: Timestamp.fromDate(endDateTime),
@@ -296,6 +306,33 @@ export function AuditScheduleDialog({
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="processCategory"
+                            render={({ field }) => (
+                                <FormItem className="space-y-3">
+                                    <FormLabel className="text-[10px] font-black uppercase text-primary">Process Category Classification</FormLabel>
+                                    <FormControl>
+                                        <RadioGroup
+                                            onValueChange={field.onChange}
+                                            defaultValue={field.value}
+                                            className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                                        >
+                                            {auditGroups.map((group) => (
+                                                <div key={group} className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
+                                                    <RadioGroupItem value={group} id={`group-${group}`} />
+                                                    <Label htmlFor={`group-${group}`} className="text-xs font-bold cursor-pointer leading-none">
+                                                        {group.replace(' Processes', '')}
+                                                    </Label>
+                                                </div>
+                                            ))}
+                                        </RadioGroup>
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}

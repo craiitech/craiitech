@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -145,7 +146,7 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
             <th className="border-2 border-black p-2 w-[12%]">Date</th>
             <th className="border-2 border-black p-2 w-[12%]">Time</th>
             <th className="border-2 border-black p-2 w-[15%]">ISO Clause</th>
-            <th className="border-2 border-black p-2">Procedure</th>
+            <th className="border-2 border-black p-2">Procedure / Category</th>
             <th className="border-2 border-black p-2 w-[15%]">Auditor</th>
             <th className="border-2 border-black p-2 w-[15%]">Auditee</th>
           </tr>
@@ -168,7 +169,12 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
                 </div>
               </td>
               <td className="border border-black p-2 align-top">
-                <p className="whitespace-pre-wrap leading-tight">{schedule.procedureDescription}</p>
+                <div className="space-y-1">
+                    {schedule.processCategory && (
+                        <p className="text-[8px] font-black uppercase text-primary border-b border-slate-100 mb-1">{schedule.processCategory}</p>
+                    )}
+                    <p className="whitespace-pre-wrap leading-tight">{schedule.procedureDescription}</p>
+                </div>
               </td>
               <td className="border border-black p-2 text-center font-bold align-top">
                 {schedule.auditorName || 'TBA'}

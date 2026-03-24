@@ -218,6 +218,7 @@ export type AuditSchedule = {
     summaryOFI?: string;
     summaryNC?: string;
     officerInCharge?: string;
+    processCategory?: AuditGroup;
 };
 
 export type AuditFinding = {
