@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -132,7 +132,6 @@ export default function AuditExecutionPage() {
     setIsSavingSummary(true);
 
     try {
-        // Parse the dates and times
         const [year, month, day] = values.actualDate.split('-').map(Number);
         const [sH, sM] = values.actualStartTime.split(':').map(Number);
         const [eH, eM] = values.actualEndTime.split(':').map(Number);
@@ -328,90 +327,99 @@ export default function AuditExecutionPage() {
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-            <AuditChecklist 
-                scheduleId={schedule.id}
-                clausesToAudit={clausesInScope}
-                existingFindings={findings || []}
-                onFindingSaved={handleFindingSync}
-            />
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleSaveSummary)} className="space-y-6">
+                    {/* STEP 1: CONDUCT VERIFICATION (NOW AT TOP) */}
+                    <Card className="shadow-xl border-primary/10 overflow-hidden">
+                        <CardHeader className="bg-primary/5 border-b py-6">
+                            <CardTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+                                <UserCheck className="h-6 w-6 text-primary" />
+                                1. Session Conduct Verification
+                            </CardTitle>
+                            <CardDescription className="font-medium">Verify the auditee representative and the actual time of audit conduct.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6 pt-8">
+                            <FormField
+                                control={form.control}
+                                name="officerInCharge"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Officer in Charge (Actual Auditee Head / Representative)</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                {...field} 
+                                                placeholder="Enter name of the actual representative present..." 
+                                                className="h-11 font-black bg-white"
+                                            />
+                                        </FormControl>
+                                        <FormDescription className="text-[9px]">Pre-filled from itinerary. Update if a different representative was present.</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
-            <Card className="shadow-xl border-primary/10 overflow-hidden">
-                <CardHeader className="bg-primary/5 border-b py-6">
-                    <CardTitle className="text-xl font-black uppercase tracking-tight">Audit Summary & Final Report</CardTitle>
-                    <CardDescription className="font-medium">Consolidate your findings into a high-level summary. Actual auditee head and conduct schedule must be verified below.</CardDescription>
-                </CardHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleSaveSummary)}>
-                        <CardContent className="space-y-8 pt-8">
-                            <div className="p-6 rounded-2xl border bg-primary/5 border-primary/10 shadow-inner space-y-6">
-                                <div className="flex items-center gap-2 text-primary">
-                                    <UserCheck className="h-5 w-5" />
-                                    <h4 className="text-xs font-black uppercase tracking-widest">Conduct Verification</h4>
-                                </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <FormField
                                     control={form.control}
-                                    name="officerInCharge"
+                                    name="actualDate"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Officer in Charge (Actual Auditee Head / Representative)</FormLabel>
+                                            <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Conduct Date</FormLabel>
                                             <FormControl>
-                                                <Input 
-                                                    {...field} 
-                                                    placeholder="Enter name of the actual representative present..." 
-                                                    className="h-11 font-black bg-white"
-                                                />
+                                                <Input type="date" {...field} className="h-11 bg-white font-bold" />
                                             </FormControl>
-                                            <FormDescription className="text-[9px]">Pre-filled from itinerary. Update if a different representative was present.</FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="actualDate"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Conduct Date</FormLabel>
-                                                <FormControl>
-                                                    <Input type="date" {...field} className="h-11 bg-white font-bold" />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="actualStartTime"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Start Time</FormLabel>
-                                                <FormControl>
-                                                    <Input type="time" {...field} className="h-11 bg-white font-bold" />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="actualEndTime"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual End Time</FormLabel>
-                                                <FormControl>
-                                                    <Input type="time" {...field} className="h-11 bg-white font-bold" />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
+                                <FormField
+                                    control={form.control}
+                                    name="actualStartTime"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Start Time</FormLabel>
+                                            <FormControl>
+                                                <Input type="time" {...field} className="h-11 bg-white font-bold" />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="actualEndTime"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual End Time</FormLabel>
+                                            <FormControl>
+                                                <Input type="time" {...field} className="h-11 bg-white font-bold" />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                             </div>
+                        </CardContent>
+                    </Card>
 
-                            <Separator />
+                    {/* STEP 2: EVIDENCE CHECKLIST */}
+                    <AuditChecklist 
+                        scheduleId={schedule.id}
+                        clausesToAudit={clausesInScope}
+                        existingFindings={findings || []}
+                        onFindingSaved={handleFindingSync}
+                    />
 
+                    {/* STEP 3: FINAL REPORT SUMMARY */}
+                    <Card className="shadow-xl border-primary/10 overflow-hidden">
+                        <CardHeader className="bg-primary/5 border-b py-6">
+                            <CardTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+                                <ClipboardCheck className="h-6 w-6 text-primary" />
+                                2. Final Audit Report Summary
+                            </CardTitle>
+                            <CardDescription className="font-medium">Consolidate your findings into a high-level summary for institutional filing.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-8 pt-8">
                             <div className="space-y-6">
                                 <FormField
                                     control={form.control}
@@ -452,11 +460,11 @@ export default function AuditExecutionPage() {
                                 Finalize Audit Report
                             </Button>
                         </CardFooter>
-                    </form>
-                </Form>
-            </Card>
-
+                    </Card>
+                </form>
+            </Form>
         </div>
+
         <div className="lg:col-span-1">
             <Card className="sticky top-20 shadow-md border-primary/10">
                 <CardHeader className="bg-muted/30 border-b">
