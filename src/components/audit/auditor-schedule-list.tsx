@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { AuditSchedule, Campus, Unit } from '@/lib/types';
@@ -14,7 +15,7 @@ import {
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
-import { Check, Clock } from 'lucide-react';
+import { Check, Clock, User } from 'lucide-react';
 
 interface AuditorScheduleListProps {
     schedules: AuditSchedule[];
@@ -52,7 +53,7 @@ export function AuditorScheduleList({ schedules, campuses, units, isClaimView, o
       <TableHeader>
         <TableRow>
             <TableHead className="text-[10px] font-black uppercase">Conduct Schedule</TableHead>
-            <TableHead className="text-[10px] font-black uppercase">Auditee Unit/Office</TableHead>
+            <TableHead className="text-[10px] font-black uppercase">Auditee Unit & Lead</TableHead>
             <TableHead className="text-[10px] font-black uppercase">Status</TableHead>
             <TableHead className="text-right text-[10px] font-black uppercase">Action</TableHead>
         </TableRow>
@@ -70,7 +71,17 @@ export function AuditorScheduleList({ schedules, campuses, units, isClaimView, o
                         </span>
                     </div>
                 </TableCell>
-                <TableCell className="text-xs font-bold text-slate-800">{getAuditeeName(schedule)}</TableCell>
+                <TableCell>
+                    <div className="flex flex-col gap-1">
+                        <span className="text-xs font-bold text-slate-800 leading-tight">{getAuditeeName(schedule)}</span>
+                        {schedule.auditeeHeadName && (
+                            <div className="flex items-center gap-1.5 opacity-60">
+                                <User className="h-2.5 w-2.5" />
+                                <span className="text-[10px] font-medium italic">Head: {schedule.auditeeHeadName}</span>
+                            </div>
+                        )}
+                    </div>
+                </TableCell>
                 <TableCell>
                     <Badge variant="secondary" className="text-[9px] uppercase font-black px-2 shadow-none border-none">
                         {schedule.status}

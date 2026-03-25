@@ -67,7 +67,8 @@ function PlanItineraryRegistry({
                 s.targetName.toLowerCase().includes(lower) ||
                 (s.auditorName || '').toLowerCase().includes(lower) ||
                 s.procedureDescription.toLowerCase().includes(lower) ||
-                (s.processCategory || '').toLowerCase().includes(lower)
+                (s.processCategory || '').toLowerCase().includes(lower) ||
+                (s.auditeeHeadName || '').toLowerCase().includes(lower)
             );
         }
 
@@ -215,10 +216,18 @@ function PlanItineraryRegistry({
                                                 </div>
                                             </div>
                                             <div className="space-y-0.5">
-                                                <p className="text-[8px] font-bold text-muted-foreground uppercase">Auditee</p>
-                                                <div className="flex items-center gap-1">
-                                                    <Building2 className="h-2.5 w-2.5 text-primary" />
-                                                    <span className="text-[10px] font-black text-slate-700 truncate">{schedule.targetName}</span>
+                                                <p className="text-[8px] font-bold text-muted-foreground uppercase">Auditee & Head</p>
+                                                <div className="flex flex-col">
+                                                    <div className="flex items-center gap-1">
+                                                        <Building2 className="h-2.5 w-2.5 text-primary" />
+                                                        <span className="text-[10px] font-black text-slate-700 truncate">{schedule.targetName}</span>
+                                                    </div>
+                                                    {schedule.auditeeHeadName && (
+                                                        <div className="flex items-center gap-1 mt-0.5">
+                                                            <UserIcon className="h-2.5 w-2.5 text-slate-400" />
+                                                            <span className="text-[9px] font-medium text-slate-500 italic truncate">({schedule.auditeeHeadName})</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
