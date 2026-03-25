@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AuditPlan, AuditSchedule, Campus, User, Unit, Signatories } from '@/lib/types';
+import type { AuditPlan, AuditSchedule, Campus, User, Unit, Signatories, AuditGroup } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer, Search, ArrowUpDown } from 'lucide-react';
@@ -321,15 +322,31 @@ export function AuditPlanList({
     const planSchedules = schedules.filter(s => s.auditPlanId === plan.id);
     const cName = campusMap.get(plan.campusId) || 'Institutional';
 
+    // Grouping logic: Use categories defined in the plan
+    const sectionsToPrint = Array.from(new Set([
+        ...(plan.auditeeType || []),
+        ...(planSchedules.map(s => s.processCategory).filter(Boolean) as AuditGroup[])
+    ]));
+
+    // Sort sections: Management -> Operation -> Support
+    const order = { 'Management Processes': 1, 'Operation Processes': 2, 'Support Processes': 3 };
+    sectionsToPrint.sort((a, b) => (order[a as keyof typeof order] || 99) - (order[b as keyof typeof order] || 99));
+
     try {
-        const reportHtml = renderToStaticMarkup(
-            <AuditPlanPrintTemplate 
-                plan={plan} 
-                schedules={planSchedules} 
-                campusName={cName} 
-                signatories={signatories || undefined} 
-            />
-        );
+        const reportsHtml = sectionsToPrint.map(section => {
+            const sectionSchedules = planSchedules.filter(s => s.processCategory === section);
+            return renderToStaticMarkup(
+                <div key={section} className="print-page-break mb-12">
+                    <AuditPlanPrintTemplate 
+                        plan={plan} 
+                        schedules={sectionSchedules} 
+                        campusName={cName} 
+                        signatories={signatories || undefined} 
+                        section={section as AuditGroup}
+                    />
+                </div>
+            );
+        }).join('');
 
         const printWindow = window.open('', '_blank');
         if (printWindow) {
@@ -344,6 +361,8 @@ export function AuditPlanList({
                         @media print { 
                             body { margin: 0; padding: 0; background: white; } 
                             .no-print { display: none !important; }
+                            .print-page-break { page-break-after: always; }
+                            .print-page-break:last-child { page-break-after: auto; }
                             table { page-break-inside: auto; }
                             tr { page-break-inside: avoid; page-break-after: auto; }
                         }
@@ -355,7 +374,7 @@ export function AuditPlanList({
                         <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Detailed Audit Plan</button>
                     </div>
                     <div id="print-content">
-                        ${reportHtml}
+                        ${reportsHtml}
                     </div>
                 </body>
                 </html>

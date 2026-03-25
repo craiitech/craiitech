@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import type { AuditPlan, AuditSchedule, Signatories } from '@/lib/types';
+import type { AuditPlan, AuditSchedule, Signatories, AuditGroup } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
@@ -12,9 +12,10 @@ interface AuditPlanPrintTemplateProps {
   schedules: AuditSchedule[];
   campusName: string;
   signatories?: Signatories;
+  section: AuditGroup;
 }
 
-export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatories }: AuditPlanPrintTemplateProps) {
+export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatories, section }: AuditPlanPrintTemplateProps) {
   const safeFormatDate = (d: any, fmt: string = 'yyyy-MM-dd') => {
     if (!d) return '';
     const date = d instanceof Timestamp ? d.toDate() : new Date(d);
@@ -92,7 +93,7 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
               <p className="font-bold text-[10px] uppercase opacity-60 mb-2">Audit Section:</p>
               <div className="text-center py-4">
                 <p className="text-sm font-black uppercase">{campusName}</p>
-                <p className="text-xs font-bold text-slate-600">Management</p>
+                <p className="text-xs font-bold text-slate-600">{section.replace(' Processes', '')}</p>
               </div>
             </td>
             <td className="border-2 border-black p-2 w-[50%] align-top">
@@ -146,12 +147,12 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
             <th className="border-2 border-black p-2 w-[12%]">Date</th>
             <th className="border-2 border-black p-2 w-[12%]">Time</th>
             <th className="border-2 border-black p-2 w-[15%]">ISO Clause</th>
-            <th className="border-2 border-black p-2">Procedure / Category</th>
+            <th className="border-2 border-black p-2">Procedure / Focus Area</th>
             <th className="border-2 border-black p-2 w-[15%]">Auditor</th>
             <th className="border-2 border-black p-2 w-[15%]">Auditee</th>
           </tr>
           <tr className="bg-slate-50 text-[9px] font-black uppercase text-center border-b-2 border-black">
-            <td colSpan={6} className="py-1">Audit Itinerary</td>
+            <td colSpan={6} className="py-1">Audit Itinerary: {section}</td>
           </tr>
         </thead>
         <tbody>
@@ -170,9 +171,6 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
               </td>
               <td className="border border-black p-2 align-top">
                 <div className="space-y-1">
-                    {schedule.processCategory && (
-                        <p className="text-[8px] font-black uppercase text-primary border-b border-slate-100 mb-1">{schedule.processCategory}</p>
-                    )}
                     <p className="whitespace-pre-wrap leading-tight">{schedule.procedureDescription}</p>
                 </div>
               </td>
@@ -186,7 +184,7 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
           ))}
           {sortedSchedules.length === 0 && (
             <tr>
-              <td colSpan={6} className="border border-black p-8 text-center text-slate-400 italic">No itinerary entries provisioned.</td>
+              <td colSpan={6} className="border border-black p-8 text-center text-slate-400 italic">No itinerary entries provisioned for this section.</td>
             </tr>
           )}
         </tbody>
