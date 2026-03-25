@@ -94,7 +94,7 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
               <p className="font-bold text-[10px] uppercase opacity-60 mb-2">Audit Section:</p>
               <div className="text-center py-4">
                 <p className="text-sm font-black uppercase">{campusName}</p>
-                <p className="text-xs font-bold text-slate-600">{section.replace(' Processes', '')}</p>
+                <p className="text-xs font-bold text-slate-600 uppercase">{section.replace(' Processes', '')}</p>
               </div>
             </td>
             <td className="border-2 border-black p-2 w-[50%] align-top">
@@ -130,11 +130,11 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
       <table className="w-full border-collapse border-2 border-black border-t-0 mb-6">
         <tbody>
           <tr className="font-bold">
-            <td className="border-2 border-black p-2 w-[50%]">
+            <td className="border-2 border-black p-2 w-[50%] uppercase">
               <span className="opacity-60 mr-2">Opening Meeting:</span>
               {safeFormatDate(plan.openingMeetingDate)} | {safeFormatTime(plan.openingMeetingDate)}
             </td>
-            <td className="border-2 border-black p-2 w-[50%]">
+            <td className="border-2 border-black p-2 w-[50%] uppercase">
               <span className="opacity-60 mr-2">Closing Meeting:</span>
               {safeFormatDate(plan.closingMeetingDate)} | {safeFormatTime(plan.closingMeetingDate)}
             </td>
@@ -163,7 +163,7 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
               <td className="border border-black p-2 text-center font-bold align-top">
                 {safeFormatDate(schedule.scheduledDate)}
               </td>
-              <td className="border border-black p-2 text-center font-bold align-top">
+              <td className="border border-black p-2 text-center font-bold align-top uppercase">
                 {safeFormatTime(schedule.scheduledDate)} - {safeFormatTime(schedule.endScheduledDate)}
               </td>
               <td className="border border-black p-2 text-center font-mono font-bold align-top">
@@ -171,18 +171,18 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
                   {schedule.isoClausesToAudit.join(', ')}
                 </div>
               </td>
-              <td className="border border-black p-2 align-top text-center">
+              <td className="border border-black p-2 align-top text-center uppercase">
                 <div className="space-y-1">
                     <p className="whitespace-pre-wrap leading-tight">{schedule.procedureDescription}</p>
                 </div>
               </td>
-              <td className="border border-black p-2 text-center font-bold align-top">
+              <td className="border border-black p-2 text-center font-bold align-top uppercase">
                 {schedule.auditorName || 'TBA'}
               </td>
               <td className="border border-black p-2 text-center font-bold align-top uppercase">
                 <p className="leading-tight">{schedule.targetName}</p>
                 {schedule.auditeeHeadName && (
-                    <p className="text-[8px] font-normal lowercase italic mt-1 border-t border-slate-100 pt-1">
+                    <p className="text-[8px] font-bold italic mt-1 border-t border-slate-100 pt-1 uppercase">
                         ({schedule.auditeeHeadName})
                     </p>
                 )}
