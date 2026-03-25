@@ -170,7 +170,7 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
                   {schedule.isoClausesToAudit.join(', ')}
                 </div>
               </td>
-              <td className="border border-black p-2 align-top">
+              <td className="border border-black p-2 align-top text-center">
                 <div className="space-y-1">
                     <p className="whitespace-pre-wrap leading-tight">{schedule.procedureDescription}</p>
                 </div>
