@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -179,7 +180,12 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
                 {schedule.auditorName || 'TBA'}
               </td>
               <td className="border border-black p-2 text-center font-bold align-top uppercase">
-                {schedule.targetName}
+                <p className="leading-tight">{schedule.targetName}</p>
+                {schedule.auditeeHeadName && (
+                    <p className="text-[8px] font-normal lowercase italic mt-1 border-t border-slate-100 pt-1">
+                        ({schedule.auditeeHeadName})
+                    </p>
+                )}
               </td>
             </tr>
           ))}

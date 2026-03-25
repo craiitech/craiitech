@@ -38,7 +38,7 @@ import { doc, addDoc, collection, Timestamp, setDoc, updateDoc } from 'firebase/
 import { useToast } from '@/hooks/use-toast';
 import { useMemo, useState, useEffect } from 'react';
 import type { AuditPlan, User, Unit, ISOClause, AuditSchedule, UnitCategory, AuditGroup } from '@/lib/types';
-import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database, UserCheck, Layers } from 'lucide-react';
+import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database, UserCheck, Layers, User as UserIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { Badge } from '../ui/badge';
@@ -59,6 +59,7 @@ interface AuditScheduleDialogProps {
 
 const formSchema = z.object({
   targetId: z.string().min(1, 'Auditee Unit/Office is required'),
+  auditeeHeadName: z.string().min(1, 'Auditee Head / Office Head name is required'),
   processCategory: z.enum(['Management Processes', 'Operation Processes', 'Support Processes']),
   procedureDescription: z.string().min(5, 'Procedure detail is required.'),
   scheduledDate: z.string().regex(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/, 'Date must be in MM/DD/YYYY format'),
@@ -121,6 +122,7 @@ export function AuditScheduleDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       targetId: '',
+      auditeeHeadName: '',
       processCategory: 'Operation Processes',
       scheduledDate: '',
       isoClausesToAudit: [],
@@ -138,6 +140,7 @@ export function AuditScheduleDialog({
         
         form.reset({
             targetId: schedule.targetId,
+            auditeeHeadName: schedule.auditeeHeadName || '',
             processCategory: schedule.processCategory || 'Operation Processes',
             scheduledDate: format(start, 'MM/dd/yyyy'),
             startTime: format(start, 'HH:mm'),
@@ -149,6 +152,7 @@ export function AuditScheduleDialog({
     } else if (!schedule && isOpen) {
         form.reset({
             targetId: '',
+            auditeeHeadName: '',
             processCategory: 'Operation Processes',
             scheduledDate: '',
             isoClausesToAudit: [],
@@ -187,6 +191,7 @@ export function AuditScheduleDialog({
           targetId: values.targetId,
           targetType: 'Unit',
           targetName,
+          auditeeHeadName: values.auditeeHeadName,
           processCategory: values.processCategory,
           procedureDescription: values.procedureDescription,
           scheduledDate: Timestamp.fromDate(startDateTime),
@@ -279,37 +284,57 @@ export function AuditScheduleDialog({
                                 )}
                             />
                         </div>
-                        <FormField
-                            control={form.control}
-                            name="targetId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[10px] font-bold uppercase">Auditee Unit / Office Name</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <FormField
+                                control={form.control}
+                                name="targetId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-bold uppercase">Auditee Unit / Office Name</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger className="h-11 font-bold bg-muted/5">
+                                                    <SelectValue placeholder="Select Unit/Office to Audit" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {Object.entries(auditeesByCategory).map(([category, unitList]) => (
+                                                    unitList.length > 0 && (
+                                                        <SelectGroup key={category}>
+                                                            <SelectLabel className="text-[9px] font-black uppercase tracking-widest text-primary pt-4 pb-1 border-b mb-2">{category} Group</SelectLabel>
+                                                            {unitList.map(u => (
+                                                                <SelectItem key={u.id} value={u.id}>
+                                                                    {u.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectGroup>
+                                                    )
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="auditeeHeadName"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-bold uppercase">Name of the Auditee / Office Head</FormLabel>
                                         <FormControl>
-                                            <SelectTrigger className="h-11 font-bold bg-muted/5">
-                                                <SelectValue placeholder="Select Unit/Office to Audit" />
-                                            </SelectTrigger>
+                                            <div className="relative">
+                                                <UserIcon className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground opacity-50" />
+                                                <Input {...field} placeholder="Enter full name of the head..." className="h-11 pl-10 font-bold bg-muted/5 shadow-sm" disabled={isSubmitting} />
+                                            </div>
                                         </FormControl>
-                                        <SelectContent>
-                                            {Object.entries(auditeesByCategory).map(([category, unitList]) => (
-                                                unitList.length > 0 && (
-                                                    <SelectGroup key={category}>
-                                                        <SelectLabel className="text-[9px] font-black uppercase tracking-widest text-primary pt-4 pb-1 border-b mb-2">{category} Group</SelectLabel>
-                                                        {unitList.map(u => (
-                                                            <SelectItem key={u.id} value={u.id}>
-                                                                {u.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectGroup>
-                                                )
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
 
                         <FormField
                             control={form.control}

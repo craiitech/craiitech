@@ -209,6 +209,7 @@ export type AuditSchedule = {
     targetId: string; // unitId or userId
     targetType: 'Unit' | 'User';
     targetName: string; // unit name or user name
+    auditeeHeadName?: string; // New: Specific person leading the unit
     procedureDescription: string; // The "Procedure" column text
     scheduledDate: any; // Timestamp (Start)
     endScheduledDate: any; // Timestamp (End)
