@@ -1,13 +1,13 @@
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
-import { doc, collection, query, where, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, collection, query, where, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
-import type { AuditSchedule, AuditFinding, ISOClause, AuditPlan, Signatories } from '@/lib/types';
+import type { AuditSchedule, AuditFinding, ISOClause, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Save, Clock, Building2, User, PlusCircle, Database, Check, Printer, UserCheck } from 'lucide-react';
+import { Loader2, ArrowLeft, Save, Clock, Building2, User, PlusCircle, Database, Check, Printer, UserCheck, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState, useEffect } from 'react';
 import { AuditChecklist } from '@/components/audit/audit-checklist';
@@ -44,6 +44,9 @@ const LoadingSkeleton = () => (
 
 const summarySchema = z.object({
   officerInCharge: z.string().min(1, 'Name of the actual auditee head/representative is required.'),
+  actualDate: z.string().min(1, 'Actual date of conduct is required.'),
+  actualStartTime: z.string().min(1, 'Actual start time is required.'),
+  actualEndTime: z.string().min(1, 'Actual end time is required.'),
   summaryCompliance: z.string().optional(),
   summaryOFI: z.string().optional(),
   summaryNC: z.string().optional(),
@@ -97,6 +100,9 @@ export default function AuditExecutionPage() {
     resolver: zodResolver(summarySchema),
     defaultValues: {
       officerInCharge: '',
+      actualDate: '',
+      actualStartTime: '',
+      actualEndTime: '',
       summaryCompliance: '',
       summaryOFI: '',
       summaryNC: '',
@@ -105,8 +111,14 @@ export default function AuditExecutionPage() {
 
   useEffect(() => {
       if (schedule) {
+          const startDate = schedule.scheduledDate?.toDate ? schedule.scheduledDate.toDate() : new Date(schedule.scheduledDate);
+          const endDate = schedule.endScheduledDate?.toDate ? schedule.endScheduledDate.toDate() : new Date(schedule.endScheduledDate);
+          
           form.reset({
             officerInCharge: schedule.officerInCharge || schedule.auditeeHeadName || '',
+            actualDate: format(startDate, 'yyyy-MM-dd'),
+            actualStartTime: format(startDate, 'HH:mm'),
+            actualEndTime: format(endDate, 'HH:mm'),
             summaryCompliance: schedule.summaryCompliance || '',
             summaryOFI: schedule.summaryOFI || '',
             summaryNC: schedule.summaryNC || '',
@@ -118,9 +130,28 @@ export default function AuditExecutionPage() {
   const handleSaveSummary = async (values: z.infer<typeof summarySchema>) => {
     if (!scheduleDocRef) return;
     setIsSavingSummary(true);
+
     try {
-        await updateDoc(scheduleDocRef, { ...values, status: 'Completed' });
-        toast({ title: "Success", description: "Audit summary saved and marked as Completed." });
+        // Parse the dates and times
+        const [year, month, day] = values.actualDate.split('-').map(Number);
+        const [sH, sM] = values.actualStartTime.split(':').map(Number);
+        const [eH, eM] = values.actualEndTime.split(':').map(Number);
+
+        const start = new Date(year, month - 1, day, sH, sM);
+        const end = new Date(year, month - 1, day, eH, eM);
+
+        const updateData = {
+            officerInCharge: values.officerInCharge,
+            summaryCompliance: values.summaryCompliance || '',
+            summaryOFI: values.summaryOFI || '',
+            summaryNC: values.summaryNC || '',
+            scheduledDate: Timestamp.fromDate(start),
+            endScheduledDate: Timestamp.fromDate(end),
+            status: 'Completed'
+        };
+
+        await updateDoc(scheduleDocRef, updateData);
+        toast({ title: "Success", description: "Audit summary and conduct time updated. Session marked as Completed." });
     } catch(error) {
         console.error("Error saving summary:", error);
         toast({ title: "Error", description: "Could not save summary.", variant: 'destructive' });
@@ -233,7 +264,7 @@ export default function AuditExecutionPage() {
     if (!targetFieldName) return;
 
     summaryFields.forEach(fName => {
-        if (fName === 'officerInCharge') return;
+        if (fName === 'officerInCharge' || fName === 'actualDate' || fName === 'actualStartTime' || fName === 'actualEndTime') return;
         const val = form.getValues(fName) || '';
         const lines = val.split('\n').filter(l => l.trim() !== '');
         const updatedLines = lines.filter(l => !l.startsWith(`[Clause ${clauseId}]`));
@@ -307,15 +338,15 @@ export default function AuditExecutionPage() {
             <Card className="shadow-xl border-primary/10 overflow-hidden">
                 <CardHeader className="bg-primary/5 border-b py-6">
                     <CardTitle className="text-xl font-black uppercase tracking-tight">Audit Summary & Final Report</CardTitle>
-                    <CardDescription className="font-medium">Consolidate your findings into a high-level summary. Actual auditee head must be verified below.</CardDescription>
+                    <CardDescription className="font-medium">Consolidate your findings into a high-level summary. Actual auditee head and conduct schedule must be verified below.</CardDescription>
                 </CardHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(handleSaveSummary)}>
                         <CardContent className="space-y-8 pt-8">
-                            <div className="p-6 rounded-2xl border bg-primary/5 border-primary/10 shadow-inner space-y-4">
+                            <div className="p-6 rounded-2xl border bg-primary/5 border-primary/10 shadow-inner space-y-6">
                                 <div className="flex items-center gap-2 text-primary">
                                     <UserCheck className="h-5 w-5" />
-                                    <h4 className="text-xs font-black uppercase tracking-widest">Auditee Representation</h4>
+                                    <h4 className="text-xs font-black uppercase tracking-widest">Conduct Verification</h4>
                                 </div>
                                 <FormField
                                     control={form.control}
@@ -335,6 +366,48 @@ export default function AuditExecutionPage() {
                                         </FormItem>
                                     )}
                                 />
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="actualDate"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Conduct Date</FormLabel>
+                                                <FormControl>
+                                                    <Input type="date" {...field} className="h-11 bg-white font-bold" />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="actualStartTime"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual Start Time</FormLabel>
+                                                <FormControl>
+                                                    <Input type="time" {...field} className="h-11 bg-white font-bold" />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="actualEndTime"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Actual End Time</FormLabel>
+                                                <FormControl>
+                                                    <Input type="time" {...field} className="h-11 bg-white font-bold" />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
                             </div>
 
                             <Separator />
@@ -413,9 +486,9 @@ export default function AuditExecutionPage() {
                             </div>
                         </div>
                         <div className="space-y-1">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Conduct Schedule</p>
-                            <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-primary" />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Original Itinerary Schedule</p>
+                            <div className="flex items-center gap-2 text-amber-600">
+                                <Clock className="h-4 w-4" />
                                 <span className="text-sm font-bold">{format(conductDate, 'PPp')}</span>
                             </div>
                         </div>
