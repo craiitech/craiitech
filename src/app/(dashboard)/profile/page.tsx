@@ -28,13 +28,15 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Building, Briefcase, Accessibility, Zap, ShieldCheck, Activity, Info, Save, Type } from 'lucide-react';
+import { Loader2, Mail, Building, Briefcase, Accessibility, Zap, ShieldCheck, Activity, Info, Save, Type, Palette } from 'lucide-react';
 import type { Campus, Unit, Role } from '@/lib/types';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Slider } from '@/components/ui/slider';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, { message: 'First name is required.' }),
@@ -44,11 +46,20 @@ const profileSchema = z.object({
     dyslexicFont: z.boolean().default(false),
     reducedMotion: z.boolean().default(false),
     fontSize: z.number().default(1.0),
+    themeColor: z.enum(['default', 'blue', 'green', 'maroon', 'gold']).default('default'),
   }).optional(),
 });
 
 const fontSizeMap = [0.8, 1.0, 1.2, 1.4];
 const fontSizeLabels = ['Small (80%)', 'Default (100%)', 'Large (120%)', 'Extra Large (140%)'];
+
+const colorPalettes = [
+    { id: 'default', label: 'Institutional Indigo', color: 'bg-[#3F51B5]' },
+    { id: 'blue', label: 'Professional Blue', color: 'bg-[#3b82f6]' },
+    { id: 'green', label: 'Quality Green', color: 'bg-[#16a34a]' },
+    { id: 'maroon', label: 'RSU Maroon', color: 'bg-[#a51c1c]' },
+    { id: 'gold', label: 'University Gold', color: 'bg-[#eab308]' },
+];
 
 export default function ProfilePage() {
   const { user, userProfile, isUserLoading } = useUser();
@@ -68,6 +79,7 @@ export default function ProfilePage() {
         dyslexicFont: false,
         reducedMotion: false,
         fontSize: 1.0,
+        themeColor: 'default',
       }
     },
   });
@@ -82,6 +94,7 @@ export default function ProfilePage() {
           dyslexicFont: userProfile.accessibility?.dyslexicFont || false,
           reducedMotion: userProfile.accessibility?.reducedMotion || false,
           fontSize: userProfile.accessibility?.fontSize || 1.0,
+          themeColor: userProfile.accessibility?.themeColor || 'default',
         }
       });
     }
@@ -262,6 +275,44 @@ export default function ProfilePage() {
                         </div>
                     </div>
                   </div>
+
+                  <FormField
+                    control={form.control}
+                    name="accessibility.themeColor"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3 p-4 rounded-lg border bg-muted/5 shadow-sm">
+                        <FormLabel className="text-sm font-bold flex items-center gap-2">
+                          <Palette className="h-3.5 w-3.5 text-primary" /> System Color Palette
+                        </FormLabel>
+                        <FormDescription className="text-[10px]">Choose a primary color scheme for your dashboard experience.</FormDescription>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            className="flex flex-wrap gap-4 pt-2"
+                          >
+                            {colorPalettes.map((palette) => (
+                              <div key={palette.id} className="flex items-center space-x-2">
+                                <RadioGroupItem value={palette.id} id={`palette-${palette.id}`} className="sr-only" />
+                                <Label
+                                  htmlFor={`palette-${palette.id}`}
+                                  className={cn(
+                                    "flex items-center gap-2 px-3 py-2 rounded-full border cursor-pointer transition-all hover:bg-muted",
+                                    field.value === palette.id ? "bg-primary/10 border-primary shadow-sm" : "bg-white border-transparent"
+                                  )}
+                                >
+                                  <div className={cn("h-4 w-4 rounded-full border border-white/20 shadow-sm", palette.color)} />
+                                  <span className={cn("text-[10px] font-black uppercase tracking-tight", field.value === palette.id ? "text-primary" : "text-muted-foreground")}>
+                                    {palette.label}
+                                  </span>
+                                </Label>
+                              </div>
+                            ))}
+                          </RadioGroup>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
 
                   <FormField
                     control={form.control}

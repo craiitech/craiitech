@@ -227,11 +227,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const accessibilityClasses = useMemo(() => {
     if (!userProfile?.accessibility) return '';
-    const { highContrast, dyslexicFont, reducedMotion } = userProfile.accessibility;
+    const { highContrast, dyslexicFont, reducedMotion, themeColor } = userProfile.accessibility;
     return cn(
       highContrast && 'accessibility-high-contrast',
       dyslexicFont && 'accessibility-dyslexic-font',
-      reducedMotion && 'accessibility-reduced-motion'
+      reducedMotion && 'accessibility-reduced-motion',
+      themeColor && themeColor !== 'default' && `theme-${themeColor}`
     );
   }, [userProfile?.accessibility]);
 

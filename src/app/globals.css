@@ -1,3 +1,4 @@
+
 @import "react-day-picker/dist/style.css";
 
 @tailwind base;
@@ -136,6 +137,30 @@
   transition-duration: 0ms !important;
   animation-duration: 0ms !important;
   animation-iteration-count: 1 !important;
+}
+
+.theme-blue {
+  --primary: 221.2 83.2% 53.3%;
+  --ring: 221.2 83.2% 53.3%;
+  --sidebar-primary: 221.2 83.2% 53.3%;
+}
+
+.theme-green {
+  --primary: 142.1 76.2% 36.3%;
+  --ring: 142.1 76.2% 36.3%;
+  --sidebar-primary: 142.1 76.2% 36.3%;
+}
+
+.theme-maroon {
+  --primary: 0 72% 35%;
+  --ring: 0 72% 35%;
+  --sidebar-primary: 0 72% 35%;
+}
+
+.theme-gold {
+  --primary: 45 93% 47%;
+  --ring: 45 93% 47%;
+  --sidebar-primary: 45 93% 47%;
 }
 
 @layer components {

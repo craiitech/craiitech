@@ -10,6 +10,7 @@ export type UserAccessibility = {
   dyslexicFont?: boolean;
   reducedMotion?: boolean;
   fontSize?: number;
+  themeColor?: 'default' | 'blue' | 'green' | 'maroon' | 'gold';
 };
 
 export type User = {
