@@ -319,7 +319,7 @@ export function CampusSubmissionsView({
         missingFinal: unitData.missingFinal,
         totalApproved: unitData.approved,
         totalPossible: unitData.totalPossible,
-        qaoDirector: signatories?.qaoDirector || 'DR. MARVIN RICK G. FORCADO',
+        qaoDirector: signatories?.qaoDirector || '____________________',
         qmsHead: signatories?.qmsHead || 'QMS Head'
     };
 
@@ -341,7 +341,7 @@ export function CampusSubmissionsView({
     const props = {
         campusName: campus?.name || 'Institutional Campus',
         year: Number(selectedYear),
-        qaoDirector: signatories?.qaoDirector || 'DR. MARVIN RICK G. FORCADO',
+        qaoDirector: signatories?.qaoDirector || '____________________',
         qmsHead: signatories?.qmsHead || 'QMS Head',
         units: campusSummary.unitPerformance
     };
@@ -469,7 +469,7 @@ export function CampusSubmissionsView({
                 </div>
 
                 <StrategicSwotAnalysis 
-                    submissions={unitData.allUnitSubmissions}
+                    submissions={unitData.yearSubmissions}
                     risks={campusRisks?.filter(r => r.unitId === selectedUnitId) || []}
                     monitoringRecords={campusMonitoring?.filter(r => r.unitId === selectedUnitId) || []}
                     programCompliances={campusCompliances?.filter(c => c.unitId === selectedUnitId) || []}
@@ -481,7 +481,6 @@ export function CampusSubmissionsView({
                     selectedYear={Number(selectedYear)}
                 />
 
-                {/* Rest of UI components remain for detail tracking */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <Card className="md:col-span-1 flex flex-col items-center justify-center bg-background rounded-2xl border-primary/10 shadow-lg p-8">
                         <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-6 text-center">Unit Verified Maturity</span>
@@ -590,7 +589,7 @@ function UnitTable({ cycleSubs, onView, isAdmin, onDeleteClick }: { cycleSubs: S
                     {cycleSubs.map(sub => (
                         <TableRow key={sub.id} className={cn("transition-colors group", getYearCycleRowColor(sub.year, sub.cycleId))}>
                             <TableCell className="pl-6 py-4"><div className="flex flex-col gap-1"><span className="font-bold text-sm text-slate-900">{sub.reportType}</span><span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">{sub.controlNumber}</span></div></TableCell>
-                            <TableCell className="text-center"><Badge className={cn("capitalize font-black text-[9px] px-2 py-0.5 border-none shadow-sm", sub.statusId === 'approved' && "bg-emerald-600 text-white", sub.statusId === 'rejected' && "bg-rose-600 text-white", sub.statusId === 'submitted' && "bg-amber-500 text-amber-950")}>{sub.statusId === 'submitted' ? 'AWAITING' : sub.statusId.toUpperCase()}</Badge></TableCell>
+                            <TableCell className="text-center"><Badge className={cn("capitalize font-black text-[9px] px-2 py-0.5 border-none shadow-sm", sub.statusId === 'approved' && "bg-emerald-600 text-white", sub.statusId === 'rejected' && "bg-rose-600 text-white", sub.statusId === 'submitted' && "bg-amber-50 text-amber-950")}>{sub.statusId === 'submitted' ? 'AWAITING' : sub.statusId.toUpperCase()}</Badge></TableCell>
                             <TableCell className="text-right pr-6 space-x-2">
                                 <Button variant="default" size="sm" onClick={() => onView(sub.id)} className="h-8 text-[10px] font-bold bg-primary shadow-sm">VIEW RECORD</Button>
                                 {isAdmin && onDeleteClick && (

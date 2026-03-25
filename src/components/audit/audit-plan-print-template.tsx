@@ -33,7 +33,6 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
     return timeA - timeB;
   });
 
-  // Calculate overall date range for the header
   const auditDateRange = useMemo(() => {
     if (schedules.length === 0) return '--';
     const dates = schedules.map(s => s.scheduledDate instanceof Timestamp ? s.scheduledDate.toDate() : new Date(s.scheduledDate));
@@ -41,6 +40,8 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
     const max = new Date(Math.max(...dates.map(d => d.getTime())));
     return `${format(min, 'yyyy-MM-dd')} to ${format(max, 'yyyy-MM-dd')}`;
   }, [schedules]);
+
+  const qaoDirectorName = signatories?.qaoDirector || '____________________';
 
   return (
     <div className="p-8 text-black bg-white max-w-[8.5in] mx-auto font-sans text-[11px] leading-tight border-none">
@@ -210,7 +211,7 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
             </td>
             <td className="border-2 border-black p-4 align-middle">
               <div className="flex flex-col items-center">
-                <p className="text-sm font-black uppercase">{signatories?.qaoDirector || '____________________'}</p>
+                <p className="text-sm font-black uppercase">{qaoDirectorName}</p>
                 <p className="text-[9px] uppercase">QA Director</p>
               </div>
             </td>

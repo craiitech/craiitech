@@ -25,6 +25,8 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
     a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' })
   );
 
+  const qaoDirectorName = signatories?.qaoDirector || 'Director, Quality Assurance Office';
+
   return (
     <div className="p-6 text-black bg-white max-w-[8.5in] mx-auto font-sans leading-tight">
       {/* Institutional Branding Header */}
@@ -172,7 +174,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
       <div className="mt-10 pt-4 border-t border-slate-200 flex justify-between items-center text-[8px] text-slate-400 italic uppercase tracking-widest">
         <span>RSU-QAO-IQA-LOG | REV 02-2025</span>
         <span className="font-bold">Page 1 of 1</span>
-        <span>Issued by: {signatories?.qaoDirector || 'Director, Quality Assurance Office'}</span>
+        <span>Issued by: {qaoDirectorName}</span>
       </div>
     </div>
   );

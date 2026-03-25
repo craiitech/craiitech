@@ -23,12 +23,11 @@ export function CARPrintTemplate({ car, unitName, campusName, signatories }: CAR
   const immediateActions = (car.actionSteps || []).filter(s => s.type === 'Immediate Correction');
   const longTermActions = (car.actionSteps || []).filter(s => s.type === 'Long-term Corrective Action');
   
-  // Use the latest verification record for the bottom sections
   const latestVerification = car.verificationRecords && car.verificationRecords.length > 0 
     ? car.verificationRecords[car.verificationRecords.length - 1] 
     : null;
 
-  const directorName = signatories?.qaoDirector || car.approvedBy || 'DR. MARVIN RICK G. FORCADO';
+  const directorName = signatories?.qaoDirector || '____________________';
 
   return (
     <div className="p-8 text-black bg-white max-w-[8.5in] mx-auto font-sans text-[11px] leading-tight border-none">

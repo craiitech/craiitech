@@ -230,7 +230,7 @@ export function UnitSubmissionsView({
         missingFinal: unitData.missingFinal,
         totalApproved: unitData.approved,
         totalPossible: unitData.totalPossible,
-        qaoDirector: signatories?.qaoDirector || 'DR. MARVIN RICK G. FORCADO',
+        qaoDirector: signatories?.qaoDirector || '____________________',
         qmsHead: signatories?.qmsHead || 'QMS Head'
     };
     try {
@@ -380,7 +380,7 @@ function UnitTable({ cycleSubs, onView }: { cycleSubs: any[], onView: (id: strin
                     {cycleSubs.map(sub => (
                         <TableRow key={sub.id} className="transition-colors hover:bg-muted/10">
                             <TableCell className="pl-6 py-4"><div className="flex flex-col gap-1"><span className="font-bold text-sm text-slate-900">{sub.reportType}</span><span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">{sub.controlNumber}</span></div></TableCell>
-                            <TableCell className="text-center"><Badge className={cn("capitalize font-black text-[9px] px-2 py-0.5 border-none shadow-sm", sub.statusId === 'approved' && "bg-emerald-600 text-white", sub.statusId === 'rejected' && "bg-rose-600 text-white", sub.statusId === 'submitted' && "bg-amber-500 text-amber-950")}>{sub.statusId === 'submitted' ? 'AWAITING' : sub.statusId.toUpperCase()}</Badge></TableCell>
+                            <TableCell className="text-center"><Badge className={cn("capitalize font-black text-[9px] px-2 py-0.5 border-none shadow-sm", sub.statusId === 'approved' && "bg-emerald-600 text-white", sub.statusId === 'rejected' && "bg-rose-600 text-white", sub.statusId === 'submitted' && "bg-amber-50 text-amber-950")}>{sub.statusId === 'submitted' ? 'AWAITING' : sub.statusId.toUpperCase()}</Badge></TableCell>
                             <TableCell className="text-right pr-6"><Button variant="default" size="sm" onClick={() => onView(sub.id)} className="h-8 text-[10px] font-bold bg-primary shadow-sm">VIEW RECORD</Button></TableCell>
                         </TableRow>
                     ))}
