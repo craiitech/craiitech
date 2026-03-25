@@ -7,15 +7,16 @@ import type { AuditSchedule, AuditFinding, ISOClause, AuditPlan, Signatories } f
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Save, Clock, Building2, User, PlusCircle, Database, Check, Printer } from 'lucide-react';
+import { Loader2, ArrowLeft, Save, Clock, Building2, User, PlusCircle, Database, Check, Printer, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { AuditChecklist } from '@/components/audit/audit-checklist';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -42,6 +43,7 @@ const LoadingSkeleton = () => (
 );
 
 const summarySchema = z.object({
+  officerInCharge: z.string().min(1, 'Name of the actual auditee head/representative is required.'),
   summaryCompliance: z.string().optional(),
   summaryOFI: z.string().optional(),
   summaryNC: z.string().optional(),
@@ -62,9 +64,6 @@ export default function AuditExecutionPage() {
     [firestore, scheduleId]
   );
   const { data: schedule, isLoading: isLoadingSchedule } = useDoc<AuditSchedule>(scheduleDocRef);
-
-  // ELIMINATED: AuditPlan fetch to prevent permission errors for institutional users.
-  // The schedule now carries the denormalized auditNumber.
 
   const findingsQuery = useMemoFirebase(
     () => (firestore && scheduleId ? query(collection(firestore, 'auditFindings'), where('auditScheduleId', '==', scheduleId)) : null),
@@ -97,15 +96,17 @@ export default function AuditExecutionPage() {
   const form = useForm<z.infer<typeof summarySchema>>({
     resolver: zodResolver(summarySchema),
     defaultValues: {
-      summaryCompliance: schedule?.summaryCompliance || '',
-      summaryOFI: schedule?.summaryOFI || '',
-      summaryNC: schedule?.summaryNC || '',
+      officerInCharge: '',
+      summaryCompliance: '',
+      summaryOFI: '',
+      summaryNC: '',
     },
   });
 
-  useState(() => {
+  useEffect(() => {
       if (schedule) {
           form.reset({
+            officerInCharge: schedule.officerInCharge || schedule.auditeeHeadName || '',
             summaryCompliance: schedule.summaryCompliance || '',
             summaryOFI: schedule.summaryOFI || '',
             summaryNC: schedule.summaryNC || '',
@@ -212,7 +213,6 @@ export default function AuditExecutionPage() {
   const handleFindingSync = (finding: any) => {
     const clauseId = finding.isoClause;
     const type = finding.type;
-    // Extract the exact user text from the relevant textbox
     const actualText = type === 'Non-Conformance' ? (finding.ncStatement || finding.description) : finding.description;
     
     if (!actualText) return;
@@ -232,13 +232,12 @@ export default function AuditExecutionPage() {
 
     if (!targetFieldName) return;
 
-    // Remove any existing entry for this clause from ALL fields to handle re-categorization
     summaryFields.forEach(fName => {
+        if (fName === 'officerInCharge') return;
         const val = form.getValues(fName) || '';
         const lines = val.split('\n').filter(l => l.trim() !== '');
         const updatedLines = lines.filter(l => !l.startsWith(`[Clause ${clauseId}]`));
         
-        // If this is the destination field, add the new/updated entry in toto
         if (fName === targetFieldName) {
             updatedLines.push(formattedEntry);
         }
@@ -305,47 +304,76 @@ export default function AuditExecutionPage() {
                 onFindingSaved={handleFindingSync}
             />
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Audit Summary & Final Report</CardTitle>
-                    <CardDescription>Consolidate your findings into a high-level summary. Findings are automatically copied here when committed above.</CardDescription>
+            <Card className="shadow-xl border-primary/10 overflow-hidden">
+                <CardHeader className="bg-primary/5 border-b py-6">
+                    <CardTitle className="text-xl font-black uppercase tracking-tight">Audit Summary & Final Report</CardTitle>
+                    <CardDescription className="font-medium">Consolidate your findings into a high-level summary. Actual auditee head must be verified below.</CardDescription>
                 </CardHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(handleSaveSummary)}>
-                        <CardContent className="space-y-4">
-                            <FormField
-                                control={form.control}
-                                name="summaryCompliance"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-xs font-black uppercase text-emerald-700">Summary of Compliance (C)</FormLabel>
-                                        <FormControl><Textarea {...field} rows={4} placeholder="Summarize all instances of standard compliance..." /></FormControl>
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="summaryOFI"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-xs font-black uppercase text-amber-700">Opportunities for Improvement (OFI)</FormLabel>
-                                        <FormControl><Textarea {...field} rows={4} placeholder="Summarize all opportunities for improvement..."/></FormControl>
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="summaryNC"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-xs font-black uppercase text-destructive">Non-Compliance / Non-Conformance (NC)</FormLabel>
-                                        <FormControl><Textarea {...field} rows={4} placeholder="Summarize all non-conformances..."/></FormControl>
-                                    </FormItem>
-                                )}
-                            />
+                        <CardContent className="space-y-8 pt-8">
+                            <div className="p-6 rounded-2xl border bg-primary/5 border-primary/10 shadow-inner space-y-4">
+                                <div className="flex items-center gap-2 text-primary">
+                                    <UserCheck className="h-5 w-5" />
+                                    <h4 className="text-xs font-black uppercase tracking-widest">Auditee Representation</h4>
+                                </div>
+                                <FormField
+                                    control={form.control}
+                                    name="officerInCharge"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-[10px] font-bold uppercase text-slate-600">Officer in Charge (Actual Auditee Head / Representative)</FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                    {...field} 
+                                                    placeholder="Enter name of the actual representative present..." 
+                                                    className="h-11 font-black bg-white"
+                                                />
+                                            </FormControl>
+                                            <FormDescription className="text-[9px]">Pre-filled from itinerary. Update if a different representative was present.</FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-6">
+                                <FormField
+                                    control={form.control}
+                                    name="summaryCompliance"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-xs font-black uppercase text-emerald-700">Summary of Compliance (C)</FormLabel>
+                                            <FormControl><Textarea {...field} rows={4} placeholder="Summarize all instances of standard compliance..." /></FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="summaryOFI"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-xs font-black uppercase text-amber-700">Opportunities for Improvement (OFI)</FormLabel>
+                                            <FormControl><Textarea {...field} rows={4} placeholder="Summarize all opportunities for improvement..."/></FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="summaryNC"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-xs font-black uppercase text-destructive">Non-Compliance / Non-Conformance (NC)</FormLabel>
+                                            <FormControl><Textarea {...field} rows={4} placeholder="Summarize all non-conformances..."/></FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                         </CardContent>
-                        <CardFooter>
-                            <Button type="submit" disabled={isSavingSummary} className="shadow-lg shadow-primary/20 font-black uppercase tracking-widest">
+                        <CardFooter className="bg-slate-50 border-t py-6 px-8">
+                            <Button type="submit" disabled={isSavingSummary} className="shadow-xl shadow-primary/20 font-black uppercase tracking-widest px-8">
                                 {isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                                 <Save className="mr-2 h-4 w-4"/>
                                 Finalize Audit Report
@@ -375,6 +403,13 @@ export default function AuditExecutionPage() {
                             <div className="flex items-center gap-2">
                                 <Building2 className="h-4 w-4 text-primary" />
                                 <span className="text-sm font-bold">{schedule.targetName}</span>
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Provisioned Head</p>
+                            <div className="flex items-center gap-2">
+                                <UserCheck className="h-4 w-4 text-slate-400" />
+                                <span className="text-sm font-medium text-slate-600">{schedule.auditeeHeadName || 'Not Specified'}</span>
                             </div>
                         </div>
                         <div className="space-y-1">
