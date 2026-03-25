@@ -7,7 +7,7 @@ import type { AuditSchedule, AuditFinding, ISOClause, Signatories } from '@/lib/
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, Save, Clock, Building2, User, PlusCircle, Database, Check, Printer, UserCheck, Calendar } from 'lucide-react';
+import { Loader2, ArrowLeft, Save, Clock, Building2, User, PlusCircle, Database, Check, Printer, UserCheck, Calendar, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMemo, useState, useEffect } from 'react';
 import { AuditChecklist } from '@/components/audit/audit-checklist';
@@ -329,7 +329,7 @@ export default function AuditExecutionPage() {
         <div className="lg:col-span-2 space-y-6">
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleSaveSummary)} className="space-y-6">
-                    {/* STEP 1: CONDUCT VERIFICATION (NOW AT TOP) */}
+                    {/* STEP 1: CONDUCT VERIFICATION */}
                     <Card className="shadow-xl border-primary/10 overflow-hidden">
                         <CardHeader className="bg-primary/5 border-b py-6">
                             <CardTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
