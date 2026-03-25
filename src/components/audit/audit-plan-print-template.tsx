@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
@@ -98,8 +97,9 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
             </td>
             <td className="border-2 border-black p-2 w-[50%] align-top">
               <p className="font-bold text-[10px] uppercase opacity-60 mb-2">Audit Team</p>
-              <div className="pt-2">
-                <p className="text-sm font-black">Lead Auditor: {plan.leadAuditorName}</p>
+              <div className="pt-2 text-center">
+                <p className="text-sm font-black uppercase">{plan.leadAuditorName}</p>
+                <p className="text-[9px] uppercase font-bold text-slate-500">IQA Team Leader</p>
               </div>
             </td>
           </tr>
@@ -204,13 +204,13 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
             </td>
             <td className="border-2 border-black p-4 align-middle">
               <div className="flex flex-col items-center">
-                <p className="text-sm font-black">{plan.leadAuditorName}</p>
+                <p className="text-sm font-black uppercase">{plan.leadAuditorName || '____________________'}</p>
                 <p className="text-[9px] uppercase">IQA Team Leader</p>
               </div>
             </td>
             <td className="border-2 border-black p-4 align-middle">
               <div className="flex flex-col items-center">
-                <p className="text-sm font-black">{signatories?.qaoDirector || '____________________'}</p>
+                <p className="text-sm font-black uppercase">{signatories?.qaoDirector || '____________________'}</p>
                 <p className="text-[9px] uppercase">QA Director</p>
               </div>
             </td>
