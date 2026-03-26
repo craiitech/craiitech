@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -30,6 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, ShieldCheck, Image as ImageIcon, Save, Info } from 'lucide-react';
 import type { SystemSettings } from '@/lib/types';
 import Image from 'next/image';
+import { getDirectDriveLink } from '@/lib/utils';
 
 const logoSchema = z.object({
   logoUrl: z.string().url('Please enter a valid URL for the university logo.').min(1, 'Logo URL is required.'),
@@ -98,7 +98,7 @@ export function LogoManagement() {
                 <div className="relative h-32 w-32 rounded-full overflow-hidden border-4 border-white shadow-xl bg-white flex items-center justify-center">
                     {watchLogoUrl ? (
                         <Image 
-                            src={watchLogoUrl} 
+                            src={getDirectDriveLink(watchLogoUrl)} 
                             alt="Logo Preview" 
                             fill 
                             className="object-contain"
@@ -121,7 +121,7 @@ export function LogoManagement() {
                     <Input placeholder="https://..." {...field} className="h-11 font-bold" />
                   </FormControl>
                   <FormDescription className="text-[10px]">
-                    Provide a direct link to the university logo (PNG/JPG). Ensure the image has a transparent or white background for optimal report rendering.
+                    Provide a direct link to the university logo (PNG/JPG) or a Google Drive sharing link.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

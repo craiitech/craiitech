@@ -1,11 +1,10 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
 import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Signatories, Unit, Campus } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
+import { cn, getDirectDriveLink } from '@/lib/utils';
 
 interface ConsolidatedAuditReportTemplateProps {
   plan: AuditPlan;
@@ -54,7 +53,7 @@ export function ConsolidatedAuditReportTemplate({
         <tbody>
           <tr>
             <td className="border-[1.5px] border-slate-400 p-2 w-[15%] text-center align-middle">
-              <img src={logoUrl || "/rsupage.png"} alt="Institutional Logo" className="h-16 w-16 mx-auto object-contain" />
+              <img src={getDirectDriveLink(logoUrl) || "/rsupage.png"} alt="Institutional Logo" className="h-16 w-16 mx-auto object-contain" />
             </td>
             <td className="border-[1.5px] border-slate-400 p-4 w-[55%] text-center align-middle space-y-1">
               <p className="text-xs font-bold text-slate-600 leading-none">Romblon State University</p>

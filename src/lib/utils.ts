@@ -15,6 +15,20 @@ const REPORT_TYPE_CODES: Record<string, string> = {
 };
 
 /**
+ * Transforms a Google Drive sharing link into a direct image link for rendering.
+ */
+export function getDirectDriveLink(url: string | undefined): string {
+  if (!url) return '';
+  if (url.includes('drive.google.com') && url.includes('/file/d/')) {
+    const fileId = url.split('/file/d/')[1]?.split('/')[0];
+    if (fileId) {
+      return `https://drive.google.com/uc?export=view&id=${fileId}`;
+    }
+  }
+  return url;
+}
+
+/**
  * Fuzzy Report Normalizer
  * Centralizes the logic for identifying EOMS reports despite minor naming variations.
  */

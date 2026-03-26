@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -6,6 +5,7 @@ import type { UnitMonitoringRecord } from '@/lib/types';
 import { monitoringGroups, statusLegend } from '@/lib/monitoring-checklist-items';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
+import { getDirectDriveLink } from '@/lib/utils';
 
 interface MonitoringPrintTemplateProps {
   record: UnitMonitoringRecord;
@@ -26,7 +26,7 @@ export function MonitoringPrintTemplate({ record, campusName, unitName, logoUrl 
       {/* Header */}
       <div className="text-center border-b-2 border-black pb-4 mb-6">
         <div className="flex items-center justify-center gap-4 mb-2">
-            <img src={logoUrl || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
+            <img src={getDirectDriveLink(logoUrl) || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
             <div className="text-left">
                 <h1 className="text-xl font-bold uppercase tracking-tight leading-none">Romblon State University</h1>
                 <h2 className="text-lg font-semibold uppercase tracking-tight leading-none mt-1">Quality Assurance Office</h2>

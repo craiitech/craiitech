@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -7,7 +6,7 @@ import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { clauseQuestions } from '@/lib/audit-questions';
 import { CheckCircle2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, getDirectDriveLink } from '@/lib/utils';
 
 interface AuditPrintTemplateProps {
   schedule: AuditSchedule;
@@ -34,7 +33,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories, l
       {/* Institutional Branding Header */}
       <div className="flex flex-col items-center text-center border-b-2 border-black pb-4 mb-4">
         <div className="flex items-center gap-4 mb-2">
-            <img src={logoUrl || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
+            <img src={getDirectDriveLink(logoUrl) || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
             <div className="text-left">
                 <h1 className="text-xl font-bold uppercase tracking-tight leading-none">Romblon State University</h1>
                 <h2 className="text-md font-semibold uppercase tracking-tight leading-none mt-1">Quality Assurance Office</h2>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -17,6 +16,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ShieldCheck, ArrowRight, MonitorCheck } from 'lucide-react';
 import { useUser } from '@/firebase';
+import { getDirectDriveLink } from '@/lib/utils';
 
 export default function Home() {
   const { systemSettings } = useUser();
@@ -64,7 +64,7 @@ export default function Home() {
                     <div className="flex flex-col items-center justify-center gap-4">
                         {systemSettings?.logoUrl ? (
                             <div className="relative h-24 w-24 mb-2">
-                                <Image src={systemSettings.logoUrl} alt="University Logo" fill className="object-contain" />
+                                <Image src={getDirectDriveLink(systemSettings.logoUrl)} alt="University Logo" fill className="object-contain" />
                             </div>
                         ) : (
                             <Logo className="h-12 w-12 text-white" />

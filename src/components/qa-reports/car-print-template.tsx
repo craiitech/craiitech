@@ -1,11 +1,10 @@
-
 'use client';
 
 import React from 'react';
 import type { CorrectiveActionRequest, Signatories } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
+import { cn, getDirectDriveLink } from '@/lib/utils';
 
 interface CARPrintTemplateProps {
   car: CorrectiveActionRequest;
@@ -36,7 +35,7 @@ export function CARPrintTemplate({ car, unitName, campusName, signatories, logoU
       {/* Header */}
       <div className="text-center mb-4">
         <div className="flex items-center justify-center gap-4 mb-2">
-            <img src={logoUrl || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
+            <img src={getDirectDriveLink(logoUrl) || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
             <div className="text-left">
                 <h1 className="text-lg font-bold">Romblon State University</h1>
                 <h2 className="text-md font-bold">Quality Assurance Office</h2>

@@ -1,9 +1,8 @@
-
 'use client';
 
 import React from 'react';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, getDirectDriveLink } from '@/lib/utils';
 import { CheckCircle2, ShieldCheck } from 'lucide-react';
 
 interface NoticeProps {
@@ -62,7 +61,7 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
       {/* Institutional Header */}
       <div className="text-center border-b-2 border-black pb-6 mb-8">
         <div className="flex items-center justify-center gap-4 mb-2">
-            <img src={logoUrl || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
+            <img src={getDirectDriveLink(logoUrl) || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
             <div className="text-left">
                 <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
                 <h2 className="text-lg font-semibold uppercase tracking-tight">Quality Assurance Office</h2>
@@ -175,7 +174,7 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
       <div className="border-2 border-slate-800 p-8 min-h-[9in] flex flex-col">
         {/* Institutional Header */}
         <div className="text-center pb-6 mb-12">
-            <img src={logoUrl || "/rsupage.png"} alt="University Logo" className="h-20 w-20 mx-auto object-contain mb-4" />
+            <img src={getDirectDriveLink(logoUrl) || "/rsupage.png"} alt="University Logo" className="h-20 w-20 mx-auto object-contain mb-4" />
             <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
             <h2 className="text-lg font-semibold uppercase tracking-tight">Quality Assurance Office</h2>
             <div className="w-24 h-1 bg-primary mx-auto mt-4" />
@@ -256,7 +255,7 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed">
       <div className="text-center border-b-2 border-black pb-6 mb-8">
         <div className="flex items-center justify-center gap-4 mb-2">
-            <img src={logoUrl || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
+            <img src={getDirectDriveLink(logoUrl) || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
             <div className="text-left">
                 <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
                 <h2 className="text-lg font-semibold uppercase tracking-tight">Quality Assurance Office</h2>
@@ -381,7 +380,7 @@ export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHea
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed border-[12px] border-double border-slate-200">
       <div className="border-2 border-slate-800 p-8 min-h-[9in] flex flex-col">
         <div className="text-center pb-6 mb-12">
-            <img src={logoUrl || "/rsupage.png"} alt="University Logo" className="h-20 w-20 mx-auto object-contain mb-4" />
+            <img src={getDirectDriveLink(logoUrl) || "/rsupage.png"} alt="University Logo" className="h-20 w-20 mx-auto object-contain mb-4" />
             <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
             <h2 className="text-lg font-semibold uppercase tracking-tight">Quality Assurance Office</h2>
             <div className="w-24 h-1 bg-primary mx-auto mt-4" />

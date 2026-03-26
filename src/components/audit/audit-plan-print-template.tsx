@@ -1,11 +1,10 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
 import type { AuditPlan, AuditSchedule, Signatories, AuditGroup } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
+import { cn, getDirectDriveLink } from '@/lib/utils';
 
 interface AuditPlanPrintTemplateProps {
   plan: AuditPlan;
@@ -50,7 +49,7 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
       {/* Institutional Branding Header */}
       <div className="text-center mb-6">
         <div className="flex items-center justify-center gap-4 mb-2">
-            <img src={logoUrl || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
+            <img src={getDirectDriveLink(logoUrl) || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
             <div className="text-left">
                 <h1 className="text-lg font-bold leading-none">Romblon State University</h1>
                 <p className="text-xs">Romblon, Philippines</p>
