@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import type { AuditPlan, AuditSchedule, Campus, User, Unit, Signatories, AuditGroup } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer, Search, ArrowUpDown } from 'lucide-react';
+import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer, Search, ArrowUpDown, Users } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -413,6 +413,13 @@ export function AuditPlanList({
         const completedCount = planSchedules.filter(s => s.status === 'Completed').length;
         const progress = planSchedules.length > 0 ? (completedCount / planSchedules.length) * 100 : 0;
 
+        // Calculate unique auditor names assigned to itinerary entries for this plan
+        const teamAuditors = Array.from(new Set(
+            planSchedules
+                .map(s => s.auditorName)
+                .filter((name): name is string => !!name && name !== plan.leadAuditorName)
+        )).sort();
+
         return (
           <AccordionItem value={plan.id} key={plan.id} className="border-none rounded-2xl shadow-xl overflow-hidden bg-background">
             <AccordionTrigger className="hover:no-underline px-8 py-6 data-[state=open]:bg-slate-50 border-b transition-colors">
@@ -459,15 +466,31 @@ export function AuditPlanList({
               <div className="p-8 space-y-10">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-slate-200 border rounded-xl overflow-hidden shadow-sm">
                     <div className="bg-white p-5 space-y-4">
-                        <div className="space-y-1">
+                        <div className="space-y-3">
                             <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Audit Team</p>
-                            <div className="flex items-center gap-3 bg-muted/20 p-3 rounded-lg border border-primary/5">
+                            <div className="flex items-center gap-3 bg-primary/5 p-3 rounded-lg border border-primary/10 shadow-sm">
                                 <UserCheck className="h-5 w-5 text-primary" />
                                 <div>
-                                    <p className="text-xs font-black text-slate-900 leading-none">Lead Auditor</p>
-                                    <p className="text-xs font-medium text-primary mt-1">{plan.leadAuditorName || 'TBA'}</p>
+                                    <p className="text-[10px] font-black text-primary leading-none uppercase tracking-tighter">Lead Auditor</p>
+                                    <p className="text-sm font-bold text-slate-900 mt-1">{plan.leadAuditorName || 'TBA'}</p>
                                 </div>
                             </div>
+
+                            {teamAuditors.length > 0 && (
+                                <div className="pl-11 space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <Users className="h-3 w-3 text-muted-foreground" />
+                                        <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Assigned Team Auditors</p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {teamAuditors.map((auditor, aIdx) => (
+                                            <Badge key={aIdx} variant="outline" className="h-5 text-[9px] font-bold border-slate-200 text-slate-600 bg-slate-50 uppercase shadow-sm">
+                                                {auditor}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <div className="space-y-1">
                             <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Meeting Milestones</p>
