@@ -34,7 +34,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { User, Role, Campus, Unit } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useSessionActivity } from '@/lib/activity-log-provider';
@@ -51,6 +51,7 @@ interface EditUserDialogProps {
 const editUserSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
+  sex: z.enum(['Male', 'Female', 'Others (LGBTQI++)']).optional(),
   roleId: z.string().min(1, 'Role is required'),
   campusId: z.string().min(1, 'Campus is required'),
   unitId: z.string().optional(),
@@ -74,6 +75,7 @@ export function EditUserDialog({
     defaultValues: {
       firstName: '',
       lastName: '',
+      sex: 'Female',
       roleId: '',
       campusId: '',
       unitId: '',
@@ -86,6 +88,7 @@ export function EditUserDialog({
       form.reset({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
+        sex: (user.sex as any) || 'Female',
         roleId: user.roleId || '',
         campusId: user.campusId || '',
         unitId: user.unitId || '',
@@ -133,6 +136,7 @@ export function EditUserDialog({
     const updateData = {
         firstName: values.firstName,
         lastName: values.lastName,
+        sex: values.sex,
         roleId: values.roleId,
         role: selectedRole ? selectedRole.name : (user.role || ''),
         campusId: values.campusId,
@@ -205,6 +209,31 @@ export function EditUserDialog({
                 )}
                 />
             </div>
+
+            <FormField
+              control={form.control}
+              name="sex"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-[10px] font-bold uppercase">Sex Identification (GAD Standard)</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ''} disabled={isSubmitting}>
+                    <FormControl>
+                      <SelectTrigger className="h-9">
+                        <Users className="h-3.5 w-3.5 mr-2 opacity-40" />
+                        <SelectValue placeholder="Select sex" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="Others (LGBTQI++)">Others (LGBTQI++)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="roleId"
