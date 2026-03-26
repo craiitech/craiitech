@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -159,12 +158,12 @@ export function AnnouncementManagement() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => setEditingAnnouncement(ann)}>
+                          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setEditingAnnouncement(ann); }}>
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive"
-                            onClick={() => setDeletingAnnouncement(ann)}
+                            onSelect={(e) => { e.preventDefault(); setDeletingAnnouncement(ann); }}
                           >
                             Delete
                           </DropdownMenuItem>
@@ -209,13 +208,11 @@ export function AnnouncementManagement() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {editingAnnouncement && (
-         <EditAnnouncementDialog
-            announcement={editingAnnouncement}
-            isOpen={!!editingAnnouncement}
-            onOpenChange={() => setEditingAnnouncement(null)}
-         />
-      )}
+      <EditAnnouncementDialog
+        announcement={editingAnnouncement}
+        isOpen={!!editingAnnouncement}
+        onOpenChange={(open) => !open && setEditingAnnouncement(null)}
+      />
 
     </>
   );

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -375,10 +374,10 @@ export function AdminUnitManagement() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => setEditingUnit(unit)}>
+                                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setEditingUnit(unit); }}>
                                     Edit
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive" onClick={() => setDeletingUnit(unit)}>
+                                <DropdownMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setDeletingUnit(unit); }}>
                                     Delete
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -398,14 +397,12 @@ export function AdminUnitManagement() {
       </Card>
     </div>
 
-    {editingUnit && allCampuses && (
-        <EditUnitDialog
-            unit={editingUnit}
-            allCampuses={allCampuses}
-            isOpen={!!editingUnit}
-            onOpenChange={() => setEditingUnit(null)}
-        />
-    )}
+    <EditUnitDialog
+        unit={editingUnit}
+        allCampuses={allCampuses || []}
+        isOpen={!!editingUnit}
+        onOpenChange={(open) => !open && setEditingUnit(null)}
+    />
 
     <AlertDialog open={!!deletingUnit} onOpenChange={() => setDeletingUnit(null)}>
         <AlertDialogContent>

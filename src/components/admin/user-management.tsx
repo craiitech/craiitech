@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -368,7 +367,7 @@ export function UserManagement() {
                             <TooltipTrigger asChild>
                                 <div className="w-full">
                                     <DropdownMenuItem
-                                    onClick={() => handleToggleActivation(user)}
+                                    onSelect={(e) => { e.preventDefault(); handleToggleActivation(user); }}
                                     disabled={!user.ndaAccepted && !user.verified}
                                     >
                                     {user.verified ? (
@@ -385,10 +384,10 @@ export function UserManagement() {
                                 </TooltipContent>
                              )}
                         </Tooltip>
-                        <DropdownMenuItem onClick={() => setEditingUser(user)}>
+                        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setEditingUser(user); }}>
                             Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => setDeletingUser(user)}>
+                        <DropdownMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setDeletingUser(user); }}>
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -408,16 +407,15 @@ export function UserManagement() {
       </CardContent>
     </Card>
     </TooltipProvider>
-    {editingUser && (
-        <EditUserDialog 
-            user={editingUser}
-            isOpen={!!editingUser}
-            onOpenChange={(isOpen) => !isOpen && setEditingUser(null)}
-            roles={roles || []}
-            campuses={campuses || []}
-            units={units || []}
-        />
-    )}
+    
+    <EditUserDialog 
+        user={editingUser}
+        isOpen={!!editingUser}
+        onOpenChange={(isOpen) => !isOpen && setEditingUser(null)}
+        roles={roles || []}
+        campuses={campuses || []}
+        units={units || []}
+    />
 
     <AlertDialog open={!!deletingUser} onOpenChange={(isOpen) => !isOpen && setDeletingUser(null)}>
         <AlertDialogContent>
@@ -441,5 +439,3 @@ export function UserManagement() {
     </>
   );
 }
-
-    

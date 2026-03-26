@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -40,7 +39,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 
 interface EditUserDialogProps {
-  user: User;
+  user: User | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   roles: Role[];
@@ -82,7 +81,6 @@ export function EditUserDialog({
     },
   });
 
-  // Effect to reset form when user or dialog state changes
   useEffect(() => {
     if (user && isOpen) {
       form.reset({
@@ -99,18 +97,15 @@ export function EditUserDialog({
   const selectedRoleId = form.watch('roleId');
   const selectedCampusId = form.watch('campusId');
 
-  // Logic to determine if a unit assignment is necessary based on the selected role
   const isUnitRequired = useMemo(() => {
     if (!selectedRoleId || !roles) return false;
     const selectedRole = roles.find((r) => r.id === selectedRoleId);
     if (!selectedRole) return false;
     
-    // Roles that are campus-level or institutional (like Auditors) don't require a specific unit
     const campusLevelRoles = ['campus director', 'campus odimo', 'auditor', 'admin'];
     return !campusLevelRoles.includes(selectedRole.name.toLowerCase());
   }, [selectedRoleId, roles]);
 
-  // Filter units based on the selected campus for better data integrity
   const unitsForCampus = useMemo(() => {
     if (!selectedCampusId || !units) return [];
     return units.filter(u => u.campusIds?.includes(selectedCampusId));
@@ -132,7 +127,6 @@ export function EditUserDialog({
     const userRef = doc(firestore, 'users', user.id);
     const selectedRole = roles.find(r => r.id === values.roleId);
     
-    // Construct the payload explicitly to ensure field consistency
     const updateData = {
         firstName: values.firstName,
         lastName: values.lastName,
@@ -143,7 +137,6 @@ export function EditUserDialog({
         unitId: isUnitRequired ? (values.unitId || '') : '',
     };
 
-    // Use updateDoc for a single document modification
     updateDoc(userRef, updateData)
         .then(() => {
             logSessionActivity(`Administrator updated user profile: ${user.email}`, { 
@@ -158,7 +151,6 @@ export function EditUserDialog({
         })
         .catch(async (error) => {
             console.error('Error applying user updates:', error);
-            // Surface security rule denials or other Firestore errors
             errorEmitter.emit('permission-error', new FirestorePermissionError({
                 path: userRef.path,
                 operation: 'update',
@@ -173,160 +165,164 @@ export function EditUserDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[450px]">
-        <DialogHeader>
-          <DialogTitle>Edit User Account</DialogTitle>
-          <DialogDescription>
-            Administrator override for {user.firstName} {user.lastName}. Update their identity or institutional assignment.
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-                <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>First Name</FormLabel>
-                    <FormControl>
-                        <Input {...field} placeholder="Enter first name" disabled={isSubmitting} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Last Name</FormLabel>
-                    <FormControl>
-                        <Input {...field} placeholder="Enter last name" disabled={isSubmitting} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="sex"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-[10px] font-bold uppercase">Sex Identification (GAD Standard)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ''} disabled={isSubmitting}>
-                    <FormControl>
-                      <SelectTrigger className="h-9">
-                        <Users className="h-3.5 w-3.5 mr-2 opacity-40" />
-                        <SelectValue placeholder="Select sex" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Male">Male</SelectItem>
-                      <SelectItem value="Female">Female</SelectItem>
-                      <SelectItem value="Others (LGBTQI++)">Others (LGBTQI++)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="roleId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Institutional Role</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ''} disabled={isSubmitting}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select assigned role" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {roles.map((role) => (
-                        <SelectItem key={role.id} value={role.id}>
-                          {role.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="campusId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Assigned Campus</FormLabel>
-                  <Select 
-                    onValueChange={(val) => {
-                        field.onChange(val);
-                        form.setValue('unitId', ''); // Reset unit when campus changes to ensure consistency
-                    }} 
-                    value={field.value || ''} 
-                    disabled={isSubmitting}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a campus" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {campuses.map((campus) => (
-                        <SelectItem key={campus.id} value={campus.id}>
-                          {campus.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {isUnitRequired && (
-                <FormField
-                control={form.control}
-                name="unitId"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Assigned Unit / Office</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={isSubmitting || !selectedCampusId}>
+        {user && (
+          <>
+            <DialogHeader>
+              <DialogTitle>Edit User Account</DialogTitle>
+              <DialogDescription>
+                Administrator override for {user.firstName} {user.lastName}. Update their identity or institutional assignment.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>First Name</FormLabel>
                         <FormControl>
-                        <SelectTrigger>
-                            <SelectValue placeholder={selectedCampusId ? "Select a unit" : "Select a campus first"} />
-                        </SelectTrigger>
+                            <Input {...field} placeholder="Enter first name" disabled={isSubmitting} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Last Name</FormLabel>
+                        <FormControl>
+                            <Input {...field} placeholder="Enter last name" disabled={isSubmitting} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="sex"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-bold uppercase">Sex Identification (GAD Standard)</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={isSubmitting}>
+                        <FormControl>
+                          <SelectTrigger className="h-9">
+                            <Users className="h-3.5 w-3.5 mr-2 opacity-40" />
+                            <SelectValue placeholder="Select sex" />
+                          </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                        {unitsForCampus.map((unit) => (
-                            <SelectItem key={unit.id} value={unit.id}>
-                            {unit.name}
-                            </SelectItem>
-                        ))}
-                        {selectedCampusId && unitsForCampus.length === 0 && (
-                            <div className="p-4 text-xs text-muted-foreground italic text-center">No units found for this campus.</div>
-                        )}
+                          <SelectItem value="Male">Male</SelectItem>
+                          <SelectItem value="Female">Female</SelectItem>
+                          <SelectItem value="Others (LGBTQI++)">Others (LGBTQI++)</SelectItem>
                         </SelectContent>
-                    </Select>
-                    <FormMessage />
+                      </Select>
+                      <FormMessage />
                     </FormItem>
-                )}
+                  )}
                 />
-            )}
-            <DialogFooter className="pt-4 border-t mt-4 gap-2 sm:gap-0">
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="min-w-[140px]">
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save Changes
-                </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+
+                <FormField
+                  control={form.control}
+                  name="roleId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Institutional Role</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={isSubmitting}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select assigned role" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {roles.map((role) => (
+                            <SelectItem key={role.id} value={role.id}>
+                              {role.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="campusId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Assigned Campus</FormLabel>
+                      <Select 
+                        onValueChange={(val) => {
+                            field.onChange(val);
+                            form.setValue('unitId', '');
+                        }} 
+                        value={field.value || ''} 
+                        disabled={isSubmitting}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a campus" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {campuses.map((campus) => (
+                            <SelectItem key={campus.id} value={campus.id}>
+                              {campus.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {isUnitRequired && (
+                    <FormField
+                    control={form.control}
+                    name="unitId"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Assigned Unit / Office</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ''} disabled={isSubmitting || !selectedCampusId}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder={selectedCampusId ? "Select a unit" : "Select a campus first"} />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            {unitsForCampus.map((unit) => (
+                                <SelectItem key={unit.id} value={unit.id}>
+                                {unit.name}
+                                </SelectItem>
+                            ))}
+                            {selectedCampusId && unitsForCampus.length === 0 && (
+                                <div className="p-4 text-xs text-muted-foreground italic text-center">No units found for this campus.</div>
+                            )}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                )}
+                <DialogFooter className="pt-4 border-t mt-4 gap-2 sm:gap-0">
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
+                    <Button type="submit" disabled={isSubmitting} className="min-w-[140px]">
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Changes
+                    </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

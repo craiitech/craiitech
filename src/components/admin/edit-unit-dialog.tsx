@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -24,6 +23,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command"
 import {
   Popover,
@@ -49,7 +49,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 
 
 interface EditUnitDialogProps {
-  unit: Unit;
+  unit: Unit | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   allCampuses: Campus[];
@@ -95,7 +95,7 @@ export function EditUnitDialog({
   });
 
   useEffect(() => {
-    if (unit) {
+    if (unit && isOpen) {
       form.reset({
         name: unit.name,
         category: unit.category || 'Administrative',
@@ -104,10 +104,10 @@ export function EditUnitDialog({
         formsDriveLink: unit.formsDriveLink || '',
       });
     }
-  }, [unit, form]);
+  }, [unit, isOpen, form]);
 
   const onSubmit = async (values: z.infer<typeof editUnitSchema>) => {
-    if (!firestore) return;
+    if (!firestore || !unit) return;
 
     setIsSubmitting(true);
     
@@ -147,174 +147,180 @@ export function EditUnitDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit Unit</DialogTitle>
-          <DialogDescription>
-            Modify the details for the unit "{unit.name}".
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Unit Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unit Category</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+        {unit && (
+          <>
+            <DialogHeader>
+              <DialogTitle>Edit Unit</DialogTitle>
+              <DialogDescription>
+                Modify the details for the unit "{unit.name}".
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit Name</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Category" />
-                        </SelectTrigger>
+                        <Input {...field} />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Academic">Academic (Offers Programs)</SelectItem>
-                        <SelectItem value="Administrative">Administrative Office</SelectItem>
-                        <SelectItem value="Research">Research Center</SelectItem>
-                        <SelectItem value="Support">Support Unit</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            <FormField
-                control={form.control}
-                name="campusIds"
-                render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                    <FormLabel>Assigned Campuses</FormLabel>
-                     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                        <PopoverTrigger asChild>
-                        <FormControl>
-                            <Button
-                                variant="outline"
-                                role="combobox"
-                                className={cn(
-                                    "w-full justify-between h-auto min-h-10",
-                                    !field.value && "text-muted-foreground"
-                                )}
-                                >
-                                <div className="flex gap-1 flex-wrap py-1">
-                                  {selectedCampusIds.length > 0 ? (
-                                    selectedCampusIds.map(id => (
-                                      <Badge key={id} variant="secondary" className="text-[10px]">
-                                        {allCampuses.find(c => c.id === id)?.name || '...'}
-                                      </Badge>
-                                    ))
-                                  ) : (
-                                    "Select campuses"
-                                  )}
-                                </div>
-
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                        </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
-                                <CommandInput placeholder="Search campus..." />
-                                <CommandEmpty>No campus found.</CommandEmpty>
-                                <CommandGroup>
-                                {allCampuses.map((campus) => (
-                                    <CommandItem
-                                        value={campus.name}
-                                        key={campus.id}
-                                        onSelect={() => {
-                                            const currentIds = form.getValues('campusIds') || [];
-                                            const newIds = currentIds.includes(campus.id)
-                                                ? currentIds.filter(id => id !== campus.id)
-                                                : [...currentIds, campus.id];
-                                            form.setValue("campusIds", newIds)
-                                        }}
-                                    >
-                                    <Check
-                                        className={cn(
-                                            "mr-2 h-4 w-4",
-                                            field.value?.includes(campus.id)
-                                                ? "opacity-100"
-                                                : "opacity-0"
-                                        )}
-                                    />
-                                    {campus.name}
-                                    </CommandItem>
-                                ))}
-                                </CommandGroup>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
-                    <FormMessage />
+                      <FormMessage />
                     </FormItem>
-                )}
-            />
-            <FormField
-              control={form.control}
-              name="vicePresidentId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Vice President</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ''}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Assign a Vice President" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="none">
-                        None
-                      </SelectItem>
-                      {vicePresidents.map((vp) => (
-                        <SelectItem key={vp.id} value={vp.id}>
-                          {vp.firstName} {vp.lastName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                  )}
+                />
+                <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Unit Category</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Academic">Academic (Offers Programs)</SelectItem>
+                            <SelectItem value="Administrative">Administrative Office</SelectItem>
+                            <SelectItem value="Research">Research Center</SelectItem>
+                            <SelectItem value="Support">Support Unit</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                <FormField
+                    control={form.control}
+                    name="campusIds"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                        <FormLabel>Assigned Campuses</FormLabel>
+                         <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                            <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className={cn(
+                                        "w-full justify-between h-auto min-h-10",
+                                        !field.value && "text-muted-foreground"
+                                    )}
+                                    >
+                                    <div className="flex gap-1 flex-wrap py-1">
+                                      {selectedCampusIds.length > 0 ? (
+                                        selectedCampusIds.map(id => (
+                                          <Badge key={id} variant="secondary" className="text-[10px]">
+                                            {allCampuses.find(c => c.id === id)?.name || '...'}
+                                          </Badge>
+                                        ))
+                                      ) : (
+                                        "Select campuses"
+                                      )}
+                                    </div>
 
-            <FormField
-              control={form.control}
-              name="formsDriveLink"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-primary font-bold flex items-center gap-2">
-                    <LinkIcon className="h-4 w-4" />
-                    Official Forms Drive (Admin Set)
-                  </FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="https://drive.google.com/..." className="bg-primary/5" />
-                  </FormControl>
-                  <FormDescription className="text-[10px]">The master Google Drive area where this unit's official quality forms are maintained.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                <Command>
+                                    <CommandInput placeholder="Search campus..." />
+                                    <CommandList>
+                                        <CommandEmpty>No campus found.</CommandEmpty>
+                                        <CommandGroup>
+                                        {allCampuses.map((campus) => (
+                                            <CommandItem
+                                                value={campus.name}
+                                                key={campus.id}
+                                                onSelect={() => {
+                                                    const currentIds = form.getValues('campusIds') || [];
+                                                    const newIds = currentIds.includes(campus.id)
+                                                        ? currentIds.filter(id => id !== campus.id)
+                                                        : [...currentIds, campus.id];
+                                                    form.setValue("campusIds", newIds)
+                                                }}
+                                            >
+                                            <Check
+                                                className={cn(
+                                                    "mr-2 h-4 w-4",
+                                                    field.value?.includes(campus.id)
+                                                        ? "opacity-100"
+                                                        : "opacity-0"
+                                                )}
+                                            />
+                                            {campus.name}
+                                            </CommandItem>
+                                        ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                  control={form.control}
+                  name="vicePresidentId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vice President</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Assign a Vice President" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">
+                            None
+                          </SelectItem>
+                          {vicePresidents.map((vp) => (
+                            <SelectItem key={vp.id} value={vp.id}>
+                              {vp.firstName} {vp.lastName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save Changes
-                </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+                <FormField
+                  control={form.control}
+                  name="formsDriveLink"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-primary font-bold flex items-center gap-2">
+                        <LinkIcon className="h-4 w-4" />
+                        Official Forms Drive (Admin Set)
+                      </FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="https://drive.google.com/..." className="bg-primary/5" />
+                      </FormControl>
+                      <FormDescription className="text-[10px]">The master Google Drive area where this unit's official quality forms are maintained.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Changes
+                    </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

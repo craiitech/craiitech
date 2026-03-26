@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -33,7 +32,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 
 interface EditAnnouncementDialogProps {
-  announcement: CampusSetting;
+  announcement: CampusSetting | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
 }
@@ -59,15 +58,15 @@ export function EditAnnouncementDialog({
   });
 
   useEffect(() => {
-    if (announcement) {
+    if (announcement && isOpen) {
       form.reset({
         announcement: announcement.announcement || '',
       });
     }
-  }, [announcement, form]);
+  }, [announcement, isOpen, form]);
 
   const onSubmit = async (values: z.infer<typeof editAnnouncementSchema>) => {
-    if (!firestore) return;
+    if (!firestore || !announcement) return;
 
     setIsSubmitting(true);
     
@@ -101,36 +100,40 @@ export function EditAnnouncementDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit Announcement</DialogTitle>
-          <DialogDescription>
-            Modify the announcement message.
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-            <FormField
-              control={form.control}
-              name="announcement"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Message</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} rows={5} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save Changes
-                </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+        {announcement && (
+          <>
+            <DialogHeader>
+              <DialogTitle>Edit Announcement</DialogTitle>
+              <DialogDescription>
+                Modify the announcement message.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                <FormField
+                  control={form.control}
+                  name="announcement"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Message</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} rows={5} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Changes
+                    </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
