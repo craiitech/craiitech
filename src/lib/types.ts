@@ -217,6 +217,7 @@ export type AuditSchedule = {
     endScheduledDate: any; // Timestamp (End)
     isoClausesToAudit: string[];
     status: 'Scheduled' | 'In Progress' | 'Completed';
+    summaryCommendable?: string;
     summaryCompliance?: string;
     summaryOFI?: string;
     summaryNC?: string;

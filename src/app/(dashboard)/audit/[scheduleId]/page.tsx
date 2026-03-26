@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
@@ -47,6 +48,7 @@ const summarySchema = z.object({
   actualDate: z.string().min(1, 'Actual date of conduct is required.'),
   actualStartTime: z.string().min(1, 'Actual start time is required.'),
   actualEndTime: z.string().min(1, 'Actual end time is required.'),
+  summaryCommendable: z.string().optional(),
   summaryCompliance: z.string().optional(),
   summaryOFI: z.string().optional(),
   summaryNC: z.string().optional(),
@@ -103,6 +105,7 @@ export default function AuditExecutionPage() {
       actualDate: '',
       actualStartTime: '',
       actualEndTime: '',
+      summaryCommendable: '',
       summaryCompliance: '',
       summaryOFI: '',
       summaryNC: '',
@@ -119,6 +122,7 @@ export default function AuditExecutionPage() {
             actualDate: format(startDate, 'yyyy-MM-dd'),
             actualStartTime: format(startDate, 'HH:mm'),
             actualEndTime: format(endDate, 'HH:mm'),
+            summaryCommendable: schedule.summaryCommendable || '',
             summaryCompliance: schedule.summaryCompliance || '',
             summaryOFI: schedule.summaryOFI || '',
             summaryNC: schedule.summaryNC || '',
@@ -141,6 +145,7 @@ export default function AuditExecutionPage() {
 
         const updateData = {
             officerInCharge: values.officerInCharge,
+            summaryCommendable: values.summaryCommendable || '',
             summaryCompliance: values.summaryCompliance || '',
             summaryOFI: values.summaryOFI || '',
             summaryNC: values.summaryNC || '',
@@ -250,6 +255,7 @@ export default function AuditExecutionPage() {
     const formattedEntry = `[Clause ${clauseId}]: ${actualText}`;
     
     const summaryFields: (keyof z.infer<typeof summarySchema>)[] = [
+        'summaryCommendable',
         'summaryCompliance',
         'summaryOFI',
         'summaryNC'
@@ -423,6 +429,16 @@ export default function AuditExecutionPage() {
                             <div className="space-y-6">
                                 <FormField
                                     control={form.control}
+                                    name="summaryCommendable"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-xs font-black uppercase text-blue-700">Summary of Commendable Practices (P)</FormLabel>
+                                            <FormControl><Textarea {...field} rows={4} placeholder="Highlight positive observations and best practices recognized during the audit..." /></FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
                                     name="summaryCompliance"
                                     render={({ field }) => (
                                         <FormItem>
@@ -454,7 +470,7 @@ export default function AuditExecutionPage() {
                             </div>
                         </CardContent>
                         <CardFooter className="bg-slate-50 border-t py-6 px-8">
-                            <Button type="submit" disabled={isSavingSummary} className="shadow-xl shadow-primary/20 font-black uppercase tracking-widest px-8">
+                            <Button type="submit" disabled={isSubmitting} className="shadow-xl shadow-primary/20 font-black uppercase tracking-widest px-8">
                                 {isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                                 <Save className="mr-2 h-4 w-4"/>
                                 Finalize Audit Report

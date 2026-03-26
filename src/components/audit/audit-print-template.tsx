@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -18,7 +19,7 @@ interface AuditPrintTemplateProps {
 export function AuditPrintTemplate({ schedule, findings, clauses, signatories }: AuditPrintTemplateProps) {
   const conductDate = schedule.scheduledDate instanceof Timestamp 
     ? schedule.scheduledDate.toDate() 
-    : new Date(schedule.scheduledDate);
+    : (record.visitDate ? new Date(record.visitDate) : new Date());
 
   const findingsMap = new Map(findings.map(f => [f.isoClause, f]));
   const sortedClauses = [...clauses].sort((a, b) => 
@@ -31,7 +32,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
     <div className="p-6 text-black bg-white max-w-[8.5in] mx-auto font-sans leading-tight">
       {/* Institutional Branding Header */}
       <div className="flex flex-col items-center text-center border-b-2 border-black pb-4 mb-4">
-        <h1 className="text-lg font-bold uppercase tracking-tight leading-none">Romblon State University</h1>
+        <h1 className="text-xl font-bold uppercase tracking-tight leading-none">Romblon State University</h1>
         <h2 className="text-md font-semibold uppercase tracking-tight leading-none mt-1">Quality Assurance Office</h2>
         <div className="mt-3 px-8 py-1.5 bg-black text-white text-sm font-black uppercase tracking-[0.2em] shadow-sm">
           Internal Quality Audit Evidence Log
@@ -134,6 +135,10 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
         </h3>
         
         <div className="grid grid-cols-1 border-2 border-black divide-y-2 divide-black text-[10px]">
+            <div className="p-3 bg-blue-50/30">
+                <h4 className="font-black uppercase text-blue-700 mb-1">Summary of Commendable Practices (P)</h4>
+                <div className="min-h-[40px] whitespace-pre-wrap italic">{schedule.summaryCommendable || 'None recorded.'}</div>
+            </div>
             <div className="p-3">
                 <h4 className="font-black uppercase text-green-700 mb-1">Summary of Compliance (C)</h4>
                 <div className="min-h-[40px] whitespace-pre-wrap italic">{schedule.summaryCompliance || 'None recorded.'}</div>
