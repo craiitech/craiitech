@@ -34,7 +34,12 @@ import {
     Search,
     UserCheck,
     TrendingUp,
-    ShieldAlert
+    ShieldAlert,
+    Users,
+    LayoutList,
+    Briefcase,
+    CalendarCheck,
+    Scale
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -56,10 +61,17 @@ const COLORS = {
     NC: 'hsl(var(--destructive))',
 };
 
+type SWOTItem = {
+    title: string;
+    description: string;
+    tag: string;
+    priority?: 'High' | 'Medium' | 'Low';
+};
+
 export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, campuses, isLoading, selectedYear }: AuditAnalyticsProps) {
   
   const analytics = useMemo(() => {
-    if (!schedules.length || !findings.length) return null;
+    if (!schedules.length) return null;
 
     const yearPlans = plans.filter(p => p.year === selectedYear);
     const planIds = new Set(yearPlans.map(p => p.id));
@@ -67,9 +79,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
     const scheduleIds = new Set(yearSchedules.map(s => s.id));
     const yearFindings = findings.filter(f => scheduleIds.has(f.auditScheduleId));
 
-    if (yearFindings.length === 0) return null;
-
-    // 1. Findings Distribution (Pie)
+    // 1. Findings Distribution
     const counts = { Compliance: 0, OFI: 0, NC: 0 };
     yearFindings.forEach(f => {
         if (f.type === 'Compliance') counts.Compliance++;
@@ -82,7 +92,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         { name: 'Non-Conformance', value: counts.NC, fill: COLORS.NC },
     ].filter(d => d.value > 0);
 
-    // 2. Clause Coverage (Bar)
+    // 2. Clause Coverage
     const clauseStats: Record<string, number> = {};
     yearFindings.forEach(f => {
         clauseStats[f.isoClause] = (clauseStats[f.isoClause] || 0) + 1;
@@ -92,7 +102,19 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         .sort((a, b) => b.count - a.count)
         .slice(0, 10);
 
-    // 3. Unit Performance & Strengths
+    // 3. Auditor Workload
+    const auditorWorkload: Record<string, { name: string, count: number, completed: number }> = {};
+    yearSchedules.forEach(s => {
+        if (!s.auditorId) return;
+        if (!auditorWorkload[s.auditorId]) {
+            auditorWorkload[s.auditorId] = { name: s.auditorName || 'TBA', count: 0, completed: 0 };
+        }
+        auditorWorkload[s.auditorId].count++;
+        if (s.status === 'Completed') auditorWorkload[s.auditorId].completed++;
+    });
+    const auditorData = Object.values(auditorWorkload).sort((a, b) => b.count - a.count);
+
+    // 4. Unit Performance
     const unitMap = new Map(units.map(u => [u.id, u.name]));
     const unitResults: Record<string, { total: number, nc: number, score: number }> = {};
     
@@ -112,7 +134,34 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         unitResults[s.targetId].score = Math.round((c / (total || 1)) * 100);
     });
 
-    const strengths = Object.entries(unitResults)
+    const strengths: SWOTItem[] = [];
+    const gaps: SWOTItem[] = [];
+
+    // Deriving Strengths
+    if (yearSchedules.length > 0) {
+        const avgUnitScore = Object.values(unitResults).reduce((acc, curr) => acc + curr.score, 0) / (Object.keys(unitResults).length || 1);
+        if (avgUnitScore >= 80) {
+            strengths.push({ title: 'Positive Standard Conformity', description: `Institutional compliance mean reached ${Math.round(avgUnitScore)}% across ${Object.keys(unitResults).length} monitored units.`, tag: 'ISO 10.2' });
+        }
+        if (yearSchedules.filter(s => s.status === 'Completed').length / yearSchedules.length > 0.7) {
+            strengths.push({ title: 'High Itinerary Fulfillment', description: 'Strong velocity in completing scheduled audit sessions according to plan.', tag: 'Efficiency' });
+        }
+    }
+
+    // Deriving Gaps
+    if (counts.NC > 5) {
+        gaps.push({ title: 'Systemic Non-Compliance', description: `High volume of critical gaps (${counts.NC}) identified across standard clauses.`, tag: 'Risk Alert', priority: 'High' });
+    }
+    const unassignedCount = yearSchedules.filter(s => !s.auditorId).length;
+    if (unassignedCount > 0) {
+        gaps.push({ title: 'Resource Allocation Gap', description: `${unassignedCount} itinerary sessions are currently unassigned to any auditor.`, tag: 'Provisioning', priority: 'Medium' });
+    }
+    const overtaxedAuditor = auditorData.find(a => a.count > 10);
+    if (overtaxedAuditor) {
+        gaps.push({ title: 'Auditor Capacity Warning', description: `Individual workloads are peaking (Lead: ${overtaxedAuditor.name} with ${overtaxedAuditor.count} sessions).`, tag: 'Burnout Risk', priority: 'Medium' });
+    }
+
+    const unitExemplars = Object.entries(unitResults)
         .filter(([_, data]) => data.score >= 90)
         .map(([id, data]) => ({
             name: unitMap.get(id) || 'Unknown Unit',
@@ -130,7 +179,19 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         }))
         .sort((a, b) => b.nc - a.nc);
 
-    return { totalFindings: yearFindings.length, counts, findingsData, clauseData, strengths, hotspots };
+    return { 
+        totalFindings: yearFindings.length, 
+        counts, 
+        findingsData, 
+        clauseData, 
+        unitExemplars, 
+        hotspots,
+        auditorData,
+        strengths,
+        gaps,
+        totalSchedules: yearSchedules.length,
+        completedSchedules: yearSchedules.filter(s => s.status === 'Completed').length
+    };
   }, [plans, schedules, findings, units, selectedYear]);
 
   if (isLoading) {
@@ -147,62 +208,192 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         <div className="flex flex-col items-center justify-center h-96 text-center border-2 border-dashed rounded-3xl bg-muted/5 opacity-40">
             <BarChart3 className="h-12 w-12 mb-4" />
             <h3 className="text-lg font-black uppercase tracking-widest">Analytics Context Pending</h3>
-            <p className="text-sm max-w-xs mt-2">Conduct and finalize audits for AY {selectedYear} to activate visual decision support.</p>
+            <p className="text-sm max-w-xs mt-2">Provision sessions and record findings for AY {selectedYear} to activate visual decision support.</p>
         </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* 1. EXECUTIVE SUMMARY CARDS */}
+    <div className="space-y-8 animate-in fade-in duration-500">
+      
+      {/* 1. EXECUTIVE PERFORMANCE MONITOR */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Total Evidence Logged</CardTitle>
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Itinerary Density</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
-                <div className="text-3xl font-black text-primary tabular-nums">{analytics.totalFindings}</div>
-                <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase">Standard Clauses Verified</p>
+                <div className="text-3xl font-black text-primary tabular-nums">{analytics.totalSchedules}</div>
+                <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase">Total Scheduled Sessions</p>
             </CardContent>
-            <div className="absolute top-0 right-0 p-3 opacity-5"><ClipboardCheck className="h-12 w-12" /></div>
+            <div className="absolute top-0 right-0 p-3 opacity-5"><LayoutList className="h-12 w-12" /></div>
         </Card>
 
         <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Standard Compliances (C)</CardTitle>
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Audit Completion</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
-                <div className="text-3xl font-black text-emerald-600 tabular-nums">{analytics.counts.Compliance}</div>
-                <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Positive conformance logs</p>
+                <div className="text-3xl font-black text-emerald-600 tabular-nums">{analytics.completedSchedules}</div>
+                <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Finalized Evidence Logs</p>
             </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-5"><CheckCircle2 className="h-12 w-12 text-emerald-600" /></div>
         </Card>
 
-        <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden flex flex-col">
+        <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">Improvement Areas (OFI)</CardTitle>
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Audit Engagement</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
-                <div className="text-3xl font-black text-amber-600 tabular-nums">{analytics.counts.OFI}</div>
-                <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase">Opportunities for growth</p>
+                <div className="text-3xl font-black text-blue-600 tabular-nums">{analytics.auditorData.length}</div>
+                <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Active Internal Auditors</p>
             </CardContent>
-            <div className="absolute top-0 right-0 p-3 opacity-5"><TrendingUp className="h-12 w-12 text-amber-600" /></div>
+            <div className="absolute top-0 right-0 p-3 opacity-5"><Users className="h-12 w-12 text-blue-600" /></div>
         </Card>
 
         <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-700">Non-Conformances (NC)</CardTitle>
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-700">Critical Findings</CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
                 <div className="text-3xl font-black text-rose-600 tabular-nums">{analytics.counts.NC}</div>
-                <p className="text-[9px] font-bold text-rose-600/70 mt-1 uppercase">Standard gaps identified</p>
+                <p className="text-[9px] font-bold text-rose-600/70 mt-1 uppercase">Open Non-Conformances</p>
             </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-5"><ShieldAlert className="h-12 w-12 text-rose-600" /></div>
         </Card>
       </div>
 
+      {/* 2. STRATEGIC AUDIT SWOT */}
+      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x border rounded-2xl shadow-lg bg-background overflow-hidden">
+          <div className="flex flex-col">
+              <div className="bg-emerald-50 px-6 py-3 border-b flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Audit Strengths</span>
+              </div>
+              <div className="p-6 space-y-4">
+                  {analytics.strengths.length > 0 ? (
+                      analytics.strengths.map((item, idx) => (
+                          <div key={idx} className="space-y-1.5 group">
+                              <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                                      <span className="text-xs font-black text-slate-800 uppercase tracking-tight group-hover:text-emerald-600 transition-colors">{item.title}</span>
+                                  </div>
+                                  <Badge className="bg-emerald-100 text-emerald-700 border-none h-4 px-1.5 text-[8px] font-black">{item.tag}</Badge>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground leading-relaxed italic">"{item.description}"</p>
+                          </div>
+                      ))
+                  ) : (
+                      <p className="text-[10px] text-muted-foreground italic opacity-50 py-10 text-center">Calibrating institutional strengths...</p>
+                  )}
+              </div>
+          </div>
+
+          <div className="flex flex-col">
+              <div className="bg-rose-50 px-6 py-3 border-b flex items-center gap-2">
+                  <ShieldAlert className="h-4 w-4 text-rose-600" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-rose-700">Identified Gaps & Vulnerabilities</span>
+              </div>
+              <div className="p-6 space-y-4">
+                  {analytics.gaps.length > 0 ? (
+                      analytics.gaps.map((item, idx) => (
+                          <div key={idx} className="space-y-1.5 group">
+                              <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                      <AlertTriangle className="h-3.5 w-3.5 text-rose-600" />
+                                      <span className="text-xs font-black text-slate-800 uppercase tracking-tight group-hover:text-rose-600 transition-colors">{item.title}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                      {item.priority === 'High' && <Badge variant="destructive" className="h-4 px-1 text-[7px] font-black uppercase">Critical</Badge>}
+                                      <Badge className="bg-rose-100 text-rose-700 border-none h-4 px-1.5 text-[8px] font-black">{item.tag}</Badge>
+                                  </div>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground leading-relaxed italic">"{item.description}"</p>
+                          </div>
+                      ))
+                  ) : (
+                      <div className="py-10 flex flex-col items-center justify-center opacity-20">
+                          <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+                          <p className="text-[10px] font-black uppercase mt-2">No Strategic Gaps Detected</p>
+                      </div>
+                  )}
+              </div>
+          </div>
+      </div>
+
+      {/* 3. AUDITOR RESOURCE & WORKLOAD DISTRIBUTION */}
+      <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
+          <CardHeader className="bg-muted/10 border-b py-4">
+              <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                      <Briefcase className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-sm font-black uppercase tracking-tight">Audit Team Workload & Allocation</CardTitle>
+                  </div>
+                  <Badge variant="outline" className="h-5 text-[9px] font-black bg-white uppercase">AY {selectedYear} Resource Audit</Badge>
+              </div>
+              <CardDescription className="text-xs">Drill down into the number of units assigned per individual auditor.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+              <div className="grid grid-cols-1 lg:grid-cols-2 divide-x">
+                  <div className="p-6 h-[350px]">
+                      <ChartContainer config={{}} className="h-full w-full">
+                          <ResponsiveContainer>
+                              <BarChart data={analytics.auditorData} layout="vertical" margin={{ right: 40, left: 10 }}>
+                                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
+                                  <XAxis type="number" hide />
+                                  <YAxis dataKey="name" type="category" tick={{ fontSize: 9, fontWeight: 700 }} width={120} axisLine={false} tickLine={false} />
+                                  <Tooltip content={<ChartTooltipContent />} />
+                                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={14}>
+                                      <LabelList dataKey="count" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--primary))' }} />
+                                  </Bar>
+                              </BarChart>
+                          </ResponsiveContainer>
+                      </ChartContainer>
+                  </div>
+                  <div className="p-0">
+                      <ScrollArea className="h-[350px]">
+                          <Table>
+                              <TableHeader className="bg-slate-50 sticky top-0 z-10">
+                                  <TableRow>
+                                      <TableHead className="text-[10px] font-black uppercase pl-6">Internal Auditor</TableHead>
+                                      <TableHead className="text-[10px] font-black uppercase text-center">Assigned Units</TableHead>
+                                      <TableHead className="text-[10px] font-black uppercase text-right pr-6">Completion</TableHead>
+                                  </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                  {analytics.auditorData.map((auditor, idx) => (
+                                      <TableRow key={idx} className="hover:bg-muted/30">
+                                          <TableCell className="pl-6 font-bold text-xs">{auditor.name}</TableCell>
+                                          <TableCell className="text-center font-black tabular-nums">{auditor.count}</TableCell>
+                                          <TableCell className="text-right pr-6">
+                                              <div className="flex flex-col items-end gap-1">
+                                                  <span className="text-[10px] font-black tabular-nums">{Math.round((auditor.completed / auditor.count) * 100)}%</span>
+                                                  <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
+                                                      <div className="h-full bg-emerald-500" style={{ width: `${(auditor.completed / auditor.count) * 100}%` }} />
+                                                  </div>
+                                              </div>
+                                          </TableCell>
+                                      </TableRow>
+                                  ))}
+                              </TableBody>
+                          </Table>
+                      </ScrollArea>
+                  </div>
+              </div>
+          </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3">
+              <div className="flex items-start gap-3">
+                  <Scale className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-muted-foreground leading-relaxed italic">
+                      <strong>Operational Support:</strong> Use this registry to ensure parity in audit assignments. High session counts per auditor (e.g. >10) may impact the depth of evidence logging and the quality of final findings.
+                  </p>
+              </div>
+          </CardFooter>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 2. FINDINGS DISTRIBUTION CHART */}
+        {/* 4. FINDINGS DISTRIBUTION CHART */}
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-muted/10 border-b py-4">
                 <div className="flex items-center gap-2">
@@ -212,7 +403,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                 <CardDescription className="text-xs">Distribution of audit findings across the university for AY {selectedYear}.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex-1 flex flex-col items-center justify-center">
-                <ChartContainer config={{}} className="h-[300px] w-full">
+                <ChartContainer config={{}} className="h-[280px] w-full">
                     <ResponsiveContainer>
                         <PieChart>
                             <Tooltip content={<ChartTooltipContent hideLabel />} />
@@ -243,7 +434,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
             </div>
         </Card>
 
-        {/* 3. CLAUSE COVERAGE CHART */}
+        {/* 5. CLAUSE COVERAGE CHART */}
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-muted/10 border-b py-4">
                 <div className="flex items-center gap-2">
@@ -253,7 +444,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                 <CardDescription className="text-xs">Top 10 standard requirements prioritized in recent Evidence Logs.</CardDescription>
             </CardHeader>
             <CardContent className="pt-10 flex-1">
-                <ChartContainer config={{}} className="h-[350px] w-full">
+                <ChartContainer config={{}} className="h-[280px] w-full">
                     <ResponsiveContainer>
                         <BarChart data={analytics.clauseData} layout="vertical" margin={{ left: 20, right: 40 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
@@ -279,7 +470,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 4. AUDIT STRENGTHS (TOP PERFORMERS) */}
+        {/* 6. AUDIT STRENGTHS (TOP PERFORMERS) */}
         <Card className="shadow-md border-emerald-100 bg-emerald-50/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-emerald-50 border-b py-4">
                 <div className="flex items-center gap-2">
@@ -290,8 +481,8 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
             </CardHeader>
             <CardContent className="pt-6 flex-1">
                 <div className="space-y-3">
-                    {analytics.strengths.length > 0 ? (
-                        analytics.strengths.map((unit, idx) => (
+                    {analytics.unitExemplars.length > 0 ? (
+                        analytics.unitExemplars.map((unit, idx) => (
                             <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-white border border-emerald-100 shadow-sm transition-all hover:scale-[1.02]">
                                 <div className="flex items-center gap-3">
                                     <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-black text-xs">{idx + 1}</div>
@@ -310,7 +501,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
             </CardContent>
         </Card>
 
-        {/* 5. AUDIT HOTSPOTS (UNITS WITH NCS) */}
+        {/* 7. AUDIT HOTSPOTS (UNITS WITH NCS) */}
         <Card className="shadow-md border-rose-100 bg-rose-50/10 overflow-hidden flex flex-col">
             <CardHeader className="bg-rose-50 border-b py-4">
                 <div className="flex items-center gap-2">
@@ -332,7 +523,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                             </div>
                         ))
                     ) : (
-                        <div className="py-10 text-center flex flex-col items-center gap-2 opacity-30">
+                        <div className="py-10 flex flex-col items-center justify-center gap-2 opacity-30">
                             <CheckCircle2 className="h-10 w-10 text-emerald-600" />
                             <p className="text-[10px] font-black uppercase">Zero Open Non-Conformances</p>
                         </div>
