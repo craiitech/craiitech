@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -368,15 +369,23 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
           </CardHeader>
           <CardContent className="p-0">
               <div className="grid grid-cols-1 lg:grid-cols-2 divide-x">
-                  <div className="p-6 h-[350px]">
+                  <div className="p-6 h-[500px]">
                       <ChartContainer config={{}} className="h-full w-full">
                           <ResponsiveContainer>
                               <BarChart data={analytics.auditorData} layout="vertical" margin={{ right: 40, left: 10 }}>
                                   <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                                   <XAxis type="number" hide />
-                                  <YAxis dataKey="name" type="category" tick={{ fontSize: 9, fontWeight: 700 }} width={120} axisLine={false} tickLine={false} />
+                                  <YAxis 
+                                    dataKey="name" 
+                                    type="category" 
+                                    tick={{ fontSize: 9, fontWeight: 700 }} 
+                                    width={200} 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    interval={0}
+                                  />
                                   <Tooltip content={<ChartTooltipContent />} />
-                                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={14}>
+                                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={10}>
                                       <LabelList dataKey="count" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--primary))' }} />
                                   </Bar>
                               </BarChart>
@@ -384,7 +393,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                       </ChartContainer>
                   </div>
                   <div className="p-0">
-                      <ScrollArea className="h-[350px]">
+                      <ScrollArea className="h-[500px]">
                           <Table>
                               <TableHeader className="bg-slate-50 sticky top-0 z-10">
                                   <TableRow>
@@ -459,7 +468,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
             <div className="p-4 bg-muted/5 border-t">
                 <div className="flex items-start gap-3">
                     <Zap className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-muted-foreground leading-relaxed italic font-medium">
+                    <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">
                         <strong>Strategic Guideline:</strong> A higher "Compliance" percentage indicates institutional stability. OFIs and NCs provide the "Pulse" for the Continual Improvement cycle mandated by ISO 21001 Clause 10.2.
                     </p>
                 </div>
@@ -546,7 +555,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                 <div className="space-y-3">
                     {analytics.hotspots.length > 0 ? (
                         analytics.hotspots.map((unit, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-white border border-rose-100 shadow-sm transition-all hover:scale-[1.02]">
+                            <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-white border-rose-100 shadow-sm transition-all hover:scale-[1.02]">
                                 <div className="flex items-center gap-3">
                                     <ShieldAlert className="h-4 w-4 text-rose-600" />
                                     <span className="font-bold text-xs text-slate-800 uppercase truncate max-w-[180px]">{unit.name}</span>
