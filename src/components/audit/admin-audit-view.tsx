@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '../ui/skeleton';
 import { PlusCircle, Loader2, Database, LayoutList, BarChart3, ListChecks, Filter } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, doc, deleteDoc } from 'firebase/firestore';
@@ -235,6 +235,8 @@ export function AdminAuditView() {
                                 const plan = auditPlans?.find(p => p.id === s.auditPlanId);
                                 return plan?.year === selectedYear;
                             }) || []}
+                            findings={findings || []}
+                            isoClauses={isoClauses || []}
                             campuses={campuses || []}
                             users={users || []}
                             units={units || []}

@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AuditPlan, AuditSchedule, Campus, User, Unit, Signatories, AuditGroup } from '@/lib/types';
+import type { AuditPlan, AuditSchedule, Campus, User, Unit, Signatories, AuditGroup, AuditFinding, ISOClause } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer, Search, ArrowUpDown, Users } from 'lucide-react';
+import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer, Search, ArrowUpDown, Users, FileText } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -20,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { Timestamp, doc } from 'firebase/firestore';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditPlanPrintTemplate } from './audit-plan-print-template';
+import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,8 @@ import { Input } from '@/components/ui/input';
 interface AuditPlanListProps {
   plans: AuditPlan[];
   schedules: AuditSchedule[];
+  findings: AuditFinding[];
+  isoClauses: ISOClause[];
   campuses: Campus[];
   users: User[];
   units: Unit[];
@@ -283,7 +285,11 @@ function PlanItineraryRegistry({
 export function AuditPlanList({ 
     plans, 
     schedules, 
+    findings,
+    isoClauses,
     campuses, 
+    users,
+    units, 
     onEditPlan, 
     onDeletePlan,
     onScheduleAudit, 
@@ -331,13 +337,11 @@ export function AuditPlanList({
     const planSchedules = schedules.filter(s => s.auditPlanId === plan.id);
     const cName = campusMap.get(plan.campusId) || 'Institutional';
 
-    // Grouping logic: Use categories defined in the plan
     const sectionsToPrint = Array.from(new Set([
         ...(plan.auditeeType || []),
         ...(planSchedules.map(s => s.processCategory).filter(Boolean) as AuditGroup[])
     ]));
 
-    // Sort sections: Management -> Operation -> Support
     const order = { 'Management Processes': 1, 'Operation Processes': 2, 'Support Processes': 3 };
     sectionsToPrint.sort((a, b) => (order[a as keyof typeof order] || 99) - (order[b as keyof typeof order] || 99));
 
@@ -396,6 +400,63 @@ export function AuditPlanList({
     }
   };
 
+  const handlePrintConsolidatedReport = (plan: AuditPlan) => {
+    const planSchedules = schedules.filter(s => s.auditPlanId === plan.id);
+    const scheduleIds = new Set(planSchedules.map(s => s.id));
+    const planFindings = findings.filter(f => scheduleIds.has(f.auditScheduleId));
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <ConsolidatedAuditReportTemplate 
+                plan={plan}
+                schedules={planSchedules}
+                findings={planFindings}
+                clauses={isoClauses}
+                units={units}
+                campuses={campuses}
+                signatories={signatories || undefined}
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Consolidated Audit Report - ${plan.auditNumber}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @media print { 
+                            body { margin: 0; padding: 0; background: white; } 
+                            .no-print { display: none !important; }
+                            .print-page-break { page-break-after: always; }
+                            .print-page-break:last-child { page-break-after: auto; }
+                            table { page-break-inside: auto; }
+                            tr { page-break-inside: avoid; page-break-after: auto; }
+                        }
+                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-black uppercase text-xs tracking-widest transition-all">Print Consolidated Institutional Report</button>
+                    </div>
+                    <div id="print-content">
+                        ${reportHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) {
+        console.error("Consolidation error:", err);
+        toast({ title: "Report Generation Failed", description: "Could not consolidate institutional findings.", variant: "destructive" });
+    }
+  };
+
   if (plans.length === 0) {
     return (
         <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 opacity-40">
@@ -413,7 +474,6 @@ export function AuditPlanList({
         const completedCount = planSchedules.filter(s => s.status === 'Completed').length;
         const progress = planSchedules.length > 0 ? (completedCount / planSchedules.length) * 100 : 0;
 
-        // Calculate unique auditor names assigned to itinerary entries for this plan
         const teamAuditors = Array.from(new Set(
             planSchedules
                 .map(s => s.auditorName)
@@ -529,6 +589,14 @@ export function AuditPlanList({
                         <h4 className="text-sm font-black uppercase tracking-widest text-slate-900">Audit Itinerary Entries</h4>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={(e) => { e.stopPropagation(); handlePrintConsolidatedReport(plan); }} 
+                            className="h-9 text-[10px] font-black uppercase tracking-widest bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100 gap-2"
+                        >
+                            <FileText className="h-3.5 w-3.5"/> Consolidate Report
+                        </Button>
                         <Button 
                             variant="outline" 
                             size="sm" 
