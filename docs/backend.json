@@ -9,6 +9,7 @@
         "email": { "type": "string", "format": "email" },
         "firstName": { "type": "string" },
         "lastName": { "type": "string" },
+        "sex": { "type": "string", "enum": ["Male", "Female", "Others (LGBTQI++)"] },
         "roleId": { "type": "string" },
         "role": { "type": "string" },
         "campusId": { "type": "string" },

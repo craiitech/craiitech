@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Building, Briefcase, Accessibility, Zap, ShieldCheck, Activity, Info, Save, Type, Palette } from 'lucide-react';
+import { Loader2, Mail, Building, Briefcase, Accessibility, Zap, ShieldCheck, Activity, Info, Save, Type, Palette, Users } from 'lucide-react';
 import type { Campus, Unit, Role } from '@/lib/types';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Label } from '@/components/ui/label';
@@ -36,11 +36,13 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, { message: 'First name is required.' }),
   lastName: z.string().min(1, { message: 'Last name is required.' }),
+  sex: z.enum(['Male', 'Female', 'Others (LGBTQI++)'], { required_error: 'Please select your sex.' }),
   accessibility: z.object({
     highContrast: z.boolean().default(false),
     dyslexicFont: z.boolean().default(false),
@@ -74,6 +76,7 @@ export default function ProfilePage() {
     defaultValues: {
       firstName: '',
       lastName: '',
+      sex: 'Female',
       accessibility: {
         highContrast: false,
         dyslexicFont: false,
@@ -87,8 +90,9 @@ export default function ProfilePage() {
   useEffect(() => {
     if (userProfile) {
       form.reset({
-        firstName: userProfile.firstName,
-        lastName: userProfile.lastName,
+        firstName: userProfile.firstName || '',
+        lastName: userProfile.lastName || '',
+        sex: (userProfile.sex as any) || 'Female',
         accessibility: {
           highContrast: userProfile.accessibility?.highContrast || false,
           dyslexicFont: userProfile.accessibility?.dyslexicFont || false,
@@ -133,6 +137,7 @@ export default function ProfilePage() {
       await updateDoc(userDocRef, {
         firstName: values.firstName,
         lastName: values.lastName,
+        sex: values.sex,
         accessibility: values.accessibility,
       });
 
@@ -211,6 +216,32 @@ export default function ProfilePage() {
                           )}
                       />
                   </div>
+
+                  <FormField
+                    control={form.control}
+                    name="sex"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-bold uppercase">Sex Identification (GAD Standard)</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <FormControl>
+                            <SelectTrigger className="h-9 font-bold">
+                              <Users className="h-3.5 w-3.5 mr-2 opacity-40" />
+                              <SelectValue placeholder="Select sex" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Male">Male</SelectItem>
+                            <SelectItem value="Female">Female</SelectItem>
+                            <SelectItem value="Others (LGBTQI++)">Others (LGBTQI++)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription className="text-[9px]">Used for institutional Gender and Development (GAD) reporting.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                     <div className="space-y-2">
                       <Label className="text-[10px] font-bold uppercase text-muted-foreground">Email</Label>
                       <div className="flex h-9 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground font-medium">

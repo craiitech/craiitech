@@ -18,6 +18,7 @@ export type User = {
   email: string;
   firstName: string;
   lastName: string;
+  sex?: string;
   avatar?: string;
   roleId: string;
   role: string; // denormalized
