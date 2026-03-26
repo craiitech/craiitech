@@ -7,10 +7,10 @@ import type {
     Campus, 
     Signatories, 
     Risk, 
-    UnitMonitoringRecord, 
-    ProgramComplianceRecord, 
-    AuditFinding, 
-    CorrectiveActionRequest, 
+    UnitMonitoringRecord,
+    ProgramComplianceRecord,
+    AuditFinding,
+    CorrectiveActionRequest,
     ManagementReviewOutput 
 } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -382,7 +382,7 @@ export function CampusSubmissionsView({
           isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6"
         )}>
           <Card className="flex flex-col h-full shadow-sm border-primary/10">
-            <CardHeader className="bg-muted/30 border-b pb-4">
+            <CardHeader className="bg-muted/30 border-b pb-4 shrink-0">
               <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Institutional Scope</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden p-0">
@@ -469,7 +469,7 @@ export function CampusSubmissionsView({
                 </div>
 
                 <StrategicSwotAnalysis 
-                    submissions={unitData.yearSubmissions}
+                    submissions={unitData.allUnitSubmissions}
                     risks={campusRisks?.filter(r => r.unitId === selectedUnitId) || []}
                     monitoringRecords={campusMonitoring?.filter(r => r.unitId === selectedUnitId) || []}
                     programCompliances={campusCompliances?.filter(c => c.unitId === selectedUnitId) || []}
@@ -515,6 +515,32 @@ export function CampusSubmissionsView({
                         </div>
                     </div>
                 </div>
+
+                {/* 2-COLUMN SUBMISSION REGISTRY (RE-IMPLEMENTED) */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between px-1">
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 px-4 h-6 font-black text-[10px] uppercase">1st Cycle Submission Registry</Badge>
+                        </div>
+                        <UnitTable 
+                            cycleSubs={unitData.firstCycle} 
+                            onView={(id) => router.push(`/submissions/${id}`)}
+                            isAdmin={isGlobalAdmin}
+                            onDeleteClick={onDeleteClick}
+                        />
+                    </div>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between px-1">
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 px-4 h-6 font-black text-[10px] uppercase">Final Cycle Submission Registry</Badge>
+                        </div>
+                        <UnitTable 
+                            cycleSubs={unitData.finalCycle} 
+                            onView={(id) => router.push(`/submissions/${id}`)}
+                            isAdmin={isGlobalAdmin}
+                            onDeleteClick={onDeleteClick}
+                        />
+                    </div>
+                </div>
               </div>
             </ScrollArea>
           ) : selectedCampusId && campusSummary ? (
@@ -523,7 +549,7 @@ export function CampusSubmissionsView({
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
                         <div className="space-y-1">
                             <h3 className="font-black text-2xl uppercase tracking-tight text-primary">{campusMap.get(selectedCampusId)}</h3>
-                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Site Performance Dashboard &bull; AY {selectedYear}</p>
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Site Performance Dashboard & bull; AY {selectedYear}</p>
                         </div>
                         <Button 
                             variant="outline" 
@@ -541,6 +567,7 @@ export function CampusSubmissionsView({
                         risks={campusRisks || []}
                         monitoringRecords={campusMonitoring || []}
                         programCompliances={campusCompliances || []}
+                        auditFindings={auditFindings || []}
                         correctiveActionRequests={campusCars || []}
                         mrOutputs={mrOutputs?.filter(o => o.assignments?.some(a => a.campusId === selectedCampusId)) || []}
                         scope="campus"
