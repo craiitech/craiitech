@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -5,6 +6,7 @@ import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Signatories, Un
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { cn, getDirectDriveLink } from '@/lib/utils';
+import { ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 interface ConsolidatedAuditReportTemplateProps {
   plan: AuditPlan;
@@ -205,6 +207,16 @@ export function ConsolidatedAuditReportTemplate({
             </table>
         </div>
       </div>
+
+      {/* V. Auditor Team Conclusion */}
+      <section className="mb-12 space-y-4 break-inside-avoid pt-10">
+        <h3 className="font-black text-xs uppercase border-b border-black pb-1 flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4" /> V. Auditor Team Conclusion
+        </h3>
+        <div className="border border-black p-6 min-h-[150px] text-sm leading-relaxed italic text-slate-700">
+            Based on the objective evidence collected across the university units, the Internal Quality Audit team concludes that the Romblon State University Educational Organizations Management System (EOMS) is...
+        </div>
+      </section>
 
       {/* FINAL SIGNATORIES */}
       <div className="grid grid-cols-2 gap-16 mt-20 text-center break-inside-avoid px-10">
