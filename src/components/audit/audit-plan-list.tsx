@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -418,7 +417,6 @@ export function AuditPlanList({
                 units={units}
                 campuses={campuses}
                 signatories={signatories || undefined}
-                logoUrl={systemSettings?.logoUrl}
             />
         );
 

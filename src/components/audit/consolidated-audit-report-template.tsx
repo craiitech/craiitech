@@ -1,11 +1,9 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
 import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Signatories, Unit, Campus } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
-import { cn, getDirectDriveLink } from '@/lib/utils';
 import { ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 interface ConsolidatedAuditReportTemplateProps {
@@ -16,7 +14,6 @@ interface ConsolidatedAuditReportTemplateProps {
   units: Unit[];
   campuses: Campus[];
   signatories?: Signatories;
-  logoUrl?: string;
 }
 
 export function ConsolidatedAuditReportTemplate({ 
@@ -26,8 +23,7 @@ export function ConsolidatedAuditReportTemplate({
     clauses, 
     units, 
     campuses, 
-    signatories,
-    logoUrl
+    signatories
 }: ConsolidatedAuditReportTemplateProps) {
   
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
@@ -50,14 +46,11 @@ export function ConsolidatedAuditReportTemplate({
   return (
     <div className="p-8 text-black bg-white max-w-[8.5in] mx-auto font-sans text-[11px] leading-tight border-none">
       
-      {/* OFFICIAL HEADER TABLE */}
+      {/* OFFICIAL HEADER TABLE - LOGO REMOVED */}
       <table className="w-full border-collapse border-[1.5px] border-slate-400 mb-8">
         <tbody>
           <tr>
-            <td className="border-[1.5px] border-slate-400 p-2 w-[15%] text-center align-middle">
-              <img src={getDirectDriveLink(logoUrl) || "/rsupage.png"} alt="Institutional Logo" className="h-16 w-16 mx-auto object-contain" />
-            </td>
-            <td className="border-[1.5px] border-slate-400 p-4 w-[55%] text-center align-middle space-y-1">
+            <td className="border-[1.5px] border-slate-400 p-4 w-[70%] text-center align-middle space-y-1">
               <p className="text-xs font-bold text-slate-600 leading-none">Romblon State University</p>
               <p className="text-sm font-black uppercase tracking-widest text-slate-800">INTERNAL QUALITY AUDIT</p>
               <div className="h-px bg-slate-300 w-24 mx-auto my-1" />
@@ -209,7 +202,7 @@ export function ConsolidatedAuditReportTemplate({
       </div>
 
       {/* V. Auditor Team Conclusion */}
-      <section className="mb-12 space-y-4 break-inside-avoid pt-10">
+      <section className="mt-12 mb-12 space-y-4 break-inside-avoid">
         <h3 className="font-black text-xs uppercase border-b border-black pb-1 flex items-center gap-2">
             <ShieldCheck className="h-4 w-4" /> V. Auditor Team Conclusion
         </h3>
