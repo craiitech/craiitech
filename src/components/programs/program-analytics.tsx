@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { AcademicProgram, ProgramComplianceRecord, AccreditationRecord, CurriculumRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { 
     BarChart, 
     Bar, 
@@ -19,7 +20,6 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Skeleton } from '../ui/skeleton';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -386,7 +386,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 if (s === 'AWAITING RESULT' || s === 'SCHEDULE PENDING' || s === 'TBA') return 999998;
                 
                 const match = s.match(/\d{4}/);
-                const year = match ? parseInt(match[0]) : 0;
+                const year = match ? parseInt(yearMatch[0]) : 0;
                 
                 const months: Record<string, number> = { 
                     jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, 
@@ -454,10 +454,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             </CardHeader>
             <CardContent className="flex-1">
                 <div className="text-3xl font-black text-slate-900">{analytics?.activeCount} Active</div>
-                <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">{analytics?.inactiveCount} Subject for Closure</p>
+                <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">{analytics?.inactiveCount} CLOSED PROGRAMS</p>
             </CardContent>
             <CardFooter className="bg-muted/5 border-t py-2 px-4">
-                <p className="text-[8px] text-muted-foreground italic leading-tight"><strong>Guidance for usage:</strong> Reflects total active program offerings versus those currently being phased out.</p>
+                <p className="text-[8px] text-muted-foreground italic leading-tight"><strong>Guidance for usage:</strong> Reflects total active program offerings versus those that have been officially closed.</p>
             </CardFooter>
         </Card>
 
@@ -810,7 +810,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       <ChartContainer config={chartConfig} className="h-[350px] w-full">
                         <ResponsiveContainer>
                             <BarChart data={analytics?.velocityData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                 <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} />
                                 <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
                                 <RechartsTooltip content={<ChartTooltipContent />} />
@@ -932,7 +932,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                                 </Button>
                                             </TableHead>
                                             <TableHead className="text-right pr-8 py-4">
-                                                <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent ml-auto" onClick={() => requestSort('status')}>
+                                                <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent ml-auto" onClick={() => requestSort('status')}>
                                                     Status {getSortIcon('status')}
                                                 </Button>
                                             </TableHead>
