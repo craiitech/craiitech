@@ -208,6 +208,7 @@ export function AdminAuditView() {
                 isoClauses={isoClauses || []}
                 units={units || []}
                 campuses={campuses || []}
+                users={users || []}
                 isLoading={isLoading}
                 selectedYear={selectedYear}
             />
@@ -268,7 +269,7 @@ export function AdminAuditView() {
       <AlertDialog open={!!deletingPlan} onOpenChange={(open) => !open && setDeletingPlan(null)}>
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Remove Audit Plan?</AlertDialogTitle>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                 <AlertDialogDescription>
                     This will permanently delete the institutional plan <strong>"{deletingPlan?.title}"</strong>. 
                 </AlertDialogDescription>

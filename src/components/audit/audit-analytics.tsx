@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Unit, Campus } from '@/lib/types';
+import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Unit, Campus, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '../ui/skeleton';
@@ -39,7 +39,8 @@ import {
     LayoutList,
     Briefcase,
     CalendarCheck,
-    Scale
+    Scale,
+    HandHeart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -52,6 +53,7 @@ interface AuditAnalyticsProps {
   isoClauses: ISOClause[];
   units: Unit[];
   campuses: Campus[];
+  users: User[];
   isLoading: boolean;
   selectedYear: number;
 }
@@ -67,9 +69,10 @@ type SWOTItem = {
     description: string;
     tag: string;
     priority?: 'High' | 'Medium' | 'Low';
+    category?: string;
 };
 
-export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, campuses, isLoading, selectedYear }: AuditAnalyticsProps) {
+export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, campuses, users, isLoading, selectedYear }: AuditAnalyticsProps) {
   
   const analytics = useMemo(() => {
     if (!schedules.length) return null;
@@ -103,10 +106,13 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         .sort((a, b) => b.count - a.count)
         .slice(0, 10);
 
-    // 3. Auditor Workload
+    // 3. Auditor Workload & Sex Distribution
     const auditorWorkload: Record<string, { name: string, count: number, completed: number }> = {};
+    const uniqueAuditorIds = new Set<string>();
+
     yearSchedules.forEach(s => {
         if (!s.auditorId) return;
+        uniqueAuditorIds.add(s.auditorId);
         if (!auditorWorkload[s.auditorId]) {
             auditorWorkload[s.auditorId] = { name: s.auditorName || 'TBA', count: 0, completed: 0 };
         }
@@ -114,6 +120,15 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         if (s.status === 'Completed') auditorWorkload[s.auditorId].completed++;
     });
     const auditorData = Object.values(auditorWorkload).sort((a, b) => b.count - a.count);
+
+    // Auditor Sex Distribution Calculation
+    const auditorSexCounts = { Male: 0, Female: 0, Others: 0 };
+    uniqueAuditorIds.forEach(id => {
+        const user = users.find(u => u.id === id);
+        if (user?.sex === 'Male') auditorSexCounts.Male++;
+        else if (user?.sex === 'Female') auditorSexCounts.Female++;
+        else if (user?.sex === 'Others (LGBTQI++)') auditorSexCounts.Others++;
+    });
 
     // 4. Unit Performance
     const unitMap = new Map(units.map(u => [u.id, u.name]));
@@ -188,17 +203,18 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         unitExemplars, 
         hotspots,
         auditorData,
+        auditorSexCounts,
         strengths,
         gaps,
         totalSchedules: yearSchedules.length,
         completedSchedules: yearSchedules.filter(s => s.status === 'Completed').length
     };
-  }, [plans, schedules, findings, units, selectedYear]);
+  }, [plans, schedules, findings, units, users, selectedYear]);
 
   if (isLoading) {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}
             <Skeleton className="h-[400px] col-span-full rounded-2xl" />
         </div>
     );
@@ -218,7 +234,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
     <div className="space-y-8 animate-in fade-in duration-500">
       
       {/* 1. EXECUTIVE PERFORMANCE MONITOR */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
             <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Itinerary Density</CardTitle>
@@ -250,6 +266,21 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                 <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Active Internal Auditors</p>
             </CardContent>
             <div className="absolute top-0 right-0 p-3 opacity-5"><Users className="h-12 w-12 text-blue-600" /></div>
+        </Card>
+
+        <Card className="bg-purple-50 border-purple-100 shadow-sm relative overflow-hidden flex flex-col">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-700">Auditor Sex Distribution</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
+                <div className="text-3xl font-black text-purple-600 tabular-nums">
+                    {analytics.auditorSexCounts.Male}M / {analytics.auditorSexCounts.Female}F
+                </div>
+                <p className="text-[9px] font-bold text-purple-600/70 mt-1 uppercase">
+                    {analytics.auditorSexCounts.Others > 0 ? `+ ${analytics.auditorSexCounts.Others} Others (LGBTQI++)` : 'GAD Compliant Pool'}
+                </p>
+            </CardContent>
+            <div className="absolute top-0 right-0 p-3 opacity-5"><HandHeart className="h-12 w-12 text-purple-600" /></div>
         </Card>
 
         <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden flex flex-col">
