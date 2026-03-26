@@ -20,11 +20,18 @@ import {
   UserCredential,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { Loader2, Mail, X, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Loader2, Mail, X, Eye, EyeOff, AlertCircle, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';
 import { DataPrivacyDialog } from './data-privacy-dialog';
 import { logUserActivity } from '@/lib/activity-logger';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface AuthFormProps {
   initialTab: 'signin' | 'signup';
@@ -51,6 +58,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [sex, setSex] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [privacyPolicyAgreed, setPrivacyPolicyAgreed] = useState(false);
   const [isPrivacyDialogOpen, setIsPrivacyDialogOpen] = useState(false);
@@ -89,6 +97,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             email: user.email,
             firstName: firstName || first || 'User',
             lastName: lastName || last || '',
+            sex: sex || '',
             avatar: user.photoURL,
             roleId: '',
             role: '',
@@ -115,7 +124,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         setAuthError('An error occurred while setting up your institutional profile. Please try again.');
         setIsSubmitting(false);
     }
-  }, [firestore, firstName, lastName, router, toast]);
+  }, [firestore, firstName, lastName, sex, router, toast]);
 
   // Handle Redirect Result on Mount
   useEffect(() => {
@@ -150,6 +159,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     setPassword('');
     setFirstName('');
     setLastName('');
+    setSex('');
     setIsPasswordVisible(false);
     setAuthError(null);
 
@@ -191,8 +201,8 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         setAuthError('Authentication service is not available.');
         return;
     }
-    if (!email || !password || !firstName || !lastName) {
-      setAuthError("Please fill out all fields.");
+    if (!email || !password || !firstName || !lastName || !sex) {
+      setAuthError("Please fill out all fields, including sex identification.");
       return;
     }
     if (!privacyPolicyAgreed) {
@@ -327,6 +337,23 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             className="bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
           />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="sex-signup">Sex Identification (GAD Standard)</Label>
+        <Select onValueChange={(val) => { setSex(val); clearError(); }} value={sex}>
+          <SelectTrigger id="sex-signup" className="h-10 bg-gray-800/50 border-gray-700 text-white">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-gray-400" />
+              <SelectValue placeholder="Select sex" />
+            </div>
+          </SelectTrigger>
+          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+            <SelectItem value="Male">Male</SelectItem>
+            <SelectItem value="Female">Female</SelectItem>
+            <SelectItem value="Others (LGBTQI++)">Others (LGBTQI++)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">
