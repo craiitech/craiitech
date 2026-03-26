@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormContext, useFieldArray } from 'react-hook-form';
@@ -79,6 +80,7 @@ export function FacultyModule({ canEdit, program }: FacultyModuleProps) {
             <SelectContent>
               <SelectItem value="Male">Male</SelectItem>
               <SelectItem value="Female">Female</SelectItem>
+              <SelectItem value="Others (LGBTQI++)">Others (LGBTQI++)</SelectItem>
             </SelectContent>
           </Select>
         </FormItem>
@@ -193,6 +195,7 @@ export function FacultyModule({ canEdit, program }: FacultyModuleProps) {
                       <SelectContent>
                         <SelectItem value="Male">Male</SelectItem>
                         <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Others (LGBTQI++)">Others (LGBTQI++)</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormItem>

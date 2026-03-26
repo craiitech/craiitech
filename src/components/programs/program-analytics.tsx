@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -77,11 +78,12 @@ const ACCREDITATION_LEVELS_ORDER = [
 type ProgramCategory = 'Undergraduate' | 'Graduate' | 'Inactive';
 
 const chartConfig = {
-    Undergraduate: { label: 'Undergraduate', color: 'hsl(var(--primary))' },
+    Undergraduate: { label: 'Undergraduate', color: 'hsl(var(--chart-1))' },
     Graduate: { label: 'Graduate', color: 'hsl(var(--chart-2))' },
     Inactive: { label: 'Closed Programs', color: 'hsl(var(--muted-foreground))' },
     Male: { label: 'Male', color: 'hsl(var(--chart-1))' },
     Female: { label: 'Female', color: 'hsl(var(--chart-2))' },
+    Others: { label: 'Others (LGBTQI++)', color: 'hsl(var(--chart-3))' },
     School: { label: 'Institutional Rate', color: 'hsl(var(--primary))' },
     National: { label: 'National Average', color: 'hsl(var(--muted-foreground))' }
 };
@@ -139,6 +141,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     const uniqueFacultySet = new Set<string>();
     let totalMaleFaculty = 0;
     let totalFemaleFaculty = 0;
+    let totalOthersFaculty = 0;
 
     const copcByYear: Record<string, { year: string, Undergraduate: number, Graduate: number, Inactive: number, total: number }> = {};
     const velocityByYear: Record<string, { year: string, Undergraduate: number, Graduate: number, Inactive: number, total: number }> = {};
@@ -291,6 +294,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                         uniqueFacultySet.add(key);
                         if (m.sex === 'Male') totalMaleFaculty++;
                         else if (m.sex === 'Female') totalFemaleFaculty++;
+                        else totalOthersFaculty++;
                     }
                 });
             }
@@ -339,10 +343,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         }
     });
 
-    const makePieData = (m: number, f: number) => {
+    const makePieData = (m: number, f: number, o: number = 0) => {
         return [
             { name: 'Male', value: m, fill: chartConfig.Male.color },
-            { name: 'Female', value: f, fill: chartConfig.Female.color }
+            { name: 'Female', value: f, fill: chartConfig.Female.color },
+            { name: 'Others (LGBTQI++)', value: o, fill: chartConfig.Others.color }
         ].filter(d => d.value > 0);
     }
 
@@ -359,13 +364,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         sem2Total: sem2Male + sem2Female,
         summerTotal: summerMale + summerFemale,
         sem1Male, sem1Female, sem2Male, sem2Female, summerMale, summerFemale,
-        totalMaleFaculty, totalFemaleFaculty, totalFaculty: totalMaleFaculty + totalFemaleFaculty,
+        totalMaleFaculty, totalFemaleFaculty, totalOthersFaculty, totalFaculty: totalMaleFaculty + totalFemaleFaculty + totalOthersFaculty,
         gadEnrollment1stData: makePieData(sem1Male, sem1Female),
         gadEnrollment2ndData: makePieData(sem2Male, sem2Female),
         gadEnrollmentSummerData: makePieData(summerMale, summerFemale),
-        gadFacultyData: makePieData(totalMaleFaculty, totalFemaleFaculty),
-        gadGraduationData: [{ name: 'Male', value: totalMaleGrads, fill: chartConfig.Male.color }, { name: 'Female', value: totalFemaleGrads, fill: chartConfig.Female.color }].filter(d => d.value > 0),
-        gadTracerData: [{ name: 'Male', value: totalMaleTraced, fill: chartConfig.Male.color }, { name: 'Female', value: totalFemaleTraced, fill: chartConfig.Female.color }].filter(d => d.value > 0),
+        gadFacultyData: makePieData(totalMaleFaculty, totalFemaleFaculty, totalOthersFaculty),
+        gadGraduationData: makePieData(totalMaleGrads, totalFemaleGrads),
+        gadTracerData: makePieData(totalMaleTraced, totalFemaleTraced),
         boardPerfData: boardCount > 0 ? [{ name: 'School', rate: Math.round(totalSchoolRate / boardCount), fill: chartConfig.School.color }, { name: 'National', rate: Math.round(totalNationalRate / boardCount), fill: chartConfig.National.color }] : [],
         gapRegistry,
         monitoredCount: filteredCompliances.length 
@@ -516,7 +521,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       </div>
                       <CardDescription className="text-[10px] font-bold text-rose-700/70 uppercase">Critical documentation deficiencies impacting maturity index for AY {selectedYear}.</CardDescription>
                   </div>
-                  <Badge variant="destructive" className="h-6 px-4 font-black uppercase text-[10px] tracking-widest shadow-sm">ACTION REQUIRED</Badge>
+                  <Badge variant="destructive" className="animate-pulse shadow-sm h-5 text-[9px] font-black uppercase">ACTION REQUIRED</Badge>
               </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -586,7 +591,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                         <div className="flex flex-col items-center justify-center text-center space-y-2 opacity-40"><Activity className="h-8 w-8" /><p className="text-[11px] font-black uppercase tracking-widest">NO DATA YET!</p></div>
                       )}
                   </CardContent>
-                  <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight">1st Semester Male/Female distribution.</p></CardFooter>
+                  <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight">1st Semester distribution.</p></CardFooter>
               </Card>
 
               <Card className="shadow-md flex flex-col border-primary/10 overflow-hidden group hover:shadow-lg transition-all h-[320px]">
@@ -612,7 +617,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                         <div className="flex flex-col items-center justify-center text-center space-y-2 opacity-40"><Activity className="h-8 w-8" /><p className="text-[11px] font-black uppercase tracking-widest">NO DATA YET!</p></div>
                       )}
                   </CardContent>
-                  <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight">2nd Semester Male/Female distribution.</p></CardFooter>
+                  <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight">2nd Semester distribution.</p></CardFooter>
               </Card>
 
               <Card className="shadow-md flex flex-col border-primary/10 overflow-hidden group hover:shadow-lg transition-all h-[320px]">
@@ -638,13 +643,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                         <div className="flex flex-col items-center justify-center text-center space-y-2 opacity-40"><Activity className="h-8 w-8" /><p className="text-[11px] font-black uppercase tracking-widest">NO DATA YET!</p></div>
                       )}
                   </CardContent>
-                  <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight">Summer term Male/Female distribution.</p></CardFooter>
+                  <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight">Summer term distribution.</p></CardFooter>
               </Card>
 
               <Card className="shadow-md flex flex-col border-primary/10 overflow-hidden group hover:shadow-lg transition-all h-[320px]">
                   <CardHeader className="p-4 bg-muted/10 border-b shrink-0">
                     <CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 leading-tight">
-                        <UserCircle /> Faculty Distribution (M: {analytics?.totalMaleFaculty}, F: {analytics?.totalFemaleFaculty}, Total: {analytics?.totalFaculty})
+                        <UserCircle /> Faculty Distribution (M: {analytics?.totalMaleFaculty}, F: {analytics?.totalFemaleFaculty}, O: {analytics?.totalOthersFaculty})
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 flex-1 flex items-center justify-center overflow-hidden">
@@ -664,7 +669,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                         <div className="flex flex-col items-center justify-center text-center space-y-2 opacity-40"><Activity className="h-8 w-8" /><p className="text-[11px] font-black uppercase tracking-widest">NO DATA YET!</p></div>
                       )}
                   </CardContent>
-                  <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight">Unique headcount of teaching staff registered across all programs.</p></CardFooter>
+                  <CardFooter className="p-3 border-t bg-muted/5 shrink-0"><p className="text-[9px] text-muted-foreground italic leading-tight">Unique headcount of teaching staff with inclusive identity tracking.</p></CardFooter>
               </Card>
 
               {[
@@ -714,6 +719,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           </div>
       </div>
 
+      {/* 4. ACCREDITATION & RECOGNITION PANELS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card className="shadow-md border-primary/10 flex flex-col overflow-hidden">
               <CardHeader className="bg-muted/10 border-b py-4">

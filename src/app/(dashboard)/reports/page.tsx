@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -203,8 +204,11 @@ export default function ReportsPage() {
 
     let totalMaleEnrolled = 0;
     let totalFemaleEnrolled = 0;
+    
     let totalMaleFaculty = 0;
     let totalFemaleFaculty = 0;
+    let totalOthersFaculty = 0;
+
     let totalMaleGrads = 0;
     let totalFemaleGrads = 0;
 
@@ -228,12 +232,13 @@ export default function ReportsPage() {
             }
             
             roster.forEach(m => {
-                if (!m.name) return;
+                if (!m.name || m.name.trim() === '') return;
                 const dedupKey = `${m.name.trim()}-${record.campusId}`.toLowerCase();
                 if (!uniqueFacultySet.has(dedupKey)) {
                     uniqueFacultySet.add(dedupKey);
                     if (m.sex === 'Male') totalMaleFaculty++;
                     else if (m.sex === 'Female') totalFemaleFaculty++;
+                    else totalOthersFaculty++;
                 }
             });
         }
@@ -244,20 +249,15 @@ export default function ReportsPage() {
         });
     });
 
-    const gadEnrollmentData = [
-        { name: 'Male Students', value: totalMaleEnrolled, fill: 'hsl(var(--chart-1))' },
-        { name: 'Female Students', value: totalFemaleEnrolled, fill: 'hsl(var(--chart-2))' }
+    const createPieData = (m: number, f: number, o: number = 0) => [
+        { name: 'Male', value: m, fill: 'hsl(var(--chart-1))' },
+        { name: 'Female', value: f, fill: 'hsl(var(--chart-2))' },
+        { name: 'Others (LGBTQI++)', value: o, fill: 'hsl(var(--chart-3))' }
     ].filter(d => d.value > 0);
 
-    const gadFacultyData = [
-        { name: 'Male', value: totalMaleFaculty, fill: 'hsl(var(--chart-4))' },
-        { name: 'Female', value: totalFemaleFaculty, fill: 'hsl(var(--chart-5))' }
-    ].filter(d => d.value > 0);
-
-    const gadGradsData = [
-        { name: 'Male Graduates', value: totalMaleGrads, fill: 'hsl(var(--chart-1))' },
-        { name: 'Female Graduates', value: totalFemaleGrads, fill: 'hsl(var(--chart-3))' }
-    ].filter(d => d.value > 0);
+    const gadEnrollmentData = createPieData(totalMaleEnrolled, totalFemaleEnrolled);
+    const gadFacultyData = createPieData(totalMaleFaculty, totalFemaleFaculty, totalOthersFaculty);
+    const gadGradsData = createPieData(totalMaleGrads, totalFemaleGrads);
 
     const yearRisks = allRisks?.filter(r => {
         const matchesYear = r.year === selectedYear;
@@ -267,8 +267,8 @@ export default function ReportsPage() {
 
     const riskRatingData = [
         { name: 'High', value: yearRisks.filter(r => r.preTreatment?.rating === 'High').length, fill: 'hsl(var(--destructive))' },
-        { name: 'Medium', value: yearRisks.filter(r => r.preTreatment?.rating === 'Medium').length, fill: 'hsl(var(--chart-3))' },
-        { name: 'Low', value: yearRisks.filter(r => r.preTreatment?.rating === 'Low').length, fill: 'hsl(var(--chart-2))' },
+        { name: 'Medium', value: yearRisks.filter(r => r.preTreatment?.rating === 'Medium').length, fill: 'hsl(48 96% 53%)' },
+        { name: 'Low', value: yearRisks.filter(r => r.preTreatment?.rating === 'Low').length, fill: 'hsl(142 71% 45%)' },
     ].filter(d => d.value >= 0);
 
     const radarData = campusPerf.map(c => ({
@@ -286,7 +286,7 @@ export default function ReportsPage() {
         radarData, 
         totals: { 
             students: totalMaleEnrolled + totalFemaleEnrolled, 
-            faculty: totalMaleFaculty + totalFemaleFaculty, 
+            faculty: totalMaleFaculty + totalFemaleFaculty + totalOthersFaculty, 
             grads: totalMaleGrads + totalFemaleGrads 
         } 
     };
@@ -392,7 +392,7 @@ export default function ReportsPage() {
                             <div className="flex items-start gap-2">
                                 <Zap className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
                                 <p className="text-[9px] text-muted-foreground italic leading-tight">
-                                    <strong>Analytical Perspective:</strong> This profile tracks verified documentation maturity across different campuses. A balanced radar signifies consistent adherence to ISO 21001 standards university-wide.
+                                    <strong>Analytical Perspective:</strong> This profile tracks verified documentation maturity across different campuses.
                                 </p>
                             </div>
                         </CardFooter>
@@ -428,7 +428,7 @@ export default function ReportsPage() {
                             <div className="flex items-start gap-2">
                                 <Zap className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
                                 <p className="text-[9px] text-muted-foreground italic leading-tight">
-                                    <strong>Analytical Perspective:</strong> Benchmarks total approved documents against those awaiting verification. High "Pending" values suggest a need for accelerated review cycles at specific sites.
+                                    <strong>Analytical Perspective:</strong> Benchmarks total approved documents against those awaiting verification.
                                 </p>
                             </div>
                         </CardFooter>
@@ -464,11 +464,6 @@ export default function ReportsPage() {
                                     <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Enrollment</p>
                                 </div>
                             </CardContent>
-                            <CardFooter className="bg-muted/5 border-t py-2 px-4">
-                                <p className="text-[8px] text-muted-foreground italic leading-tight">
-                                    <strong>Guidance for usage:</strong> Aggregated headcount based on academic unit enrollment logs.
-                                </p>
-                            </CardFooter>
                         </Card>
 
                         <Card className="shadow-md border-primary/10 flex flex-col">
@@ -494,11 +489,6 @@ export default function ReportsPage() {
                                     <p className="text-[10px] font-bold text-muted-foreground uppercase">Deduplicated Personnel</p>
                                 </div>
                             </CardContent>
-                            <CardFooter className="bg-muted/5 border-t py-2 px-4">
-                                <p className="text-[8px] text-muted-foreground italic leading-tight">
-                                    <strong>Guidance for usage:</strong> Unique headcount of teaching staff registered across all programs.
-                                </p>
-                            </CardFooter>
                         </Card>
 
                         <Card className="shadow-md border-primary/10 flex flex-col">
@@ -524,11 +514,6 @@ export default function ReportsPage() {
                                     <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Graduates</p>
                                 </div>
                             </CardContent>
-                            <CardFooter className="bg-muted/5 border-t py-2 px-4">
-                                <p className="text-[8px] text-muted-foreground italic leading-tight">
-                                    <strong>Guidance for usage:</strong> Institutional output distribution for the selected academic year.
-                                </p>
-                            </CardFooter>
                         </Card>
                     </div>
                 </div>
@@ -559,14 +544,6 @@ export default function ReportsPage() {
                             </ResponsiveContainer>
                         </ChartContainer>
                     </CardContent>
-                    <CardFooter className="bg-muted/5 border-t py-3">
-                        <div className="flex items-start gap-2">
-                            <Zap className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
-                            <p className="text-[9px] text-muted-foreground italic leading-tight">
-                                <strong>Analytical Perspective:</strong> Illustrates the university's risk appetite and prioritization. High concentrations in the "High" category indicate areas requiring immediate management intervention or resource allocation.
-                            </p>
-                        </div>
-                    </CardFooter>
                 </Card>
                 </>
             ) : (

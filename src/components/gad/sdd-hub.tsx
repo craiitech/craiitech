@@ -25,21 +25,24 @@ interface SDDHubProps {
   unitName?: string;
 }
 
-const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))'];
+const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))'];
 
 export function SDDHub({ compliances, campuses, units, selectedYear, unitName }: SDDHubProps) {
   const aggregatedData = useMemo(() => {
     let totalMaleEnrolled = 0;
     let totalFemaleEnrolled = 0;
+    
     let totalMaleFaculty = 0;
     let totalFemaleFaculty = 0;
+    let totalOthersFaculty = 0;
+
     let totalMaleGrads = 0;
     let totalFemaleGrads = 0;
 
     const uniqueFacultySet = new Set<string>();
 
     compliances.forEach(record => {
-        // SDD: Enrollment
+        // SDD: Enrollment (CHED Standard usually binary, but we track aggregate)
         const s1 = record.stats?.enrollment?.firstSemester;
         if (s1) {
             ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach((lvl: any) => {
@@ -48,7 +51,7 @@ export function SDDHub({ compliances, campuses, units, selectedYear, unitName }:
             });
         }
 
-        // SDD: Faculty (Deduplicated)
+        // SDD: Faculty (Deduplicated with Expanded Categories)
         if (record.faculty) {
             const roster = [...(record.faculty.members || [])];
             if (record.faculty.dean?.name) roster.push(record.faculty.dean as any);
@@ -62,6 +65,7 @@ export function SDDHub({ compliances, campuses, units, selectedYear, unitName }:
                     uniqueFacultySet.add(key);
                     if (m.sex === 'Male') totalMaleFaculty++;
                     else if (m.sex === 'Female') totalFemaleFaculty++;
+                    else totalOthersFaculty++;
                 }
             });
         }
@@ -73,18 +77,19 @@ export function SDDHub({ compliances, campuses, units, selectedYear, unitName }:
         });
     });
 
-    const createPieData = (m: number, f: number) => [
+    const createPieData = (m: number, f: number, o: number = 0) => [
         { name: 'Male', value: m, fill: COLORS[0] },
-        { name: 'Female', value: f, fill: COLORS[1] }
+        { name: 'Female', value: f, fill: COLORS[1] },
+        { name: 'Others (LGBTQI++)', value: o, fill: COLORS[2] }
     ].filter(d => d.value > 0);
 
     return {
         enrollment: createPieData(totalMaleEnrolled, totalFemaleEnrolled),
-        faculty: createPieData(totalMaleFaculty, totalFemaleFaculty),
+        faculty: createPieData(totalMaleFaculty, totalFemaleFaculty, totalOthersFaculty),
         graduation: createPieData(totalMaleGrads, totalFemaleGrads),
         totals: {
             students: totalMaleEnrolled + totalFemaleEnrolled,
-            faculty: totalMaleFaculty + totalFemaleFaculty,
+            faculty: totalMaleFaculty + totalFemaleFaculty + totalOthersFaculty,
             grads: totalMaleGrads + totalFemaleGrads
         }
     };
@@ -117,7 +122,7 @@ export function SDDHub({ compliances, campuses, units, selectedYear, unitName }:
         total: aggregatedData.totals.faculty, 
         icon: <UserCircle className="h-5 w-5 text-emerald-600" />, 
         desc: 'Unit Registered Users',
-        explanation: 'Gender profile of teaching and administrative staff. Used to monitor parity in staffing and identify gaps in representation across university units.'
+        explanation: 'Gender profile of teaching and administrative staff. Includes institutional recognition of LGBTQI++ personnel to monitor parity and inclusivity across university units.'
     },
     { 
         title: 'Graduation Output', 

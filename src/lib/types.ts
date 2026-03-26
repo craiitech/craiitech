@@ -459,7 +459,7 @@ export type ProgramFacultyMember = {
   academicRank: string;
   category: FacultyCategory;
   isAlignedWithCMO: FacultyAlignment;
-  sex: 'Male' | 'Female';
+  sex: 'Male' | 'Female' | 'Others (LGBTQI++)';
   specializationAssignment?: string; 
 };
 
@@ -533,7 +533,7 @@ export type FacultyLeadershipMember = {
   highestEducation: string;
   academicRank?: string;
   isAlignedWithCMO: FacultyAlignment;
-  sex: 'Male' | 'Female';
+  sex: 'Male' | 'Female' | 'Others (LGBTQI++)';
 };
 
 export type AccreditationRecord = {

@@ -85,9 +85,10 @@ const PILLAR_WEIGHTS = {
 };
 
 const COLORS: Record<string, string> = {
-    'Aligned': 'hsl(var(--chart-2))',
+    'Aligned': 'hsl(142 71% 45%)',
     'Needs Correction': 'hsl(var(--destructive))',
-    'Approved': 'hsl(var(--chart-2))',
+    'Others': 'hsl(var(--chart-3))',
+    'Approved': 'hsl(142 71% 45%)',
     'Awaiting Approval': 'hsl(var(--chart-1))',
     'Rejected': 'hsl(var(--chart-3))',
     'Missing': 'hsl(var(--muted-foreground))'
@@ -120,12 +121,14 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
     // 2. Faculty Alignment Analysis (Pie)
     let totalFaculty = 0;
     let alignedFaculty = 0;
+    let othersFaculty = 0;
     const auditFacultyList: any[] = [];
     
     const checkAlignment = (m: any, roleLabel?: string) => {
         if (!m || !m.name || m.name.trim() === '') return;
         totalFaculty++;
         if (m.isAlignedWithCMO === 'Aligned') alignedFaculty++;
+        if (m.sex === 'Others (LGBTQI++)') othersFaculty++;
         
         auditFacultyList.push({
             ...m,
@@ -140,8 +143,9 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
     
     const alignmentRate = totalFaculty > 0 ? Math.round((alignedFaculty / totalFaculty) * 100) : 0;
     const facultyPieData = [
-        { name: 'Aligned', value: alignedFaculty, fill: 'hsl(var(--chart-2))' },
-        { name: 'Needs Correction', value: totalFaculty - alignedFaculty, fill: 'hsl(var(--destructive))' }
+        { name: 'Aligned', value: alignedFaculty, fill: COLORS.Aligned },
+        { name: 'Others', value: othersFaculty, fill: COLORS.Others },
+        { name: 'Needs Correction', value: Math.max(0, totalFaculty - alignedFaculty - othersFaculty), fill: COLORS['Needs Correction'] }
     ].filter(d => d.value > 0);
 
     // 3. Board Performance
@@ -203,7 +207,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         gaps.push({ type: 'Institutional Authority', msg: 'Program is operating without an active COPC.', priority: 'High', target: 'ched' });
     }
     
-    // Enhanced Overdue Check for Majors
     if (!program.isNewProgram) {
         if (program.hasSpecializations) {
             program.specializations?.forEach(spec => {
@@ -263,7 +266,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         gaps.push({ type: 'Institutional Data', msg: 'Graduation outcome registry is empty.', priority: 'Medium', target: 'outcomes' });
     }
 
-    // Next Schedule Date logic with New Program handling
     const nextScheduleDate = program.isNewProgram ? 'NEW PROGRAM' : (latestAccreditation?.statusValidityDate || 'TBA');
 
     return { 
@@ -290,7 +292,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
     if (!record) return { governance: [], accreditation: [], curriculum: [], monitoring: [] };
     const docs = { governance: [] as any[], accreditation: [] as any[], curriculum: [] as any[], monitoring: [] as any[] };
     
-    // Governance / Authority Docs
     if (record.ched?.boardApprovalMode === 'per-major') {
         (record.ched.majorBoardApprovals || []).forEach((ma) => {
             if (ma.link) {
@@ -305,7 +306,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
     if (record.ched?.copcLink) docs.governance.push({ id: 'copc', title: 'CHED COPC', url: record.ched.copcLink, status: record.ched.copcStatus });
     if (record.ched?.programCmoLink) docs.governance.push({ id: 'cmo-global', title: 'Program CMO Reference', url: record.ched.programCmoLink, status: 'Standard' });
     
-    // NEW: Closure Authority Evidence
     if (!program.isActive && record.ched?.closureResolutionLink) {
         docs.governance.push({ 
             id: 'bor-closure', 
@@ -315,7 +315,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         });
     }
 
-    // Curriculum Docs
     (record.curriculumRecords || []).forEach((curr, idx) => {
         if (curr.notationProofLink) {
             const majorName = program.specializations?.find(s => s.id === curr.majorId)?.name || 'General';
@@ -323,10 +322,8 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         }
     });
 
-    // Accreditation Docs
     (record.accreditationRecords || []).forEach((acc, idx) => { if (acc.certificateLink) docs.accreditation.push({ id: `acc-${idx}`, title: `${acc.level} Certificate`, url: acc.certificateLink, status: acc.lifecycleStatus }); });
     
-    // Monitoring Docs
     (record.ched?.rqatVisits || []).forEach((visit, idx) => {
         if (visit.reportLink) docs.monitoring.push({ id: `rqat-${idx}`, title: `RQAT Report: ${visit.date}`, url: visit.reportLink, status: visit.result });
     });
@@ -400,7 +397,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                           </div>
                           <Separator />
                           <p className="text-[11px] text-muted-foreground font-medium italic leading-relaxed">
-                              This program has been officially designated for terminal closure by the University Board of Regents under Referendum {record.ched?.closureReferendumNumber || '[N/A]'}. Academic phase-out protocols must be strictly followed.
+                              This program has been officially designated for terminal closure by the University Board of Regents.
                           </p>
                       </div>
                   </div>
@@ -408,7 +405,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
           </Card>
       )}
 
-      {/* --- USER PERSPECTIVE --- */}
       <Card className="border-primary/20 bg-primary/5 shadow-sm overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center">
             <div className="p-6 flex items-center gap-4 bg-primary text-white md:w-72 shrink-0">
@@ -434,7 +430,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         </div>
       </Card>
 
-      {/* --- STRATEGIC RISK REGISTER --- */}
       <Card className="border-destructive/30 shadow-xl overflow-hidden bg-destructive/5 relative">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-destructive opacity-50" />
           <CardHeader className="bg-destructive/10 border-b py-4">
@@ -492,7 +487,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
           </CardContent>
       </Card>
 
-      {/* --- KPI PANEL --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-5"><ShieldCheck className="h-12 w-12" /></div>
@@ -511,7 +505,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         <Card className="bg-emerald-50/50 border-emerald-100 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2 opacity-5"><CalendarDays className="h-12 w-12" /></div>
             <CardHeader className="pb-2">
-                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Next Accreditation (AACCUP) Schedule</CardDescription>
+                <CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Next Accreditation Schedule</CardDescription>
                 <CardTitle className={cn("text-lg font-black truncate uppercase text-slate-900", program.isNewProgram && "text-amber-600")}>
                     {analyticsData.nextScheduleDate}
                 </CardTitle>
@@ -530,7 +524,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                 <CardTitle className="text-3xl font-black text-blue-700 tabular-nums tracking-tighter">{analyticsData.alignmentRate}%</CardTitle>
             </CardHeader>
             <CardContent>
-                <p className="text-[10px] text-blue-800/60 font-bold uppercase tracking-tight">{analyticsData.totalFaculty} Qualified Members Named</p>
+                <p className="text-[10px] text-blue-800/60 font-bold uppercase tracking-tight">{analyticsData.totalFaculty} Personnel Registered</p>
             </CardContent>
         </Card>
         
@@ -691,7 +685,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                         </div>
                     </CardHeader>
                     <CardContent className="pt-6">
-                        <ChartContainer config={{}} className="h-[220px] w-[220px] shrink-0">
+                        <ChartContainer config={{}} className="h-[220px] w-full shrink-0">
                             <ResponsiveContainer>
                                 <BarChart data={analyticsData.enrollmentData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -711,37 +705,27 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                     <CardHeader className="py-4 border-b">
                         <div className="flex items-center gap-2">
                             <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                            <CardTitle className="text-xs font-black uppercase tracking-tight">Competitiveness Benchmark</CardTitle>
+                            <CardTitle className="text-xs font-black uppercase tracking-tight">Personnel Alignment</CardTitle>
                         </div>
                     </CardHeader>
-                    <CardContent className="pt-6">
-                        {program.isBoardProgram && analyticsData.latestBoard ? (
-                            <div className="space-y-6">
-                                <ChartContainer config={{}} className="h-[180px] w-full">
-                                    <ResponsiveContainer>
-                                        <BarChart data={analyticsData.boardComparisonData} layout="vertical" margin={{ right: 40 }}>
-                                            <XAxis type="number" domain={[0, 100]} hide />
-                                            <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                                            <RechartsTooltip content={<ChartTooltipContent />} />
-                                            <Bar dataKey="rate" radius={[0, 4, 4, 0]} barSize={24}>
-                                                {analyticsData.boardComparisonData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                                                ))}
-                                            </Bar>
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </ChartContainer>
-                                <div className="text-center p-3 rounded-lg bg-emerald-50 border border-emerald-100">
-                                    <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest">Board Pass Rate</p>
-                                    <p className="text-2xl font-black text-emerald-600 tabular-nums">{analyticsData.latestBoard.overallPassRate}%</p>
-                                </div>
+                    <CardContent className="pt-6 flex flex-col items-center justify-center">
+                        <ChartContainer config={{}} className="h-[180px] w-[180px]">
+                            <ResponsiveContainer>
+                                <PieChart>
+                                    <Pie data={analyticsData.facultyPieData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
+                                        {analyticsData.facultyPieData.map((entry, index) => <Cell key={index} fill={entry.fill} />)}
+                                    </Pie>
+                                    <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                        <div className="text-center mt-2 space-y-1">
+                            <p className="text-xs font-bold text-slate-700 uppercase">GAD Diversity Distribution</p>
+                            <div className="flex justify-center gap-3 text-[8px] font-black uppercase">
+                                <div className="flex items-center gap-1"><div className="h-2 w-2 rounded-full bg-emerald-500" /> Aligned</div>
+                                <div className="flex items-center gap-1"><div className="h-2 w-2 rounded-full bg-blue-400" /> Others</div>
                             </div>
-                        ) : (
-                            <div className="h-[220px] flex flex-col items-center justify-center text-muted-foreground opacity-20">
-                                <GraduationCap className="h-10 w-10 mb-2" />
-                                <p className="text-[10px] font-black uppercase tracking-widest">No benchmark data</p>
-                            </div>
-                        )}
+                        </div>
                     </CardContent>
                 </Card>
             </div>
@@ -804,25 +788,9 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                                     </div>
                                 )
                             ))}
-                            {Object.values(categorizedDocs).every(arr => arr.length === 0) && (
-                                <div className="py-24 text-center space-y-3 opacity-20">
-                                    <div className="mx-auto h-16 w-16 rounded-full border-2 border-dashed flex items-center justify-center">
-                                        <FileText className="h-8 w-8" />
-                                    </div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest">No Evidence Logged</p>
-                                </div>
-                            )}
                         </div>
                     </ScrollArea>
                 </CardContent>
-                <div className="p-4 bg-muted/5 border-t">
-                    <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 flex items-start gap-2">
-                        <Info className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                        <p className="text-[9px] text-blue-800 leading-relaxed font-medium italic">
-                            Evidence integrity is verified institutionally.
-                        </p>
-                    </div>
-                </div>
             </Card>
         </div>
       </div>
@@ -841,15 +809,9 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Source Document Review | AY {selectedYear}</p>
                         </div>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => setPreviewDoc(null)} className="h-8 w-8 rounded-full p-0">
-                        <ChevronRight className="h-4 w-4" />
-                    </Button>
                 </div>
             </DialogHeader>
             <div className="flex-1 bg-muted relative group">
-                <div className="absolute inset-0 flex items-center justify-center z-0 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <School className="h-40 w-40" />
-                </div>
                 {previewDoc && (
                     <iframe 
                         src={previewDoc.url} 
@@ -862,9 +824,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                 <p className="text-[9px] text-muted-foreground italic font-medium">Digital Evidence integrity verified via Google Drive Cloud Storage.</p>
                 <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase tracking-widest" onClick={() => setPreviewDoc(null)}>Close Viewer</Button>
-                    <Button variant="default" size="sm" className="h-8 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20" asChild>
-                        <a href={previewDoc?.url} target="_blank" rel="noopener noreferrer">Download Report</a>
-                    </Button>
                 </div>
             </div>
         </DialogContent>
