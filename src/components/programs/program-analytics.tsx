@@ -386,7 +386,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 if (s === 'AWAITING RESULT' || s === 'SCHEDULE PENDING' || s === 'TBA') return 999998;
                 
                 const match = s.match(/\d{4}/);
-                const year = match ? parseInt(yearMatch[0]) : 0;
+                const year = match ? parseInt(match[0]) : 0;
                 
                 const months: Record<string, number> = { 
                     jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, 
