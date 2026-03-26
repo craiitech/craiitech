@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
@@ -470,7 +469,7 @@ export default function AuditExecutionPage() {
                             </div>
                         </CardContent>
                         <CardFooter className="bg-slate-50 border-t py-6 px-8">
-                            <Button type="submit" disabled={isSubmitting} className="shadow-xl shadow-primary/20 font-black uppercase tracking-widest px-8">
+                            <Button type="submit" disabled={isSavingSummary} className="shadow-xl shadow-primary/20 font-black uppercase tracking-widest px-8">
                                 {isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                                 <Save className="mr-2 h-4 w-4"/>
                                 Finalize Audit Report
