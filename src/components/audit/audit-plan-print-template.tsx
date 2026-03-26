@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import type { AuditPlan, AuditSchedule, Signatories, AuditGroup } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
-import { cn, getDirectDriveLink } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 interface AuditPlanPrintTemplateProps {
   plan: AuditPlan;
@@ -12,10 +12,9 @@ interface AuditPlanPrintTemplateProps {
   campusName: string;
   signatories?: Signatories;
   section: AuditGroup;
-  logoUrl?: string;
 }
 
-export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatories, section, logoUrl }: AuditPlanPrintTemplateProps) {
+export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatories, section }: AuditPlanPrintTemplateProps) {
   const safeFormatDate = (d: any, fmt: string = 'yyyy-MM-dd') => {
     if (!d) return '';
     const date = d instanceof Timestamp ? d.toDate() : new Date(d);
@@ -46,14 +45,11 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
 
   return (
     <div className="p-8 text-black bg-white max-w-[8.5in] mx-auto font-sans text-[11px] leading-tight border-none">
-      {/* Institutional Branding Header */}
+      {/* Institutional Header */}
       <div className="text-center mb-6">
-        <div className="flex items-center justify-center gap-4 mb-2">
-            <img src={getDirectDriveLink(logoUrl) || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
-            <div className="text-left">
-                <h1 className="text-lg font-bold leading-none">Romblon State University</h1>
-                <p className="text-xs">Romblon, Philippines</p>
-            </div>
+        <div className="flex flex-col items-center justify-center gap-1 mb-2">
+            <h1 className="text-lg font-bold leading-none">Romblon State University</h1>
+            <p className="text-xs">Romblon, Philippines</p>
         </div>
         <div className="mt-6 mb-4">
           <h2 className="text-sm font-black uppercase tracking-[0.2em]">DETAILED AUDIT PLAN</h2>

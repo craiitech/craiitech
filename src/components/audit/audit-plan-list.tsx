@@ -357,7 +357,6 @@ export function AuditPlanList({
                         campusName={cName} 
                         signatories={signatories || undefined} 
                         section={section as AuditGroup}
-                        logoUrl={systemSettings?.logoUrl}
                     />
                 </div>
             );
