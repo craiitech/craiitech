@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Unit, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '../ui/skeleton';
 import { 
     BarChart, 
     Bar, 
@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface AuditAnalyticsProps {
   plans: AuditPlan[];
@@ -141,24 +142,24 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
     if (yearSchedules.length > 0) {
         const avgUnitScore = Object.values(unitResults).reduce((acc, curr) => acc + curr.score, 0) / (Object.keys(unitResults).length || 1);
         if (avgUnitScore >= 80) {
-            strengths.push({ title: 'Positive Standard Conformity', description: `Institutional compliance mean reached ${Math.round(avgUnitScore)}% across ${Object.keys(unitResults).length} monitored units.`, tag: 'ISO 10.2' });
+            strengths.push({ title: 'Positive Standard Conformity', description: `Institutional compliance mean reached ${Math.round(avgUnitScore)}% across ${Object.keys(unitResults).length} monitored units.`, tag: 'ISO 10.2', category: 'Audit' });
         }
         if (yearSchedules.filter(s => s.status === 'Completed').length / yearSchedules.length > 0.7) {
-            strengths.push({ title: 'High Itinerary Fulfillment', description: 'Strong velocity in completing scheduled audit sessions according to plan.', tag: 'Efficiency' });
+            strengths.push({ title: 'High Itinerary Fulfillment', description: 'Strong velocity in completing scheduled audit sessions according to plan.', tag: 'Efficiency', category: 'Operations' });
         }
     }
 
     // Deriving Gaps
     if (counts.NC > 5) {
-        gaps.push({ title: 'Systemic Non-Compliance', description: `High volume of critical gaps (${counts.NC}) identified across standard clauses.`, tag: 'Risk Alert', priority: 'High' });
+        gaps.push({ title: 'Systemic Non-Compliance', description: `High volume of critical gaps (${counts.NC}) identified across standard clauses.`, tag: 'Risk Alert', priority: 'High', category: 'Audit' });
     }
     const unassignedCount = yearSchedules.filter(s => !s.auditorId).length;
     if (unassignedCount > 0) {
-        gaps.push({ title: 'Resource Allocation Gap', description: `${unassignedCount} itinerary sessions are currently unassigned to any auditor.`, tag: 'Provisioning', priority: 'Medium' });
+        gaps.push({ title: 'Resource Allocation Gap', description: `${unassignedCount} itinerary sessions are currently unassigned to any auditor.`, tag: 'Provisioning', priority: 'Medium', category: 'Operations' });
     }
     const overtaxedAuditor = auditorData.find(a => a.count > 10);
     if (overtaxedAuditor) {
-        gaps.push({ title: 'Auditor Capacity Warning', description: `Individual workloads are peaking (Lead: ${overtaxedAuditor.name} with ${overtaxedAuditor.count} sessions).`, tag: 'Burnout Risk', priority: 'Medium' });
+        gaps.push({ title: 'Auditor Capacity Warning', description: `Individual workloads are peaking (Lead: ${overtaxedAuditor.name} with ${overtaxedAuditor.count} sessions).`, tag: 'Burnout Risk', priority: 'Medium', category: 'Operations' });
     }
 
     const unitExemplars = Object.entries(unitResults)
@@ -386,7 +387,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
               <div className="flex items-start gap-3">
                   <Scale className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                   <p className="text-[10px] text-muted-foreground leading-relaxed italic">
-                      <strong>Operational Support:</strong> Use this registry to ensure parity in audit assignments. High session counts per auditor (e.g. >10) may impact the depth of evidence logging and the quality of final findings.
+                      <strong>Operational Support:</strong> Use this registry to ensure parity in audit assignments. High session counts per auditor (e.g. {'>'}10) may impact the depth of evidence logging and the quality of final findings.
                   </p>
               </div>
           </CardFooter>
@@ -525,13 +526,38 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                     ) : (
                         <div className="py-10 flex flex-col items-center justify-center gap-2 opacity-30">
                             <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-                            <p className="text-[10px] font-black uppercase">Zero Open Non-Conformances</p>
+                            <p className="text-[10px] font-black uppercase mt-2">Zero Open Non-Conformances</p>
                         </div>
                     )}
                 </div>
             </CardContent>
         </Card>
       </div>
+
+      <Card className="border-primary/10 shadow-md">
+        <CardHeader className="bg-muted/10 border-b py-4">
+            <div className="flex items-center gap-2">
+                <Info className="h-5 w-5 text-primary" />
+                <CardTitle className="text-sm font-black uppercase tracking-tight text-primary">Strategic Strength Reporting Guide</CardTitle>
+            </div>
+        </CardHeader>
+        <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-800 border-b pb-1">Utilization in Management Review</h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                        Strengths identified here should be presented during <strong>Management Reviews (MR)</strong> to identify best practices. Programs listed as "Elite" or "Compliant" can serve as peer-mentors for other units within the university.
+                    </p>
+                </div>
+                <div className="space-y-4">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-800 border-b pb-1">External Audit Preparation</h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                        During <strong>External Quality Audits (EQA)</strong> or <strong>AACCUP Surveys</strong>, these metrics serve as objective evidence of the university's commitment to Clause 10.3 (Opportunities for Improvement) of the ISO 21001 standard.
+                    </p>
+                </div>
+            </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
