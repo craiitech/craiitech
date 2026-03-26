@@ -5,7 +5,7 @@ import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Signatories, Un
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, ShieldAlert, FileText, Target, BarChart3, Users, Building2 } from 'lucide-react';
+import { CheckCircle2, ShieldAlert, FileText, Target, BarChart3, Users, Building2, ShieldCheck } from 'lucide-react';
 
 interface ConsolidatedAuditReportTemplateProps {
   plan: AuditPlan;
