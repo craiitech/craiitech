@@ -133,6 +133,12 @@ export type CampusSetting = {
     masterlistUpdatedAt?: string;
 }
 
+export type SystemSettings = {
+    logoUrl?: string;
+    updatedAt?: any;
+    updatedBy?: string;
+}
+
 export type GadSettings = {
     leadershipUnitId?: string;
     updatedAt?: any;

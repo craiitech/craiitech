@@ -23,6 +23,7 @@ import { Chatbot } from '@/components/dashboard/chatbot';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { WhatsNewDialog } from '@/components/dashboard/whats-new-dialog';
+import { Logo } from '@/components/logo';
 
 const CURRENT_SYSTEM_VERSION = '2.5.0'; // Current release version
 
@@ -87,7 +88,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, isSupervisor } = useUser();
+  const { user, userProfile, isUserLoading, isAdmin, userRole, firestore, isSupervisor, systemSettings } = useUser();
   const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
 
   // LOGIC: Detect if user needs to see the "What's New" pop-up
@@ -245,11 +246,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <SidebarProvider>
           <Sidebar variant="sidebar" collapsible="icon">
             <SidebarHeader className="items-center justify-center text-center p-4">
-              {displayAvatar && (
+              {displayAvatar ? (
                 <Avatar className="h-20 w-20">
                   <AvatarImage src={displayAvatar} alt={displayName || 'User'} />
                   <AvatarFallback>{fallbackAvatar}</AvatarFallback>
                 </Avatar>
+              ) : (
+                <Logo className="h-16 w-16" />
               )}
               <div className="mt-2 text-center">
                 <p className="font-semibold text-lg">{displayName}</p>

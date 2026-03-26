@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect, useRef } from 'react';
@@ -7,7 +8,7 @@ import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 import { useDoc } from './firestore/use-doc';
 import { useCollection, type WithId } from './firestore/use-collection';
-import type { User as AppUser, Role, Campus } from '@/lib/types';
+import type { User as AppUser, Role, Campus, SystemSettings } from '@/lib/types';
 import { useMemoFirebase } from './';
 import { useSessionActivity, ActivityLogProvider } from '@/lib/activity-log-provider';
 import { useToast } from '@/hooks/use-toast';
@@ -46,6 +47,7 @@ export interface FirebaseContextState {
   isAuditor: boolean;
   isVp: boolean;
   isMainCampusCoordinator: boolean;
+  systemSettings: SystemSettings | null;
 }
 
 // Return type for useFirebase()
@@ -66,6 +68,7 @@ export interface FirebaseServicesAndUser {
   isAuditor: boolean;
   isVp: boolean;
   isMainCampusCoordinator: boolean;
+  systemSettings: SystemSettings | null;
 }
 
 // Return type for useUser() - specific to user auth state
@@ -80,6 +83,7 @@ export interface UserHookResult {
   isSupervisor: boolean;
   isVp: boolean;
   isMainCampusCoordinator: boolean;
+  systemSettings: SystemSettings | null;
   firestore: Firestore | null; // Added for convenience in some hooks
 }
 
@@ -150,6 +154,9 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   const { data: adminRoleDoc, isLoading: isAdminRoleLoading } = useDoc(adminRoleDocRef);
 
+  const systemSettingsRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'settings') : null), [firestore]);
+  const { data: systemSettings } = useDoc<SystemSettings>(systemSettingsRef);
+
   const campusesQuery = useMemoFirebase(() => {
     // Wait for the user to be authenticated before trying to fetch campuses.
     if (!firestore || !userAuthState.user) return null;
@@ -201,8 +208,9 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       isSupervisor,
       isVp,
       isMainCampusCoordinator,
+      systemSettings: systemSettings || null,
     };
-  }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading, adminRoleDoc, isAdminRoleLoading, campuses, isLoadingCampuses]);
+  }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading, adminRoleDoc, isAdminRoleLoading, campuses, isLoadingCampuses, systemSettings]);
   
   // A separate component or hook is needed to use the Activity Log context
   function ActivityLogger() {
@@ -267,6 +275,7 @@ export const useFirebase = (): FirebaseServicesAndUser | { areServicesAvailable:
     isSupervisor: context.isSupervisor,
     isVp: context.isVp,
     isMainCampusCoordinator: context.isMainCampusCoordinator,
+    systemSettings: context.systemSettings,
   };
 };
 
@@ -305,8 +314,8 @@ export const useFirebaseApp = (): FirebaseApp | null => {
 export const useUser = (): UserHookResult => { 
   const context = useFirebase();
    if (!context.areServicesAvailable) {
-      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, isAuditor: false, userRole: null, isSupervisor: false, isVp: false, isMainCampusCoordinator: false, firestore: null };
+      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, isAuditor: false, userRole: null, isSupervisor: false, isVp: false, isMainCampusCoordinator: false, systemSettings: null, firestore: null };
   }
-  const { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator } = context; 
-  return { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator };
+  const { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator, systemSettings } = context; 
+  return { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator, systemSettings };
 };

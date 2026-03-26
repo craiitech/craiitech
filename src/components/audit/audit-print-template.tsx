@@ -14,12 +14,13 @@ interface AuditPrintTemplateProps {
   findings: AuditFinding[];
   clauses: ISOClause[];
   signatories?: Signatories;
+  logoUrl?: string;
 }
 
-export function AuditPrintTemplate({ schedule, findings, clauses, signatories }: AuditPrintTemplateProps) {
+export function AuditPrintTemplate({ schedule, findings, clauses, signatories, logoUrl }: AuditPrintTemplateProps) {
   const conductDate = schedule.scheduledDate instanceof Timestamp 
     ? schedule.scheduledDate.toDate() 
-    : (record.visitDate ? new Date(record.visitDate) : new Date());
+    : (schedule.scheduledDate ? new Date(schedule.scheduledDate) : new Date());
 
   const findingsMap = new Map(findings.map(f => [f.isoClause, f]));
   const sortedClauses = [...clauses].sort((a, b) => 
@@ -32,8 +33,13 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
     <div className="p-6 text-black bg-white max-w-[8.5in] mx-auto font-sans leading-tight">
       {/* Institutional Branding Header */}
       <div className="flex flex-col items-center text-center border-b-2 border-black pb-4 mb-4">
-        <h1 className="text-xl font-bold uppercase tracking-tight leading-none">Romblon State University</h1>
-        <h2 className="text-md font-semibold uppercase tracking-tight leading-none mt-1">Quality Assurance Office</h2>
+        <div className="flex items-center gap-4 mb-2">
+            <img src={logoUrl || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
+            <div className="text-left">
+                <h1 className="text-xl font-bold uppercase tracking-tight leading-none">Romblon State University</h1>
+                <h2 className="text-md font-semibold uppercase tracking-tight leading-none mt-1">Quality Assurance Office</h2>
+            </div>
+        </div>
         <div className="mt-3 px-8 py-1.5 bg-black text-white text-sm font-black uppercase tracking-[0.2em] shadow-sm">
           Internal Quality Audit Evidence Log
         </div>

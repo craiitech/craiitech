@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -14,6 +15,7 @@ interface ConsolidatedAuditReportTemplateProps {
   units: Unit[];
   campuses: Campus[];
   signatories?: Signatories;
+  logoUrl?: string;
 }
 
 export function ConsolidatedAuditReportTemplate({ 
@@ -23,7 +25,8 @@ export function ConsolidatedAuditReportTemplate({
     clauses, 
     units, 
     campuses, 
-    signatories 
+    signatories,
+    logoUrl
 }: ConsolidatedAuditReportTemplateProps) {
   
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
@@ -51,7 +54,7 @@ export function ConsolidatedAuditReportTemplate({
         <tbody>
           <tr>
             <td className="border-[1.5px] border-slate-400 p-2 w-[15%] text-center align-middle">
-              <img src="/rsupage.png" alt="RSU Logo" className="h-16 w-16 mx-auto object-contain" />
+              <img src={logoUrl || "/rsupage.png"} alt="Institutional Logo" className="h-16 w-16 mx-auto object-contain" />
             </td>
             <td className="border-[1.5px] border-slate-400 p-4 w-[55%] text-center align-middle space-y-1">
               <p className="text-xs font-bold text-slate-600 leading-none">Romblon State University</p>

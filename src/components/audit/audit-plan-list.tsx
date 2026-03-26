@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -20,7 +21,7 @@ import { Timestamp, doc } from 'firebase/firestore';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditPlanPrintTemplate } from './audit-plan-print-template';
 import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 
@@ -298,6 +299,7 @@ export function AuditPlanList({
 }: AuditPlanListProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { systemSettings } = useUser();
     
   const campusMap = useMemo(() => {
     const map = new Map(campuses.map(c => [c.id, c.name]));
@@ -356,6 +358,7 @@ export function AuditPlanList({
                         campusName={cName} 
                         signatories={signatories || undefined} 
                         section={section as AuditGroup}
+                        logoUrl={systemSettings?.logoUrl}
                     />
                 </div>
             );
@@ -415,6 +418,7 @@ export function AuditPlanList({
                 units={units}
                 campuses={campuses}
                 signatories={signatories || undefined}
+                logoUrl={systemSettings?.logoUrl}
             />
         );
 

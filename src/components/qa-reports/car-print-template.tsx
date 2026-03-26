@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -11,9 +12,10 @@ interface CARPrintTemplateProps {
   unitName: string;
   campusName: string;
   signatories?: Signatories;
+  logoUrl?: string;
 }
 
-export function CARPrintTemplate({ car, unitName, campusName, signatories }: CARPrintTemplateProps) {
+export function CARPrintTemplate({ car, unitName, campusName, signatories, logoUrl }: CARPrintTemplateProps) {
   const safeDate = (d: any) => {
     if (!d) return '';
     const date = d instanceof Timestamp ? d.toDate() : new Date(d);
@@ -33,9 +35,14 @@ export function CARPrintTemplate({ car, unitName, campusName, signatories }: CAR
     <div className="p-8 text-black bg-white max-w-[8.5in] mx-auto font-sans text-[11px] leading-tight border-none">
       {/* Header */}
       <div className="text-center mb-4">
-        <h1 className="text-lg font-bold">Romblon State University</h1>
-        <h2 className="text-md font-bold">Quality Assurance Office</h2>
-        <p className="text-xs italic">Odiongan, Romblon</p>
+        <div className="flex items-center justify-center gap-4 mb-2">
+            <img src={logoUrl || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
+            <div className="text-left">
+                <h1 className="text-lg font-bold">Romblon State University</h1>
+                <h2 className="text-md font-bold">Quality Assurance Office</h2>
+                <p className="text-xs italic">Odiongan, Romblon</p>
+            </div>
+        </div>
         <div className="mt-4 border-y-2 border-black py-1.5 bg-slate-50">
           <h2 className="text-sm font-black uppercase tracking-[0.2em]">CORRECTIVE ACTION REQUEST</h2>
         </div>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
@@ -56,7 +57,7 @@ const summarySchema = z.object({
 export default function AuditExecutionPage() {
   const { scheduleId } = useParams();
   const firestore = useFirestore();
-  const { userProfile } = useUser();
+  const { userProfile, systemSettings } = useUser();
   const router = useRouter();
   const { toast } = useToast();
   const [isSavingSummary, setIsSavingSummary] = useState(false);
@@ -197,6 +198,7 @@ export default function AuditExecutionPage() {
                 findings={findings}
                 clauses={clausesInScope}
                 signatories={signatories || undefined}
+                logoUrl={systemSettings?.logoUrl}
             />
         );
 

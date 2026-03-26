@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -25,6 +26,7 @@ import { AdvisoryManagement } from '@/components/advisories/advisory-management'
 import { SignatoryManagement } from '@/components/admin/signatory-management';
 import { DataBackupManagement } from '@/components/admin/data-backup-management';
 import { GadSettingsManagement } from '@/components/admin/gad-settings-management';
+import { LogoManagement } from '@/components/admin/logo-management';
 
 
 export default function SettingsPage() {
@@ -57,6 +59,7 @@ export default function SettingsPage() {
         <Tabs defaultValue="users" className="space-y-4">
           <TabsList className="grid h-auto w-full grid-cols-2 md:inline-flex md:h-10 md:w-auto animate-tab-highlight rounded-md p-1 bg-muted">
             <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="logo">System Logo</TabsTrigger>
             <TabsTrigger value="signatories">Signatories</TabsTrigger>
             <TabsTrigger value="gad">GAD Corner</TabsTrigger>
             <TabsTrigger value="campuses">Campuses</TabsTrigger>
@@ -73,6 +76,9 @@ export default function SettingsPage() {
           </TabsList>
           <TabsContent value="users" className="space-y-4">
             <UserManagement />
+          </TabsContent>
+          <TabsContent value="logo" className="space-y-4">
+            <LogoManagement />
           </TabsContent>
           <TabsContent value="signatories" className="space-y-4">
             <SignatoryManagement />

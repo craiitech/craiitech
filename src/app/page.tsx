@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -15,8 +16,11 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ShieldCheck, ArrowRight, MonitorCheck } from 'lucide-react';
+import { useUser } from '@/firebase';
 
 export default function Home() {
+  const { systemSettings } = useUser();
+
   return (
     <div className="relative min-h-screen flex flex-col overflow-x-hidden">
         {/* Full-Page Fixed Background */}
@@ -57,8 +61,14 @@ export default function Home() {
                 </div>
                 
                 <div className="space-y-4">
-                    <div className="flex items-center justify-center gap-4">
-                        <Logo className="h-12 w-12 text-white" />
+                    <div className="flex flex-col items-center justify-center gap-4">
+                        {systemSettings?.logoUrl ? (
+                            <div className="relative h-24 w-24 mb-2">
+                                <Image src={systemSettings.logoUrl} alt="University Logo" fill className="object-contain" />
+                            </div>
+                        ) : (
+                            <Logo className="h-12 w-12 text-white" />
+                        )}
                         <h1 className="text-4xl font-bold tracking-tighter sm:text-6xl xl:text-7xl/none">
                             RSU EOMS
                         </h1>

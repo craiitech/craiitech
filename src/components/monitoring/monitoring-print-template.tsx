@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -10,9 +11,10 @@ interface MonitoringPrintTemplateProps {
   record: UnitMonitoringRecord;
   campusName: string;
   unitName: string;
+  logoUrl?: string;
 }
 
-export function MonitoringPrintTemplate({ record, campusName, unitName }: MonitoringPrintTemplateProps) {
+export function MonitoringPrintTemplate({ record, campusName, unitName, logoUrl }: MonitoringPrintTemplateProps) {
   if (!record) return null;
 
   const visitDate = record.visitDate instanceof Timestamp 
@@ -23,8 +25,13 @@ export function MonitoringPrintTemplate({ record, campusName, unitName }: Monito
     <div className="p-8 text-black bg-white max-w-4xl mx-auto font-sans leading-tight shadow-none border-none">
       {/* Header */}
       <div className="text-center border-b-2 border-black pb-4 mb-6">
-        <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
-        <h2 className="text-lg font-semibold uppercase tracking-tight">Quality Assurance Office</h2>
+        <div className="flex items-center justify-center gap-4 mb-2">
+            <img src={logoUrl || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
+            <div className="text-left">
+                <h1 className="text-xl font-bold uppercase tracking-tight leading-none">Romblon State University</h1>
+                <h2 className="text-lg font-semibold uppercase tracking-tight leading-none mt-1">Quality Assurance Office</h2>
+            </div>
+        </div>
         <div className="mt-2 py-1 px-4 bg-black text-white inline-block uppercase text-sm font-black tracking-widest">
           Unit Monitoring Report
         </div>

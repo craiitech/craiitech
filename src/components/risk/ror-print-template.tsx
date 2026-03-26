@@ -15,9 +15,10 @@ interface RORPrintTemplateProps {
   campusName: string;
   year: number;
   signatories?: Signatories;
+  logoUrl?: string;
 }
 
-export function RORPrintTemplate({ risks, unitName, campusName, year, signatories }: RORPrintTemplateProps) {
+export function RORPrintTemplate({ risks, unitName, campusName, year, signatories, logoUrl }: RORPrintTemplateProps) {
   const safeDate = (d: any) => {
     if (!d) return '';
     const date = d instanceof Timestamp ? d.toDate() : new Date(d);
@@ -39,6 +40,7 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
       {/* Institutional Header */}
       <div className="flex items-center justify-between border-b-2 border-black pb-2 mb-4">
         <div className="flex items-center gap-4">
+            <img src={logoUrl || "/rsupage.png"} alt="University Logo" className="h-14 object-contain" />
             <div className="text-left">
                 <p className="text-[10px] uppercase">Republic of the Philippines</p>
                 <h1 className="text-lg font-bold uppercase leading-none">Romblon State University</h1>
