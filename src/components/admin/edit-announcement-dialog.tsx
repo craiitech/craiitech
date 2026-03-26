@@ -50,6 +50,14 @@ export function EditAnnouncementDialog({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Sticky state
+  const [stickyAnn, setStickyAnn] = useState<CampusSetting | null>(null);
+  useEffect(() => {
+    if (announcement) setStickyAnn(announcement);
+  }, [announcement]);
+
+  const activeAnn = announcement || stickyAnn;
+
   const form = useForm<z.infer<typeof editAnnouncementSchema>>({
     resolver: zodResolver(editAnnouncementSchema),
     defaultValues: {
@@ -66,11 +74,11 @@ export function EditAnnouncementDialog({
   }, [announcement, isOpen, form]);
 
   const onSubmit = async (values: z.infer<typeof editAnnouncementSchema>) => {
-    if (!firestore || !announcement) return;
+    if (!firestore || !activeAnn) return;
 
     setIsSubmitting(true);
     
-    const docRef = doc(firestore, 'campusSettings', announcement.id);
+    const docRef = doc(firestore, 'campusSettings', activeAnn.id);
     
     const updateData = {
         announcement: values.announcement,
@@ -100,7 +108,7 @@ export function EditAnnouncementDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        {announcement && (
+        {activeAnn && (
           <>
             <DialogHeader>
               <DialogTitle>Edit Announcement</DialogTitle>

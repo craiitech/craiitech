@@ -1,11 +1,10 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc, addDoc, serverTimestamp, arrayUnion, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
@@ -76,6 +75,16 @@ export function DirectorUnitManagement() {
   const [unitToDelete, setUnitToDelete] = useState<Unit | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const [stickyUnitToRemove, setStickyUnitToRemove] = useState<Unit | null>(null);
+  const [stickyUnitToDelete, setStickyUnitToDelete] = useState<Unit | null>(null);
+
+  useEffect(() => {
+    if (unitToRemove) setStickyUnitToRemove(unitToRemove);
+  }, [unitToRemove]);
+
+  useEffect(() => {
+    if (unitToDelete) setStickyUnitToDelete(unitToDelete);
+  }, [unitToDelete]);
 
   const allUnitsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'units') : null),
@@ -254,6 +263,9 @@ export function DirectorUnitManagement() {
     );
   }
 
+  const activeUnitToRemove = unitToRemove || stickyUnitToRemove;
+  const activeUnitToDelete = unitToDelete || stickyUnitToDelete;
+
   return (
     <>
     <div className="grid gap-6 md:grid-cols-2">
@@ -295,12 +307,12 @@ export function DirectorUnitManagement() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => setUnitToRemove(unit)}>
+                              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setUnitToRemove(unit); }}>
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Unassign from Campus
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => setUnitToDelete(unit)}
+                                onSelect={(e) => { e.preventDefault(); setUnitToDelete(unit); }}
                                 className="text-destructive"
                                 disabled={(unit.campusIds?.length ?? 0) > 1}
                               >
@@ -444,7 +456,7 @@ export function DirectorUnitManagement() {
             <AlertDialogHeader>
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    This will remove the unit "{unitToRemove?.name}" from your campus. Other campuses will not be affected.
+                    This will remove the unit "{activeUnitToRemove?.name}" from your campus. Other campuses will not be affected.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -462,7 +474,7 @@ export function DirectorUnitManagement() {
             <AlertDialogHeader>
                 <AlertDialogTitle>Delete Unit Permanently?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the unit "{unitToDelete?.name}". This is only allowed if the unit is not assigned to any other campus.
+                    This action cannot be undone. This will permanently delete the unit "{activeUnitToDelete?.name}". This is only allowed if the unit is not assigned to any other campus.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

@@ -69,6 +69,17 @@ export function EditUserDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { logSessionActivity } = useSessionActivity();
 
+  // Sticky user state to prevent content vanishing during close animation
+  const [stickyUser, setStickyUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      setStickyUser(user);
+    }
+  }, [user]);
+
+  const activeUser = user || stickyUser;
+
   const form = useForm<z.infer<typeof editUserSchema>>({
     resolver: zodResolver(editUserSchema),
     defaultValues: {
@@ -112,7 +123,7 @@ export function EditUserDialog({
   }, [selectedCampusId, units]);
 
   const onSubmit = async (values: z.infer<typeof editUserSchema>) => {
-    if (!firestore || !user?.id) {
+    if (!firestore || !activeUser?.id) {
         toast({ title: 'Error', description: 'User identifier is missing.', variant: 'destructive' });
         return;
     }
@@ -124,7 +135,7 @@ export function EditUserDialog({
 
     setIsSubmitting(true);
     
-    const userRef = doc(firestore, 'users', user.id);
+    const userRef = doc(firestore, 'users', activeUser.id);
     const selectedRole = roles.find(r => r.id === values.roleId);
     
     const updateData = {
@@ -132,16 +143,16 @@ export function EditUserDialog({
         lastName: values.lastName,
         sex: values.sex,
         roleId: values.roleId,
-        role: selectedRole ? selectedRole.name : (user.role || ''),
+        role: selectedRole ? selectedRole.name : (activeUser.role || ''),
         campusId: values.campusId,
         unitId: isUnitRequired ? (values.unitId || '') : '',
     };
 
     updateDoc(userRef, updateData)
         .then(() => {
-            logSessionActivity(`Administrator updated user profile: ${user.email}`, { 
+            logSessionActivity(`Administrator updated user profile: ${activeUser.email}`, { 
                 action: 'admin_edit_user', 
-                details: { targetUserId: user.id, changes: updateData } 
+                details: { targetUserId: activeUser.id, changes: updateData } 
             });
             toast({
                 title: 'Changes Applied',
@@ -165,12 +176,12 @@ export function EditUserDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[450px]">
-        {user && (
+        {activeUser && (
           <>
             <DialogHeader>
               <DialogTitle>Edit User Account</DialogTitle>
               <DialogDescription>
-                Administrator override for {user.firstName} {user.lastName}. Update their identity or institutional assignment.
+                Administrator override for {activeUser.firstName} {activeUser.lastName}. Update their identity or institutional assignment.
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>

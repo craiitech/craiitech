@@ -75,6 +75,14 @@ export function EditUnitDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false)
 
+  // Sticky unit state to prevent content vanishing during exit
+  const [stickyUnit, setStickyUnit] = useState<Unit | null>(null);
+  useEffect(() => {
+    if (unit) setStickyUnit(unit);
+  }, [unit]);
+
+  const activeUnit = unit || stickyUnit;
+
   const usersQuery = useMemoFirebase(() => (firestore && isAdmin ? collection(firestore, 'users') : null), [firestore, isAdmin]);
   const { data: allUsers } = useCollection<User>(usersQuery);
 
@@ -107,11 +115,11 @@ export function EditUnitDialog({
   }, [unit, isOpen, form]);
 
   const onSubmit = async (values: z.infer<typeof editUnitSchema>) => {
-    if (!firestore || !unit) return;
+    if (!firestore || !activeUnit) return;
 
     setIsSubmitting(true);
     
-    const unitRef = doc(firestore, 'units', unit.id);
+    const unitRef = doc(firestore, 'units', activeUnit.id);
     
     const updateData = {
         name: values.name,
@@ -147,12 +155,12 @@ export function EditUnitDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        {unit && (
+        {activeUnit && (
           <>
             <DialogHeader>
               <DialogTitle>Edit Unit</DialogTitle>
               <DialogDescription>
-                Modify the details for the unit "{unit.name}".
+                Modify the details for the unit "{activeUnit.name}".
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>

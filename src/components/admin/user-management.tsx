@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -74,6 +74,11 @@ export function UserManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'firstName', direction: 'ascending' });
 
+  // Sticky state for alert dialogs to prevent freeze
+  const [stickyDeletingUser, setStickyDeletingUser] = useState<User | null>(null);
+  useEffect(() => {
+    if (deletingUser) setStickyDeletingUser(deletingUser);
+  }, [deletingUser]);
 
   const usersQuery = useMemoFirebase(
     () => (firestore && isAdmin ? collection(firestore, 'users') : null),
@@ -245,6 +250,8 @@ export function UserManagement() {
     }
     return { variant: 'secondary', text: 'Inactive' };
   }
+
+  const activeDeletingUser = deletingUser || stickyDeletingUser;
 
   return (
     <>
@@ -423,7 +430,7 @@ export function UserManagement() {
                 <AlertDialogTitle>Are you sure you want to delete this user?</AlertDialogTitle>
                 <AlertDialogDescription>
                     This action cannot be undone. This will permanently delete the account for{' '}
-                    <span className="font-bold">{deletingUser?.firstName} {deletingUser?.lastName}</span>.
+                    <span className="font-bold">{activeDeletingUser?.firstName} {activeDeletingUser?.lastName}</span>.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

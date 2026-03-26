@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -86,6 +86,10 @@ export function AdminUnitManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'name', direction: 'ascending' });
 
+  const [stickyDeletingUnit, setStickyDeletingUnit] = useState<Unit | null>(null);
+  useEffect(() => {
+    if (deletingUnit) setStickyDeletingUnit(deletingUnit);
+  }, [deletingUnit]);
 
   const allUnitsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'units') : null),
@@ -229,6 +233,7 @@ export function AdminUnitManagement() {
     }
   };
 
+  const activeDeletingUnit = deletingUnit || stickyDeletingUnit;
 
   return (
     <>
@@ -404,12 +409,12 @@ export function AdminUnitManagement() {
         onOpenChange={(open) => !open && setEditingUnit(null)}
     />
 
-    <AlertDialog open={!!deletingUnit} onOpenChange={() => setDeletingUnit(null)}>
+    <AlertDialog open={!!deletingUnit} onOpenChange={(open) => !open && setDeletingUnit(null)}>
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the unit "{deletingUnit?.name}".
+                    This action cannot be undone. This will permanently delete the unit "{activeDeletingUnit?.name}".
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
