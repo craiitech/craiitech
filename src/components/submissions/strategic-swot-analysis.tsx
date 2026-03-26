@@ -55,9 +55,9 @@ type SWOTItem = {
 };
 
 export function StrategicSwotAnalysis({ 
-    submissions, 
-    risks, 
-    monitoringRecords, 
+    submissions = [], 
+    risks = [], 
+    monitoringRecords = [], 
     programCompliances = [],
     auditFindings = [],
     correctiveActionRequests = [],
@@ -71,9 +71,18 @@ export function StrategicSwotAnalysis({
     const strengths: SWOTItem[] = [];
     const weaknesses: SWOTItem[] = [];
 
-    const yearSubmissions = submissions.filter(s => s.year === selectedYear);
-    const yearRisks = risks.filter(r => r.year === selectedYear);
-    const yearMonitoring = monitoringRecords.filter(r => {
+    // Ensure all inputs are arrays before processing to prevent crashes during loading states
+    const safeSubmissions = Array.isArray(submissions) ? submissions : [];
+    const safeRisks = Array.isArray(risks) ? risks : [];
+    const safeMonitoring = Array.isArray(monitoringRecords) ? monitoringRecords : [];
+    const safeCompliances = Array.isArray(programCompliances) ? programCompliances : [];
+    const safeFindings = Array.isArray(auditFindings) ? auditFindings : [];
+    const safeCars = Array.isArray(correctiveActionRequests) ? correctiveActionRequests : [];
+    const safeMrOutputs = Array.isArray(mrOutputs) ? mrOutputs : [];
+
+    const yearSubmissions = safeSubmissions.filter(s => s.year === selectedYear);
+    const yearRisks = safeRisks.filter(r => r.year === selectedYear);
+    const yearMonitoring = safeMonitoring.filter(r => {
         const d = r.visitDate?.toDate ? r.visitDate.toDate() : new Date(r.visitDate);
         return d.getFullYear() === selectedYear;
     });
@@ -122,9 +131,9 @@ export function StrategicSwotAnalysis({
     }
 
     // --- 4. CHED & ACADEMIC QUALITY (PROGRAM COMPLIANCE) ---
-    if (programCompliances.length > 0) {
-        const withCopc = programCompliances.filter(c => c.ched?.copcStatus === 'With COPC').length;
-        const totalPrograms = programCompliances.length;
+    if (safeCompliances.length > 0) {
+        const withCopc = safeCompliances.filter(c => c.ched?.copcStatus === 'With COPC').length;
+        const totalPrograms = safeCompliances.length;
         const copcRate = Math.round((withCopc / totalPrograms) * 100);
 
         if (copcRate === 100) {
@@ -136,7 +145,7 @@ export function StrategicSwotAnalysis({
         // Faculty Alignment
         let totalFaculty = 0;
         let alignedFaculty = 0;
-        programCompliances.forEach(c => {
+        safeCompliances.forEach(c => {
             const members = c.faculty?.members || [];
             totalFaculty += members.length;
             alignedFaculty += members.filter(m => m.isAlignedWithCMO === 'Aligned').length;
@@ -150,7 +159,7 @@ export function StrategicSwotAnalysis({
         }
 
         // Accreditation
-        const highAccredited = programCompliances.filter(c => {
+        const highAccredited = safeCompliances.filter(c => {
             const current = c.accreditationRecords?.find(m => m.lifecycleStatus === 'Current');
             return current && (current.level.includes('Level III') || current.level.includes('Level IV'));
         }).length;
@@ -161,23 +170,23 @@ export function StrategicSwotAnalysis({
     }
 
     // --- 5. AUDIT & CORRECTIVE ACTIONS (QA REPORTS) ---
-    const activeCars = correctiveActionRequests.filter(c => c.status !== 'Closed');
+    const activeCars = safeCars.filter(c => c.status !== 'Closed');
     if (activeCars.length > 0) {
         weaknesses.push({ title: 'Open Non-Conformances', description: `${activeCars.length} Corrective Action Requests (CARs) are currently outstanding.`, tag: '[Audit Gap]', priority: 'High', category: 'Audit' });
-    } else if (correctiveActionRequests.length > 0) {
+    } else if (safeCars.length > 0) {
         strengths.push({ title: 'Audit Responsiveness', description: 'Unit has successfully closed all identified Corrective Action Requests.', tag: '[CAR Closure]', category: 'Audit' });
     }
 
-    const ncFindings = auditFindings.filter(f => f.type === 'Non-Conformance').length;
+    const ncFindings = safeFindings.filter(f => f.type === 'Non-Conformance').length;
     if (ncFindings > 3) {
         weaknesses.push({ title: 'Systemic Non-Compliance', description: `High volume of Non-Conformance findings (${ncFindings}) detected in recent audits.`, tag: '[Risk Alert]', priority: 'High', category: 'Audit' });
     }
 
     // --- 6. GOVERNANCE & DECISION IMPLEMENTATION (MR) ---
-    const overdueDecisions = mrOutputs.filter(o => o.status === 'Open' || o.status === 'On-going').length;
+    const overdueDecisions = safeMrOutputs.filter(o => o.status === 'Open' || o.status === 'On-going').length;
     if (overdueDecisions > 2) {
         weaknesses.push({ title: 'Implementation Delay', description: `${overdueDecisions} Management Review decisions are pending unit-level action.`, tag: '[MR Backlog]', priority: 'Medium', category: 'Governance' });
-    } else if (mrOutputs.length > 0 && overdueDecisions === 0) {
+    } else if (safeMrOutputs.length > 0 && overdueDecisions === 0) {
         strengths.push({ title: 'Governance Alignment', description: '100% implementation of actionable decisions from top management reviews.', tag: '[MR Closure]', category: 'Governance' });
     }
 
