@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect, useRef } from 'react';
@@ -154,7 +153,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   const { data: adminRoleDoc, isLoading: isAdminRoleLoading } = useDoc(adminRoleDocRef);
 
-  const systemSettingsRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'settings') : null), [firestore]);
+  // System settings are now only fetched for authenticated users to avoid permission errors on landing page
+  const systemSettingsRef = useMemoFirebase(() => {
+    if (!firestore || !userAuthState.user) return null;
+    return doc(firestore, 'system', 'settings');
+  }, [firestore, userAuthState.user]);
+  
   const { data: systemSettings } = useDoc<SystemSettings>(systemSettingsRef);
 
   const campusesQuery = useMemoFirebase(() => {

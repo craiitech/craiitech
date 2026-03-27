@@ -19,8 +19,6 @@ import { useUser } from '@/firebase';
 import { getDirectDriveLink } from '@/lib/utils';
 
 export default function Home() {
-  const { systemSettings } = useUser();
-
   return (
     <div className="relative min-h-screen flex flex-col overflow-x-hidden">
         {/* Full-Page Fixed Background */}
@@ -62,13 +60,7 @@ export default function Home() {
                 
                 <div className="space-y-4">
                     <div className="flex flex-col items-center justify-center gap-4">
-                        {systemSettings?.logoUrl ? (
-                            <div className="relative h-24 w-24 mb-2">
-                                <Image src={getDirectDriveLink(systemSettings.logoUrl)} alt="University Logo" fill className="object-contain" />
-                            </div>
-                        ) : (
-                            <Logo className="h-12 w-12 text-white" />
-                        )}
+                        <Logo className="h-16 w-16 text-white" />
                         <h1 className="text-4xl font-bold tracking-tighter sm:text-6xl xl:text-7xl/none">
                             RSU EOMS
                         </h1>
