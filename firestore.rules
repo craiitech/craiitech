@@ -59,17 +59,13 @@ service cloud.firestore {
       allow write: if isAdmin(); 
     }
 
-    match /units/{id} { 
-      allow read: if isSignedIn(); 
-      allow write: if isAdmin(); 
-    }
-
     // --------------------------------------------------------------------------
     // SYSTEM CONFIGURATION & AUTHORITY
     // --------------------------------------------------------------------------
     
     match /system/{docId} {
-      allow read: if isSignedIn();
+      // Allow public read for 'settings' to load logo on landing pages
+      allow read: if docId == 'settings' || isSignedIn();
       allow write: if isAdmin();
     }
 
@@ -117,6 +113,11 @@ service cloud.firestore {
     match /risks/{id} { 
       allow read: if isSignedIn(); 
       allow write: if isSignedIn(); 
+    }
+
+    match /units/{id} { 
+      allow read: if isSignedIn(); 
+      allow write: if isAdmin(); 
     }
 
     match /unitMonitoringRecords/{id} { 
