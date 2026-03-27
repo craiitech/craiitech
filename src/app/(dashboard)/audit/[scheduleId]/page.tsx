@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useDoc, useMemoFirebase, useCollection, useUser } from '@/firebase';
@@ -198,7 +197,6 @@ export default function AuditExecutionPage() {
                 findings={findings}
                 clauses={clausesInScope}
                 signatories={signatories || undefined}
-                logoUrl={systemSettings?.logoUrl}
             />
         );
 
