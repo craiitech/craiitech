@@ -5,7 +5,6 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@
 import { collection, query, orderBy, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import type { CorrectiveActionRequest, Campus, Unit, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -38,7 +37,10 @@ import {
     ExternalLink,
     ArrowUpDown,
     TableProperties,
-    ListChecks
+    ListChecks,
+    ChevronRight,
+    Gavel,
+    BookOpen
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -666,7 +668,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
       {/* --- FORM DIALOG --- */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+        <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
                 <ShieldCheck className="h-5 w-5" />
@@ -676,158 +678,230 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             <DialogDescription className="text-xs">Formal documentation of non-conformance findings and resolution tracking.</DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="flex-1 bg-white">
-            <div className="p-8">
-                <Form {...form}>
-                    <form id="car-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormField control={form.control} name="carNumber" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">CAR Number</FormLabel><FormControl><Input {...field} placeholder="e.g. 2025-001" className="bg-slate-50" disabled={isFieldReadOnly('carNumber')} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                            <FormField control={form.control} name="ncReportNumber" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">NC Report No.</FormLabel><FormControl><Input {...field} placeholder="e.g. 2025-NC-01" className="bg-slate-50" disabled={isFieldReadOnly('ncReportNumber')} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <FormField control={form.control} name="source" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Source</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('source')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl>
-                                        <SelectContent><SelectItem value="Audit Finding">Audit Finding</SelectItem><SelectItem value="Legal Non-compliance">Legal Non-compliance</SelectItem><SelectItem value="Non-conforming Service">Non-conforming Service</SelectItem><SelectItem value="Others">Others</SelectItem></SelectContent>
-                                    </Select>
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="initiator" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Initiator</FormLabel><FormControl><Input {...field} className="bg-slate-50" disabled={isFieldReadOnly('initiator')} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                            <FormField control={form.control} name="natureOfFinding" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Nature of Finding</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('natureOfFinding')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl>
-                                        <SelectContent><SelectItem value="NC">NC</SelectItem><SelectItem value="OFI">OFI</SelectItem></SelectContent>
-                                    </Select>
-                                </FormItem>
-                            )} />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
-                            <FormField control={form.control} name="procedureTitle" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Title of Procedure</FormLabel><FormControl><Input {...field} placeholder="Name of relevant procedure" className="bg-slate-50" disabled={isFieldReadOnly('procedureTitle')} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                            <FormField control={form.control} name="concerningClause" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Concerning ISO Clause</FormLabel><FormControl><Input {...field} placeholder="e.g. 7.5.3" className="bg-slate-50" disabled={isFieldReadOnly('concerningClause')} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                        </div>
-
-                        <div className="space-y-6 pt-6 border-t">
-                            <FormField control={form.control} name="descriptionOfNonconformance" render={({ field }) => (
-                                <FormItem><FormLabel className="text-sm font-black text-slate-800">Statement of Non-Conformance</FormLabel><FormControl><Textarea {...field} rows={4} className="bg-slate-50 italic" disabled={isFieldReadOnly('descriptionOfNonconformance')} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
-                            <FormField control={form.control} name="concerningTopManagementName" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Concerning Top Management</FormLabel><FormControl><Input {...field} placeholder="Role or Person" className="bg-slate-50" disabled={isFieldReadOnly('concerningTopManagementName')} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                            <FormField control={form.control} name="timeLimitForReply" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Time Limit for Reply</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" disabled={isFieldReadOnly('timeLimitForReply')} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t">
-                            <FormField control={form.control} name="campusId" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Campus</FormLabel><Select onValueChange={(v) => { field.onChange(v); form.setValue('unitId', ''); }} value={field.value} disabled={isFieldReadOnly('campusId')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl><SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                            )} />
-                            <FormField control={form.control} name="unitId" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Unit</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('unitId') || !form.watch('campusId')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl><SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                            )} />
-                            <FormField control={form.control} name="unitHead" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Head of Unit</FormLabel><FormControl><Input {...field} placeholder="Full Name" className="bg-slate-50" disabled={isFieldReadOnly('unitHead')} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                        </div>
-
-                        <div className="pt-6 border-t space-y-4">
-                            <div className="flex items-center gap-2">
-                                <ShieldAlert className="h-5 w-5 text-primary" />
-                                <h4 className="text-sm font-black text-primary uppercase tracking-tight">Root Cause Analysis (Investigate the Cause of the Nonconformity)</h4>
-                            </div>
-                            <FormField control={form.control} name="rootCauseAnalysis" render={({ field }) => (
-                                <FormItem>
-                                    <FormControl><Textarea {...field} rows={4} placeholder="Identify the systematic reason why this non-conformance occurred..." className="bg-primary/5 border-primary/10 shadow-inner italic" disabled={isFieldReadOnly('rootCauseAnalysis')} /></FormControl>
-                                    <FormDescription className="text-[10px] font-bold text-slate-500">
-                                        Mandatory Step: The unit must complete the investigation into the root cause before the Action Registry is enabled.
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                        </div>
-
-                        <div className={cn("pt-6 border-t space-y-4 transition-all duration-500", !isInvestigationComplete && "opacity-50 pointer-events-none grayscale")}>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <ListChecks className="h-5 w-5 text-primary" />
-                                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Corrective Action Registry</h4>
+          <div className="flex-1 flex overflow-hidden bg-white">
+            <div className="flex-1 flex flex-col min-w-0 border-r">
+                <ScrollArea className="flex-1">
+                    <div className="p-8">
+                        <Form {...form}>
+                            <form id="car-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <FormField control={form.control} name="carNumber" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs font-bold uppercase">CAR Number</FormLabel><FormControl><Input {...field} placeholder="e.g. 2025-001" className="bg-slate-50" disabled={isFieldReadOnly('carNumber')} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="ncReportNumber" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs font-bold uppercase">NC Report No.</FormLabel><FormControl><Input {...field} placeholder="e.g. 2025-NC-01" className="bg-slate-50" disabled={isFieldReadOnly('ncReportNumber')} /></FormControl><FormMessage /></FormItem>
+                                    )} />
                                 </div>
-                                {!isInvestigationComplete && (
-                                    <Badge variant="outline" className="h-5 text-[8px] font-black uppercase border-amber-200 text-amber-700 bg-amber-50">
-                                        Awaiting Investigation Results
-                                    </Badge>
-                                )}
-                            </div>
-                            {actionFields.map((field, index) => (
-                                <div key={field.id} className="space-y-4 p-4 rounded-lg border bg-muted/5 relative group">
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                                        <FormField control={form.control} name={`actionSteps.${index}.type`} render={({ field: inputField }) => (
-                                            <FormItem><FormLabel className="text-[9px] uppercase font-bold">Action Type</FormLabel><Select onValueChange={inputField.onChange} value={inputField.value} disabled={isFieldReadOnly('actionSteps')}><FormControl><SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Immediate Correction">Immediate Correction</SelectItem><SelectItem value="Long-term Corrective Action">Long-term Action</SelectItem></SelectContent></Select></FormItem>
-                                        )} />
-                                        <FormField control={form.control} name={`actionSteps.${index}.description`} render={({ field: inputField }) => (
-                                            <FormItem className="md:col-span-2"><FormLabel className="text-[9px] uppercase font-bold">Action Taken</FormLabel><FormControl><Input {...inputField} className="h-8 text-[10px]" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>
-                                        )} />
-                                        <FormField control={form.control} name={`actionSteps.${index}.completionDate`} render={({ field: inputField }) => (
-                                            <FormItem><FormLabel className="text-[9px] uppercase font-bold">Target Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-[10px]" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>
-                                        )} />
-                                    </div>
-                                    <FormField control={form.control} name={`actionSteps.${index}.evidenceLink`} render={({ field: inputField }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-[9px] uppercase font-bold flex items-center gap-1">
-                                                <LinkIcon className="h-2.5 w-2.5 text-primary" /> Evidence Link (Google Drive)
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} />
-                                            </FormControl>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <FormField control={form.control} name="source" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Source</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('source')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl>
+                                                <SelectContent><SelectItem value="Audit Finding">Audit Finding</SelectItem><SelectItem value="Legal Non-compliance">Legal Non-compliance</SelectItem><SelectItem value="Non-conforming Service">Non-conforming Service</SelectItem><SelectItem value="Others">Others</SelectItem></SelectContent>
+                                            </Select>
                                         </FormItem>
                                     )} />
-                                    {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)}><Trash2 className="h-3.5 w-3.5" /></Button>}
+                                    <FormField control={form.control} name="initiator" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Initiator</FormLabel><FormControl><Input {...field} className="bg-slate-50" disabled={isFieldReadOnly('initiator')} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="natureOfFinding" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Nature of Finding</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('natureOfFinding')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue /></SelectTrigger></FormControl>
+                                                <SelectContent><SelectItem value="NC">NC</SelectItem><SelectItem value="OFI">OFI</SelectItem></SelectContent>
+                                            </Select>
+                                        </FormItem>
+                                    )} />
                                 </div>
-                            ))}
-                            {!isFieldReadOnly('actionSteps') && (
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending', evidenceLink: '' })} 
-                                    className="w-full border-dashed h-10 font-black text-[10px] uppercase gap-2 hover:bg-primary/5 hover:text-primary"
-                                    disabled={!isInvestigationComplete}
-                                >
-                                    <PlusCircle className="h-3.5 w-3.5" /> Add Corrective Step
-                                </Button>
-                            )}
-                        </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t">
-                            <FormField control={form.control} name="requestDate" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Request Date</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" disabled={isFieldReadOnly('requestDate')} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                            <FormField control={form.control} name="preparedBy" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Prepared By</FormLabel><FormControl><Input {...field} placeholder="Full Name" className="bg-slate-50" disabled={isFieldReadOnly('preparedBy')} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                            <FormField control={form.control} name="approvedBy" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Approved By (QA Director)</FormLabel><FormControl><Input {...field} placeholder="Full Name" className="bg-slate-50" disabled={isFieldReadOnly('approvedBy')} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                        </div>
-                    </form>
-                </Form>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
+                                    <FormField control={form.control} name="procedureTitle" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Title of Procedure</FormLabel><FormControl><Input {...field} placeholder="Name of relevant procedure" className="bg-slate-50" disabled={isFieldReadOnly('procedureTitle')} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="concerningClause" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Concerning ISO Clause</FormLabel><FormControl><Input {...field} placeholder="e.g. 7.5.3" className="bg-slate-50" disabled={isFieldReadOnly('concerningClause')} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                </div>
+
+                                <div className="space-y-6 pt-6 border-t">
+                                    <FormField control={form.control} name="descriptionOfNonconformance" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-sm font-black text-slate-800">Statement of Non-Conformance</FormLabel><FormControl><Textarea {...field} rows={4} className="bg-slate-50 italic" disabled={isFieldReadOnly('descriptionOfNonconformance')} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
+                                    <FormField control={form.control} name="concerningTopManagementName" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Concerning Top Management</FormLabel><FormControl><Input {...field} placeholder="Role or Person" className="bg-slate-50" disabled={isFieldReadOnly('concerningTopManagementName')} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="timeLimitForReply" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Time Limit for Reply</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" disabled={isFieldReadOnly('timeLimitForReply')} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t">
+                                    <FormField control={form.control} name="campusId" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Campus</FormLabel><Select onValueChange={(v) => { field.onChange(v); form.setValue('unitId', ''); }} value={field.value} disabled={isFieldReadOnly('campusId')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl><SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="unitId" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Unit</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={isFieldReadOnly('unitId') || !form.watch('campusId')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl><SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="unitHead" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Head of Unit</FormLabel><FormControl><Input {...field} placeholder="Full Name" className="bg-slate-50" disabled={isFieldReadOnly('unitHead')} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                </div>
+
+                                <div className="pt-6 border-t space-y-4">
+                                    <div className="flex items-center gap-2">
+                                        <ShieldAlert className="h-5 w-5 text-primary" />
+                                        <h4 className="text-sm font-black text-primary uppercase tracking-tight">Root Cause Analysis (Investigate the Cause of the Nonconformity)</h4>
+                                    </div>
+                                    <FormField control={form.control} name="rootCauseAnalysis" render={({ field }) => (
+                                        <FormItem>
+                                            <FormControl><Textarea {...field} rows={4} placeholder="Identify the systematic reason why this non-conformance occurred..." className="bg-primary/5 border-primary/10 shadow-inner italic" disabled={isFieldReadOnly('rootCauseAnalysis')} /></FormControl>
+                                            <FormDescription className="text-[10px] font-bold text-slate-500">
+                                                Mandatory Step: The unit must complete the investigation into the root cause before the Action Registry is enabled.
+                                            </FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </div>
+
+                                <div className={cn("pt-6 border-t space-y-4 transition-all duration-500", !isInvestigationComplete && "opacity-50 pointer-events-none grayscale")}>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <ListChecks className="h-5 w-5 text-primary" />
+                                            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Corrective Action Registry</h4>
+                                        </div>
+                                        {!isInvestigationComplete && (
+                                            <Badge variant="outline" className="h-5 text-[8px] font-black uppercase border-amber-200 text-amber-700 bg-amber-50">
+                                                Awaiting Investigation Results
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    {actionFields.map((field, index) => (
+                                        <div key={field.id} className="space-y-4 p-4 rounded-lg border bg-muted/5 relative group">
+                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                                <FormField control={form.control} name={`actionSteps.${index}.type`} render={({ field: inputField }) => (
+                                                    <FormItem><FormLabel className="text-[9px] uppercase font-bold">Action Type</FormLabel><Select onValueChange={inputField.onChange} value={inputField.value} disabled={isFieldReadOnly('actionSteps')}><FormControl><SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Immediate Correction">Immediate Correction</SelectItem><SelectItem value="Long-term Corrective Action">Long-term Action</SelectItem></SelectContent></Select></FormItem>
+                                                )} />
+                                                <FormField control={form.control} name={`actionSteps.${index}.description`} render={({ field: inputField }) => (
+                                                    <FormItem className="md:col-span-2"><FormLabel className="text-[9px] uppercase font-bold">Action Taken</FormLabel><FormControl><Input {...inputField} className="h-8 text-[10px]" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>
+                                                )} />
+                                                <FormField control={form.control} name={`actionSteps.${index}.completionDate`} render={({ field: inputField }) => (
+                                                    <FormItem><FormLabel className="text-[9px] uppercase font-bold">Target Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-[10px]" disabled={isFieldReadOnly('actionSteps')} /></FormControl></FormItem>
+                                                )} />
+                                            </div>
+                                            <FormField control={form.control} name={`actionSteps.${index}.evidenceLink`} render={({ field: inputField }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-[9px] uppercase font-bold flex items-center gap-1">
+                                                        <LinkIcon className="h-2.5 w-2.5 text-primary" /> Evidence Link (Google Drive)
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="h-8 text-[10px] bg-white" disabled={isFieldReadOnly('actionSteps')} />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )} />
+                                            {!isFieldReadOnly('actionSteps') && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)}><Trash2 className="h-3.5 w-3.5" /></Button>}
+                                        </div>
+                                    ))}
+                                    {!isFieldReadOnly('actionSteps') && (
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            size="sm" 
+                                            onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending', evidenceLink: '' })} 
+                                            className="w-full border-dashed h-10 font-black text-[10px] uppercase gap-2 hover:bg-primary/5 hover:text-primary"
+                                            disabled={!isInvestigationComplete}
+                                        >
+                                            <PlusCircle className="h-3.5 w-3.5" /> Add Corrective Step
+                                        </Button>
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t">
+                                    <FormField control={form.control} name="requestDate" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Request Date</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" disabled={isFieldReadOnly('requestDate')} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="preparedBy" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Prepared By</FormLabel><FormControl><Input {...field} placeholder="Full Name" className="bg-slate-50" disabled={isFieldReadOnly('preparedBy')} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="approvedBy" render={({ field }) => (
+                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Approved By (QA Director)</FormLabel><FormControl><Input {...field} placeholder="Full Name" className="bg-slate-50" disabled={isFieldReadOnly('approvedBy')} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                </div>
+                            </form>
+                        </Form>
+                    </div>
+                </ScrollArea>
             </div>
-          </ScrollArea>
+
+            {/* SIDEBAR INSTRUCTIONS FOR UNIT */}
+            <div className="hidden lg:flex w-[380px] flex-col bg-muted/10 shrink-0 border-l">
+                <div className="p-4 border-b font-black text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2 bg-white">
+                    <BookOpen className="h-4 w-4 text-primary" /> Unit Compliance Guide
+                </div>
+                <ScrollArea className="flex-1">
+                    <div className="p-6 space-y-6">
+                        <section className="space-y-3">
+                            <h4 className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
+                                <span className="h-5 w-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px]">1</span>
+                                Investigation Phase
+                            </h4>
+                            <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+                                The unit must first <strong>Provide the Root Cause Analysis</strong>. Investigate why the non-conformity occurred (manpower, method, machine, etc.). documenting this is mandatory before the Action Registry is enabled.
+                            </p>
+                        </section>
+
+                        <section className="space-y-3">
+                            <h4 className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
+                                <span className="h-5 w-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px]">2</span>
+                                Action Strategy
+                            </h4>
+                            <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+                                Units must provide the <strong>Corrective Action Registry</strong> steps. Ensure both <strong>Immediate Correction</strong> (short-term fix) and <strong>Long-term Corrective Action</strong> (prevention) are logged.
+                            </p>
+                            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 flex gap-2">
+                                <LinkIcon className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
+                                <p className="text-[10px] text-blue-800 font-bold">A valid Google Drive link to the PDF evidence is required for every action step.</p>
+                            </div>
+                        </section>
+
+                        <section className="space-y-3">
+                            <h4 className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
+                                <span className="h-5 w-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px]">3</span>
+                                QA Monitoring
+                            </h4>
+                            <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+                                <strong>Auditors and QA Officers</strong> will conduct a formal follow-up of the implementation on the prescribed target dates. Ensure all evidence logs are accessible.
+                            </p>
+                        </section>
+
+                        <section className="space-y-3">
+                            <h4 className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
+                                <span className="h-5 w-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px]">4</span>
+                                Verification
+                            </h4>
+                            <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+                                Final <strong>Verification of Effectiveness</strong> will be conducted by the QA team. Only after successful verification will the CAR status be marked as "Closed".
+                            </p>
+                        </section>
+
+                        <div className="pt-6 border-t">
+                            <Card className="bg-primary/5 border-primary/20">
+                                <CardContent className="p-4 space-y-2">
+                                    <div className="flex items-center gap-2 text-primary">
+                                        <ShieldCheck className="h-4 w-4" />
+                                        <span className="text-[9px] font-black uppercase">Standard: ISO 21001:2018</span>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground italic leading-tight">
+                                        Compliance with CARs is a vital component of the university's continual improvement cycle.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                </ScrollArea>
+            </div>
+          </div>
 
           <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
