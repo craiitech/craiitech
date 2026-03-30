@@ -36,7 +36,8 @@ import {
     Calendar, 
     Link as LinkIcon, 
     ExternalLink,
-    ArrowUpDown
+    ArrowUpDown,
+    TableProperties
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -53,6 +54,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
+import { CARControlRegisterTemplate } from './car-control-register-template';
 import { cn } from '@/lib/utils';
 
 interface CorrectiveActionRequestTabProps {
@@ -139,7 +141,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     if (!rawCars || !userProfile) return [];
 
     const isInstitutionalViewer = isAdmin || isAuditor;
-    const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
+    const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
 
     let result = rawCars.filter(car => {
         // 1. Authorization Filter
@@ -279,6 +281,53 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     }
   };
 
+  const handlePrintRegistry = () => {
+    if (!processedCars.length) return;
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <CARControlRegisterTemplate 
+                cars={processedCars} 
+                unitMap={unitMap} 
+                year={yearFilter} 
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>CAR Control Register - ${yearFilter}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @media print { 
+                            @page { size: landscape; margin: 0.5in; }
+                            body { margin: 0; padding: 0; background: white; } 
+                            .no-print { display: none !important; }
+                        }
+                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Control Register (Landscape)</button>
+                    </div>
+                    <div id="print-content">
+                        ${reportHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) {
+        console.error("Print error:", err);
+        toast({ title: "Print Failed", description: "Could not generate control register.", variant: "destructive" });
+    }
+  };
+
   const onSubmit = async (values: z.infer<typeof carSchema>) => {
     if (!firestore) return;
     setIsSubmitting(true);
@@ -414,8 +463,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
 
       {/* 2. FILTER & ACTION BAR */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
+        <div className="flex-1 flex flex-col md:flex-row gap-4">
+            <div className="flex-1 space-y-1.5">
                 <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                     <Search className="h-2.5 w-2.5" /> Search Registry
                 </label>
@@ -444,36 +493,47 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                 </Select>
             </div>
         </div>
-        {canManage && (
-          <Button onClick={() => {
-              setEditingCar(null);
-              form.reset({
-                carNumber: '',
-                ncReportNumber: '',
-                source: 'Audit Finding', 
-                natureOfFinding: 'NC', 
-                procedureTitle: '',
-                initiator: '',
-                concerningClause: '',
-                concerningTopManagementName: '',
-                timeLimitForReply: '',
-                unitId: '',
-                campusId: '',
-                unitHead: '',
-                descriptionOfNonconformance: '',
-                preparedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '',
-                approvedBy: signatories?.qaoDirector || '',
-                status: 'Open',
-                requestDate: format(new Date(), 'yyyy-MM-dd'),
-                actionSteps: [],
-                evidences: [],
-                verificationRecords: []
-              });
-              setIsDialogOpen(true);
-          }} className="h-10 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest px-6">
-            <PlusCircle className="mr-2 h-4 w-4" /> Issue New CAR
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+            <Button 
+                variant="outline" 
+                onClick={handlePrintRegistry} 
+                disabled={processedCars.length === 0}
+                className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2"
+            >
+                <TableProperties className="h-4 w-4" />
+                Print Control Register
+            </Button>
+            {canManage && (
+            <Button onClick={() => {
+                setEditingCar(null);
+                form.reset({
+                    carNumber: '',
+                    ncReportNumber: '',
+                    source: 'Audit Finding', 
+                    natureOfFinding: 'NC', 
+                    procedureTitle: '',
+                    initiator: '',
+                    concerningClause: '',
+                    concerningTopManagementName: '',
+                    timeLimitForReply: '',
+                    unitId: '',
+                    campusId: '',
+                    unitHead: '',
+                    descriptionOfNonconformance: '',
+                    preparedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '',
+                    approvedBy: signatories?.qaoDirector || '',
+                    status: 'Open',
+                    requestDate: format(new Date(), 'yyyy-MM-dd'),
+                    actionSteps: [],
+                    evidences: [],
+                    verificationRecords: []
+                });
+                setIsDialogOpen(true);
+            }} className="h-10 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest px-6">
+                <PlusCircle className="mr-2 h-4 w-4" /> Issue New CAR
+            </Button>
+            )}
+        </div>
       </div>
 
       {/* 3. REGISTRY TABLE */}
@@ -544,7 +604,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                     <TableCell className="text-center">
                       <Badge 
                         className={cn(
-                            "text-[9px] font-black uppercase border-none px-3 shadow-sm",
+                            "text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap",
                             car.status === 'Open' ? "bg-rose-600 text-white" : 
                             car.status === 'In Progress' ? "bg-amber-500 text-amber-950" : 
                             "bg-emerald-600 text-white"
