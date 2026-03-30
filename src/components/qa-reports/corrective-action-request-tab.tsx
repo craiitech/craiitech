@@ -35,7 +35,8 @@ import {
     History as HistoryIcon, 
     Calendar, 
     Link as LinkIcon, 
-    ExternalLink 
+    ExternalLink,
+    ArrowUpDown
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -100,6 +101,9 @@ const carSchema = z.object({
   status: z.enum(['Open', 'In Progress', 'Closed']),
 });
 
+type SortKey = 'carNumber' | 'unit' | 'deadline' | 'status';
+type SortConfig = { key: SortKey; direction: 'asc' | 'desc' } | null;
+
 export function CorrectiveActionRequestTab({ campuses, units, canManage }: CorrectiveActionRequestTabProps) {
   const { userProfile, isAdmin, userRole, isAuditor } = useUser();
   const firestore = useFirestore();
@@ -111,6 +115,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   
   const [searchTerm, setSearchTerm] = useState('');
   const [yearFilter, setYearFilter] = useState<string>('all');
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'carNumber', direction: 'desc' });
 
   const carQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'correctiveActionRequests'), orderBy('createdAt', 'desc')) : null),
@@ -127,13 +132,17 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
 
-  const filteredCars = useMemo(() => {
+  /**
+   * DATA PROCESSING PIPELINE
+   */
+  const processedCars = useMemo(() => {
     if (!rawCars || !userProfile) return [];
 
     const isInstitutionalViewer = isAdmin || isAuditor;
     const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
 
-    return rawCars.filter(car => {
+    let result = rawCars.filter(car => {
+        // 1. Authorization Filter
         if (!isInstitutionalViewer) {
             if (isCampusSupervisor) {
                 if (car.campusId !== userProfile.campusId) return false;
@@ -142,17 +151,59 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             }
         }
 
+        // 2. Search Filter
         const matchesSearch = 
             car.carNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
             car.procedureTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (unitMap.get(car.unitId) || '').toLowerCase().includes(searchTerm.toLowerCase());
         
+        if (!matchesSearch) return false;
+
+        // 3. Year Filter
         const reqDate = car.requestDate instanceof Timestamp ? car.requestDate.toDate() : new Date(car.requestDate);
         const matchesYear = yearFilter === 'all' || reqDate.getFullYear().toString() === yearFilter;
 
-        return matchesSearch && matchesYear;
+        return matchesYear;
     });
-  }, [rawCars, searchTerm, yearFilter, unitMap, userProfile, isAdmin, isAuditor, userRole]);
+
+    // 4. Sorting
+    if (sortConfig) {
+        const { key, direction } = sortConfig;
+        result.sort((a, b) => {
+            let valA: any, valB: any;
+            
+            switch(key) {
+                case 'carNumber': valA = a.carNumber; valB = b.carNumber; break;
+                case 'unit': valA = unitMap.get(a.unitId) || ''; valB = unitMap.get(b.unitId) || ''; break;
+                case 'status': valA = a.status; valB = b.status; break;
+                case 'deadline':
+                    valA = a.timeLimitForReply?.toMillis?.() || new Date(a.timeLimitForReply).getTime();
+                    valB = b.timeLimitForReply?.toMillis?.() || new Date(b.timeLimitForReply).getTime();
+                    break;
+                default: valA = ''; valB = '';
+            }
+
+            if (valA < valB) return direction === 'asc' ? -1 : 1;
+            if (valA > valB) return direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }
+
+    return result;
+  }, [rawCars, searchTerm, yearFilter, sortConfig, unitMap, userProfile, isAdmin, isAuditor, userRole]);
+
+  /**
+   * ANALYTICS CALCULATIONS
+   */
+  const carStats = useMemo(() => {
+    const total = processedCars.length;
+    const open = processedCars.filter(c => c.status === 'Open').length;
+    const inProgress = processedCars.filter(c => c.status === 'In Progress').length;
+    const closed = processedCars.filter(c => c.status === 'Closed').length;
+    const successRate = total > 0 ? Math.round((closed / total) * 100) : 0;
+
+    return { total, open, inProgress, closed, successRate };
+  }, [processedCars]);
 
   const years = useMemo(() => {
     if (!rawCars) return [];
@@ -194,6 +245,18 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     control: form.control,
     name: "actionSteps"
   });
+
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+        direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", sortConfig?.key === key ? "text-primary opacity-100" : "opacity-20")} />;
+  };
 
   const handlePrint = (car: CorrectiveActionRequest) => {
     const uName = unitMap.get(car.unitId) || 'Unknown Unit';
@@ -289,9 +352,98 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-black uppercase tracking-tight">Corrective Action Registry</h3>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      
+      {/* 1. ANALYTICS CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Issued Requests</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
+                <div className="text-3xl font-black text-primary tabular-nums">{carStats.total}</div>
+                <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase">Total CARs Logged</p>
+            </CardContent>
+            <div className="absolute top-0 right-0 p-3 opacity-5"><FileText className="h-12 w-12" /></div>
+        </Card>
+
+        <Card className="bg-rose-50 border-rose-100 shadow-sm relative overflow-hidden flex flex-col">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-700">Outstanding Gaps</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
+                <div className="text-3xl font-black text-rose-600 tabular-nums">{carStats.open}</div>
+                <p className="text-[9px] font-bold text-rose-600/70 mt-1 uppercase">Open Status</p>
+            </CardContent>
+            <div className="absolute top-0 right-0 p-3 opacity-5"><ShieldAlert className="h-12 w-12 text-rose-600" /></div>
+        </Card>
+
+        <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden flex flex-col">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">Implementation</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
+                <div className="text-3xl font-black text-amber-600 tabular-nums">{carStats.inProgress}</div>
+                <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase">In Progress</p>
+            </CardContent>
+            <div className="absolute top-0 right-0 p-3 opacity-5"><Clock className="h-12 w-12 text-amber-600" /></div>
+        </Card>
+
+        <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Verified Closure</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
+                <div className="text-3xl font-black text-emerald-600 tabular-nums">{carStats.closed}</div>
+                <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase">Resolved Non-Conformances</p>
+            </CardContent>
+            <div className="absolute top-0 right-0 p-3 opacity-5"><CheckCircle2 className="h-12 w-12 text-emerald-600" /></div>
+        </Card>
+
+        <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden flex flex-col">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Success Rate</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
+                <div className="text-3xl font-black text-blue-600 tabular-nums">{carStats.successRate}%</div>
+                <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Closure Maturity</p>
+            </CardContent>
+            <div className="absolute top-0 right-0 p-3 opacity-5"><TrendingUp className="h-12 w-12 text-blue-600" /></div>
+        </Card>
+      </div>
+
+      {/* 2. FILTER & ACTION BAR */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                    <Search className="h-2.5 w-2.5" /> Search Registry
+                </label>
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search CAR No, Unit, or Procedure..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9 h-10 shadow-sm bg-background border-primary/10"
+                    />
+                </div>
+            </div>
+            <div className="w-full md:w-48 space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                    <Calendar className="h-2.5 w-2.5" /> Fiscal Year
+                </label>
+                <Select value={yearFilter} onValueChange={setYearFilter}>
+                    <SelectTrigger className="h-10 bg-background border-primary/10 font-bold shadow-sm">
+                        <SelectValue placeholder="All Years" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All recorded years</SelectItem>
+                        {years.map(y => <SelectItem key={y} value={y}>AY {y}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
         {canManage && (
           <Button onClick={() => {
               setEditingCar(null);
@@ -318,13 +470,14 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                 verificationRecords: []
               });
               setIsDialogOpen(true);
-          }} size="sm" className="shadow-lg shadow-primary/20">
+          }} className="h-10 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest px-6">
             <PlusCircle className="mr-2 h-4 w-4" /> Issue New CAR
           </Button>
         )}
       </div>
 
-      <Card className="shadow-sm border-primary/10 overflow-hidden">
+      {/* 3. REGISTRY TABLE */}
+      <Card className="shadow-md border-primary/10 overflow-hidden">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
@@ -332,57 +485,122 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead className="font-bold text-[10px] uppercase pl-6">CAR No. & Unit</TableHead>
-                  <TableHead className="font-bold text-[10px] uppercase">Procedure / Findings</TableHead>
-                  <TableHead className="font-bold text-[10px] uppercase">Deadline</TableHead>
-                  <TableHead className="font-bold text-[10px] uppercase text-center">Status</TableHead>
-                  <TableHead className="text-right font-bold text-[10px] uppercase pr-6">Action</TableHead>
+                  <TableHead className="py-4 pl-6">
+                    <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('carNumber')}>
+                        CAR Number & Unit {getSortIcon('carNumber')}
+                    </Button>
+                  </TableHead>
+                  <TableHead className="py-4">
+                    <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('unit')}>
+                        Responsible Office {getSortIcon('unit')}
+                    </Button>
+                  </TableHead>
+                  <TableHead className="py-4">
+                    <div className="text-[10px] font-black uppercase">Procedure / Findings Context</div>
+                  </TableHead>
+                  <TableHead className="text-center py-4">
+                    <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('deadline')}>
+                        Deadline {getSortIcon('deadline')}
+                    </Button>
+                  </TableHead>
+                  <TableHead className="text-center py-4">
+                    <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('status')}>
+                        Status {getSortIcon('status')}
+                    </Button>
+                  </TableHead>
+                  <TableHead className="text-right font-black text-[10px] uppercase pr-6">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCars.map((car) => (
-                  <TableRow key={car.id} className="hover:bg-muted/20 transition-colors">
-                    <TableCell className="pl-6">
-                      <div className="flex flex-col">
-                        <span className="font-black text-xs text-primary">{car.carNumber}</span>
-                        <span className="text-[10px] font-bold text-slate-700 mt-0.5">{unitMap.get(car.unitId) || '...'}</span>
+                {processedCars.map((car) => (
+                  <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
+                    <TableCell className="pl-6 py-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="font-black text-sm text-primary leading-none group-hover:underline underline-offset-4">{car.carNumber}</span>
+                        <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+                            <HistoryIcon className="h-2.5 w-2.5" />
+                            Logged: {safeFormatDate(car.requestDate)}
+                        </div>
                       </div>
                     </TableCell>
-                    <TableCell className="max-w-xs">
-                        <div className="flex flex-col">
-                            <span className="text-xs font-bold truncate">{car.procedureTitle}</span>
-                            <span className="text-[10px] text-muted-foreground line-clamp-1 italic">"{car.descriptionOfNonconformance}"</span>
+                    <TableCell>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs font-bold text-slate-700 leading-tight">{unitMap.get(car.unitId) || '...'}</span>
+                            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{campusMap.get(car.campusId) || '...'}</span>
                         </div>
                     </TableCell>
-                    <TableCell className="text-[10px] font-black uppercase text-slate-600">
-                        {safeFormatDate(car.timeLimitForReply)}
+                    <TableCell className="max-w-xs">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs font-black truncate text-slate-900 uppercase tracking-tighter">{car.procedureTitle}</span>
+                            <p className="text-[10px] text-muted-foreground line-clamp-1 italic font-medium">"{car.descriptionOfNonconformance}"</p>
+                        </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant={car.status === 'Open' ? 'destructive' : car.status === 'In Progress' ? 'secondary' : 'default'} className="text-[9px] font-black uppercase">
+                        <div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600 uppercase tracking-tighter tabular-nums bg-muted/30 py-1 px-2 rounded border border-slate-100">
+                            <Clock className="h-3 w-3" />
+                            {safeFormatDate(car.timeLimitForReply)}
+                        </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge 
+                        className={cn(
+                            "text-[9px] font-black uppercase border-none px-3 shadow-sm",
+                            car.status === 'Open' ? "bg-rose-600 text-white" : 
+                            car.status === 'In Progress' ? "bg-amber-500 text-amber-950" : 
+                            "bg-emerald-600 text-white"
+                        )}
+                      >
                         {car.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right pr-6 space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[10px] font-bold">
+                    <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
+                      <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm gap-1.5">
+                        <Printer className="h-3 w-3" />
                         PRINT
                       </Button>
-                      <Button variant="default" size="sm" onClick={() => handleEdit(car)} className="h-8 text-[10px] font-bold">
+                      <Button variant="default" size="sm" onClick={() => handleEdit(car)} className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm px-4">
                         {canManage ? 'MANAGE' : 'VIEW'}
                       </Button>
                     </TableCell>
                   </TableRow>
                 ))}
+                {processedCars.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
+                            <div className="flex flex-col items-center gap-3 opacity-20">
+                                <ClipboardCheck className="h-12 w-12" />
+                                <div className="space-y-1">
+                                    <p className="text-sm font-black uppercase tracking-widest">No matching records</p>
+                                    <p className="text-xs font-medium">Adjust your search or year filter to browse the registry.</p>
+                                </div>
+                            </div>
+                        </TableCell>
+                    </TableRow>
+                )}
               </TableBody>
             </Table>
           )}
         </CardContent>
+        <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+                <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                <p className="text-[10px] text-muted-foreground leading-relaxed italic">
+                    <strong>Standard Requirement:</strong> This registry tracks all non-conformities identified during audits or operations. Per ISO 21001:2018 Clause 10.2, units must establish root causes and execute corrective actions within the specified time limits to ensure management system integrity.
+                </p>
+            </div>
+        </CardFooter>
       </Card>
 
+      {/* --- FORM DIALOG --- */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
-            <DialogTitle>Issue Corrective Action Request (CAR)</DialogTitle>
-            <DialogDescription>Capture non-conformance details and monitor the correction cycle.</DialogDescription>
+            <div className="flex items-center gap-2 text-primary mb-1">
+                <ShieldCheck className="h-5 w-5" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Institutional Oversight</span>
+            </div>
+            <DialogTitle>{editingCar ? 'Manage' : 'Issue'} Corrective Action Request (CAR)</DialogTitle>
+            <DialogDescription className="text-xs">Formal documentation of non-conformance findings and resolution tracking.</DialogDescription>
           </DialogHeader>
           
           <ScrollArea className="flex-1 bg-white">
@@ -489,8 +707,8 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
 
           <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
-            <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black">
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="mr-2 h-4 w-4" />}
+            <Button type="submit" form="car-form" disabled={isSubmitting} className="min-w-[150px] shadow-xl shadow-primary/20 font-black uppercase text-xs tracking-widest">
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ClipboardCheck className="mr-2 h-4 w-4" />}
                 {editingCar ? 'Update Registry' : 'Issue Record'}
             </Button>
           </DialogFooter>
