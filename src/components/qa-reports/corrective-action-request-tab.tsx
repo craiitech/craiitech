@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -168,8 +167,21 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   const form = useForm<z.infer<typeof carSchema>>({
     resolver: zodResolver(carSchema),
     defaultValues: { 
+        carNumber: '',
+        ncReportNumber: '',
         source: 'Audit Finding', 
         natureOfFinding: 'NC', 
+        procedureTitle: '',
+        initiator: '',
+        concerningClause: '',
+        concerningTopManagementName: '',
+        timeLimitForReply: '',
+        unitId: '',
+        campusId: '',
+        unitHead: '',
+        descriptionOfNonconformance: '',
+        preparedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '',
+        approvedBy: signatories?.qaoDirector || '',
         status: 'Open',
         requestDate: format(new Date(), 'yyyy-MM-dd'),
         actionSteps: [],
@@ -195,30 +207,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             printWindow.document.open();
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>CAR - ${car.carNumber}</title>
-                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                    <style>
-                        @media print { 
-                            body { margin: 0; padding: 0; background: white; } 
-                            .no-print { display: none !important; }
-                        }
-                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
-                    </style>
-                </head>
-                <body>
-                    <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Official CAR Form</button>
-                    </div>
-                    <div id="print-content">
-                        ${reportHtml}
-                    </div>
-                </body>
-                </html>
-            `);
+            printWindow.document.write(`<html><head><title>CAR - ${car.carNumber}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } } body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Official CAR Form</button></div><div id="print-content">${reportHtml}</div></body></html>`);
             printWindow.document.close();
         }
     } catch (err) {
@@ -304,7 +293,32 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-black uppercase tracking-tight">Corrective Action Registry</h3>
         {canManage && (
-          <Button onClick={() => setIsDialogOpen(true)} size="sm" className="shadow-lg shadow-primary/20">
+          <Button onClick={() => {
+              setEditingCar(null);
+              form.reset({
+                carNumber: '',
+                ncReportNumber: '',
+                source: 'Audit Finding', 
+                natureOfFinding: 'NC', 
+                procedureTitle: '',
+                initiator: '',
+                concerningClause: '',
+                concerningTopManagementName: '',
+                timeLimitForReply: '',
+                unitId: '',
+                campusId: '',
+                unitHead: '',
+                descriptionOfNonconformance: '',
+                preparedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '',
+                approvedBy: signatories?.qaoDirector || '',
+                status: 'Open',
+                requestDate: format(new Date(), 'yyyy-MM-dd'),
+                actionSteps: [],
+                evidences: [],
+                verificationRecords: []
+              });
+              setIsDialogOpen(true);
+          }} size="sm" className="shadow-lg shadow-primary/20">
             <PlusCircle className="mr-2 h-4 w-4" /> Issue New CAR
           </Button>
         )}
@@ -316,7 +330,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
           ) : (
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead className="font-bold text-[10px] uppercase pl-6">CAR No. & Unit</TableHead>
                   <TableHead className="font-bold text-[10px] uppercase">Procedure / Findings</TableHead>
@@ -377,10 +391,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                     <form id="car-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField control={form.control} name="carNumber" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">CAR Number</FormLabel><FormControl><Input {...field} placeholder="e.g. 2025-001" className="bg-slate-50" /></FormControl></FormItem>
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">CAR Number</FormLabel><FormControl><Input {...field} placeholder="e.g. 2025-001" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="ncReportNumber" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">NC Report No.</FormLabel><FormControl><Input {...field} placeholder="e.g. 2025-NC-01" className="bg-slate-50" /></FormControl></FormItem>
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">NC Report No.</FormLabel><FormControl><Input {...field} placeholder="e.g. 2025-NC-01" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
                             )} />
                         </div>
 
@@ -393,7 +407,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                 </FormItem>
                             )} />
                             <FormField control={form.control} name="initiator" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Initiator</FormLabel><FormControl><Input {...field} className="bg-slate-50" /></FormControl></FormItem>
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Initiator</FormLabel><FormControl><Input {...field} className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="natureOfFinding" render={({ field }) => (
                                 <FormItem><FormLabel className="text-xs font-bold uppercase">Nature of Finding</FormLabel>
@@ -404,9 +418,39 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                             )} />
                         </div>
 
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
+                            <FormField control={form.control} name="procedureTitle" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Title of Procedure</FormLabel><FormControl><Input {...field} placeholder="Name of relevant procedure" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="concerningClause" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Concerning ISO Clause</FormLabel><FormControl><Input {...field} placeholder="e.g. 7.5.3" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                            )} />
+                        </div>
+
                         <FormField control={form.control} name="descriptionOfNonconformance" render={({ field }) => (
-                            <FormItem><FormLabel className="text-sm font-black text-slate-800">Statement of Non-Conformance</FormLabel><FormControl><Textarea {...field} rows={4} className="bg-slate-50 italic" /></FormControl></FormItem>
+                            <FormItem><FormLabel className="text-sm font-black text-slate-800">Statement of Non-Conformance</FormLabel><FormControl><Textarea {...field} rows={4} className="bg-slate-50 italic" /></FormControl><FormMessage /></FormItem>
                         )} />
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
+                            <FormField control={form.control} name="concerningTopManagementName" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Concerning Top Management</FormLabel><FormControl><Input {...field} placeholder="Role or Person" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="timeLimitForReply" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Time Limit for Reply</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                            )} />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t">
+                            <FormField control={form.control} name="campusId" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Campus</FormLabel><Select onValueChange={(v) => { field.onChange(v); form.setValue('unitId', ''); }} value={field.value}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl><SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="unitId" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Unit</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!form.watch('campusId')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl><SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="unitHead" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Head of Unit</FormLabel><FormControl><Input {...field} placeholder="Full Name" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                            )} />
+                        </div>
 
                         <div className="pt-6 border-t space-y-4">
                             <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Corrective Action Registry</h4>
@@ -427,12 +471,15 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                             {canManage && <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending' })} className="h-8 font-black text-[10px] uppercase"><PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Step</Button>}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
-                            <FormField control={form.control} name="campusId" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Campus</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl><SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></FormItem>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t">
+                            <FormField control={form.control} name="requestDate" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Request Date</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
                             )} />
-                            <FormField control={form.control} name="unitId" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Unit</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl><SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></FormItem>
+                            <FormField control={form.control} name="preparedBy" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Prepared By</FormLabel><FormControl><Input {...field} placeholder="Full Name" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="approvedBy" render={({ field }) => (
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Approved By (QA Director)</FormLabel><FormControl><Input {...field} placeholder="Full Name" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
                             )} />
                         </div>
                     </form>
