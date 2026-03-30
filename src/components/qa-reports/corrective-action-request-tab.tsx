@@ -80,7 +80,7 @@ const carSchema = z.object({
   requestDate: z.string().min(1, 'Request date is required'),
   preparedBy: z.string().min(1, 'Prepared by is required'),
   approvedBy: z.string().min(1, 'Approved by is required'),
-  rootCauseAnalysis: z.string().optional(),
+  rootCauseAnalysis: z.string().min(1, 'Root cause analysis is mandatory before proposing actions.'),
   actionSteps: z.array(z.object({
     description: z.string().min(1, 'Description is required'),
     type: z.enum(['Immediate Correction', 'Long-term Corrective Action']),
@@ -106,7 +106,7 @@ const carSchema = z.object({
 type SortKey = 'carNumber' | 'unit' | 'deadline' | 'status';
 type SortConfig = { key: SortKey; direction: 'asc' | 'desc' } | null;
 
-export function CorrectiveActionRequestTab({ campuses, units, canManage }: CorrectiveActionRequestTabProps) {
+export function CorrectiveActionRequestTab({ campuses, units, canManage }: CorrectiveActionRequestTabPrefixProps) {
   const { userProfile, isAdmin, userRole, isAuditor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -134,9 +134,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
 
-  /**
-   * DATA PROCESSING PIPELINE
-   */
   const processedCars = useMemo(() => {
     if (!rawCars || !userProfile) return [];
 
@@ -144,7 +141,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
 
     let result = rawCars.filter(car => {
-        // 1. Authorization Filter
         if (!isInstitutionalViewer) {
             if (isCampusSupervisor) {
                 if (car.campusId !== userProfile.campusId) return false;
@@ -153,7 +149,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
             }
         }
 
-        // 2. Search Filter
         const matchesSearch = 
             car.carNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
             car.procedureTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -161,14 +156,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         
         if (!matchesSearch) return false;
 
-        // 3. Year Filter
         const reqDate = car.requestDate instanceof Timestamp ? car.requestDate.toDate() : new Date(car.requestDate);
         const matchesYear = yearFilter === 'all' || reqDate.getFullYear().toString() === yearFilter;
 
         return matchesYear;
     });
 
-    // 4. Sorting
     if (sortConfig) {
         const { key, direction } = sortConfig;
         result.sort((a, b) => {
@@ -194,9 +187,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     return result;
   }, [rawCars, searchTerm, yearFilter, sortConfig, unitMap, userProfile, isAdmin, isAuditor, userRole]);
 
-  /**
-   * ANALYTICS CALCULATIONS
-   */
   const carStats = useMemo(() => {
     const total = processedCars.length;
     const open = processedCars.filter(c => c.status === 'Open').length;
@@ -248,6 +238,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     control: form.control,
     name: "actionSteps"
   });
+
+  // Watch Root Cause to gate the Action Registry
+  const watchRootCause = form.watch('rootCauseAnalysis');
+  const isInvestigationComplete = !!watchRootCause && watchRootCause.trim().length > 10;
 
   const requestSort = (key: SortKey) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -734,8 +728,36 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                             )} />
                         </div>
 
+                        {/* ROOT CAUSE ANALYSIS SECTION - PRIORITIZED */}
                         <div className="pt-6 border-t space-y-4">
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Corrective Action Registry</h4>
+                            <div className="flex items-center gap-2">
+                                <ShieldAlert className="h-5 w-5 text-primary" />
+                                <h4 className="text-sm font-black text-primary uppercase tracking-tight">Root Cause Analysis (Investigate the Cause of the Nonconformity)</h4>
+                            </div>
+                            <FormField control={form.control} name="rootCauseAnalysis" render={({ field }) => (
+                                <FormItem>
+                                    <FormControl><Textarea {...field} rows={4} placeholder="Identify the systematic reason why this non-conformance occurred..." className="bg-primary/5 border-primary/10 shadow-inner italic" /></FormControl>
+                                    <FormDescription className="text-[10px] font-bold text-slate-500">
+                                        Mandatory Step: You must complete the investigation into the root cause before the Action Registry is enabled.
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        </div>
+
+                        {/* CORRECTIVE ACTION REGISTRY - CONDITIONALLY GATED */}
+                        <div className={cn("pt-6 border-t space-y-4 transition-all duration-500", !isInvestigationComplete && "opacity-50 pointer-events-none grayscale")}>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <ListChecks className="h-5 w-5 text-primary" />
+                                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Corrective Action Registry</h4>
+                                </div>
+                                {!isInvestigationComplete && (
+                                    <Badge variant="outline" className="h-5 text-[8px] font-black uppercase border-amber-200 text-amber-700 bg-amber-50">
+                                        Awaiting Investigation Results
+                                    </Badge>
+                                )}
+                            </div>
                             {actionFields.map((field, index) => (
                                 <div key={field.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-lg border bg-muted/5 items-end relative group">
                                     <FormField control={form.control} name={`actionSteps.${index}.type`} render={({ field: inputField }) => (
@@ -750,18 +772,18 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                     {canManage && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)}><Trash2 className="h-3.5 w-3.5" /></Button>}
                                 </div>
                             ))}
-                            {canManage && <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending' })} className="h-8 font-black text-[10px] uppercase"><PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Step</Button>}
-                        </div>
-
-                        <div className="pt-6 space-y-4">
-                            <FormField control={form.control} name="rootCauseAnalysis" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-sm font-black text-primary uppercase tracking-tight">Root Cause Analysis (Investigate the Cause of the Nonconformity)</FormLabel>
-                                    <FormControl><Textarea {...field} rows={4} placeholder="Identify the systematic reason why this non-conformance occurred..." className="bg-primary/5 border-primary/10 shadow-inner" /></FormControl>
-                                    <FormDescription className="text-[9px]">Mandatory for effective corrective actions. Analyze why the process failed.</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
+                            {canManage && (
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending' })} 
+                                    className="w-full border-dashed h-10 font-black text-[10px] uppercase gap-2 hover:bg-primary/5 hover:text-primary"
+                                    disabled={!isInvestigationComplete}
+                                >
+                                    <PlusCircle className="h-3.5 w-3.5" /> Add Corrective Step
+                                </Button>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t">
