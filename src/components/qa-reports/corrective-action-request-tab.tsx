@@ -243,6 +243,11 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     name: "actionSteps"
   });
 
+  const { fields: verificationFields, append: appendVerification, remove: removeVerification } = useFieldArray({
+    control: form.control,
+    name: "verificationRecords"
+  });
+
   const watchRootCause = form.watch('rootCauseAnalysis');
   const isInvestigationComplete = !!watchRootCause && watchRootCause.trim().length > 10;
 
@@ -396,17 +401,23 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     return format(d, 'PP');
   };
 
-  const isInstitutionalViewer = isAdmin || isAuditor;
+  const isInstitutionalViewer = isAdmin || userRole === 'Auditor';
   const canIssueNew = isInstitutionalViewer;
 
   const isFieldReadOnly = (fieldName: string) => {
     if (isAdmin) return false;
-    // If not admin, fields that are NOT investigation/actions are read-only
+    
+    // Institutional verification is ONLY for Auditors/Admins
+    if (fieldName.startsWith('verificationRecords')) {
+        return !isInstitutionalViewer;
+    }
+
+    // Unit responder fields
     const responderFields = ['rootCauseAnalysis', 'actionSteps', 'status'];
     if (responderFields.includes(fieldName)) {
-        // Only allow editing if the user belongs to the unit
         return userProfile?.unitId !== form.getValues('unitId');
     }
+    
     return true; 
   };
 
@@ -553,107 +564,109 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
           {isLoading ? (
             <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
           ) : (
-            <Table>
-              <TableHeader className="bg-muted/50">
-                <TableRow>
-                  <TableHead className="py-4 pl-6">
-                    <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('carNumber')}>
-                        CAR Number & Unit {getSortIcon('carNumber')}
-                    </Button>
-                  </TableHead>
-                  <TableHead className="py-4">
-                    <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('unit')}>
-                        Responsible Office {getSortIcon('unit')}
-                    </Button>
-                  </TableHead>
-                  <TableHead className="py-4">
-                    <div className="text-[10px] font-black uppercase">Procedure / Findings Context</div>
-                  </TableHead>
-                  <TableHead className="text-center py-4">
-                    <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('deadline')}>
-                        Deadline {getSortIcon('deadline')}
-                    </Button>
-                  </TableHead>
-                  <TableHead className="text-center py-4">
-                    <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('status')}>
-                        Status {getSortIcon('status')}
-                    </Button>
-                  </TableHead>
-                  <TableHead className="text-right font-black text-[10px] uppercase pr-6">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {processedCars.map((car) => {
-                  const isMyCar = car.unitId === userProfile?.unitId;
-                  const canEditThis = isInstitutionalViewer || isMyCar;
-                  return (
-                    <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
-                      <TableCell className="pl-6 py-4">
-                        <div className="flex flex-col gap-1">
-                          <span className="font-black text-sm text-primary leading-none group-hover:underline underline-offset-4">{car.carNumber}</span>
-                          <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase tracking-widest">
-                              <HistoryIcon className="h-2.5 w-2.5" />
-                              Logged: {safeFormatDate(car.requestDate)}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                          <div className="flex flex-col gap-1">
-                              <span className="text-xs font-bold text-slate-700 leading-tight">{unitMap.get(car.unitId) || '...'}</span>
-                              <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{campusMap.get(car.campusId) || '...'}</span>
-                          </div>
-                      </TableCell>
-                      <TableCell className="max-w-xs">
-                          <div className="flex flex-col gap-1">
-                              <span className="text-xs font-black truncate text-slate-900 uppercase tracking-tighter">{car.procedureTitle}</span>
-                              <p className="text-[10px] text-muted-foreground line-clamp-1 italic font-medium">"{car.descriptionOfNonconformance}"</p>
-                          </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600 uppercase tracking-tighter tabular-nums bg-muted/30 py-1 px-2 rounded border border-slate-100">
-                              <Clock className="h-3 w-3" />
-                              {safeFormatDate(car.timeLimitForReply)}
-                          </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge 
-                          className={cn(
-                              "text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap",
-                              car.status === 'Open' ? "bg-rose-600 text-white" : 
-                              car.status === 'In Progress' ? "bg-amber-50 text-amber-950" : 
-                              "bg-emerald-600 text-white"
-                          )}
-                        >
-                          {car.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
-                        <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[10px] font-bold bg-white shadow-sm gap-1.5">
-                          <Printer className="h-3 w-3" />
-                          PRINT
-                        </Button>
-                        <Button variant="default" size="sm" onClick={() => handleEdit(car)} className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm px-4">
-                          {canEditThis ? 'MANAGE' : 'VIEW'}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-                {processedCars.length === 0 && (
+            <div className="overflow-x-auto">
+                <Table>
+                <TableHeader className="bg-muted/50">
                     <TableRow>
-                        <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
-                            <div className="flex flex-col items-center gap-3 opacity-20">
-                                <ClipboardCheck className="h-12 w-12" />
-                                <div className="space-y-1">
-                                    <p className="text-sm font-black uppercase tracking-widest">No matching records</p>
-                                    <p className="text-xs font-medium">Adjust your search or year filter to browse the registry.</p>
-                                </div>
+                    <TableHead className="py-4 pl-6">
+                        <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('carNumber')}>
+                            CAR Number & Unit {getSortIcon('carNumber')}
+                        </Button>
+                    </TableHead>
+                    <TableHead className="py-4">
+                        <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('unit')}>
+                            Responsible Office {getSortIcon('unit')}
+                        </Button>
+                    </TableHead>
+                    <TableHead className="py-4">
+                        <div className="text-[10px] font-black uppercase">Procedure / Findings Context</div>
+                    </TableHead>
+                    <TableHead className="text-center py-4">
+                        <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('deadline')}>
+                            Deadline {getSortIcon('deadline')}
+                        </Button>
+                    </TableHead>
+                    <TableHead className="text-center py-4">
+                        <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent mx-auto" onClick={() => requestSort('status')}>
+                            Status {getSortIcon('status')}
+                        </Button>
+                    </TableHead>
+                    <TableHead className="text-right font-black text-[10px] uppercase pr-6">Action</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {processedCars.map((car) => {
+                    const isMyCar = car.unitId === userProfile?.unitId;
+                    const canEditThis = isInstitutionalViewer || isMyCar;
+                    return (
+                        <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
+                        <TableCell className="pl-6 py-4">
+                            <div className="flex flex-col gap-1">
+                            <span className="font-black text-sm text-primary leading-none group-hover:underline underline-offset-4">{car.carNumber}</span>
+                            <div className="flex items-center gap-1 text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+                                <HistoryIcon className="h-2.5 w-2.5" />
+                                Logged: {safeFormatDate(car.requestDate)}
+                            </div>
                             </div>
                         </TableCell>
-                    </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                        <TableCell>
+                            <div className="flex flex-col gap-1">
+                                <span className="text-xs font-bold text-slate-700 leading-tight">{unitMap.get(car.unitId) || '...'}</span>
+                                <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{campusMap.get(car.campusId) || '...'}</span>
+                            </div>
+                        </TableCell>
+                        <TableCell className="max-w-xs">
+                            <div className="flex flex-col gap-1">
+                                <span className="text-xs font-black truncate text-slate-900 uppercase tracking-tighter">{car.procedureTitle}</span>
+                                <p className="text-[10px] text-muted-foreground line-clamp-1 italic font-medium">"{car.descriptionOfNonconformance}"</p>
+                            </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-1.5 text-[10px] font-black text-slate-600 uppercase tracking-tighter tabular-nums bg-muted/30 py-1 px-2 rounded border border-slate-100">
+                                <Clock className="h-3 w-3" />
+                                {safeFormatDate(car.timeLimitForReply)}
+                            </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                            <Badge 
+                            className={cn(
+                                "text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap",
+                                car.status === 'Open' ? "bg-rose-600 text-white" : 
+                                car.status === 'In Progress' ? "bg-amber-50 text-amber-950" : 
+                                "bg-emerald-600 text-white"
+                            )}
+                            >
+                            {car.status}
+                            </Badge>
+                        </TableCell>
+                        <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
+                            <Button variant="outline" size="sm" onClick={() => handlePrint(car)} className="h-8 text-[10px] font-bold bg-white shadow-sm gap-1.5">
+                            <Printer className="h-3 w-3" />
+                            PRINT
+                            </Button>
+                            <Button variant="default" size="sm" onClick={() => handleEdit(car)} className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm px-4">
+                            {canEditThis ? 'MANAGE' : 'VIEW'}
+                            </Button>
+                        </TableCell>
+                        </TableRow>
+                    );
+                    })}
+                    {processedCars.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
+                                <div className="flex flex-col items-center gap-3 opacity-20">
+                                    <ClipboardCheck className="h-12 w-12" />
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-black uppercase tracking-widest">No matching records</p>
+                                        <p className="text-xs font-medium">Adjust your search or year filter to browse the registry.</p>
+                                    </div>
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+                </Table>
+            </div>
           )}
         </CardContent>
         <CardFooter className="bg-muted/5 border-t py-3 px-6">
@@ -683,7 +696,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 <ScrollArea className="flex-1">
                     <div className="p-8">
                         <Form {...form}>
-                            <form id="car-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
+                            <form id="car-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-10 pb-20">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <FormField control={form.control} name="carNumber" render={({ field }) => (
                                         <FormItem><FormLabel className="text-xs font-bold uppercase">CAR Number</FormLabel><FormControl><Input {...field} placeholder="e.g. 2025-001" className="bg-slate-50" disabled={isFieldReadOnly('carNumber')} /></FormControl><FormMessage /></FormItem>
@@ -817,7 +830,109 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t">
+                                {/* --- INSTITUTIONAL VERIFICATION SECTIONS (AUDITOR/ADMIN ONLY) --- */}
+                                <div className="space-y-10 pt-10 border-t border-dashed">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                                <Gavel className="h-6 w-6" />
+                                            </div>
+                                            <div className="space-y-0.5">
+                                                <h4 className="text-sm font-black uppercase text-indigo-900 tracking-tight">Institutional Audit Verification</h4>
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Internal Auditor / Quality Assurance Office Use Only</p>
+                                            </div>
+                                        </div>
+                                        {isInstitutionalViewer && (
+                                            <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                size="sm" 
+                                                className="h-8 font-black text-[10px] uppercase border-indigo-200 text-indigo-700 bg-indigo-50"
+                                                onClick={() => appendVerification({ result: '', resultVerifiedBy: '', resultVerificationDate: format(new Date(), 'yyyy-MM-dd'), effectivenessResult: '', effectivenessVerifiedBy: '', effectivenessVerificationDate: format(new Date(), 'yyyy-MM-dd'), remarks: '' })}
+                                            >
+                                                <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Verification Entry
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    {verificationFields.map((field, index) => (
+                                        <div key={field.id} className="space-y-8 p-6 rounded-2xl border bg-indigo-50/10 border-indigo-100 relative group animate-in slide-in-from-bottom-2 duration-500">
+                                            {isInstitutionalViewer && (
+                                                <Button 
+                                                    type="button" 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="absolute top-3 right-3 text-destructive h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" 
+                                                    onClick={() => removeVerification(index)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
+
+                                            {/* Follow-up Result */}
+                                            <div className="space-y-4">
+                                                <div className="flex items-center gap-2">
+                                                    <HistoryIcon className="h-4 w-4 text-indigo-600" />
+                                                    <h5 className="text-[10px] font-black uppercase text-indigo-800 tracking-widest">III. Follow-up Result of Correction & Corrective Action</h5>
+                                                </div>
+                                                <FormField control={form.control} name={`verificationRecords.${index}.result`} render={({ field: inputField }) => (
+                                                    <FormItem>
+                                                        <FormControl><Textarea {...inputField} rows={3} placeholder="Describe the implementation findings during the follow-up visit..." className="bg-white border-indigo-100 italic text-xs" disabled={isFieldReadOnly(`verificationRecords.${index}.result`)} /></FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <FormField control={form.control} name={`verificationRecords.${index}.resultVerifiedBy`} render={({ field: inputField }) => (
+                                                        <FormItem><FormLabel className="text-[9px] font-black uppercase">Verified By</FormLabel><FormControl><Input {...inputField} className="h-8 text-xs bg-white border-indigo-100" placeholder="Auditor Name" disabled={isFieldReadOnly(`verificationRecords.${index}.resultVerifiedBy`)} /></FormControl></FormItem>
+                                                    )} />
+                                                    <FormField control={form.control} name={`verificationRecords.${index}.resultVerificationDate`} render={({ field: inputField }) => (
+                                                        <FormItem><FormLabel className="text-[9px] font-black uppercase">Verification Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-xs bg-white border-indigo-100" disabled={isFieldReadOnly(`verificationRecords.${index}.resultVerificationDate`)} /></FormControl></FormItem>
+                                                    )} />
+                                                </div>
+                                            </div>
+
+                                            <Separator className="bg-indigo-100" />
+
+                                            {/* Effectiveness Verification */}
+                                            <div className="space-y-4">
+                                                <div className="flex items-center gap-2">
+                                                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                                    <h5 className="text-[10px] font-black uppercase text-emerald-800 tracking-widest">IV. Verification of Effectiveness of the Action Taken</h5>
+                                                </div>
+                                                <FormField control={form.control} name={`verificationRecords.${index}.effectivenessResult`} render={({ field: inputField }) => (
+                                                    <FormItem>
+                                                        <FormControl><Textarea {...inputField} rows={3} placeholder="Record objective evidence that the non-conformity has been eliminated and recurrence prevented..." className="bg-white border-emerald-100 italic text-xs" disabled={isFieldReadOnly(`verificationRecords.${index}.effectivenessResult`)} /></FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <FormField control={form.control} name={`verificationRecords.${index}.effectivenessVerifiedBy`} render={({ field: inputField }) => (
+                                                        <FormItem><FormLabel className="text-[9px] font-black uppercase">Effectiveness Verified By</FormLabel><FormControl><Input {...inputField} className="h-8 text-xs bg-white border-emerald-100" placeholder="QA/Admin Name" disabled={isFieldReadOnly(`verificationRecords.${index}.effectivenessVerifiedBy`)} /></FormControl></FormItem>
+                                                    )} />
+                                                    <FormField control={form.control} name={`verificationRecords.${index}.effectivenessVerificationDate`} render={({ field: inputField }) => (
+                                                        <FormItem><FormLabel className="text-[9px] font-black uppercase">Verification Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-xs bg-white border-emerald-100" disabled={isFieldReadOnly(`verificationRecords.${index}.effectivenessVerificationDate`)} /></FormControl></FormItem>
+                                                    )} />
+                                                </div>
+                                            </div>
+
+                                            <FormField control={form.control} name={`verificationRecords.${index}.remarks`} render={({ field: inputField }) => (
+                                                <FormItem className="pt-2">
+                                                    <FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Final Remarks / Closure Summary</FormLabel>
+                                                    <FormControl><Input {...inputField} className="h-8 text-[10px] bg-white" placeholder="Optional audit notes..." disabled={isFieldReadOnly(`verificationRecords.${index}.remarks`)} /></FormControl>
+                                                </FormItem>
+                                            )} />
+                                        </div>
+                                    ))}
+
+                                    {verificationFields.length === 0 && (
+                                        <div className="py-12 border border-dashed rounded-2xl bg-muted/5 flex flex-col items-center justify-center text-center space-y-2 opacity-30">
+                                            <ShieldCheck className="h-8 w-8 text-muted-foreground" />
+                                            <p className="text-[10px] font-black uppercase tracking-widest">No Institutional Verification Logged</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-10 border-t">
                                     <FormField control={form.control} name="requestDate" render={({ field }) => (
                                         <FormItem><FormLabel className="text-xs font-bold uppercase">Request Date</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" disabled={isFieldReadOnly('requestDate')} /></FormControl><FormMessage /></FormItem>
                                     )} />
