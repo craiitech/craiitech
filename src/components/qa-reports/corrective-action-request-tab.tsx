@@ -240,7 +240,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     name: "actionSteps"
   });
 
-  // Watch Root Cause to gate the Action Registry
   const watchRootCause = form.watch('rootCauseAnalysis');
   const isInvestigationComplete = !!watchRootCause && watchRootCause.trim().length > 10;
 
@@ -365,16 +364,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!firestore || !window.confirm('Are you sure you want to delete this report?')) return;
-    try {
-      await deleteDoc(doc(firestore, 'correctiveActionRequests', id));
-      toast({ title: 'Success', description: 'Report deleted.' });
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to delete.', variant: 'destructive' });
-    }
-  };
-
   const handleEdit = (car: CorrectiveActionRequest) => {
     setEditingCar(car);
     const safeDate = (d: any) => d?.toDate ? format(d.toDate(), 'yyyy-MM-dd') : (d ? format(new Date(d), 'yyyy-MM-dd') : '');
@@ -394,6 +383,12 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
       })),
     } as any);
     setIsDialogOpen(true);
+  };
+
+  const safeFormatDate = (date: any) => {
+    if (!date) return 'N/A';
+    const d = date instanceof Timestamp ? date.toDate() : new Date(date);
+    return format(d, 'PP');
   };
 
   return (
@@ -603,7 +598,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                         className={cn(
                             "text-[9px] font-black uppercase border-none px-2 shadow-sm whitespace-nowrap",
                             car.status === 'Open' ? "bg-rose-600 text-white" : 
-                            car.status === 'In Progress' ? "bg-amber-500 text-amber-950" : 
+                            car.status === 'In Progress' ? "bg-amber-50 text-amber-950" : 
                             "bg-emerald-600 text-white"
                         )}
                       >
@@ -719,17 +714,16 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t">
                             <FormField control={form.control} name="campusId" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Campus</FormLabel><Select onValueChange={(v) => { field.onChange(v); form.setValue('unitId', ''); }} value={field.value}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl><SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</Select><FormMessage /></FormItem>
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Campus</FormLabel><Select onValueChange={(v) => { field.onChange(v); form.setValue('unitId', ''); }} value={field.value}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl><SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="unitId" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Unit</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!form.watch('campusId')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl><SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</Select><FormMessage /></FormItem>
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Unit</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!form.watch('campusId')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl><SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="unitHead" render={({ field }) => (
                                 <FormItem><FormLabel className="text-xs font-bold uppercase">Head of Unit</FormLabel><FormControl><Input {...field} placeholder="Full Name" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
                             )} />
                         </div>
 
-                        {/* ROOT CAUSE ANALYSIS SECTION - PRIORITIZED */}
                         <div className="pt-6 border-t space-y-4">
                             <div className="flex items-center gap-2">
                                 <ShieldAlert className="h-5 w-5 text-primary" />
@@ -746,7 +740,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                             )} />
                         </div>
 
-                        {/* CORRECTIVE ACTION REGISTRY - CONDITIONALLY GATED */}
                         <div className={cn("pt-6 border-t space-y-4 transition-all duration-500", !isInvestigationComplete && "opacity-50 pointer-events-none grayscale")}>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
@@ -814,10 +807,4 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
       </Dialog>
     </div>
   );
-}
-
-function safeFormatDate(d: any) {
-    if (!d) return '--';
-    const date = d instanceof Timestamp ? d.toDate() : new Date(d);
-    return isNaN(date.getTime()) ? '--' : format(date, 'MMM dd, yyyy');
 }
