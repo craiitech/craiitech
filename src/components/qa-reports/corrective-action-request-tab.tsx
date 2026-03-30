@@ -711,15 +711,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                             <FormField control={form.control} name="descriptionOfNonconformance" render={({ field }) => (
                                 <FormItem><FormLabel className="text-sm font-black text-slate-800">Statement of Non-Conformance</FormLabel><FormControl><Textarea {...field} rows={4} className="bg-slate-50 italic" /></FormControl><FormMessage /></FormItem>
                             )} />
-
-                            <FormField control={form.control} name="rootCauseAnalysis" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-sm font-black text-primary uppercase tracking-tight">Root Cause Analysis (Investigate the Cause of the Nonconformity)</FormLabel>
-                                    <FormControl><Textarea {...field} rows={4} placeholder="Identify the systematic reason why this non-conformance occurred..." className="bg-primary/5 border-primary/10 shadow-inner" /></FormControl>
-                                    <FormDescription className="text-[9px]">Mandatory for effective corrective actions. Analyze why the process failed.</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
@@ -760,6 +751,17 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                 </div>
                             ))}
                             {canManage && <Button type="button" variant="outline" size="sm" onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending' })} className="h-8 font-black text-[10px] uppercase"><PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Step</Button>}
+                        </div>
+
+                        <div className="pt-6 space-y-4">
+                            <FormField control={form.control} name="rootCauseAnalysis" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-sm font-black text-primary uppercase tracking-tight">Root Cause Analysis (Investigate the Cause of the Nonconformity)</FormLabel>
+                                    <FormControl><Textarea {...field} rows={4} placeholder="Identify the systematic reason why this non-conformance occurred..." className="bg-primary/5 border-primary/10 shadow-inner" /></FormControl>
+                                    <FormDescription className="text-[9px]">Mandatory for effective corrective actions. Analyze why the process failed.</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t">
