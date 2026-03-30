@@ -37,7 +37,8 @@ import {
     Link as LinkIcon, 
     ExternalLink,
     ArrowUpDown,
-    TableProperties
+    TableProperties,
+    ListChecks
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -106,7 +107,7 @@ const carSchema = z.object({
 type SortKey = 'carNumber' | 'unit' | 'deadline' | 'status';
 type SortConfig = { key: SortKey; direction: 'asc' | 'desc' } | null;
 
-export function CorrectiveActionRequestTab({ campuses, units, canManage }: CorrectiveActionRequestTabPrefixProps) {
+export function CorrectiveActionRequestTab({ campuses, units, canManage }: CorrectiveActionRequestTabProps) {
   const { userProfile, isAdmin, userRole, isAuditor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -307,7 +308,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                 </head>
                 <body>
                     <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Control Register (Landscape)</button>
+                        <button onclick="window.print()" style="margin-top: 20px; padding: 10px 20px; background-color: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Print Document</button>
                     </div>
                     <div id="print-content">
                         ${reportHtml}
@@ -640,7 +641,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         <CardFooter className="bg-muted/5 border-t py-3 px-6">
             <div className="flex items-start gap-3">
                 <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-                <p className="text-[10px] text-muted-foreground italic leading-relaxed">
+                <p className="text-[9px] text-muted-foreground italic leading-relaxed">
                     <strong>Standard Requirement:</strong> This registry tracks all non-conformities identified during audits or operations. Per ISO 21001:2018 Clause 10.2, units must establish root causes and execute corrective actions within the specified time limits to ensure management system integrity.
                 </p>
             </div>
@@ -718,10 +719,10 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t">
                             <FormField control={form.control} name="campusId" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Campus</FormLabel><Select onValueChange={(v) => { field.onChange(v); form.setValue('unitId', ''); }} value={field.value}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl><SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Campus</FormLabel><Select onValueChange={(v) => { field.onChange(v); form.setValue('unitId', ''); }} value={field.value}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Campus" /></SelectTrigger></FormControl><SelectContent>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</Select><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="unitId" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Unit</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!form.watch('campusId')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl><SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                                <FormItem><FormLabel className="text-xs font-bold uppercase">Responsible Unit</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!form.watch('campusId')}><FormControl><SelectTrigger className="bg-slate-50"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl><SelectContent>{units.filter(u => u.campusIds?.includes(form.watch('campusId'))).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</Select><FormMessage /></FormItem>
                             )} />
                             <FormField control={form.control} name="unitHead" render={({ field }) => (
                                 <FormItem><FormLabel className="text-xs font-bold uppercase">Head of Unit</FormLabel><FormControl><Input {...field} placeholder="Full Name" className="bg-slate-50" /></FormControl><FormMessage /></FormItem>
