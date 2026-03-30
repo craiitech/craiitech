@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -87,6 +88,7 @@ const carSchema = z.object({
     type: z.enum(['Immediate Correction', 'Long-term Corrective Action']),
     completionDate: z.string().min(1, 'Date is required'),
     status: z.enum(['Pending', 'Completed']),
+    evidenceLink: z.string().url('Invalid URL').optional().or(z.literal('')),
   })).optional(),
   evidences: z.array(z.object({
     title: z.string().min(1, 'Title is required'),
@@ -753,15 +755,27 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                 )}
                             </div>
                             {actionFields.map((field, index) => (
-                                <div key={field.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-lg border bg-muted/5 items-end relative group">
-                                    <FormField control={form.control} name={`actionSteps.${index}.type`} render={({ field: inputField }) => (
-                                        <FormItem><FormLabel className="text-[9px] uppercase font-bold">Action Type</FormLabel><Select onValueChange={inputField.onChange} value={inputField.value}><FormControl><SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Immediate Correction">Immediate Correction</SelectItem><SelectItem value="Long-term Corrective Action">Long-term Action</SelectItem></SelectContent></Select></FormItem>
-                                    )} />
-                                    <FormField control={form.control} name={`actionSteps.${index}.description`} render={({ field: inputField }) => (
-                                        <FormItem className="md:col-span-2"><FormLabel className="text-[9px] uppercase font-bold">Action Taken</FormLabel><FormControl><Input {...inputField} className="h-8 text-[10px]" /></FormControl></FormItem>
-                                    )} />
-                                    <FormField control={form.control} name={`actionSteps.${index}.completionDate`} render={({ field: inputField }) => (
-                                        <FormItem><FormLabel className="text-[9px] uppercase font-bold">Target Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-[10px]" /></FormControl></FormItem>
+                                <div key={field.id} className="space-y-4 p-4 rounded-lg border bg-muted/5 relative group">
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                        <FormField control={form.control} name={`actionSteps.${index}.type`} render={({ field: inputField }) => (
+                                            <FormItem><FormLabel className="text-[9px] uppercase font-bold">Action Type</FormLabel><Select onValueChange={inputField.onChange} value={inputField.value}><FormControl><SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Immediate Correction">Immediate Correction</SelectItem><SelectItem value="Long-term Corrective Action">Long-term Action</SelectItem></SelectContent></Select></FormItem>
+                                        )} />
+                                        <FormField control={form.control} name={`actionSteps.${index}.description`} render={({ field: inputField }) => (
+                                            <FormItem className="md:col-span-2"><FormLabel className="text-[9px] uppercase font-bold">Action Taken</FormLabel><FormControl><Input {...inputField} className="h-8 text-[10px]" /></FormControl></FormItem>
+                                        )} />
+                                        <FormField control={form.control} name={`actionSteps.${index}.completionDate`} render={({ field: inputField }) => (
+                                            <FormItem><FormLabel className="text-[9px] uppercase font-bold">Target Date</FormLabel><FormControl><Input type="date" {...inputField} className="h-8 text-[10px]" /></FormControl></FormItem>
+                                        )} />
+                                    </div>
+                                    <FormField control={form.control} name={`actionSteps.${index}.evidenceLink`} render={({ field: inputField }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-[9px] uppercase font-bold flex items-center gap-1">
+                                                <LinkIcon className="h-2.5 w-2.5 text-primary" /> Evidence Link (Google Drive)
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="h-8 text-[10px] bg-white" />
+                                            </FormControl>
+                                        </FormItem>
                                     )} />
                                     {canManage && <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeAction(index)}><Trash2 className="h-3.5 w-3.5" /></Button>}
                                 </div>
@@ -771,7 +785,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                                     type="button" 
                                     variant="outline" 
                                     size="sm" 
-                                    onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending' })} 
+                                    onClick={() => appendAction({ description: '', type: 'Immediate Correction', completionDate: format(new Date(), 'yyyy-MM-dd'), status: 'Pending', evidenceLink: '' })} 
                                     className="w-full border-dashed h-10 font-black text-[10px] uppercase gap-2 hover:bg-primary/5 hover:text-primary"
                                     disabled={!isInvestigationComplete}
                                 >

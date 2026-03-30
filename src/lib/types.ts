@@ -336,6 +336,7 @@ export type CARActionStep = {
     type: 'Immediate Correction' | 'Long-term Corrective Action';
     completionDate: any; // Timestamp
     status: 'Pending' | 'Completed';
+    evidenceLink?: string;
 };
 
 export type CAREvidence = {
