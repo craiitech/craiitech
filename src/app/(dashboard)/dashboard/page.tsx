@@ -39,6 +39,8 @@ import {
   ClipboardCheck,
   TrendingUp,
   Trophy,
+  ShieldAlert,
+  ListTodo,
 } from 'lucide-react';
 import {
   useUser,
@@ -570,6 +572,13 @@ export default function HomePage() {
 
   const renderUnitUserHome = () => {
     const currentUnit = allUnits?.find(u => u.id === userProfile?.unitId);
+    
+    const openCars = correctiveActionRequests?.filter(c => c.status !== 'Closed') || [];
+    const openDecisions = mrOutputs?.filter(o => 
+        (o.status === 'Open' || o.status === 'On-going') && 
+        o.assignments?.some(a => a.unitId === userProfile?.unitId)
+    ) || [];
+
     return (
     <Tabs defaultValue="overview" className="space-y-4">
       <TabsList className="grid grid-cols-2 md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted">
@@ -592,6 +601,55 @@ export default function HomePage() {
         )}
         <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
         
+        {/* QUALITY ACTION ITEMS ALERTS FOR UNIT USERS */}
+        {(openCars.length > 0 || openDecisions.length > 0) && (
+            <Card className="border-destructive/20 bg-destructive/5 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-black uppercase text-destructive flex items-center gap-2">
+                        <ShieldAlert className="h-4 w-4" />
+                        Outstanding Quality Action Items
+                    </CardTitle>
+                    <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Administrative gaps requiring unit intervention.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {openCars.length > 0 && (
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-destructive/10">
+                            <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
+                                    <AlertTriangle className="h-4 w-4" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-black text-slate-900 uppercase">Corrective Actions</p>
+                                    <p className="text-[10px] text-muted-foreground font-medium">{openCars.length} Open Requests</p>
+                                </div>
+                            </div>
+                            <Button size="sm" variant="outline" asChild className="h-7 text-[9px] font-black uppercase bg-white border-destructive/20 text-destructive hover:bg-destructive/5">
+                                <Link href="/qa-reports">Manage CARs</Link>
+                            </Button>
+                        </div>
+                    )}
+                    {openDecisions.length > 0 && (
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-primary/10">
+                            <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                    <ListTodo className="h-4 w-4" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-black text-slate-900 uppercase">MR Decisions</p>
+                                    <p className="text-[10px] text-muted-foreground font-medium">{openDecisions.length} Pending Actions</p>
+                                </div>
+                            </div>
+                            <Button size="sm" variant="outline" asChild className="h-7 text-[9px] font-black uppercase bg-white border-primary/20 text-primary hover:bg-primary/5">
+                                <Link href="/qa-reports">View Decisions</Link>
+                            </Button>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
             {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
