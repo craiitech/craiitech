@@ -7,6 +7,8 @@ import type { CorrectiveActionRequest, Campus, Unit, Signatories } from '@/lib/t
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { 
     Loader2, 
     PlusCircle, 
@@ -422,8 +424,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      
+    <div className="space-y-6">
       {/* 1. ANALYTICS CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
@@ -486,7 +487,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="flex-1 flex flex-col md:flex-row gap-4">
             <div className="flex-1 space-y-1.5">
-                <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                     <Search className="h-2.5 w-2.5" /> Search Registry
                 </label>
                 <div className="relative">
@@ -500,7 +501,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                 </div>
             </div>
             <div className="w-full md:w-48 space-y-1.5">
-                <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                     <Calendar className="h-2.5 w-2.5" /> Fiscal Year
                 </label>
                 <Select value={yearFilter} onValueChange={setYearFilter}>
@@ -1021,7 +1022,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
           <DialogFooter className="p-6 border-t bg-slate-50 shrink-0 gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Discard</Button>
             <Button type="submit" form="car-form" disabled={isSubmitting || (userProfile?.unitId !== form.getValues('unitId') && !isAdmin)} className="min-w-[150px] shadow-xl shadow-primary/20 font-black uppercase text-xs tracking-widest">
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ClipboardCheck className="mr-2 h-4 w-4" />}
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ClipboardCheck className="mr-2 h-4 w-4 mr-1.5" />}
                 {editingCar ? 'Update Registry' : 'Issue Record'}
             </Button>
           </DialogFooter>
