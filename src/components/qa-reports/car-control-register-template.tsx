@@ -45,20 +45,20 @@ export function CARControlRegisterTemplate({ cars, unitMap, year }: CARControlRe
       <table className="w-full border-collapse border-2 border-black text-[9px]">
         <thead>
           <tr className="bg-slate-50">
-            <th className="border border-black p-2 text-center font-bold w-[8%]">CAR NO.</th>
-            <th className="border border-black p-2 text-center font-bold w-[18%]">Title</th>
-            <th className="border border-black p-2 text-center font-bold w-[14%]">
+            <th className="border-2 border-black p-2 text-center font-bold w-[8%]">CAR NO.</th>
+            <th className="border-2 border-black p-2 text-center font-bold w-[18%]">Title</th>
+            <th className="border-2 border-black p-2 text-center font-bold w-[14%]">
                 Action<br />Responsible
             </th>
-            <th className="border border-black p-2 text-center font-bold w-[8%]">Time limit for reply</th>
-            <th className="border border-black p-2 text-center font-bold w-[8%]">Request Date</th>
-            <th className="border border-black p-2 text-center font-bold w-[8%]">
+            <th className="border-2 border-black p-2 text-center font-bold w-[8%]">Time limit for reply</th>
+            <th className="border-2 border-black p-2 text-center font-bold w-[8%]">Request Date</th>
+            <th className="border-2 border-black p-2 text-center font-bold w-[8%]">
                 (Corrective)<br />Completion Date
             </th>
-            <th className="border border-black p-2 text-center font-bold w-[8%]">Date of result verification</th>
-            <th className="border border-black p-2 text-center font-bold w-[8%]">Receipt Date</th>
-            <th className="border border-black p-2 text-center font-bold w-[10%]">Signature</th>
-            <th className="border border-black p-2 text-center font-bold w-[10%]">Remarks</th>
+            <th className="border-2 border-black p-2 text-center font-bold w-[8%]">Date of result verification</th>
+            <th className="border-2 border-black p-2 text-center font-bold w-[8%]">Receipt Date</th>
+            <th className="border-2 border-black p-2 text-center font-bold w-[10%]">Signature</th>
+            <th className="border-2 border-black p-2 text-center font-bold w-[10%]">Remarks</th>
           </tr>
         </thead>
         <tbody>
@@ -73,10 +73,10 @@ export function CARControlRegisterTemplate({ cars, unitMap, year }: CARControlRe
                 || car.actionSteps?.[0]?.completionDate;
 
             return (
-              <tr key={hasData ? car.id : `empty-${i}`} className="h-10 border-b border-black">
-                <td className="border-x border-black p-1 text-center font-bold">{car.carNumber || ''}</td>
-                <td className="border-x border-black p-1 text-left align-top">{car.procedureTitle || ''}</td>
-                <td className="border-x border-black p-1 text-center align-top">
+              <tr key={hasData ? car.id : `empty-${i}`} className="h-12 border-b border-black">
+                <td className="border border-black p-1 text-center font-bold">{car.carNumber || ''}</td>
+                <td className="border border-black p-1 text-left align-top">{car.procedureTitle || ''}</td>
+                <td className="border border-black p-1 text-center align-top">
                     {hasData ? (
                         <>
                             <div className="font-bold uppercase leading-tight">{unitMap.get(car.unitId)}</div>
@@ -84,13 +84,13 @@ export function CARControlRegisterTemplate({ cars, unitMap, year }: CARControlRe
                         </>
                     ) : ''}
                 </td>
-                <td className="border-x border-black p-1 text-center font-bold whitespace-nowrap">{safeDate(car.timeLimitForReply)}</td>
-                <td className="border-x border-black p-1 text-center whitespace-nowrap">{safeDate(car.requestDate)}</td>
-                <td className="border-x border-black p-1 text-center whitespace-nowrap">{safeDate(completionDate)}</td>
-                <td className="border-x border-black p-1 text-center whitespace-nowrap">{safeDate(latestVerification?.resultVerificationDate)}</td>
-                <td className="border-x border-black p-1 text-center whitespace-nowrap"></td>
-                <td className="border-x border-black p-1"></td>
-                <td className="border-x border-black p-1 text-[8px] italic">{latestVerification?.remarks || ''}</td>
+                <td className="border border-black p-1 text-center font-bold whitespace-nowrap">{safeDate(car.timeLimitForReply)}</td>
+                <td className="border border-black p-1 text-center whitespace-nowrap">{safeDate(car.requestDate)}</td>
+                <td className="border border-black p-1 text-center whitespace-nowrap">{safeDate(completionDate)}</td>
+                <td className="border border-black p-1 text-center whitespace-nowrap">{safeDate(latestVerification?.resultVerificationDate)}</td>
+                <td className="border border-black p-1 text-center whitespace-nowrap"></td>
+                <td className="border border-black p-1"></td>
+                <td className="border border-black p-1 text-[8px] italic">{latestVerification?.remarks || ''}</td>
               </tr>
             );
           })}
