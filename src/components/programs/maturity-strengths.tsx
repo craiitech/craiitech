@@ -54,7 +54,7 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
     const activePrograms = programs.filter(p => p.isActive);
 
     activePrograms.forEach(p => {
-        // Normalized lookup
+        // Normalized robust ID matching
         const record = compliances.find(c => 
             String(c.programId || '').toLowerCase().trim() === String(p.id || '').toLowerCase().trim()
         );

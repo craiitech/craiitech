@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -52,7 +53,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
               
               {isShowingActive && (
                 <>
-                  <TableHead className="text-[10px] font-black uppercase py-4">Board Approval</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase py-4 text-center">Board Approval</TableHead>
                   <TableHead className="text-[10px] font-black uppercase py-4">Faculty Pool</TableHead>
                 </>
               )}
@@ -70,6 +71,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
           </TableHeader>
           <TableBody>
             {programs.map((program) => {
+              // Robust ID normalization for cross-lookup
               const record = compliances.find(c => 
                 String(c.programId || '').toLowerCase().trim() === String(program.id || '').toLowerCase().trim()
               );
@@ -165,8 +167,16 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
 
                   {isShowingActive && (
                     <>
-                      <TableCell className="py-4">
-                          {hasBoardApproval ? <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 h-5 text-[9px] font-black gap-1"><Check className="h-2.5 w-2.5" /> YES</Badge> : <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 h-5 text-[9px] font-black gap-1"><X className="h-2.5 w-2.5" /> NO</Badge>}
+                      <TableCell className="py-4 text-center">
+                          {hasBoardApproval ? (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 h-5 text-[9px] font-black gap-1 mx-auto">
+                                  <Check className="h-2.5 w-2.5" /> YES
+                              </Badge>
+                          ) : (
+                              <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 h-5 text-[9px] font-black gap-1 mx-auto">
+                                  <X className="h-2.5 w-2.5" /> NO
+                              </Badge>
+                          )}
                       </TableCell>
                       <TableCell className="py-4">
                         <div className="flex items-center gap-2">
