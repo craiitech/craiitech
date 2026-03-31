@@ -71,6 +71,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
           </TableHeader>
           <TableBody>
             {programs.map((program) => {
+              // NORMALIZE IDENTIFIER MATCHING
               const record = compliances.find(c => 
                 String(c.programId || '').toLowerCase().trim() === String(program.id || '').toLowerCase().trim()
               );

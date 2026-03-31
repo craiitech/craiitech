@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AcademicProgram, ProgramComplianceRecord, Campus, Unit } from '@/lib/types';
+import type { AcademicProgram, ProgramComplianceRecord, Campus, Unit, AccreditationRecord } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '../ui/skeleton';
@@ -31,7 +31,10 @@ import {
     Loader2,
     Check,
     X,
-    GraduationCap
+    GraduationCap,
+    HelpCircle,
+    CalendarCheck,
+    ShieldAlert
 } from 'lucide-react';
 import { 
     BarChart, 
@@ -139,11 +142,14 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     const roadmapData: any[] = [];
     const currentYearNum = new Date().getFullYear();
 
+    const statusTotals = { COMPLIANT: 0, OVERDUE: 0, 'AWAITING RESULT': 0, 'NEW PROGRAM': 0 };
+
     programs.forEach(p => {
         const category = getProgramCategory(p);
         if (p.isActive) activeCount++;
         else inactiveCount++;
 
+        // NORMALIZE IDENTIFIER MATCHING
         const record = compliances.find(c => 
             String(c.programId || '').toLowerCase().trim() === String(p.id || '').toLowerCase().trim()
         );
@@ -177,6 +183,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 if (dYear > 0 && dYear < currentYearNum) status = 'OVERDUE';
                 else if (dYear >= currentYearNum) status = 'COMPLIANT';
             }
+            statusTotals[status as keyof typeof statusTotals]++;
         } else status = 'CLOSED';
 
         roadmapData.push({
@@ -284,6 +291,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         inactiveCount,
         activeAccredited, 
         activeCopc,
+        statusTotals,
         copcMomentumData: sortTimeline(copcByYear),
         achievementHistoryData: sortTimeline(achievementByYear),
         milestoneVelocityData: sortTimeline(milestoneVelocity),
@@ -337,11 +345,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 </div>
             </CardHeader>
             <CardContent className="flex-1">
-                <div className="text-3xl font-black text-slate-900">{analytics?.activeCount} Active</div>
+                <div className="text-3xl font-black text-slate-900 tabular-nums">{analytics?.activeCount} Active</div>
                 <p className="text-[9px] font-bold text-muted-foreground uppercase">{analytics?.inactiveCount} Closed Programs</p>
             </CardContent>
             <CardFooter className="bg-muted/10 py-2">
-                <p className="text-[8px] text-muted-foreground italic">Current institutional program offerings.</p>
+                <p className="text-[8px] text-muted-foreground italic">Total institutional degree offerings currently monitored.</p>
             </CardFooter>
         </Card>
 
@@ -353,11 +361,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 </div>
             </CardHeader>
             <CardContent className="flex-1">
-                <div className="text-3xl font-black text-emerald-600">{analytics?.activeCopc} Active</div>
+                <div className="text-3xl font-black text-emerald-600 tabular-nums">{analytics?.activeCopc} Active</div>
                 <p className="text-[9px] font-bold text-emerald-600/70 uppercase">Verified Authority Awards</p>
             </CardContent>
             <CardFooter className="bg-emerald-100/20 py-2">
-                <p className="text-[8px] text-emerald-800/60 italic">Active programs with verified "With COPC" status.</p>
+                <p className="text-[8px] text-emerald-800/60 italic">Programs possessing active Certificates of Compliance.</p>
             </CardFooter>
         </Card>
 
@@ -369,11 +377,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 </div>
             </CardHeader>
             <CardContent className="flex-1">
-                <div className="text-3xl font-black text-amber-600">{analytics?.activeAccredited} Active</div>
+                <div className="text-3xl font-black text-amber-600 tabular-nums">{analytics?.activeAccredited} Active</div>
                 <p className="text-[9px] font-bold text-amber-800/60 uppercase">Level I or Higher AACCUP</p>
             </CardContent>
             <CardFooter className="bg-amber-100/20 py-2">
-                <p className="text-[8px] text-amber-800/60 italic">Active programs with verified Level I or higher status.</p>
+                <p className="text-[8px] text-amber-800/60 italic">Active programs with verified accreditation levels.</p>
             </CardFooter>
         </Card>
 
@@ -385,7 +393,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 </div>
             </CardHeader>
             <CardContent className="flex-1">
-                <div className="text-3xl font-black text-blue-600">{analytics?.integrityRate}%</div>
+                <div className="text-3xl font-black text-blue-600 tabular-nums">{analytics?.integrityRate}%</div>
                 <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Data Integrity Index</p>
             </CardContent>
             <CardFooter className="bg-blue-100/20 py-2">
@@ -425,7 +433,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card className="shadow-md border-primary/10 flex flex-col">
-              <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Maturity Profile</CardTitle></CardHeader>
+              <CardHeader className="bg-muted/10 border-b py-4">
+                <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Maturity Profile</CardTitle>
+                <CardDescription className="text-[10px]">Distribution of programs across AACCUP quality levels.</CardDescription>
+              </CardHeader>
               <CardContent className="pt-10 flex-1">
                   <ChartContainer config={chartConfig} className="h-[350px] w-full">
                     <ResponsiveContainer>
@@ -434,8 +445,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             <XAxis type="number" hide />
                             <YAxis dataKey="level" type="category" tick={{ fontSize: 9, fontWeight: 700 }} width={140} axisLine={false} tickLine={false} />
                             <RechartsTooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={12} />
-                            <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={12} />
+                            <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={12}>
+                                <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} />
+                            </Bar>
+                            <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={12}>
+                                <LabelList dataKey="Graduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} />
+                            </Bar>
                             <Bar dataKey="total" stackId="b" fill="transparent"><LabelList dataKey="total" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--primary))' }} /></Bar>
                         </BarChart>
                     </ResponsiveContainer>
@@ -444,7 +459,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           </Card>
 
           <Card className="shadow-md border-primary/10 flex flex-col">
-              <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Recognition Momentum (COPC)</CardTitle></CardHeader>
+              <CardHeader className="bg-muted/10 border-b py-4">
+                <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Recognition Momentum (COPC)</CardTitle>
+                <CardDescription className="text-[10px]">CHED award certificates logged by year.</CardDescription>
+              </CardHeader>
               <CardContent className="pt-10 flex-1">
                   <ChartContainer config={chartConfig} className="h-[350px] w-full">
                     <ResponsiveContainer>
@@ -467,7 +485,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <Card className="shadow-md border-primary/10 flex flex-col">
               <CardHeader className="bg-muted/10 border-b py-4">
                 <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle>
-                <CardDescription className="text-[10px]">Upcoming validity expirations.</CardDescription>
+                <CardDescription className="text-[10px]">Upcoming validity expirations based on current milestones.</CardDescription>
               </CardHeader>
               <CardContent className="pt-10 flex-1">
                 <ChartContainer config={chartConfig} className="h-[350px] w-full">
@@ -490,7 +508,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <Card className="shadow-md border-primary/10 flex flex-col">
               <CardHeader className="bg-muted/10 border-b py-4">
                 <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle>
-                <CardDescription className="text-[10px]">Total surveys recorded per year.</CardDescription>
+                <CardDescription className="text-[10px]">Total successful surveys recorded chronologically.</CardDescription>
               </CardHeader>
               <CardContent className="pt-10 flex-1">
                 <ChartContainer config={chartConfig} className="h-[350px] w-full">
@@ -513,33 +531,90 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
       </div>
 
       <Card className="shadow-xl border-primary/10 overflow-hidden">
-          <CardHeader className="bg-primary/5 border-b py-6"><div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /><CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Roadmap</CardTitle></div></CardHeader>
+          <CardHeader className="bg-primary/5 border-b py-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Pipeline (Roadmap)</CardTitle>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1.5 h-6 font-black text-[10px] uppercase">
+                        <CheckCircle2 className="h-3 w-3" /> {analytics?.statusTotals.COMPLIANT} Compliant
+                    </Badge>
+                    <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 gap-1.5 h-6 font-black text-[10px] uppercase animate-pulse">
+                        <ShieldAlert className="h-3 w-3" /> {analytics?.statusTotals.OVERDUE} Overdue
+                    </Badge>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 gap-1.5 h-6 font-black text-[10px] uppercase">
+                        <Clock className="h-3 w-3" /> {analytics?.statusTotals['AWAITING RESULT']} Pending
+                    </Badge>
+                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 gap-1.5 h-6 font-black text-[10px] uppercase">
+                        <PlusCircle className="h-3 w-3" /> {analytics?.statusTotals['NEW PROGRAM']} New
+                    </Badge>
+                </div>
+            </div>
+          </CardHeader>
           <CardContent className="p-0">
               <ScrollArea className="h-[500px]">
                   <Table>
                       <TableHeader className="bg-muted/50 sticky top-0 z-10">
                           <TableRow>
-                              <TableHead className="pl-8 py-4"><Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('name')}>Academic Program {getSortIcon('name')}</Button></TableHead>
-                              <TableHead className="py-4"><Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('campus')}>Site {getSortIcon('campus')}</Button></TableHead>
-                              <TableHead className="py-4"><Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('currentLevel')}>Level {getSortIcon('currentLevel')}</Button></TableHead>
-                              <TableHead className="py-4"><Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('validity')}>Validity {getSortIcon('validity')}</Button></TableHead>
+                              <TableHead className="pl-8 py-4"><Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('name')}>Academic Program Offering {getSortIcon('name')}</Button></TableHead>
+                              <TableHead className="py-4"><Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('campus')}>Campus Site {getSortIcon('campus')}</Button></TableHead>
+                              <TableHead className="py-4"><Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('currentLevel')}>Current Level {getSortIcon('currentLevel')}</Button></TableHead>
+                              <TableHead className="py-4"><Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('validity')}>Validity Date {getSortIcon('validity')}</Button></TableHead>
                               <TableHead className="text-right pr-8 py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent ml-auto" onClick={() => requestSort('status')}>Status {getSortIcon('status')}</Button></TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
                           {sortedRoadmap.map(item => (
-                              <TableRow key={item.id} className="hover:bg-muted/20">
-                                  <TableCell className="pl-8 py-5"><div className="flex flex-col gap-1"><span className="font-black text-sm text-slate-900 leading-none">{item.name}</span><span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{item.level}</span></div></TableCell>
+                              <TableRow key={item.id} className="hover:bg-muted/20 transition-colors">
+                                  <TableCell className="pl-8 py-5">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="font-black text-sm text-slate-900 leading-none">{item.name}</span>
+                                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{item.level}</span>
+                                    </div>
+                                  </TableCell>
                                   <TableCell className="py-5 text-xs font-bold text-slate-600 uppercase">{item.campus}</TableCell>
-                                  <TableCell className="py-5"><Badge variant="outline" className="h-5 text-[9px] font-black text-primary border-primary/20 uppercase">{item.currentLevel}</Badge></TableCell>
-                                  <TableCell className="py-5 text-xs font-black uppercase">{item.validity}</TableCell>
-                                  <TableCell className="text-right pr-8 py-5"><Badge className={cn("text-[10px] font-black uppercase border-none px-3 shadow-sm", item.status === 'COMPLIANT' ? "bg-emerald-600 text-white" : item.status === 'OVERDUE' ? "bg-rose-600 text-white animate-pulse" : item.status === 'AWAITING RESULT' ? "bg-blue-600 text-white" : "bg-amber-50 text-amber-950")}>{item.status}</Badge></TableCell>
+                                  <TableCell className="py-5">
+                                    <Badge variant="outline" className="h-5 text-[9px] font-black text-primary border-primary/20 uppercase bg-white">
+                                        {item.currentLevel}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="py-5 text-xs font-black uppercase tabular-nums">{item.validity}</TableCell>
+                                  <TableCell className="text-right pr-8 py-5">
+                                    <Badge className={cn(
+                                        "text-[10px] font-black uppercase border-none px-3 shadow-sm",
+                                        item.status === 'COMPLIANT' ? "bg-emerald-600 text-white" : 
+                                        item.status === 'OVERDUE' ? "bg-rose-600 text-white animate-pulse" : 
+                                        item.status === 'AWAITING RESULT' ? "bg-blue-600 text-white" : 
+                                        "bg-amber-50 text-amber-950"
+                                    )}>
+                                        {item.status}
+                                    </Badge>
+                                  </TableCell>
                               </TableRow>
                           ))}
                       </TableBody>
                   </Table>
               </ScrollArea>
           </CardContent>
+          <CardFooter className="bg-muted/10 border-t p-4 flex justify-between items-center px-8">
+              <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2 text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+                      <HelpCircle className="h-3 w-3" /> Status Guide:
+                  </div>
+                  <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-emerald-500" /><span className="text-[8px] font-bold uppercase">Compliant</span></div>
+                      <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-rose-500" /><span className="text-[8px] font-bold uppercase">Expired / Overdue</span></div>
+                      <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-blue-500" /><span className="text-[8px] font-bold uppercase">Processing</span></div>
+                      <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-amber-500" /><span className="text-[8px] font-bold uppercase">Preliminary</span></div>
+                  </div>
+              </div>
+              <p className="text-[9px] text-muted-foreground italic font-medium flex items-center gap-2">
+                <Target className="h-3 w-3" />
+                Sorted chronologically by validity date.
+              </p>
+          </CardFooter>
       </Card>
     </div>
   );
