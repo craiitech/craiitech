@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -147,7 +146,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         else inactiveCount++;
 
         const pId = String(p.id).toLowerCase().trim();
-        const record = compliances.find(c => String(c.programId).toLowerCase().trim() === pId);
+        const record = compliances.find(c => 
+            String(c.programId || '').toLowerCase().trim() === pId
+        );
         
         if (record) {
             monitoredCount++;
@@ -408,6 +409,90 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     }
   };
 
+  /**
+   * BATCH PRINT BY UNIT
+   * Groups all pending recommendations by the assigned responsible unit
+   * and renders a multi-page PDF where each unit has its own dedicated report.
+   */
+  const handlePrintByUnitReport = () => {
+    if (!programs.length || !compliances.length) return;
+
+    try {
+        const unitsWithRecos: Record<string, any[]> = {};
+
+        // 1. Gather all data
+        compliances.forEach(record => {
+            const program = programs.find(p => String(p.id).toLowerCase().trim() === String(record.programId).toLowerCase().trim());
+            if (!program) return;
+
+            (record.accreditationRecords || []).forEach(milestone => {
+                (milestone.recommendations || []).forEach(reco => {
+                    if (reco.status !== 'Closed') {
+                        (reco.assignedUnitIds || []).forEach(unitId => {
+                            if (!unitsWithRecos[unitId]) unitsWithRecos[unitId] = [];
+                            unitsWithRecos[unitId].push({
+                                programName: program.name,
+                                abbreviation: program.abbreviation,
+                                level: milestone.level,
+                                surveyDate: milestone.dateOfSurvey,
+                                recommendation: reco
+                            });
+                        });
+                    }
+                });
+            });
+        });
+
+        // 2. Generate HTML with Page Breaks
+        const batchHtml = Object.entries(unitsWithRecos).map(([unitId, items]) => {
+            return renderToStaticMarkup(
+                <div key={unitId} className="print-page-break mb-12">
+                    <AccreditationRecommendationReport 
+                        items={items}
+                        unitMap={unitMap}
+                        scope="unit"
+                        year={selectedYear}
+                    />
+                </div>
+            );
+        }).join('');
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Accountability Registry by Unit</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @media print { 
+                            body { margin: 0; padding: 0; background: white; } 
+                            .no-print { display: none !important; }
+                            .print-page-break { page-break-after: always; }
+                            .print-page-break:last-child { page-break-after: auto; }
+                        }
+                        body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Unit Reports</button>
+                    </div>
+                    <div id="print-content">
+                        ${batchHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (e) {
+        console.error(e);
+        toast({ title: "Print by unit failed", variant: "destructive" });
+    }
+  };
+
   const requestSort = (key: SortKey) => {
     let direction: 'asc' | 'desc' = 'asc';
     if (roadmapSortConfig.key === key && roadmapSortConfig.direction === 'asc') {
@@ -514,9 +599,14 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     <CardTitle className="text-sm font-black uppercase tracking-tight">Recommendation Accountability Summary</CardTitle>
                     <CardDescription className="text-[10px]">Pending accreditor recommendations assigned to institutional units.</CardDescription>
                 </div>
-                <Button variant="outline" size="sm" onClick={handlePrintAssignedReport} className="h-8 text-[9px] font-black bg-white shadow-sm gap-1.5">
-                    <Printer className="h-3.5 w-3.5" /> PRINT REGISTRY
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handlePrintByUnitReport} className="h-8 text-[9px] font-black bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm gap-1.5 hover:bg-indigo-100">
+                        <Building2 className="h-3.5 w-3.5" /> PRINT BY UNIT
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handlePrintAssignedReport} className="h-8 text-[9px] font-black bg-white shadow-sm gap-1.5 border-primary/20 text-primary">
+                        <Printer className="h-3.5 w-3.5" /> PRINT REGISTRY
+                    </Button>
+                </div>
               </CardHeader>
               <CardContent className="pt-10 flex-1">
                   {analytics?.unitImpactData.length ? (
