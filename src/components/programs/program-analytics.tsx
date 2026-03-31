@@ -15,12 +15,13 @@ import {
     School, 
     CheckCircle2,
     ShieldCheck,
-    Info,
-    LayoutGrid,
-    Clock,
+    Star, 
+    Target, 
+    Zap, 
+    Info, 
     BarChart3,
-    Target,
-    Zap,
+    ClipboardCheck,
+    Search,
     Users,
     ArrowUpDown,
     Trophy,
@@ -100,21 +101,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
   const [roadmapSortConfig, setRoadmapSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' }>({ key: 'validity', direction: 'asc' });
 
-  const requestSort = (key: SortKey) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (roadmapSortConfig.key === key && roadmapSortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setRoadmapSortConfig({ key, direction });
-  };
-
-  const getSortIcon = (key: SortKey) => (
-    <ArrowUpDown className={cn(
-      "h-3 w-3 ml-1.5 transition-colors",
-      roadmapSortConfig.key === key ? "text-primary opacity-100" : "opacity-20"
-    )} />
-  );
-
   const analytics = useMemo(() => {
     if (!programs.length) return null;
 
@@ -150,10 +136,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         if (p.isActive) activeCount++;
         else inactiveCount++;
 
-        // Robust normalized ID lookup
-        const record = compliances.find(c => 
-            String(c.programId || '').toLowerCase().trim() === String(p.id || '').toLowerCase().trim()
-        );
+        // Robust normalized ID lookup to fix "0" value issues
+        const pId = String(p.id).toLowerCase().trim();
+        const record = compliances.find(c => String(c.programId).toLowerCase().trim() === pId);
         
         if (record) monitoredCount++;
 
@@ -276,7 +261,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         let lvlKey = 'AWAITING RESULT';
         if (p.isNewProgram) lvlKey = 'Not Yet Subject';
         else {
-            const rec = compliances.find(c => String(c.programId || '').toLowerCase().trim() === String(p.id || '').toLowerCase().trim());
+            const pId = String(p.id).toLowerCase().trim();
+            const rec = compliances.find(c => String(c.programId).toLowerCase().trim() === pId);
             const mil = rec?.accreditationRecords || [];
             const cur = mil.find(m => m.lifecycleStatus === 'Current') || mil[mil.length - 1];
             const rawLevel = (cur?.level || 'AWAITING RESULT').trim();
@@ -323,23 +309,51 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
   const sortedRoadmap = useMemo(() => {
     if (!analytics?.roadmapData) return [];
-    const { key, direction } = roadmapSortConfig;
+    
     return [...analytics.roadmapData].sort((a, b) => {
-        let valA = a[key], valB = b[key];
-        if (key === 'validity') {
-            const getVal = (s: string) => {
-                if (s === 'NEW PROGRAM') return 999999;
-                if (s === 'AWAITING RESULT' || s === 'TBA') return 999998;
-                const m = s.match(/\d{4}/);
-                return m ? parseInt(m[0]) : 0;
-            };
-            valA = getVal(valA); valB = getVal(valB);
+        // 1. Primary Sort: Active status (Active programs first)
+        if (a.isActive && !b.isActive) return -1;
+        if (!a.isActive && b.isActive) return 1;
+
+        // 2. Secondary Sort: Chronological year extraction
+        const getYearVal = (item: any) => {
+            // Closed programs go to the very end
+            if (!item.isActive) return 1000000;
+            
+            const s = item.validity;
+            if (s === 'NEW PROGRAM') return 999999;
+            if (s === 'AWAITING RESULT' || s === 'TBA') return 999998;
+            
+            const m = s.match(/\d{4}/);
+            return m ? parseInt(m[0]) : 0;
+        };
+
+        const valA = getYearVal(a);
+        const valB = getYearVal(b);
+
+        if (valA !== valB) {
+            return valA - valB; // Ascending: Oldest years to Future years
         }
-        if (valA < valB) return direction === 'asc' ? -1 : 1;
-        if (valA > valB) return direction === 'asc' ? 1 : -1;
-        return 0;
+
+        // 3. Tertiary Sort: Alphabetical program name
+        return a.name.localeCompare(b.name);
     });
-  }, [analytics?.roadmapData, roadmapSortConfig]);
+  }, [analytics?.roadmapData]);
+
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (roadmapSortConfig.key === key && roadmapSortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setRoadmapSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: SortKey) => (
+    <ArrowUpDown className={cn(
+      "h-3 w-3 ml-1.5 transition-colors",
+      roadmapSortConfig.key === key ? "text-primary opacity-100" : "opacity-20"
+    )} />
+  );
 
   if (isLoading) {
     return (
@@ -578,7 +592,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-3">
-                    {/* Yearly Forecast Breakdown */}
                     <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg border border-primary/10 shadow-sm mr-2">
                         <span className="text-[10px] font-black text-primary uppercase tracking-widest border-r pr-2">Yearly Forecast:</span>
                         <div className="flex items-center gap-3">
@@ -622,11 +635,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       </TableHeader>
                       <TableBody>
                           {sortedRoadmap.map(item => (
-                              <TableRow key={item.id} className="hover:bg-muted/20 transition-colors">
+                              <TableRow key={item.id} className={cn("hover:bg-muted/20 transition-colors", !item.isActive && "opacity-50 grayscale bg-slate-50")}>
                                   <TableCell className="pl-8 py-5">
                                     <div className="flex flex-col gap-1">
                                         <span className="font-black text-sm text-slate-900 leading-none">{item.name}</span>
-                                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{item.level}</span>
+                                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{item.level} {!item.isActive && '(CLOSED)'}</span>
                                     </div>
                                   </TableCell>
                                   <TableCell className="py-5 text-xs font-bold text-slate-600 uppercase">{item.campus}</TableCell>
@@ -639,6 +652,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                   <TableCell className="text-right pr-8 py-5">
                                     <Badge className={cn(
                                         "text-[10px] font-black uppercase border-none px-3 shadow-sm",
+                                        !item.isActive ? "bg-slate-400 text-white" :
                                         item.status === 'COMPLIANT' ? "bg-emerald-600 text-white" : 
                                         item.status === 'OVERDUE' ? "bg-rose-600 text-white animate-pulse" : 
                                         item.status === 'AWAITING RESULT' ? "bg-blue-600 text-white" : 
@@ -662,12 +676,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-emerald-500" /><span className="text-[8px] font-bold uppercase">Compliant</span></div>
                       <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-rose-500" /><span className="text-[8px] font-bold uppercase">Expired / Overdue</span></div>
                       <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-blue-500" /><span className="text-[8px] font-bold uppercase">Processing</span></div>
-                      <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-amber-500" /><span className="text-[8px] font-bold uppercase">Preliminary</span></div>
+                      <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-slate-400" /><span className="text-[8px] font-bold uppercase">Closed</span></div>
                   </div>
               </div>
               <p className="text-[9px] text-muted-foreground italic font-medium flex items-center gap-2">
                 <Target className="h-3 w-3" />
-                Sorted chronologically by validity date.
+                Sorted chronologically by validity date. Closed programs moved to bottom.
               </p>
           </CardFooter>
       </Card>
