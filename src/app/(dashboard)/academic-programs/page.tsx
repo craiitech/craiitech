@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -100,33 +101,42 @@ export default function AcademicProgramsPage() {
     if (isUnitViewer && userProfile.unitId) {
         return query(baseRef, where('collegeId', '==', userProfile.unitId));
     }
-    return null;
+    
+    // Default fallback for general users
+    return query(baseRef, where('campusId', '==', userProfile.campusId));
   }, [firestore, isUserLoading, userProfile, isGlobalViewer, isCampusViewer, isUnitViewer]);
 
   const { data: rawPrograms, isLoading: isLoadingPrograms } = useCollection<AcademicProgram>(programsQuery);
 
   /**
    * SCOPED COMPLIANCE QUERY
+   * Fixed: Added defensive checks to prevent early permission errors
    */
   const compliancesQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !userProfile) return null;
+    if (!firestore || isUserLoading || !userProfile || !userRole) return null;
+    
     const baseRef = collection(firestore, 'programCompliances');
     const baseQuery = query(baseRef, where('academicYear', '==', selectedYear));
 
     if (isGlobalViewer) return baseQuery;
+    
     if (isCampusViewer && userProfile.campusId) {
         return query(baseRef, where('academicYear', '==', selectedYear), where('campusId', '==', userProfile.campusId));
     }
+    
     if (isUnitViewer && userProfile.unitId) {
         const programIds = rawPrograms?.filter(p => p.collegeId === userProfile.unitId).map(p => p.id) || [];
         // If program list is loaded, scope compliance strictly to these unit programs
         if (programIds.length > 0) {
             return query(baseRef, where('academicYear', '==', selectedYear), where('programId', 'in', programIds.slice(0, 10)));
         }
+        // Fallback to campus-wide if unit programs not yet mapped
         return query(baseRef, where('academicYear', '==', selectedYear), where('campusId', '==', userProfile.campusId));
     }
-    return null;
-  }, [firestore, isUserLoading, userProfile, selectedYear, isGlobalViewer, isCampusViewer, isUnitViewer, rawPrograms]);
+    
+    // Safety fallback
+    return query(baseRef, where('academicYear', '==', selectedYear), where('campusId', '==', userProfile.campusId));
+  }, [firestore, isUserLoading, userProfile, userRole, selectedYear, isGlobalViewer, isCampusViewer, isUnitViewer, rawPrograms]);
 
   const { data: rawCompliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
@@ -152,7 +162,6 @@ export default function AcademicProgramsPage() {
 
   /**
    * CALCULATE REGISTRY SUMMARY STATS
-   * Disaggregates stats for Active and Closed programs.
    */
   const summaryStats = useMemo(() => {
     const total = filteredPrograms.length;
