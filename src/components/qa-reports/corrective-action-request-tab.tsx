@@ -42,7 +42,8 @@ import {
     ListChecks,
     ChevronRight,
     Gavel,
-    BookOpen
+    BookOpen,
+    History
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -61,6 +62,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
 import { CARControlRegisterTemplate } from './car-control-register-template';
 import { cn } from '@/lib/utils';
+import { MultiSelector } from './multi-selector';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -85,7 +87,8 @@ const carSchema = z.object({
   requestDate: z.string().min(1, 'Request date is required'),
   preparedBy: z.string().min(1, 'Prepared by is required'),
   approvedBy: z.string().min(1, 'Approved by is required'),
-  rootCauseAnalysis: z.string().min(1, 'Root cause analysis is mandatory before proposing actions.'),
+  // Made optional at schema level to allow Admin to save without unit response
+  rootCauseAnalysis: z.string().optional().or(z.literal('')),
   actionSteps: z.array(z.object({
     description: z.string().min(1, 'Description is required'),
     type: z.enum(['Immediate Correction', 'Long-term Corrective Action']),
