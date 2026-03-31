@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -28,7 +29,8 @@ import {
     ChevronRight,
     Search,
     AlertTriangle,
-    ShieldAlert
+    ShieldAlert,
+    Loader2
 } from 'lucide-react';
 import { 
     BarChart, 
@@ -86,9 +88,7 @@ const chartConfig = {
     Inactive: { label: 'Closed Programs', color: 'hsl(var(--muted-foreground))' },
     Male: { label: 'Male', color: 'hsl(var(--chart-1))' },
     Female: { label: 'Female', color: 'hsl(var(--chart-2))' },
-    Others: { label: 'Others (LGBTQI++)', color: 'hsl(var(--chart-3))' },
-    School: { label: 'Institutional Rate', color: 'hsl(var(--primary))' },
-    National: { label: 'National Average', color: 'hsl(var(--muted-foreground))' }
+    Others: { label: 'Others (LGBTQI++)', color: 'hsl(var(--chart-3))' }
 };
 
 type SortKey = 'name' | 'campus' | 'currentLevel' | 'validity' | 'status';
@@ -126,6 +126,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
     let sem1Male = 0, sem1Female = 0;
     let sem2Male = 0, sem2Female = 0;
+    let summerMale = 0, summerFemale = 0;
     let totalMaleFaculty = 0, totalFemaleFaculty = 0, totalOthersFaculty = 0;
     const uniqueFacultySet = new Set<string>();
 
@@ -154,7 +155,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             if (hasCopc) activeCopc++;
         }
 
-        const validityStr = currentMilestone?.statusValidityDate || 'AWAITING RESULT';
+        const validityStr = currentMilestone?.statusValidityDate || (p.isNewProgram ? 'NEW PROGRAM' : 'AWAITING RESULT');
         let status = 'AWAITING RESULT';
         if (p.isActive) {
             if (p.isNewProgram) status = 'NEW PROGRAM';
@@ -217,6 +218,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             const s2 = sumTerm(stats?.secondSemester);
             sem2Male += s2.m; sem2Female += s2.f;
 
+            const sSummer = sumTerm(stats?.midYearTerm);
+            summerMale += sSummer.m; summerFemale += sSummer.f;
+
             if (record.faculty) {
                 const roster = [...(record.faculty.members || [])];
                 if (record.faculty.dean?.name) roster.push(record.faculty.dean as any);
@@ -275,6 +279,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         roadmapData,
         gadEnrollment1stData: makePieData(sem1Male, sem1Female),
         gadEnrollment2ndData: makePieData(sem2Male, sem2Female),
+        gadEnrollmentSummerData: makePieData(summerMale, summerFemale),
         gadFacultyData: makePieData(totalMaleFaculty, totalFemaleFaculty, totalOthersFaculty),
         monitoredCount,
         integrityRate: programs.length > 0 ? Math.round((monitoredCount / programs.length) * 100) : 0
@@ -326,10 +331,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
       <div className="space-y-4">
           <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs border-b pb-2"><Users className="h-4 w-4" /> Gender & Development (GAD) Compliance Metrics</div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {[
                   { title: '1st Sem Enrollment', data: analytics?.gadEnrollment1stData },
                   { title: '2nd Sem Enrollment', data: analytics?.gadEnrollment2ndData },
+                  { title: 'Summer Enrollment', data: analytics?.gadEnrollmentSummerData },
                   { title: 'Institutional Faculty Pool', data: analytics?.gadFacultyData }
               ].map((chart, i) => (
                   <Card key={i} className="shadow-md h-[320px] flex flex-col border-primary/10">
@@ -478,5 +484,5 @@ const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }:
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
     const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-    return <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[14px] font-black">{`${(percent * 100).toFixed(0)}%`}</text>;
+    return <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[12px] font-black">{`${(percent * 100).toFixed(0)}%`}</text>;
 };
