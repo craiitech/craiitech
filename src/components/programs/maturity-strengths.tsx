@@ -12,21 +12,15 @@ import {
     Star, 
     TrendingUp, 
     Users, 
-    Target, 
     Info, 
-    Building, 
-    School,
     Zap,
     GraduationCap,
-    Heart,
     Activity,
     Loader2,
     Trophy,
     ShieldAlert,
     AlertTriangle
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 
 interface MaturityStrengthsProps {
@@ -48,7 +42,6 @@ type StrengthItem = {
 };
 
 export function MaturityStrengths({ programs, compliances, campuses, units, isLoading, selectedYear }: MaturityStrengthsProps) {
-  
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
 
   const analysis = useMemo(() => {
@@ -59,10 +52,11 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
     const activePrograms = programs.filter(p => p.isActive);
 
     activePrograms.forEach(p => {
-        const record = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
+        const record = compliances.find(c => 
+            String(c.programId || '').toLowerCase().trim() === String(p.id || '').toLowerCase().trim()
+        );
         const hasCopc = record?.ched?.copcStatus === 'With COPC';
 
-        // Actionable Gap Logic
         const gaps = [];
         if (!record?.faculty?.members?.length) gaps.push('FACULTY STAFFING LIST');
         if (!record?.graduationRecords?.length) gaps.push('GRADUATION OUTCOME DATA');
@@ -74,9 +68,8 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
         }
     });
 
-    // 1. HIGH-TIER ACCREDITATION (LEVEL III & IV)
     const eliteAccredited = activePrograms.filter(p => {
-        const record = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
+        const record = compliances.find(c => String(c.programId || '').toLowerCase().trim() === String(p.id || '').toLowerCase().trim());
         const milestones = record?.accreditationRecords || [];
         const current = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
         return current && (current.level.includes('Level III') || current.level.includes('Level IV'));
@@ -86,16 +79,15 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
         strengthsList.push({
             title: 'Advanced Quality Maturity',
             description: `A total of ${eliteAccredited.length} programs have achieved high-tier AACCUP accreditation (Level III or IV).`,
-            impact: 'Signifies institutional readiness for university-wide autonomous status and international recognition.',
+            impact: 'Signifies institutional readiness for autonomous status.',
             icon: <Award className="h-6 w-6 text-amber-500" />,
             programs: eliteAccredited,
             category: 'Accreditation'
         });
     }
 
-    // 2. FULL REGULATORY COMPLIANCE (COPC)
     const copcComplete = activePrograms.filter(p => {
-        const record = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
+        const record = compliances.find(c => String(c.programId || '').toLowerCase().trim() === String(p.id || '').toLowerCase().trim());
         return record?.ched?.copcStatus === 'With COPC';
     }).map(p => p.abbreviation);
 
@@ -107,57 +99,6 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
             icon: <ShieldCheck className="h-6 w-6 text-emerald-600" />,
             programs: copcComplete,
             category: 'Regulatory'
-        });
-    }
-
-    // 3. RESOURCE INTEGRITY (FACULTY ALIGNMENT)
-    const perfectlyAligned = activePrograms.filter(p => {
-        const record = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
-        if (!record?.faculty?.members || record.faculty.members.length === 0) return false;
-        return record.faculty.members.every(m => m.isAlignedWithCMO === 'Aligned');
-    }).map(p => p.abbreviation);
-
-    if (perfectlyAligned.length > 0) {
-        strengthsList.push({
-            title: 'Resource Qualification Excellence',
-            description: `${perfectlyAligned.length} programs maintain faculty rosters with 100% CMO qualification alignment.`,
-            impact: 'Ensures that instruction is delivered by personnel meeting the highest professional and academic standards.',
-            icon: <Users className="h-6 w-6 text-blue-600" />,
-            programs: perfectlyAligned,
-            category: 'Resources'
-        });
-    }
-
-    // 4. OUTCOME LEADERSHIP (BOARD PERFORMANCE)
-    const boardLeaders = activePrograms.filter(p => {
-        const record = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
-        if (!record?.boardPerformance || record.boardPerformance.length === 0) return false;
-        const latest = record.boardPerformance[record.boardPerformance.length - 1];
-        if (!latest) return false;
-        return (latest.overallPassRate || 0) > (latest.nationalPassingRate || 0);
-    }).map(p => p.abbreviation);
-
-    if (boardLeaders.length > 0) {
-        strengthsList.push({
-            title: 'Competitive Academic Outcomes',
-            description: `${boardLeaders.length} board-regulated programs exceed the national passing average in professional licensure.`,
-            impact: 'Demonstrates superior teaching effectiveness and student preparation for professional practice.',
-            icon: <TrendingUp className="h-6 w-6 text-primary" />,
-            programs: boardLeaders,
-            category: 'Outcomes'
-        });
-    }
-
-    // 5. GRADUATE PROGRAM MATURITY
-    const graduatePrograms = activePrograms.filter(p => p.level === 'Graduate').map(p => p.abbreviation);
-    if (graduatePrograms.length > 0) {
-        strengthsList.push({
-            title: 'Higher Education Scope',
-            description: `Strong portfolio of ${graduatePrograms.length} active Master's/Doctoral offerings.`,
-            impact: 'Positions RSU as a center for advanced research and professional development in the region.',
-            icon: <GraduationCap className="h-6 w-6 text-indigo-600" />,
-            programs: graduatePrograms,
-            category: 'Accreditation'
         });
     }
 
@@ -203,7 +144,7 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
                     <div className="p-3 rounded-xl bg-emerald-50/30 border border-emerald-100/50 italic flex gap-3 items-start">
                         <Zap className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                         <p className="text-[11px] text-emerald-800 leading-relaxed font-medium">
-                            <span className="font-black uppercase text-[10px] mr-1">Strategic Impact:</span>
+                            <span className="font-black uppercase text-[10px] mr-1">Impact:</span>
                             {strength.impact}
                         </p>
                     </div>
@@ -226,14 +167,6 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
                 </CardFooter>
             </Card>
         ))}
-
-        {analysis.strengths.length === 0 && (
-            <Card className="col-span-full py-20 border-dashed bg-muted/5 flex flex-col items-center justify-center text-center">
-                <Activity className="h-12 w-12 opacity-10 mb-4" />
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Calibrating Maturity Strengths...</p>
-                <p className="text-xs text-muted-foreground mt-1">Data collection for AY {selectedYear} is still underway.</p>
-            </Card>
-        )}
       </div>
 
       <Separator />
@@ -269,40 +202,15 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
                   ))}
                   {analysis.gaps.length === 0 && (
                       <div className="col-span-full py-12 flex flex-col items-center justify-center text-center opacity-20">
-                          <ShieldCheck className="h-12 w-12 text-emerald-600" />
+                          <CheckCircle2 className="h-12 w-12 text-emerald-600" />
                           <p className="text-sm font-black uppercase mt-2">All Programs Compliant</p>
                       </div>
                   )}
               </div>
           </CardContent>
           <CardFooter className="bg-rose-50/50 border-t py-2 px-6">
-              <p className="text-[9px] text-rose-800/60 italic font-medium">Guidance for usage: Identification of these gaps is mandatory for ISO 21001:2018 compliance tracking. High gap counts signify institutional risk during external audits.</p>
+              <p className="text-[9px] text-rose-800/60 italic font-medium">Guidance: Documentation gaps signify institutional risk during external audits.</p>
           </CardFooter>
-      </Card>
-
-      <Card className="border-primary/10 shadow-md">
-        <CardHeader className="bg-muted/10 border-b py-4">
-            <div className="flex items-center gap-2">
-                <Info className="h-5 w-5 text-primary" />
-                <CardTitle className="text-sm font-black uppercase tracking-tight text-primary">Strategic Strength Reporting Guide</CardTitle>
-            </div>
-        </CardHeader>
-        <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-800 border-b pb-1">Utilization in Management Review</h4>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                        Strengths identified here should be presented during <strong>Management Reviews (MR)</strong> to identify best practices. Programs listed as "Elite" or "Compliant" can serve as peer-mentors for other units within the university.
-                    </p>
-                </div>
-                <div className="space-y-4">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-800 border-b pb-1">External Audit Preparation</h4>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                        During <strong>External Quality Audits (EQA)</strong> or <strong>AACCUP Surveys</strong>, these metrics serve as objective evidence of the university's commitment to Clause 10.3 (Opportunities for Improvement) of the ISO 21001 standard.
-                    </p>
-                </div>
-            </div>
-        </CardContent>
       </Card>
     </div>
   );

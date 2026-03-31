@@ -27,12 +27,8 @@ import {
     Trophy,
     FileText,
     ChevronRight,
-    Search,
-    AlertTriangle,
-    ShieldAlert,
-    Loader2,
     PieChart as PieIcon,
-    FileX,
+    Loader2,
     Check,
     X,
     GraduationCap
@@ -148,8 +144,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         if (p.isActive) activeCount++;
         else inactiveCount++;
 
-        // Robust record matching using normalized strings
-        const record = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
+        const record = compliances.find(c => 
+            String(c.programId || '').toLowerCase().trim() === String(p.id || '').toLowerCase().trim()
+        );
         
         if (record) monitoredCount++;
 
@@ -161,6 +158,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             rawLevel !== 'Non Accredited' && 
                             !rawLevel.includes('PSV') && 
                             rawLevel !== 'AWAITING RESULT';
+        
         const hasCopc = record?.ched?.copcStatus === 'With COPC';
 
         if (p.isActive) {
@@ -261,7 +259,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         let lvlKey = 'AWAITING RESULT';
         if (p.isNewProgram) lvlKey = 'Not Yet Subject';
         else {
-            const rec = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
+            const rec = compliances.find(c => String(c.programId || '').toLowerCase().trim() === String(p.id || '').toLowerCase().trim());
             const mil = rec?.accreditationRecords || [];
             const cur = mil.find(m => m.lifecycleStatus === 'Current') || mil[mil.length - 1];
             const rawLevel = (cur?.level || 'AWAITING RESULT').trim();
@@ -359,7 +357,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 <p className="text-[9px] font-bold text-emerald-600/70 uppercase">Verified Authority Awards</p>
             </CardContent>
             <CardFooter className="bg-emerald-100/20 py-2">
-                <p className="text-[8px] text-emerald-800/60 italic">Programs with official CHED award letters.</p>
+                <p className="text-[8px] text-emerald-800/60 italic">Active programs with verified "With COPC" status.</p>
             </CardFooter>
         </Card>
 
@@ -375,7 +373,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 <p className="text-[9px] font-bold text-amber-800/60 uppercase">Level I or Higher AACCUP</p>
             </CardContent>
             <CardFooter className="bg-amber-100/20 py-2">
-                <p className="text-[8px] text-amber-800/60 italic">Programs demonstrating verified quality maturity.</p>
+                <p className="text-[8px] text-amber-800/60 italic">Active programs with verified Level I or higher status.</p>
             </CardFooter>
         </Card>
 
@@ -387,11 +385,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 </div>
             </CardHeader>
             <CardContent className="flex-1">
-                <div className="text-3xl font-black text-blue-600">{analytics?.monitoredCount}</div>
-                <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Total Verified AY {selectedYear} Data</p>
+                <div className="text-3xl font-black text-blue-600">{analytics?.integrityRate}%</div>
+                <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Data Integrity Index</p>
             </CardContent>
             <CardFooter className="bg-blue-100/20 py-2">
-                <p className="text-[8px] text-blue-800/60 italic">Compliance logs saved for the selected year.</p>
+                <p className="text-[8px] text-blue-800/60 italic">Percentage of programs with finalized AY {selectedYear} data logs.</p>
             </CardFooter>
         </Card>
       </div>
@@ -467,7 +465,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card className="shadow-md border-primary/10 flex flex-col">
-              <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle><CardDescription className="text-[10px]">Upcoming validity expirations.</CardDescription></CardHeader>
+              <CardHeader className="bg-muted/10 border-b py-4">
+                <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle>
+                <CardDescription className="text-[10px]">Upcoming validity expirations.</CardDescription>
+              </CardHeader>
               <CardContent className="pt-10 flex-1">
                 <ChartContainer config={chartConfig} className="h-[350px] w-full">
                   <ResponsiveContainer>
@@ -487,7 +488,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               </CardContent>
           </Card>
           <Card className="shadow-md border-primary/10 flex flex-col">
-              <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle><CardDescription className="text-[10px]">Total surveys recorded per year.</CardDescription></CardHeader>
+              <CardHeader className="bg-muted/10 border-b py-4">
+                <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle>
+                <CardDescription className="text-[10px]">Total surveys recorded per year.</CardDescription>
+              </CardHeader>
               <CardContent className="pt-10 flex-1">
                 <ChartContainer config={chartConfig} className="h-[350px] w-full">
                   <ResponsiveContainer>

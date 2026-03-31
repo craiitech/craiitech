@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit, School, Layers, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2, Calendar, CheckCircle2, Clock, AlertTriangle, Hash, Check, X, Users } from 'lucide-react';
+import { Edit, School, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2, Clock, Users, Check, X, Hash } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -54,11 +54,11 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
               {isShowingActive && (
                 <>
                   <TableHead className="text-[10px] font-black uppercase py-4">Board Approval</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase py-4"># of Faculty (M/F (TOTAL))</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase py-4">Faculty Pool</TableHead>
                 </>
               )}
 
-              <TableHead className="text-[10px] font-black uppercase py-4">Date of COPC Award</TableHead>
+              <TableHead className="text-[10px] font-black uppercase py-4">COPC Award Date</TableHead>
               <TableHead className="text-[10px] font-black uppercase py-4">Next Visit (AACCUP)</TableHead>
               
               {!isShowingActive && (
@@ -71,8 +71,9 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
           </TableHeader>
           <TableBody>
             {programs.map((program) => {
-              // Robust string-normalized lookup logic using program.id
-              const record = compliances.find(c => String(c.programId).trim() === String(program.id).trim());
+              const record = compliances.find(c => 
+                String(c.programId || '').toLowerCase().trim() === String(program.id || '').toLowerCase().trim()
+              );
               
               const copcStatus = record?.ched?.copcStatus;
               const copcAwardDate = record?.ched?.copcAwardDate || 'N/A';
@@ -127,7 +128,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                             <Badge variant="destructive" className="h-3.5 text-[7px] font-black px-1 uppercase tracking-tighter">CLOSED</Badge>
                         )}
                       </div>
-                      <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">{program.abbreviation} & bull; {program.level}</span>
+                      <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">{program.abbreviation} &bull; {program.level}</span>
                       
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                           {copcStatus === 'With COPC' && <span className="text-[9px] font-black uppercase text-green-600">With COPC</span>}
@@ -160,17 +161,6 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                                   <Badge variant="outline" className="text-[8px] h-3.5 text-muted-foreground font-medium">Standard</Badge>
                               )}
                           </div>
-                          <div className="flex items-center gap-1">
-                              {program.isBoardProgram ? (
-                                  <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 border-indigo-200 gap-1 h-4 text-[8px] uppercase font-black px-1.5">
-                                      <ShieldCheck className="h-2.5 w-2.5" /> Board
-                                  </Badge>
-                              ) : (
-                                  <Badge variant="outline" className="text-muted-foreground gap-1 h-4 text-[8px] uppercase font-bold border-dashed px-1.5">
-                                      <ShieldAlert className="h-2.5 w-2.5" /> Non-Board
-                                  </Badge>
-                              )}
-                          </div>
                       </div>
                   </TableCell>
 
@@ -183,7 +173,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                         <div className="flex items-center gap-2">
                           <Users className="h-3.5 w-3.5 text-primary/40" />
                           <div className="flex flex-col">
-                            <span className="text-xs font-black tabular-nums text-slate-800">{facultyStats.m} / {facultyStats.f}</span>
+                            <span className="text-xs font-black tabular-nums text-slate-800">{facultyStats.m}M / {facultyStats.f}F</span>
                             <span className="text-[10px] font-bold text-primary">({facultyStats.total} TOTAL)</span>
                           </div>
                         </div>
@@ -215,7 +205,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                   )}
 
                   <TableCell className="py-4">
-                    {program.isActive ? <Badge className="bg-emerald-600 hover:bg-emerald-700 gap-1 h-5 text-[9px] uppercase tracking-tighter font-black"><Activity className="h-2.5 w-2.5" /> Active</Badge> : <Badge variant="destructive" className="gap-1 h-5 text-[9px] uppercase tracking-tighter font-black"><AlertTriangle className="h-2.5 w-2.5" /> Closed</Badge>}
+                    {program.isActive ? <Badge className="bg-emerald-600 hover:bg-emerald-700 gap-1 h-5 text-[9px] uppercase tracking-tighter font-black"><Activity className="h-2.5 w-2.5" /> Active</Badge> : <Badge variant="destructive" className="gap-1 h-5 text-[9px] uppercase tracking-tighter font-black"><ShieldAlert className="h-2.5 w-2.5" /> Closed</Badge>}
                   </TableCell>
                   <TableCell className="text-right space-x-2 whitespace-nowrap pr-6 py-4">
                     <Button size="sm" variant="default" className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm" onClick={() => router.push(`/academic-programs/${program.id}`)}>Workspace</Button>

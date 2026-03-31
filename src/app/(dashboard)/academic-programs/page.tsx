@@ -11,7 +11,6 @@ import {
     PlusCircle, 
     Loader2, 
     GraduationCap, 
-    Filter, 
     BarChart3, 
     Layers, 
     ShieldCheck, 
@@ -21,14 +20,9 @@ import {
     Award,
     CheckCircle2,
     Briefcase,
-    ShieldAlert,
-    Info,
     FileX,
     Users,
-    UserCheck,
-    Trophy,
-    Star,
-    Check
+    Trophy
 } from 'lucide-react';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
@@ -53,7 +47,7 @@ import {
 const currentYear = new Date().getFullYear();
 
 export default function AcademicProgramsPage() {
-  const { user, userProfile, isAdmin, isAuditor, userRole, isUserLoading, isVp } = useUser();
+  const { userProfile, isAdmin, userRole, isUserLoading, isVp, isAuditor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
@@ -103,7 +97,6 @@ export default function AcademicProgramsPage() {
         return query(baseRef, where('collegeId', '==', userProfile.unitId));
     }
     
-    // Default fallback for general users
     return query(baseRef, where('campusId', '==', userProfile.campusId));
   }, [firestore, isUserLoading, userProfile, isGlobalViewer, isCampusViewer, isUnitViewer]);
 
@@ -114,14 +107,13 @@ export default function AcademicProgramsPage() {
    * Fetches data for the selected academic year.
    */
   const compliancesQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !userProfile || !userRole) return null;
+    if (!firestore || isUserLoading || !userProfile) return null;
     const baseRef = collection(firestore, 'programCompliances');
     return query(baseRef, where('academicYear', '==', selectedYear));
-  }, [firestore, isUserLoading, userProfile, userRole, selectedYear]);
+  }, [firestore, isUserLoading, userProfile, selectedYear]);
 
   const { data: rawCompliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
-  // In-Memory Sorting and Search Filtering
   const programs = useMemo(() => {
     if (!rawPrograms) return [];
     return [...rawPrograms].sort((a, b) => a.name.localeCompare(b.name));
@@ -129,7 +121,6 @@ export default function AcademicProgramsPage() {
 
   const filteredPrograms = useMemo(() => {
     return programs.filter(p => {
-      // Strict Gate check
       if (!isGlobalViewer && p.campusId !== userProfile?.campusId) return false;
       if (isUnitViewer && p.collegeId !== userProfile?.unitId) return false;
 
@@ -143,7 +134,6 @@ export default function AcademicProgramsPage() {
 
   /**
    * CALCULATE REGISTRY SUMMARY STATS
-   * These are specifically for the 'Program Registry' tab cards.
    */
   const summaryStats = useMemo(() => {
     const total = filteredPrograms.length;
@@ -387,18 +377,8 @@ export default function AcademicProgramsPage() {
                     </CardHeader>
                     <CardContent className="flex-1">
                         <div className="text-3xl font-black text-primary tabular-nums">{summaryStats.activeCount} Active</div>
-                        <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">Current Offerings</p>
-                        <div className="flex items-center gap-2 mt-2">
-                            <Badge variant="outline" className="text-[8px] h-4 border-slate-200 text-slate-500 font-bold bg-white">
-                                {summaryStats.inactiveCount} CLOSED PROGRAMS
-                            </Badge>
-                        </div>
+                        <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">{summaryStats.inactiveCount} Closed Programs</p>
                     </CardContent>
-                    <div className="p-3 bg-muted/10 border-t mt-auto">
-                        <p className="text-[9px] text-muted-foreground italic leading-tight">
-                            Count of currently offered degree programs.
-                        </p>
-                    </div>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><Layers className="h-12 w-12" /></div>
                 </Card>
 
@@ -409,17 +389,7 @@ export default function AcademicProgramsPage() {
                     <CardContent className="flex-1">
                         <div className="text-3xl font-black text-emerald-600 tabular-nums">{summaryStats.accreditedRate}%</div>
                         <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tight">Active Level I or Higher</p>
-                        <div className="flex items-center gap-2 mt-2">
-                            <Badge variant="outline" className="text-[8px] h-4 border-emerald-200 text-emerald-600 font-bold bg-white uppercase">
-                                {summaryStats.inactiveAccredited} Closed Accredited
-                            </Badge>
-                        </div>
                     </CardContent>
-                    <div className="p-3 bg-emerald-100/20 border-t mt-auto">
-                        <p className="text-[9px] text-emerald-800/60 italic leading-tight">
-                            Percentage of active programs with valid AACCUP status.
-                        </p>
-                    </div>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><Award className="h-12 w-12 text-emerald-600" /></div>
                 </Card>
 
@@ -430,17 +400,7 @@ export default function AcademicProgramsPage() {
                     <CardContent className="flex-1">
                         <div className="text-3xl font-black text-blue-600 tabular-nums">{summaryStats.copcRate}%</div>
                         <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase tracking-tight">Active Operating Authorities</p>
-                        <div className="flex items-center gap-2 mt-2">
-                            <Badge variant="outline" className="text-[8px] h-4 border-blue-200 text-blue-600 font-bold bg-white uppercase">
-                                {summaryStats.inactiveCopc} Closed COPC
-                            </Badge>
-                        </div>
                     </CardContent>
-                    <div className="p-3 bg-blue-100/20 border-t mt-auto">
-                        <p className="text-[9px] text-emerald-800/60 italic leading-tight">
-                            Verification of official CHED COPC awards.
-                        </p>
-                    </div>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><CheckCircle2 className="h-12 w-12 text-blue-600" /></div>
                 </Card>
 
@@ -451,17 +411,7 @@ export default function AcademicProgramsPage() {
                     <CardContent className="flex-1">
                         <div className="text-3xl font-black text-purple-600 tabular-nums">{summaryStats.facultyAlignmentRate}%</div>
                         <p className="text-[9px] font-bold text-purple-600/70 mt-1 uppercase tracking-tight">100% Aligned Faculty Lists</p>
-                        <div className="flex items-center gap-2 mt-2">
-                            <Badge variant="outline" className="text-[8px] h-4 border-purple-200 text-purple-600 font-bold bg-white uppercase">
-                                RESOURCE INTEGRITY
-                            </Badge>
-                        </div>
                     </CardContent>
-                    <div className="p-3 bg-purple-100/20 border-t mt-auto">
-                        <p className="text-[9px] text-emerald-800/60 italic leading-tight">
-                            Active programs where all staff meet CMO qualifications.
-                        </p>
-                    </div>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><Users className="h-12 w-12 text-purple-600" /></div>
                 </Card>
 
@@ -472,17 +422,7 @@ export default function AcademicProgramsPage() {
                     <CardContent className="flex-1">
                         <div className="text-3xl font-black text-amber-600 tabular-nums">{summaryStats.activeBoardCount}</div>
                         <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tight">Active Board-Regulated Tracks</p>
-                        <div className="flex items-center gap-2 mt-2">
-                            <Badge variant="outline" className="text-[8px] h-4 border-amber-200 text-amber-600 font-bold bg-white uppercase">
-                                {summaryStats.inactiveBoardCount} Closed Board
-                            </Badge>
-                        </div>
                     </CardContent>
-                    <div className="p-3 bg-amber-100/20 border-t mt-auto">
-                        <p className="text-[9px] text-emerald-800/60 italic leading-tight">
-                            Count of programs subject to PRC licensure exams.
-                        </p>
-                    </div>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><Briefcase className="h-12 w-12 text-amber-600" /></div>
                 </Card>
             </div>
