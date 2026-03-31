@@ -54,12 +54,6 @@ service cloud.firestore {
       allow write: if isSignedIn(); 
     }
 
-    match /employeeActivities/{activityId} {
-      allow read, get, list: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-    }
-
     // --------------------------------------------------------------------------
     // USER PROFILES & AUTHENTICATION
     // --------------------------------------------------------------------------
@@ -217,6 +211,15 @@ service cloud.firestore {
     match /softwareEvaluations/{id} {
       allow read, get, list: if isAdmin() || isSupervisor();
       allow create: if true; // Public access allowed for evaluations
+    }
+
+    // --------------------------------------------------------------------------
+    // EMPLOYEE ACTIVITY LOG - ADDED BY PROTOTYPER
+    // --------------------------------------------------------------------------
+    match /employeeActivities/{activityId} {
+      allow read, get, list: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // --------------------------------------------------------------------------

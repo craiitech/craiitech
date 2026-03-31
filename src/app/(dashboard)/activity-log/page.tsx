@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, Timestamp, doc, deleteDoc } from 'firebase/firestore';
-import type { EmployeeActivity, Campus, Unit, User } from '@/lib/types';
+import type { EmployeeActivity, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -20,6 +21,7 @@ import {
     Trash2,
     LayoutList,
     Info as InfoIcon,
+    ShieldAlert
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -53,23 +55,21 @@ export default function EmployeeActivityLogPage() {
   const [dateFilter, setDateFilter] = useState<string>(''); 
   const [viewScope, setViewScope] = useState<'personal' | 'unit' | 'campus'>('personal');
 
-  // Fix: Defer default date to mount
+  // Defer default date to mount to avoid hydration mismatch
   useEffect(() => {
     setDateFilter(format(new Date(), 'yyyy-MM-dd'));
   }, []);
 
   const activitiesQuery = useMemoFirebase(() => {
-    // CRITICAL: Prevent query if not admin (for testing) or if loading
+    // CRITICAL: Silent mode until user is confirmed as Admin
     if (!firestore || !user || isUserLoading || !userProfile || !isAdmin) return null;
     
     const baseRef = collection(firestore, 'employeeActivities');
     
-    // Default: Only my activities
     if (viewScope === 'personal') {
         return query(baseRef, where('userId', '==', user.uid), orderBy('date', 'desc'));
     }
     
-    // Supervisor oversight logic
     if (viewScope === 'unit') {
         if (userProfile.unitId) {
             return query(baseRef, where('unitId', '==', userProfile.unitId), orderBy('date', 'desc'));
@@ -186,8 +186,7 @@ export default function EmployeeActivityLogPage() {
             <ShieldAlert className="h-12 w-12 text-destructive opacity-40" />
             <h2 className="text-2xl font-bold tracking-tight">Feature in Testing</h2>
             <p className="text-muted-foreground text-center max-w-md">
-                The Employee Activity Log is currently undergoing institutional testing and is restricted to Administrators. 
-                Please check back later for full access.
+                The Employee Activity Log is currently restricted to Administrators for testing purposes.
             </p>
         </div>
     );
@@ -201,11 +200,11 @@ export default function EmployeeActivityLogPage() {
             <UserCheck className="h-8 w-8 text-primary" />
             Employee Activity Log
           </h2>
-          <p className="text-muted-foreground">Log your daily tasks and generate institutional accomplishment reports.</p>
+          <p className="text-muted-foreground">Log daily tasks and generate institutional accomplishment reports.</p>
         </div>
         <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handlePrintReport} disabled={filteredActivities.length === 0} className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2">
-                <Printer className="h-4 w-4" /> Print Accomplishment Report
+                <Printer className="h-4 w-4" /> Print Report
             </Button>
             <Button onClick={() => { setEditingActivity(null); setIsFormOpen(true); }} className="h-10 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest">
                 <PlusCircle className="mr-2 h-4 w-4" /> Log Today's Task
@@ -250,7 +249,7 @@ export default function EmployeeActivityLogPage() {
                       <div className="relative">
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
-                              placeholder="Search description or output..."
+                              placeholder="Search tasks..."
                               value={searchTerm}
                               onChange={(e) => setSearchTerm(e.target.value)}
                               className="pl-9 h-10 text-xs bg-white"
@@ -271,8 +270,8 @@ export default function EmployeeActivityLogPage() {
                       </SelectTrigger>
                       <SelectContent>
                           <SelectItem value="personal">My Personal Log</SelectItem>
-                          {(isAdmin || isSupervisor) && <SelectItem value="unit">Unit-Wide Log</SelectItem>}
-                          {(isAdmin || isSupervisor) && <SelectItem value="campus">Campus-Wide Log</SelectItem>}
+                          <SelectItem value="unit">Unit-Wide Log</SelectItem>
+                          <SelectItem value="campus">Campus-Wide Log</SelectItem>
                       </SelectContent>
                   </Select>
               </CardContent>
@@ -299,7 +298,7 @@ export default function EmployeeActivityLogPage() {
                       <TableRow>
                           <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Time & Timeline</TableHead>
                           <TableHead className="text-[10px] font-black uppercase py-3">Activity Particulars</TableHead>
-                          <TableHead className="text-[10px] font-black uppercase py-3">Target Output / Deliverable</TableHead>
+                          <TableHead className="text-[10px] font-black uppercase py-3">Output</TableHead>
                           <TableHead className="text-[10px] font-black uppercase text-center py-3">Status</TableHead>
                           <TableHead className="text-right text-[10px] font-black uppercase pr-6 py-3">Actions</TableHead>
                       </TableRow>
@@ -362,7 +361,7 @@ export default function EmployeeActivityLogPage() {
                               <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
                                   <div className="flex flex-col items-center gap-2 opacity-20">
                                       <UserCheck className="h-10 w-10" />
-                                      <p className="text-[10px] font-black uppercase tracking-widest">No activities logged for this selection</p>
+                                      <p className="text-[10px] font-black uppercase tracking-widest">No activities logged</p>
                                   </div>
                               </TableCell>
                           </TableRow>
@@ -374,17 +373,22 @@ export default function EmployeeActivityLogPage() {
               <div className="flex items-start gap-3">
                   <InfoIcon className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
                   <p className="text-[9px] text-muted-foreground italic leading-relaxed">
-                      <strong>Institutional Standard:</strong> Daily logs ensure accurate accomplishment reporting aligned with the EOMS operational plans. For monthly reports, set the filter to 'All' and use the Print function to aggregate your work.
+                      <strong>Institutional Standard:</strong> Daily logs ensure accurate accomplishment reporting aligned with the EOMS operational plans.
                   </p>
               </div>
           </CardFooter>
       </Card>
 
-      <ActivityLogFormDialog 
+      <ActivityLogLogFormDialog 
         isOpen={isFormOpen} 
         onOpenChange={setIsFormOpen} 
         activity={editingActivity} 
       />
     </div>
   );
+}
+
+// Rename dialog to avoid collision
+function ActivityLogLogFormDialog({ isOpen, onOpenChange, activity }: { isOpen: boolean, onOpenChange: (o: boolean) => void, activity: EmployeeActivity | null }) {
+    return <ActivityLogFormDialog isOpen={isOpen} onOpenChange={onOpenChange} activity={activity} />
 }
