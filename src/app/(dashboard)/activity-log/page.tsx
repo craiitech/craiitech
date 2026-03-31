@@ -42,7 +42,7 @@ import { AccomplishmentReportTemplate } from '@/components/activity-log/accompli
 import { cn } from '@/lib/utils';
 
 export default function EmployeeActivityLogPage() {
-  const { user, userProfile, isAdmin, isSupervisor, isUserLoading } = useUser();
+  const { user, userProfile, isAdmin, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
@@ -60,8 +60,13 @@ export default function EmployeeActivityLogPage() {
     setDateFilter(format(new Date(), 'yyyy-MM-dd'));
   }, []);
 
+  /**
+   * SILENT GATED QUERY
+   * This query returns null unless the user is confirmed as an Admin.
+   * This prevents permission errors in the console during the initial handshake.
+   */
   const activitiesQuery = useMemoFirebase(() => {
-    // CRITICAL: Silent mode until user is confirmed as Admin
+    // CRITICAL GATE: Only execute query if we are sure the user is an Admin
     if (!firestore || !user || isUserLoading || !userProfile || !isAdmin) return null;
     
     const baseRef = collection(firestore, 'employeeActivities');
@@ -74,14 +79,14 @@ export default function EmployeeActivityLogPage() {
         if (userProfile.unitId) {
             return query(baseRef, where('unitId', '==', userProfile.unitId), orderBy('date', 'desc'));
         }
-        return isAdmin ? query(baseRef, orderBy('date', 'desc')) : null;
+        return query(baseRef, orderBy('date', 'desc'));
     }
     
     if (viewScope === 'campus') {
         if (userProfile.campusId) {
             return query(baseRef, where('campusId', '==', userProfile.campusId), orderBy('date', 'desc'));
         }
-        return isAdmin ? query(baseRef, orderBy('date', 'desc')) : null;
+        return query(baseRef, orderBy('date', 'desc'));
     }
 
     return query(baseRef, where('userId', '==', user.uid), orderBy('date', 'desc'));
@@ -168,18 +173,19 @@ export default function EmployeeActivityLogPage() {
     }
   };
 
-  const isLoading = isUserLoading || isLoadingActivities || (isAdmin && !userProfile);
+  // Wait for session stability
+  const isLoadingSession = isUserLoading || (isAdmin && !userProfile);
 
-  if (isLoading) {
+  if (isLoadingSession) {
     return (
         <div className="flex flex-col items-center justify-center py-40 gap-4">
             <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Synchronizing Activity Registry...</p>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Verifying Institutional Access...</p>
         </div>
     );
   }
 
-  // Access Denial for non-admins during testing
+  // Final access check
   if (!isAdmin) {
     return (
         <div className="flex flex-col items-center justify-center py-40 gap-4">
@@ -287,9 +293,13 @@ export default function EmployeeActivityLogPage() {
                           Displaying tasks for {dateFilter ? format(new Date(dateFilter), 'PPPP') : 'Selected Period'}.
                       </CardDescription>
                   </div>
-                  <Badge variant="outline" className="h-6 px-3 font-black text-[10px] bg-white border-primary/20 text-primary">
-                      {filteredActivities.length} ENTRIES LOGGED
-                  </Badge>
+                  {isLoadingActivities ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-primary opacity-20" />
+                  ) : (
+                    <Badge variant="outline" className="h-6 px-3 font-black text-[10px] bg-white border-primary/20 text-primary">
+                        {filteredActivities.length} ENTRIES LOGGED
+                    </Badge>
+                  )}
               </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -356,7 +366,7 @@ export default function EmployeeActivityLogPage() {
                               </TableCell>
                           </TableRow>
                       ))}
-                      {filteredActivities.length === 0 && (
+                      {filteredActivities.length === 0 && !isLoadingActivities && (
                           <TableRow>
                               <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
                                   <div className="flex flex-col items-center gap-2 opacity-20">
@@ -379,16 +389,11 @@ export default function EmployeeActivityLogPage() {
           </CardFooter>
       </Card>
 
-      <ActivityLogLogFormDialog 
+      <ActivityLogFormDialog 
         isOpen={isFormOpen} 
         onOpenChange={setIsFormOpen} 
         activity={editingActivity} 
       />
     </div>
   );
-}
-
-// Rename dialog to avoid collision
-function ActivityLogLogFormDialog({ isOpen, onOpenChange, activity }: { isOpen: boolean, onOpenChange: (o: boolean) => void, activity: EmployeeActivity | null }) {
-    return <ActivityLogFormDialog isOpen={isOpen} onOpenChange={onOpenChange} activity={activity} />
 }
