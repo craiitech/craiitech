@@ -143,9 +143,10 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         })) || [];
     }
 
-    // SANITIZE AND ADD UNIT ID FOR CROSS-QUERYING
+    // SANITIZE AND ADD IDENTIFIERS FOR CROSS-QUERYING
     const sanitizedData = sanitizeForFirestore({ 
         ...values, 
+        id: recordId,
         academicYear: selectedAY, 
         programId: program.id, 
         campusId,
@@ -153,7 +154,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
     });
 
     try {
-      await setDoc(docRef, { ...sanitizedData, id: recordId, updatedAt: serverTimestamp(), updatedBy: userProfile.id }, { merge: true });
+      await setDoc(docRef, { ...sanitizedData, updatedAt: serverTimestamp(), updatedBy: userProfile.id }, { merge: true });
       toast({ title: 'Compliance Updated', description: `Record for AY ${selectedAY} has been saved.` });
     } catch (error) {
       toast({ title: 'Save Failed', description: 'Could not update record.', variant: 'destructive' });
