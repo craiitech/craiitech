@@ -42,8 +42,7 @@ import {
     ListChecks,
     ChevronRight,
     Gavel,
-    BookOpen,
-    History
+    BookOpen
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -87,7 +86,6 @@ const carSchema = z.object({
   requestDate: z.string().min(1, 'Request date is required'),
   preparedBy: z.string().min(1, 'Prepared by is required'),
   approvedBy: z.string().min(1, 'Approved by is required'),
-  // Made optional at schema level to allow Admin to save without unit response
   rootCauseAnalysis: z.string().optional().or(z.literal('')),
   actionSteps: z.array(z.object({
     description: z.string().min(1, 'Description is required'),
@@ -344,14 +342,19 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     try {
       const carData: any = {
         ...values,
+        ncReportNumber: values.ncReportNumber || '',
+        concerningTopManagementName: values.concerningTopManagementName || '',
+        rootCauseAnalysis: values.rootCauseAnalysis || '',
         timeLimitForReply: Timestamp.fromDate(new Date(values.timeLimitForReply)),
         requestDate: Timestamp.fromDate(new Date(values.requestDate)),
         actionSteps: (values.actionSteps || []).map(step => ({
             ...step,
+            evidenceLink: step.evidenceLink || '',
             completionDate: Timestamp.fromDate(new Date(step.completionDate))
         })),
         verificationRecords: (values.verificationRecords || []).map(rec => ({
             ...rec,
+            remarks: rec.remarks || '',
             resultVerificationDate: Timestamp.fromDate(new Date(rec.resultVerificationDate)),
             effectivenessVerificationDate: Timestamp.fromDate(new Date(rec.effectivenessVerificationDate))
         })),
@@ -385,14 +388,19 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
     
     form.reset({
       ...car,
+      ncReportNumber: car.ncReportNumber || '',
+      concerningTopManagementName: car.concerningTopManagementName || '',
+      rootCauseAnalysis: car.rootCauseAnalysis || '',
       requestDate: safeDate(car.requestDate),
       timeLimitForReply: safeDate(car.timeLimitForReply),
       actionSteps: (car.actionSteps || []).map(step => ({
           ...step,
+          evidenceLink: step.evidenceLink || '',
           completionDate: safeDate(step.completionDate)
       })),
       verificationRecords: (car.verificationRecords || []).map(rec => ({
           ...rec,
+          remarks: rec.remarks || '',
           resultVerificationDate: safeDate(rec.resultVerificationDate),
           effectivenessVerificationDate: safeDate(rec.effectivenessVerificationDate)
       })),
@@ -706,7 +714,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                         <FormItem><FormLabel className="text-xs font-bold uppercase">CAR Number</FormLabel><FormControl><Input {...field} placeholder="e.g. 2025-001" className="bg-slate-50" disabled={isFieldReadOnly('carNumber')} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                     <FormField control={form.control} name="ncReportNumber" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase">NC Report No.</FormLabel><FormControl><Input {...field} placeholder="e.g. 2025-NC-01" className="bg-slate-50" disabled={isFieldReadOnly('ncReportNumber')} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel className="text-xs font-bold uppercase">NC Report No.</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 2025-NC-01" className="bg-slate-50" disabled={isFieldReadOnly('ncReportNumber')} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                 </div>
 
@@ -747,7 +755,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
                                     <FormField control={form.control} name="concerningTopManagementName" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Concerning Top Management</FormLabel><FormControl><Input {...field} placeholder="Role or Person" className="bg-slate-50" disabled={isFieldReadOnly('concerningTopManagementName')} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel className="text-xs font-bold uppercase">Concerning Top Management</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="Role or Person" className="bg-slate-50" disabled={isFieldReadOnly('concerningTopManagementName')} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                     <FormField control={form.control} name="timeLimitForReply" render={({ field }) => (
                                         <FormItem><FormLabel className="text-xs font-bold uppercase">Time Limit for Reply</FormLabel><FormControl><Input type="date" {...field} className="bg-slate-50" disabled={isFieldReadOnly('timeLimitForReply')} /></FormControl><FormMessage /></FormItem>
@@ -773,7 +781,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                     </div>
                                     <FormField control={form.control} name="rootCauseAnalysis" render={({ field }) => (
                                         <FormItem>
-                                            <FormControl><Textarea {...field} rows={4} placeholder="Identify the systematic reason why this non-conformance occurred..." className="bg-primary/5 border-primary/10 shadow-inner italic" disabled={isFieldReadOnly('rootCauseAnalysis')} /></FormControl>
+                                            <FormControl><Textarea {...field} value={field.value || ''} rows={4} placeholder="Identify the systematic reason why this non-conformance occurred..." className="bg-primary/5 border-primary/10 shadow-inner italic" disabled={isFieldReadOnly('rootCauseAnalysis')} /></FormControl>
                                             <FormDescription className="text-[10px] font-bold text-slate-500">
                                                 Mandatory Step: The unit must complete the investigation into the root cause before the Action Registry is enabled.
                                             </FormDescription>
@@ -922,7 +930,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
                                             <FormField control={form.control} name={`verificationRecords.${index}.remarks`} render={({ field: inputField }) => (
                                                 <FormItem className="pt-2">
                                                     <FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Final Remarks / Closure Summary</FormLabel>
-                                                    <FormControl><Input {...inputField} className="h-8 text-[10px] bg-white" placeholder="Optional audit notes..." disabled={isFieldReadOnly(`verificationRecords.${index}.remarks`)} /></FormControl>
+                                                    <FormControl><Input {...inputField} value={inputField.value || ''} className="h-8 text-[10px] bg-white" placeholder="Optional audit notes..." disabled={isFieldReadOnly(`verificationRecords.${index}.remarks`)} /></FormControl>
                                                 </FormItem>
                                             )} />
                                         </div>
