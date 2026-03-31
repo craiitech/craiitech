@@ -1,7 +1,7 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Logo } from '@/components/logo';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -60,7 +60,6 @@ export default function Home() {
                 
                 <div className="space-y-4">
                     <div className="flex flex-col items-center justify-center gap-4">
-                        <Logo className="h-16 w-16 text-white" />
                         <h1 className="text-4xl font-bold tracking-tighter sm:text-6xl xl:text-7xl/none">
                             RSU EOMS
                         </h1>

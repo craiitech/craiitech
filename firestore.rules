@@ -1,140 +1,169 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * Helper Functions - Hardened for safety
+     * Helper Functions
      */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function getUserData() {
+    function hasProfile() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function profile() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
+    /**
+     * Role Hierarchy Checks
+     */
     function isAdmin() {
       return isSignedIn() && (
-        request.auth.token.email == 'admin@eoms.com' ||
         exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         getUserData().get('role', '').matches('(?i).*admin.*'))
+        (hasProfile() && profile().role.matches('(?i).*admin.*'))
       );
     }
 
+    function isAuditor() {
+      return isSignedIn() && hasProfile() && profile().role.matches('(?i).*auditor.*');
+    }
+
     function isSupervisor() {
-      return isSignedIn() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-             getUserData().get('role', '').matches('(?i)^(Campus Director|Campus ODIMO|Admin|Vice President.*|Director.*|Auditor)$');
+      return isSignedIn() && hasProfile() && profile().role.matches('(?i)^(Campus Director|Campus ODIMO|Admin|Vice President.*|Director.*)$');
     }
 
     // --------------------------------------------------------------------------
-    // CORE SYSTEM REGISTRIES - PUBLIC READ FOR AUTHENTICATED USERS
+    // GAD CORNER & PCW REPORTING
     // --------------------------------------------------------------------------
     
-    match /programCompliances/{id} {
-      allow read, get, list: if isSignedIn();
-      allow write: if isSignedIn();
+    match /gadInitiatives/{id} {
+      allow read, list: if isSignedIn();
+      allow create, update: if isSignedIn() && (isAdmin() || (hasProfile() && profile().role.matches('(?i).*(coordinator|director|odimo|admin).*')));
+      allow delete: if isAdmin();
     }
 
-    match /academicPrograms/{id} {
-      allow read, get, list: if isSignedIn();
-      allow write: if isAdmin() || isSupervisor();
-    }
-
-    match /submissions/{id} { 
-      allow read, get, list: if isSignedIn(); 
-      allow write: if isSignedIn(); 
-    }
-
-    match /risks/{id} { 
-      allow read, get, list: if isSignedIn(); 
-      allow write: if isSignedIn(); 
+    match /gadMainstreaming/{id} {
+      allow read, list: if isSignedIn();
+      allow write: if isSignedIn() && (isAdmin() || (hasProfile() && profile().role.matches('(?i).*(coordinator|director|odimo|admin).*')));
     }
 
     // --------------------------------------------------------------------------
-    // USER PROFILES & AUTHENTICATION
+    // UNIT FORMS & WORKFLOW
     // --------------------------------------------------------------------------
+    
+    match /unitFormRequests/{requestId} { 
+      allow read, write: if isSignedIn();
+    }
+
+    match /unitForms/{formId} { 
+      allow read, write: if isSignedIn();
+    }
+
+    match /formDownloadLogs/{logId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // --------------------------------------------------------------------------
+    // CORE COLLECTIONS
+    // --------------------------------------------------------------------------
+    
     match /users/{userId} {
       allow read, get, list: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
       allow delete: if isAdmin();
     }
-
+    
     match /roles_admin/{userId} {
-      allow read, get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
-    match /roles/{id} { 
-      allow read, get, list: if isSignedIn(); 
-      allow write: if isAdmin(); 
-    }
-
-    // --------------------------------------------------------------------------
-    // MONITORING & QUALITY ASSURANCE
-    // --------------------------------------------------------------------------
-    match /unitMonitoringRecords/{id} {
-      allow read, get, list: if isSignedIn();
-      allow write: if isAdmin() || isSupervisor();
-    }
-
-    match /correctiveActionRequests/{id} {
-      allow read, get, list: if isSignedIn();
+    match /submissions/{id} { allow read, list: if isSignedIn(); allow write: if isSignedIn(); }
+    match /risks/{id} { allow read, list: if isSignedIn(); allow write: if isSignedIn(); }
+    match /unitMonitoringRecords/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin() || (isSupervisor() && profile().role == 'Campus ODIMO'); }
+    match /auditSchedules/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin() || isAuditor(); }
+    match /auditFindings/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin() || isAuditor(); }
+    match /correctiveActionRequests/{carId} { allow read, list: if isSignedIn(); allow write: if isAdmin() || isAuditor() || isSupervisor(); }
+    match /correctiveActionPlans/{id} { allow read, list: if isSignedIn(); allow write: if isSignedIn(); }
+    match /academicPrograms/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
+    match /programCompliances/{id} { allow read, list: if isSignedIn(); allow write: if isSignedIn(); }
+    
+    match /campusSettings/{settingId} {
+      allow read, list: if isSignedIn();
       allow write: if isSignedIn();
     }
 
     match /qaAdvisories/{advisoryId} { 
-      allow read, get, list: if isSignedIn(); 
+      allow read, list: if isSignedIn(); 
       allow write: if isAdmin(); 
     }
 
-    // --------------------------------------------------------------------------
-    // IQA & AUDIT LIFECYCLE
-    // --------------------------------------------------------------------------
-    match /auditPlans/{planId} {
-      allow read, get, list: if isSignedIn();
-      allow write: if isAdmin() || isSupervisor();
+    match /managementReviewOutputs/{outputId} {
+      allow read, list: if isSignedIn();
+      allow write: if isAdmin() || isAuditor();
+      allow update: if isSignedIn();
     }
 
-    match /auditSchedules/{scheduleId} {
-      allow read, get, list: if isSignedIn();
-      allow write: if isSignedIn();
+    match /qaAuditReports/{reportId} {
+      allow read, list: if isSignedIn();
+      allow write: if isAdmin() || isAuditor();
     }
 
-    match /auditFindings/{findingId} {
-      allow read, get, list: if isSignedIn();
-      allow write: if isSignedIn();
+    match /managementReviews/{mrId} {
+      allow read, list: if isSignedIn();
+      allow write: if isAdmin() || isAuditor();
     }
 
-    match /isoClauses/{clauseId} {
-      allow read, get, list: if isSignedIn();
+    match /campuses/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
+    match /units/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
+    match /roles/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
+    match /cycles/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
+    match /isoClauses/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
+    match /procedureManuals/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
+    match /eomsPolicyManuals/{id} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
+
+    match /system/{docId} {
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
-    // --------------------------------------------------------------------------
-    // MANAGEMENT REVIEW & GOVERNANCE
-    // --------------------------------------------------------------------------
-    match /managementReviews/{id} {
-      allow read, get, list: if isSignedIn();
-      allow write: if isAdmin();
+    match /activityLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+    }
+
+    match /errorReports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+    }
+
+    match /appFeedbacks/{feedbackId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+    }
+
+    match /softwareEvaluations/{evalId} {
+      allow read: if isAdmin() || isAuditor();
+      allow create: if true; 
     }
 
     // --------------------------------------------------------------------------
-    // CATCH-ALL FOR ADMIN OVERRIDE
+    // EMPLOYEE ACTIVITY LOG
     // --------------------------------------------------------------------------
+    match /employeeActivities/{id} {
+      allow read, list: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
     match /{path=**} {
       allow read, write: if isAdmin();
-    }
-
-    // --------------------------------------------------------------------------
-    // EMPLOYEE ACTIVITY LOG - APPENDED AT END OF FILE
-    // --------------------------------------------------------------------------
-    match /employeeActivities/{activityId} {
-      allow read, get, list: if request.auth != null;
-      allow write: if request.auth != null && (request.auth.uid == request.resource.data.userId || isAdmin() || request.auth.token.email == 'admin@eoms.com');
     }
   }
 }
