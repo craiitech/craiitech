@@ -3,7 +3,7 @@
 
 import React from 'react';
 import type { EmployeeActivity } from '@/lib/types';
-import { format, differenceInMinutes } from 'date-fns';
+import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 
 interface AccomplishmentReportTemplateProps {
@@ -15,27 +15,6 @@ interface AccomplishmentReportTemplateProps {
 
 export function AccomplishmentReportTemplate({ activities, userName, unitName, periodLabel }: AccomplishmentReportTemplateProps) {
   
-  const calculateHours = (start: string, end: string) => {
-    try {
-        const [sh, sm] = start.split(':').map(Number);
-        const [eh, em] = end.split(':').map(Number);
-        const diff = (eh * 60 + em) - (sh * 60 + sm);
-        const hours = Math.floor(diff / 60);
-        const mins = diff % 60;
-        return `${hours}h ${mins}m`;
-    } catch (e) { return '--'; }
-  };
-
-  const totalMinutes = activities.reduce((acc, a) => {
-    try {
-        const [sh, sm] = a.startTime.split(':').map(Number);
-        const [eh, em] = a.endTime.split(':').map(Number);
-        return acc + ((eh * 60 + em) - (sh * 60 + sm));
-    } catch (e) { return acc; }
-  }, 0);
-
-  const totalHoursFormatted = `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`;
-
   return (
     <div className="p-8 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-tight">
       {/* Header */}
@@ -60,9 +39,8 @@ export function AccomplishmentReportTemplate({ activities, userName, unitName, p
           <tr className="bg-gray-100 font-black text-center uppercase border-b-2 border-black">
             <th className="border border-black p-2 w-[12%]">Date</th>
             <th className="border border-black p-2 w-[15%]">Timeline</th>
-            <th className="border border-black p-2 w-[40%]">Activity Particulars</th>
+            <th className="border border-black p-2 w-[45%]">Activity Particulars</th>
             <th className="border border-black p-2">Actual Output / Deliverable</th>
-            <th className="border border-black p-2 w-[10%]">Hours</th>
           </tr>
         </thead>
         <tbody>
@@ -71,7 +49,7 @@ export function AccomplishmentReportTemplate({ activities, userName, unitName, p
               <td className="border border-black p-2 text-center align-top">
                 {format(a.date instanceof Timestamp ? a.date.toDate() : new Date(a.date), 'MM/dd/yy')}
               </td>
-              <td className="border border-black p-2 text-center align-top tabular-nums uppercase">
+              <td className="border border-black p-2 text-center align-top tabular-nums uppercase whitespace-nowrap">
                 {a.startTime} - {a.endTime}
               </td>
               <td className="border border-black p-2 align-top italic">
@@ -80,21 +58,12 @@ export function AccomplishmentReportTemplate({ activities, userName, unitName, p
               <td className="border border-black p-2 align-top text-center font-bold">
                 {a.output || '--'}
               </td>
-              <td className="border border-black p-2 text-center align-top font-mono">
-                {calculateHours(a.startTime, a.endTime)}
-              </td>
             </tr>
           ))}
           {activities.length === 0 && (
-            <tr><td colSpan={5} className="p-8 text-center italic text-gray-400">No activities recorded for this period.</td></tr>
+            <tr><td colSpan={4} className="p-8 text-center italic text-gray-400">No activities recorded for this period.</td></tr>
           )}
         </tbody>
-        <tfoot>
-            <tr className="bg-gray-50 font-black">
-                <td colSpan={4} className="border border-black p-2 text-right">TOTAL HOURS RENDERED:</td>
-                <td className="border border-black p-2 text-center font-mono">{totalHoursFormatted}</td>
-            </tr>
-        </tfoot>
       </table>
 
       {/* Signatories */}

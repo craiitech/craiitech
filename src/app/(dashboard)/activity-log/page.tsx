@@ -20,7 +20,7 @@ import {
     Edit,
     Trash2,
     LayoutList,
-    Info as InfoIcon,
+    Info,
     ShieldAlert
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -381,7 +381,7 @@ export default function EmployeeActivityLogPage() {
           </CardContent>
           <CardFooter className="bg-muted/5 border-t py-3 px-6">
               <div className="flex items-start gap-3">
-                  <InfoIcon className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                  <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
                   <p className="text-[9px] text-muted-foreground italic leading-relaxed">
                       <strong>Institutional Standard:</strong> Daily logs ensure accurate accomplishment reporting aligned with the EOMS operational plans.
                   </p>
