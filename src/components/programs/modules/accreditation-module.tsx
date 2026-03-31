@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
@@ -5,12 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShieldCheck, Calendar, Link as LinkIcon, Award, Layers, PlusCircle, Trash2, Calculator, Check, ClipboardList, CheckCircle2, Clock } from 'lucide-react';
+import { ShieldCheck, Calendar, Link as LinkIcon, Award, Layers, PlusCircle, Trash2, Calculator, Check, ClipboardList, CheckCircle2, ListChecks } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { Unit } from '@/lib/types';
+import { MultiSelector } from '@/components/qa-reports/multi-selector';
 
 const accreditationLevels = [
   "Non Accredited",
@@ -51,13 +56,15 @@ function AccreditationRecordCard({
   control,
   canEdit, 
   onRemove, 
-  programSpecializations 
+  programSpecializations,
+  units
 }: { 
   index: number; 
   control: any;
   canEdit: boolean; 
   onRemove: () => void, 
-  programSpecializations?: { id: string, name: string }[] 
+  programSpecializations?: { id: string, name: string }[],
+  units: Unit[]
 }) {
     const { setValue } = useFormContext();
     
@@ -65,6 +72,11 @@ function AccreditationRecordCard({
     const areas = useWatch({ control, name: `accreditationRecords.${index}.areas` }) || [];
     const certificateLinkVal = useWatch({ control, name: `accreditationRecords.${index}.certificateLink` });
     const validityTextVal = useWatch({ control, name: `accreditationRecords.${index}.statusValidityDate` });
+
+    const { fields: recoFields, append: appendReco, remove: removeReco } = useFieldArray({
+        control,
+        name: `accreditationRecords.${index}.recommendations`
+    });
 
     const toggleMajor = (spec: { id: string, name: string }) => {
         const current = [...selectedComponents];
@@ -77,6 +89,8 @@ function AccreditationRecordCard({
         setValue(`accreditationRecords.${index}.components`, current);
     };
 
+    const unitOptions = units.map(u => ({ id: u.id, name: u.name }));
+
     return (
         <div className="space-y-6 animate-in slide-in-from-top-4 duration-500">
             <div className="flex items-center gap-4">
@@ -86,7 +100,7 @@ function AccreditationRecordCard({
                 </Badge>
                 {canEdit && (
                     <Button type="button" variant="ghost" size="sm" onClick={onRemove} className="text-destructive hover:bg-destructive/10 h-7 text-[10px] font-bold uppercase">
-                        <Trash2 className="h-3 w-3 mr-1.5" /> Remove
+                        <Trash2 className="h-3 w-3 mr-1.5" /> Remove Milestone
                     </Button>
                 )}
                 <div className="h-px flex-1 bg-border" />
@@ -251,29 +265,101 @@ function AccreditationRecordCard({
                     </CardContent>
                 </Card>
 
-                <Card className="col-span-full border-primary/10 shadow-sm overflow-hidden">
-                    <CardHeader className="bg-muted/30 border-b">
-                        <CardTitle className="flex items-center gap-2 text-sm">
-                            <ClipboardList className="h-4 w-4 text-primary" />
-                            Accreditor's Recommendations & Compliance Status
-                        </CardTitle>
+                <Card className="col-span-full border-primary/10 shadow-lg overflow-hidden">
+                    <CardHeader className="bg-primary/5 border-b py-4">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="flex items-center gap-2 text-sm uppercase font-black text-slate-900">
+                                <ClipboardList className="h-5 w-5 text-primary" />
+                                Accreditor's Recommendations & Compliance Status
+                            </CardTitle>
+                            {canEdit && (
+                                <div className="flex gap-2">
+                                    <Button type="button" size="sm" onClick={() => appendReco({ id: Math.random().toString(36).substr(2, 9), type: 'Mandatory', text: '', assignedUnitIds: [], status: 'Open' })} className="h-8 text-[9px] font-black uppercase tracking-widest bg-rose-600 hover:bg-rose-700">
+                                        <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Mandatory
+                                    </Button>
+                                    <Button type="button" size="sm" onClick={() => appendReco({ id: Math.random().toString(36).substr(2, 9), type: 'Enhancement', text: '', assignedUnitIds: [], status: 'Open' })} className="h-8 text-[9px] font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-700">
+                                        <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Enhancement
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
                     </CardHeader>
-                    <CardContent className="pt-6 space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormField control={control} name={`accreditationRecords.${index}.mandatoryRequirements`} render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[10px] font-black uppercase text-destructive">1. Mandatory Requirements (to be complied with before the award)</FormLabel>
-                                    <FormControl><Textarea {...field} value={field.value || ''} placeholder="List critical deficiencies that must be addressed immediately..." rows={4} className="bg-slate-50 text-xs" disabled={!canEdit} /></FormControl>
-                                    <FormDescription className="text-[9px]">Critical items requiring resolution for certification.</FormDescription>
-                                </FormItem>
-                            )} />
-                            <FormField control={control} name={`accreditationRecords.${index}.enhancementRecommendations`} render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[10px] font-black uppercase text-blue-700">2. Enhancement Recommendations (may be complied with after the award)</FormLabel>
-                                    <FormControl><Textarea {...field} value={field.value || ''} placeholder="List opportunities for continuous improvement during the accreditation cycle..." rows={4} className="bg-slate-50 text-xs" disabled={!canEdit} /></FormControl>
-                                    <FormDescription className="text-[9px]">Suggestions for qualitative growth post-survey.</FormDescription>
-                                </FormItem>
-                            )} />
+                    <CardContent className="pt-6">
+                        <div className="space-y-6">
+                            {recoFields.map((reco, recoIdx) => {
+                                const type = recoFields[recoIdx].type;
+                                return (
+                                    <div key={reco.id} className={cn(
+                                        "p-5 rounded-2xl border transition-all relative group",
+                                        type === 'Mandatory' ? "bg-rose-50/30 border-rose-100" : "bg-blue-50/30 border-blue-100"
+                                    )}>
+                                        {canEdit && (
+                                            <Button 
+                                                type="button" 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="absolute top-2 right-2 text-destructive h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity" 
+                                                onClick={() => removeReco(recoIdx)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                                            <div className="md:col-span-7 space-y-4">
+                                                <div className="flex items-center gap-3">
+                                                    <Badge className={cn("text-[8px] font-black uppercase h-4 px-1.5 border-none", type === 'Mandatory' ? "bg-rose-600" : "bg-blue-600")}>
+                                                        {type === 'Mandatory' ? 'REQUIREMENT' : 'ENHANCEMENT'}
+                                                    </Badge>
+                                                    <FormField control={control} name={`accreditationRecords.${index}.recommendations.${recoIdx}.status`} render={({ field: inputField }) => (
+                                                        <Select onValueChange={inputField.onChange} value={inputField.value} disabled={!canEdit}>
+                                                            <FormControl><SelectTrigger className="h-6 w-32 text-[9px] font-bold bg-white"><SelectValue /></SelectTrigger></FormControl>
+                                                            <SelectContent>
+                                                                <SelectItem value="Open">Open</SelectItem>
+                                                                <SelectItem value="In Progress">In Progress</SelectItem>
+                                                                <SelectItem value="Closed">Closed / Complied</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    )} />
+                                                </div>
+                                                <FormField control={control} name={`accreditationRecords.${index}.recommendations.${recoIdx}.text`} render={({ field: inputField }) => (
+                                                    <FormItem>
+                                                        <FormControl><Textarea {...inputField} rows={3} placeholder="Enter the recommendation text here..." className="bg-white border-transparent shadow-sm text-xs font-medium leading-relaxed" disabled={!canEdit} /></FormControl>
+                                                    </FormItem>
+                                                )} />
+                                            </div>
+                                            <div className="md:col-span-5 space-y-4">
+                                                <div className="space-y-1.5">
+                                                    <Label className="text-[10px] font-black uppercase text-primary flex items-center gap-2">
+                                                        <Building2 className="h-3 w-3" />
+                                                        Assigned Responsibility (Offices)
+                                                    </Label>
+                                                    <FormField control={control} name={`accreditationRecords.${index}.recommendations.${recoIdx}.assignedUnitIds`} render={({ field: inputField }) => (
+                                                        <MultiSelector 
+                                                            items={unitOptions}
+                                                            selectedIds={inputField.value || []}
+                                                            onSelect={inputField.onChange}
+                                                            placeholder="Search units..."
+                                                            label="Select Responsible Units"
+                                                        />
+                                                    )} />
+                                                </div>
+                                                <FormField control={control} name={`accreditationRecords.${index}.recommendations.${recoIdx}.additionalInfo`} render={({ field: inputField }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Additional Action Notes</FormLabel>
+                                                        <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="Internal tracking notes..." className="h-8 text-[10px] bg-white" disabled={!canEdit} /></FormControl>
+                                                    </FormItem>
+                                                )} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            {recoFields.length === 0 && (
+                                <div className="py-12 border border-dashed rounded-2xl flex flex-col items-center justify-center text-center opacity-20 bg-muted/5">
+                                    <ListChecks className="h-10 w-10 text-muted-foreground" />
+                                    <p className="text-xs font-black uppercase mt-2">No Recommendations Logged</p>
+                                </div>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -283,8 +369,12 @@ function AccreditationRecordCard({
 }
 
 export function AccreditationModule({ canEdit, programSpecializations }: { canEdit: boolean, programSpecializations?: { id: string, name: string }[] }) {
+  const firestore = useFirestore();
   const { control } = useFormContext();
   
+  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
+  const { data: units } = useCollection<Unit>(unitsQuery);
+
   const { fields, append, remove } = useFieldArray({
     control,
     name: "accreditationRecords"
@@ -313,8 +403,7 @@ export function AccreditationModule({ canEdit, programSpecializations }: { canEd
                     lifecycleStatus: 'TBA',
                     areas: standardAreas.map(area => ({ areaCode: area.code, areaName: area.name, googleDriveLink: '', taskForce: '' })),
                     ratingsSummary: { grandMean: 0, descriptiveRating: '' },
-                    mandatoryRequirements: '',
-                    enhancementRecommendations: '',
+                    recommendations: [],
                 })}
                 className="shadow-lg shadow-primary/20"
             >
@@ -333,6 +422,7 @@ export function AccreditationModule({ canEdit, programSpecializations }: { canEd
                 canEdit={canEdit} 
                 onRemove={() => remove(index)}
                 programSpecializations={programSpecializations}
+                units={units || []}
             />
         ))}
         {fields.length === 0 && (

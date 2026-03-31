@@ -41,6 +41,8 @@ import {
   Trophy,
   ShieldAlert,
   ListTodo,
+  Printer,
+  ChevronRight
 } from 'lucide-react';
 import {
   useUser,
@@ -116,6 +118,8 @@ import { ComplianceHeatmap } from '@/components/dashboard/strategic/compliance-h
 import { MaturityRadar } from '@/components/dashboard/strategic/maturity-radar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { StrategicSwotAnalysis } from '@/components/submissions/strategic-swot-analysis';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { AccreditationRecommendationReport } from '@/components/programs/recommendation-print-template';
 
 
 export const TOTAL_REPORTS_PER_CYCLE = 6;
@@ -218,11 +222,9 @@ export default function HomePage() {
   const compliancesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     const baseRef = collection(firestore, 'programCompliances');
-    if (isAdmin) return baseRef;
-    if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
-    return query(baseRef, where('unitId', '==', userProfile.unitId));
-  }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
-  const { data: programCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
+    return query(baseRef, where('academicYear', '==', selectedYear));
+  }, [firestore, userProfile, selectedYear]);
+  const { data: allCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
   const carQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
@@ -275,6 +277,12 @@ export default function HomePage() {
     campuses?.forEach(c => map.set(c.id, c.name));
     return map;
   }, [campuses]);
+
+  const unitMap = useMemo(() => {
+    const map = new Map<string, string>();
+    allUnits?.forEach(u => map.set(u.id, u.name));
+    return map;
+  }, [allUnits]);
 
   const allCyclesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'cycles') : null, [firestore]);
   const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(allCyclesQuery);
@@ -340,6 +348,58 @@ export default function HomePage() {
     return query(collection(firestore, 'auditSchedules'), where('auditorId', '==', user.uid));
   }, [firestore, userRole, user]);
   const { data: mySchedules } = useCollection<AuditSchedule>(schedulesQuery);
+
+  /**
+   * ASSIGNED ACCREDITATION RECOMMENDATIONS
+   * Scans all programs for recommendations assigned to the logged-in unit.
+   */
+  const assignedRecommendations = useMemo(() => {
+    if (!allCompliances || !userProfile?.unitId) return [];
+    
+    const results: any[] = [];
+    allCompliances.forEach(record => {
+        record.accreditationRecords?.forEach(milestone => {
+            milestone.recommendations?.forEach(reco => {
+                if (reco.assignedUnitIds?.includes(userProfile.unitId) && reco.status !== 'Closed') {
+                    results.push({
+                        programId: record.programId,
+                        programName: allUnits?.find(u => u.id === record.programId)?.name || 'Academic Program',
+                        level: milestone.level,
+                        recommendation: reco
+                    });
+                }
+            });
+        });
+    });
+    return results;
+  }, [allCompliances, userProfile?.unitId, allUnits]);
+
+  const handlePrintAssignedRecos = () => {
+    if (assignedRecommendations.length === 0 || !userProfile) return;
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <AccreditationRecommendationReport 
+                items={assignedRecommendations.map((r: any) => ({
+                    programName: r.programName,
+                    abbreviation: '',
+                    level: r.level,
+                    recommendation: r.recommendation
+                }))}
+                unitMap={unitMap}
+                scope="unit"
+                year={selectedYear}
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`<html><head><title>Unit Accreditation Gaps Report</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { background: white; margin: 0; padding: 0; } .no-print { display: none !important; } } body { font-family: serif; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest">Click to Print Unit Recommendations</button></div><div id="print-content">${reportHtml}</div></body></html>`);
+            printWindow.document.close();
+        }
+    } catch (e) { console.error(e); }
+  };
 
   const isLoading =
     isUserLoading ||
@@ -602,7 +662,7 @@ export default function HomePage() {
         <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
         
         {/* QUALITY ACTION ITEMS ALERTS FOR UNIT USERS */}
-        {(openCars.length > 0 || openDecisions.length > 0) && (
+        {(openCars.length > 0 || openDecisions.length > 0 || assignedRecommendations.length > 0) && (
             <Card className="border-destructive/20 bg-destructive/5 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
                 <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-black uppercase text-destructive flex items-center gap-2">
@@ -610,10 +670,10 @@ export default function HomePage() {
                         Outstanding Quality Action Items
                     </CardTitle>
                     <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                        Administrative gaps requiring unit intervention.
+                        Institutional findings requiring unit implementation for AY {selectedYear}.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {openCars.length > 0 && (
                         <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-destructive/10">
                             <div className="flex items-center gap-3">
@@ -646,6 +706,22 @@ export default function HomePage() {
                             </Button>
                         </div>
                     )}
+                    {assignedRecommendations.length > 0 && (
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-amber-200">
+                            <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                                    <Award className="h-4 w-4" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-black text-slate-900 uppercase">Accreditation Gaps</p>
+                                    <p className="text-[10px] text-muted-foreground font-medium">{assignedRecommendations.length} Assigned Recos</p>
+                                </div>
+                            </div>
+                            <Button size="sm" variant="outline" onClick={handlePrintAssignedRecos} className="h-7 text-[9px] font-black uppercase bg-white border-amber-200 text-amber-700 hover:bg-amber-50">
+                                <Printer className="h-3 w-3 mr-1" /> Print Log
+                            </Button>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         )}
@@ -662,7 +738,7 @@ export default function HomePage() {
                 submissions={submissions?.filter(s => s.unitId === userProfile?.unitId && s.year === selectedYear) || []}
                 risks={risks?.filter(r => r.unitId === userProfile?.unitId && r.year === selectedYear) || []}
                 monitoringRecords={monitoringRecords?.filter(r => r.unitId === userProfile?.unitId) || []}
-                programCompliances={programCompliances?.filter(c => c.unitId === userProfile?.unitId && c.academicYear === selectedYear) || []}
+                programCompliances={allCompliances?.filter(c => c.unitId === userProfile?.unitId && c.academicYear === selectedYear) || []}
                 auditFindings={auditFindings || []}
                 correctiveActionRequests={correctiveActionRequests?.filter(car => car.unitId === userProfile?.unitId) || []}
                 mrOutputs={mrOutputs?.filter(o => o.assignments?.some(a => a.unitId === userProfile?.unitId)) || []}
@@ -823,7 +899,7 @@ export default function HomePage() {
                         submissions={submissions?.filter(s => s.campusId === userProfile.campusId && s.year === selectedYear) || []}
                         risks={risks?.filter(r => r.campusId === userProfile.campusId && r.year === selectedYear) || []}
                         monitoringRecords={monitoringRecords?.filter(r => r.campusId === userProfile.campusId) || []}
-                        programCompliances={programCompliances?.filter(c => c.campusId === userProfile.campusId && c.academicYear === selectedYear) || []}
+                        programCompliances={allCompliances?.filter(c => c.campusId === userProfile.campusId && c.academicYear === selectedYear) || []}
                         auditFindings={auditFindings || []} 
                         correctiveActionRequests={correctiveActionRequests?.filter(car => car.campusId === userProfile.campusId) || []}
                         mrOutputs={mrOutputs?.filter(o => o.assignments?.some(a => a.campusId === userProfile.campusId)) || []}
@@ -895,7 +971,7 @@ export default function HomePage() {
                 submissions={submissions?.filter(s => s.year === selectedYear) || []}
                 risks={risks?.filter(r => r.year === selectedYear) || []}
                 monitoringRecords={monitoringRecords || []}
-                programCompliances={programCompliances?.filter(c => c.academicYear === selectedYear) || []}
+                programCompliances={allCompliances?.filter(c => c.academicYear === selectedYear) || []}
                 auditFindings={auditFindings || []} 
                 correctiveActionRequests={correctiveActionRequests || []}
                 mrOutputs={mrOutputs || []}

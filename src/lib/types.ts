@@ -544,6 +544,15 @@ export type FacultyLeadershipMember = {
   sex: 'Male' | 'Female' | 'Others (LGBTQI++)';
 };
 
+export type AccreditationRecommendation = {
+    id: string;
+    text: string;
+    type: 'Mandatory' | 'Enhancement';
+    assignedUnitIds: string[];
+    status: 'Open' | 'In Progress' | 'Closed';
+    additionalInfo?: string;
+};
+
 export type AccreditationRecord = {
     id: string;
     level: string; 
@@ -560,8 +569,7 @@ export type AccreditationRecord = {
     overallTaskForceHead?: string;
     taskForce?: string;
     areas?: AccreditationArea[];
-    mandatoryRequirements?: string;
-    enhancementRecommendations?: string;
+    recommendations?: AccreditationRecommendation[];
     ratingsSummary?: {
         overallTotalWeight: number;
         overallTotalWeightedMean: number;

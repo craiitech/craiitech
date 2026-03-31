@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -39,7 +40,9 @@ import {
     FileX,
     Hash,
     Zap,
-    Scale
+    Scale,
+    Printer,
+    ListChecks
 } from 'lucide-react';
 import { 
     PieChart, 
@@ -66,9 +69,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
 import { Timestamp } from 'firebase/firestore';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Separator } from '../ui/separator';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { AccreditationRecommendationReport } from './recommendation-print-template';
 
 interface ProgramPerformanceViewProps {
   program: AcademicProgram;
@@ -97,7 +103,12 @@ const COLORS: Record<string, string> = {
 
 export function ProgramPerformanceView({ program, record, selectedYear, onResolveDeficiency }: ProgramPerformanceViewProps) {
   const { isAdmin, userRole } = useUser();
+  const firestore = useFirestore();
   const [previewDoc, setPreviewDoc] = useState<{ title: string; url: string } | null>(null);
+
+  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
+  const { data: units } = useCollection<any>(unitsQuery);
+  const unitMap = useMemo(() => new Map(units?.map(u => [u.id, u.name])), [units]);
 
   const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
   const isUnitViewer = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
@@ -289,6 +300,40 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
     };
   }, [record, program]);
 
+  const handlePrintReco = () => {
+    if (!record || !analyticsData) return;
+
+    try {
+        const flatRecos = (record.accreditationRecords || []).flatMap(milestone => {
+            return (milestone.recommendations || []).map(reco => ({
+                programName: program.name,
+                abbreviation: program.abbreviation,
+                level: milestone.level,
+                surveyDate: milestone.dateOfSurvey,
+                recommendation: reco
+            }));
+        });
+
+        const reportHtml = renderToStaticMarkup(
+            <AccreditationRecommendationReport 
+                items={flatRecos}
+                unitMap={unitMap}
+                scope="program"
+                year={selectedYear}
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`<html><head><title>Accreditation Recommendations - ${program.abbreviation}</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@media print { body { background: white; margin: 0; padding: 0; } .no-print { display: none !important; } } body { font-family: serif; padding: 40px; color: black; }</style></head><body><div class="no-print mb-8 flex justify-center"><button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest">Print Recommendations Report</button></div><div id="print-content">${reportHtml}</div></body></html>`);
+            printWindow.document.close();
+        }
+    } catch (e) {
+        console.error(e);
+    }
+  };
+
   const categorizedDocs = useMemo(() => {
     if (!record) return { governance: [], accreditation: [], curriculum: [], monitoring: [] };
     const docs = { governance: [] as any[], accreditation: [] as any[], curriculum: [] as any[], monitoring: [] as any[] };
@@ -347,7 +392,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       
-      {/* --- TERMINAL AUTHORITY ALERT (FOR INACTIVE PROGRAMS) --- */}
       {!program.isActive && (
           <Card className="border-destructive bg-destructive/10 shadow-lg overflow-hidden animate-in zoom-in duration-500">
               <div className="flex flex-col md:flex-row">
@@ -431,62 +475,111 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         </div>
       </Card>
 
-      <Card className="border-destructive/30 shadow-xl overflow-hidden bg-destructive/5 relative">
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-destructive opacity-50" />
-          <CardHeader className="bg-destructive/10 border-b py-4">
-              <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-destructive">
-                      <ShieldAlert className="h-5 w-5 text-destructive" />
-                      <CardTitle className="text-sm font-black uppercase tracking-tight">
-                          Institutional Strategic Risk Register
-                      </CardTitle>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="border-primary/10 shadow-lg overflow-hidden flex flex-col">
+              <CardHeader className="bg-primary/5 border-b py-4 flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-2">
+                      <ListChecks className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Recommendations Registry</CardTitle>
                   </div>
-                  <Badge variant="destructive" className="animate-pulse shadow-sm h-5 text-[9px] font-black uppercase">SYSTEM ALERTS</Badge>
-              </div>
-          </CardHeader>
-          <CardContent className="p-0">
-              <ScrollArea className="max-h-[400px]">
-                  <div className="p-6 space-y-4">
-                      {analyticsData.gaps.length > 0 ? (
-                          analyticsData.gaps.map((gap, i) => (
-                              <div key={i} className="flex items-start gap-4 bg-white p-4 rounded-xl border border-destructive/10 shadow-sm transition-all hover:border-destructive/30 group">
-                                  <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                      <AlertTriangle className="h-5 w-5 text-destructive" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                      <div className="flex items-center justify-between gap-2 mb-1">
-                                          <p className="text-[10px] font-black text-destructive uppercase tracking-[0.1em]">{gap.type}</p>
-                                          <Badge variant="outline" className="h-4 text-[8px] border-destructive/20 text-destructive font-black uppercase">{gap.priority} PRIORITY</Badge>
-                                      </div>
-                                      <p className="text-sm font-bold text-slate-800 leading-snug">{gap.msg}</p>
-                                      <div className="mt-3 flex items-center gap-2">
-                                          <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            onClick={() => onResolveDeficiency?.(gap.target)}
-                                            className="h-6 text-[9px] font-black uppercase text-primary gap-1 p-0 px-2 hover:bg-primary/5"
-                                          >
-                                              Resolve Deficiency <ChevronRight className="h-3 w-3" />
-                                          </Button>
+                  <Button variant="outline" size="sm" onClick={handlePrintReco} className="h-8 text-[9px] font-black bg-white shadow-sm gap-1.5">
+                      <Printer className="h-3.5 w-3.5" /> PRINT ACTIONS
+                  </Button>
+              </CardHeader>
+              <CardContent className="p-0 flex-1 overflow-hidden">
+                  <ScrollArea className="h-[400px]">
+                      <div className="divide-y">
+                          {(record.accreditationRecords || []).flatMap(milestone => 
+                              (milestone.recommendations || []).map((reco, rIdx) => (
+                                  <div key={`${milestone.id}-${rIdx}`} className="p-4 hover:bg-muted/20 transition-colors">
+                                      <div className="flex items-start gap-4">
+                                          <div className={cn("h-8 w-8 rounded-full flex items-center justify-center shrink-0 mt-1", reco.type === 'Mandatory' ? "bg-rose-100 text-rose-600" : "bg-blue-100 text-blue-600")}>
+                                              {reco.type === 'Mandatory' ? <ShieldAlert className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
+                                          </div>
+                                          <div className="flex-1 min-w-0 space-y-2">
+                                              <div className="flex items-center justify-between">
+                                                  <Badge variant="secondary" className="h-4 text-[8px] font-black uppercase">{milestone.level} &bull; {reco.type}</Badge>
+                                                  <Badge className={cn("h-4 text-[8px] font-black uppercase", reco.status === 'Closed' ? "bg-emerald-600" : "bg-amber-500")}>{reco.status}</Badge>
+                                              </div>
+                                              <p className="text-xs font-bold text-slate-800 leading-relaxed italic">"{reco.text}"</p>
+                                              <div className="flex flex-wrap gap-1.5">
+                                                  {reco.assignedUnitIds?.map(uid => (
+                                                      <Badge key={uid} variant="outline" className="h-4 text-[7px] font-black border-primary/20 text-primary bg-primary/5 uppercase">
+                                                          {unitMap.get(uid) || uid}
+                                                      </Badge>
+                                                  ))}
+                                              </div>
+                                          </div>
                                       </div>
                                   </div>
+                              ))
+                          )}
+                          {!(record.accreditationRecords?.some(m => m.recommendations?.length)) && (
+                              <div className="py-20 text-center opacity-20">
+                                  <Activity className="h-10 w-10 mx-auto" />
+                                  <p className="text-[10px] font-black uppercase mt-2">Registry is Empty</p>
                               </div>
-                          ))
-                      ) : (
-                          <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
-                              <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center">
-                                  <CheckCircle2 className="h-8 w-8 text-emerald-600" />
-                              </div>
-                              <div className="space-y-1">
-                                  <h4 className="font-black text-slate-900 uppercase text-sm">Quality Shield Maintained</h4>
-                                  <p className="text-xs text-muted-foreground">This program meets all institutional compliance criteria for {selectedYear}.</p>
-                              </div>
-                          </div>
-                      )}
+                          )}
+                      </div>
+                  </ScrollArea>
+              </CardContent>
+          </Card>
+
+          <Card className="border-destructive/30 shadow-xl overflow-hidden bg-destructive/5 relative">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-destructive opacity-50" />
+              <CardHeader className="bg-destructive/10 border-b py-4">
+                  <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-destructive">
+                          <ShieldAlert className="h-5 w-5 text-destructive" />
+                          <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Strategic Risk Registry</CardTitle>
+                      </div>
+                      <Badge variant="destructive" className="animate-pulse shadow-sm h-5 text-[9px] font-black uppercase">SYSTEM ALERTS</Badge>
                   </div>
-              </ScrollArea>
-          </CardContent>
-      </Card>
+              </CardHeader>
+              <CardContent className="p-0">
+                  <ScrollArea className="h-[400px]">
+                      <div className="p-6 space-y-4">
+                          {analyticsData.gaps.length > 0 ? (
+                              analyticsData.gaps.map((gap, i) => (
+                                  <div key={i} className="flex items-start gap-4 bg-white p-4 rounded-xl border border-destructive/10 shadow-sm transition-all hover:border-destructive/30 group">
+                                      <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                                          <AlertTriangle className="h-5 w-5 text-destructive" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                          <div className="flex items-center justify-between gap-2 mb-1">
+                                              <p className="text-[10px] font-black text-destructive uppercase tracking-[0.1em]">{gap.type}</p>
+                                              <Badge variant="outline" className="h-4 text-[8px] border-destructive/20 text-destructive font-black uppercase">{gap.priority} PRIORITY</Badge>
+                                          </div>
+                                          <p className="text-sm font-bold text-slate-800 leading-snug">{gap.msg}</p>
+                                          <div className="mt-3 flex items-center gap-2">
+                                              <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                onClick={() => onResolveDeficiency?.(gap.target)}
+                                                className="h-6 text-[9px] font-black uppercase text-primary gap-1 p-0 px-2 hover:bg-primary/5"
+                                              >
+                                                  Resolve Deficiency <ChevronRight className="h-3 w-3" />
+                                              </Button>
+                                          </div>
+                                      </div>
+                                  </div>
+                              ))
+                          ) : (
+                              <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
+                                  <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center">
+                                      <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+                                  </div>
+                                  <div className="space-y-1">
+                                      <h4 className="font-black text-slate-900 uppercase text-sm">Quality Shield Maintained</h4>
+                                      <p className="text-xs text-muted-foreground">This program meets all institutional compliance criteria for {selectedYear}.</p>
+                                  </div>
+                              </div>
+                          )}
+                      </div>
+                  </ScrollArea>
+              </CardContent>
+          </Card>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden">
@@ -545,8 +638,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-            
-            {/* --- QUALITY MATURITY RADAR --- */}
             <Card className="border-primary/10 shadow-lg overflow-hidden">
                 <CardHeader className="bg-muted/10 border-b py-4">
                     <div className="flex items-center gap-2">
@@ -594,7 +685,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                 </CardContent>
             </Card>
 
-            {/* --- FACULTY RESOURCE AUDIT --- */}
             <Card className="border-primary/10 shadow-lg overflow-hidden">
                 <CardHeader className="bg-muted/10 border-b py-4">
                     <div className="flex items-center justify-between">
@@ -675,64 +765,8 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                     </Table>
                 </CardContent>
             </Card>
-
-            {/* --- ENROLLMENT & BOARD DYNAMICS --- */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="border-primary/10 shadow-md">
-                    <CardHeader className="py-4 border-b">
-                        <div className="flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 text-primary" />
-                            <CardTitle className="text-xs font-black uppercase tracking-tight">Enrollment Dynamics</CardTitle>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                        <ChartContainer config={{}} className="h-[220px] w-full shrink-0">
-                            <ResponsiveContainer>
-                                <BarChart data={analyticsData.enrollmentData}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
-                                    <RechartsTooltip content={<ChartTooltipContent />} />
-                                    <Bar dataKey="1st Sem" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
-                                    <Bar dataKey="2nd Sem" fill="hsl(var(--chart-2))" radius={[2, 2, 0, 0]} />
-                                    <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingTop: '10px' }} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-
-                <Card className="border-primary/10 shadow-md">
-                    <CardHeader className="py-4 border-b">
-                        <div className="flex items-center gap-2">
-                            <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                            <CardTitle className="text-xs font-black uppercase tracking-tight">Personnel Alignment</CardTitle>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="pt-6 flex flex-col items-center justify-center">
-                        <ChartContainer config={{}} className="h-[180px] w-[180px]">
-                            <ResponsiveContainer>
-                                <PieChart>
-                                    <Pie data={analyticsData.facultyPieData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
-                                        {analyticsData.facultyPieData.map((entry, index) => <Cell key={index} fill={entry.fill} />)}
-                                    </Pie>
-                                    <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                        <div className="text-center mt-2 space-y-1">
-                            <p className="text-xs font-bold text-slate-700 uppercase">GAD Diversity Distribution</p>
-                            <div className="flex justify-center gap-3 text-[8px] font-black uppercase">
-                                <div className="flex items-center gap-1"><div className="h-2 w-2 rounded-full bg-emerald-500" /> Aligned</div>
-                                <div className="flex items-center gap-1"><div className="h-2 w-2 rounded-full bg-blue-400" /> Others</div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
         </div>
 
-        {/* --- EVIDENCE & VERIFICATION SIDEBAR --- */}
         <div className="lg:col-span-1 space-y-6">
             <Card className="shadow-2xl border-primary/10 flex flex-col h-full bg-background">
                 <CardHeader className="bg-muted/10 border-b py-4">
@@ -796,7 +830,6 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
         </div>
       </div>
 
-      {/* --- PREVIEW MODAL --- */}
       <Dialog open={!!previewDoc} onOpenChange={() => setPreviewDoc(null)}>
         <DialogContent className="max-w-6xl h-[92vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
             <DialogHeader className="p-5 border-b bg-slate-50 shrink-0">
