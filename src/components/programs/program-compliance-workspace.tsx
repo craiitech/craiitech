@@ -143,7 +143,14 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         })) || [];
     }
 
-    const sanitizedData = sanitizeForFirestore({ ...values, academicYear: selectedAY, programId: program.id, campusId });
+    // SANITIZE AND ADD UNIT ID FOR CROSS-QUERYING
+    const sanitizedData = sanitizeForFirestore({ 
+        ...values, 
+        academicYear: selectedAY, 
+        programId: program.id, 
+        campusId,
+        unitId: program.collegeId 
+    });
 
     try {
       await setDoc(docRef, { ...sanitizedData, id: recordId, updatedAt: serverTimestamp(), updatedBy: userProfile.id }, { merge: true });

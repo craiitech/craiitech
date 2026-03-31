@@ -971,7 +971,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                                         item.status === 'COMPLIANT' ? "bg-emerald-600 text-white" : 
                                                         item.status === 'OVERDUE' ? "bg-rose-600 text-white animate-pulse" : 
                                                         item.status === 'AWAITING RESULT' ? "bg-blue-600 text-white" : 
-                                                        item.status === 'NEW PROGRAM' ? "bg-amber-500 text-amber-950" :
+                                                        item.status === 'NEW PROGRAM' ? "bg-amber-50 text-amber-950" :
                                                         "bg-indigo-600 text-white"
                                                     )}>
                                                         {item.status}
@@ -1016,7 +1016,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                                                 </Button>
                                             </TableHead>
                                             <TableHead className="text-right pr-8 py-4">
-                                                <Button variant="ghost" className="p-0 text-[9px] font-black uppercase hover:bg-transparent ml-auto" onClick={() => requestSort('validity')}>
+                                                <Button variant="ghost" className="p-0 h-auto text-[9px] font-black uppercase hover:bg-transparent ml-auto" onClick={() => requestSort('validity')}>
                                                     Legacy Validity {getSortIcon('validity')}
                                                 </Button>
                                             </TableHead>

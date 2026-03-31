@@ -110,33 +110,26 @@ export default function AcademicProgramsPage() {
 
   /**
    * SCOPED COMPLIANCE QUERY
-   * Fixed: Added defensive checks to prevent early permission errors
+   * Optimized: Fetching broader campus-wide data for supervisors and unit users 
+   * to avoid 'in' operator limits and handle older records missing unitId.
    */
   const compliancesQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !userProfile || !userRole) return null;
     
     const baseRef = collection(firestore, 'programCompliances');
-    const baseQuery = query(baseRef, where('academicYear', '==', selectedYear));
 
-    if (isGlobalViewer) return baseQuery;
-    
-    if (isCampusViewer && userProfile.campusId) {
-        return query(baseRef, where('academicYear', '==', selectedYear), where('campusId', '==', userProfile.campusId));
+    if (isGlobalViewer) {
+        return query(baseRef, where('academicYear', '==', selectedYear));
     }
     
-    if (isUnitViewer && userProfile.unitId) {
-        const programIds = rawPrograms?.filter(p => p.collegeId === userProfile.unitId).map(p => p.id) || [];
-        // If program list is loaded, scope compliance strictly to these unit programs
-        if (programIds.length > 0) {
-            return query(baseRef, where('academicYear', '==', selectedYear), where('programId', 'in', programIds.slice(0, 10)));
-        }
-        // Fallback to campus-wide if unit programs not yet mapped
+    // Both Campus and Unit levels fetch campus-wide data for the selected year
+    if ((isCampusViewer || isUnitViewer) && userProfile.campusId) {
         return query(baseRef, where('academicYear', '==', selectedYear), where('campusId', '==', userProfile.campusId));
     }
     
     // Safety fallback
     return query(baseRef, where('academicYear', '==', selectedYear), where('campusId', '==', userProfile.campusId));
-  }, [firestore, isUserLoading, userProfile, userRole, selectedYear, isGlobalViewer, isCampusViewer, isUnitViewer, rawPrograms]);
+  }, [firestore, isUserLoading, userProfile, userRole, selectedYear, isGlobalViewer, isCampusViewer, isUnitViewer]);
 
   const { data: rawCompliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
@@ -162,6 +155,7 @@ export default function AcademicProgramsPage() {
 
   /**
    * CALCULATE REGISTRY SUMMARY STATS
+   * These are specifically for the 'Program Registry' tab cards.
    */
   const summaryStats = useMemo(() => {
     const total = filteredPrograms.length;
