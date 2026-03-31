@@ -67,6 +67,7 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Badge } from '@/components/ui/badge';
+import { normalizeReportType } from '@/lib/utils';
 
 export default function ReportsPage() {
   const { userProfile, isAdmin, isUserLoading, isSupervisor } = useUser();
@@ -135,16 +136,28 @@ export default function ReportsPage() {
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
 
-  const processedSubmissions = useMemo(() => {
+  /**
+   * NORMALIZED SUBMISSIONS
+   * Ensures all reportType values match the canonical submissionTypes array.
+   */
+  const submissions = useMemo(() => {
     if (!rawSubmissions) return [];
-    return rawSubmissions.filter(s => s.year === selectedYear);
-  }, [rawSubmissions, selectedYear]);
+    return rawSubmissions.map(s => ({
+        ...s,
+        reportType: normalizeReportType(s.reportType)
+    }));
+  }, [rawSubmissions]);
+
+  const processedSubmissions = useMemo(() => {
+    return submissions.filter(s => s.year === selectedYear);
+  }, [submissions, selectedYear]);
 
   const matrixData = useMemo(() => {
-    if (!rawSubmissions || !allCampuses || !allUnits || isUserLoading) return [];
+    if (!submissions || !allCampuses || !allUnits || isUserLoading) return [];
 
     const submissionMap = new Map<string, Submission>(
-      rawSubmissions.filter(s => s.year === selectedYear).map(s => {
+      submissions.filter(s => s.year === selectedYear).map(s => {
+        // Key is already using normalized reportType from the submissions memo
         const key = `${s.campusId}-${s.unitId}-${s.reportType}-${s.cycleId}`.toLowerCase();
         return [key, s];
       })
@@ -167,6 +180,7 @@ export default function ReportsPage() {
             const rorKey = `${cId}-${uId}-risk and opportunity registry-${cycleId}`.toLowerCase();
             const rorSubmission = submissionMap.get(rorKey);
             const isActionPlanNA = String(rorSubmission?.riskRating || '').toLowerCase() === 'low';
+            
             submissionTypes.forEach(reportType => {
                 const submissionKey = `${cId}-${uId}-${reportType.toLowerCase()}-${cycleId}`.toLowerCase();
                 if (reportType === 'Risk and Opportunity Action Plan' && isActionPlanNA) statuses[submissionKey] = 'not-applicable';
@@ -179,7 +193,7 @@ export default function ReportsPage() {
 
       return { campusId: cId, campusName: campus.name, units: unitStatuses };
     }).filter(Boolean as any).sort((a:any, b:any) => a.campusName.localeCompare(b.campusName));
-  }, [rawSubmissions, allCampuses, allUnits, selectedYear, isSupervisor, isAdmin, userProfile, isUserLoading]);
+  }, [submissions, allCampuses, allUnits, selectedYear, isSupervisor, isAdmin, userProfile, isUserLoading]);
 
   const visualAnalytics = useMemo(() => {
     if (!allCampuses || !allUnits) return null;
@@ -293,8 +307,8 @@ export default function ReportsPage() {
   }, [allCampuses, allUnits, processedSubmissions, allRisks, allCompliances, selectedYear, selectedCampusId]);
 
   const handlePrint = () => {
-    if (!isAdmin || !rawSubmissions || !allCampuses || !allUnits) return;
-    const reportHtml = ReactDOMServer.renderToStaticMarkup(<AdminReport submissions={rawSubmissions} campuses={allCampuses} units={allUnits} />);
+    if (!isAdmin || !submissions || !allCampuses || !allUnits) return;
+    const reportHtml = ReactDOMServer.renderToStaticMarkup(<AdminReport submissions={submissions} campuses={allCampuses} units={allUnits} />);
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.write(`<html><head><title>Admin Report</title><style>body { font-family: sans-serif; margin: 2rem; } table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; font-size: 10px; } th, td { border: 1px solid #ddd; padding: 6px; text-align: left; } th { background-color: #f2f2f2; } .header { text-align: center; margin-bottom: 2rem; } .footer { margin-top: 2rem; font-style: italic; color: #555; font-size: 10px; } .report-title { margin-top: 1rem; text-align: center; font-weight: bold; text-transform: uppercase; }</style></head><body>${reportHtml}<script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); } }</script></body></html>`);
@@ -389,7 +403,7 @@ export default function ReportsPage() {
                             </ChartContainer>
                         </CardContent>
                         <CardFooter className="bg-muted/5 border-t py-3">
-                            <div className="flex items-start gap-2">
+                            <div className="flex items-start gap-3">
                                 <Zap className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
                                 <p className="text-[9px] text-muted-foreground italic leading-tight">
                                     <strong>Analytical Perspective:</strong> This profile tracks verified documentation maturity across different campuses.
@@ -425,7 +439,7 @@ export default function ReportsPage() {
                             </ChartContainer>
                         </CardContent>
                         <CardFooter className="bg-muted/5 border-t py-3">
-                            <div className="flex items-start gap-2">
+                            <div className="flex items-start gap-3">
                                 <Zap className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
                                 <p className="text-[9px] text-muted-foreground italic leading-tight">
                                     <strong>Analytical Perspective:</strong> Benchmarks total approved documents against those awaiting verification.
@@ -476,7 +490,7 @@ export default function ReportsPage() {
                                 <ChartContainer config={{}} className="h-[250px] w-full">
                                     <ResponsiveContainer>
                                         <PieChart>
-                                            <Pie data={visualAnalytics.gadFacultyData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
+                                            <Pie data={visualAnalytics.gadFacultyData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
                                                 {visualAnalytics.gadFacultyData.map((entry, idx) => <Cell key={idx} fill={entry.fill} />)}
                                             </Pie>
                                             <Tooltip content={<ChartTooltipContent hideLabel />} />
