@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, Timestamp, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, doc, deleteDoc, Timestamp } from 'firebase/firestore';
 import type { EmployeeActivity, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -61,7 +61,7 @@ export default function EmployeeActivityLogPage() {
 
   /**
    * SILENT GATED QUERY
-   * Prevents permission errors during initial session handshake by waiting for user sign-in.
+   * Only fires once the user is confirmed as signed in and the profile is loaded.
    */
   const activitiesQuery = useMemoFirebase(() => {
     if (!firestore || !user || isUserLoading) return null;
@@ -69,18 +69,18 @@ export default function EmployeeActivityLogPage() {
     const baseRef = collection(firestore, 'employeeActivities');
     
     if (viewScope === 'personal') {
-        return query(baseRef, where('userId', '==', user.uid), orderBy('date', 'desc'));
+        return query(baseRef, where('userId', '==', user.uid));
     }
     
     if (viewScope === 'unit' && userProfile?.unitId) {
-        return query(baseRef, where('unitId', '==', userProfile.unitId), orderBy('date', 'desc'));
+        return query(baseRef, where('unitId', '==', userProfile.unitId));
     }
     
     if (viewScope === 'campus' && userProfile?.campusId) {
-        return query(baseRef, where('campusId', '==', userProfile.campusId), orderBy('date', 'desc'));
+        return query(baseRef, where('campusId', '==', userProfile.campusId));
     }
 
-    return query(baseRef, where('userId', '==', user.uid), orderBy('date', 'desc'));
+    return query(baseRef, where('userId', '==', user.uid));
   }, [firestore, user, userProfile, viewScope, isUserLoading]);
 
   const { data: rawActivities, isLoading: isLoadingActivities } = useCollection<EmployeeActivity>(activitiesQuery);
@@ -168,7 +168,17 @@ export default function EmployeeActivityLogPage() {
     return (
         <div className="flex flex-col items-center justify-center py-40 gap-4">
             <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Synchronizing Workspace...</p>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Synchronizing Session...</p>
+        </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+        <div className="flex flex-col items-center justify-center py-40 text-center space-y-4">
+            <ShieldAlert className="h-12 w-12 text-destructive opacity-20" />
+            <h2 className="text-xl font-bold uppercase tracking-tight">Access Denied</h2>
+            <p className="text-muted-foreground max-w-xs">This feature is currently restricted to administrators for quality testing.</p>
         </div>
     );
   }
