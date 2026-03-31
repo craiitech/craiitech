@@ -16,9 +16,10 @@ interface AccreditationRecommendationReportProps {
   unitMap: Map<string, string>;
   scope: 'institutional' | 'program' | 'unit';
   year: number;
+  unitName?: string;
 }
 
-export function AccreditationRecommendationReport({ items, unitMap, scope, year }: AccreditationRecommendationReportProps) {
+export function AccreditationRecommendationReport({ items, unitMap, scope, year, unitName }: AccreditationRecommendationReportProps) {
   const currentTitle = scope === 'institutional' 
     ? 'Institutional Accreditation Gaps Registry' 
     : scope === 'unit' 
@@ -33,19 +34,23 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year 
         <h2 className="text-md font-semibold uppercase tracking-tight mt-1">Quality Assurance Office</h2>
         <div className="mt-6">
           <h2 className="text-lg font-black uppercase underline">{currentTitle}</h2>
+          {scope === 'unit' && unitName && (
+              <h3 className="text-2xl font-black uppercase text-blue-700 mt-2 tracking-tight">{unitName}</h3>
+          )}
           <p className="text-xs font-bold mt-1">ACADEMIC YEAR: {year}</p>
         </div>
       </div>
 
       {/* Registry Table */}
-      <table className="w-full border-collapse border-2 border-black text-[10px] mb-8">
+      <table className="w-full border-collapse border-2 border-black text-[9px] mb-8">
         <thead>
           <tr className="bg-slate-50 font-black text-center uppercase border-b-2 border-black">
-            <th className="border border-black p-2 w-[25%]">Program Offering</th>
-            <th className="border border-black p-2 w-[10%]">Type</th>
-            <th className="border border-black p-2 w-[40%]">Accreditor's Recommendation</th>
-            <th className="border border-black p-2 w-[15%]">Action Units</th>
+            <th className="border border-black p-2 w-[18%]">Program Offering</th>
+            <th className="border border-black p-2 w-[8%]">Type</th>
+            <th className="border border-black p-2 w-[28%]">Accreditor's Recommendation</th>
+            <th className="border border-black p-2 w-[14%]">Action Units</th>
             <th className="border border-black p-2 w-[10%]">Status</th>
+            <th className="border border-black p-2 w-[22%]">Action Taken / Updates</th>
           </tr>
         </thead>
         <tbody>
@@ -53,17 +58,17 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year 
             <tr key={i} className="border-b border-black">
               <td className="border border-black p-2 align-top">
                 <p className="font-black leading-tight">{item.programName}</p>
-                <p className="text-[8px] font-bold text-slate-500 mt-1 uppercase">
+                <p className="text-[7px] font-bold text-slate-500 mt-1 uppercase">
                     Level: {item.level} | Survey: {item.surveyDate || 'TBA'}
                 </p>
               </td>
-              <td className="border border-black p-2 text-center align-top font-bold uppercase">
+              <td className="border border-black p-2 text-center align-top font-bold uppercase text-[8px]">
                 {item.recommendation.type}
               </td>
-              <td className="border border-black p-2 align-top italic">
+              <td className="border border-black p-2 align-top italic leading-relaxed">
                 {item.recommendation.text}
                 {item.recommendation.additionalInfo && (
-                    <div className="mt-2 pt-2 border-t border-slate-100 not-italic text-[8px] font-bold">
+                    <div className="mt-2 pt-2 border-t border-slate-100 not-italic text-[7px] font-bold">
                         <span className="uppercase text-slate-400 mr-1">Admin Notes:</span>
                         {item.recommendation.additionalInfo}
                     </div>
@@ -76,13 +81,16 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year 
                     ))}
                 </ul>
               </td>
-              <td className="border border-black p-2 text-center align-top font-black uppercase">
+              <td className="border border-black p-2 text-center align-top font-black uppercase text-[8px]">
                 {item.recommendation.status}
+              </td>
+              <td className="border border-black p-2 align-top min-h-[60px]">
+                  {/* Blank space for manual updates */}
               </td>
             </tr>
           ))}
           {items.length === 0 && (
-            <tr><td colSpan={5} className="p-8 text-center italic text-gray-400">No pending recommendations recorded for this cycle.</td></tr>
+            <tr><td colSpan={6} className="p-8 text-center italic text-gray-400">No pending recommendations recorded for this cycle.</td></tr>
           )}
         </tbody>
       </table>

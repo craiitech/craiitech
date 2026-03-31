@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -330,6 +331,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         gadEnrollment1stData: makePieData(sem1Male, sem1Female),
         gadEnrollment2ndData: makePieData(sem2Male, sem2Female),
         gadEnrollmentSummerData: makePieData(summerMale, summerFemale),
+        gadEnrollmentSummerData: makePieData(summerMale, summerFemale),
         gadFacultyData: makePieData(totalMaleFaculty, totalFemaleFaculty, totalOthersFaculty),
         monitoredCount,
         integrityRate: programs.length > 0 ? Math.round((monitoredCount / programs.length) * 100) : 0
@@ -409,11 +411,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     }
   };
 
-  /**
-   * BATCH PRINT BY UNIT
-   * Groups all pending recommendations by the assigned responsible unit
-   * and renders a multi-page PDF where each unit has its own dedicated report.
-   */
   const handlePrintByUnitReport = () => {
     if (!programs.length || !compliances.length) return;
 
@@ -445,6 +442,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
         // 2. Generate HTML with Page Breaks
         const batchHtml = Object.entries(unitsWithRecos).map(([unitId, items]) => {
+            const unitName = unitMap.get(unitId) || unitId;
             return renderToStaticMarkup(
                 <div key={unitId} className="print-page-break mb-12">
                     <AccreditationRecommendationReport 
@@ -452,6 +450,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                         unitMap={unitMap}
                         scope="unit"
                         year={selectedYear}
+                        unitName={unitName}
                     />
                 </div>
             );
@@ -472,7 +471,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             .print-page-break { page-break-after: always; }
                             .print-page-break:last-child { page-break-after: auto; }
                         }
-                        body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }
+                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
                     </style>
                 </head>
                 <body>
@@ -718,7 +717,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
                     <Separator orientation="vertical" className="h-6 mx-1 hidden lg:block" />
 
-                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 h-6 font-black text-[10px] uppercase shadow-sm">LVL I: {analytics?.levelCounts.L1}</Badge>
+                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 h-6 font-black text-[10px] uppercase shadow-sm">LVL I: {analytics?.levelCounts.L1}</Badge>
                     <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 h-6 font-black text-[10px] uppercase shadow-sm">LVL II: {analytics?.levelCounts.L2}</Badge>
                     <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 h-6 font-black text-[10px] uppercase shadow-sm">LVL III: {analytics?.levelCounts.L3}</Badge>
                     <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 h-6 font-black text-[10px] uppercase shadow-sm">LVL IV: {analytics?.levelCounts.L4}</Badge>
