@@ -33,41 +33,68 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // EMPLOYEE ACTIVITIES
+    // EMPLOYEE ACTIVITIES - Institutional Productivity Log
     // --------------------------------------------------------------------------
     match /employeeActivities/{activityId} {
-      // Allow all signed-in users to read/list to support supervisor oversight and analytics.
-      // This is safe because the query logic in the frontend handles the specific scoping.
+      // Benchmarked with 'submissions' and 'risks' for reliable collection listing
       allow read, list: if isSignedIn();
+      // Creation restricted to the authenticated user owning the log entry
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // Update/Delete restricted to the owner or System Administrators
       allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // --------------------------------------------------------------------------
-    // IQA & INSTITUTIONAL REGISTRIES (TOP PRIORITY READ ACCESS)
+    // CORE WORKFLOW COLLECTIONS (Standard Institutional Rules)
+    // --------------------------------------------------------------------------
+    
+    match /submissions/{id} { 
+      allow read: if isSignedIn(); 
+      allow write: if isSignedIn(); 
+    }
+
+    match /risks/{id} { 
+      allow read: if isSignedIn(); 
+      allow write: if isSignedIn(); 
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // --------------------------------------------------------------------------
+    // IQA & QUALITY REGISTRIES
     // --------------------------------------------------------------------------
     
     match /auditPlans/{planId} {
-      allow read, list: if request.auth != null;
+      allow read, list: if isSignedIn();
       allow write: if isAdmin();
     }
 
     match /auditSchedules/{scheduleId} {
-      allow read, list: if request.auth != null;
+      allow read, list: if isSignedIn();
       allow create, update, delete: if isAdmin() || isAuditor();
     }
 
     match /auditFindings/{findingId} {
-      allow read, list: if request.auth != null;
+      allow read, list: if isSignedIn();
       allow create, update, delete: if isAdmin() || isAuditor();
     }
 
     match /isoClauses/{clauseId} {
-      allow read, list: if request.auth != null;
+      allow read, list: if isSignedIn();
       allow write: if isAdmin();
     }
 
     match /campuses/{id} { 
+      allow read: if isSignedIn(); 
+      allow write: if isAdmin(); 
+    }
+
+    match /units/{id} { 
       allow read: if isSignedIn(); 
       allow write: if isAdmin(); 
     }
@@ -77,7 +104,6 @@ service cloud.firestore {
     // --------------------------------------------------------------------------
     
     match /system/{docId} {
-      // Allow public read for 'settings' to load logo on landing pages
       allow read: if docId == 'settings' || isSignedIn();
       allow write: if isAdmin();
     }
@@ -92,118 +118,14 @@ service cloud.firestore {
       allow write: if isAdmin(); 
     }
 
-    // --------------------------------------------------------------------------
-    // GAD CORNER & PCW REPORTING
-    // --------------------------------------------------------------------------
-    
-    match /gadInitiatives/{id} {
-      allow read: if isSignedIn();
-      allow create, update: if isSignedIn() && (isAdmin() || isSupervisor());
-      allow delete: if isAdmin();
-    }
-
-    match /gadMainstreaming/{id} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && (isAdmin() || isSupervisor());
-    }
-
-    // --------------------------------------------------------------------------
-    // CORE WORKFLOW COLLECTIONS
-    // --------------------------------------------------------------------------
-    
-    match /users/{userId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
-      allow delete: if isAdmin();
-    }
-
-    match /submissions/{id} { 
-      allow read: if isSignedIn(); 
-      allow write: if isSignedIn(); 
-    }
-
-    match /risks/{id} { 
-      allow read: if isSignedIn(); 
-      allow write: if isSignedIn(); 
-    }
-
-    match /units/{id} { 
-      allow read: if isSignedIn(); 
-      allow write: if isAdmin(); 
-    }
-
-    match /unitMonitoringRecords/{id} { 
-      allow read: if isSignedIn(); 
-      allow write: if isAdmin() || isSupervisor(); 
-    }
-    
-    match /correctiveActionRequests/{carId} { 
-      allow read: if isSignedIn(); 
-      allow write: if isAdmin() || isAuditor() || isSupervisor(); 
-    }
-
-    match /correctiveActionPlans/{id} { 
-      allow read: if isSignedIn(); 
-      allow write: if isSignedIn(); 
-    }
-
-    match /academicPrograms/{id} { 
-      allow read: if isSignedIn(); 
-      allow write: if isAdmin() || isSupervisor(); 
-    }
-
-    match /programCompliances/{id} { 
-      allow read: if isSignedIn(); 
-      allow write: if isSignedIn(); 
-    }
-    
-    match /campusSettings/{settingId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
-    }
-
     match /qaAdvisories/{advisoryId} { 
       allow read: if isSignedIn(); 
       allow write: if isAdmin(); 
     }
 
-    match /managementReviewOutputs/{outputId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || isAuditor();
-      allow update: if isSignedIn();
-    }
-
-    match /managementReviews/{mrId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || isAuditor();
-    }
-
-    match /procedureManuals/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /eomsPolicyManuals/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-    match /cycles/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
-
-    match /activityLogs/{logId} {
-      allow read: if isAdmin();
-      allow create: if isSignedIn();
-    }
-
-    match /errorReports/{reportId} {
-      allow read: if isAdmin();
-      allow create: if isSignedIn();
-      allow update: if isAdmin();
-    }
-
-    match /appFeedbacks/{feedbackId} {
-      allow read: if isAdmin();
-      allow create: if isSignedIn();
-    }
-
-    match /softwareEvaluations/{evalId} {
-      allow read: if isAdmin() || isAuditor();
-      allow create: if true; 
-    }
-
+    // --------------------------------------------------------------------------
+    // CATCH-ALL FOR ADMIN OVERRIDE
+    // --------------------------------------------------------------------------
     match /{path=**} {
       allow read, write: if isAdmin();
     }

@@ -364,7 +364,7 @@ export default function EmployeeActivityLogPage() {
           </CardFooter>
       </Card>
 
-      <ActivityLogLogFormDialog 
+      <ActivityLogFormDialog 
         isOpen={isFormOpen} 
         onOpenChange={setIsFormOpen} 
         activity={editingActivity} 
