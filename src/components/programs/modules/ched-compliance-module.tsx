@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
@@ -66,12 +65,12 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="space-y-6">
         <Card className="shadow-sm border-primary/10">
-          <CardHeader className="bg-muted/10 border-b">
-            <CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-tight">
+          <CardHeader className="bg-muted/10 border-b py-4">
+            <CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-tight text-slate-900">
               <FileText className="h-4 w-4 text-primary" />
-              Basic Institutional Authority
+              Institutional Authority & COPC
             </CardTitle>
-            <CardDescription className="text-xs">Official authority to operate and CHED recognition status.</CardDescription>
+            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">CHED Recognition and Operating Standards for AY {program.isActive ? 'Active' : 'Closed'}.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
             <FormField
@@ -79,13 +78,13 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
               name="ched.copcStatus"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-[10px] font-bold uppercase tracking-wider">Certificate of Program Compliance (COPC)</FormLabel>
+                  <FormLabel className="text-[10px] font-black uppercase text-primary tracking-widest">COPC Status</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value} disabled={!canEdit}>
-                    <FormControl><SelectTrigger className="h-9"><SelectValue /></SelectTrigger></FormControl>
+                    <FormControl><SelectTrigger className="h-11 font-bold bg-primary/5 border-primary/20"><SelectValue /></SelectTrigger></FormControl>
                     <SelectContent>
-                      <SelectItem value="With COPC">With COPC</SelectItem>
-                      <SelectItem value="No COPC">No COPC</SelectItem>
-                      <SelectItem value="In Progress">In Progress</SelectItem>
+                      <SelectItem value="With COPC" className="font-bold text-emerald-600">Verified: With COPC</SelectItem>
+                      <SelectItem value="No COPC" className="font-bold text-rose-600">No active COPC</SelectItem>
+                      <SelectItem value="In Progress" className="font-bold text-amber-600">In Progress / Applying</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -99,7 +98,7 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                 name="ched.copcAwardDate"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel className="text-[10px] font-bold uppercase tracking-wider">Date of COPC Award</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Date of Award</FormLabel>
                     <FormControl>
                         <div className="relative">
                         <Calendar className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground" />
@@ -116,8 +115,8 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                 name="ched.copcLink"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
-                        GDrive Link: COPC (PDF)
+                    <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+                        Certificate Link (PDF)
                         {copcLinkVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}
                     </FormLabel>
                     <FormControl>
@@ -131,18 +130,17 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                 )}
                 />
             </div>
-            <GDrivePreview url={copcLinkVal} title="COPC Certificate" />
-            <FormDescription className="text-[9px]">Official CHED certification credentials for the program.</FormDescription>
+            <GDrivePreview url={copcLinkVal} title="CHED COPC Certificate" />
           </CardContent>
         </Card>
 
         <Card className="shadow-sm border-primary/10">
-            <CardHeader className="bg-muted/10 border-b">
-                <CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-tight">
+            <CardHeader className="bg-muted/10 border-b py-4">
+                <CardTitle className="flex items-center gap-2 text-sm uppercase font-black tracking-tight text-slate-900">
                     <Gavel className="h-4 w-4 text-primary" />
-                    Board Approval Certificate (BOR Resolution)
+                    University Board Approval (BOR)
                 </CardTitle>
-                <CardDescription className="text-xs">Authority granted by the University Board of Regents.</CardDescription>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Authority granted via official RSU Board Resolutions.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 space-y-6">
                 <FormField
@@ -150,7 +148,7 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                     name="ched.boardApprovalMode"
                     render={({ field }) => (
                         <FormItem className="space-y-3">
-                            <FormLabel className="text-[10px] font-black uppercase text-primary">Approval Configuration</FormLabel>
+                            <FormLabel className="text-[10px] font-black uppercase text-primary tracking-widest">Board Approval Context</FormLabel>
                             <FormControl>
                                 <RadioGroup 
                                     onValueChange={field.onChange} 
@@ -158,21 +156,16 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                     className="flex flex-col space-y-1"
                                     disabled={!canEdit}
                                 >
-                                    <div className="flex items-center space-x-2 p-2 rounded border bg-muted/5">
+                                    <div className="flex items-center space-x-2 p-3 rounded-xl border bg-muted/5 group cursor-pointer hover:border-primary/20">
                                         <RadioGroupItem value="sole" id="mode-sole" />
-                                        <Label htmlFor="mode-sole" className="text-xs font-bold cursor-pointer">Sole Program Approval (One Resolution)</Label>
+                                        <Label htmlFor="mode-sole" className="text-xs font-bold cursor-pointer">Institutional Program Approval (One Resolution)</Label>
                                     </div>
-                                    <div className={cn("flex items-center space-x-2 p-2 rounded border bg-muted/5", !hasSpecializations && "opacity-50 pointer-events-none")}>
+                                    <div className={cn("flex items-center space-x-2 p-3 rounded-xl border bg-muted/5 group cursor-pointer hover:border-primary/20", !hasSpecializations && "opacity-50 pointer-events-none")}>
                                         <RadioGroupItem value="per-major" id="mode-major" disabled={!hasSpecializations} />
-                                        <Label htmlFor="mode-major" className="text-xs font-bold cursor-pointer">Separate Approvals per Specialization/Major</Label>
+                                        <Label htmlFor="mode-major" className="text-xs font-bold cursor-pointer">Specialization-Level Approvals (Separate Resolutions)</Label>
                                     </div>
                                 </RadioGroup>
                             </FormControl>
-                            {!hasSpecializations && (
-                                <p className="text-[9px] text-amber-600 font-medium italic flex items-center gap-1">
-                                    <Info className="h-2.5 w-2.5" /> Note: Per-major mode requires registered specializations in Program Settings.
-                                </p>
-                            )}
                         </FormItem>
                     )}
                 />
@@ -184,8 +177,8 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                             name="ched.boardApprovalLink"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-2">
-                                        BOR Resolution GDrive Link
+                                    <FormLabel className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+                                        BOR Resolution Link (GDrive)
                                         {boardApprovalLinkVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}
                                     </FormLabel>
                                     <FormControl>
@@ -198,45 +191,35 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                 </FormItem>
                             )}
                         />
-                        <GDrivePreview url={boardApprovalLinkVal} title="Institutional BOR Resolution" />
+                        <GDrivePreview url={boardApprovalLinkVal} title="Program BOR Resolution" />
                     </div>
                 ) : (
                     <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-primary">Majors with Separate Authority</p>
+                        <div className="flex items-center gap-2 mb-2">
+                            <Layers className="h-4 w-4 text-primary" />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-primary">Specialization Resolutions Registry</p>
+                        </div>
                         <div className="space-y-3">
                             {program.specializations?.map((spec, idx) => (
-                                <div key={spec.id} className="p-3 rounded-lg border bg-muted/5 space-y-2">
+                                <div key={spec.id} className="p-4 rounded-xl border bg-muted/5 space-y-3 shadow-sm">
                                     <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <Layers className="h-3 w-3 text-primary" />
-                                            <span className="text-xs font-bold text-slate-700">{spec.name}</span>
-                                        </div>
+                                        <span className="text-[11px] font-black text-slate-800 uppercase tracking-tighter">{spec.name}</span>
+                                        {majorApprovals[idx]?.link && <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 h-4 text-[8px] font-black">LINKED</Badge>}
                                     </div>
                                     <FormField
                                         control={control}
                                         name={`ched.majorBoardApprovals.${idx}.link`}
                                         render={({ field: inputField }) => (
                                             <FormItem>
-                                                <FormLabel className="text-[9px] font-bold uppercase flex items-center gap-2 mb-1">
-                                                    Resolution Link
-                                                    {inputField.value && <CheckCircle2 className="h-2.5 w-2.5 text-green-500" />}
-                                                </FormLabel>
                                                 <FormControl>
                                                     <div className="relative">
                                                         <LinkIcon className="absolute left-2.5 top-2.5 h-3 w-3 text-muted-foreground" />
                                                         <Input 
                                                             {...inputField} 
                                                             value={inputField.value || ''} 
-                                                            placeholder="Major BOR Resolution Link..." 
-                                                            className="pl-8 h-8 text-[10px] bg-white" 
+                                                            placeholder="Paste Resolution Link..." 
+                                                            className="pl-8 h-8 text-[10px] bg-white border-primary/10" 
                                                             disabled={!canEdit} 
-                                                            onBlur={(e) => {
-                                                                // Ensure we store the majorId alongside the link
-                                                                if (control._fields) {
-                                                                    control._fields[`ched.majorBoardApprovals.${idx}.majorId`] = spec.id;
-                                                                }
-                                                                inputField.onBlur();
-                                                            }}
                                                         />
                                                     </div>
                                                 </FormControl>
@@ -250,12 +233,11 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                     </div>
                 )}
 
-                {/* CLOSURE AUTHORITY SECTION - Conditional */}
                 {!program.isActive && (
-                    <div className="pt-6 border-t mt-6 space-y-4 border-destructive/20 bg-destructive/5 p-4 rounded-lg animate-in fade-in duration-500">
+                    <div className="pt-6 border-t mt-6 space-y-4 border-destructive/20 bg-destructive/5 p-5 rounded-2xl animate-in zoom-in duration-500">
                         <div className="flex items-center gap-2 text-destructive">
-                            <FileX className="h-4 w-4" />
-                            <h4 className="text-xs font-black uppercase tracking-tight">Closure Authority (BOR Resolution)</h4>
+                            <FileX className="h-5 w-5 text-destructive" />
+                            <h4 className="text-xs font-black uppercase tracking-tight">Phase-Out / Closure Authority</h4>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField
@@ -263,12 +245,12 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                 name="ched.closureReferendumNumber"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase flex items-center gap-2">
+                                        <FormLabel className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2">
                                             <Hash className="h-3 w-3" />
-                                            BOR-Referendum No.
+                                            Referendum No.
                                         </FormLabel>
                                         <FormControl>
-                                            <Input {...field} value={field.value || ''} placeholder="e.g. 2024-042" className="h-9 text-xs bg-white font-mono" disabled={!canEdit} />
+                                            <Input {...field} value={field.value || ''} placeholder="e.g. 2024-042" className="h-9 text-xs bg-white font-mono font-bold" disabled={!canEdit} />
                                         </FormControl>
                                     </FormItem>
                                 )}
@@ -278,8 +260,8 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                 name="ched.closureApprovalDate"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase">Date of Closure Approval</FormLabel>
-                                        <FormControl><Input {...field} value={field.value || ''} type="date" className="h-9 text-xs" disabled={!canEdit} /></FormControl>
+                                        <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Approval Date</FormLabel>
+                                        <FormControl><Input {...field} value={field.value || ''} type="date" className="h-9 text-xs bg-white" disabled={!canEdit} /></FormControl>
                                     </FormItem>
                                 )}
                             />
@@ -289,20 +271,20 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                             name="ched.closureResolutionLink"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[10px] font-bold uppercase flex items-center gap-2">
-                                        GDrive Link: Closure Resolution
+                                    <FormLabel className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-2">
+                                        Evidence: Closure Resolution (PDF)
                                         {closureLinkVal && <CheckCircle2 className="h-3 w-3 text-green-500" />}
                                     </FormLabel>
                                     <FormControl>
                                         <div className="relative">
-                                            <LinkIcon className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground" />
-                                            <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9 h-9 text-xs" disabled={!canEdit} />
+                                            <LinkIcon className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground opacity-50" />
+                                            <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="pl-9 h-11 text-xs bg-white border-destructive/20" disabled={!canEdit} />
                                         </div>
                                     </FormControl>
                                 </FormItem>
                             )}
                         />
-                        <GDrivePreview url={closureLinkVal} title="Closure Resolution" />
+                        <GDrivePreview url={closureLinkVal} title="Closure Resolution Evidence" />
                     </div>
                 )}
             </CardContent>
@@ -310,31 +292,31 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
       </div>
 
       <div className="space-y-6">
-        <Card className="border-primary/20 shadow-sm">
+        <Card className="border-primary/20 shadow-lg overflow-hidden flex flex-col h-full">
             <CardHeader className="flex flex-row items-center justify-between py-4 bg-primary/5 border-b">
                 <div className="space-y-1">
                     <CardTitle className="flex items-center gap-2 text-primary text-sm uppercase font-black tracking-tight">
                         <Calendar className="h-4 w-4" />
-                        RQAT Monitoring History
+                        RQAT Monitoring & Site Visits
                     </CardTitle>
-                    <CardDescription className="text-xs">Records of Regional Quality Assessment Team visits.</CardDescription>
+                    <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Regional Quality Assessment Team (RQAT) Audit Trail.</CardDescription>
                 </div>
                 {canEdit && (
                     <Button 
                         type="button" 
                         size="sm" 
                         onClick={() => appendRqat({ date: '', result: '', nonCompliances: '', comments: '', reportLink: '' })}
-                        className="h-8 gap-1 text-[10px] font-bold uppercase"
+                        className="h-8 gap-1.5 text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/10"
                     >
                         <PlusCircle className="h-3.5 w-3.5" />
-                        Add Visit Result
+                        Add Record
                     </Button>
                 )}
             </CardHeader>
-            <CardContent className="pt-6">
+            <CardContent className="pt-6 flex-1 overflow-hidden">
                 <div className="space-y-6">
                     {rqatFields.map((field, index) => (
-                        <div key={field.id} className="relative p-4 rounded-lg border bg-muted/10 space-y-4 shadow-sm group">
+                        <div key={field.id} className="relative p-5 rounded-2xl border bg-muted/10 space-y-4 shadow-sm group hover:border-primary/30 transition-all">
                             {canEdit && (
                                 <Button 
                                     type="button" 
@@ -352,8 +334,8 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                     name={`ched.rqatVisits.${index}.date`}
                                     render={({ field: inputField }) => (
                                         <FormItem>
-                                            <FormLabel className="text-[10px] font-bold uppercase">Visit Date</FormLabel>
-                                            <FormControl><Input {...inputField} placeholder="e.g., Oct 2024" className="h-9 text-xs" disabled={!canEdit} /></FormControl>
+                                            <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Visit Timeline</FormLabel>
+                                            <FormControl><Input {...inputField} placeholder="e.g., October 2024" className="h-9 text-xs bg-white font-bold" disabled={!canEdit} /></FormControl>
                                         </FormItem>
                                     )}
                                 />
@@ -362,8 +344,8 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                     name={`ched.rqatVisits.${index}.result`}
                                     render={({ field: inputField }) => (
                                         <FormItem>
-                                            <FormLabel className="text-[10px] font-bold uppercase">Visit Result</FormLabel>
-                                            <FormControl><Input {...inputField} placeholder="e.g., Highly Recommended" className="h-9 text-xs" disabled={!canEdit} /></FormControl>
+                                            <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Verification Outcome</FormLabel>
+                                            <FormControl><Input {...inputField} placeholder="e.g., Compliant / Passed" className="h-9 text-xs bg-white font-bold" disabled={!canEdit} /></FormControl>
                                         </FormItem>
                                     )}
                                 />
@@ -374,15 +356,14 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                 name={`ched.rqatVisits.${index}.reportLink`}
                                 render={({ field: inputField }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase flex items-center gap-2">
-                                            <LinkIcon className="h-3 w-3 text-primary" />
-                                            RQAT Report Link (Google Drive)
+                                        <FormLabel className="text-[10px] font-black uppercase text-primary flex items-center gap-2">
+                                            <LinkIcon className="h-3 w-3" />
+                                            Monitoring Report Link (GDrive)
                                             {inputField.value && <CheckCircle2 className="h-3 w-3 text-green-500" />}
                                         </FormLabel>
                                         <FormControl>
-                                            <Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="h-9 text-xs" disabled={!canEdit} />
+                                            <Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="h-9 text-xs bg-white" disabled={!canEdit} />
                                         </FormControl>
-                                        <FormDescription className="text-[9px]">GDrive link to the PDF monitoring report.</FormDescription>
                                     </FormItem>
                                 )}
                             />
@@ -392,35 +373,46 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                 title={`RQAT: ${rqatVisits[index]?.date || 'Visit Report'}`} 
                             />
 
-                            <FormField
-                                control={control}
-                                name={`ched.rqatVisits.${index}.nonCompliances`}
-                                render={({ field: inputField }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase">Identified Non-Compliances</FormLabel>
-                                        <FormControl><Textarea {...inputField} rows={3} placeholder="List deficiencies noted..." className="text-xs" disabled={!canEdit} /></FormControl>
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={control}
-                                name={`ched.rqatVisits.${index}.comments`}
-                                render={({ field: inputField }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase">General Comments / Feedback</FormLabel>
-                                        <FormControl><Textarea {...inputField} rows={3} placeholder="Monitor's summary..." className="text-xs" disabled={!canEdit} /></FormControl>
-                                    </FormItem>
-                                )}
-                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+                                <FormField
+                                    control={control}
+                                    name={`ched.rqatVisits.${index}.nonCompliances`}
+                                    render={({ field: inputField }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-[10px] font-black uppercase text-destructive">Gaps/Non-Compliances</FormLabel>
+                                            <FormControl><Textarea {...inputField} rows={3} placeholder="List identified deficiencies..." className="text-xs bg-white" disabled={!canEdit} /></FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={control}
+                                    name={`ched.rqatVisits.${index}.comments`}
+                                    render={({ field: inputField }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-[10px] font-black uppercase text-slate-600">Auditor Feedback</FormLabel>
+                                            <FormControl><Textarea {...inputField} rows={3} placeholder="Monitor's summary notes..." className="text-xs bg-white" disabled={!canEdit} /></FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                         </div>
                     ))}
                     {rqatFields.length === 0 && (
-                        <div className="text-center py-12 border border-dashed rounded-lg text-muted-foreground text-xs uppercase font-bold tracking-widest bg-muted/5">
-                            No RQAT visit history recorded.
+                        <div className="flex flex-col items-center justify-center py-20 text-center space-y-3 opacity-20 bg-muted/5 rounded-2xl border-2 border-dashed">
+                            <Activity className="h-12 w-12" />
+                            <p className="text-xs font-black uppercase tracking-[0.2em]">No Site Monitoring Records Found</p>
                         </div>
                     )}
                 </div>
             </CardContent>
+            <CardFooter className="bg-primary/5 border-t py-3 px-6">
+                <div className="flex items-start gap-3">
+                    <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-muted-foreground italic leading-relaxed">
+                        <strong>Standard Note:</strong> RQAT visit records are institutional evidence of compliance with CHED Quality Assurance frameworks. Ensure all PDF reports are accessible for Presidential review.
+                    </p>
+                </div>
+            </CardFooter>
         </Card>
       </div>
     </div>

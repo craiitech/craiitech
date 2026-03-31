@@ -4,7 +4,6 @@ import React, { useMemo } from 'react';
 import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Signatories, Unit, Campus } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
-import { ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 interface ConsolidatedAuditReportTemplateProps {
   plan: AuditPlan;
@@ -46,7 +45,7 @@ export function ConsolidatedAuditReportTemplate({
   return (
     <div className="p-8 text-black bg-white max-w-[8.5in] mx-auto font-sans text-[11px] leading-tight border-none">
       
-      {/* OFFICIAL HEADER TABLE - LOGO REMOVED */}
+      {/* OFFICIAL HEADER TABLE - Logo Removed */}
       <table className="w-full border-collapse border-[1.5px] border-slate-400 mb-8">
         <tbody>
           <tr>
@@ -55,6 +54,7 @@ export function ConsolidatedAuditReportTemplate({
               <p className="text-sm font-black uppercase tracking-widest text-slate-800">INTERNAL QUALITY AUDIT</p>
               <div className="h-px bg-slate-300 w-24 mx-auto my-1" />
               <p className="text-sm font-black uppercase text-slate-900">{plan.year} INTERNAL QUALITY AUDIT REPORT</p>
+              <p className="text-[10px] italic">Main Campus, Odiongan, Romblon</p>
             </td>
             <td className="border-[1.5px] border-slate-400 w-[30%] p-0">
               <table className="w-full border-collapse h-full">
@@ -204,7 +204,7 @@ export function ConsolidatedAuditReportTemplate({
       {/* V. Auditor Team Conclusion */}
       <section className="mt-12 mb-12 space-y-4 break-inside-avoid">
         <h3 className="font-black text-xs uppercase border-b border-black pb-1 flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4" /> V. Auditor Team Conclusion
+            V. Auditor Team Conclusion
         </h3>
         <div className="border border-black p-6 min-h-[150px] text-sm leading-relaxed italic text-slate-700">
             Based on the objective evidence collected across the university units, the Internal Quality Audit team concludes that the Romblon State University Educational Organizations Management System (EOMS) is...

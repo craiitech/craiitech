@@ -3,7 +3,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, ShieldCheck } from 'lucide-react';
 
 interface NoticeProps {
   unitName: string;
@@ -56,7 +56,7 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
 
   return (
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed">
-      {/* Institutional Header */}
+      {/* Institutional Header - Logo Removed */}
       <div className="text-center border-b-2 border-black pb-6 mb-8">
         <div className="space-y-1">
             <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
@@ -66,11 +66,11 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
       </div>
 
       <div className="flex justify-between mb-10">
-        <div className="space-y-1">
+        <div className="space-y-1 text-xs">
             <p className="font-bold">MEMORANDUM</p>
-            <p className="text-xs">Ref No: RSU-QAO-NNC-{year}-{format(new Date(), 'MMdd')}</p>
+            <p>Ref No: RSU-QAO-NNC-{year}-{format(new Date(), 'MMdd')}</p>
         </div>
-        <p className="font-bold">{format(new Date(), 'MMMM d, yyyy')}</p>
+        <p className="font-bold text-xs">{format(new Date(), 'MMMM d, yyyy')}</p>
       </div>
 
       <div className="space-y-4 mb-10">
@@ -167,7 +167,7 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
   return (
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed border-[12px] border-double border-slate-200">
       <div className="border-2 border-slate-800 p-8 min-h-[9in] flex flex-col">
-        {/* Institutional Header */}
+        {/* Institutional Header - Logo Removed */}
         <div className="text-center pb-6 mb-12">
             <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
             <h2 className="text-lg font-semibold uppercase tracking-tight">Quality Assurance Office</h2>
@@ -181,7 +181,7 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
             
             <h2 className="text-3xl font-black uppercase tracking-[0.1em] text-slate-900">Notice of Compliance</h2>
             
-            <p className="text-lg italic text-slate-600">This is to certify that the</p>
+            <p className="text-lg italic text-slate-600">This is to officially certify that the</p>
             
             <div className="py-4">
                 <h3 className="text-2xl font-black uppercase text-primary underline underline-offset-8 decoration-slate-300">{unitName}</h3>
@@ -194,11 +194,11 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
                 <strong> ISO 21001:2018</strong> standards for the Academic Year <strong>{year}</strong>.
             </p>
 
-            <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-xl max-w-sm mx-auto">
+            <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-xl max-w-sm mx-auto shadow-sm">
                 <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-2">Verification Registry Status</p>
                 <div className="flex items-center justify-center gap-3">
                     <ShieldCheck className="h-6 w-6 text-emerald-600" />
-                    <span className="text-xl font-black text-emerald-800">{totalApproved} / {totalApproved} Verified Approved</span>
+                    <span className="text-xl font-black text-emerald-800">{totalApproved} Verified Records</span>
                 </div>
             </div>
 
@@ -256,21 +256,21 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
       </div>
 
       <div className="flex justify-between mb-10">
-        <div className="space-y-1">
+        <div className="space-y-1 text-xs">
             <p className="font-bold">MEMORANDUM</p>
-            <p className="text-xs">Ref No: RSU-QAO-CNNC-{year}-{format(new Date(), 'MMdd')}</p>
+            <p>Ref No: RSU-QAO-CNNC-{year}-{format(new Date(), 'MMdd')}</p>
         </div>
-        <p className="font-bold">{format(new Date(), 'MMMM d, yyyy')}</p>
+        <p className="font-bold text-xs">{format(new Date(), 'MMMM d, yyyy')}</p>
       </div>
 
       <div className="space-y-4 mb-10">
         <div className="grid grid-cols-12 gap-2 border-b border-black pb-4">
-            <span className="col-span-2 font-bold uppercase">FOR:</span>
+            <span className="col-span-2 font-bold uppercase text-xs">FOR:</span>
             <span className="col-span-10 font-bold uppercase text-lg">THE CAMPUS DIRECTOR, {campusName}</span>
         </div>
         <div className="grid grid-cols-12 gap-2 pt-2">
-            <span className="col-span-2 font-bold uppercase">SUBJECT:</span>
-            <span className="col-span-10 font-black uppercase underline">CONSOLIDATED EOMS COMPLIANCE STATUS REPORT</span>
+            <span className="col-span-2 font-bold uppercase text-xs">SUBJECT:</span>
+            <span className="col-span-10 font-black uppercase underline text-xs">CONSOLIDATED EOMS COMPLIANCE STATUS REPORT</span>
         </div>
       </div>
 
@@ -395,13 +395,13 @@ export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHea
             </p>
 
             <div className="grid grid-cols-1 gap-4 max-w-sm mx-auto pt-6">
-                <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl">
+                <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl shadow-sm">
                     <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-1">Site Maturity Index</p>
                     <span className="text-3xl font-black text-emerald-800">100.0%</span>
                 </div>
                 <div className="flex items-center justify-center gap-2 text-xs font-bold text-slate-600">
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    <span>{units.length} / {units.length} Units Fully Verified</span>
+                    <span>{units.length} Units Fully Verified</span>
                 </div>
             </div>
 

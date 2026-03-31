@@ -26,6 +26,7 @@ export function MonitoringPrintTemplate({ record, campusName, unitName }: Monito
         <div className="flex flex-col items-center justify-center gap-1 mb-2">
             <h1 className="text-xl font-bold uppercase tracking-tight leading-none">Romblon State University</h1>
             <h2 className="text-lg font-semibold uppercase tracking-tight leading-none mt-1">Quality Assurance Office</h2>
+            <p className="text-xs italic">Main Campus, Odiongan, Romblon</p>
         </div>
         <div className="mt-2 py-1 px-4 bg-black text-white inline-block uppercase text-sm font-black tracking-widest">
           Unit Monitoring Report

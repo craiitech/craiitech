@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
 import type { AcademicProgram, ProgramComplianceRecord, AccreditationRecord, CurriculumRecord } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
@@ -38,7 +37,9 @@ import {
     Briefcase,
     CalendarDays,
     FileX,
-    Hash
+    Hash,
+    Zap,
+    Scale
 } from 'lucide-react';
 import { 
     PieChart, 

@@ -45,11 +45,12 @@ export function AuditPlanPrintTemplate({ plan, schedules, campusName, signatorie
 
   return (
     <div className="p-8 text-black bg-white max-w-[8.5in] mx-auto font-sans text-[11px] leading-tight border-none">
-      {/* Institutional Header */}
+      {/* Institutional Header - Logo Removed */}
       <div className="text-center mb-6">
         <div className="flex flex-col items-center justify-center gap-1 mb-2">
             <h1 className="text-lg font-bold leading-none">Romblon State University</h1>
             <p className="text-xs">Romblon, Philippines</p>
+            <p className="text-xs italic">Main Campus, Odiongan, Romblon</p>
         </div>
         <div className="mt-6 mb-4">
           <h2 className="text-sm font-black uppercase tracking-[0.2em]">DETAILED AUDIT PLAN</h2>

@@ -14,7 +14,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ShieldCheck, ArrowRight, MonitorCheck } from 'lucide-react';
-import { useUser } from '@/firebase';
 
 export default function Home() {
   return (

@@ -29,11 +29,12 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
 
   return (
     <div className="p-6 text-black bg-white max-w-[8.5in] mx-auto font-sans leading-tight">
-      {/* Institutional Branding Header - LOGO REMOVED */}
+      {/* Institutional Branding Header - Logo Removed */}
       <div className="flex flex-col items-center text-center border-b-2 border-black pb-4 mb-4">
         <div className="flex flex-col items-center gap-1 mb-2">
             <h1 className="text-xl font-bold uppercase tracking-tight leading-none">Romblon State University</h1>
             <h2 className="text-md font-semibold uppercase tracking-tight leading-none mt-1">Quality Assurance Office</h2>
+            <p className="text-xs italic">Odiongan, Romblon</p>
         </div>
         <div className="mt-3 px-8 py-1.5 bg-black text-white text-sm font-black uppercase tracking-[0.2em] shadow-sm">
           Internal Quality Audit Evidence Log
