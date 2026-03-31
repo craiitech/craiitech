@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -37,7 +38,6 @@ export function SidebarNav({
       href: '/activity-log',
       label: 'Activity Log (Daily)',
       active: pathname.startsWith('/activity-log'),
-      roles: ['Admin'],
       icon: <UserCheck />,
     },
     {
