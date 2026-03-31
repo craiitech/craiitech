@@ -153,7 +153,7 @@ export default function AcademicProgramsPage() {
         if (p.isActive) activeCount++;
         else inactiveCount++;
         
-        const record = rawCompliances?.find(c => String(c.programId).trim() === String(p.id).trim());
+        const record = rawCompliances?.find(c => String(c.programId).toLowerCase().trim() === String(p.id).toLowerCase().trim());
         const isAccredited = (rec: ProgramComplianceRecord | undefined) => {
             if (!rec || !rec.accreditationRecords || rec.accreditationRecords.length === 0) return false;
             const milestones = rec.accreditationRecords;

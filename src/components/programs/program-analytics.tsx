@@ -2,10 +2,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AcademicProgram, ProgramComplianceRecord, Campus, Unit, AccreditationRecord } from '@/lib/types';
+import type { AcademicProgram, ProgramComplianceRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '../ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -31,6 +30,7 @@ import {
     Loader2,
     Check,
     X,
+    PlusCircle,
     GraduationCap,
     HelpCircle,
     CalendarCheck,
@@ -149,7 +149,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         if (p.isActive) activeCount++;
         else inactiveCount++;
 
-        // NORMALIZE IDENTIFIER MATCHING
         const record = compliances.find(c => 
             String(c.programId || '').toLowerCase().trim() === String(p.id || '').toLowerCase().trim()
         );
@@ -172,7 +171,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             if (hasCopc) activeCopc++;
         }
 
-        // Survey Pipeline Logic
         const validityStr = currentMilestone?.statusValidityDate || (p.isNewProgram ? 'NEW PROGRAM' : 'AWAITING RESULT');
         let status = 'AWAITING RESULT';
         if (p.isActive) {
@@ -442,16 +440,17 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     <ResponsiveContainer>
                         <BarChart data={analytics?.accreditationSummary} layout="vertical" margin={{ left: 40, right: 60 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
-                            <XAxis type="number" hide />
                             <YAxis dataKey="level" type="category" tick={{ fontSize: 9, fontWeight: 700 }} width={140} axisLine={false} tickLine={false} />
+                            <XAxis type="number" hide />
                             <RechartsTooltip content={<ChartTooltipContent />} />
+                            <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingBottom: '20px' }} />
                             <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={12}>
                                 <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} />
                             </Bar>
                             <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={12}>
                                 <LabelList dataKey="Graduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} />
                             </Bar>
-                            <Bar dataKey="total" stackId="b" fill="transparent"><LabelList dataKey="total" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--primary))' }} /></Bar>
+                            <Bar dataKey="total" fill="transparent"><LabelList dataKey="total" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--primary))' }} /></Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
@@ -471,9 +470,14 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                             <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
                             <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                             <RechartsTooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30} />
-                            <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30} />
-                            <Bar dataKey="total" stackId="b" fill="transparent"><LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#059669' }} /></Bar>
+                            <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingBottom: '20px' }} />
+                            <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30}>
+                                <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} />
+                            </Bar>
+                            <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30}>
+                                <LabelList dataKey="Graduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} />
+                            </Bar>
+                            <Bar dataKey="total" fill="transparent"><LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#059669' }} /></Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartContainer>
@@ -485,7 +489,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <Card className="shadow-md border-primary/10 flex flex-col">
               <CardHeader className="bg-muted/10 border-b py-4">
                 <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle>
-                <CardDescription className="text-[10px]">Upcoming validity expirations based on current milestones.</CardDescription>
+                <CardDescription className="text-[10px]">Upcoming validity expirations.</CardDescription>
               </CardHeader>
               <CardContent className="pt-10 flex-1">
                 <ChartContainer config={chartConfig} className="h-[350px] w-full">
@@ -495,11 +499,14 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
                       <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                       <RechartsTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30} />
-                      <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30} />
-                      <Bar dataKey="total" stackId="b" fill="transparent">
-                        <LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#ef4444' }} />
+                      <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingBottom: '20px' }} />
+                      <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30}>
+                        <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} />
                       </Bar>
+                      <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30}>
+                        <LabelList dataKey="Graduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} />
+                      </Bar>
+                      <Bar dataKey="total" fill="transparent"><LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#ef4444' }} /></Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </ChartContainer>
@@ -508,7 +515,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <Card className="shadow-md border-primary/10 flex flex-col">
               <CardHeader className="bg-muted/10 border-b py-4">
                 <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle>
-                <CardDescription className="text-[10px]">Total successful surveys recorded chronologically.</CardDescription>
+                <CardDescription className="text-[10px]">Total surveys recorded per year.</CardDescription>
               </CardHeader>
               <CardContent className="pt-10 flex-1">
                 <ChartContainer config={chartConfig} className="h-[350px] w-full">
@@ -518,11 +525,14 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                       <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
                       <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                       <RechartsTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30} />
-                      <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30} />
-                      <Bar dataKey="total" stackId="b" fill="transparent">
-                        <LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#3b82f6' }} />
+                      <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingBottom: '20px' }} />
+                      <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30}>
+                        <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} />
                       </Bar>
+                      <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30}>
+                        <LabelList dataKey="Graduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} />
+                      </Bar>
+                      <Bar dataKey="total" fill="transparent"><LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#3b82f6' }} /></Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </ChartContainer>
@@ -535,7 +545,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
                     <ShieldCheck className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Pipeline (Roadmap)</CardTitle>
+                    <CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Roadmap (Pipeline)</CardTitle>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                     <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1.5 h-6 font-black text-[10px] uppercase">
