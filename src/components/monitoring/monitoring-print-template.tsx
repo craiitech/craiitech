@@ -5,16 +5,14 @@ import type { UnitMonitoringRecord } from '@/lib/types';
 import { monitoringGroups, statusLegend } from '@/lib/monitoring-checklist-items';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
-import { getDirectDriveLink } from '@/lib/utils';
 
 interface MonitoringPrintTemplateProps {
   record: UnitMonitoringRecord;
   campusName: string;
   unitName: string;
-  logoUrl?: string;
 }
 
-export function MonitoringPrintTemplate({ record, campusName, unitName, logoUrl }: MonitoringPrintTemplateProps) {
+export function MonitoringPrintTemplate({ record, campusName, unitName }: MonitoringPrintTemplateProps) {
   if (!record) return null;
 
   const visitDate = record.visitDate instanceof Timestamp 
@@ -23,14 +21,11 @@ export function MonitoringPrintTemplate({ record, campusName, unitName, logoUrl 
 
   return (
     <div className="p-8 text-black bg-white max-w-4xl mx-auto font-sans leading-tight shadow-none border-none">
-      {/* Header */}
+      {/* Header - Logo Removed */}
       <div className="text-center border-b-2 border-black pb-4 mb-6">
-        <div className="flex items-center justify-center gap-4 mb-2">
-            <img src={getDirectDriveLink(logoUrl) || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
-            <div className="text-left">
-                <h1 className="text-xl font-bold uppercase tracking-tight leading-none">Romblon State University</h1>
-                <h2 className="text-lg font-semibold uppercase tracking-tight leading-none mt-1">Quality Assurance Office</h2>
-            </div>
+        <div className="flex flex-col items-center justify-center gap-1 mb-2">
+            <h1 className="text-xl font-bold uppercase tracking-tight leading-none">Romblon State University</h1>
+            <h2 className="text-lg font-semibold uppercase tracking-tight leading-none mt-1">Quality Assurance Office</h2>
         </div>
         <div className="mt-2 py-1 px-4 bg-black text-white inline-block uppercase text-sm font-black tracking-widest">
           Unit Monitoring Report

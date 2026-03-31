@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -6,8 +5,6 @@ import type { Risk, Signatories } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
 
 interface RORPrintTemplateProps {
   risks: Risk[];
@@ -15,10 +12,9 @@ interface RORPrintTemplateProps {
   campusName: string;
   year: number;
   signatories?: Signatories;
-  logoUrl?: string;
 }
 
-export function RORPrintTemplate({ risks, unitName, campusName, year, signatories, logoUrl }: RORPrintTemplateProps) {
+export function RORPrintTemplate({ risks, unitName, campusName, year, signatories }: RORPrintTemplateProps) {
   const safeDate = (d: any) => {
     if (!d) return '';
     const date = d instanceof Timestamp ? d.toDate() : new Date(d);
@@ -28,26 +24,19 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
   const riskEntries = risks.filter(r => r.type === 'Risk');
   const opportunityEntries = risks.filter(r => r.type === 'Opportunity');
 
-  // Determine if this is a "Final" submission based on presence of post-treatment data
   const isFinal = risks.some(r => r.status === 'Closed' || (r.postTreatment && r.postTreatment.evidence));
 
-  // Signatory Logic based on Site
   const isMainCampus = campusName.toLowerCase().includes('main campus') || campusName.toLowerCase().includes('site 1');
   const approverTitle = isMainCampus ? 'UNIT HEAD / DIRECTOR' : 'CAMPUS DIRECTOR';
 
   return (
     <div className="p-4 text-black bg-white max-w-[13in] mx-auto font-sans leading-tight">
-      {/* Institutional Header */}
-      <div className="flex items-center justify-between border-b-2 border-black pb-2 mb-4">
-        <div className="flex items-center gap-4">
-            <img src={logoUrl || "/rsupage.png"} alt="University Logo" className="h-14 object-contain" />
-            <div className="text-left">
-                <p className="text-[10px] uppercase">Republic of the Philippines</p>
-                <h1 className="text-lg font-bold uppercase leading-none">Romblon State University</h1>
-                <p className="text-[10px]">Romblon, Philippines</p>
-            </div>
-        </div>
-        <div className="text-center">
+      {/* Institutional Header - Logo Removed */}
+      <div className="flex flex-col items-center justify-center border-b-2 border-black pb-2 mb-4 text-center">
+        <p className="text-[10px] uppercase">Republic of the Philippines</p>
+        <h1 className="text-xl font-bold uppercase leading-none">Romblon State University</h1>
+        <p className="text-[10px]">Romblon, Philippines</p>
+        <div className="mt-4">
             <h2 className="text-md font-black uppercase tracking-[0.1em]">RISK AND OPPORTUNITY REGISTER (ROR)</h2>
             <div className="flex items-center justify-center gap-4 mt-1 text-[11px] font-bold">
                 <span>FISCAL YEAR <span className="underline px-2">{year}</span></span>
@@ -64,9 +53,6 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
                     <span>Final</span>
                 </div>
             </div>
-        </div>
-        <div className="flex items-center gap-2">
-            <img src="/ISOlogo.jpg" alt="ISO Logo" className="h-14 object-contain" />
         </div>
       </div>
 
@@ -98,7 +84,6 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
           </tr>
         </thead>
         <tbody>
-          {/* RISK SECTION */}
           <tr className="bg-slate-100 font-black text-center uppercase tracking-widest border border-black">
             <td colSpan={16} className="py-0.5 border border-black">Risk</td>
           </tr>
@@ -124,7 +109,6 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
           ))}
           {riskEntries.length === 0 && <tr><td colSpan={16} className="border border-black p-4 text-center text-slate-400 italic">No risk entries recorded.</td></tr>}
 
-          {/* OPPORTUNITY SECTION */}
           <tr className="bg-slate-100 font-black text-center uppercase tracking-widest border border-black">
             <td colSpan={16} className="py-0.5 border border-black">Opportunity</td>
           </tr>
@@ -165,10 +149,6 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
             <p className="font-bold mb-1">Legend:</p>
             <div className="grid grid-cols-1 gap-0.5">
                 <p><span className="font-bold">Risk / Opportunity Rating ***:</span> L - Low | M - Medium | H - High</p>
-                <div className="flex items-center gap-1 font-black text-primary">
-                    <div className="h-2.5 w-2.5 bg-yellow-400 rounded-full" />
-                    <span>- New Risk / Opportunity -</span>
-                </div>
             </div>
         </div>
       </div>
@@ -184,14 +164,12 @@ export function RORPrintTemplate({ risks, unitName, campusName, year, signatorie
         <div>
             <p className="text-left mb-6 text-[9px] opacity-60">Monitored by:</p>
             <div className="border-b border-black pb-1 min-h-[1.5rem] uppercase">
-                {/* Visual placeholder for signature */}
             </div>
             <p className="mt-1 text-[8px]">UNIT COORDINATOR</p>
         </div>
         <div>
             <p className="text-left mb-6 text-[9px] opacity-60">Approved by:</p>
             <div className="border-b border-black pb-1 min-h-[1.5rem] uppercase font-black text-primary">
-                {/* Approval Name logic handled in registration */}
             </div>
             <p className="mt-1 text-[8px]">{approverTitle}</p>
         </div>

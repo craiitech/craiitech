@@ -153,16 +153,16 @@ service cloud.firestore {
       allow create: if true; 
     }
 
+    match /{path=**} {
+      allow read, write: if isAdmin();
+    }
+
     // --------------------------------------------------------------------------
-    // EMPLOYEE ACTIVITY LOG (APPENDED AT END)
+    // EMPLOYEE ACTIVITY LOG (APPENDED AT END AS PER INSTRUCTIONS)
     // --------------------------------------------------------------------------
     match /employeeActivities/{id} {
       allow get, list, read: if request.auth != null;
       allow write, create, update, delete: if request.auth != null;
-    }
-
-    match /{path=**} {
-      allow read, write: if isAdmin();
     }
   }
 }
