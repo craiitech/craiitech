@@ -68,12 +68,27 @@ interface ProgramAnalyticsProps {
   selectedYear: number;
 }
 
+// FULL ORDER OF ACCREDITATION LEVELS AS DEFINED IN THE REGISTRY MODULE
 const ACCREDITATION_LEVELS_ORDER = [
-    'Level IV Re-accredited', 'Level IV Accredited',
-    'Level III Re-accredited', 'Level III Accredited',
-    'Level II Re-accredited', 'Level II Accredited',
-    'Level I Re-accredited', 'Level I Accredited',
-    'PSV', 'AWAITING RESULT', 'Not Yet Subject'
+  "Level IV Re-accredited",
+  "Level IV Accredited",
+  "Level IV - Phase 2 Re-accredited",
+  "Level IV - Phase 2 Accredited",
+  "Level IV - Phase 1 Re-accredited",
+  "Level IV - Phase 1 Accredited",
+  "Level III Re-accredited",
+  "Level III Accredited",
+  "Level III - Phase 2 Re-accredited",
+  "Level III - Phase 2 Accredited",
+  "Level III - Phase 1 Re-accredited",
+  "Level III - Phase 1 Accredited",
+  "Level II Re-accredited",
+  "Level II Accredited",
+  "Level I Re-accredited",
+  "Level I Accredited",
+  "Preliminary Survey Visit (PSV)",
+  "AWAITING RESULT",
+  "Not Yet Subject"
 ];
 
 type ProgramCategory = 'Undergraduate' | 'Graduate' | 'Inactive';
@@ -188,7 +203,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         });
 
         if (record) {
-            // Timeline chart population
             const copcYear = record.ched?.copcAwardDate?.match(/\d{4}/)?.[0];
             if (copcYear) {
                 if (!copcByYear[copcYear]) copcByYear[copcYear] = { year: copcYear, Undergraduate: 0, Graduate: 0, Inactive: 0, total: 0 };
@@ -236,7 +250,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 });
             }
 
-            // Faculty
             if (record.faculty) {
                 const roster = [...(record.faculty.members || [])];
                 if (record.faculty.dean?.name) roster.push(record.faculty.dean as any);
@@ -247,7 +260,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     if (!uniqueFacultySet.has(key)) {
                         uniqueFacultySet.add(key);
                         if (m.sex === 'Male') totalMaleFaculty++;
-                        else if (m.sex === 'Female') totalFemaleFemale++;
+                        else if (m.sex === 'Female') totalFemaleFaculty++;
                         else totalOthersFaculty++;
                     }
                 });
@@ -265,9 +278,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         }
     });
 
-    // Chart Data Construction
     const accreditationDataMap: Record<string, any> = {};
-    ACCREDITATION_LEVELS_ORDER.forEach(lvl => accreditationDataMap[lvl] = { level: lvl, Undergraduate: 0, Graduate: 0, Inactive: 0, total: 0 });
+    ACCREDITATION_LEVELS_ORDER.forEach(lvl => {
+        accreditationDataMap[lvl] = { level: lvl, Undergraduate: 0, Graduate: 0, Inactive: 0, total: 0 };
+    });
+
     programs.forEach(p => {
         const cat = getProgramCategory(p);
         let lvlKey = 'AWAITING RESULT';
@@ -276,19 +291,35 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             const rec = compliances.find(c => c.programId === p.id);
             const mil = rec?.accreditationRecords || [];
             const cur = mil.find(m => m.lifecycleStatus === 'Current') || mil[mil.length - 1];
-            lvlKey = cur?.level || 'AWAITING RESULT';
-            if (lvlKey.includes('PSV')) lvlKey = 'PSV';
+            
+            // Flexible matching for Level keys
+            const rawLevel = cur?.level || 'AWAITING RESULT';
+            if (rawLevel.includes('PSV')) lvlKey = 'Preliminary Survey Visit (PSV)';
+            else lvlKey = rawLevel;
         }
-        if (accreditationDataMap[lvlKey]) { accreditationDataMap[lvlKey][cat]++; accreditationDataMap[lvlKey].total++; }
+        if (accreditationDataMap[lvlKey]) { 
+            accreditationDataMap[lvlKey][cat]++; 
+            accreditationDataMap[lvlKey].total++; 
+        } else {
+            // Fallback for unmapped levels
+            if (!accreditationDataMap['AWAITING RESULT']) accreditationDataMap['AWAITING RESULT'] = { level: 'AWAITING RESULT', Undergraduate: 0, Graduate: 0, Inactive: 0, total: 0 };
+            accreditationDataMap['AWAITING RESULT'][cat]++;
+            accreditationDataMap['AWAITING RESULT'].total++;
+        }
     });
 
     const sortTimeline = (data: Record<string, any>) => Object.values(data).sort((a, b) => a.year.localeCompare(b.year));
 
     const makePieData = (m: number, f: number, o: number = 0) => {
-        return [{ name: 'Male', value: m, fill: chartConfig.Male.color }, { name: 'Female', value: f, fill: chartConfig.Female.color }, { name: 'Others (LGBTQI++)', value: o, fill: chartConfig.Others.color }].filter(d => d.value > 0);
+        return [
+            { name: 'Male', value: m, fill: chartConfig.Male.color }, 
+            { name: 'Female', value: f, fill: chartConfig.Female.color }, 
+            { name: 'Others (LGBTQI++)', value: o, fill: chartConfig.Others.color }
+        ].filter(d => d.value > 0);
     };
 
-    const monitoredCount = compliances.length;
+    const monitoredPrograms = programs.filter(p => compliances.some(c => c.programId === p.id));
+    const monitoredCount = monitoredPrograms.length;
     const integrityRate = programs.length > 0 ? Math.round((monitoredCount / programs.length) * 100) : 0;
 
     return { 
@@ -306,7 +337,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         gadFacultyData: makePieData(totalMaleFaculty, totalFemaleFaculty, totalOthersFaculty),
         gadGraduationData: makePieData(totalMaleGrads, totalFemaleGrads),
         gadTracerData: makePieData(totalMaleTraced, totalFemaleTraced),
-        boardPerfData: boardCount > 0 ? [{ name: 'School', rate: Math.round(totalSchoolRate / boardCount), fill: chartConfig.School.color }, { name: 'National', rate: Math.round(totalNationalRate / boardCount), fill: chartConfig.National.color }] : [],
+        boardPerfData: boardCount > 0 ? [
+            { name: 'School', rate: Math.round(totalSchoolRate / boardCount), fill: chartConfig.School.color }, 
+            { name: 'National', rate: Math.round(totalNationalRate / boardCount), fill: chartConfig.National.color }
+        ] : [],
         monitoredCount,
         integrityRate
     };
@@ -321,7 +355,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
   };
 
   const getSortIcon = (key: SortKey) => {
-    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", roadmapSortConfig.key === key ? "text-primary opacity-100" : "opacity-20")} />;
+    return (
+        <ArrowUpDown className={cn(
+            "h-3 w-3 ml-1.5 transition-colors",
+            roadmapSortConfig.key === key ? "text-primary opacity-100" : "opacity-20"
+        )} />
+    );
   };
 
   const sortedRoadmap = useMemo(() => {
