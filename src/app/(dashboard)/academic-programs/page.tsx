@@ -174,7 +174,7 @@ export default function AcademicProgramsPage() {
     }
   };
 
-  const isLoading = isUserLoading || isLoadingPrograms || isLoadingCampuses || isLoadingCompliances || isLoadingUnits;
+  const isLoading = isUserLoading || isLoadingPrograms || isLoadingCampuses || isLoadingUnits || isLoadingCompliances;
   const academicYears = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
   return (

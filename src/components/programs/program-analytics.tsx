@@ -34,7 +34,8 @@ import {
     HelpCircle,
     CalendarCheck,
     ShieldAlert,
-    LayoutGrid
+    LayoutGrid,
+    Clock
 } from 'lucide-react';
 import { 
     BarChart, 
@@ -52,8 +53,6 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { cn } from '@/lib/utils';
-import { Timestamp } from 'firebase/firestore';
-import { format } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
 
 interface ProgramAnalyticsProps {
