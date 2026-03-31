@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -20,7 +21,9 @@ import {
     Heart,
     Activity,
     Loader2,
-    Trophy
+    Trophy,
+    ShieldAlert,
+    AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
@@ -45,15 +48,34 @@ type StrengthItem = {
 
 export function MaturityStrengths({ programs, compliances, campuses, units, isLoading, selectedYear }: MaturityStrengthsProps) {
   
-  const strengths = useMemo(() => {
-    if (!programs.length) return [];
+  const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
+
+  const analysis = useMemo(() => {
+    if (!programs.length) return { strengths: [], gaps: [] };
 
     const strengthsList: StrengthItem[] = [];
+    const gapsRegistry: any[] = [];
     const activePrograms = programs.filter(p => p.isActive);
+
+    activePrograms.forEach(p => {
+        const record = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
+        const hasCopc = record?.ched?.copcStatus === 'With COPC';
+
+        // Actionable Gap Logic
+        const gaps = [];
+        if (!record?.faculty?.members?.length) gaps.push('FACULTY STAFFING LIST');
+        if (!record?.graduationRecords?.length) gaps.push('GRADUATION OUTCOME DATA');
+        if (!hasCopc) gaps.push('COPC CERTIFICATE');
+        if (!record?.ched?.programCmoLink) gaps.push('OFFICIAL CMO LINK');
+        
+        if (gaps.length > 0) {
+            gapsRegistry.push({ program: p, gaps });
+        }
+    });
 
     // 1. HIGH-TIER ACCREDITATION (LEVEL III & IV)
     const eliteAccredited = activePrograms.filter(p => {
-        const record = compliances.find(c => c.programId === p.id);
+        const record = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
         const milestones = record?.accreditationRecords || [];
         const current = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
         return current && (current.level.includes('Level III') || current.level.includes('Level IV'));
@@ -72,7 +94,7 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
 
     // 2. FULL REGULATORY COMPLIANCE (COPC)
     const copcComplete = activePrograms.filter(p => {
-        const record = compliances.find(c => c.programId === p.id);
+        const record = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
         return record?.ched?.copcStatus === 'With COPC';
     }).map(p => p.abbreviation);
 
@@ -89,7 +111,7 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
 
     // 3. RESOURCE INTEGRITY (FACULTY ALIGNMENT)
     const perfectlyAligned = activePrograms.filter(p => {
-        const record = compliances.find(c => c.programId === p.id);
+        const record = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
         if (!record?.faculty?.members || record.faculty.members.length === 0) return false;
         return record.faculty.members.every(m => m.isAlignedWithCMO === 'Aligned');
     }).map(p => p.abbreviation);
@@ -107,7 +129,7 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
 
     // 4. OUTCOME LEADERSHIP (BOARD PERFORMANCE)
     const boardLeaders = activePrograms.filter(p => {
-        const record = compliances.find(c => c.programId === p.id);
+        const record = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
         if (!record?.boardPerformance || record.boardPerformance.length === 0) return false;
         const latest = record.boardPerformance[record.boardPerformance.length - 1];
         if (!latest) return false;
@@ -131,20 +153,20 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
         strengthsList.push({
             title: 'Higher Education Scope',
             description: `Strong portfolio of ${graduatePrograms.length} active Master's/Doctoral offerings.`,
-            impact: 'Positions RSU  as a center for advanced research and professional development in the region.',
+            impact: 'Positions RSU as a center for advanced research and professional development in the region.',
             icon: <GraduationCap className="h-6 w-6 text-indigo-600" />,
             programs: graduatePrograms,
             category: 'Accreditation'
         });
     }
 
-    return strengthsList;
+    return { strengths: strengthsList, gaps: gapsRegistry };
   }, [programs, compliances]);
 
   if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-20">
       <div className="flex items-center gap-3 bg-emerald-50 p-6 rounded-2xl border border-emerald-100 shadow-sm relative overflow-hidden">
         <div className="absolute top-0 right-0 p-4 opacity-10"><Trophy className="h-20 w-20 text-emerald-600" /></div>
         <div className="h-12 w-12 rounded-xl bg-emerald-600 flex items-center justify-center text-white shadow-lg">
@@ -157,7 +179,7 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {strengths.map((strength, index) => (
+        {analysis.strengths.map((strength, index) => (
             <Card key={index} className="shadow-lg border-emerald-100 hover:border-emerald-300 transition-all group relative overflow-hidden flex flex-col">
                 <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500 opacity-20 group-hover:opacity-100 transition-all" />
                 <CardHeader className="pb-4">
@@ -204,7 +226,7 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
             </Card>
         ))}
 
-        {strengths.length === 0 && (
+        {analysis.strengths.length === 0 && (
             <Card className="col-span-full py-20 border-dashed bg-muted/5 flex flex-col items-center justify-center text-center">
                 <Activity className="h-12 w-12 opacity-10 mb-4" />
                 <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Calibrating Maturity Strengths...</p>
@@ -212,6 +234,50 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
             </Card>
         )}
       </div>
+
+      <Separator />
+
+      <Card className="border-rose-200 bg-rose-50/10 shadow-xl overflow-hidden animate-in zoom-in duration-500">
+          <CardHeader className="bg-rose-50 border-b py-4 flex flex-row items-center justify-between">
+              <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-rose-700">
+                      <ShieldAlert className="h-5 w-5 text-rose-700" />
+                      <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Gaps Registry</CardTitle>
+                  </div>
+                  <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-rose-600/70">Critical documentation deficiencies impacting maturity index for AY {selectedYear}.</CardDescription>
+              </div>
+              <Badge variant="destructive" className="h-6 px-4 font-black uppercase text-[10px] shadow-sm">Action Required</Badge>
+          </CardHeader>
+          <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {analysis.gaps.map((entry: any, idx: number) => (
+                      <div key={idx} className="space-y-2.5 p-4 rounded-2xl bg-white border border-rose-100 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                  <p className="text-[11px] font-black uppercase text-slate-900 leading-tight truncate" title={entry.program.name}>{entry.program.name}</p>
+                                  <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">{campusMap.get(entry.program.campusId)}</p>
+                              </div>
+                              <Badge variant="destructive" className="h-4 px-1.5 text-[8px] font-black shrink-0">{entry.gaps.length} GAPS</Badge>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                              {entry.gaps.map((gap: string, gIdx: number) => (
+                                  <Badge key={gIdx} variant="secondary" className="text-[7px] h-3.5 px-1 bg-rose-50 text-rose-600 border-rose-100 font-black uppercase">{gap}</Badge>
+                              ))}
+                          </div>
+                      </div>
+                  ))}
+                  {analysis.gaps.length === 0 && (
+                      <div className="col-span-full py-12 flex flex-col items-center justify-center text-center opacity-20">
+                          <ShieldCheck className="h-12 w-12 text-emerald-600" />
+                          <p className="text-sm font-black uppercase mt-2">All Programs Compliant</p>
+                      </div>
+                  )}
+              </div>
+          </CardContent>
+          <CardFooter className="bg-rose-50/50 border-t py-2 px-6">
+              <p className="text-[9px] text-rose-800/60 italic font-medium">Guidance for usage: Identification of these gaps is mandatory for ISO 21001:2018 compliance tracking. High gap counts signify institutional risk during external audits.</p>
+          </CardFooter>
+      </Card>
 
       <Card className="border-primary/10 shadow-md">
         <CardHeader className="bg-muted/10 border-b py-4">

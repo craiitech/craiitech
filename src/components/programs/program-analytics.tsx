@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -140,7 +141,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     const achievementByYear: Record<string, any> = {};
     const milestoneVelocity: Record<string, any> = {};
     const roadmapData: any[] = [];
-    const gapsRegistry: any[] = [];
     const currentYearNum = new Date().getFullYear();
 
     programs.forEach(p => {
@@ -166,17 +166,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         if (p.isActive) {
             if (isAccredited) activeAccredited++;
             if (hasCopc) activeCopc++;
-        }
-
-        // Actionable Gap Logic
-        const gaps = [];
-        if (!record?.faculty?.members?.length) gaps.push('FACULTY STAFFING LIST');
-        if (!record?.graduationRecords?.length) gaps.push('GRADUATION OUTCOME DATA');
-        if (!hasCopc) gaps.push('COPC CERTIFICATE');
-        if (!record?.ched?.programCmoLink) gaps.push('OFFICIAL CMO LINK');
-        
-        if (gaps.length > 0) {
-            gapsRegistry.push({ program: p, gaps });
         }
 
         // Survey Pipeline Logic
@@ -301,7 +290,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         achievementHistoryData: sortTimeline(achievementByYear),
         milestoneVelocityData: sortTimeline(milestoneVelocity),
         roadmapData,
-        gapsRegistry,
         gadEnrollment1stData: makePieData(sem1Male, sem1Female),
         gadEnrollment2ndData: makePieData(sem2Male, sem2Female),
         gadEnrollmentSummerData: makePieData(summerMale, summerFemale),
@@ -407,48 +395,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             </CardFooter>
         </Card>
       </div>
-
-      <Card className="border-rose-200 bg-rose-50/10 shadow-xl overflow-hidden animate-in zoom-in duration-500">
-          <CardHeader className="bg-rose-50 border-b py-4 flex flex-row items-center justify-between">
-              <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-rose-700">
-                      <ShieldAlert className="h-5 w-5" />
-                      <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Gaps Registry</CardTitle>
-                  </div>
-                  <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-rose-600/70">Critical documentation deficiencies impacting maturity index for AY {selectedYear}.</CardDescription>
-              </div>
-              <Badge variant="destructive" className="h-6 px-4 font-black uppercase text-[10px] shadow-sm">Action Required</Badge>
-          </CardHeader>
-          <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {analytics?.gapsRegistry.map((entry, idx) => (
-                      <div key={idx} className="space-y-2.5 p-4 rounded-2xl bg-white border border-rose-100 shadow-sm hover:shadow-md transition-shadow">
-                          <div className="flex items-start justify-between gap-4">
-                              <div className="min-w-0">
-                                  <p className="text-[11px] font-black uppercase text-slate-900 leading-tight truncate" title={entry.program.name}>{entry.program.name}</p>
-                                  <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">{campusMap.get(entry.program.campusId)}</p>
-                              </div>
-                              <Badge variant="destructive" className="h-4 px-1.5 text-[8px] font-black shrink-0">{entry.gaps.length} GAPS</Badge>
-                          </div>
-                          <div className="flex flex-wrap gap-1.5 pt-1">
-                              {entry.gaps.map((gap: string, gIdx: number) => (
-                                  <Badge key={gIdx} variant="secondary" className="text-[7px] h-3.5 px-1 bg-rose-50 text-rose-600 border-rose-100 font-black uppercase">{gap}</Badge>
-                              ))}
-                          </div>
-                      </div>
-                  ))}
-                  {analytics?.gapsRegistry.length === 0 && (
-                      <div className="col-span-full py-12 flex flex-col items-center justify-center text-center opacity-20">
-                          <ShieldCheck className="h-12 w-12 text-emerald-600" />
-                          <p className="text-sm font-black uppercase mt-2">All Programs Compliant</p>
-                      </div>
-                  )}
-              </div>
-          </CardContent>
-          <CardFooter className="bg-rose-50/50 border-t py-2 px-6">
-              <p className="text-[9px] text-rose-800/60 italic font-medium">Guidance for usage: Identification of these gaps is mandatory for ISO 21001:2018 compliance tracking. High gap counts signify institutional risk during external audits.</p>
-          </CardFooter>
-      </Card>
 
       <div className="space-y-4">
           <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs border-b pb-2"><Users className="h-4 w-4" /> Gender & Development (GAD) Compliance Metrics</div>

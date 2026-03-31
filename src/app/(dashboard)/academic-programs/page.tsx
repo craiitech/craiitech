@@ -163,7 +163,7 @@ export default function AcademicProgramsPage() {
         if (p.isActive) activeCount++;
         else inactiveCount++;
         
-        const record = rawCompliances?.find(c => c.programId === p.id);
+        const record = rawCompliances?.find(c => String(c.programId).trim() === String(p.id).trim());
         const isAccredited = (rec: ProgramComplianceRecord | undefined) => {
             if (!rec || !rec.accreditationRecords || rec.accreditationRecords.length === 0) return false;
             const milestones = rec.accreditationRecords;
@@ -349,7 +349,7 @@ export default function AcademicProgramsPage() {
                 <BarChart3 className="h-4 w-4" /> Decision Support
             </TabsTrigger>
             <TabsTrigger value="strengths" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
-                <Trophy className="h-4 w-4 text-amber-500" /> Maturity Strengths
+                <Trophy className="h-4 w-4 text-amber-500" /> Maturity Strengths & Gaps
             </TabsTrigger>
             <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
                 <Layers className="h-4 w-4" /> Program Registry
@@ -458,7 +458,7 @@ export default function AcademicProgramsPage() {
                         </div>
                     </CardContent>
                     <div className="p-3 bg-purple-100/20 border-t mt-auto">
-                        <p className="text-[9px] text-purple-800/60 italic leading-tight">
+                        <p className="text-[9px] text-emerald-800/60 italic leading-tight">
                             Active programs where all staff meet CMO qualifications.
                         </p>
                     </div>
