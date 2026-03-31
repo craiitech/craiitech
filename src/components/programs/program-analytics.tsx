@@ -140,7 +140,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         const category = getProgramCategory(p);
         if (p.isActive) activeCount++;
 
-        const record = compliances.find(c => c.programId === p.id);
+        const record = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
         const milestones = record?.accreditationRecords || [];
         const currentMilestone = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
         
@@ -249,7 +249,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         let lvlKey = 'AWAITING RESULT';
         if (p.isNewProgram) lvlKey = 'Not Yet Subject';
         else {
-            const rec = compliances.find(c => c.programId === p.id);
+            const rec = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
             const mil = rec?.accreditationRecords || [];
             const cur = mil.find(m => m.lifecycleStatus === 'Current') || mil[mil.length - 1];
             const rawLevel = cur?.level || 'AWAITING RESULT';
@@ -268,7 +268,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         { name: 'Others', value: o, fill: chartConfig.Others.color }
     ].filter(d => d.value > 0);
 
-    const monitoredCount = programs.filter(p => compliances.some(c => c.programId === p.id)).length;
+    const monitoredCount = programs.filter(p => compliances.some(c => String(c.programId).trim() === String(p.id).trim())).length;
 
     return { 
         accreditationSummary: Object.values(accreditationDataMap).filter(d => d.total > 0),
@@ -400,10 +400,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card className="shadow-md border-primary/10 flex flex-col">
-              <CardHeader className="bg-muted/10 border-b py-4">
-                <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle>
-                <CardDescription className="text-[10px]">Upcoming validity expirations.</CardDescription>
-              </CardHeader>
+              <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle><CardDescription className="text-[10px]">Upcoming validity expirations.</CardDescription></CardHeader>
               <CardContent className="pt-10 flex-1">
                 <ChartContainer config={chartConfig} className="h-[350px] w-full">
                   <ResponsiveContainer>
@@ -423,10 +420,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
               </CardContent>
           </Card>
           <Card className="shadow-md border-primary/10 flex flex-col">
-              <CardHeader className="bg-muted/10 border-b py-4">
-                <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle>
-                <CardDescription className="text-[10px]">Total surveys recorded per year.</CardDescription>
-              </CardHeader>
+              <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle><CardDescription className="text-[10px]">Total surveys recorded per year.</CardDescription></CardHeader>
               <CardContent className="pt-10 flex-1">
                 <ChartContainer config={chartConfig} className="h-[350px] w-full">
                   <ResponsiveContainer>
