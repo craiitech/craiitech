@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, Timestamp, doc, deleteDoc } from 'firebase/firestore';
 import type { EmployeeActivity, Campus, Unit, User } from '@/lib/types';
@@ -14,31 +14,18 @@ import {
     Calendar, 
     Printer, 
     Search, 
-    Filter, 
     History, 
     CheckCircle2, 
     Clock, 
-    MoreHorizontal,
     Edit,
     Trash2,
-    FileText,
-    Download,
-    Info,
     LayoutList,
-    Building
 } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { 
-    DropdownMenu, 
-    DropdownMenuContent, 
-    DropdownMenuItem, 
-    DropdownMenuLabel, 
-    DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
 import { ActivityLogFormDialog } from '@/components/activity-log/activity-log-form-dialog';
 import { 
     Table, 
@@ -50,6 +37,7 @@ import {
 } from '@/components/ui/table';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AccomplishmentReportTemplate } from '@/components/activity-log/accomplishment-report-template';
+import { cn } from '@/lib/utils';
 
 export default function EmployeeActivityLogPage() {
   const { user, userProfile, isAdmin, isSupervisor } = useUser();
@@ -74,13 +62,19 @@ export default function EmployeeActivityLogPage() {
         return query(baseRef, where('userId', '==', user.uid), orderBy('date', 'desc'));
     }
     
-    // Supervisor oversight
-    if (viewScope === 'unit' && userProfile?.unitId) {
-        return query(baseRef, where('unitId', '==', userProfile.unitId), orderBy('date', 'desc'));
+    // Supervisor oversight logic: handle cases where supervisor may not have unit/campus IDs yet (e.g. bootstrap admin)
+    if (viewScope === 'unit') {
+        if (userProfile?.unitId) {
+            return query(baseRef, where('unitId', '==', userProfile.unitId), orderBy('date', 'desc'));
+        }
+        return query(baseRef, orderBy('date', 'desc')); // Broad list for institutional admin
     }
     
-    if (viewScope === 'campus' && userProfile?.campusId) {
-        return query(baseRef, where('campusId', '==', userProfile.campusId), orderBy('date', 'desc'));
+    if (viewScope === 'campus') {
+        if (userProfile?.campusId) {
+            return query(baseRef, where('campusId', '==', userProfile.campusId), orderBy('date', 'desc'));
+        }
+        return query(baseRef, orderBy('date', 'desc')); // Broad list for institutional admin
     }
 
     return query(baseRef, where('userId', '==', user.uid), orderBy('date', 'desc'));
@@ -246,7 +240,7 @@ export default function EmployeeActivityLogPage() {
                       <SelectContent>
                           <SelectItem value="personal">My Personal Log</SelectItem>
                           {(isAdmin || isSupervisor) && <SelectItem value="unit">Unit-Wide Log</SelectItem>}
-                          {isAdmin && <SelectItem value="campus">Campus-Wide Log</SelectItem>}
+                          {(isAdmin || isSupervisor) && <SelectItem value="campus">Campus-Wide Log</SelectItem>}
                       </SelectContent>
                   </Select>
               </CardContent>
@@ -316,7 +310,7 @@ export default function EmployeeActivityLogPage() {
                                               "text-[9px] font-black uppercase border-none px-2 shadow-sm",
                                               activity.status === 'Completed' ? "bg-emerald-600 text-white" : 
                                               activity.status === 'In Progress' ? "bg-blue-600 text-white" : 
-                                              "bg-amber-500 text-amber-950"
+                                              "bg-amber-50 text-amber-950"
                                           )}
                                       >
                                           {activity.status}
