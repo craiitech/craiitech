@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -51,7 +50,7 @@ export default function EmployeeActivityLogPage() {
   // Filter States
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<string>(''); // Deferred to useEffect to prevent hydration error
+  const [dateFilter, setDateFilter] = useState<string>(''); 
   const [viewScope, setViewScope] = useState<'personal' | 'unit' | 'campus'>('personal');
 
   // Fix: Defer default date to mount
@@ -60,8 +59,8 @@ export default function EmployeeActivityLogPage() {
   }, []);
 
   const activitiesQuery = useMemoFirebase(() => {
-    // CRITICAL: Defer query until session and profile are fully ready to prevent permission errors
-    if (!firestore || !user || isUserLoading || !userProfile) return null;
+    // CRITICAL: Prevent query if not admin (for testing) or if loading
+    if (!firestore || !user || isUserLoading || !userProfile || !isAdmin) return null;
     
     const baseRef = collection(firestore, 'employeeActivities');
     
@@ -75,7 +74,6 @@ export default function EmployeeActivityLogPage() {
         if (userProfile.unitId) {
             return query(baseRef, where('unitId', '==', userProfile.unitId), orderBy('date', 'desc'));
         }
-        // If an admin has no unit assigned, they can view institutional logs
         return isAdmin ? query(baseRef, orderBy('date', 'desc')) : null;
     }
     
@@ -83,7 +81,6 @@ export default function EmployeeActivityLogPage() {
         if (userProfile.campusId) {
             return query(baseRef, where('campusId', '==', userProfile.campusId), orderBy('date', 'desc'));
         }
-        // If an admin has no campus assigned, they can view institutional logs
         return isAdmin ? query(baseRef, orderBy('date', 'desc')) : null;
     }
 
@@ -171,13 +168,27 @@ export default function EmployeeActivityLogPage() {
     }
   };
 
-  const isLoading = isUserLoading || isLoadingActivities || !userProfile;
+  const isLoading = isUserLoading || isLoadingActivities || (isAdmin && !userProfile);
 
   if (isLoading) {
     return (
         <div className="flex flex-col items-center justify-center py-40 gap-4">
             <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
             <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Synchronizing Activity Registry...</p>
+        </div>
+    );
+  }
+
+  // Access Denial for non-admins during testing
+  if (!isAdmin) {
+    return (
+        <div className="flex flex-col items-center justify-center py-40 gap-4">
+            <ShieldAlert className="h-12 w-12 text-destructive opacity-40" />
+            <h2 className="text-2xl font-bold tracking-tight">Feature in Testing</h2>
+            <p className="text-muted-foreground text-center max-w-md">
+                The Employee Activity Log is currently undergoing institutional testing and is restricted to Administrators. 
+                Please check back later for full access.
+            </p>
         </div>
     );
   }
