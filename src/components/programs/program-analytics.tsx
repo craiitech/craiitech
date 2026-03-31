@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -157,10 +156,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         const milestones = record?.accreditationRecords || [];
         const currentMilestone = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
         
+        const rawLevel = (currentMilestone?.level || 'Non Accredited').trim();
         const isAccredited = currentMilestone && 
-                            currentMilestone.level !== 'Non Accredited' && 
-                            !currentMilestone.level.includes('PSV') && 
-                            currentMilestone.level !== 'AWAITING RESULT';
+                            rawLevel !== 'Non Accredited' && 
+                            !rawLevel.includes('PSV') && 
+                            rawLevel !== 'AWAITING RESULT';
         const hasCopc = record?.ched?.copcStatus === 'With COPC';
 
         if (p.isActive) {
@@ -197,7 +197,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             name: p.name,
             level: p.level,
             campus: campusMap.get(p.campusId) || '...',
-            currentLevel: currentMilestone?.level || (p.isNewProgram ? 'Not Yet Subject' : 'AWAITING RESULT'),
+            currentLevel: rawLevel || (p.isNewProgram ? 'Not Yet Subject' : 'AWAITING RESULT'),
             validity: p.isNewProgram ? 'NEW PROGRAM' : (validityStr === 'TBA' ? 'AWAITING RESULT' : validityStr),
             status,
             isActive: p.isActive
@@ -275,7 +275,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             const rec = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
             const mil = rec?.accreditationRecords || [];
             const cur = mil.find(m => m.lifecycleStatus === 'Current') || mil[mil.length - 1];
-            const rawLevel = cur?.level || 'AWAITING RESULT';
+            const rawLevel = (cur?.level || 'AWAITING RESULT').trim();
             lvlKey = rawLevel.includes('PSV') ? 'Preliminary Survey Visit (PSV)' : rawLevel;
         }
         if (accreditationDataMap[lvlKey]) { 
@@ -408,7 +408,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         </Card>
       </div>
 
-      {/* --- INSTITUTIONAL GAPS REGISTRY (As requested from screenshot) --- */}
+      {/* --- INSTITUTIONAL GAPS REGISTRY --- */}
       <Card className="border-rose-200 bg-rose-50/10 shadow-xl overflow-hidden animate-in zoom-in duration-500">
           <CardHeader className="bg-rose-50 border-b py-4 flex flex-row items-center justify-between">
               <div className="space-y-1">
