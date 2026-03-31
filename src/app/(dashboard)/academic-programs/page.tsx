@@ -132,68 +132,6 @@ export default function AcademicProgramsPage() {
     });
   }, [programs, searchTerm, campusFilter, unitFilter, isGlobalViewer, isUnitViewer, userProfile]);
 
-  /**
-   * CALCULATE REGISTRY SUMMARY STATS
-   */
-  const summaryStats = useMemo(() => {
-    const total = filteredPrograms.length;
-    if (total === 0) return { total: 0, activeCount: 0, inactiveCount: 0, accreditedRate: 0, copcRate: 0, activeBoardCount: 0, inactiveBoardCount: 0, activeAccredited: 0, inactiveAccredited: 0, activeCopc: 0, inactiveCopc: 0, facultyAlignmentRate: 0 };
-
-    let activeCount = 0;
-    let inactiveCount = 0;
-    let activeAccredited = 0;
-    let inactiveAccredited = 0;
-    let activeCopc = 0;
-    let inactiveCopc = 0;
-    let activeBoardCount = 0;
-    let inactiveBoardCount = 0;
-    let activeFacultyAligned = 0;
-
-    filteredPrograms.forEach(p => {
-        if (p.isActive) activeCount++;
-        else inactiveCount++;
-        
-        const record = rawCompliances?.find(c => String(c.programId).toLowerCase().trim() === String(p.id).toLowerCase().trim());
-        const isAccredited = (rec: ProgramComplianceRecord | undefined) => {
-            if (!rec || !rec.accreditationRecords || rec.accreditationRecords.length === 0) return false;
-            const milestones = rec.accreditationRecords;
-            const current = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
-            return current && current.level !== 'Non Accredited' && !current.level.includes('PSV') && current.level !== 'AWAITING RESULT';
-        };
-        const hasCopc = (rec: ProgramComplianceRecord | undefined) => rec?.ched?.copcStatus === 'With COPC';
-        const isFacultyAligned = (rec: ProgramComplianceRecord | undefined) => {
-            if (!rec || !rec.faculty || !rec.faculty.members || rec.faculty.members.length === 0) return false;
-            return rec.faculty.members.every(m => m.isAlignedWithCMO === 'Aligned');
-        };
-
-        if (p.isActive) {
-            if (isAccredited(record)) activeAccredited++;
-            if (hasCopc(record)) activeCopc++;
-            if (p.isBoardProgram) activeBoardCount++;
-            if (isFacultyAligned(record)) activeFacultyAligned++;
-        } else {
-            if (isAccredited(record)) inactiveAccredited++;
-            if (hasCopc(record)) inactiveCopc++;
-            if (p.isBoardProgram) inactiveBoardCount++;
-        }
-    });
-
-    return {
-        total,
-        activeCount,
-        inactiveCount,
-        accreditedRate: Math.round((activeAccredited / (activeCount || 1)) * 100),
-        copcRate: Math.round((activeCopc / (activeCount || 1)) * 100),
-        facultyAlignmentRate: Math.round((activeFacultyAligned / (activeCount || 1)) * 100),
-        activeBoardCount,
-        inactiveBoardCount,
-        activeAccredited,
-        inactiveAccredited,
-        activeCopc,
-        inactiveCopc
-    };
-  }, [filteredPrograms, rawCompliances]);
-
   const campusesQuery = useMemoFirebase(
     () => (firestore && !isUserLoading && userProfile ? collection(firestore, 'campuses') : null),
     [firestore, isUserLoading, userProfile]
@@ -275,7 +213,6 @@ export default function AcademicProgramsPage() {
         </div>
       </div>
 
-      {/* Global Filter Bar */}
       <Card className="shadow-md border-primary/10">
           <CardContent className="p-4 flex flex-col md:flex-row items-end gap-4 bg-muted/10">
               <div className="flex-1 w-full space-y-1.5">
@@ -369,61 +306,16 @@ export default function AcademicProgramsPage() {
         </TabsContent>
 
         <TabsContent value="registry" className="space-y-6 animate-in fade-in duration-500">
-            {/* Dynamic Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <Card className="bg-primary/5 border-primary/10 shadow-sm relative overflow-hidden flex flex-col">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Scope Portfolio</CardTitle>
                     </CardHeader>
                     <CardContent className="flex-1">
-                        <div className="text-3xl font-black text-primary tabular-nums">{summaryStats.activeCount} Active</div>
-                        <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">{summaryStats.inactiveCount} Closed Programs</p>
+                        <div className="text-3xl font-black text-primary tabular-nums">{filteredPrograms.filter(p => p.isActive).length} Active</div>
+                        <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tight">{filteredPrograms.filter(p => !p.isActive).length} Closed Programs</p>
                     </CardContent>
                     <div className="absolute top-0 right-0 p-2 opacity-5"><Layers className="h-12 w-12" /></div>
-                </Card>
-
-                <Card className="bg-emerald-50 border-emerald-100 shadow-sm relative overflow-hidden flex flex-col">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Accreditation Maturity</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                        <div className="text-3xl font-black text-emerald-600 tabular-nums">{summaryStats.accreditedRate}%</div>
-                        <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tight">Active Level I or Higher</p>
-                    </CardContent>
-                    <div className="absolute top-0 right-0 p-2 opacity-5"><Award className="h-12 w-12 text-emerald-600" /></div>
-                </Card>
-
-                <Card className="bg-blue-50 border-blue-100 shadow-sm relative overflow-hidden flex flex-col">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">COPC Compliance</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                        <div className="text-3xl font-black text-blue-600 tabular-nums">{summaryStats.copcRate}%</div>
-                        <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase tracking-tight">Active Operating Authorities</p>
-                    </CardContent>
-                    <div className="absolute top-0 right-0 p-2 opacity-5"><CheckCircle2 className="h-12 w-12 text-blue-600" /></div>
-                </Card>
-
-                <Card className="bg-purple-50 border-purple-100 shadow-sm relative overflow-hidden flex flex-col">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-700">Faculty Resource Alignment</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                        <div className="text-3xl font-black text-purple-600 tabular-nums">{summaryStats.facultyAlignmentRate}%</div>
-                        <p className="text-[9px] font-bold text-purple-600/70 mt-1 uppercase tracking-tight">100% Aligned Faculty Lists</p>
-                    </CardContent>
-                    <div className="absolute top-0 right-0 p-2 opacity-5"><Users className="h-12 w-12 text-purple-600" /></div>
-                </Card>
-
-                <Card className="bg-amber-50 border-amber-100 shadow-sm relative overflow-hidden flex flex-col">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">Professional Readiness</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                        <div className="text-3xl font-black text-amber-600 tabular-nums">{summaryStats.activeBoardCount}</div>
-                        <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tight">Active Board-Regulated Tracks</p>
-                    </CardContent>
-                    <div className="absolute top-0 right-0 p-2 opacity-5"><Briefcase className="h-12 w-12 text-amber-600" /></div>
                 </Card>
             </div>
 
@@ -431,10 +323,10 @@ export default function AcademicProgramsPage() {
                 <div className="flex items-center justify-between">
                     <TabsList className="bg-muted/50 p-1 border shadow-sm h-9 animate-tab-highlight rounded-md">
                         <TabsTrigger value="active" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-7 data-[state=active]:bg-white">
-                            <ShieldCheck className="h-3 w-3" /> Active Offerings ({summaryStats.activeCount})
+                            <ShieldCheck className="h-3 w-3" /> Active Offerings
                         </TabsTrigger>
                         <TabsTrigger value="inactive" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-7 data-[state=active]:bg-white data-[state=active]:text-destructive">
-                            <FileX className="h-3 w-3" /> Closed Programs ({summaryStats.inactiveCount})
+                            <FileX className="h-3 w-3" /> Closed Programs
                         </TabsTrigger>
                     </TabsList>
                 </div>
@@ -491,7 +383,7 @@ export default function AcademicProgramsPage() {
             <AlertDialogHeader>
                 <AlertDialogTitle>Remove Program from Registry?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    You are about to delete <strong>{deletingProgram?.name}</strong>. This action is irreversible and will orphan any existing compliance records for this program.
+                    You are about to delete <strong>{deletingProgram?.name}</strong>. This action is irreversible.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

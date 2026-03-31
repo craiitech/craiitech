@@ -111,7 +111,7 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                     </FormLabel>
                     <FormControl>
                         <div className="relative">
-                        <LinkIcon className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground" />
+                        <LinkIcon className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                         <Input {...field} placeholder="https://drive.google.com/..." className="pl-9 h-9 text-xs" disabled={!canEdit} />
                         </div>
                     </FormControl>
