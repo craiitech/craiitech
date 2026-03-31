@@ -19,7 +19,9 @@ import {
     Loader2,
     Trophy,
     ShieldAlert,
-    AlertTriangle
+    AlertTriangle,
+    School,
+    FileX
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
@@ -52,6 +54,7 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
     const activePrograms = programs.filter(p => p.isActive);
 
     activePrograms.forEach(p => {
+        // Normalized lookup
         const record = compliances.find(c => 
             String(c.programId || '').toLowerCase().trim() === String(p.id || '').toLowerCase().trim()
         );

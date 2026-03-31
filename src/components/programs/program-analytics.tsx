@@ -54,6 +54,7 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { cn } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
+import { Separator } from '@/components/ui/separator';
 
 interface ProgramAnalyticsProps {
   programs: AcademicProgram[];
@@ -150,6 +151,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         if (p.isActive) activeCount++;
         else inactiveCount++;
 
+        // Robust normalized ID mapping
         const record = compliances.find(c => 
             String(c.programId || '').toLowerCase().trim() === String(p.id || '').toLowerCase().trim()
         );
