@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -45,12 +44,11 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year,
       <table className="w-full border-collapse border-2 border-black text-[9px] mb-8">
         <thead>
           <tr className="bg-slate-50 font-black text-center uppercase border-b-2 border-black">
-            <th className="border border-black p-2 w-[18%]">Program Offering</th>
-            <th className="border border-black p-2 w-[8%]">Type</th>
-            <th className="border border-black p-2 w-[28%]">Accreditor's Recommendation</th>
-            <th className="border border-black p-2 w-[14%]">Action Units</th>
+            <th className="border border-black p-2 w-[20%]">Program Offering</th>
+            <th className="border border-black p-2 w-[10%]">Type</th>
+            <th className="border border-black p-2 w-[35%]">Accreditor's Recommendation</th>
             <th className="border border-black p-2 w-[10%]">Status</th>
-            <th className="border border-black p-2 w-[22%]">Action Taken / Updates</th>
+            <th className="border border-black p-2 w-[25%]">Action Taken / Updates</th>
           </tr>
         </thead>
         <tbody>
@@ -74,13 +72,6 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year,
                     </div>
                 )}
               </td>
-              <td className="border border-black p-2 align-top">
-                <ul className="list-disc pl-4 space-y-1">
-                    {(item.recommendation.assignedUnitIds || []).map(uid => (
-                        <li key={uid} className="font-bold leading-tight">{unitMap.get(uid) || uid}</li>
-                    ))}
-                </ul>
-              </td>
               <td className="border border-black p-2 text-center align-top font-black uppercase text-[8px]">
                 {item.recommendation.status}
               </td>
@@ -90,7 +81,7 @@ export function AccreditationRecommendationReport({ items, unitMap, scope, year,
             </tr>
           ))}
           {items.length === 0 && (
-            <tr><td colSpan={6} className="p-8 text-center italic text-gray-400">No pending recommendations recorded for this cycle.</td></tr>
+            <tr><td colSpan={5} className="p-8 text-center italic text-gray-400">No pending recommendations recorded for this cycle.</td></tr>
           )}
         </tbody>
       </table>
