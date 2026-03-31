@@ -41,7 +41,7 @@ import { AccomplishmentReportTemplate } from '@/components/activity-log/accompli
 import { cn } from '@/lib/utils';
 
 export default function EmployeeActivityLogPage() {
-  const { user, userProfile, isAdmin, isSupervisor } = useUser();
+  const { user, userProfile, isAdmin, isSupervisor, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
@@ -55,7 +55,9 @@ export default function EmployeeActivityLogPage() {
   const [viewScope, setViewScope] = useState<'personal' | 'unit' | 'campus'>('personal');
 
   const activitiesQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    // CRITICAL: Defer query until session and profile are ready to prevent permission errors
+    if (!firestore || !user || isUserLoading || !userProfile) return null;
+    
     const baseRef = collection(firestore, 'employeeActivities');
     
     // Default: Only my activities
@@ -63,25 +65,25 @@ export default function EmployeeActivityLogPage() {
         return query(baseRef, where('userId', '==', user.uid), orderBy('date', 'desc'));
     }
     
-    // Supervisor oversight logic: handle cases where supervisor may not have unit/campus IDs yet (e.g. bootstrap admin)
+    // Supervisor oversight logic
     if (viewScope === 'unit') {
-        if (userProfile?.unitId) {
+        if (userProfile.unitId) {
             return query(baseRef, where('unitId', '==', userProfile.unitId), orderBy('date', 'desc'));
         }
-        return query(baseRef, orderBy('date', 'desc')); // Broad list for institutional admin
+        return query(baseRef, orderBy('date', 'desc'));
     }
     
     if (viewScope === 'campus') {
-        if (userProfile?.campusId) {
+        if (userProfile.campusId) {
             return query(baseRef, where('campusId', '==', userProfile.campusId), orderBy('date', 'desc'));
         }
-        return query(baseRef, orderBy('date', 'desc')); // Broad list for institutional admin
+        return query(baseRef, orderBy('date', 'desc'));
     }
 
     return query(baseRef, where('userId', '==', user.uid), orderBy('date', 'desc'));
-  }, [firestore, user, userProfile, viewScope]);
+  }, [firestore, user, userProfile, viewScope, isUserLoading]);
 
-  const { data: rawActivities, isLoading } = useCollection<EmployeeActivity>(activitiesQuery);
+  const { data: rawActivities, isLoading: isLoadingActivities } = useCollection<EmployeeActivity>(activitiesQuery);
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
@@ -161,6 +163,8 @@ export default function EmployeeActivityLogPage() {
         toast({ title: 'Print Error', variant: 'destructive' });
     }
   };
+
+  const isLoading = isUserLoading || isLoadingActivities;
 
   return (
     <div className="space-y-6">
@@ -264,7 +268,10 @@ export default function EmployeeActivityLogPage() {
           </CardHeader>
           <CardContent className="p-0">
               {isLoading ? (
-                  <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
+                  <div className="flex flex-col items-center justify-center py-20 gap-2">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Initializing Registry...</p>
+                  </div>
               ) : (
                   <Table>
                       <TableHeader className="bg-muted/30">
