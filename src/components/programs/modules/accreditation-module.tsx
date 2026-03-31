@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
@@ -6,7 +7,23 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescripti
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShieldCheck, Calendar, Link as LinkIcon, Award, Layers, PlusCircle, Trash2, Calculator, Check, ClipboardList, CheckCircle2, ListChecks, Building2 } from 'lucide-react';
+import { 
+    ShieldCheck, 
+    Calendar, 
+    Link as LinkIcon, 
+    Award, 
+    Layers, 
+    PlusCircle, 
+    Trash2, 
+    Calculator, 
+    Check, 
+    ClipboardList, 
+    CheckCircle2, 
+    ListChecks, 
+    Building2,
+    Eye,
+    ExternalLink
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -51,6 +68,36 @@ const standardAreas = [
   { code: 'Area X', name: 'Administration' },
 ];
 
+function GDrivePreview({ url, title }: { url?: string; title: string }) {
+  if (!url || !url.startsWith('https://drive.google.com/')) return null;
+  const embedUrl = url.replace('/view', '/preview').replace('?usp=sharing', '');
+  return (
+    <Card className="col-span-full border-primary/10 shadow-md overflow-hidden bg-muted/5 animate-in fade-in slide-in-from-top-4 duration-500">
+      <CardHeader className="py-3 px-4 border-b bg-white flex flex-row items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Eye className="h-4 w-4 text-primary" />
+          <CardTitle className="text-[10px] font-black uppercase tracking-widest text-primary">
+            Document Evidence Preview: {title}
+          </CardTitle>
+        </div>
+        <Button variant="ghost" size="icon" className="h-6 w-6" asChild>
+          <a href={url} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </Button>
+      </CardHeader>
+      <CardContent className="p-0 relative aspect-video bg-white shadow-inner">
+        <iframe 
+          src={embedUrl} 
+          className="absolute inset-0 w-full h-full border-none"
+          allow="autoplay"
+          title={`${title} Preview`}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
 function AccreditationRecordCard({ 
   index, 
   control,
@@ -72,6 +119,7 @@ function AccreditationRecordCard({
     const areas = useWatch({ control, name: `accreditationRecords.${index}.areas` }) || [];
     const certificateLinkVal = useWatch({ control, name: `accreditationRecords.${index}.certificateLink` });
     const validityTextVal = useWatch({ control, name: `accreditationRecords.${index}.statusValidityDate` });
+    const currentLevel = useWatch({ control, name: `accreditationRecords.${index}.level` });
 
     const { fields: recoFields, append: appendReco, remove: removeReco } = useFieldArray({
         control,
@@ -264,6 +312,8 @@ function AccreditationRecordCard({
                         </div>
                     </CardContent>
                 </Card>
+
+                <GDrivePreview url={certificateLinkVal} title={`${currentLevel} Evidence`} />
 
                 <Card className="col-span-full border-primary/10 shadow-lg overflow-hidden">
                     <CardHeader className="bg-primary/5 border-b py-4">
