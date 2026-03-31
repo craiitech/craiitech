@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AcademicProgram, ProgramComplianceRecord, AccreditationRecord, CurriculumRecord, Campus, Unit } from '@/lib/types';
+import type { AcademicProgram, ProgramComplianceRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -50,9 +50,7 @@ import {
     Flag,
     History,
     FileX,
-    Layout,
     Check,
-    ArrowDownToLine,
     ArrowUpDown
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -114,9 +112,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
   const analytics = useMemo(() => {
     if (!programs.length) return null;
 
-    const filteredProgramIds = new Set(programs.map(p => p.id));
-    const filteredCompliances = compliances.filter(c => filteredProgramIds.has(c.programId));
-
     const getProgramCategory = (p: AcademicProgram): ProgramCategory => {
         if (!p.isActive) return 'Inactive';
         return p.level === 'Graduate' ? 'Graduate' : 'Undergraduate';
@@ -125,9 +120,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     let activeCount = 0;
     let inactiveCount = 0;
     let activeAccredited = 0;
-    let inactiveAccredited = 0;
     let activeCopc = 0;
-    let inactiveCopc = 0;
 
     let sem1Male = 0, sem1Female = 0;
     let sem2Male = 0, sem2Female = 0;
@@ -160,26 +153,20 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         if (category === 'Inactive') inactiveCount++;
         else activeCount++;
 
-        const record = filteredCompliances.find(c => c.programId === p.id);
+        const record = compliances.find(c => c.programId === p.id);
         const cName = campusMap.get(p.campusId) || 'Unknown Site';
 
         const isAccredited = (rec: ProgramComplianceRecord | undefined) => {
             if (!rec || !rec.accreditationRecords || rec.accreditationRecords.length === 0) return false;
-            const milestones = rec.accreditationRecords;
-            const current = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
-            return current && current.level !== 'Non Accredited' && !current.level.includes('PSV');
+            const current = rec.accreditationRecords.find(m => m.lifecycleStatus === 'Current') || rec.accreditationRecords[rec.accreditationRecords.length - 1];
+            return current && current.level !== 'Non Accredited' && !current.level.includes('PSV') && current.level !== 'AWAITING RESULT';
         };
         const hasCopc = (rec: ProgramComplianceRecord | undefined) => rec?.ched?.copcStatus === 'With COPC';
 
-        if (category !== 'Inactive') {
+        if (p.isActive) {
             if (isAccredited(record)) activeAccredited++;
             if (hasCopc(record)) activeCopc++;
-        } else {
-            if (isAccredited(record)) inactiveAccredited++;
-            if (hasCopc(record)) inactiveCopc++;
-        }
-
-        if (p.isActive) {
+            
             const tags = [];
             if (!record) {
                 tags.push("Faculty Staffing List", "Graduation Outcome Data", "COPC Certificate", "Official CMO Link");
@@ -191,12 +178,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             }
 
             if (tags.length > 0) {
-                gapRegistry.push({
-                    name: p.name,
-                    campus: cName,
-                    gapCount: tags.length,
-                    tags: tags
-                });
+                gapRegistry.push({ name: p.name, campus: cName, gapCount: tags.length, tags: tags });
             }
         }
 
@@ -235,6 +217,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         });
 
         if (record) {
+            // Timeline chart population
             const copcYear = record.ched?.copcAwardDate?.match(/\d{4}/)?.[0];
             if (copcYear) {
                 if (!copcByYear[copcYear]) copcByYear[copcYear] = { year: copcYear, Undergraduate: 0, Graduate: 0, Inactive: 0, total: 0 };
@@ -251,16 +234,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 }
             });
 
-            const validityYear = currentMilestone?.statusValidityDate?.match(/\d{4}/)?.[0];
-            if (validityYear) {
-                if (!velocityByYear[validityYear]) velocityByYear[validityYear] = { year: validityYear, Undergraduate: 0, Graduate: 0, Inactive: 0, total: 0 };
-                velocityByYear[validityYear][category]++;
-                velocityByYear[validityYear].total++;
-            }
-
-            const s1 = record.stats?.enrollment?.firstSemester;
-            const s2 = record.stats?.enrollment?.secondSemester;
-            const sum = record.stats?.enrollment?.midYearTerm;
+            // GAD Aggregation
+            const s1 = record.stats.enrollment?.firstSemester;
+            const s2 = record.stats.enrollment?.secondSemester;
+            const sum = record.stats.enrollment?.midYearTerm;
 
             if (s1) {
                 ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach((lvl: any) => {
@@ -281,12 +258,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 });
             }
 
+            // Faculty
             if (record.faculty) {
                 const roster = [...(record.faculty.members || [])];
                 if (record.faculty.dean?.name) roster.push(record.faculty.dean as any);
-                if (record.faculty.associateDean?.name && record.faculty.hasAssociateDean) roster.push(record.faculty.associateDean as any);
                 if (record.faculty.programChair?.name) roster.push(record.faculty.programChair as any);
-                
                 roster.forEach(m => {
                     if (!m.name || m.name.trim() === '') return;
                     const key = `${m.name.trim()}-${p.campusId}`.toLowerCase();
@@ -298,15 +274,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     }
                 });
             }
-            record.graduationRecords?.forEach(g => {
-                totalMaleGrads += Number(g.maleCount || 0);
-                totalFemaleGrads += Number(g.femaleCount || 0);
-            });
-            record.tracerRecords?.forEach(t => {
-                totalMaleTraced += Number(t.maleTraced || 0);
-                totalFemaleTraced += Number(t.femaleTraced || 0);
-            });
-            if (record.boardPerformance && record.boardPerformance.length > 0) {
+
+            record.graduationRecords?.forEach(g => { totalMaleGrads += Number(g.maleCount || 0); totalFemaleGrads += Number(g.femaleCount || 0); });
+            record.tracerRecords?.forEach(t => { totalMaleTraced += Number(t.maleTraced || 0); totalFemaleTraced += Number(t.femaleTraced || 0); });
+            
+            if (record.boardPerformance?.length) {
                 const latest = record.boardPerformance[record.boardPerformance.length - 1];
                 totalSchoolRate += latest.overallPassRate;
                 totalNationalRate += latest.nationalPassingRate;
@@ -315,6 +287,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         }
     });
 
+    // Chart Data Construction
     const accreditationDataMap: Record<string, any> = {};
     ACCREDITATION_LEVELS_ORDER.forEach(lvl => accreditationDataMap[lvl] = { level: lvl, Undergraduate: 0, Graduate: 0, Inactive: 0, total: 0 });
     programs.forEach(p => {
@@ -322,7 +295,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         let lvlKey = 'AWAITING RESULT';
         if (p.isNewProgram) lvlKey = 'Not Yet Subject';
         else {
-            const rec = filteredCompliances.find(c => c.programId === p.id);
+            const rec = compliances.find(c => c.programId === p.id);
             const mil = rec?.accreditationRecords || [];
             const cur = mil.find(m => m.lifecycleStatus === 'Current') || mil[mil.length - 1];
             lvlKey = cur?.level || 'AWAITING RESULT';
@@ -333,41 +306,21 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
     const sortTimeline = (data: Record<string, any>) => Object.values(data).sort((a, b) => a.year.localeCompare(b.year));
 
-    const roadmapYearBreakdown: Record<number, number> = {};
-    roadmapData.forEach(item => {
-        if (!item.isActive) return;
-        const yearMatch = item.validity.match(/\d{4}/);
-        if (yearMatch) {
-            const y = parseInt(yearMatch[0]);
-            roadmapYearBreakdown[y] = (roadmapYearBreakdown[y] || 0) + 1;
-        }
-    });
-
     const makePieData = (m: number, f: number, o: number = 0) => {
-        return [
-            { name: 'Male', value: m, fill: chartConfig.Male.color },
-            { name: 'Female', value: f, fill: chartConfig.Female.color },
-            { name: 'Others (LGBTQI++)', value: o, fill: chartConfig.Others.color }
-        ].filter(d => d.value > 0);
-    }
+        return [{ name: 'Male', value: m, fill: chartConfig.Male.color }, { name: 'Female', value: f, fill: chartConfig.Female.color }, { name: 'Others (LGBTQI++)', value: o, fill: chartConfig.Others.color }].filter(d => d.value > 0);
+    };
 
-    const monitoredCount = filteredCompliances.length;
+    const monitoredCount = compliances.length;
     const integrityRate = programs.length > 0 ? Math.round((monitoredCount / programs.length) * 100) : 0;
 
     return { 
         accreditationSummary: Object.values(accreditationDataMap).filter(d => d.total > 0),
-        activeCount, inactiveCount, activeAccredited, inactiveAccredited, activeCopc, inactiveCopc,
+        activeCount, inactiveCount, activeAccredited, activeCopc,
         copcMomentumData: sortTimeline(copcByYear),
-        velocityData: sortTimeline(velocityByYear),
         achievementHistoryData: sortTimeline(achievementByYear),
         roadmapData,
-        roadmapYearBreakdown,
         totalEnrollment: sem1Male + sem1Female + sem2Male + sem2Female + summerMale + summerFemale,
-        sem1Total: sem1Male + sem1Female,
-        sem2Total: sem2Male + sem2Female,
-        summerTotal: summerMale + summerFemale,
-        sem1Male, sem1Female, sem2Male, sem2Female, summerMale, summerFemale,
-        totalMaleFaculty, totalFemaleFaculty, totalOthersFaculty, totalFaculty: totalMaleFaculty + totalFemaleFaculty + totalOthersFaculty,
+        totalFaculty: totalMaleFaculty + totalFemaleFaculty + totalOthersFaculty,
         gadEnrollment1stData: makePieData(sem1Male, sem1Female),
         gadEnrollment2ndData: makePieData(sem2Male, sem2Female),
         gadEnrollmentSummerData: makePieData(summerMale, summerFemale),
@@ -379,7 +332,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         monitoredCount,
         integrityRate
     };
-  }, [programs, compliances, campuses, campusMap, selectedYear]);
+  }, [programs, compliances, campusMap, selectedYear]);
 
   const sortedRoadmap = useMemo(() => {
     if (!analytics?.roadmapData) return [];
@@ -393,18 +346,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             const getSortValue = (s: string) => {
                 if (s === 'NEW PROGRAM') return 999999;
                 if (s === 'AWAITING RESULT' || s === 'SCHEDULE PENDING' || s === 'TBA') return 999998;
-                
                 const match = s.match(/\d{4}/);
-                const year = match ? parseInt(match[0]) : 0;
-                
-                const months: Record<string, number> = { 
-                    jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, 
-                    jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 
-                };
-                const monthStr = s.split(' ')[0].toLowerCase().substring(0, 3);
-                const monthVal = months[monthStr] || 0;
-                
-                return (year * 100) + monthVal;
+                return match ? parseInt(match[0]) : 0;
             };
             valA = getSortValue(valA);
             valB = getSortValue(valB);
@@ -416,33 +359,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     });
   }, [analytics?.roadmapData, roadmapSortConfig]);
 
-  const requestSort = (key: SortKey) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (roadmapSortConfig.key === key && roadmapSortConfig.direction === 'asc') {
-        direction = 'desc';
-    }
-    setRoadmapSortConfig({ key, direction });
-  };
-
-  const getSortIcon = (key: SortKey) => {
-    return (
-        <ArrowUpDown className={cn(
-            "h-3 w-3 transition-colors", 
-            roadmapSortConfig.key === key ? "text-primary opacity-100" : "text-muted-foreground opacity-20"
-        )} />
-    );
-  };
-
   const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
     const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-
-    return (
-      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[14px] font-black">
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
-    );
+    return <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[14px] font-black">{`${(percent * 100).toFixed(0)}%`}</text>;
   };
 
   if (isLoading) return <div className="space-y-6"><Skeleton className="h-24 w-full" /><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}</div></div>;
@@ -452,391 +373,173 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
       
       {/* 1. EXECUTIVE KPI PANEL */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-sm border-primary/10 flex flex-col relative overflow-hidden group hover:shadow-md transition-all">
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform"><LayoutGrid className="h-12 w-12" /></div>
-            <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Scope Portfolio</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1">
+        <Card className="shadow-sm border-primary/10">
+            <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Portfolio Monitoring</CardTitle></CardHeader>
+            <CardContent>
                 <div className="text-3xl font-black text-slate-900">{analytics?.activeCount} Active</div>
-                <p className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">{analytics?.inactiveCount} CLOSED PROGRAMS</p>
+                <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">{analytics?.inactiveCount} CLOSED PROGRAMS</p>
             </CardContent>
-            <CardFooter className="bg-muted/5 border-t py-2 px-4">
-                <p className="text-[8px] text-muted-foreground italic leading-tight">Reflects total active program offerings versus those that have been officially closed.</p>
-            </CardFooter>
         </Card>
 
-        <Card className="shadow-sm border-primary/10 flex flex-col relative overflow-hidden group hover:shadow-md transition-all">
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform"><Check className="h-12 w-12 text-emerald-600" /></div>
-            <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">COPC Performance</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1">
-                <div className="text-3xl font-black text-emerald-600">{analytics?.activeCopc} Active</div>
-                <p className="text-[9px] font-bold text-emerald-600/70 mt-1 uppercase tracking-tighter">{analytics?.inactiveCopc} Inactive Awards Verified</p>
+        <Card className="shadow-sm border-emerald-100 bg-emerald-50/10">
+            <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">COPC Performance</CardTitle></CardHeader>
+            <CardContent>
+                <div className="text-3xl font-black text-emerald-600">{analytics?.activeCopc} Programs</div>
+                <p className="text-[9px] font-bold text-emerald-600/70 uppercase tracking-tighter">Verified Authority</p>
             </CardContent>
-            <CardFooter className="bg-emerald-50/30 border-t py-2 px-4">
-                <p className="text-[8px] text-emerald-800/60 italic leading-tight">Tracks programs with an official CHED Certificate of Program Compliance (COPC).</p>
-            </CardFooter>
         </Card>
 
-        <Card className="shadow-sm border-primary/10 flex flex-col relative overflow-hidden group hover:shadow-md transition-all">
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform"><Award className="h-12 w-12 text-amber-600" /></div>
-            <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">Quality Maturity</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1">
-                <div className="text-3xl font-black text-amber-600">{analytics?.activeAccredited} Active</div>
-                <p className="text-[9px] font-bold text-amber-600/70 mt-1 uppercase tracking-tighter">{analytics?.inactiveAccredited} Inactive Accredited</p>
+        <Card className="shadow-sm border-amber-100 bg-amber-50/10">
+            <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">Quality Maturity</CardTitle></CardHeader>
+            <CardContent>
+                <div className="text-3xl font-black text-amber-600">{analytics?.activeAccredited} Programs</div>
+                <p className="text-[9px] font-bold text-emerald-800/60 uppercase tracking-tighter">Level I or Higher</p>
             </CardContent>
-            <CardFooter className="bg-amber-50/30 border-t py-2 px-4">
-                <p className="text-[8px] text-emerald-800/60 italic leading-tight">Measures institutional quality via Level I or higher AACCUP accreditation status.</p>
-            </CardFooter>
         </Card>
 
-        <Card className="shadow-sm border-primary/10 flex flex-col relative overflow-hidden group hover:shadow-md transition-all">
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform"><Users className="h-12 w-12 text-blue-600" /></div>
-            <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Data Integrity Index</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1">
+        <Card className="shadow-sm border-blue-100 bg-blue-50/10">
+            <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Monitored Registry</CardTitle></CardHeader>
+            <CardContent>
                 <div className="text-3xl font-black text-blue-600">{analytics?.integrityRate}%</div>
-                <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase tracking-tighter">{analytics?.monitoredCount} Verified Records Logged</p>
+                <p className="text-[9px] font-bold text-blue-600/70 uppercase tracking-tighter">{analytics?.monitoredCount} Verified Data Logs</p>
             </CardContent>
-            <CardFooter className="bg-blue-50/30 border-t py-2 px-4">
-                <p className="text-[8px] text-blue-800/60 italic leading-tight">Percentage of programs with finalized and verified compliance evidence for this year.</p>
-            </CardFooter>
         </Card>
       </div>
 
-      {/* 2. INSTITUTIONAL GAPS REGISTRY */}
-      <Card className="border-rose-200 shadow-xl overflow-hidden bg-rose-50/10 relative">
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-rose-600 opacity-50" />
-          <CardHeader className="bg-rose-50 border-b py-4">
-              <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-rose-600">
-                          <ShieldAlert className="h-5 w-5 text-rose-600" />
-                          <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Gaps Registry</CardTitle>
-                      </div>
-                      <CardDescription className="text-[10px] font-bold text-rose-700/70 uppercase">Critical documentation deficiencies impacting maturity index for AY {selectedYear}.</CardDescription>
-                  </div>
-                  <Badge variant="destructive" className="animate-pulse shadow-sm h-5 text-[9px] font-black uppercase">ACTION REQUIRED</Badge>
-              </div>
-          </CardHeader>
-          <CardContent className="p-0">
-              <ScrollArea className="max-h-[450px]">
-                  <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {analytics && analytics.gapRegistry.length > 0 ? (
-                          analytics.gapRegistry.map((item, i) => (
-                              <div key={i} className="flex flex-col gap-3 group transition-all">
-                                  <div className="flex items-start justify-between gap-4">
-                                      <div className="space-y-1 min-w-0">
-                                          <p className="text-xs font-black text-slate-900 leading-tight uppercase truncate" title={item.name}>{item.name}</p>
-                                          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{item.campus}</p>
-                                      </div>
-                                      <Badge variant="destructive" className="h-4 text-[8px] font-black py-0 px-1.5 shrink-0 shadow-none border-none">{item.gapCount} GAPS</Badge>
-                                  </div>
-                                  <div className="flex flex-wrap gap-1.5">
-                                      {item.tags.map((tag: string, idx: number) => (
-                                          <Badge key={idx} variant="outline" className="bg-rose-50 text-[8px] font-black uppercase tracking-tighter text-rose-600 border-rose-100 rounded-full h-4.5 px-2">
-                                              {tag}
-                                          </Badge>
-                                      ))}
-                                  </div>
-                              </div>
-                          ))
-                      ) : (
-                          <div className="col-span-full py-12 flex flex-col items-center justify-center text-center space-y-3 opacity-20">
-                              <CheckCircle2 className="h-16 w-16 text-emerald-600" />
-                              <p className="font-black text-slate-900 uppercase text-sm">Full Institutional Parity Reached</p>
-                          </div>
-                      )}
-                  </div>
-              </ScrollArea>
-          </CardContent>
-          <CardFooter className="bg-rose-100/30 border-t py-3 px-6">
-              <p className="text-[10px] text-rose-800 leading-relaxed font-bold italic">
-                  Identification of these gaps is mandatory for ISO 21001:2018 compliance tracking. High gap counts signify institutional risk during external audits.
-              </p>
-          </CardFooter>
-      </Card>
-
-      {/* 3. STRATEGIC GAD PANEL */}
+      {/* 2. GAD COMPLIANCE PIE CHARTS */}
       <div className="space-y-4">
           <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs border-b pb-2"><Users className="h-4 w-4" /> Gender & Development (GAD) Compliance Metrics</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              
-              <Card className="shadow-md flex flex-col border-primary/10 overflow-hidden h-[320px]">
-                  <CardHeader className="p-4 bg-muted/10 border-b shrink-0">
-                    <CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 leading-tight">
-                        <Users /> 1st Semester Enrollment (Total: {analytics?.sem1Total})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6 flex-1 flex items-center justify-center overflow-hidden">
-                      {analytics?.gadEnrollment1stData.length ? (
-                        <ChartContainer config={chartConfig} className="h-full w-full">
-                            <ResponsiveContainer>
-                                <PieChart>
-                                    <Pie data={analytics.gadEnrollment1stData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value" label={renderPieLabel} labelLine={false}>
-                                        {analytics.gadEnrollment1stData.map((e, j) => <Cell key={j} fill={e.fill} />)}
-                                    </Pie>
-                                    <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
-                                    <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-center space-y-2 opacity-40"><Activity className="h-8 w-8" /><p className="text-[11px] font-black uppercase tracking-widest">NO DATA YET!</p></div>
-                      )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="shadow-md h-[320px] flex flex-col border-primary/10">
+                  <CardHeader className="p-4 bg-muted/10 border-b shrink-0"><CardTitle className="text-[10px] font-black uppercase">1st Semester Enrollment</CardTitle></CardHeader>
+                  <CardContent className="p-6 flex-1 flex items-center justify-center">
+                      <ChartContainer config={chartConfig} className="h-full w-full">
+                          <ResponsiveContainer>
+                              <PieChart>
+                                  <Pie data={analytics?.gadEnrollment1stData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value" label={renderPieLabel} labelLine={false}>
+                                      {analytics?.gadEnrollment1stData.map((e, j) => <Cell key={j} fill={e.fill} />)}
+                                  </Pie>
+                                  <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                                  <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
+                              </PieChart>
+                          </ResponsiveContainer>
+                      </ChartContainer>
                   </CardContent>
               </Card>
-
-              <Card className="shadow-md flex flex-col border-primary/10 overflow-hidden h-[320px]">
-                  <CardHeader className="p-4 bg-muted/10 border-b shrink-0">
-                    <CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 leading-tight">
-                        <Users /> 2nd Semester Enrollment (Total: {analytics?.sem2Total})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6 flex-1 flex items-center justify-center overflow-hidden">
-                      {analytics?.gadEnrollment2ndData.length ? (
-                        <ChartContainer config={chartConfig} className="h-full w-full">
-                            <ResponsiveContainer>
-                                <PieChart>
-                                    <Pie data={analytics.gadEnrollment2ndData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value" label={renderPieLabel} labelLine={false}>
-                                        {analytics.gadEnrollment2ndData.map((e, j) => <Cell key={j} fill={e.fill} />)}
-                                    </Pie>
-                                    <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
-                                    <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-center space-y-2 opacity-40"><Activity className="h-8 w-8" /><p className="text-[11px] font-black uppercase tracking-widest">NO DATA YET!</p></div>
-                      )}
+              <Card className="shadow-md h-[320px] flex flex-col border-primary/10">
+                  <CardHeader className="p-4 bg-muted/10 border-b shrink-0"><CardTitle className="text-[10px] font-black uppercase">2nd Semester Enrollment</CardTitle></CardHeader>
+                  <CardContent className="p-6 flex-1 flex items-center justify-center">
+                      <ChartContainer config={chartConfig} className="h-full w-full">
+                          <ResponsiveContainer>
+                              <PieChart>
+                                  <Pie data={analytics?.gadEnrollment2ndData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value" label={renderPieLabel} labelLine={false}>
+                                      {analytics?.gadEnrollment2ndData.map((e, j) => <Cell key={j} fill={e.fill} />)}
+                                  </Pie>
+                                  <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                                  <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
+                              </PieChart>
+                          </ResponsiveContainer>
+                      </ChartContainer>
                   </CardContent>
               </Card>
-
-              <Card className="shadow-md flex flex-col border-primary/10 overflow-hidden h-[320px]">
-                  <CardHeader className="p-4 bg-muted/10 border-b shrink-0">
-                    <CardTitle className="text-[10px] font-black uppercase flex items-center gap-2 leading-tight">
-                        <UserCircle /> Faculty Distribution (Total: {analytics?.totalFaculty})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6 flex-1 flex items-center justify-center overflow-hidden">
-                      {analytics?.gadFacultyData.length ? (
-                        <ChartContainer config={chartConfig} className="h-full w-full">
-                            <ResponsiveContainer>
-                                <PieChart>
-                                    <Pie data={analytics.gadFacultyData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value" label={renderPieLabel} labelLine={false}>
-                                        {analytics.gadFacultyData.map((e, j) => <Cell key={j} fill={e.fill} />)}
-                                    </Pie>
-                                    <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
-                                    <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-center space-y-2 opacity-40"><Activity className="h-8 w-8" /><p className="text-[11px] font-black uppercase tracking-widest">NO DATA YET!</p></div>
-                      )}
+              <Card className="shadow-md h-[320px] flex flex-col border-primary/10">
+                  <CardHeader className="p-4 bg-muted/10 border-b shrink-0"><CardTitle className="text-[10px] font-black uppercase">Institutional Faculty Pool</CardTitle></CardHeader>
+                  <CardContent className="p-6 flex-1 flex items-center justify-center">
+                      <ChartContainer config={chartConfig} className="h-full w-full">
+                          <ResponsiveContainer>
+                              <PieChart>
+                                  <Pie data={analytics?.gadFacultyData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value" label={renderPieLabel} labelLine={false}>
+                                      {analytics?.gadFacultyData.map((e, j) => <Cell key={j} fill={e.fill} />)}
+                                  </Pie>
+                                  <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                                  <Legend verticalAlign="bottom" align="center" wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
+                              </PieChart>
+                          </ResponsiveContainer>
+                      </ChartContainer>
                   </CardContent>
               </Card>
           </div>
       </div>
 
-      {/* 4. ACCREDITATION & RECOGNITION PANELS */}
+      {/* 3. BAR CHARTS PANEL */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="shadow-md border-primary/10 flex flex-col overflow-hidden">
-              <CardHeader className="bg-muted/10 border-b py-4">
-                  <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2"><Award className="h-5 w-5 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Maturity Profile</CardTitle></div>
-                      <Badge variant="outline" className="h-5 text-[10px] font-black bg-primary/5 text-primary border-primary/20">TOTAL PROGRAMS: {analytics?.activeCount}</Badge>
-                  </div>
-                  <CardDescription className="text-[11px] font-medium leading-relaxed mt-1">
-                      Analyzes the distribution of programs across AACCUP levels.
-                  </CardDescription>
-              </CardHeader>
+          <Card className="shadow-md border-primary/10 flex flex-col">
+              <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Maturity Profile</CardTitle></CardHeader>
               <CardContent className="pt-10 flex-1">
-                  {analytics && analytics.accreditationSummary.length > 0 ? (
-                      <ChartContainer config={chartConfig} className="h-[350px] w-full">
-                        <ResponsiveContainer>
-                            <BarChart data={analytics?.accreditationSummary} layout="vertical" margin={{ left: 40, right: 60 }}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
-                                <XAxis type="number" hide />
-                                <YAxis dataKey="level" type="category" tick={{ fontSize: 9, fontWeight: 700 }} width={140} axisLine={false} tickLine={false} />
-                                <RechartsTooltip content={<ChartTooltipContent />} />
-                                <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '30px' }} />
-                                <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={12}>
-                                    <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
-                                </Bar>
-                                <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={12}>
-                                    <LabelList dataKey="Graduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
-                                </Bar>
-                                <Bar dataKey="total" stackId="b" fill="transparent" barSize={12}>
-                                    <LabelList dataKey="total" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--primary))' }} />
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
-                  ) : (
-                      <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground opacity-40"><Activity className="h-12 w-12 mb-2" /><p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p></div>
-                  )}
+                  <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                    <ResponsiveContainer>
+                        <BarChart data={analytics?.accreditationSummary} layout="vertical" margin={{ left: 40, right: 60 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
+                            <XAxis type="number" hide />
+                            <YAxis dataKey="level" type="category" tick={{ fontSize: 9, fontWeight: 700 }} width={140} axisLine={false} tickLine={false} />
+                            <RechartsTooltip content={<ChartTooltipContent />} />
+                            <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={12} />
+                            <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={12} />
+                            <Bar dataKey="total" stackId="b" fill="transparent"><LabelList dataKey="total" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--primary))' }} /></Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
               </CardContent>
           </Card>
 
-          <Card className="shadow-md border-primary/10 flex flex-col overflow-hidden">
-              <CardHeader className="bg-muted/10 border-b py-4">
-                  <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-emerald-600" /><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Recognition Momentum (COPC)</CardTitle></div>
-                      <Badge variant="outline" className="h-5 text-[10px] font-black bg-emerald-50 text-emerald-700 border-emerald-200">TOTAL COPC: {analytics?.activeCopc}</Badge>
-                  </div>
-                  <CardDescription className="text-[11px] font-medium leading-relaxed mt-1">
-                      Tracks the timeline of COPC issuance by CHED.
-                  </CardDescription>
-              </CardHeader>
+          <Card className="shadow-md border-primary/10 flex flex-col">
+              <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Recognition Momentum (COPC)</CardTitle></CardHeader>
               <CardContent className="pt-10 flex-1">
-                  {analytics && analytics.copcMomentumData.length > 0 ? (
-                      <ChartContainer config={chartConfig} className="h-[350px] w-full">
-                        <ResponsiveContainer>
-                            <BarChart data={analytics?.copcMomentumData} margin={{ top: 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                                <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
-                                <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                                <RechartsTooltip content={<ChartTooltipContent />} />
-                                <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', paddingBottom: '30px' }} />
-                                <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30}>
-                                    <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
-                                </Bar>
-                                <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30}>
-                                    <LabelList dataKey="Graduate" position="center" style={{ fontSize: '8px', fill: '#fff', fontWeight: 'bold' }} />
-                                </Bar>
-                                <Bar dataKey="total" stackId="b" fill="transparent" barSize={30}>
-                                    <LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#059669' }} />
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
-                  ) : (
-                      <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground opacity-40"><Activity className="h-12 w-12 mb-2" /><p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p></div>
-                  )}
+                  <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                    <ResponsiveContainer>
+                        <BarChart data={analytics?.copcMomentumData}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                            <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                            <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                            <RechartsTooltip content={<ChartTooltipContent />} />
+                            <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30} />
+                            <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30} />
+                            <Bar dataKey="total" stackId="b" fill="transparent"><LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#059669' }} /></Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
               </CardContent>
           </Card>
       </div>
 
-      {/* 7. INSTITUTIONAL SURVEY PIPELINE (ROADMAP) */}
-      <div className="space-y-6">
-          <div className="flex items-center gap-3 border-b pb-2">
-              <Flag className="h-6 w-6 text-primary" />
-              <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Institutional Survey Pipeline (Roadmap)</h3>
-          </div>
-
-          <Tabs defaultValue="active" className="space-y-4">
-            <TabsList className="bg-muted p-1 border shadow-sm w-fit">
-                <TabsTrigger value="active" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                    <ShieldCheck className="h-3.5 w-3.5" /> Active Program Offerings
-                </TabsTrigger>
-                <TabsTrigger value="inactive" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                    <FileX className="h-3.5 w-3.5" /> Closed Program History Archive
-                </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="active" className="animate-in fade-in slide-in-from-left-2 duration-300">
-                <Card className="shadow-xl border-primary/10 overflow-hidden">
-                    <CardHeader className="bg-primary/5 border-b py-6">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="flex items-center gap-2">
-                                <ShieldCheck className="h-5 w-5 text-primary" />
-                                <CardTitle className="text-lg font-black uppercase tracking-tight">Active Program Roadmap</CardTitle>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                {Object.entries(analytics?.roadmapYearBreakdown || {}).sort((a,b) => Number(a[0]) - Number(b[0])).map(([y, count]) => (
-                                    <Badge key={y} variant="outline" className={cn("text-[10px] font-black border-none h-6 px-3 uppercase shadow-sm", getYearBadgeStyle(y))}>
-                                        {y}: {count} SURVEYS
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
-                        <CardDescription className="text-sm font-medium mt-2">Chronological schedule of quality milestones.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <ScrollArea className="h-[500px]">
-                            {sortedRoadmap.filter(i => i.isActive).length > 0 ? (
-                                <Table>
-                                    <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                                        <TableRow>
-                                            <TableHead className="pl-8 py-4">
-                                                <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('name')}>
-                                                    Academic Program Offering {getSortIcon('name')}
-                                                </Button>
-                                            </TableHead>
-                                            <TableHead className="py-4">
-                                                <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('campus')}>
-                                                    Campus Site {getSortIcon('campus')}
-                                                </Button>
-                                            </TableHead>
-                                            <TableHead className="py-4">
-                                                <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('currentLevel')}>
-                                                    Current Level {getSortIcon('currentLevel')}
-                                                </Button>
-                                            </TableHead>
-                                            <TableHead className="py-4">
-                                                <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('validity')}>
-                                                    Validity Date {getSortIcon('validity')}
-                                                </Button>
-                                            </TableHead>
-                                            <TableHead className="text-right pr-8 py-4">
-                                                <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent ml-auto" onClick={() => requestSort('status')}>
-                                                    Status {getSortIcon('status')}
-                                                </Button>
-                                            </TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {sortedRoadmap.filter(i => i.isActive).map(item => (
-                                            <TableRow key={item.id} className="hover:bg-muted/20 transition-colors group">
-                                                <TableCell className="pl-8 py-5">
-                                                    <div className="flex flex-col gap-1">
-                                                        <span className="font-black text-sm text-slate-900 leading-none group-hover:text-primary transition-colors">{item.name}</span>
-                                                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{item.level}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="py-5"><div className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-tighter"><School className="h-3.5 w-3.5 opacity-40" /> {item.campus}</div></TableCell>
-                                                <TableCell className="py-5"><Badge variant="outline" className="h-5 text-[9px] font-black text-primary border-primary/20 bg-primary/5 uppercase">{item.currentLevel}</Badge></TableCell>
-                                                <TableCell className="py-5">
-                                                    <div className="flex flex-col gap-1.5">
-                                                        <span className={cn("text-xs font-black uppercase tracking-tighter", item.validity === 'AWAITING RESULT' ? "text-blue-600" : "text-slate-700")}>{item.validity}</span>
-                                                        {item.validity !== 'NEW PROGRAM' && item.validity !== 'AWAITING RESULT' && (
-                                                            <Badge variant="outline" className={cn("text-[8px] font-black uppercase tracking-tighter w-fit h-4 border-none", getYearBadgeStyle(item.validity.match(/\d{4}/)?.[0] || ''))}>
-                                                                AY {item.validity.match(/\d{4}/)?.[0] || ''}
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-right pr-8 py-5">
-                                                    <Badge className={cn(
-                                                        "text-[10px] font-black uppercase border-none px-3 shadow-sm",
-                                                        item.status === 'COMPLIANT' ? "bg-emerald-600 text-white" : 
-                                                        item.status === 'OVERDUE' ? "bg-rose-600 text-white animate-pulse" : 
-                                                        item.status === 'AWAITING RESULT' ? "bg-blue-600 text-white" : 
-                                                        item.status === 'NEW PROGRAM' ? "bg-amber-50 text-amber-950" :
-                                                        "bg-indigo-600 text-white"
-                                                    )}>
-                                                        {item.status}
-                                                    </Badge>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            ) : (
-                                <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground opacity-40"><Activity className="h-12 w-12 mb-2" /><p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p></div>
-                            )}
-                        </ScrollArea>
-                    </CardContent>
-                </Card>
-            </TabsContent>
-          </Tabs>
-      </div>
+      <Card className="shadow-xl border-primary/10 overflow-hidden">
+          <CardHeader className="bg-primary/5 border-b py-6"><div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /><CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Roadmap</CardTitle></div></CardHeader>
+          <CardContent className="p-0">
+              <ScrollArea className="h-[500px]">
+                  <Table>
+                      <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                          <TableRow>
+                              <TableHead className="pl-8 py-4"><Button variant="ghost" className="p-0 text-[10px] font-black uppercase" onClick={() => requestSort('name')}>Academic Program {getSortIcon('name')}</Button></TableHead>
+                              <TableHead className="py-4"><Button variant="ghost" className="p-0 text-[10px] font-black uppercase" onClick={() => requestSort('campus')}>Site {getSortIcon('campus')}</Button></TableHead>
+                              <TableHead className="py-4"><Button variant="ghost" className="p-0 text-[10px] font-black uppercase" onClick={() => requestSort('currentLevel')}>Level {getSortIcon('currentLevel')}</Button></TableHead>
+                              <TableHead className="py-4"><Button variant="ghost" className="p-0 text-[10px] font-black uppercase" onClick={() => requestSort('validity')}>Validity {getSortIcon('validity')}</Button></TableHead>
+                              <TableHead className="text-right pr-8 py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase ml-auto" onClick={() => requestSort('status')}>Status {getSortIcon('status')}</Button></TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {sortedRoadmap.map(item => (
+                              <TableRow key={item.id} className="hover:bg-muted/20">
+                                  <TableCell className="pl-8 py-5">
+                                      <div className="flex flex-col gap-1">
+                                          <span className="font-black text-sm text-slate-900 leading-none">{item.name}</span>
+                                          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">{item.level}</span>
+                                      </div>
+                                  </TableCell>
+                                  <TableCell className="py-5 text-xs font-bold text-slate-600 uppercase">{item.campus}</TableCell>
+                                  <TableCell className="py-5"><Badge variant="outline" className="h-5 text-[9px] font-black text-primary border-primary/20 uppercase">{item.currentLevel}</Badge></TableCell>
+                                  <TableCell className="py-5 text-xs font-black uppercase">{item.validity}</TableCell>
+                                  <TableCell className="text-right pr-8 py-5">
+                                      <Badge className={cn("text-[10px] font-black uppercase border-none px-3 shadow-sm", item.status === 'COMPLIANT' ? "bg-emerald-600 text-white" : item.status === 'OVERDUE' ? "bg-rose-600 text-white animate-pulse" : item.status === 'AWAITING RESULT' ? "bg-blue-600 text-white" : "bg-amber-50 text-amber-950")}>
+                                          {item.status}
+                                      </Badge>
+                                  </TableCell>
+                              </TableRow>
+                          ))}
+                      </TableBody>
+                  </Table>
+              </ScrollArea>
+          </CardContent>
+      </Card>
     </div>
   );
 }

@@ -27,7 +27,8 @@ import {
     Users,
     UserCheck,
     Trophy,
-    Star
+    Star,
+    Check
 } from 'lucide-react';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
@@ -110,26 +111,13 @@ export default function AcademicProgramsPage() {
 
   /**
    * SCOPED COMPLIANCE QUERY
-   * Optimized: Fetching broader campus-wide data for supervisors and unit users 
-   * to avoid 'in' operator limits and handle older records missing unitId.
+   * Fetches data for the selected academic year.
    */
   const compliancesQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !userProfile || !userRole) return null;
-    
     const baseRef = collection(firestore, 'programCompliances');
-
-    if (isGlobalViewer) {
-        return query(baseRef, where('academicYear', '==', selectedYear));
-    }
-    
-    // Both Campus and Unit levels fetch campus-wide data for the selected year
-    if ((isCampusViewer || isUnitViewer) && userProfile.campusId) {
-        return query(baseRef, where('academicYear', '==', selectedYear), where('campusId', '==', userProfile.campusId));
-    }
-    
-    // Safety fallback
-    return query(baseRef, where('academicYear', '==', selectedYear), where('campusId', '==', userProfile.campusId));
-  }, [firestore, isUserLoading, userProfile, userRole, selectedYear, isGlobalViewer, isCampusViewer, isUnitViewer]);
+    return query(baseRef, where('academicYear', '==', selectedYear));
+  }, [firestore, isUserLoading, userProfile, userRole, selectedYear]);
 
   const { data: rawCompliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
@@ -180,7 +168,7 @@ export default function AcademicProgramsPage() {
             if (!rec || !rec.accreditationRecords || rec.accreditationRecords.length === 0) return false;
             const milestones = rec.accreditationRecords;
             const current = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
-            return current && current.level !== 'Non Accredited' && !current.level.includes('PSV');
+            return current && current.level !== 'Non Accredited' && !current.level.includes('PSV') && current.level !== 'AWAITING RESULT';
         };
         const hasCopc = (rec: ProgramComplianceRecord | undefined) => rec?.ched?.copcStatus === 'With COPC';
         const isFacultyAligned = (rec: ProgramComplianceRecord | undefined) => {
