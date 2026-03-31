@@ -230,7 +230,8 @@ export function ChedComplianceModule({ canEdit, program }: ChedComplianceModuleP
                                 )} />
                             </div>
                             <FormField control={control} name={`ched.rqatVisits.${index}.reportLink`} render={({ field: inputField }) => (
-                                <FormItem><FormLabel className="text-[10px] font-black uppercase text-primary flex items-center gap-2"><LinkIcon className="h-3 w-3" /> Monitoring Report Link (GDrive) {inputField.value && <CheckCircle2 className="h-3 w-3 text-green-500" />}</FormLabel>
+                                <FormItem>
+                                    <FormLabel className="text-[10px] font-black uppercase text-primary flex items-center gap-2"><LinkIcon className="h-3 w-3" /> Monitoring Report Link (GDrive) {inputField.value && <CheckCircle2 className="h-3 w-3 text-green-500" />}</FormLabel>
                                     <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="https://drive.google.com/..." className="h-9 text-xs bg-white" disabled={!canEdit} /></FormControl>
                                 </FormItem>
                             )} />
