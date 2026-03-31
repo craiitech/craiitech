@@ -29,7 +29,8 @@ import {
     CheckCircle2, 
     Info, 
     Target,
-    Activity
+    Activity,
+    Link as LinkIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { EmployeeActivity } from '@/lib/types';
@@ -48,6 +49,7 @@ const formSchema = z.object({
   activityParticular: z.string().min(5, 'Description must be at least 5 characters.'),
   status: z.enum(['Completed', 'In Progress', 'Open', 'Postponed']),
   output: z.string().optional(),
+  googleDriveLink: z.string().url('Please enter a valid Google Drive URL').optional().or(z.literal('')),
   remarks: z.string().optional(),
 });
 
@@ -66,6 +68,7 @@ export function ActivityLogFormDialog({ isOpen, onOpenChange, activity }: Activi
       status: 'Completed',
       activityParticular: '',
       output: '',
+      googleDriveLink: '',
       remarks: '',
     }
   });
@@ -80,6 +83,7 @@ export function ActivityLogFormDialog({ isOpen, onOpenChange, activity }: Activi
         activityParticular: activity.activityParticular,
         status: activity.status,
         output: activity.output || '',
+        googleDriveLink: activity.googleDriveLink || '',
         remarks: activity.remarks || '',
       });
     } else if (!activity && isOpen) {
@@ -90,6 +94,7 @@ export function ActivityLogFormDialog({ isOpen, onOpenChange, activity }: Activi
         status: 'Completed',
         activityParticular: '',
         output: '',
+        googleDriveLink: '',
         remarks: '',
       });
     }
@@ -203,13 +208,23 @@ export function ActivityLogFormDialog({ isOpen, onOpenChange, activity }: Activi
                         <FormControl><Input {...field} placeholder="e.g. Approved Minutes" className="bg-emerald-50/20 border-emerald-100 text-xs font-bold" /></FormControl>
                     </FormItem>
                 )} />
-                <FormField control={form.control} name="remarks" render={({ field }) => (
+                <FormField control={form.control} name="googleDriveLink" render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500">Additional Remarks</FormLabel>
-                        <FormControl><Input {...field} placeholder="Internal notes..." className="bg-slate-50 text-xs" /></FormControl>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-blue-700 flex items-center gap-2">
+                            <LinkIcon className="h-3.5 w-3.5" /> Attachment Link
+                        </FormLabel>
+                        <FormControl><Input {...field} placeholder="Google Drive Link..." className="bg-blue-50/20 border-blue-100 text-xs" /></FormControl>
+                        <FormDescription className="text-[9px]">Verifiable evidence for this activity.</FormDescription>
                     </FormItem>
                 )} />
             </div>
+
+            <FormField control={form.control} name="remarks" render={({ field }) => (
+                <FormItem>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500">Additional Remarks</FormLabel>
+                    <FormControl><Input {...field} placeholder="Internal notes..." className="bg-slate-50 text-xs" /></FormControl>
+                </FormItem>
+            )} />
 
             <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3">
                 <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />

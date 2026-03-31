@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -20,7 +21,8 @@ import {
     Trash2,
     LayoutList,
     Info as InfoIcon,
-    ShieldAlert
+    ShieldAlert,
+    ExternalLink
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -294,6 +296,7 @@ export default function EmployeeActivityLogPage() {
                           <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Time & Timeline</TableHead>
                           <TableHead className="text-[10px] font-black uppercase py-3">Activity Particulars</TableHead>
                           <TableHead className="text-[10px] font-black uppercase py-3">Output</TableHead>
+                          <TableHead className="text-[10px] font-black uppercase text-center py-3">Evidence</TableHead>
                           <TableHead className="text-[10px] font-black uppercase text-center py-3">Status</TableHead>
                           <TableHead className="text-right text-[10px] font-black uppercase pr-6 py-3">Actions</TableHead>
                       </TableRow>
@@ -328,6 +331,17 @@ export default function EmployeeActivityLogPage() {
                                   </div>
                               </TableCell>
                               <TableCell className="text-center">
+                                  {activity.googleDriveLink ? (
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" asChild>
+                                          <a href={activity.googleDriveLink} target="_blank" rel="noopener noreferrer">
+                                              <ExternalLink className="h-4 w-4" />
+                                          </a>
+                                      </Button>
+                                  ) : (
+                                      <span className="text-[10px] text-muted-foreground opacity-20 italic">None</span>
+                                  )}
+                              </TableCell>
+                              <TableCell className="text-center">
                                   <Badge 
                                       className={cn(
                                           "text-[9px] font-black uppercase border-none px-2 shadow-sm",
@@ -353,7 +367,7 @@ export default function EmployeeActivityLogPage() {
                       ))}
                       {filteredActivities.length === 0 && !isLoadingActivities && (
                           <TableRow>
-                              <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
+                              <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
                                   <div className="flex flex-col items-center gap-2 opacity-20">
                                       <UserCheck className="h-10 w-10" />
                                       <p className="text-[10px] font-black uppercase tracking-widest">No activities logged</p>
@@ -368,7 +382,7 @@ export default function EmployeeActivityLogPage() {
               <div className="flex items-start gap-3">
                   <InfoIcon className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
                   <p className="text-[9px] text-muted-foreground italic leading-relaxed">
-                      <strong>Institutional Standard:</strong> Daily logs ensure accurate accomplishment reporting aligned with the EOMS operational plans.
+                      <strong>Institutional Standard:</strong> Daily logs ensure accurate accomplishment reporting aligned with the EOMS operational plans. Attachment links provide verifiable evidence for audit sessions.
                   </p>
               </div>
           </CardFooter>

@@ -675,6 +675,7 @@ export type EmployeeActivity = {
     activityParticular: string;
     status: 'Completed' | 'In Progress' | 'Open' | 'Postponed';
     output?: string;
+    googleDriveLink?: string;
     remarks?: string;
     createdAt: any;
     updatedAt: any;

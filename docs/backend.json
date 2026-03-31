@@ -34,6 +34,7 @@
         "activityParticular": { "type": "string" },
         "status": { "type": "string", "enum": ["Completed", "In Progress", "Open", "Postponed"] },
         "output": { "type": "string" },
+        "googleDriveLink": { "type": "string", "format": "uri", "description": "Link to verifiable evidence or output document." },
         "remarks": { "type": "string" }
       },
       "required": ["userId", "date", "startTime", "endTime", "activityParticular", "status"]
