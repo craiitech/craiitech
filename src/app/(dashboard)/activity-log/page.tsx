@@ -20,7 +20,7 @@ import {
     Edit,
     Trash2,
     LayoutList,
-    Info,
+    Info as InfoIcon,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -51,11 +51,16 @@ export default function EmployeeActivityLogPage() {
   // Filter States
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [dateFilter, setDateFilter] = useState<string>(''); // Deferred to useEffect to prevent hydration error
   const [viewScope, setViewScope] = useState<'personal' | 'unit' | 'campus'>('personal');
 
+  // Fix: Defer default date to mount
+  useEffect(() => {
+    setDateFilter(format(new Date(), 'yyyy-MM-dd'));
+  }, []);
+
   const activitiesQuery = useMemoFirebase(() => {
-    // CRITICAL: Defer query until session and profile are ready to prevent permission errors
+    // CRITICAL: Defer query until session and profile are fully ready to prevent permission errors
     if (!firestore || !user || isUserLoading || !userProfile) return null;
     
     const baseRef = collection(firestore, 'employeeActivities');
@@ -356,7 +361,7 @@ export default function EmployeeActivityLogPage() {
           </CardContent>
           <CardFooter className="bg-muted/5 border-t py-3 px-6">
               <div className="flex items-start gap-3">
-                  <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                  <InfoIcon className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
                   <p className="text-[9px] text-muted-foreground italic leading-relaxed">
                       <strong>Institutional Standard:</strong> Daily logs ensure accurate accomplishment reporting aligned with the EOMS operational plans. For monthly reports, set the filter to 'All' and use the Print function to aggregate your work.
                   </p>

@@ -36,8 +36,8 @@ service cloud.firestore {
     // EMPLOYEE ACTIVITIES - Institutional Productivity Log
     // --------------------------------------------------------------------------
     match /employeeActivities/{activityId} {
-      // Simplified to benchmark: allow read for all authenticated users to support institutional oversight
-      allow read: if isSignedIn();
+      // Explicitly allow read/list for all authenticated personnel to support institutional monitoring
+      allow read, list: if isSignedIn();
       // Creation restricted to the authenticated user owning the log entry
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       // Update/Delete restricted to the owner or System Administrators
