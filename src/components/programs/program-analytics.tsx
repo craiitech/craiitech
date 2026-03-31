@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AcademicProgram, ProgramComplianceRecord, AccreditationRecord, Campus, Unit } from '@/lib/types';
+import type { AcademicProgram, ProgramComplianceRecord, Campus, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '../ui/skeleton';
@@ -46,6 +46,8 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { cn } from '@/lib/utils';
+import { Timestamp } from 'firebase/firestore';
+import { format } from 'date-fns';
 
 interface ProgramAnalyticsProps {
   programs: AcademicProgram[];
@@ -95,6 +97,21 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
   const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
   const [roadmapSortConfig, setRoadmapSortConfig] = useState<{ key: SortKey, direction: 'asc' | 'desc' }>({ key: 'validity', direction: 'asc' });
 
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (roadmapSortConfig.key === key && roadmapSortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setRoadmapSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: SortKey) => (
+    <ArrowUpDown className={cn(
+      "h-3 w-3 ml-1.5 transition-colors",
+      roadmapSortConfig.key === key ? "text-primary opacity-100" : "opacity-20"
+    )} />
+  );
+
   const analytics = useMemo(() => {
     if (!programs.length) return null;
 
@@ -103,31 +120,18 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         return p.level === 'Graduate' ? 'Graduate' : 'Undergraduate';
     };
 
-    // KPI Counters
     let activeCount = 0;
     let activeAccredited = 0;
     let activeCopc = 0;
 
-    // GAD Counters
     let sem1Male = 0, sem1Female = 0;
     let sem2Male = 0, sem2Female = 0;
-    let summerMale = 0, summerFemale = 0;
-    let totalMaleGrads = 0, totalFemaleGrads = 0;
-    let totalMaleTraced = 0, totalFemaleTraced = 0;
-    
-    // Faculty Counters
-    const uniqueFacultySet = new Set<string>();
     let totalMaleFaculty = 0, totalFemaleFaculty = 0, totalOthersFaculty = 0;
+    const uniqueFacultySet = new Set<string>();
 
-    // Timeline Series
     const copcByYear: Record<string, any> = {};
     const achievementByYear: Record<string, any> = {};
     const milestoneVelocity: Record<string, any> = {};
-    
-    // Board Results
-    let totalSchoolRate = 0, totalNationalRate = 0, boardCount = 0;
-
-    // Roadmap Registry
     const roadmapData: any[] = [];
     const currentYearNum = new Date().getFullYear();
 
@@ -136,10 +140,9 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         if (p.isActive) activeCount++;
 
         const record = compliances.find(c => c.programId === p.id);
-        
-        // --- HELPER LOGIC: MATURITY CHECK ---
         const milestones = record?.accreditationRecords || [];
         const currentMilestone = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
+        
         const isAccredited = currentMilestone && 
                             currentMilestone.level !== 'Non Accredited' && 
                             !currentMilestone.level.includes('PSV') && 
@@ -151,14 +154,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             if (hasCopc) activeCopc++;
         }
 
-        // --- ROADMAP PROCESSING ---
-        const milestoneWaitingResult = milestones.find(m => m.lifecycleStatus === 'Waiting for Official Result');
         const validityStr = currentMilestone?.statusValidityDate || 'AWAITING RESULT';
-
         let status = 'AWAITING RESULT';
         if (p.isActive) {
             if (p.isNewProgram) status = 'NEW PROGRAM';
-            else if (milestoneWaitingResult) status = 'AWAITING RESULT';
             else if (validityStr && validityStr !== 'AWAITING RESULT' && validityStr !== 'TBA') {
                 const yearMatch = validityStr.match(/\d{4}/);
                 const dYear = yearMatch ? parseInt(yearMatch[0]) : 0;
@@ -178,9 +177,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             isActive: p.isActive
         });
 
-        // --- AGGREGATE STATS ---
         if (record) {
-            // COPC Momentum
             const copcYear = record.ched?.copcAwardDate?.match(/\d{4}/)?.[0];
             if (copcYear) {
                 if (!copcByYear[copcYear]) copcByYear[copcYear] = { year: copcYear, Undergraduate: 0, Graduate: 0, Inactive: 0, total: 0 };
@@ -188,7 +185,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 copcByYear[copcYear].total++;
             }
 
-            // Milestone Histories
             milestones.forEach(m => {
                 const surveyYear = m.dateOfSurvey?.match(/\d{4}/)?.[0];
                 if (surveyYear) {
@@ -204,11 +200,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 }
             });
 
-            // GAD Stats (Semester Headcounts)
             const stats = record.stats?.enrollment;
-            const processTerm = (term: any, targetM: any, targetF: any) => {
-                if (!term) return { m: 0, f: 0 };
+            const sumTerm = (term: any) => {
                 let m = 0, f = 0;
+                if (!term) return { m, f };
                 ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach(lvl => {
                     m += Number(term[lvl]?.male || 0);
                     f += Number(term[lvl]?.female || 0);
@@ -216,16 +211,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 return { m, f };
             };
 
-            const s1Res = processTerm(stats?.firstSemester, sem1Male, sem1Female);
-            sem1Male += s1Res.m; sem1Female += s1Res.f;
+            const s1 = sumTerm(stats?.firstSemester);
+            sem1Male += s1.m; sem1Female += s1.f;
             
-            const s2Res = processTerm(stats?.secondSemester, sem2Male, sem2Female);
-            sem2Male += s2Res.m; sem2Female += s2Res.f;
-            
-            const sumRes = processTerm(stats?.midYearTerm, summerMale, summerFemale);
-            summerMale += sumRes.m; summerFemale += sumRes.f;
+            const s2 = sumTerm(stats?.secondSemester);
+            sem2Male += s2.m; sem2Female += s2.f;
 
-            // Faculty & Outcomes
             if (record.faculty) {
                 const roster = [...(record.faculty.members || [])];
                 if (record.faculty.dean?.name) roster.push(record.faculty.dean as any);
@@ -240,14 +231,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                         else totalOthersFaculty++;
                     }
                 });
-            }
-            record.graduationRecords?.forEach(g => { totalMaleGrads += Number(g.maleCount || 0); totalFemaleGrads += Number(g.femaleCount || 0); });
-            record.tracerRecords?.forEach(t => { totalMaleTraced += Number(t.maleTraced || 0); totalFemaleTraced += Number(t.femaleTraced || 0); });
-            if (record.boardPerformance?.length) {
-                const latest = record.boardPerformance[record.boardPerformance.length - 1];
-                totalSchoolRate += latest.overallPassRate;
-                totalNationalRate += latest.nationalPassingRate;
-                boardCount++;
             }
         }
     });
@@ -266,8 +249,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             const mil = rec?.accreditationRecords || [];
             const cur = mil.find(m => m.lifecycleStatus === 'Current') || mil[mil.length - 1];
             const rawLevel = cur?.level || 'AWAITING RESULT';
-            if (rawLevel.includes('PSV')) lvlKey = 'Preliminary Survey Visit (PSV)';
-            else lvlKey = rawLevel;
+            lvlKey = rawLevel.includes('PSV') ? 'Preliminary Survey Visit (PSV)' : rawLevel;
         }
         if (accreditationDataMap[lvlKey]) { 
             accreditationDataMap[lvlKey][cat]++; 
@@ -294,24 +276,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         gadEnrollment1stData: makePieData(sem1Male, sem1Female),
         gadEnrollment2ndData: makePieData(sem2Male, sem2Female),
         gadFacultyData: makePieData(totalMaleFaculty, totalFemaleFaculty, totalOthersFaculty),
-        boardPerfData: boardCount > 0 ? [
-            { name: 'School', rate: Math.round(totalSchoolRate / boardCount), fill: chartConfig.School.color }, 
-            { name: 'National', rate: Math.round(totalNationalRate / boardCount), fill: chartConfig.National.color }
-        ] : [],
         monitoredCount,
         integrityRate: programs.length > 0 ? Math.round((monitoredCount / programs.length) * 100) : 0
     };
-  }, [programs, compliances, campusMap, selectedYear]);
-
-  const requestSort = (key: SortKey) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (roadmapSortConfig.key === key && roadmapSortConfig.direction === 'asc') direction = 'desc';
-    setRoadmapSortConfig({ key, direction });
-  };
-
-  const getSortIcon = (key: SortKey) => (
-    <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", roadmapSortConfig.key === key ? "text-primary opacity-100" : "opacity-20")} />
-  );
+  }, [programs, compliances, campusMap]);
 
   const sortedRoadmap = useMemo(() => {
     if (!analytics?.roadmapData) return [];
@@ -337,29 +305,27 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-      {/* KPI PANEL */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/10 shadow-sm overflow-hidden flex flex-col">
+        <Card className="bg-primary/5 border-primary/10 shadow-sm overflow-hidden">
             <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Portfolio Monitoring</CardTitle></CardHeader>
-            <CardContent className="flex-1"><div className="text-3xl font-black text-slate-900">{analytics?.activeCount} Active</div><p className="text-[9px] font-bold text-muted-foreground uppercase">Current Scope Portfolio</p></CardContent>
+            <CardContent><div className="text-3xl font-black text-slate-900">{analytics?.activeCount} Active</div><p className="text-[9px] font-bold text-muted-foreground uppercase">Current Scope Portfolio</p></CardContent>
         </Card>
-        <Card className="bg-emerald-50 border-emerald-100 shadow-sm overflow-hidden flex flex-col">
+        <Card className="bg-emerald-50 border-emerald-100 shadow-sm overflow-hidden">
             <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-emerald-700">COPC Performance</CardTitle></CardHeader>
-            <CardContent className="flex-1"><div className="text-3xl font-black text-emerald-600">{analytics?.activeCopc} Programs</div><p className="text-[9px] font-bold text-emerald-600/70 uppercase">Verified Authority</p></CardContent>
+            <CardContent><div className="text-3xl font-black text-emerald-600">{analytics?.activeCopc} Programs</div><p className="text-[9px] font-bold text-emerald-600/70 uppercase">Verified Authority</p></CardContent>
         </Card>
-        <Card className="bg-amber-50 border-amber-100 shadow-sm overflow-hidden flex flex-col">
+        <Card className="bg-amber-50 border-amber-100 shadow-sm overflow-hidden">
             <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-amber-700">Quality Maturity</CardTitle></CardHeader>
-            <CardContent className="flex-1"><div className="text-3xl font-black text-amber-600">{analytics?.activeAccredited} Programs</div><p className="text-[9px] font-bold text-amber-800/60 uppercase">Level I or Higher</p></CardContent>
+            <CardContent><div className="text-3xl font-black text-amber-600">{analytics?.activeAccredited} Programs</div><p className="text-[9px] font-bold text-amber-800/60 uppercase">Level I or Higher</p></CardContent>
         </Card>
-        <Card className="bg-blue-50 border-blue-100 shadow-sm overflow-hidden flex flex-col">
+        <Card className="bg-blue-50 border-blue-100 shadow-sm overflow-hidden">
             <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-blue-700">Monitored Registry</CardTitle></CardHeader>
-            <CardContent className="flex-1"><div className="text-3xl font-black text-blue-600">{analytics?.integrityRate}%</div><p className="text-[9px] font-bold text-blue-600/70 uppercase">Verified Data Logs</p></CardContent>
+            <CardContent><div className="text-3xl font-black text-blue-600">{analytics?.integrityRate}%</div><p className="text-[9px] font-bold text-blue-600/70 uppercase">Verified Data Logs</p></CardContent>
         </Card>
       </div>
 
-      {/* GAD ANALYTICS */}
       <div className="space-y-4">
-          <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs border-b pb-2"><Users className="h-4 w-4" /> Gender & Development (GAD) Metrics</div>
+          <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs border-b pb-2"><Users className="h-4 w-4" /> Gender & Development (GAD) Compliance Metrics</div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
                   { title: '1st Sem Enrollment', data: analytics?.gadEnrollment1stData },
@@ -386,7 +352,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           </div>
       </div>
 
-      {/* STRATEGIC CHARTS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card className="shadow-md border-primary/10 flex flex-col">
               <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Maturity Profile</CardTitle></CardHeader>
@@ -429,16 +394,53 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card className="shadow-md border-primary/10 flex flex-col">
-              <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle><CardDescription className="text-[10px]">Upcoming validity expirations.</CardDescription></CardHeader>
-              <CardContent className="pt-10 flex-1"><ChartContainer config={chartConfig} className="h-[350px] w-full"><ResponsiveContainer><BarChart data={analytics?.milestoneVelocityData}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} /><XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} /><YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} /><RechartsTooltip content={<ChartTooltipContent />} /><Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30} /><Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30} /><Bar dataKey="total" stackId="b" fill="transparent"><LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#ef4444' }} /></BarChart></ResponsiveContainer></ChartContainer></CardContent>
+              <CardHeader className="bg-muted/10 border-b py-4">
+                <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle>
+                <CardDescription className="text-[10px]">Upcoming validity expirations.</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-10 flex-1">
+                <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                  <ResponsiveContainer>
+                    <BarChart data={analytics?.milestoneVelocityData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                      <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <RechartsTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30} />
+                      <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30} />
+                      <Bar dataKey="total" stackId="b" fill="transparent">
+                        <LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#ef4444' }} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
           </Card>
           <Card className="shadow-md border-primary/10 flex flex-col">
-              <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle><CardDescription className="text-[10px]">Total surveys recorded per year.</CardDescription></CardHeader>
-              <CardContent className="pt-10 flex-1"><ChartContainer config={chartConfig} className="h-[350px] w-full"><ResponsiveContainer><BarChart data={analytics?.achievementHistoryData}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} /><XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} /><YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} /><RechartsTooltip content={<ChartTooltipContent />} /><Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30} /><Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30} /><Bar dataKey="total" stackId="b" fill="transparent"><LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#3b82f6' }} /></BarChart></ResponsiveContainer></ChartContainer></CardContent>
+              <CardHeader className="bg-muted/10 border-b py-4">
+                <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle>
+                <CardDescription className="text-[10px]">Total surveys recorded per year.</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-10 flex-1">
+                <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                  <ResponsiveContainer>
+                    <BarChart data={analytics?.achievementHistoryData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                      <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <RechartsTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30} />
+                      <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30} />
+                      <Bar dataKey="total" stackId="b" fill="transparent">
+                        <LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#3b82f6' }} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
           </Card>
       </div>
 
-      {/* ROADMAP TABLE */}
       <Card className="shadow-xl border-primary/10 overflow-hidden">
           <CardHeader className="bg-primary/5 border-b py-6"><div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /><CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Roadmap</CardTitle></div></CardHeader>
           <CardContent className="p-0">
