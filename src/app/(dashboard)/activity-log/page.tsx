@@ -61,8 +61,8 @@ export default function EmployeeActivityLogPage() {
 
   /**
    * SILENT GATED QUERY
-   * This query returns null unless the user is confirmed as an Admin.
-   * This prevents permission errors in the console during the initial handshake.
+   * This query remains null until Admin status is 100% verified.
+   * This prevents permission errors during the initial session handshake.
    */
   const activitiesQuery = useMemoFirebase(() => {
     // CRITICAL GATE: Only execute query if we are sure the user is an Admin
@@ -172,7 +172,7 @@ export default function EmployeeActivityLogPage() {
     }
   };
 
-  // Wait for session stability
+  // Combined Loading Check
   const isLoadingSession = isUserLoading || (isAdmin && !userProfile);
 
   if (isLoadingSession) {
@@ -184,7 +184,7 @@ export default function EmployeeActivityLogPage() {
     );
   }
 
-  // Final access check
+  // Final access control check
   if (!isAdmin) {
     return (
         <div className="flex flex-col items-center justify-center py-40 gap-4">

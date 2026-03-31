@@ -122,96 +122,6 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /managementReviewOutputs/{id} {
-      allow read, get, list: if isSignedIn();
-      allow write: if isSignedIn();
-    }
-
-    // --------------------------------------------------------------------------
-    // GAD CORNER
-    // --------------------------------------------------------------------------
-    match /gadInitiatives/{id} {
-      allow read, get, list: if isSignedIn();
-      allow write: if isSignedIn();
-    }
-
-    match /gadMainstreaming/{id} {
-      allow read, get, list: if isSignedIn();
-      allow write: if isSignedIn();
-    }
-
-    // --------------------------------------------------------------------------
-    // DOCUMENT CONTROL & FORMS
-    // --------------------------------------------------------------------------
-    match /unitForms/{id} {
-      allow read, get, list: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    match /unitFormRequests/{id} {
-      allow read, get, list: if isSignedIn();
-      allow write: if isSignedIn();
-    }
-
-    match /formDownloadLogs/{id} {
-      allow read, list: if isAdmin() || isSupervisor();
-      allow create: if isSignedIn();
-    }
-
-    match /procedureManuals/{id} {
-      allow read, get, list: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    match /eomsPolicyManuals/{id} {
-      allow read, get, list: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    // --------------------------------------------------------------------------
-    // SYSTEM CONFIGURATION & TELEMETRY
-    // --------------------------------------------------------------------------
-    match /campuses/{id} { 
-      allow read, get, list: if isSignedIn(); 
-      allow write: if isAdmin(); 
-    }
-
-    match /units/{id} { 
-      allow read, get, list: if isSignedIn(); 
-      allow write: if isAdmin(); 
-    }
-
-    match /cycles/{id} { 
-      allow read, get, list: if isSignedIn(); 
-      allow write: if isAdmin(); 
-    }
-
-    match /campusSettings/{id} {
-      allow read, get, list: if isSignedIn();
-      allow write: if isAdmin() || isSupervisor();
-    }
-
-    match /system/{docId} {
-      allow read, get, list: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    match /errorReports/{id} {
-      allow read, get, list: if isAdmin();
-      allow create: if isSignedIn();
-      allow update: if isAdmin();
-    }
-
-    match /appFeedbacks/{id} {
-      allow read, get, list: if isAdmin();
-      allow create: if isSignedIn();
-    }
-
-    match /softwareEvaluations/{id} {
-      allow read, get, list: if isAdmin() || isSupervisor();
-      allow create: if true; // Public access allowed for evaluations
-    }
-
     // --------------------------------------------------------------------------
     // CATCH-ALL FOR ADMIN OVERRIDE
     // --------------------------------------------------------------------------
@@ -220,12 +130,11 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // EMPLOYEE ACTIVITY LOG - ADDED BY PROTOTYPER
+    // EMPLOYEE ACTIVITY LOG - APPENDED AT END OF FILE
     // --------------------------------------------------------------------------
     match /employeeActivities/{activityId} {
-      allow read, get, list: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow read, get, list: if isSignedIn() && (request.auth.token.email == 'admin@eoms.com' || isAdmin());
+      allow write: if isSignedIn() && (request.auth.token.email == 'admin@eoms.com' || isAdmin() || request.resource.data.userId == request.auth.uid);
     }
   }
 }
