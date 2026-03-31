@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   useUser,
 } from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, Megaphone, ListChecks, HandHeart } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, Megaphone, ListChecks, HandHeart, UserCheck } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +33,12 @@ export function SidebarNav({
       label: 'Home',
       active: pathname === '/dashboard',
       icon: <LayoutDashboard />,
+    },
+    {
+      href: '/activity-log',
+      label: 'Activity Log (Daily)',
+      active: pathname.startsWith('/activity-log'),
+      icon: <UserCheck />,
     },
     {
       href: '/advisories',

@@ -19,6 +19,25 @@
       },
       "required": ["id", "email", "firstName", "lastName", "roleId", "role", "campusId", "unitId", "verified"]
     },
+    "EmployeeActivity": {
+      "title": "EmployeeActivity",
+      "description": "Daily task log for university personnel.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "unitId": { "type": "string" },
+        "campusId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" },
+        "activityParticular": { "type": "string" },
+        "status": { "type": "string", "enum": ["Completed", "In Progress", "Open", "Postponed"] },
+        "output": { "type": "string" },
+        "remarks": { "type": "string" }
+      },
+      "required": ["userId", "date", "startTime", "endTime", "activityParticular", "status"]
+    },
     "QaAdvisory": {
       "title": "QaAdvisory",
       "type": "object",
@@ -58,11 +77,10 @@
     "providers": ["password", "google"]
   },
   "firestore": {
-    "structure": [
-      { "path": "/users/{userId}", "definition": { "entityName": "User" } },
-      { "path": "/qaAdvisories/{advisoryId}", "definition": { "entityName": "QaAdvisory" } },
-      { "path": "/system/signatories", "definition": { "entityName": "Signatories" } },
-      { "path": "/system/gadSettings", "definition": { "entityName": "GadSettings" } }
-    ]
+    "/users/{userId}": { "schema": { "$ref": "#/backend/entities/User" }, "description": "Institutional user profiles." },
+    "/employeeActivities/{activityId}": { "schema": { "$ref": "#/backend/entities/EmployeeActivity" }, "description": "Daily task logs." },
+    "/qaAdvisories/{advisoryId}": { "schema": { "$ref": "#/backend/entities/QaAdvisory" }, "description": "QA communications." },
+    "/system/signatories": { "schema": { "$ref": "#/backend/entities/Signatories" }, "description": "Institutional signatories." },
+    "/system/gadSettings": { "schema": { "$ref": "#/backend/entities/GadSettings" }, "description": "GAD governance settings." }
   }
 }

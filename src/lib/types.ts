@@ -662,3 +662,20 @@ export type GADMainstreamingChecklist = {
     scores: Record<string, boolean>;
     updatedAt: any;
 };
+
+export type EmployeeActivity = {
+    id: string;
+    userId: string;
+    userName: string;
+    unitId: string;
+    campusId: string;
+    date: any; // Timestamp
+    startTime: string;
+    endTime: string;
+    activityParticular: string;
+    status: 'Completed' | 'In Progress' | 'Open' | 'Postponed';
+    output?: string;
+    remarks?: string;
+    createdAt: any;
+    updatedAt: any;
+};
