@@ -70,18 +70,20 @@ export default function EmployeeActivityLogPage() {
         if (userProfile.unitId) {
             return query(baseRef, where('unitId', '==', userProfile.unitId), orderBy('date', 'desc'));
         }
-        return query(baseRef, orderBy('date', 'desc'));
+        // If an admin has no unit assigned, they can view institutional logs
+        return isAdmin ? query(baseRef, orderBy('date', 'desc')) : null;
     }
     
     if (viewScope === 'campus') {
         if (userProfile.campusId) {
             return query(baseRef, where('campusId', '==', userProfile.campusId), orderBy('date', 'desc'));
         }
-        return query(baseRef, orderBy('date', 'desc'));
+        // If an admin has no campus assigned, they can view institutional logs
+        return isAdmin ? query(baseRef, orderBy('date', 'desc')) : null;
     }
 
     return query(baseRef, where('userId', '==', user.uid), orderBy('date', 'desc'));
-  }, [firestore, user, userProfile, viewScope, isUserLoading]);
+  }, [firestore, user, userProfile, viewScope, isUserLoading, isAdmin]);
 
   const { data: rawActivities, isLoading: isLoadingActivities } = useCollection<EmployeeActivity>(activitiesQuery);
 
@@ -164,7 +166,16 @@ export default function EmployeeActivityLogPage() {
     }
   };
 
-  const isLoading = isUserLoading || isLoadingActivities;
+  const isLoading = isUserLoading || isLoadingActivities || !userProfile;
+
+  if (isLoading) {
+    return (
+        <div className="flex flex-col items-center justify-center py-40 gap-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Synchronizing Activity Registry...</p>
+        </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -267,88 +278,81 @@ export default function EmployeeActivityLogPage() {
               </div>
           </CardHeader>
           <CardContent className="p-0">
-              {isLoading ? (
-                  <div className="flex flex-col items-center justify-center py-20 gap-2">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
-                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Initializing Registry...</p>
-                  </div>
-              ) : (
-                  <Table>
-                      <TableHeader className="bg-muted/30">
-                          <TableRow>
-                              <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Time & Timeline</TableHead>
-                              <TableHead className="text-[10px] font-black uppercase py-3">Activity Particulars</TableHead>
-                              <TableHead className="text-[10px] font-black uppercase py-3">Target Output / Deliverable</TableHead>
-                              <TableHead className="text-[10px] font-black uppercase text-center py-3">Status</TableHead>
-                              <TableHead className="text-right text-[10px] font-black uppercase pr-6 py-3">Actions</TableHead>
-                          </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                          {filteredActivities.map((activity) => (
-                              <TableRow key={activity.id} className="hover:bg-muted/20 transition-colors group">
-                                  <TableCell className="pl-6 py-4">
-                                      <div className="flex flex-col gap-1">
-                                          <div className="flex items-center gap-2">
-                                              <Clock className="h-3.5 w-3.5 text-primary" />
-                                              <span className="text-xs font-black text-slate-800 uppercase tabular-nums">
-                                                  {activity.startTime} - {activity.endTime}
-                                              </span>
-                                          </div>
-                                          <div className="flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
-                                              <Calendar className="h-3 w-3" />
-                                              {format(activity.date instanceof Timestamp ? activity.date.toDate() : new Date(activity.date), 'MMM dd, yyyy')}
-                                          </div>
-                                      </div>
-                                  </TableCell>
-                                  <TableCell className="max-w-xs py-4">
-                                      <div className="flex flex-col gap-1">
-                                          <p className="font-bold text-sm text-slate-900 group-hover:text-primary transition-colors">{activity.activityParticular}</p>
-                                          <p className="text-[10px] text-muted-foreground italic line-clamp-1">{activity.remarks || 'No additional remarks.'}</p>
-                                      </div>
-                                  </TableCell>
-                                  <TableCell>
+              <Table>
+                  <TableHeader className="bg-muted/30">
+                      <TableRow>
+                          <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Time & Timeline</TableHead>
+                          <TableHead className="text-[10px] font-black uppercase py-3">Activity Particulars</TableHead>
+                          <TableHead className="text-[10px] font-black uppercase py-3">Target Output / Deliverable</TableHead>
+                          <TableHead className="text-[10px] font-black uppercase text-center py-3">Status</TableHead>
+                          <TableHead className="text-right text-[10px] font-black uppercase pr-6 py-3">Actions</TableHead>
+                      </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                      {filteredActivities.map((activity) => (
+                          <TableRow key={activity.id} className="hover:bg-muted/20 transition-colors group">
+                              <TableCell className="pl-6 py-4">
+                                  <div className="flex flex-col gap-1">
                                       <div className="flex items-center gap-2">
-                                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 opacity-40" />
-                                          <span className="text-xs font-medium text-slate-600">{activity.output || 'Continuous Task'}</span>
+                                          <Clock className="h-3.5 w-3.5 text-primary" />
+                                          <span className="text-xs font-black text-slate-800 uppercase tabular-nums">
+                                              {activity.startTime} - {activity.endTime}
+                                          </span>
                                       </div>
-                                  </TableCell>
-                                  <TableCell className="text-center">
-                                      <Badge 
-                                          className={cn(
-                                              "text-[9px] font-black uppercase border-none px-2 shadow-sm",
-                                              activity.status === 'Completed' ? "bg-emerald-600 text-white" : 
-                                              activity.status === 'In Progress' ? "bg-blue-600 text-white" : 
-                                              "bg-amber-50 text-amber-950"
-                                          )}
-                                      >
-                                          {activity.status}
-                                      </Badge>
-                                  </TableCell>
-                                  <TableCell className="text-right pr-6 whitespace-nowrap">
-                                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => { setEditingActivity(activity); setIsFormOpen(true); }}>
-                                              <Edit className="h-4 w-4" />
-                                          </Button>
-                                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(activity.id)}>
-                                              <Trash2 className="h-4 w-4" />
-                                          </Button>
+                                      <div className="flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+                                          <Calendar className="h-3 w-3" />
+                                          {format(activity.date instanceof Timestamp ? activity.date.toDate() : new Date(activity.date), 'MMM dd, yyyy')}
                                       </div>
-                                  </TableCell>
-                              </TableRow>
-                          ))}
-                          {filteredActivities.length === 0 && (
-                              <TableRow>
-                                  <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
-                                      <div className="flex flex-col items-center gap-2 opacity-20">
-                                          <UserCheck className="h-10 w-10" />
-                                          <p className="text-[10px] font-black uppercase tracking-widest">No activities logged for this selection</p>
-                                      </div>
-                                  </TableCell>
-                              </TableRow>
-                          )}
-                      </TableBody>
-                  </Table>
-              )}
+                                  </div>
+                              </TableCell>
+                              <TableCell className="max-w-xs py-4">
+                                  <div className="flex flex-col gap-1">
+                                      <p className="font-bold text-sm text-slate-900 group-hover:text-primary transition-colors">{activity.activityParticular}</p>
+                                      <p className="text-[10px] text-muted-foreground italic line-clamp-1">{activity.remarks || 'No additional remarks.'}</p>
+                                  </div>
+                              </TableCell>
+                              <TableCell>
+                                  <div className="flex items-center gap-2">
+                                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 opacity-40" />
+                                      <span className="text-xs font-medium text-slate-600">{activity.output || 'Continuous Task'}</span>
+                                  </div>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                  <Badge 
+                                      className={cn(
+                                          "text-[9px] font-black uppercase border-none px-2 shadow-sm",
+                                          activity.status === 'Completed' ? "bg-emerald-600 text-white" : 
+                                          activity.status === 'In Progress' ? "bg-blue-600 text-white" : 
+                                          "bg-amber-50 text-amber-950"
+                                      )}
+                                  >
+                                      {activity.status}
+                                  </Badge>
+                              </TableCell>
+                              <TableCell className="text-right pr-6 whitespace-nowrap">
+                                  <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => { setEditingActivity(activity); setIsFormOpen(true); }}>
+                                          <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(activity.id)}>
+                                          <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                  </div>
+                              </TableCell>
+                          </TableRow>
+                      ))}
+                      {filteredActivities.length === 0 && (
+                          <TableRow>
+                              <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
+                                  <div className="flex flex-col items-center gap-2 opacity-20">
+                                      <UserCheck className="h-10 w-10" />
+                                      <p className="text-[10px] font-black uppercase tracking-widest">No activities logged for this selection</p>
+                                  </div>
+                              </TableCell>
+                          </TableRow>
+                      )}
+                  </TableBody>
+              </Table>
           </CardContent>
           <CardFooter className="bg-muted/5 border-t py-3 px-6">
               <div className="flex items-start gap-3">
@@ -360,7 +364,7 @@ export default function EmployeeActivityLogPage() {
           </CardFooter>
       </Card>
 
-      <ActivityLogFormDialog 
+      <ActivityLogLogFormDialog 
         isOpen={isFormOpen} 
         onOpenChange={setIsFormOpen} 
         activity={editingActivity} 

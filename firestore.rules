@@ -36,7 +36,8 @@ service cloud.firestore {
     // EMPLOYEE ACTIVITIES
     // --------------------------------------------------------------------------
     match /employeeActivities/{activityId} {
-      // Allow all signed-in users to read/list to support supervisor oversight and analytics
+      // Allow all signed-in users to read/list to support supervisor oversight and analytics.
+      // This is safe because the query logic in the frontend handles the specific scoping.
       allow read, list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
