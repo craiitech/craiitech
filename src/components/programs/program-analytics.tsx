@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -28,8 +27,6 @@ import {
     ChevronRight,
     PieChart as PieIcon,
     Loader2,
-    Check,
-    X,
     PlusCircle,
     GraduationCap,
     HelpCircle,
@@ -145,13 +142,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
     const statusTotals = { COMPLIANT: 0, OVERDUE: 0, 'AWAITING RESULT': 0, 'NEW PROGRAM': 0 };
     const levelCounts = { L1: 0, L2: 0, L3: 0, L4: 0 };
+    const accreditationYearCounts: Record<string, number> = {};
 
     programs.forEach(p => {
         const category = getProgramCategory(p);
         if (p.isActive) activeCount++;
         else inactiveCount++;
 
-        // Robust normalized ID mapping
         const record = compliances.find(c => 
             String(c.programId || '').toLowerCase().trim() === String(p.id || '').toLowerCase().trim()
         );
@@ -186,6 +183,11 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             else if (validityStr && validityStr !== 'AWAITING RESULT' && validityStr !== 'TBA') {
                 const yearMatch = validityStr.match(/\d{4}/);
                 const dYear = yearMatch ? parseInt(yearMatch[0]) : 0;
+                
+                if (dYear > 0) {
+                    accreditationYearCounts[dYear] = (accreditationYearCounts[dYear] || 0) + 1;
+                }
+
                 if (dYear > 0 && dYear < currentYearNum) status = 'OVERDUE';
                 else if (dYear >= currentYearNum) status = 'COMPLIANT';
             }
@@ -291,6 +293,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         { name: 'Others', value: o, fill: chartConfig.Others.color }
     ].filter(d => d.value > 0);
 
+    const sortedAccreditationYears = Object.entries(accreditationYearCounts)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .filter(([year]) => parseInt(year) >= currentYearNum);
+
     return { 
         accreditationSummary: Object.values(accreditationDataMap).filter(d => d.total > 0),
         activeCount, 
@@ -299,6 +305,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         activeCopc,
         statusTotals,
         levelCounts,
+        accreditationYearCounts: sortedAccreditationYears,
         copcMomentumData: sortTimeline(copcByYear),
         achievementHistoryData: sortTimeline(achievementByYear),
         milestoneVelocityData: sortTimeline(milestoneVelocity),
@@ -332,7 +339,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     });
   }, [analytics?.roadmapData, roadmapSortConfig]);
 
-  if (isLoading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>;
+  if (isLoading) {
+    return (
+        <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+        </div>
+    );
+  }
 
   const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
@@ -496,60 +509,12 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card className="shadow-md border-primary/10 flex flex-col">
-              <CardHeader className="bg-muted/10 border-b py-4">
-                <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle>
-                <CardDescription className="text-[10px]">Upcoming validity expirations.</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-10 flex-1">
-                <ChartContainer config={chartConfig} className="h-[350px] w-full">
-                  <ResponsiveContainer>
-                    <BarChart data={analytics?.milestoneVelocityData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                      <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <RechartsTooltip content={<ChartTooltipContent />} />
-                      <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingBottom: '20px' }} />
-                      <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30}>
-                        <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} />
-                      </Bar>
-                      <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30}>
-                        <LabelList dataKey="Graduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} />
-                      </Bar>
-                      <Bar dataKey="total" fill="transparent">
-                        <LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#ef4444' }} />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              </CardContent>
+              <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle><CardDescription className="text-[10px]">Upcoming validity expirations.</CardDescription></CardHeader>
+              <CardContent className="pt-10 flex-1"><ChartContainer config={chartConfig} className="h-[350px] w-full"><ResponsiveContainer><BarChart data={analytics?.milestoneVelocityData}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} /><XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} /><YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} /><RechartsTooltip content={<ChartTooltipContent />} /><Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingBottom: '20px' }} /><Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30}><LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} /></Bar><Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30}><LabelList dataKey="Graduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} /></Bar><Bar dataKey="total" fill="transparent"><LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#ef4444' }} /></BarChart></ResponsiveContainer></ChartContainer></CardContent>
           </Card>
           <Card className="shadow-md border-primary/10 flex flex-col">
-              <CardHeader className="bg-muted/10 border-b py-4">
-                <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle>
-                <CardDescription className="text-[10px]">Total surveys recorded per year.</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-10 flex-1">
-                <ChartContainer config={chartConfig} className="h-[350px] w-full">
-                  <ResponsiveContainer>
-                    <BarChart data={analytics?.achievementHistoryData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                      <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <RechartsTooltip content={<ChartTooltipContent />} />
-                      <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingBottom: '20px' }} />
-                      <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30}>
-                        <LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} />
-                      </Bar>
-                      <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30}>
-                        <LabelList dataKey="Graduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} />
-                      </Bar>
-                      <Bar dataKey="total" fill="transparent">
-                        <LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#3b82f6' }} />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              </CardContent>
+              <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle><CardDescription className="text-[10px]">Total surveys recorded per year.</CardDescription></CardHeader>
+              <CardContent className="pt-10 flex-1"><ChartContainer config={chartConfig} className="h-[350px] w-full"><ResponsiveContainer><BarChart data={analytics?.achievementHistoryData}><CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} /><XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} /><YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} /><RechartsTooltip content={<ChartTooltipContent />} /><Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingBottom: '20px' }} /><Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30}><LabelList dataKey="Undergraduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} /></Bar><Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30}><LabelList dataKey="Graduate" position="center" style={{ fontSize: '9px', fontWeight: 'bold', fill: 'white' }} /></Bar><Bar dataKey="total" fill="transparent"><LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#3b82f6' }} /></BarChart></ResponsiveContainer></ChartContainer></CardContent>
           </Card>
       </div>
 
@@ -560,7 +525,24 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     <ShieldCheck className="h-5 w-5 text-primary" />
                     <CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Roadmap (Pipeline)</CardTitle>
                 </div>
+                
                 <div className="flex flex-wrap items-center gap-3">
+                    {/* Yearly Forecast Breakdown */}
+                    <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg border border-primary/10 shadow-sm mr-2">
+                        <span className="text-[10px] font-black text-primary uppercase tracking-widest border-r pr-2">Yearly Forecast:</span>
+                        <div className="flex items-center gap-3">
+                            {analytics?.accreditationYearCounts.map(([year, count]) => (
+                                <div key={year} className="flex items-center gap-1.5">
+                                    <span className="text-[10px] font-black text-slate-900">{year}:</span>
+                                    <Badge className="bg-primary text-white h-4 px-1.5 text-[9px] font-black rounded-sm border-none">{count}</Badge>
+                                </div>
+                            ))}
+                            {analytics?.accreditationYearCounts.length === 0 && <span className="text-[10px] text-muted-foreground italic">No upcoming surveys logged</span>}
+                        </div>
+                    </div>
+
+                    <Separator orientation="vertical" className="h-6 mx-1 hidden lg:block" />
+
                     <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 h-6 font-black text-[10px] uppercase shadow-sm">LVL I: {analytics?.levelCounts.L1}</Badge>
                     <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 h-6 font-black text-[10px] uppercase shadow-sm">LVL II: {analytics?.levelCounts.L2}</Badge>
                     <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 h-6 font-black text-[10px] uppercase shadow-sm">LVL III: {analytics?.levelCounts.L3}</Badge>
