@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -140,6 +139,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         const category = getProgramCategory(p);
         if (p.isActive) activeCount++;
 
+        // Robust record matching
         const record = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
         const milestones = record?.accreditationRecords || [];
         const currentMilestone = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
@@ -227,7 +227,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                 if (record.faculty.programChair?.name) roster.push(record.faculty.programChair as any);
                 roster.forEach(m => {
                     if (!m.name || m.name.trim() === '') return;
-                    const key = `${m.name.trim()}-${p.campusId}`.toLowerCase();
+                    const key = `${m.name.trim()}-${p.id}`.toLowerCase();
                     if (!uniqueFacultySet.has(key)) {
                         uniqueFacultySet.add(key);
                         if (m.sex === 'Male') totalMaleFaculty++;
@@ -308,6 +308,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>;
 
+  const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+    const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+    return <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[10px] font-black">{`${(percent * 100).toFixed(0)}%`}</text>;
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -344,7 +351,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                           <ChartContainer config={chartConfig} className="h-full w-full">
                               <ResponsiveContainer>
                                   <PieChart>
-                                      <Pie data={chart.data} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value" label={renderPieLabel} labelLine={false}>
+                                      <Pie data={chart.data} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={5} dataKey="value" label={renderLabel} labelLine={false}>
                                           {chart.data?.map((e: any, j: number) => <Cell key={j} fill={e.fill} />)}
                                       </Pie>
                                       <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
@@ -473,10 +480,3 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     </div>
   );
 }
-
-const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
-    const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-    return <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[12px] font-black">{`${(percent * 100).toFixed(0)}%`}</text>;
-};

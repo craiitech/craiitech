@@ -45,36 +45,38 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead className="text-[10px] font-black uppercase pl-6">Program Name & Status</TableHead>
-              <TableHead className="text-[10px] font-black uppercase">Campus</TableHead>
-              <TableHead className="text-[10px] font-black uppercase">College / Unit</TableHead>
-              <TableHead className="text-[10px] font-black uppercase">Majors / Type</TableHead>
+              <TableHead className="text-[10px] font-black uppercase pl-6 py-4">Program Name & Status</TableHead>
+              <TableHead className="text-[10px] font-black uppercase py-4">Campus</TableHead>
+              <TableHead className="text-[10px] font-black uppercase py-4">College / Unit</TableHead>
+              <TableHead className="text-[10px] font-black uppercase py-4">Majors / Type</TableHead>
               
               {isShowingActive && (
                 <>
-                  <TableHead className="text-[10px] font-black uppercase">Board Approval</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase"># of Faculty (M/F (TOTAL))</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase py-4">Board Approval</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase py-4"># of Faculty (M/F (TOTAL))</TableHead>
                 </>
               )}
 
-              <TableHead className="text-[10px] font-black uppercase">Date of COPC Award</TableHead>
-              <TableHead className="text-[10px] font-black uppercase">Next Visit (AACCUP)</TableHead>
+              <TableHead className="text-[10px] font-black uppercase py-4">Date of COPC Award</TableHead>
+              <TableHead className="text-[10px] font-black uppercase py-4">Next Visit (AACCUP)</TableHead>
               
               {!isShowingActive && (
-                <TableHead className="text-[10px] font-black uppercase">Board Referendum No.</TableHead>
+                <TableHead className="text-[10px] font-black uppercase py-4">Board Referendum No.</TableHead>
               )}
 
-              <TableHead className="text-[10px] font-black uppercase">Status</TableHead>
-              <TableHead className="text-right text-[10px] font-black uppercase pr-6">Actions</TableHead>
+              <TableHead className="text-[10px] font-black uppercase py-4">Status</TableHead>
+              <TableHead className="text-right text-[10px] font-black uppercase pr-6 py-4">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {programs.map((program) => {
-              const record = compliances.find(c => c.programId === program.id);
+              // Robust matching between program and its compliance record
+              const record = compliances.find(c => String(c.programId).trim() === String(program.id).trim());
               
               const copcStatus = record?.ched?.copcStatus;
               const copcAwardDate = record?.ched?.copcAwardDate || 'N/A';
               
+              // Logic for Board Approval across specializations
               const hasBoardApproval = !!(record?.ched?.boardApprovalLink || (record?.ched?.majorBoardApprovals && record.ched.majorBoardApprovals.length > 0 && record.ched.majorBoardApprovals.some(a => a.link)));
 
               let accLabel = '';
@@ -116,19 +118,19 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                         program.isActive ? "hover:bg-muted/30" : "bg-slate-50/50 opacity-70 grayscale-[0.5] hover:bg-slate-100/50"
                     )}
                 >
-                  <TableCell className="pl-6">
-                    <div className="flex flex-col">
+                  <TableCell className="pl-6 py-4">
+                    <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
                         <span className={cn("font-bold text-sm leading-tight", program.isActive ? "text-slate-900" : "text-slate-500")}>
                             {program.name}
                         </span>
                         {!program.isActive && (
-                            <Badge variant="destructive" className="h-3 text-[7px] font-black px-1 uppercase tracking-tighter">CLOSED</Badge>
+                            <Badge variant="destructive" className="h-3.5 text-[7px] font-black px-1 uppercase tracking-tighter">CLOSED</Badge>
                         )}
                       </div>
-                      <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest mt-0.5">{program.abbreviation} &bull; {program.level}</span>
+                      <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">{program.abbreviation} & bull; {program.level}</span>
                       
-                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
                           {/* COPC Indicator */}
                           {copcStatus === 'With COPC' && (
                               <span className="text-[9px] font-black uppercase text-green-600">With COPC</span>
@@ -151,19 +153,19 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs">
+                  <TableCell className="py-4">
                     <div className="flex items-center gap-2">
                       <School className="h-3.5 w-3.5 text-primary opacity-40" />
-                      <span className="font-medium">{campusMap.get(program.campusId) || '...'}</span>
+                      <span className="text-xs font-medium">{campusMap.get(program.campusId) || '...'}</span>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-4">
                     <div className="flex flex-col gap-1">
                       <span className="text-[11px] font-bold text-slate-700 leading-tight">{unitMap.get(program.collegeId) || 'Unknown Unit'}</span>
                       <Badge variant="outline" className="text-[8px] h-3.5 w-fit py-0 uppercase tracking-tighter opacity-60 font-mono border-muted-foreground/20">{program.collegeId}</Badge>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-4">
                       <div className="flex flex-col gap-1.5">
                           <div className="flex flex-wrap gap-1">
                               {program.hasSpecializations ? (
@@ -177,11 +179,11 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                           <div className="flex items-center gap-1">
                               {program.isBoardProgram ? (
                                   <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 border-indigo-200 gap-1 h-4 text-[8px] uppercase font-black px-1.5">
-                                      <ShieldCheck className="h-2 w-2" /> Board
+                                      <ShieldCheck className="h-2.5 w-2.5" /> Board
                                   </Badge>
                               ) : (
                                   <Badge variant="outline" className="text-muted-foreground gap-1 h-4 text-[8px] uppercase font-bold border-dashed px-1.5">
-                                      <ShieldAlert className="h-2 w-2" /> Non-Board
+                                      <ShieldAlert className="h-2.5 w-2.5" /> Non-Board
                                   </Badge>
                               )}
                           </div>
@@ -190,7 +192,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
 
                   {isShowingActive && (
                     <>
-                      <TableCell>
+                      <TableCell className="py-4">
                           {hasBoardApproval ? (
                               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 h-5 text-[9px] font-black gap-1">
                                   <Check className="h-2.5 w-2.5" /> YES
@@ -201,7 +203,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                               </Badge>
                           )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-4">
                         <div className="flex items-center gap-2">
                           <Users className="h-3.5 w-3.5 text-primary/40" />
                           <div className="flex flex-col">
@@ -215,7 +217,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                     </>
                   )}
                   
-                  <TableCell>
+                  <TableCell className="py-4">
                     <div className="flex flex-col gap-1">
                         <span className={cn("text-xs font-black tabular-nums", copcAwardDate === 'N/A' ? "text-muted-foreground/40" : "text-emerald-600")}>
                             {copcAwardDate}
@@ -224,7 +226,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                     </div>
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell className="py-4">
                     <div className="flex flex-col gap-1">
                         <span className={cn(
                             "text-xs font-black tabular-nums uppercase",
@@ -241,7 +243,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                   </TableCell>
 
                   {!isShowingActive && (
-                    <TableCell>
+                    <TableCell className="py-4">
                         <div className="flex items-center gap-2">
                             <Hash className="h-3 w-3 text-primary opacity-40" />
                             <span className="text-xs font-black font-mono text-slate-700">
@@ -251,9 +253,9 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                     </TableCell>
                   )}
 
-                  <TableCell>
+                  <TableCell className="py-4">
                     {program.isActive ? (
-                      <Badge className="bg-green-600 hover:bg-green-700 gap-1 h-5 text-[9px] uppercase tracking-tighter font-black">
+                      <Badge className="bg-emerald-600 hover:bg-emerald-700 gap-1 h-5 text-[9px] uppercase tracking-tighter font-black">
                         <Activity className="h-2.5 w-2.5" /> Active
                       </Badge>
                     ) : (
@@ -262,7 +264,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-right space-x-2 whitespace-nowrap pr-6">
+                  <TableCell className="text-right space-x-2 whitespace-nowrap pr-6 py-4">
                     <Button 
                       size="sm" 
                       variant="default" 
