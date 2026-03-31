@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { format } from 'date-fns';
-import { cn, getDirectDriveLink } from '@/lib/utils';
-import { CheckCircle2, ShieldCheck } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { CheckCircle2 } from 'lucide-react';
 
 interface NoticeProps {
   unitName: string;
@@ -15,7 +15,6 @@ interface NoticeProps {
   totalPossible: number;
   qaoDirector: string;
   qmsHead: string;
-  logoUrl?: string;
 }
 
 interface CampusNoticeProps {
@@ -31,13 +30,12 @@ interface CampusNoticeProps {
     missingFirst: string[];
     missingFinal: string[];
   }[];
-  logoUrl?: string;
 }
 
 /**
  * NOTICE OF NON-COMPLIANCE TEMPLATE (UNIT LEVEL)
  */
-export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst, missingFinal, qaoDirector, qmsHead, logoUrl }: NoticeProps) {
+export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst, missingFinal, qaoDirector, qmsHead }: NoticeProps) {
   const isPresident = unitName.toLowerCase().includes('president');
   const isVP = unitName.toLowerCase().includes('vice president');
   const isMainCampus = campusName.toLowerCase().includes('main campus');
@@ -60,13 +58,10 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed">
       {/* Institutional Header */}
       <div className="text-center border-b-2 border-black pb-6 mb-8">
-        <div className="flex items-center justify-center gap-4 mb-2">
-            <img src={getDirectDriveLink(logoUrl) || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
-            <div className="text-left">
-                <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
-                <h2 className="text-lg font-semibold uppercase tracking-tight">Quality Assurance Office</h2>
-                <p className="text-xs italic">Main Campus, Odiongan, Romblon</p>
-            </div>
+        <div className="space-y-1">
+            <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
+            <h2 className="text-lg font-semibold uppercase tracking-tight">Quality Assurance Office</h2>
+            <p className="text-xs italic">Main Campus, Odiongan, Romblon</p>
         </div>
       </div>
 
@@ -168,13 +163,12 @@ export function NoticeOfNonCompliance({ unitName, campusName, year, missingFirst
 /**
  * NOTICE OF COMPLIANCE TEMPLATE (UNIT LEVEL)
  */
-export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, qaoDirector, qmsHead, logoUrl }: NoticeProps) {
+export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, qaoDirector, qmsHead }: NoticeProps) {
   return (
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed border-[12px] border-double border-slate-200">
       <div className="border-2 border-slate-800 p-8 min-h-[9in] flex flex-col">
         {/* Institutional Header */}
         <div className="text-center pb-6 mb-12">
-            <img src={getDirectDriveLink(logoUrl) || "/rsupage.png"} alt="University Logo" className="h-20 w-20 mx-auto object-contain mb-4" />
             <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
             <h2 className="text-lg font-semibold uppercase tracking-tight">Quality Assurance Office</h2>
             <div className="w-24 h-1 bg-primary mx-auto mt-4" />
@@ -247,20 +241,17 @@ export function NoticeOfCompliance({ unitName, campusName, year, totalApproved, 
 /**
  * CONSOLIDATED CAMPUS STATUS NOTICE (NON-COMPLIANCE)
  */
-export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qmsHead, units, logoUrl }: CampusNoticeProps) {
+export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qmsHead, units }: CampusNoticeProps) {
   const nonCompliantUnits = units.filter(u => u.score < 100);
   const compliantUnits = units.filter(u => u.score === 100);
 
   return (
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed">
       <div className="text-center border-b-2 border-black pb-6 mb-8">
-        <div className="flex items-center justify-center gap-4 mb-2">
-            <img src={getDirectDriveLink(logoUrl) || "/rsupage.png"} alt="University Logo" className="h-16 w-16 object-contain" />
-            <div className="text-left">
-                <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
-                <h2 className="text-lg font-semibold uppercase tracking-tight">Quality Assurance Office</h2>
-                <p className="text-xs italic">Odiongan, Romblon</p>
-            </div>
+        <div className="space-y-1">
+            <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
+            <h2 className="text-lg font-semibold uppercase tracking-tight">Quality Assurance Office</h2>
+            <p className="text-xs italic">Odiongan, Romblon</p>
         </div>
       </div>
 
@@ -375,12 +366,11 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
 /**
  * CONSOLIDATED CAMPUS STATUS NOTICE (COMPLIANCE)
  */
-export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHead, units, logoUrl }: CampusNoticeProps) {
+export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHead, units }: CampusNoticeProps) {
   return (
     <div className="p-12 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-relaxed border-[12px] border-double border-slate-200">
       <div className="border-2 border-slate-800 p-8 min-h-[9in] flex flex-col">
         <div className="text-center pb-6 mb-12">
-            <img src={getDirectDriveLink(logoUrl) || "/rsupage.png"} alt="University Logo" className="h-20 w-20 mx-auto object-contain mb-4" />
             <h1 className="text-xl font-bold uppercase tracking-tight">Romblon State University</h1>
             <h2 className="text-lg font-semibold uppercase tracking-tight">Quality Assurance Office</h2>
             <div className="w-24 h-1 bg-primary mx-auto mt-4" />
@@ -443,7 +433,7 @@ export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHea
             </div>
             <div className="text-right">
                 <p>Institutional Excellence Record</p>
-                <p>Authenticated by RSU EOMS Portal</p>
+                <p>Issued by RSU EOMS Digital Portal</p>
             </div>
         </div>
       </div>

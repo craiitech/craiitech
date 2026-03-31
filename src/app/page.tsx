@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ShieldCheck, ArrowRight, MonitorCheck } from 'lucide-react';
 import { useUser } from '@/firebase';
-import { getDirectDriveLink } from '@/lib/utils';
 
 export default function Home() {
   return (
@@ -38,20 +36,6 @@ export default function Home() {
         <section className="relative flex flex-col items-center justify-center text-center text-white flex-1 pt-20 pb-10 px-4">
             <div className="flex flex-col items-center justify-center space-y-8 max-w-5xl">
                 <div className="flex flex-col items-center gap-6">
-                    <Link 
-                        href="https://www.certipedia.com/quality_marks/9000018803?locale=en" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="relative transition-transform hover:scale-105 cursor-pointer block"
-                    >
-                        <Image
-                            src="/ISOlogo.jpg"
-                            alt="ISO Certification"
-                            width={500}
-                            height={250}
-                            className="object-contain h-auto w-auto max-w-[300px] md:max-w-[400px]"
-                        />
-                    </Link>
                     <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white/80 backdrop-blur-md">
                         <ShieldCheck className="h-4 w-4 text-primary" />
                         <span>ISO 21001:2018 Certified Management System</span>
