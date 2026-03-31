@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -214,19 +213,19 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
+    // CATCH-ALL FOR ADMIN OVERRIDE
+    // --------------------------------------------------------------------------
+    match /{path=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // --------------------------------------------------------------------------
     // EMPLOYEE ACTIVITY LOG - ADDED BY PROTOTYPER
     // --------------------------------------------------------------------------
     match /employeeActivities/{activityId} {
       allow read, get, list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-    }
-
-    // --------------------------------------------------------------------------
-    // CATCH-ALL FOR ADMIN OVERRIDE
-    // --------------------------------------------------------------------------
-    match /{path=**} {
-      allow read, write: if isAdmin();
     }
   }
 }
