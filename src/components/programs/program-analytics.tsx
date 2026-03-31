@@ -148,7 +148,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         if (p.isActive) activeCount++;
         else inactiveCount++;
 
-        // ROBUST RECORD MATCHING - String comparison to handle potential ID formatting issues
+        // Robust record matching using normalized strings
         const record = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
         
         if (record) monitoredCount++;
@@ -168,7 +168,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             if (hasCopc) activeCopc++;
         }
 
-        // --- GAP LOGIC ---
+        // Actionable Gap Logic
         const gaps = [];
         if (!record?.faculty?.members?.length) gaps.push('FACULTY STAFFING LIST');
         if (!record?.graduationRecords?.length) gaps.push('GRADUATION OUTCOME DATA');
@@ -179,7 +179,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             gapsRegistry.push({ program: p, gaps });
         }
 
-        // --- ROADMAP LOGIC ---
+        // Survey Pipeline Logic
         const validityStr = currentMilestone?.statusValidityDate || (p.isNewProgram ? 'NEW PROGRAM' : 'AWAITING RESULT');
         let status = 'AWAITING RESULT';
         if (p.isActive) {
@@ -400,7 +400,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             </CardHeader>
             <CardContent className="flex-1">
                 <div className="text-3xl font-black text-blue-600">{analytics?.monitoredCount}</div>
-                <p className="text-[9px] font-bold text-blue-600/70 uppercase">Total Verified AY {selectedYear} Data</p>
+                <p className="text-[9px] font-bold text-blue-600/70 mt-1 uppercase">Total Verified AY {selectedYear} Data</p>
             </CardContent>
             <CardFooter className="bg-blue-100/20 py-2">
                 <p className="text-[8px] text-blue-800/60 italic">Compliance logs saved for the selected year.</p>
@@ -408,7 +408,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         </Card>
       </div>
 
-      {/* --- INSTITUTIONAL GAPS REGISTRY --- */}
       <Card className="border-rose-200 bg-rose-50/10 shadow-xl overflow-hidden animate-in zoom-in duration-500">
           <CardHeader className="bg-rose-50 border-b py-4 flex flex-row items-center justify-between">
               <div className="space-y-1">

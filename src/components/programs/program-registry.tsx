@@ -70,7 +70,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
           </TableHeader>
           <TableBody>
             {programs.map((program) => {
-              // Robust string-normalized lookup logic
+              // Robust string-normalized lookup logic using program.id
               const record = compliances.find(c => String(c.programId).trim() === String(program.id).trim());
               
               const copcStatus = record?.ched?.copcStatus;
