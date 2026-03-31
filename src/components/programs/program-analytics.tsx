@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -29,7 +30,12 @@ import {
     Search,
     AlertTriangle,
     ShieldAlert,
-    Loader2
+    Loader2,
+    PieChart as PieIcon,
+    FileX,
+    Check,
+    X,
+    GraduationCap
 } from 'lucide-react';
 import { 
     BarChart, 
@@ -120,8 +126,10 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     };
 
     let activeCount = 0;
+    let inactiveCount = 0;
     let activeAccredited = 0;
     let activeCopc = 0;
+    let monitoredCount = 0;
 
     let sem1Male = 0, sem1Female = 0;
     let sem2Male = 0, sem2Female = 0;
@@ -133,14 +141,19 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     const achievementByYear: Record<string, any> = {};
     const milestoneVelocity: Record<string, any> = {};
     const roadmapData: any[] = [];
+    const gapsRegistry: any[] = [];
     const currentYearNum = new Date().getFullYear();
 
     programs.forEach(p => {
         const category = getProgramCategory(p);
         if (p.isActive) activeCount++;
+        else inactiveCount++;
 
-        // ROBUST RECORD MATCHING
+        // ROBUST RECORD MATCHING - String comparison to handle potential ID formatting issues
         const record = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
+        
+        if (record) monitoredCount++;
+
         const milestones = record?.accreditationRecords || [];
         const currentMilestone = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
         
@@ -155,6 +168,18 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             if (hasCopc) activeCopc++;
         }
 
+        // --- GAP LOGIC ---
+        const gaps = [];
+        if (!record?.faculty?.members?.length) gaps.push('FACULTY STAFFING LIST');
+        if (!record?.graduationRecords?.length) gaps.push('GRADUATION OUTCOME DATA');
+        if (!hasCopc) gaps.push('COPC CERTIFICATE');
+        if (!record?.ched?.programCmoLink) gaps.push('OFFICIAL CMO LINK');
+        
+        if (gaps.length > 0) {
+            gapsRegistry.push({ program: p, gaps });
+        }
+
+        // --- ROADMAP LOGIC ---
         const validityStr = currentMilestone?.statusValidityDate || (p.isNewProgram ? 'NEW PROGRAM' : 'AWAITING RESULT');
         let status = 'AWAITING RESULT';
         if (p.isActive) {
@@ -214,10 +239,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
 
             const s1 = sumTerm(stats?.firstSemester);
             sem1Male += s1.m; sem1Female += s1.f;
-            
             const s2 = sumTerm(stats?.secondSemester);
             sem2Male += s2.m; sem2Female += s2.f;
-
             const sSummer = sumTerm(stats?.midYearTerm);
             summerMale += sSummer.m; summerFemale += sSummer.f;
 
@@ -268,15 +291,17 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         { name: 'Others', value: o, fill: chartConfig.Others.color }
     ].filter(d => d.value > 0);
 
-    const monitoredCount = programs.filter(p => compliances.some(c => String(c.programId).trim() === String(p.id).trim())).length;
-
     return { 
         accreditationSummary: Object.values(accreditationDataMap).filter(d => d.total > 0),
-        activeCount, activeAccredited, activeCopc,
+        activeCount, 
+        inactiveCount,
+        activeAccredited, 
+        activeCopc,
         copcMomentumData: sortTimeline(copcByYear),
         achievementHistoryData: sortTimeline(achievementByYear),
         milestoneVelocityData: sortTimeline(milestoneVelocity),
         roadmapData,
+        gapsRegistry,
         gadEnrollment1stData: makePieData(sem1Male, sem1Female),
         gadEnrollment2ndData: makePieData(sem2Male, sem2Female),
         gadEnrollmentSummerData: makePieData(summerMale, summerFemale),
@@ -318,23 +343,113 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-primary/5 border-primary/10 shadow-sm overflow-hidden">
-            <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Portfolio Monitoring</CardTitle></CardHeader>
-            <CardContent><div className="text-3xl font-black text-slate-900">{analytics?.activeCount} Active</div><p className="text-[9px] font-bold text-muted-foreground uppercase">Current Scope Portfolio</p></CardContent>
+        <Card className="bg-primary/5 border-primary/10 shadow-sm overflow-hidden flex flex-col">
+            <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Scope Portfolio</CardTitle>
+                    <LayoutGrid className="h-4 w-4 text-primary opacity-20" />
+                </div>
+            </CardHeader>
+            <CardContent className="flex-1">
+                <div className="text-3xl font-black text-slate-900">{analytics?.activeCount} Active</div>
+                <p className="text-[9px] font-bold text-muted-foreground uppercase">{analytics?.inactiveCount} Closed Programs</p>
+            </CardContent>
+            <CardFooter className="bg-muted/10 py-2">
+                <p className="text-[8px] text-muted-foreground italic">Current institutional program offerings.</p>
+            </CardFooter>
         </Card>
-        <Card className="bg-emerald-50 border-emerald-100 shadow-sm overflow-hidden">
-            <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-emerald-700">COPC Performance</CardTitle></CardHeader>
-            <CardContent><div className="text-3xl font-black text-emerald-600">{analytics?.activeCopc} Programs</div><p className="text-[9px] font-bold text-emerald-600/70 uppercase">Verified Authority</p></CardContent>
+
+        <Card className="bg-emerald-50 border-emerald-100 shadow-sm overflow-hidden flex flex-col">
+            <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-emerald-700">COPC Performance</CardTitle>
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 opacity-20" />
+                </div>
+            </CardHeader>
+            <CardContent className="flex-1">
+                <div className="text-3xl font-black text-emerald-600">{analytics?.activeCopc} Active</div>
+                <p className="text-[9px] font-bold text-emerald-600/70 uppercase">Verified Authority Awards</p>
+            </CardContent>
+            <CardFooter className="bg-emerald-100/20 py-2">
+                <p className="text-[8px] text-emerald-800/60 italic">Programs with official CHED award letters.</p>
+            </CardFooter>
         </Card>
-        <Card className="bg-amber-50 border-amber-100 shadow-sm overflow-hidden">
-            <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-amber-700">Quality Maturity</CardTitle></CardHeader>
-            <CardContent><div className="text-3xl font-black text-amber-600">{analytics?.activeAccredited} Programs</div><p className="text-[9px] font-bold text-amber-800/60 uppercase">Level I or Higher</p></CardContent>
+
+        <Card className="bg-amber-50 border-amber-100 shadow-sm overflow-hidden flex flex-col">
+            <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-amber-700">Quality Maturity</CardTitle>
+                    <Award className="h-4 w-4 text-amber-600 opacity-20" />
+                </div>
+            </CardHeader>
+            <CardContent className="flex-1">
+                <div className="text-3xl font-black text-amber-600">{analytics?.activeAccredited} Active</div>
+                <p className="text-[9px] font-bold text-amber-800/60 uppercase">Level I or Higher AACCUP</p>
+            </CardContent>
+            <CardFooter className="bg-amber-100/20 py-2">
+                <p className="text-[8px] text-amber-800/60 italic">Programs demonstrating verified quality maturity.</p>
+            </CardFooter>
         </Card>
-        <Card className="bg-blue-50 border-blue-100 shadow-sm overflow-hidden">
-            <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-blue-700">Monitored Registry</CardTitle></CardHeader>
-            <CardContent><div className="text-3xl font-black text-blue-600">{analytics?.integrityRate}%</div><p className="text-[9px] font-bold text-blue-600/70 uppercase">Verified Data Logs</p></CardContent>
+
+        <Card className="bg-blue-50 border-blue-100 shadow-sm overflow-hidden flex flex-col">
+            <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-blue-700">Monitored Registry</CardTitle>
+                    <Activity className="h-4 w-4 text-blue-600 opacity-20" />
+                </div>
+            </CardHeader>
+            <CardContent className="flex-1">
+                <div className="text-3xl font-black text-blue-600">{analytics?.monitoredCount}</div>
+                <p className="text-[9px] font-bold text-blue-600/70 uppercase">Total Verified AY {selectedYear} Data</p>
+            </CardContent>
+            <CardFooter className="bg-blue-100/20 py-2">
+                <p className="text-[8px] text-blue-800/60 italic">Compliance logs saved for the selected year.</p>
+            </CardFooter>
         </Card>
       </div>
+
+      {/* --- INSTITUTIONAL GAPS REGISTRY (As requested from screenshot) --- */}
+      <Card className="border-rose-200 bg-rose-50/10 shadow-xl overflow-hidden animate-in zoom-in duration-500">
+          <CardHeader className="bg-rose-50 border-b py-4 flex flex-row items-center justify-between">
+              <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-rose-700">
+                      <ShieldAlert className="h-5 w-5" />
+                      <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Gaps Registry</CardTitle>
+                  </div>
+                  <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-rose-600/70">Critical documentation deficiencies impacting maturity index for AY {selectedYear}.</CardDescription>
+              </div>
+              <Badge variant="destructive" className="h-6 px-4 font-black uppercase text-[10px] shadow-sm">Action Required</Badge>
+          </CardHeader>
+          <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {analytics?.gapsRegistry.map((entry, idx) => (
+                      <div key={idx} className="space-y-2.5 p-4 rounded-2xl bg-white border border-rose-100 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                  <p className="text-[11px] font-black uppercase text-slate-900 leading-tight truncate" title={entry.program.name}>{entry.program.name}</p>
+                                  <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">{campusMap.get(entry.program.campusId)}</p>
+                              </div>
+                              <Badge variant="destructive" className="h-4 px-1.5 text-[8px] font-black shrink-0">{entry.gaps.length} GAPS</Badge>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                              {entry.gaps.map((gap: string, gIdx: number) => (
+                                  <Badge key={gIdx} variant="secondary" className="text-[7px] h-3.5 px-1 bg-rose-50 text-rose-600 border-rose-100 font-black uppercase">{gap}</Badge>
+                              ))}
+                          </div>
+                      </div>
+                  ))}
+                  {analytics?.gapsRegistry.length === 0 && (
+                      <div className="col-span-full py-12 flex flex-col items-center justify-center text-center opacity-20">
+                          <ShieldCheck className="h-12 w-12 text-emerald-600" />
+                          <p className="text-sm font-black uppercase mt-2">All Programs Compliant</p>
+                      </div>
+                  )}
+              </div>
+          </CardContent>
+          <CardFooter className="bg-rose-50/50 border-t py-2 px-6">
+              <p className="text-[9px] text-rose-800/60 italic font-medium">Guidance for usage: Identification of these gaps is mandatory for ISO 21001:2018 compliance tracking. High gap counts signify institutional risk during external audits.</p>
+          </CardFooter>
+      </Card>
 
       <div className="space-y-4">
           <div className="flex items-center gap-2 text-primary font-black uppercase tracking-widest text-xs border-b pb-2"><Users className="h-4 w-4" /> Gender & Development (GAD) Compliance Metrics</div>
@@ -369,7 +484,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <Card className="shadow-md border-primary/10 flex flex-col">
               <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Maturity Profile</CardTitle></CardHeader>
               <CardContent className="pt-10 flex-1">
-                  <ChartContainer config={{}} className="h-[350px] w-full">
+                  <ChartContainer config={chartConfig} className="h-[350px] w-full">
                     <ResponsiveContainer>
                         <BarChart data={analytics?.accreditationSummary} layout="vertical" margin={{ left: 40, right: 60 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
@@ -388,7 +503,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <Card className="shadow-md border-primary/10 flex flex-col">
               <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Recognition Momentum (COPC)</CardTitle></CardHeader>
               <CardContent className="pt-10 flex-1">
-                  <ChartContainer config={{}} className="h-[350px] w-full">
+                  <ChartContainer config={chartConfig} className="h-[350px] w-full">
                     <ResponsiveContainer>
                         <BarChart data={analytics?.copcMomentumData}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
@@ -409,7 +524,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <Card className="shadow-md border-primary/10 flex flex-col">
               <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle><CardDescription className="text-[10px]">Upcoming validity expirations.</CardDescription></CardHeader>
               <CardContent className="pt-10 flex-1">
-                <ChartContainer config={{}} className="h-[350px] w-full">
+                <ChartContainer config={chartConfig} className="h-[350px] w-full">
                   <ResponsiveContainer>
                     <BarChart data={analytics?.milestoneVelocityData}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
@@ -429,7 +544,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <Card className="shadow-md border-primary/10 flex flex-col">
               <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle><CardDescription className="text-[10px]">Total surveys recorded per year.</CardDescription></CardHeader>
               <CardContent className="pt-10 flex-1">
-                <ChartContainer config={{}} className="h-[350px] w-full">
+                <ChartContainer config={chartConfig} className="h-[350px] w-full">
                   <ResponsiveContainer>
                     <BarChart data={analytics?.achievementHistoryData}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -70,7 +71,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
           </TableHeader>
           <TableBody>
             {programs.map((program) => {
-              // Robust case-insensitive identifier matching
+              // Robust string-normalized lookup logic
               const record = compliances.find(c => String(c.programId).trim() === String(program.id).trim());
               
               const copcStatus = record?.ched?.copcStatus;
