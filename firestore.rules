@@ -133,7 +133,7 @@ service cloud.firestore {
     // EMPLOYEE ACTIVITY LOG - APPENDED AT END OF FILE
     // --------------------------------------------------------------------------
     match /employeeActivities/{activityId} {
-      allow read, get, list: if isSignedIn() && (request.auth.token.email == 'admin@eoms.com' || isAdmin());
+      allow read, get, list: if isSignedIn();
       allow write: if isSignedIn() && (request.auth.token.email == 'admin@eoms.com' || isAdmin() || request.resource.data.userId == request.auth.uid);
     }
   }

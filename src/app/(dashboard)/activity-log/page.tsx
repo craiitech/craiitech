@@ -61,12 +61,10 @@ export default function EmployeeActivityLogPage() {
 
   /**
    * SILENT GATED QUERY
-   * This query remains null until Admin status is 100% verified.
-   * This prevents permission errors during the initial session handshake.
+   * Prevents permission errors during initial session handshake by waiting for user sign-in.
    */
   const activitiesQuery = useMemoFirebase(() => {
-    // CRITICAL GATE: Only execute query if we are sure the user is an Admin
-    if (!firestore || !user || isUserLoading || !userProfile || !isAdmin) return null;
+    if (!firestore || !user || isUserLoading) return null;
     
     const baseRef = collection(firestore, 'employeeActivities');
     
@@ -74,22 +72,16 @@ export default function EmployeeActivityLogPage() {
         return query(baseRef, where('userId', '==', user.uid), orderBy('date', 'desc'));
     }
     
-    if (viewScope === 'unit') {
-        if (userProfile.unitId) {
-            return query(baseRef, where('unitId', '==', userProfile.unitId), orderBy('date', 'desc'));
-        }
-        return query(baseRef, orderBy('date', 'desc'));
+    if (viewScope === 'unit' && userProfile?.unitId) {
+        return query(baseRef, where('unitId', '==', userProfile.unitId), orderBy('date', 'desc'));
     }
     
-    if (viewScope === 'campus') {
-        if (userProfile.campusId) {
-            return query(baseRef, where('campusId', '==', userProfile.campusId), orderBy('date', 'desc'));
-        }
-        return query(baseRef, orderBy('date', 'desc'));
+    if (viewScope === 'campus' && userProfile?.campusId) {
+        return query(baseRef, where('campusId', '==', userProfile.campusId), orderBy('date', 'desc'));
     }
 
     return query(baseRef, where('userId', '==', user.uid), orderBy('date', 'desc'));
-  }, [firestore, user, userProfile, viewScope, isUserLoading, isAdmin]);
+  }, [firestore, user, userProfile, viewScope, isUserLoading]);
 
   const { data: rawActivities, isLoading: isLoadingActivities } = useCollection<EmployeeActivity>(activitiesQuery);
 
@@ -172,27 +164,11 @@ export default function EmployeeActivityLogPage() {
     }
   };
 
-  // Combined Loading Check
-  const isLoadingSession = isUserLoading || (isAdmin && !userProfile);
-
-  if (isLoadingSession) {
+  if (isUserLoading) {
     return (
         <div className="flex flex-col items-center justify-center py-40 gap-4">
             <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Verifying Institutional Access...</p>
-        </div>
-    );
-  }
-
-  // Final access control check
-  if (!isAdmin) {
-    return (
-        <div className="flex flex-col items-center justify-center py-40 gap-4">
-            <ShieldAlert className="h-12 w-12 text-destructive opacity-40" />
-            <h2 className="text-2xl font-bold tracking-tight">Feature in Testing</h2>
-            <p className="text-muted-foreground text-center max-w-md">
-                The Employee Activity Log is currently restricted to Administrators for testing purposes.
-            </p>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Synchronizing Workspace...</p>
         </div>
     );
   }
@@ -275,8 +251,8 @@ export default function EmployeeActivityLogPage() {
                       </SelectTrigger>
                       <SelectContent>
                           <SelectItem value="personal">My Personal Log</SelectItem>
-                          <SelectItem value="unit">Unit-Wide Log</SelectItem>
-                          <SelectItem value="campus">Campus-Wide Log</SelectItem>
+                          {isAdmin && <SelectItem value="unit">Unit-Wide Log</SelectItem>}
+                          {isAdmin && <SelectItem value="campus">Campus-Wide Log</SelectItem>}
                       </SelectContent>
                   </Select>
               </CardContent>
