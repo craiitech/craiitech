@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -51,7 +50,11 @@ import {
     History,
     FileX,
     Check,
-    ArrowUpDown
+    ArrowUpDown,
+    Trophy,
+    Heart,
+    HandHeart,
+    Star
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
@@ -84,23 +87,6 @@ const chartConfig = {
     Others: { label: 'Others (LGBTQI++)', color: 'hsl(var(--chart-3))' },
     School: { label: 'Institutional Rate', color: 'hsl(var(--primary))' },
     National: { label: 'National Average', color: 'hsl(var(--muted-foreground))' }
-};
-
-const getYearBadgeStyle = (yearStr: string) => {
-    const year = parseInt(yearStr);
-    if (isNaN(year)) return "bg-slate-100 text-slate-600 border-slate-200";
-    
-    const colors = [
-        "bg-blue-50 text-blue-700 border-blue-200",
-        "bg-emerald-50 text-emerald-700 border-emerald-200",
-        "bg-amber-50 text-amber-700 border-amber-200",
-        "bg-purple-50 text-purple-700 border-purple-200",
-        "bg-rose-50 text-rose-700 border-rose-200",
-        "bg-indigo-50 text-indigo-700 border-indigo-200",
-        "bg-cyan-50 text-cyan-700 border-cyan-200"
-    ];
-    
-    return colors[year % colors.length];
 };
 
 type SortKey = 'name' | 'campus' | 'currentLevel' | 'validity' | 'status';
@@ -137,14 +123,13 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
     let totalOthersFaculty = 0;
 
     const copcByYear: Record<string, { year: string, Undergraduate: number, Graduate: number, Inactive: number, total: number }> = {};
-    const velocityByYear: Record<string, { year: string, Undergraduate: number, Graduate: number, Inactive: number, total: number }> = {};
     const achievementByYear: Record<string, { year: string, Undergraduate: number, Graduate: number, Inactive: number, total: number }> = {};
+    const milestoneVelocity: Record<string, { year: string, Undergraduate: number, Graduate: number, Inactive: number, total: number }> = {};
     
     let totalSchoolRate = 0;
     let totalNationalRate = 0;
     let boardCount = 0;
 
-    const gapRegistry: any[] = [];
     const roadmapData: any[] = [];
     const currentYearNum = new Date().getFullYear();
 
@@ -166,20 +151,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         if (p.isActive) {
             if (isAccredited(record)) activeAccredited++;
             if (hasCopc(record)) activeCopc++;
-            
-            const tags = [];
-            if (!record) {
-                tags.push("Faculty Staffing List", "Graduation Outcome Data", "COPC Certificate", "Official CMO Link");
-            } else {
-                if (record.ched?.copcStatus !== 'With COPC') tags.push("COPC Certificate");
-                if (!record.ched?.programCmoLink) tags.push("Official CMO Link");
-                if (!record.faculty?.members || record.faculty.members.length === 0) tags.push("Faculty Staffing List");
-                if (!record.graduationRecords || record.graduationRecords.length === 0) tags.push("Graduation Outcome Data");
-            }
-
-            if (tags.length > 0) {
-                gapRegistry.push({ name: p.name, campus: cName, gapCount: tags.length, tags: tags });
-            }
         }
 
         const milestones = record?.accreditationRecords || [];
@@ -232,12 +203,19 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     achievementByYear[surveyYear][category]++;
                     achievementByYear[surveyYear].total++;
                 }
+
+                const validityYear = m.statusValidityDate?.match(/\d{4}/)?.[0];
+                if (validityYear) {
+                    if (!milestoneVelocity[validityYear]) milestoneVelocity[validityYear] = { year: validityYear, Undergraduate: 0, Graduate: 0, Inactive: 0, total: 0 };
+                    milestoneVelocity[validityYear][category]++;
+                    milestoneVelocity[validityYear].total++;
+                }
             });
 
             // GAD Aggregation
-            const s1 = record.stats.enrollment?.firstSemester;
-            const s2 = record.stats.enrollment?.secondSemester;
-            const sum = record.stats.enrollment?.midYearTerm;
+            const s1 = record.stats?.enrollment?.firstSemester;
+            const s2 = record.stats?.enrollment?.secondSemester;
+            const sum = record.stats?.enrollment?.midYearTerm;
 
             if (s1) {
                 ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach((lvl: any) => {
@@ -269,7 +247,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
                     if (!uniqueFacultySet.has(key)) {
                         uniqueFacultySet.add(key);
                         if (m.sex === 'Male') totalMaleFaculty++;
-                        else if (m.sex === 'Female') totalFemaleFaculty++;
+                        else if (m.sex === 'Female') totalFemaleFemale++;
                         else totalOthersFaculty++;
                     }
                 });
@@ -318,6 +296,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         activeCount, inactiveCount, activeAccredited, activeCopc,
         copcMomentumData: sortTimeline(copcByYear),
         achievementHistoryData: sortTimeline(achievementByYear),
+        milestoneVelocityData: sortTimeline(milestoneVelocity),
         roadmapData,
         totalEnrollment: sem1Male + sem1Female + sem2Male + sem2Female + summerMale + summerFemale,
         totalFaculty: totalMaleFaculty + totalFemaleFaculty + totalOthersFaculty,
@@ -328,11 +307,22 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         gadGraduationData: makePieData(totalMaleGrads, totalFemaleGrads),
         gadTracerData: makePieData(totalMaleTraced, totalFemaleTraced),
         boardPerfData: boardCount > 0 ? [{ name: 'School', rate: Math.round(totalSchoolRate / boardCount), fill: chartConfig.School.color }, { name: 'National', rate: Math.round(totalNationalRate / boardCount), fill: chartConfig.National.color }] : [],
-        gapRegistry,
         monitoredCount,
         integrityRate
     };
   }, [programs, compliances, campusMap, selectedYear]);
+
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (roadmapSortConfig.key === key && roadmapSortConfig.direction === 'asc') {
+        direction = 'desc';
+    }
+    setRoadmapSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    return <ArrowUpDown className={cn("h-3 w-3 ml-1.5 transition-colors", roadmapSortConfig.key === key ? "text-primary opacity-100" : "opacity-20")} />;
+  };
 
   const sortedRoadmap = useMemo(() => {
     if (!analytics?.roadmapData) return [];
@@ -373,7 +363,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
       
       {/* 1. EXECUTIVE KPI PANEL */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-sm border-primary/10">
+        <Card className="shadow-sm border-primary/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-3 opacity-5"><LayoutGrid className="h-12 w-12" /></div>
             <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Portfolio Monitoring</CardTitle></CardHeader>
             <CardContent>
                 <div className="text-3xl font-black text-slate-900">{analytics?.activeCount} Active</div>
@@ -381,7 +372,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-emerald-100 bg-emerald-50/10">
+        <Card className="shadow-sm border-emerald-100 bg-emerald-50/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-3 opacity-5"><ShieldCheck className="h-12 w-12" /></div>
             <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">COPC Performance</CardTitle></CardHeader>
             <CardContent>
                 <div className="text-3xl font-black text-emerald-600">{analytics?.activeCopc} Programs</div>
@@ -389,7 +381,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-amber-100 bg-amber-50/10">
+        <Card className="shadow-sm border-amber-100 bg-amber-50/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-3 opacity-5"><Trophy className="h-12 w-12" /></div>
             <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">Quality Maturity</CardTitle></CardHeader>
             <CardContent>
                 <div className="text-3xl font-black text-amber-600">{analytics?.activeAccredited} Programs</div>
@@ -397,7 +390,8 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
             </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-blue-100 bg-blue-50/10">
+        <Card className="shadow-sm border-blue-100 bg-blue-50/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-3 opacity-5"><Target className="h-12 w-12" /></div>
             <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">Monitored Registry</CardTitle></CardHeader>
             <CardContent>
                 <div className="text-3xl font-black text-blue-600">{analytics?.integrityRate}%</div>
@@ -502,18 +496,89 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           </Card>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Card className="shadow-md border-primary/10 flex flex-col">
+              <CardHeader className="bg-muted/10 border-b py-4">
+                <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle>
+                <CardDescription className="text-[10px]">Projected validity expiration counts by year.</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-10 flex-1">
+                  <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                    <ResponsiveContainer>
+                        <BarChart data={analytics?.milestoneVelocityData}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                            <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                            <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                            <RechartsTooltip content={<ChartTooltipContent />} />
+                            <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30} />
+                            <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30} />
+                            <Bar dataKey="total" stackId="b" fill="transparent"><LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#ef4444' }} /></Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+          </Card>
+
+          <Card className="shadow-md border-primary/10 flex flex-col">
+              <CardHeader className="bg-muted/10 border-b py-4">
+                <CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle>
+                <CardDescription className="text-[10px]">Total successful surveys recorded per year.</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-10 flex-1">
+                  <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                    <ResponsiveContainer>
+                        <BarChart data={analytics?.achievementHistoryData}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                            <XAxis dataKey="year" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                            <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                            <RechartsTooltip content={<ChartTooltipContent />} />
+                            <Bar dataKey="Undergraduate" stackId="a" fill={chartConfig.Undergraduate.color} barSize={30} />
+                            <Bar dataKey="Graduate" stackId="a" fill={chartConfig.Graduate.color} barSize={30} />
+                            <Bar dataKey="total" stackId="b" fill="transparent"><LabelList dataKey="total" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: '#3b82f6' }} /></Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+          </Card>
+      </div>
+
       <Card className="shadow-xl border-primary/10 overflow-hidden">
-          <CardHeader className="bg-primary/5 border-b py-6"><div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /><CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Roadmap</CardTitle></div></CardHeader>
+          <CardHeader className="bg-primary/5 border-b py-6">
+            <div className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg font-black uppercase tracking-tight">Institutional Survey Roadmap</CardTitle>
+            </div>
+          </CardHeader>
           <CardContent className="p-0">
               <ScrollArea className="h-[500px]">
                   <Table>
                       <TableHeader className="bg-muted/50 sticky top-0 z-10">
                           <TableRow>
-                              <TableHead className="pl-8 py-4"><Button variant="ghost" className="p-0 text-[10px] font-black uppercase" onClick={() => requestSort('name')}>Academic Program {getSortIcon('name')}</Button></TableHead>
-                              <TableHead className="py-4"><Button variant="ghost" className="p-0 text-[10px] font-black uppercase" onClick={() => requestSort('campus')}>Site {getSortIcon('campus')}</Button></TableHead>
-                              <TableHead className="py-4"><Button variant="ghost" className="p-0 text-[10px] font-black uppercase" onClick={() => requestSort('currentLevel')}>Level {getSortIcon('currentLevel')}</Button></TableHead>
-                              <TableHead className="py-4"><Button variant="ghost" className="p-0 text-[10px] font-black uppercase" onClick={() => requestSort('validity')}>Validity {getSortIcon('validity')}</Button></TableHead>
-                              <TableHead className="text-right pr-8 py-4"><Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase ml-auto" onClick={() => requestSort('status')}>Status {getSortIcon('status')}</Button></TableHead>
+                              <TableHead className="pl-8 py-4">
+                                <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('name')}>
+                                    Academic Program {getSortIcon('name')}
+                                </Button>
+                              </TableHead>
+                              <TableHead className="py-4">
+                                <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('campus')}>
+                                    Site {getSortIcon('campus')}
+                                </Button>
+                              </TableHead>
+                              <TableHead className="py-4">
+                                <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('currentLevel')}>
+                                    Level {getSortIcon('currentLevel')}
+                                </Button>
+                              </TableHead>
+                              <TableHead className="py-4">
+                                <Button variant="ghost" className="p-0 text-[10px] font-black uppercase hover:bg-transparent" onClick={() => requestSort('validity')}>
+                                    Validity {getSortIcon('validity')}
+                                </Button>
+                              </TableHead>
+                              <TableHead className="text-right pr-8 py-4">
+                                <Button variant="ghost" className="p-0 h-auto text-[10px] font-black uppercase hover:bg-transparent ml-auto" onClick={() => requestSort('status')}>
+                                    Status {getSortIcon('status')}
+                                </Button>
+                              </TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
