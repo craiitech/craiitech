@@ -139,7 +139,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         const category = getProgramCategory(p);
         if (p.isActive) activeCount++;
 
-        // Robust record matching
+        // ROBUST RECORD MATCHING
         const record = compliances.find(c => String(c.programId).trim() === String(p.id).trim());
         const milestones = record?.accreditationRecords || [];
         const currentMilestone = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
@@ -369,7 +369,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <Card className="shadow-md border-primary/10 flex flex-col">
               <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Maturity Profile</CardTitle></CardHeader>
               <CardContent className="pt-10 flex-1">
-                  <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                  <ChartContainer config={{}} className="h-[350px] w-full">
                     <ResponsiveContainer>
                         <BarChart data={analytics?.accreditationSummary} layout="vertical" margin={{ left: 40, right: 60 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
@@ -388,7 +388,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <Card className="shadow-md border-primary/10 flex flex-col">
               <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Recognition Momentum (COPC)</CardTitle></CardHeader>
               <CardContent className="pt-10 flex-1">
-                  <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                  <ChartContainer config={{}} className="h-[350px] w-full">
                     <ResponsiveContainer>
                         <BarChart data={analytics?.copcMomentumData}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
@@ -409,7 +409,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <Card className="shadow-md border-primary/10 flex flex-col">
               <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Milestone Velocity</CardTitle><CardDescription className="text-[10px]">Upcoming validity expirations.</CardDescription></CardHeader>
               <CardContent className="pt-10 flex-1">
-                <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                <ChartContainer config={{}} className="h-[350px] w-full">
                   <ResponsiveContainer>
                     <BarChart data={analytics?.milestoneVelocityData}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
@@ -429,7 +429,7 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
           <Card className="shadow-md border-primary/10 flex flex-col">
               <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Accreditation Achievement History</CardTitle><CardDescription className="text-[10px]">Total surveys recorded per year.</CardDescription></CardHeader>
               <CardContent className="pt-10 flex-1">
-                <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                <ChartContainer config={{}} className="h-[350px] w-full">
                   <ResponsiveContainer>
                     <BarChart data={analytics?.achievementHistoryData}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
