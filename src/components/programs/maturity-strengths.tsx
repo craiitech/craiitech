@@ -54,9 +54,10 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
     const activePrograms = programs.filter(p => p.isActive);
 
     activePrograms.forEach(p => {
-        // Normalized robust ID matching
+        // Robust normalized ID matching
+        const pId = String(p.id).toLowerCase().trim();
         const record = compliances.find(c => 
-            String(c.programId || '').toLowerCase().trim() === String(p.id || '').toLowerCase().trim()
+            String(c.programId || '').toLowerCase().trim() === pId
         );
         const hasCopc = record?.ched?.copcStatus === 'With COPC';
 
@@ -72,7 +73,8 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
     });
 
     const eliteAccredited = activePrograms.filter(p => {
-        const record = compliances.find(c => String(c.programId || '').toLowerCase().trim() === String(p.id || '').toLowerCase().trim());
+        const pId = String(p.id).toLowerCase().trim();
+        const record = compliances.find(c => String(c.programId || '').toLowerCase().trim() === pId);
         const milestones = record?.accreditationRecords || [];
         const current = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
         return current && (current.level.includes('Level III') || current.level.includes('Level IV'));
@@ -90,7 +92,8 @@ export function MaturityStrengths({ programs, compliances, campuses, units, isLo
     }
 
     const copcComplete = activePrograms.filter(p => {
-        const record = compliances.find(c => String(c.programId || '').toLowerCase().trim() === String(p.id || '').toLowerCase().trim());
+        const pId = String(p.id).toLowerCase().trim();
+        const record = compliances.find(c => String(c.programId || '').toLowerCase().trim() === pId);
         return record?.ched?.copcStatus === 'With COPC';
     }).map(p => p.abbreviation);
 

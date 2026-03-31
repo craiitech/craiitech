@@ -33,7 +33,8 @@ import {
     GraduationCap,
     HelpCircle,
     CalendarCheck,
-    ShieldAlert
+    ShieldAlert,
+    LayoutGrid
 } from 'lucide-react';
 import { 
     BarChart, 
@@ -136,7 +137,6 @@ export function ProgramAnalytics({ programs, compliances, campuses, units, isLoa
         if (p.isActive) activeCount++;
         else inactiveCount++;
 
-        // Robust normalized ID lookup to fix "0" value issues
         const pId = String(p.id).toLowerCase().trim();
         const record = compliances.find(c => String(c.programId).toLowerCase().trim() === pId);
         

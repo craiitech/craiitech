@@ -71,9 +71,9 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
           </TableHeader>
           <TableBody>
             {programs.map((program) => {
-              // Robust ID normalization for cross-lookup
+              const pId = String(program.id).toLowerCase().trim();
               const record = compliances.find(c => 
-                String(c.programId || '').toLowerCase().trim() === String(program.id || '').toLowerCase().trim()
+                String(c.programId || '').toLowerCase().trim() === pId
               );
               
               const copcStatus = record?.ched?.copcStatus;
