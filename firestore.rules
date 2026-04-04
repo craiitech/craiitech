@@ -37,6 +37,10 @@ service cloud.firestore {
       return isSignedIn() && hasProfile() && profile().role.matches('(?i)^(Campus Director|Campus ODIMO|Admin|Vice President.*|Director.*)$');
     }
 
+    function isUnitLead() {
+      return isSignedIn() && hasProfile() && profile().role.matches('(?i).*(coordinator|odimo|admin).*');
+    }
+
     // --------------------------------------------------------------------------
     // GAD CORNER & PCW REPORTING
     // --------------------------------------------------------------------------
@@ -164,7 +168,7 @@ service cloud.firestore {
     match /employeeActivities/{id} {
       allow get, list, read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && (request.auth.uid == resource.data.userId || isSupervisor() || isAdmin());
+      allow update: if isSignedIn() && (request.auth.uid == resource.data.userId || isUnitLead() || isSupervisor() || isAdmin());
       allow delete: if isSignedIn() && (request.auth.uid == resource.data.userId || isAdmin());
     }
   }

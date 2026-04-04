@@ -25,7 +25,8 @@ import {
     ExternalLink,
     Check,
     FileCheck,
-    ListChecks
+    ListChecks,
+    ShieldCheck
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -262,6 +263,7 @@ export default function EmployeeActivityLogPage() {
   }
 
   const isCurrentViewApproval = viewScope !== 'personal';
+  const canViewUnit = isAdmin || isSupervisor || userRole?.toLowerCase().includes('coordinator') || userRole?.toLowerCase().includes('odimo');
 
   return (
     <div className="space-y-6">
@@ -352,7 +354,7 @@ export default function EmployeeActivityLogPage() {
                       </SelectTrigger>
                       <SelectContent>
                           <SelectItem value="personal">My Personal Logbook</SelectItem>
-                          {(isAdmin || isSupervisor) && <SelectItem value="unit">Unit Monitoring View</SelectItem>}
+                          {canViewUnit && <SelectItem value="unit">Unit Monitoring View</SelectItem>}
                           {(isAdmin || userRole?.toLowerCase().includes('director')) && <SelectItem value="campus">Campus Monitoring View</SelectItem>}
                       </SelectContent>
                   </Select>
