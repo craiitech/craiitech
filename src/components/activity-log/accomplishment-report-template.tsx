@@ -15,6 +15,10 @@ interface AccomplishmentReportTemplateProps {
 
 export function AccomplishmentReportTemplate({ activities, userName, unitName, periodLabel }: AccomplishmentReportTemplateProps) {
   
+  // Get the most frequent approver name if available
+  const approverNames = activities.map(a => a.approvedByName).filter(Boolean);
+  const displayApprover = approverNames.length > 0 ? approverNames[0] : '';
+
   return (
     <div className="p-8 text-black bg-white max-w-[8.5in] mx-auto font-serif leading-tight">
       {/* Header */}
@@ -73,14 +77,14 @@ export function AccomplishmentReportTemplate({ activities, userName, unitName, p
           <div className="border-b border-black font-bold text-sm pb-1 mb-1">
             {userName.toUpperCase()}
           </div>
-          <p className="text-[10px] uppercase font-semibold">Employee / Unit Coordinator</p>
+          <p className="text-[10px] uppercase font-semibold text-center">Employee / Unit Coordinator</p>
         </div>
         <div className="text-center">
           <p className="text-[10px] uppercase font-bold text-left mb-8 opacity-60">Verified by:</p>
-          <div className="border-b border-black font-bold text-sm pb-1 mb-1">
-            {/* Space for Supervisor Signature */}
+          <div className="border-b border-black font-bold text-sm pb-1 mb-1 uppercase">
+            {displayApprover || '____________________'}
           </div>
-          <p className="text-[10px] uppercase font-semibold">Unit Head / Director</p>
+          <p className="text-[10px] uppercase font-semibold text-center">Unit Head / Coordinator</p>
         </div>
       </div>
 

@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, doc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, doc, deleteDoc, Timestamp, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import type { EmployeeActivity, Unit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,9 +22,12 @@ import {
     LayoutList,
     Info as InfoIcon,
     ShieldAlert,
-    ExternalLink
+    ExternalLink,
+    Check,
+    FileCheck,
+    ListChecks
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -43,27 +46,30 @@ import { AccomplishmentReportTemplate } from '@/components/activity-log/accompli
 import { cn } from '@/lib/utils';
 
 export default function EmployeeActivityLogPage() {
-  const { user, userProfile, isAdmin, isUserLoading, userRole } = useUser();
+  const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<EmployeeActivity | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   // Filter States
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>(''); 
+  const [monthFilter, setMonthFilter] = useState<string>('');
   const [viewScope, setViewScope] = useState<'personal' | 'unit' | 'campus'>('personal');
 
   // Defer default date to mount to avoid hydration mismatch
   useEffect(() => {
-    setDateFilter(format(new Date(), 'yyyy-MM-dd'));
+    const now = new Date();
+    setDateFilter(format(now, 'yyyy-MM-dd'));
+    setMonthFilter(format(now, 'yyyy-MM'));
   }, []);
 
   /**
    * SILENT GATED QUERY
-   * Only fires once the user is confirmed as signed in and the profile is loaded.
    */
   const activitiesQuery = useMemoFirebase(() => {
     if (!firestore || !user || isUserLoading) return null;
@@ -113,6 +119,55 @@ export default function EmployeeActivityLogPage() {
     });
   }, [rawActivities, searchTerm, statusFilter, dateFilter]);
 
+  const handleApprove = async (id: string) => {
+    if (!firestore || !userProfile) return;
+    setIsProcessing(true);
+    try {
+        await updateDoc(doc(firestore, 'employeeActivities', id), {
+            isApproved: true,
+            approvedBy: userProfile.id,
+            approvedByName: `${userProfile.firstName} ${userProfile.lastName}`,
+            approvedAt: serverTimestamp()
+        });
+        toast({ title: 'Task Approved', description: 'Institutional record verified.' });
+    } catch (e) {
+        toast({ title: 'Approval Failed', variant: 'destructive' });
+    } finally {
+        setIsProcessing(false);
+    }
+  };
+
+  const handleBatchApprove = async () => {
+    if (!firestore || !userProfile || filteredActivities.length === 0) return;
+    setIsProcessing(true);
+    try {
+        const batch = writeBatch(firestore);
+        const toApprove = filteredActivities.filter(a => !a.isApproved && a.userId !== user?.uid);
+        
+        if (toApprove.length === 0) {
+            toast({ title: 'No tasks to approve' });
+            setIsProcessing(false);
+            return;
+        }
+
+        toApprove.forEach(a => {
+            batch.update(doc(firestore, 'employeeActivities', a.id), {
+                isApproved: true,
+                approvedBy: userProfile.id,
+                approvedByName: `${userProfile.firstName} ${userProfile.lastName}`,
+                approvedAt: serverTimestamp()
+            });
+        });
+
+        await batch.commit();
+        toast({ title: 'Batch Complete', description: `${toApprove.length} tasks verified.` });
+    } catch (e) {
+        toast({ title: 'Batch Failed', variant: 'destructive' });
+    } finally {
+        setIsProcessing(false);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!firestore || !window.confirm('Delete this log entry permanently?')) return;
     try {
@@ -123,16 +178,47 @@ export default function EmployeeActivityLogPage() {
     }
   };
 
-  const handlePrintReport = () => {
-    if (filteredActivities.length === 0 || !userProfile) return;
+  const handlePrintReport = (type: 'Daily' | 'Monthly') => {
+    if (!userProfile || !rawActivities) return;
+
+    let itemsToPrint = [];
+    let periodLabel = '';
+
+    if (type === 'Daily') {
+        itemsToPrint = filteredActivities.filter(a => a.isApproved || a.userId === user?.uid);
+        periodLabel = dateFilter ? format(new Date(dateFilter), 'PPPP') : 'Selected Date';
+    } else {
+        // Monthly logic
+        const [year, month] = monthFilter.split('-').map(Number);
+        const start = new Date(year, month - 1, 1);
+        const end = endOfMonth(start);
+        
+        itemsToPrint = rawActivities.filter(a => {
+            const d = a.date instanceof Timestamp ? a.date.toDate() : new Date(a.date);
+            const isInMonth = d >= start && d <= end;
+            const isMineOrApproved = a.isApproved || a.userId === user?.uid;
+            return isInMonth && isMineOrApproved;
+        }).sort((a, b) => {
+            const timeA = a.date instanceof Timestamp ? a.date.toMillis() : new Date(a.date).getTime();
+            const timeB = b.date instanceof Timestamp ? b.date.toMillis() : new Date(b.date).getTime();
+            return timeA - timeB;
+        });
+        
+        periodLabel = format(start, 'MMMM yyyy');
+    }
+
+    if (itemsToPrint.length === 0) {
+        toast({ title: 'No data to print', description: 'Only approved tasks or your own tasks can be printed.', variant: 'destructive' });
+        return;
+    }
 
     try {
         const reportHtml = renderToStaticMarkup(
             <AccomplishmentReportTemplate 
-                activities={filteredActivities}
+                activities={itemsToPrint}
                 userName={`${userProfile.firstName} ${userProfile.lastName}`}
                 unitName={unitMap.get(userProfile.unitId) || 'University Office'}
-                periodLabel={dateFilter ? format(new Date(dateFilter), 'PPPP') : 'All Time'}
+                periodLabel={periodLabel}
             />
         );
 
@@ -143,7 +229,7 @@ export default function EmployeeActivityLogPage() {
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Accomplishment Report</title>
+                    <title>Accomplishment Report - ${type}</title>
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
                         @media print { body { background: white; margin: 0; padding: 0; } .no-print { display: none !important; } }
@@ -152,7 +238,7 @@ export default function EmployeeActivityLogPage() {
                 </head>
                 <body>
                     <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest">Click to Print Report</button>
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest">Click to Print ${type} Report</button>
                     </div>
                     ${reportHtml}
                 </body>
@@ -175,6 +261,8 @@ export default function EmployeeActivityLogPage() {
     );
   }
 
+  const isCurrentViewApproval = viewScope !== 'personal';
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -186,8 +274,19 @@ export default function EmployeeActivityLogPage() {
           <p className="text-muted-foreground">Log daily tasks and generate institutional accomplishment reports.</p>
         </div>
         <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handlePrintReport} disabled={filteredActivities.length === 0} className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2">
-                <Printer className="h-4 w-4" /> Print Report
+            <div className="flex bg-muted p-1 rounded-lg border mr-2">
+                <Input 
+                    type="month" 
+                    value={monthFilter} 
+                    onChange={(e) => setMonthFilter(e.target.value)} 
+                    className="h-8 w-32 text-[10px] font-bold border-none bg-transparent" 
+                />
+                <Button variant="ghost" size="sm" onClick={() => handlePrintReport('Monthly')} className="h-8 text-[10px] font-black uppercase">
+                    Monthly
+                </Button>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => handlePrintReport('Daily')} disabled={filteredActivities.length === 0} className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm">
+                <Printer className="h-4 w-4" /> Daily Report
             </Button>
             <Button onClick={() => { setEditingActivity(null); setIsFormOpen(true); }} className="h-10 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest">
                 <PlusCircle className="mr-2 h-4 w-4" /> Log Today's Task
@@ -200,7 +299,7 @@ export default function EmployeeActivityLogPage() {
               <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                   <div className="space-y-1.5">
                       <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                          <Calendar className="h-2.5 w-2.5" /> Specific Date
+                          <Calendar className="h-2.5 w-2.5" /> Date Selection
                       </label>
                       <Input 
                         type="date" 
@@ -232,7 +331,7 @@ export default function EmployeeActivityLogPage() {
                       <div className="relative">
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
-                              placeholder="Search tasks..."
+                              placeholder="Search activities..."
                               value={searchTerm}
                               onChange={(e) => setSearchTerm(e.target.value)}
                               className="pl-9 h-10 text-xs bg-white"
@@ -245,16 +344,16 @@ export default function EmployeeActivityLogPage() {
           <Card className="border-primary/10 shadow-sm bg-muted/10">
               <CardContent className="p-4 flex flex-col h-full justify-end">
                   <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 mb-1.5 flex items-center gap-1.5">
-                      <LayoutList className="h-2.5 w-2.5" /> View Perspective
+                      <LayoutList className="h-2.5 w-2.5" /> Management Perspective
                   </label>
                   <Select value={viewScope} onValueChange={(v: any) => setViewScope(v)}>
                       <SelectTrigger className="h-10 text-xs bg-white font-bold">
                           <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                          <SelectItem value="personal">My Personal Log</SelectItem>
-                          {(isAdmin || userRole?.toLowerCase().includes('director') || userRole?.toLowerCase().includes('odimo')) && <SelectItem value="unit">Unit-Wide Log</SelectItem>}
-                          {(isAdmin || userRole?.toLowerCase().includes('director')) && <SelectItem value="campus">Campus-Wide Log</SelectItem>}
+                          <SelectItem value="personal">My Personal Logbook</SelectItem>
+                          {(isAdmin || isSupervisor) && <SelectItem value="unit">Unit Monitoring View</SelectItem>}
+                          {(isAdmin || userRole?.toLowerCase().includes('director')) && <SelectItem value="campus">Campus Monitoring View</SelectItem>}
                       </SelectContent>
                   </Select>
               </CardContent>
@@ -270,42 +369,58 @@ export default function EmployeeActivityLogPage() {
                           Displaying tasks for {dateFilter ? format(new Date(dateFilter), 'PPPP') : 'Selected Period'}.
                       </CardDescription>
                   </div>
-                  {isLoadingActivities ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-primary opacity-20" />
-                  ) : (
-                    <Badge variant="outline" className="h-6 px-3 font-black text-[10px] bg-white border-primary/20 text-primary">
-                        {filteredActivities.length} ENTRIES LOGGED
-                    </Badge>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {isCurrentViewApproval && (
+                        <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={handleBatchApprove} 
+                            disabled={isProcessing || filteredActivities.length === 0}
+                            className="h-8 font-black uppercase text-[9px] tracking-widest bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                        >
+                            <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" /> Batch Approve All
+                        </Button>
+                    )}
+                    {isLoadingActivities ? (
+                        <Loader2 className="h-5 w-5 animate-spin text-primary opacity-20" />
+                    ) : (
+                        <Badge variant="outline" className="h-6 px-3 font-black text-[10px] bg-white border-primary/20 text-primary uppercase">
+                            {filteredActivities.length} ENTRIES LOGGED
+                        </Badge>
+                    )}
+                  </div>
               </div>
           </CardHeader>
           <CardContent className="p-0">
               <Table>
                   <TableHeader className="bg-muted/30">
                       <TableRow>
-                          <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Time & Timeline</TableHead>
+                          <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Time & Verification</TableHead>
                           <TableHead className="text-[10px] font-black uppercase py-3">Activity Particulars</TableHead>
                           <TableHead className="text-[10px] font-black uppercase py-3">Output</TableHead>
                           <TableHead className="text-[10px] font-black uppercase text-center py-3">Evidence</TableHead>
                           <TableHead className="text-[10px] font-black uppercase text-center py-3">Status</TableHead>
-                          <TableHead className="text-right text-[10px] font-black uppercase pr-6 py-3">Actions</TableHead>
+                          <TableHead className="text-right text-[10px] font-black uppercase pr-6 py-3">Action</TableHead>
                       </TableRow>
                   </TableHeader>
                   <TableBody>
                       {filteredActivities.map((activity) => (
                           <TableRow key={activity.id} className="hover:bg-muted/20 transition-colors group">
                               <TableCell className="pl-6 py-4">
-                                  <div className="flex flex-col gap-1">
+                                  <div className="flex flex-col gap-1.5">
                                       <div className="flex items-center gap-2">
                                           <Clock className="h-3.5 w-3.5 text-primary" />
                                           <span className="text-xs font-black text-slate-800 uppercase tabular-nums">
                                               {activity.startTime} - {activity.endTime}
                                           </span>
                                       </div>
-                                      <div className="flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
-                                          <Calendar className="h-3 w-3" />
-                                          {format(activity.date instanceof Timestamp ? activity.date.toDate() : new Date(activity.date), 'MMM dd, yyyy')}
-                                      </div>
+                                      {activity.isApproved ? (
+                                          <Badge className="bg-emerald-600 text-white border-none h-4 px-1.5 text-[8px] font-black w-fit gap-1">
+                                              <ShieldCheck className="h-2.5 w-2.5" /> VERIFIED
+                                          </Badge>
+                                      ) : (
+                                          <Badge variant="outline" className="h-4 px-1.5 text-[8px] font-black w-fit opacity-40">PENDING</Badge>
+                                      )}
                                   </div>
                               </TableCell>
                               <TableCell className="max-w-xs py-4">
@@ -313,7 +428,10 @@ export default function EmployeeActivityLogPage() {
                                       <p className="font-bold text-sm text-slate-900 group-hover:text-primary transition-colors">{activity.activityParticular}</p>
                                       <p className="text-[10px] text-muted-foreground italic line-clamp-1">{activity.remarks || 'No additional remarks.'}</p>
                                       {viewScope !== 'personal' && (
-                                          <span className="text-[9px] font-black text-primary uppercase mt-1">Logged by: {activity.userName}</span>
+                                          <div className="flex items-center gap-1.5 mt-1.5">
+                                              <UserCheck className="h-3 w-3 text-primary" />
+                                              <span className="text-[9px] font-black text-primary uppercase">{activity.userName}</span>
+                                          </div>
                                       )}
                                   </div>
                               </TableCell>
@@ -325,7 +443,7 @@ export default function EmployeeActivityLogPage() {
                               </TableCell>
                               <TableCell className="text-center">
                                   {activity.googleDriveLink ? (
-                                      <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" asChild title="Open Evidence">
                                           <a href={activity.googleDriveLink} target="_blank" rel="noopener noreferrer">
                                               <ExternalLink className="h-4 w-4" />
                                           </a>
@@ -348,7 +466,13 @@ export default function EmployeeActivityLogPage() {
                               </TableCell>
                               <TableCell className="text-right pr-6 whitespace-nowrap">
                                   <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      {activity.userId === user?.uid && (
+                                      {isCurrentViewApproval && !activity.isApproved && activity.userId !== user?.uid && (
+                                          <Button size="sm" onClick={() => handleApprove(activity.id)} disabled={isProcessing} className="h-7 text-[9px] font-black uppercase bg-emerald-600 hover:bg-emerald-700">
+                                              {isProcessing ? <Loader2 className="h-3 w-3 animate-spin"/> : <Check className="h-3 w-3 mr-1" />}
+                                              Approve
+                                          </Button>
+                                      )}
+                                      {activity.userId === user?.uid && !activity.isApproved && (
                                           <>
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => { setEditingActivity(activity); setIsFormOpen(true); }}>
                                                 <Edit className="h-4 w-4" />
@@ -367,7 +491,7 @@ export default function EmployeeActivityLogPage() {
                               <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
                                   <div className="flex flex-col items-center gap-2 opacity-20">
                                       <UserCheck className="h-10 w-10" />
-                                      <p className="text-[10px] font-black uppercase tracking-widest">No activities logged</p>
+                                      <p className="text-[10px] font-black uppercase tracking-widest">No activities logged for this date</p>
                                   </div>
                               </TableCell>
                           </TableRow>
@@ -379,7 +503,7 @@ export default function EmployeeActivityLogPage() {
               <div className="flex items-start gap-3">
                   <InfoIcon className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
                   <p className="text-[9px] text-muted-foreground italic leading-relaxed">
-                      <strong>Institutional Standard:</strong> Daily logs ensure accurate accomplishment reporting aligned with the EOMS operational plans. Attachment links provide verifiable evidence for audit sessions.
+                      <strong>Institutional Compliance:</strong> Daily tasks must be verified by the Unit Coordinator to be included in monthly accomplishment reports. Approved records constitute valid institutional evidence for external quality audits.
                   </p>
               </div>
           </CardFooter>

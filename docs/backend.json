@@ -35,7 +35,11 @@
         "status": { "type": "string", "enum": ["Completed", "In Progress", "Open", "Postponed"] },
         "output": { "type": "string" },
         "googleDriveLink": { "type": "string", "format": "uri", "description": "Link to verifiable evidence or output document." },
-        "remarks": { "type": "string" }
+        "remarks": { "type": "string" },
+        "isApproved": { "type": "boolean" },
+        "approvedBy": { "type": "string" },
+        "approvedByName": { "type": "string" },
+        "approvedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "date", "startTime", "endTime", "activityParticular", "status"]
     },

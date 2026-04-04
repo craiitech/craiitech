@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -158,11 +159,13 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
-    // EMPLOYEE ACTIVITY LOG (APPENDED AT END AS PER INSTRUCTIONS)
+    // EMPLOYEE ACTIVITY LOG - REFINED PERMISSION
     // --------------------------------------------------------------------------
     match /employeeActivities/{id} {
-      allow get, list, read: if request.auth != null;
-      allow write, create, update, delete: if request.auth != null;
+      allow get, list, read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (request.auth.uid == resource.data.userId || isSupervisor() || isAdmin());
+      allow delete: if isSignedIn() && (request.auth.uid == resource.data.userId || isAdmin());
     }
   }
 }

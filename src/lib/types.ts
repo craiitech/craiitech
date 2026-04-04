@@ -361,7 +361,7 @@ export type CorrectiveActionRequest = {
     source: 'Audit Finding' | 'Legal Non-compliance' | 'Non-conforming Service' | 'Others';
     procedureTitle: string;
     initiator: string;
-    natureOfFinding: 'NC' | 'OFI';
+    nature ofFinding: 'NC' | 'OFI';
     concerningClause: string;
     concerningTopManagementName?: string;
     timeLimitForReply: any; // Timestamp
@@ -687,4 +687,8 @@ export type EmployeeActivity = {
     remarks?: string;
     createdAt: any;
     updatedAt: any;
+    isApproved?: boolean;
+    approvedBy?: string;
+    approvedByName?: string;
+    approvedAt?: any;
 };
