@@ -29,12 +29,11 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormDescription as FormDesc,
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/logo';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
 import type { Campus, Unit, Role } from '@/lib/types';
 
 
@@ -42,6 +41,7 @@ const registrationSchema = z.object({
   campusId: z.string().min(1, { message: 'Please select a campus.' }),
   roleId: z.string().min(1, { message: 'Please select a role.' }),
   unitId: z.string().optional(),
+  sex: z.enum(['Male', 'Female', 'Others (LGBTQI++)'], { required_error: 'Please select your sex identification.' }),
 });
 
 export default function CompleteRegistrationPage() {
@@ -76,6 +76,7 @@ export default function CompleteRegistrationPage() {
       campusId: '',
       unitId: '',
       roleId: '',
+      sex: 'Female',
     },
   });
 
@@ -139,6 +140,7 @@ export default function CompleteRegistrationPage() {
         unitId: isUnitRequired ? values.unitId : '',
         roleId: isAdminEmail ? 'admin' : values.roleId,
         role: isAdminEmail ? 'Admin' : (selectedRoleObject ? selectedRoleObject.name : ''),
+        sex: values.sex,
         verified: isAdminEmail, // Admin email is auto-verified
         ndaAccepted: isAdminEmail, // Admin email auto-accepts NDA for bootstrapping
       };
@@ -279,6 +281,34 @@ export default function CompleteRegistrationPage() {
                     )}
                 />
               )}
+
+              <FormField
+                control={form.control}
+                name="sex"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Sex Identification (GAD Standard)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-gray-400" />
+                            <SelectValue placeholder="Select sex" />
+                          </div>
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Others (LGBTQI++)">Others (LGBTQI++)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription className="text-[10px]">Required for institutional Gender and Development reporting.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <Button 
                 type="submit" 
                 className="w-full" 

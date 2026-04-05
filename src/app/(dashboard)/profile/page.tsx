@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -7,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, collection } from 'firebase/firestore';
+import { doc, updateDoc, collection, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -134,12 +133,14 @@ export default function ProfilePage() {
     setIsSubmitting(true);
     try {
       const userDocRef = doc(firestore, 'users', user.uid);
-      await updateDoc(userDocRef, {
+      
+      // Use setDoc with merge: true to be more robust than updateDoc
+      await setDoc(userDocRef, {
         firstName: values.firstName,
         lastName: values.lastName,
         sex: values.sex,
         accessibility: values.accessibility,
-      });
+      }, { merge: true });
 
       logSessionActivity('User updated their profile and accessibility preferences', { action: 'update_profile' });
 
