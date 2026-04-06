@@ -1,4 +1,4 @@
-'use server';
+'use client';
 
 /**
  * @fileOverview A dialog component for creating or editing audit plans.
@@ -44,6 +44,7 @@ import { Loader2, LayoutList, ShieldCheck, FileText, CalendarCheck, Globe, ListC
 import { ScrollArea } from '../ui/scroll-area';
 import { format } from 'date-fns';
 import { MultiSelector } from '../qa-reports/multi-selector';
+import { cn } from '@/lib/utils';
 
 interface AuditPlanDialogProps {
   isOpen: boolean;
