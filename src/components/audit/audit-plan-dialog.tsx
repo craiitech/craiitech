@@ -28,6 +28,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -54,7 +61,7 @@ interface AuditPlanDialogProps {
 }
 
 const currentYear = new Date().getFullYear();
-const yearsList = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
+const yearsList = Array.from({ length: 10 }, (_, i) => String(currentYear - 5 + i));
 
 const auditGroups: AuditGroup[] = ['Management Processes', 'Operation Processes', 'Support Processes'];
 
