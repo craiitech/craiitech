@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -16,17 +15,9 @@ import {
   Clock,
   Users,
   Megaphone,
-  Circle,
   Pencil,
-  FilePlus,
   AlertCircle,
   Eye,
-  Search,
-  Bell,
-  Heart,
-  XCircle,
-  History,
-  Settings,
   Globe,
   MessageSquare,
   ShieldCheck,
@@ -56,7 +47,6 @@ import {
   query,
   where,
   doc,
-  getDocs,
   Timestamp,
   orderBy,
   limit,
@@ -94,10 +84,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { format, isAfter } from 'date-fns';
+import { format } from 'date-fns';
 import { SubmissionAnalytics } from '@/components/dashboard/submission-analytics';
 import { useRouter } from 'next/navigation';
-import { Input } from '@/components/ui/input';
 import { UnitUserOverview } from '@/components/dashboard/unit-user-overview';
 import { IncompleteCampusSubmissions } from '@/components/dashboard/incomplete-campus-submissions';
 import { CompletedSubmissions } from '@/components/dashboard/completed-submissions';
@@ -112,7 +101,7 @@ import { ComplianceOverTime } from '@/components/dashboard/strategic/compliance-
 import { RiskMatrix } from '@/components/dashboard/strategic/risk-matrix';
 import { RiskFunnel } from '@/components/dashboard/strategic/risk-funnel';
 import { CycleSubmissionBreakdown } from '@/components/dashboard/strategic/cycle-submission-breakdown';
-import { cn, normalizeReportType } from '@/lib/utils';
+import { normalizeReportType } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ComplianceHeatmap } from '@/components/dashboard/strategic/compliance-heatmap';
 import { MaturityRadar } from '@/components/dashboard/strategic/maturity-radar';
@@ -120,6 +109,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { StrategicSwotAnalysis } from '@/components/submissions/strategic-swot-analysis';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AccreditationRecommendationReport } from '@/components/programs/recommendation-print-template';
+import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
 
 
 export const TOTAL_REPORTS_PER_CYCLE = 6;
@@ -297,6 +287,38 @@ export default function HomePage() {
     const isAccessible = adv.scope === 'University-Wide' || adv.targetUnitId === userProfile.unitId || isAdmin;
     return isAccessible ? adv : null;
   }, [latestAdvisories, userProfile, isAdmin]);
+
+  /**
+   * IQA SCHEDULE FETCHING FOR DASHBOARD
+   */
+  const auditSchedulesQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile || isUserLoading) return null;
+    const baseRef = collection(firestore, 'auditSchedules');
+    
+    // Only fetch non-completed sessions for the home dashboard
+    if (isAdmin) return query(baseRef, where('status', 'in', ['Scheduled', 'In Progress']));
+    
+    if (isCampusSupervisor && userProfile.campusId) {
+        return query(baseRef, where('campusId', '==', userProfile.campusId), where('status', 'in', ['Scheduled', 'In Progress']));
+    }
+    
+    if (userProfile.unitId) {
+        return query(baseRef, where('targetId', '==', userProfile.unitId), where('status', 'in', ['Scheduled', 'In Progress']));
+    }
+    
+    return null;
+  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isUserLoading]);
+
+  const { data: dashboardSchedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(auditSchedulesQuery);
+
+  const sortedDashboardSchedules = useMemo(() => {
+    if (!dashboardSchedules) return [];
+    return [...dashboardSchedules].sort((a, b) => {
+        const timeA = a.scheduledDate?.toMillis?.() || new Date(a.scheduledDate).getTime();
+        const timeB = b.scheduledDate?.toMillis?.() || new Date(b.scheduledDate).getTime();
+        return timeA - timeB;
+    });
+  }, [dashboardSchedules]);
   
   const years = useMemo(() => {
     if (!allCycles) return [new Date().getFullYear()];
@@ -661,6 +683,9 @@ export default function HomePage() {
         )}
         <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
         
+        {/* Unit-Specific IQA Schedule Awareness */}
+        <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} />
+
         {/* QUALITY ACTION ITEMS ALERTS FOR UNIT USERS */}
         {(openCars.length > 0 || openDecisions.length > 0 || assignedRecommendations.length > 0) && (
             <Card className="border-destructive/20 bg-destructive/5 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
@@ -887,6 +912,10 @@ export default function HomePage() {
                     <Alert><AlertCircle className="h-4 w-4" /><AlertTitle>Campus Setup Required</AlertTitle><AlertDescription className="flex items-center justify-between"><span>Your campus does not have any units assigned. Please set up units to begin tracking submissions.</span><Button onClick={() => router.push('/settings')}>
                                 <Settings className="mr-2 h-4 w-4" />Setup Units</Button></AlertDescription></Alert>
                 )}
+                
+                {/* Campus-Wide IQA Itinerary Context */}
+                <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} />
+
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                     {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
                     {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
@@ -959,6 +988,10 @@ export default function HomePage() {
         <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
       </TabsList>
       <TabsContent value="overview" className="space-y-4">
+        
+        {/* Institutional-Wide IQA Itinerary Registry */}
+        <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} />
+
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
           {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
           {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
