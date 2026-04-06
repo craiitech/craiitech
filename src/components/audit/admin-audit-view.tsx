@@ -1,17 +1,17 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '../ui/badge';
 import { Skeleton } from '../ui/skeleton';
-import { PlusCircle, Loader2, Database, LayoutList, BarChart3, ListChecks, Filter } from 'lucide-react';
+import { PlusCircle, Loader2, Database, LayoutList, BarChart3, ListChecks, Filter, Copy } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, doc, deleteDoc } from 'firebase/firestore';
 import type { AuditPlan, Campus, User, Unit, AuditSchedule, ISOClause, AuditFinding } from '@/lib/types';
 import { AuditPlanDialog } from './audit-plan-dialog';
 import { AuditScheduleDialog } from './audit-schedule-dialog';
+import { AuditPlanCloneDialog } from './audit-plan-clone-dialog';
 import { AuditPlanList } from './audit-plan-list';
 import { AuditAnalytics } from './audit-analytics';
 import { seedIsoClausesClient } from '@/lib/iso-seeder';
@@ -45,6 +45,9 @@ export function AdminAuditView() {
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [selectedPlanForScheduling, setSelectedPlanForScheduling] = useState<AuditPlan | null>(null);
   const [editingSchedule, setEditingSchedule] = useState<AuditSchedule | null>(null);
+
+  const [cloningPlan, setCloningPlan] = useState<AuditPlan | null>(null);
+  const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
 
   const [deletingPlan, setDeletingPlan] = useState<AuditPlan | null>(null);
   const [deletingSchedule, setDeletingSchedule] = useState<AuditSchedule | null>(null);
@@ -94,6 +97,11 @@ export function AdminAuditView() {
     setSelectedPlanForScheduling(plan);
     setEditingSchedule(schedule);
     setIsScheduleDialogOpen(true);
+  };
+
+  const handleClonePlan = (plan: AuditPlan) => {
+    setCloningPlan(plan);
+    setIsCloneDialogOpen(true);
   };
 
   const handleDeletePlan = async () => {
@@ -243,6 +251,7 @@ export function AdminAuditView() {
                             onScheduleAudit={handleScheduleAudit}
                             onEditSchedule={handleEditSchedule}
                             onDeleteSchedule={setDeletingSchedule}
+                            onClonePlan={handleClonePlan}
                         />
                     )}
                 </CardContent>
@@ -264,6 +273,16 @@ export function AdminAuditView() {
             allUnits={units || []}
             topManagement={users?.filter(u => u.role?.toLowerCase().includes('president') || u.role?.toLowerCase().includes('director')) || []}
         />
+      )}
+
+      {cloningPlan && (
+          <AuditPlanCloneDialog
+            isOpen={isCloneDialogOpen}
+            onOpenChange={setIsCloneDialogOpen}
+            sourcePlan={cloningPlan}
+            sourceSchedules={schedules?.filter(s => s.auditPlanId === cloningPlan.id) || []}
+            campuses={campuses || []}
+          />
       )}
 
       {/* Delete Plan Confirm */}

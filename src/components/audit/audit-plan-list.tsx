@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
 import type { AuditPlan, AuditSchedule, Campus, User, Unit, Signatories, AuditGroup, AuditFinding, ISOClause } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer, Search, ArrowUpDown, Users, FileText, AlertTriangle, School } from 'lucide-react';
+import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer, Search, ArrowUpDown, Users, FileText, AlertTriangle, School, Copy } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -39,6 +38,7 @@ interface AuditPlanListProps {
   onScheduleAudit: (plan: AuditPlan) => void;
   onEditSchedule: (plan: AuditPlan, schedule: AuditSchedule) => void;
   onDeleteSchedule: (schedule: AuditSchedule) => void;
+  onClonePlan: (plan: AuditPlan) => void;
 }
 
 type SortKey = 'scheduledDate' | 'processCategory' | 'targetName' | 'status';
@@ -352,7 +352,8 @@ export function AuditPlanList({
     onDeletePlan,
     onScheduleAudit, 
     onEditSchedule,
-    onDeleteSchedule
+    onDeleteSchedule,
+    onClonePlan
 }: AuditPlanListProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -663,6 +664,14 @@ export function AuditPlanList({
                             className="h-9 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm gap-2 text-primary border-primary/20 hover:bg-primary/5"
                         >
                             <Printer className="h-3.5 w-3.5"/> Print Audit Plan
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={(e) => { e.stopPropagation(); onClonePlan(plan); }} 
+                            className="h-9 text-[10px] font-black uppercase tracking-widest bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 gap-2"
+                        >
+                            <Copy className="h-3.5 w-3.5"/> Clone Plan
                         </Button>
                         <Button 
                             variant="outline" 
