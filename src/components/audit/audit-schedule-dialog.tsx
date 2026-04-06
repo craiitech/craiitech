@@ -38,20 +38,22 @@ import { doc, addDoc, collection, Timestamp, setDoc, updateDoc } from 'firebase/
 import { useToast } from '@/hooks/use-toast';
 import { useMemo, useState, useEffect } from 'react';
 import type { AuditPlan, User, Unit, ISOClause, AuditSchedule, UnitCategory, AuditGroup } from '@/lib/types';
-import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database, UserCheck, Layers, User as UserIcon } from 'lucide-react';
+import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database, UserCheck, Layers, User as UserIcon, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from '../ui/command';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { format } from 'date-fns';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface AuditScheduleDialogProps {
   isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
+  onOpenChange: (open: boolean) => void;
   plan: AuditPlan;
   schedule: AuditSchedule | null;
+  allSchedules: AuditSchedule[];
   auditors: User[];
   allUnits: Unit[];
   topManagement: User[];
@@ -81,6 +83,7 @@ export function AuditScheduleDialog({
   onOpenChange,
   plan,
   schedule,
+  allSchedules,
   auditors,
   allUnits,
 }: AuditScheduleDialogProps) {
@@ -132,6 +135,43 @@ export function AuditScheduleDialog({
       auditorId: '',
     }
   });
+
+  const watchTargetId = form.watch('targetId');
+  const watchAuditorId = form.watch('auditorId');
+  const watchDate = form.watch('scheduledDate');
+  const watchStart = form.watch('startTime');
+  const watchEnd = form.watch('endTime');
+
+  // Real-time conflict detection for the selected unit/auditor
+  const currentConflict = useMemo(() => {
+    if (!watchDate || !watchStart || !watchEnd || (!watchTargetId && !watchAuditorId)) return null;
+
+    try {
+        const [month, day, year] = watchDate.split('/').map(Number);
+        const [sH, sM] = watchStart.split(':').map(Number);
+        const [eH, eM] = watchEnd.split(':').map(Number);
+
+        const startTS = new Date(year, month - 1, day, sH, sM).getTime();
+        const endTS = new Date(year, month - 1, day, eH, eM).getTime();
+
+        return allSchedules.find(s => {
+            if (schedule && s.id === schedule.id) return false;
+            
+            const otherStart = s.scheduledDate?.toMillis?.() || new Date(s.scheduledDate).getTime();
+            const otherEnd = s.endScheduledDate?.toMillis?.() || new Date(s.endScheduledDate).getTime();
+
+            const timeOverlap = (startTS < otherEnd) && (endTS > otherStart);
+            if (!timeOverlap) return false;
+
+            const unitMatch = watchTargetId && s.targetId === watchTargetId;
+            const auditorMatch = watchAuditorId && watchAuditorId !== 'unassigned' && s.auditorId === watchAuditorId;
+
+            return unitMatch || auditorMatch;
+        });
+    } catch {
+        return null;
+    }
+  }, [watchDate, watchStart, watchEnd, watchTargetId, watchAuditorId, allSchedules, schedule]);
 
   useEffect(() => {
     if (schedule && isOpen) {
@@ -198,8 +238,8 @@ export function AuditScheduleDialog({
           endScheduledDate: Timestamp.fromDate(endDateTime),
           isoClausesToAudit: values.isoClausesToAudit,
           status: schedule?.status || 'Scheduled',
-          auditorId: values.auditorId || null,
-          auditorName: auditorName,
+          auditorId: values.auditorId === 'unassigned' ? null : (values.auditorId || null),
+          auditorName: values.auditorId === 'unassigned' ? null : auditorName,
         };
 
         if (schedule) {
@@ -238,6 +278,18 @@ export function AuditScheduleDialog({
         <ScrollArea className="flex-1 bg-white">
             <Form {...form}>
                 <form id="schedule-form" onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-10">
+                    
+                    {currentConflict && (
+                        <Alert variant="destructive" className="animate-in slide-in-from-top-4 duration-500">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle className="font-black uppercase text-xs tracking-tight">Scheduling Conflict Detected</AlertTitle>
+                            <AlertDescription className="text-xs font-medium">
+                                This selected time slot overlaps with an existing assignment for <strong>{currentConflict.targetName}</strong>. 
+                                {currentConflict.auditorId === watchAuditorId ? " The assigned auditor is already booked." : " The target unit is already scheduled."}
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
                     <div className="space-y-6">
                         <div className="flex items-center gap-2 border-b pb-2">
                             <Clock className="h-4 w-4 text-primary" />
@@ -294,7 +346,7 @@ export function AuditScheduleDialog({
                                         <FormLabel className="text-[10px] font-bold uppercase">Auditee Unit / Office Name</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value}>
                                             <FormControl>
-                                                <SelectTrigger className="h-11 font-bold bg-muted/5">
+                                                <SelectTrigger className={cn("h-11 font-bold bg-muted/5", currentConflict?.targetId === watchTargetId && "border-destructive text-destructive")}>
                                                     <SelectValue placeholder="Select Unit/Office to Audit" />
                                                 </SelectTrigger>
                                             </FormControl>
@@ -466,7 +518,7 @@ export function AuditScheduleDialog({
                                     <FormLabel className="text-[10px] font-bold uppercase">Assign Auditor</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value || ''}>
                                         <FormControl>
-                                            <SelectTrigger className="h-11 font-bold bg-muted/5">
+                                            <SelectTrigger className={cn("h-11 font-bold bg-muted/5", currentConflict?.auditorId === watchAuditorId && watchAuditorId !== 'unassigned' && "border-destructive text-destructive")}>
                                                 <SelectValue placeholder="Select Auditor for this session" />
                                             </SelectTrigger>
                                         </FormControl>

@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
 import type { AuditPlan, AuditSchedule, Campus, User, Unit, Signatories, AuditGroup, AuditFinding, ISOClause } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer, Search, ArrowUpDown, Users, FileText } from 'lucide-react';
+import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer, Search, ArrowUpDown, Users, FileText, AlertTriangle } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -23,6 +24,7 @@ import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-tem
 import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface AuditPlanListProps {
   plans: AuditPlan[];
@@ -47,12 +49,14 @@ type SortConfig = { key: SortKey; direction: 'asc' | 'desc' } | null;
  */
 function PlanItineraryRegistry({ 
     plan, 
-    schedules, 
+    schedules,
+    allSchedules,
     onEdit, 
     onDelete 
 }: { 
     plan: AuditPlan; 
     schedules: AuditSchedule[];
+    allSchedules: AuditSchedule[];
     onEdit: (plan: AuditPlan, s: AuditSchedule) => void;
     onDelete: (s: AuditSchedule) => void;
 }) {
@@ -127,6 +131,25 @@ function PlanItineraryRegistry({
         );
     };
 
+    const getConflict = (s1: AuditSchedule) => {
+        const start1 = s1.scheduledDate?.toMillis?.() || new Date(s1.scheduledDate).getTime();
+        const end1 = s1.endScheduledDate?.toMillis?.() || new Date(s1.endScheduledDate).getTime();
+        
+        return allSchedules.find(s2 => {
+            if (s1.id === s2.id) return false;
+            const start2 = s2.scheduledDate?.toMillis?.() || new Date(s2.scheduledDate).getTime();
+            const end2 = s2.endScheduledDate?.toMillis?.() || new Date(s2.endScheduledDate).getTime();
+            
+            const timeOverlap = (start1 < end2) && (end1 > start2);
+            if (!timeOverlap) return false;
+
+            const sameAuditor = s1.auditorId && s2.auditorId && s1.auditorId === s2.auditorId;
+            const sameUnit = s1.targetId === s2.targetId;
+
+            return sameAuditor || sameUnit;
+        });
+    };
+
     return (
         <div className="space-y-4">
             <div className="relative w-full max-w-sm">
@@ -140,6 +163,7 @@ function PlanItineraryRegistry({
             </div>
 
             <div className="rounded-2xl border bg-white shadow-lg overflow-hidden">
+                <TooltipProvider>
                 {processedSchedules.length > 0 ? (
                 <Table>
                     <TableHeader className="bg-slate-50">
@@ -169,8 +193,10 @@ function PlanItineraryRegistry({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {processedSchedules.map(schedule => (
-                            <TableRow key={schedule.id} className="group hover:bg-slate-50/50 transition-colors">
+                        {processedSchedules.map(schedule => {
+                            const conflict = getConflict(schedule);
+                            return (
+                            <TableRow key={schedule.id} className={cn("group hover:bg-slate-50/50 transition-colors", conflict && "bg-rose-50/30")}>
                                 <TableCell className="py-6 pl-8">
                                     <div className="flex flex-col gap-1.5">
                                         <div className="flex items-center gap-2">
@@ -185,6 +211,24 @@ function PlanItineraryRegistry({
                                                 {schedule.endScheduledDate && format(schedule.endScheduledDate.toDate(), 'hh:mm a')}
                                             </span>
                                         </div>
+                                        {conflict && (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Badge variant="destructive" className="h-4 px-1.5 text-[7px] font-black uppercase animate-pulse gap-1 w-fit">
+                                                        <AlertTriangle className="h-2 w-2" />
+                                                        Conflict Detected
+                                                    </Badge>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <div className="space-y-1">
+                                                        <p className="text-[10px] font-bold">Overlaps with: {conflict.targetName}</p>
+                                                        <p className="text-[9px] opacity-70">
+                                                            Reason: {schedule.auditorId === conflict.auditorId ? 'Auditor Double-Booked' : 'Unit Overlap'}
+                                                        </p>
+                                                    </div>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        )}
                                     </div>
                                 </TableCell>
                                 <TableCell className="py-6 text-center">
@@ -206,7 +250,7 @@ function PlanItineraryRegistry({
                                 <TableCell className="py-6">
                                     <div className="space-y-3 max-w-xs">
                                         <div className="p-3 rounded-lg border bg-muted/10 border-dashed group-hover:bg-white transition-colors">
-                                            <p className="text-[10px] font-black uppercase text-primary mb-1">Procedure / Focus</p>
+                                            <p className="text-[10px] font-black uppercase text-primary mb-1">Procedure / Focus Area</p>
                                             <p className="text-xs font-medium text-slate-600 leading-relaxed line-clamp-3">{schedule.procedureDescription || 'No description provided.'}</p>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2">
@@ -268,7 +312,7 @@ function PlanItineraryRegistry({
                                     </div>
                                 </TableCell>
                             </TableRow>
-                        ))}
+                        )})}
                     </TableBody>
                 </Table>
                 ) : (
@@ -277,6 +321,7 @@ function PlanItineraryRegistry({
                     <p className="text-xs font-black uppercase tracking-[0.2em]">{searchTerm ? 'No matching entries found' : 'Itinerary Provisioning Required'}</p>
                 </div>
                 )}
+                </TooltipProvider>
             </div>
         </div>
     );
@@ -531,6 +576,7 @@ export function AuditPlanList({
                             <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Audit Team</p>
                             <div className="flex items-center gap-3 bg-primary/5 p-3 rounded-lg border border-primary/10 shadow-sm">
                                 <UserCheck className="h-5 w-5 text-primary" />
+                                hide
                                 <div>
                                     <p className="text-[10px] font-black text-primary leading-none uppercase tracking-tighter">Lead Auditor</p>
                                     <p className="text-sm font-bold text-slate-900 mt-1">{plan.leadAuditorName || 'TBA'}</p>
@@ -636,6 +682,7 @@ export function AuditPlanList({
                 <PlanItineraryRegistry 
                     plan={plan}
                     schedules={planSchedules}
+                    allSchedules={schedules}
                     onEdit={onEditSchedule}
                     onDelete={onDeleteSchedule}
                 />

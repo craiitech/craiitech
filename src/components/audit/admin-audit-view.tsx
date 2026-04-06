@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -231,10 +232,7 @@ export function AdminAuditView() {
                     ) : (
                         <AuditPlanList 
                             plans={auditPlans?.filter(p => p.year === selectedYear) || []}
-                            schedules={schedules?.filter(s => {
-                                const plan = auditPlans?.find(p => p.id === s.auditPlanId);
-                                return plan?.year === selectedYear;
-                            }) || []}
+                            schedules={schedules || []}
                             findings={findings || []}
                             isoClauses={isoClauses || []}
                             campuses={campuses || []}
@@ -261,6 +259,7 @@ export function AdminAuditView() {
             onOpenChange={setIsScheduleDialogOpen}
             plan={selectedPlanForScheduling}
             schedule={editingSchedule}
+            allSchedules={schedules || []}
             auditors={users?.filter(u => u.role === 'Auditor') || []}
             allUnits={units || []}
             topManagement={users?.filter(u => u.role?.toLowerCase().includes('president') || u.role?.toLowerCase().includes('director')) || []}
