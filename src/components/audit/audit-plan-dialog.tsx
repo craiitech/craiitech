@@ -47,6 +47,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -56,7 +57,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState, useMemo } from 'react';
 import type { AuditPlan, Campus, User, AuditGroup, ISOClause } from '@/lib/types';
 import { Loader2, LayoutList, ShieldCheck, FileText, CalendarCheck, Globe, ListChecks, Info, Database, Check } from 'lucide-react';
-import { ScrollArea } from '../ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
