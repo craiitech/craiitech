@@ -34,6 +34,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,10 +55,9 @@ import { doc, setDoc, serverTimestamp, collection, Timestamp } from 'firebase/fi
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState, useMemo } from 'react';
 import type { AuditPlan, Campus, User, AuditGroup, ISOClause } from '@/lib/types';
-import { Loader2, LayoutList, ShieldCheck, FileText, CalendarCheck, Globe, ListChecks, Info } from 'lucide-react';
+import { Loader2, LayoutList, ShieldCheck, FileText, CalendarCheck, Globe, ListChecks, Info, Database, Check } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { format } from 'date-fns';
-import { MultiSelector } from '../qa-reports/multi-selector';
 import { cn } from '@/lib/utils';
 
 interface AuditPlanDialogProps {
@@ -90,11 +97,6 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
 
   const isoClausesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'isoClauses') : null), [firestore]);
   const { data: isoClauses } = useCollection<ISOClause>(isoClausesQuery);
-
-  const clauseOptions = useMemo(() => {
-    if (!isoClauses) return [];
-    return isoClauses.map(c => ({ id: c.id, name: `${c.id} - ${c.title}` }));
-  }, [isoClauses]);
 
   const auditors = useMemo(() => {
     if (!allUsers) return [];
@@ -213,7 +215,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+      <DialogContent className="max-w-5xl h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
         <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
           <div className="flex items-center gap-2 text-primary mb-1">
             <LayoutList className="h-5 w-5" />
@@ -304,7 +306,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                                     <FormItem>
                                         <div className="mb-4">
                                             <FormLabel className="text-[10px] font-black uppercase text-primary">Active Audit Process Groups</FormLabel>
-                                            <FormDescription className="text-[9px]">Check groups to enable standard clause mapping for each.</FormDescription>
+                                            <FormDescription className="text-[9px]">Check groups to enable standard clause mapping for each below.</FormDescription>
                                         </div>
                                         <div className="grid grid-cols-1 gap-2">
                                             {auditGroups.map((group) => (
@@ -375,23 +377,60 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                             {auditGroups.map((group) => {
                                 const isEnabled = selectedGroups.includes(group);
                                 return (
-                                    <Card key={group} className={cn("border-primary/10 transition-all shadow-sm", !isEnabled && "opacity-30 pointer-events-none grayscale")}>
+                                    <Card key={group} className={cn("border-primary/10 transition-all shadow-sm flex flex-col h-[400px]", !isEnabled && "opacity-30 pointer-events-none grayscale")}>
                                         <CardHeader className="py-3 px-4 bg-muted/30 border-b">
-                                            <CardTitle className="text-[10px] font-black uppercase tracking-tight truncate">{group.replace(' Processes', '')}</CardTitle>
+                                            <div className="flex items-center justify-between">
+                                                <CardTitle className="text-[10px] font-black uppercase tracking-tight truncate">{group.replace(' Processes', '')}</CardTitle>
+                                                {isEnabled && (
+                                                    <Badge variant="secondary" className="h-4 text-[8px] font-black tabular-nums">
+                                                        {(form.watch(`groupClauseMapping.${group}`) || []).length} Mapped
+                                                    </Badge>
+                                                )}
+                                            </div>
                                         </CardHeader>
-                                        <CardContent className="pt-4 p-4">
+                                        <CardContent className="p-0 flex-1 overflow-hidden flex flex-col bg-white">
                                             <FormField 
                                                 control={form.control} 
-                                                // Using bracket notation for process group names with spaces
                                                 name={`groupClauseMapping.${group}`} 
                                                 render={({ field }) => (
-                                                    <MultiSelector 
-                                                        items={clauseOptions}
-                                                        selectedIds={field.value || []}
-                                                        onSelect={field.onChange}
-                                                        placeholder="Add ISO Clauses..."
-                                                        label={`Clauses for ${group}`}
-                                                    />
+                                                    <Command className="flex-1 flex flex-col overflow-hidden">
+                                                        <div className="p-2 border-b">
+                                                            <CommandInput placeholder="Search clauses..." className="h-8 text-[10px]" />
+                                                        </div>
+                                                        <CommandList className="flex-1 max-h-none">
+                                                            <CommandEmpty className="p-4 text-center text-[10px] text-muted-foreground uppercase font-bold">No matches</CommandEmpty>
+                                                            <CommandGroup>
+                                                                {isoClauses?.map(clause => {
+                                                                    const currentVal = field.value || [];
+                                                                    const isSelected = currentVal.includes(clause.id);
+                                                                    return (
+                                                                        <CommandItem
+                                                                            key={clause.id}
+                                                                            value={`${clause.id} ${clause.title}`}
+                                                                            onSelect={() => {
+                                                                                const next = isSelected 
+                                                                                    ? currentVal.filter(id => id !== clause.id)
+                                                                                    : [...currentVal, clause.id];
+                                                                                field.onChange(next);
+                                                                            }}
+                                                                            className="cursor-pointer flex items-center gap-3 px-4 py-3"
+                                                                        >
+                                                                            <div className={cn(
+                                                                                "h-4 w-4 border rounded flex items-center justify-center shrink-0 transition-colors",
+                                                                                isSelected ? "bg-primary border-primary text-white" : "border-slate-300"
+                                                                            )}>
+                                                                                {isSelected && <Check className="h-3 w-3" />}
+                                                                            </div>
+                                                                            <div className="min-w-0">
+                                                                                <p className={cn("text-[11px] leading-tight mb-0.5", isSelected ? "font-black text-primary" : "font-bold text-slate-700")}>Clause {clause.id}</p>
+                                                                                <p className="text-[9px] text-muted-foreground truncate">{clause.title}</p>
+                                                                            </div>
+                                                                        </CommandItem>
+                                                                    );
+                                                                })}
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
                                                 )}
                                             />
                                         </CardContent>
