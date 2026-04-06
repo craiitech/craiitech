@@ -40,7 +40,7 @@ import { doc, setDoc, serverTimestamp, collection, Timestamp } from 'firebase/fi
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState, useMemo } from 'react';
 import type { AuditPlan, Campus, User, AuditGroup, ISOClause } from '@/lib/types';
-import { Loader2, LayoutList, ShieldCheck, FileText, CalendarCheck, Globe, ListChecks } from 'lucide-react';
+import { Loader2, LayoutList, ShieldCheck, FileText, CalendarCheck, Globe, ListChecks, Info } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { format } from 'date-fns';
 import { MultiSelector } from '../qa-reports/multi-selector';
