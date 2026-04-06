@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -65,7 +66,8 @@ import type {
     UnitMonitoringRecord,
     ProgramComplianceRecord,
     AuditFinding,
-    CorrectiveActionRequest
+    CorrectiveActionRequest,
+    AuditSchedule
 } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
@@ -664,11 +666,13 @@ export default function HomePage() {
 
     return (
     <Tabs defaultValue="overview" className="space-y-4">
-      <TabsList className="grid grid-cols-2 md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted">
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="actions">Submission Checklist</TabsTrigger>
-        <TabsTrigger value="history">History</TabsTrigger>
-      </TabsList>
+      <ScrollArea className="w-full">
+        <TabsList className="flex md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="actions">Submission Checklist</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
+        </TabsList>
+      </ScrollArea>
       
       <TabsContent value="overview" className="space-y-4">
         {noRisksLogged && !isLoading && (
@@ -684,10 +688,8 @@ export default function HomePage() {
         )}
         <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoading} />
         
-        {/* Unit-Specific IQA Schedule Awareness */}
         <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} />
 
-        {/* QUALITY ACTION ITEMS ALERTS FOR UNIT USERS */}
         {(openCars.length > 0 || openDecisions.length > 0 || assignedRecommendations.length > 0) && (
             <Card className="border-destructive/20 bg-destructive/5 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
                 <CardHeader className="pb-3">
@@ -758,7 +760,6 @@ export default function HomePage() {
             {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
         </div>
 
-        {/* COMPREHENSIVE UNIT STRATEGIC SWOT */}
         {!isLoading && currentUnit && (
             <StrategicSwotAnalysis 
                 submissions={submissions?.filter(s => s.unitId === userProfile?.unitId && s.year === selectedYear) || []}
@@ -776,8 +777,8 @@ export default function HomePage() {
 
          <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
         <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <Card className="col-span-4">
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+          <Card className="col-span-1 lg:col-span-4">
             <CardHeader>
               <CardTitle>Submissions Overview</CardTitle>
               <CardDescription>Your monthly submission trend for the last 12 months.</CardDescription>
@@ -786,7 +787,7 @@ export default function HomePage() {
               <Overview submissions={submissions} isLoading={isLoading} />
             </CardContent>
           </Card>
-          <Card className="col-span-4 lg:col-span-3">
+          <Card className="col-span-1 lg:col-span-3">
             <CardHeader>
               <CardTitle>Recent Activity</CardTitle>
               <CardDescription>Your last 10 submissions across {selectedYear}.</CardDescription>
@@ -823,19 +824,21 @@ export default function HomePage() {
         <Card>
           <CardHeader><CardTitle>Submission History</CardTitle><CardDescription>A log of all your past submissions and their status for {selectedYear}.</CardDescription></CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader><TableRow><TableHead>Report</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {isLoading ? ([...Array(5)].map((_, i) => (<TableRow key={i}><TableCell colSpan={4}><Skeleton className="h-5 w-full"/></TableCell></TableRow>))) : sortedSubmissions && sortedSubmissions.length > 0 ? (sortedSubmissions.map(s => (
-                    <TableRow key={s.id}>
-                      <TableCell><div className="font-medium">{s.reportType}</div><div className="text-xs text-muted-foreground capitalize">{s.cycleId} Cycle {s.year}</div></TableCell>
-                      <TableCell>{s.submissionDate instanceof Date ? format(s.submissionDate, 'PPp') : 'Invalid Date'}</TableCell>
-                      <TableCell><Badge variant={statusVariant[s.statusId]}>{getStatusText(s.statusId)}</Badge></TableCell>
-                      <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${s.id}`)}><Eye className="h-4 w-4" /></Button></TableCell>
-                    </TableRow>
-                  ))) : (<TableRow><TableCell colSpan={4} className="h-24 text-center">No submissions yet for {selectedYear}.</TableCell></TableRow>)}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+                <Table>
+                <TableHeader><TableRow><TableHead>Report</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                <TableBody>
+                    {isLoading ? ([...Array(5)].map((_, i) => (<TableRow key={i}><TableCell colSpan={4}><Skeleton className="h-5 w-full"/></TableCell></TableRow>))) : sortedSubmissions && sortedSubmissions.length > 0 ? (sortedSubmissions.map(s => (
+                        <TableRow key={s.id}>
+                        <TableCell><div className="font-medium">{s.reportType}</div><div className="text-xs text-muted-foreground capitalize">{s.cycleId} Cycle {s.year}</div></TableCell>
+                        <TableCell>{s.submissionDate instanceof Date ? format(s.submissionDate, 'PPp') : 'Invalid Date'}</TableCell>
+                        <TableCell><Badge variant={statusVariant[s.statusId]}>{getStatusText(s.statusId)}</Badge></TableCell>
+                        <TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => router.push(`/submissions/${s.id}`)}><Eye className="h-4 w-4" /></Button></TableCell>
+                        </TableRow>
+                    ))) : (<TableRow><TableCell colSpan={4} className="h-24 text-center">No submissions yet for {selectedYear}.</TableCell></TableRow>)}
+                </TableBody>
+                </Table>
+            </div>
           </CardContent>
         </Card>
       </TabsContent>
@@ -844,50 +847,52 @@ export default function HomePage() {
 
   const renderAuditorHome = () => (
     <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
             {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
             {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
             {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
         </div>
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between border-b">
+            <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between border-b gap-4">
                 <div>
                     <CardTitle className="flex items-center gap-2"><ClipboardCheck className="text-primary" /> Active Audit Conduct</CardTitle>
                     <CardDescription>Your claimed and upcoming internal quality audit schedules.</CardDescription>
                 </div>
-                <Button onClick={() => router.push('/audit')}>Manage Full Audit Hub</Button>
+                <Button onClick={() => router.push('/audit')} className="w-full md:w-auto">Manage Full Audit Hub</Button>
             </CardHeader>
             <CardContent className="pt-6">
                 {mySchedules && mySchedules.length > 0 ? (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Auditee</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Time</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {mySchedules.slice(0, 5).map(s => (
-                                <TableRow key={s.id}>
-                                    <TableCell className="font-bold">{s.targetName}</TableCell>
-                                    <TableCell>{format(s.scheduledDate.toDate(), 'PP')}</TableCell>
-                                    <TableCell className="text-xs font-medium tabular-nums">
-                                        {format(s.scheduledDate.toDate(), 'p')}
-                                        {s.endScheduledDate && ` - ${format(s.endScheduledDate.toDate(), 'p')}`}
-                                    </TableCell>
-                                    <TableCell><Badge variant="secondary">{s.status}</Badge></TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="outline" size="sm" onClick={() => router.push(`/audit/${s.id}`)}>
-                                            Conduct Audit
-                                        </Button>
-                                    </TableCell>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Auditee</TableHead>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Time</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {mySchedules.slice(0, 5).map(s => (
+                                    <TableRow key={s.id}>
+                                        <TableCell className="font-bold">{s.targetName}</TableCell>
+                                        <TableCell>{format(s.scheduledDate.toDate(), 'PP')}</TableCell>
+                                        <TableCell className="text-xs font-medium tabular-nums">
+                                            {format(s.scheduledDate.toDate(), 'p')}
+                                            {s.endScheduledDate && ` - ${format(s.endScheduledDate.toDate(), 'p')}`}
+                                        </TableCell>
+                                        <TableCell><Badge variant="secondary">{s.status}</Badge></TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="outline" size="sm" onClick={() => router.push(`/audit/${s.id}`)}>
+                                                Conduct Audit
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 ) : (
                     <div className="py-12 text-center text-muted-foreground border border-dashed rounded-lg">
                         <p>No audit schedules claimed yet. Go to the IQA Hub to find available schedules.</p>
@@ -900,30 +905,30 @@ export default function HomePage() {
 
   const renderSupervisorHome = () => (
     <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid grid-cols-2 lg:inline-flex lg:h-10 lg:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted">
-            <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
-            <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
-            <TabsTrigger value="users"><User className="mr-2 h-4 w-4" />Users</TabsTrigger>
-            <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
-        </TabsList>
+        <ScrollArea className="w-full">
+            <TabsList className="flex lg:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap">
+                <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
+                <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
+                <TabsTrigger value="users"><User className="mr-2 h-4 w-4" />Users</TabsTrigger>
+                <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
+            </TabsList>
+        </ScrollArea>
       <TabsContent value="overview" className="space-y-4">
-         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+         <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
             <div className="lg:col-span-4 space-y-4">
                 {unitsInCampus.length === 0 && !isLoading && (
-                    <Alert><AlertCircle className="h-4 w-4" /><AlertTitle>Campus Setup Required</AlertTitle><AlertDescription className="flex items-center justify-between"><span>Your campus does not have any units assigned. Please set up units to begin tracking submissions.</span><Button onClick={() => router.push('/settings')}>
+                    <Alert><AlertCircle className="h-4 w-4" /><AlertTitle>Campus Setup Required</AlertTitle><AlertDescription className="flex items-center justify-between gap-4"><span>Your campus does not have any units assigned. Please set up units to begin tracking submissions.</span><Button onClick={() => router.push('/settings')} size="sm">
                                 <Settings className="mr-2 h-4 w-4" />Setup Units</Button></AlertDescription></Alert>
                 )}
                 
-                {/* Campus-Wide IQA Itinerary Context */}
                 <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} />
 
-                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
                     {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
                     {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
                     {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
                 </div>
                 
-                {/* COMPREHENSIVE CAMPUS SWOT */}
                 {!isLoading && userProfile?.campusId && (
                     <StrategicSwotAnalysis 
                         submissions={submissions?.filter(s => s.campusId === userProfile.campusId && s.year === selectedYear) || []}
@@ -983,23 +988,23 @@ export default function HomePage() {
 
   const renderAdminHome = () => (
     <Tabs defaultValue="overview" className="space-y-4">
-      <TabsList className="grid grid-cols-3 md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted">
-        <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
-        <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
-        <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
-      </TabsList>
+      <ScrollArea className="w-full">
+        <TabsList className="flex md:inline-flex md:h-10 md:w-auto h-auto animate-tab-highlight rounded-md p-1 bg-muted whitespace-nowrap">
+            <TabsTrigger value="overview"><LayoutDashboard className="mr-2 h-4 w-4" />Overview</TabsTrigger>
+            <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
+            <TabsTrigger value="strategic"><BrainCircuit className="mr-2 h-4 w-4" />Strategic</TabsTrigger>
+        </TabsList>
+      </ScrollArea>
       <TabsContent value="overview" className="space-y-4">
         
-        {/* Institutional-Wide IQA Itinerary Registry */}
         <UnitAuditSchedule schedules={sortedDashboardSchedules} isLoading={isLoadingSchedules} />
 
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           {renderCard(stats.stat1.title, stats.stat1.value, stats.stat1.icon, isLoading, (stats.stat1 as any).description)}
           {renderCard(stats.stat2.title, stats.stat2.value, stats.stat2.icon, isLoading, (stats.stat2 as any).description)}
           {renderCard(stats.stat3.title, stats.stat3.value, stats.stat3.icon, isLoading, (stats.stat3 as any).description)}
         </div>
         
-        {/* COMPREHENSIVE INSTITUTIONAL SWOT */}
         {!isLoading && (
             <StrategicSwotAnalysis 
                 submissions={submissions?.filter(s => s.year === selectedYear) || []}
@@ -1057,7 +1062,7 @@ export default function HomePage() {
   );
 
   const renderHomeContent = () => {
-    if (isLoading) return (<div className="space-y-4"><div className="grid gap-4 md:grid-cols-3"><Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" /></div><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7"><Skeleton className="col-span-4 h-80" /><Skeleton className="col-span-3 h-80" /></div></div>);
+    if (isLoading) return (<div className="space-y-4"><div className="grid gap-4 grid-cols-1 md:grid-cols-3"><Skeleton className="h-28" /><Skeleton className="h-28" /><Skeleton className="h-28" /></div><div className="grid gap-4 grid-cols-1 lg:grid-cols-7"><Skeleton className="col-span-4 h-80" /><Skeleton className="col-span-3 h-80" /></div></div>);
     if (isAdmin) return renderAdminHome();
     if (userRole === 'Auditor') return renderAuditorHome();
     if (isCampusSupervisor) return renderSupervisorHome();
@@ -1075,7 +1080,7 @@ export default function HomePage() {
             <p className="text-muted-foreground">Welcome back, {userProfile?.firstName}! Here's your overview for {selectedYear}.</p>
           </div>
            <div className="w-full sm:w-[150px] space-y-1">
-                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block text-right">View Year</label>
+                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block sm:text-right">View Year</label>
                 <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
                     <SelectTrigger className="h-9 font-bold shadow-sm bg-white">
                         <SelectValue placeholder="Select Year" />
@@ -1097,7 +1102,6 @@ export default function HomePage() {
           </Card>
         )}
 
-        {/* Global Latest QA Advisory Alert */}
         {!isLoading && latestAdvisory && (
             <Alert className="border-primary bg-primary/5 shadow-md animate-in slide-in-from-top-4 duration-500">
                 <Megaphone className="h-5 w-5 text-primary" />

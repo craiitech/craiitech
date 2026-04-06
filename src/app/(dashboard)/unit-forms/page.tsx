@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -217,10 +218,10 @@ export default function UnitFormsPage() {
         </Button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-12rem)]">
+      <div className="flex flex-col md:flex-row gap-6 min-h-0 md:h-[calc(100vh-12rem)]">
         {/* Unit Directory Sidebar */}
         <div className={cn(
-          "transition-all duration-300 overflow-hidden flex flex-col gap-2",
+          "transition-all duration-300 overflow-hidden flex flex-col gap-2 shrink-0",
           isSidebarVisible ? "w-full md:w-1/4 opacity-100" : "w-0 opacity-0 md:-ml-6"
         )}>
           <Card className="flex flex-col h-[400px] md:h-full shadow-sm border-primary/10">
@@ -281,16 +282,16 @@ export default function UnitFormsPage() {
 
           {selectedUnit ? (
             <Tabs defaultValue="roster" className="flex-1 flex flex-col min-h-0">
-                <div className="bg-background flex items-center justify-between border-b pb-2 shrink-0">
-                    <TabsList className="bg-muted p-1 h-10">
-                        <TabsTrigger value="roster" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                <div className="bg-background flex flex-col sm:flex-row items-center justify-between border-b pb-2 shrink-0 gap-2">
+                    <TabsList className="bg-muted p-1 h-10 w-full sm:w-auto">
+                        <TabsTrigger value="roster" className="flex-1 sm:flex-none gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                             <ListChecks className="h-3.5 w-3.5" /> Unit Forms
                         </TabsTrigger>
-                        <TabsTrigger value="register" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                        <TabsTrigger value="register" className="flex-1 sm:flex-none gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                             <FileText className="h-3.5 w-3.5" /> Apply for New Form
                         </TabsTrigger>
                     </TabsList>
-                    <Badge variant="outline" className="h-6 font-black text-[10px] uppercase border-primary/20 bg-primary/5 text-primary">{selectedUnit.name}</Badge>
+                    <Badge variant="outline" className="h-6 font-black text-[10px] uppercase border-primary/20 bg-primary/5 text-primary max-w-full truncate">{selectedUnit.name}</Badge>
                 </div>
 
                 <div className="flex-1 overflow-hidden pt-4">
@@ -300,7 +301,7 @@ export default function UnitFormsPage() {
                                 {/* 1. Official Roster Access Card */}
                                 <Card className="border-primary/20 bg-primary/5 shadow-md overflow-hidden">
                                     <CardHeader className="bg-primary/10 border-b py-4">
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                                             <div className="flex items-center gap-2">
                                                 <FolderKanban className="h-5 w-5 text-primary" />
                                                 <CardTitle className="text-sm font-black uppercase tracking-tight">#1 Official Roster of Forms Access</CardTitle>
@@ -318,7 +319,7 @@ export default function UnitFormsPage() {
                                     </CardHeader>
                                     <CardContent className="p-6 space-y-6">
                                         <div className="flex flex-col xl:flex-row items-start justify-between gap-6">
-                                            <div className="space-y-4 flex-1">
+                                            <div className="space-y-4 flex-1 w-full">
                                                 <div className="p-4 bg-white rounded-xl border border-dashed flex gap-4">
                                                     <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
                                                     <div className="space-y-1">
@@ -405,7 +406,7 @@ export default function UnitFormsPage() {
                                 {/* 2. Master List Preview Card */}
                                 <Card className="shadow-lg border-primary/10 overflow-hidden">
                                     <CardHeader className="bg-muted/10 border-b py-4">
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                                             <div className="flex items-center gap-2">
                                                 <Eye className="h-5 w-5 text-primary" />
                                                 <CardTitle className="text-sm font-black uppercase tracking-tight">#2 Unit Masterlist of Forms/Records Preview</CardTitle>
@@ -439,7 +440,7 @@ export default function UnitFormsPage() {
                                             </div>
                                         )}
                                     </CardContent>
-                                    <CardFooter className="bg-white border-t py-4 px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                                    <CardFooter className="bg-white border-t py-4 px-6 flex flex-col xl:flex-row items-center justify-between gap-6">
                                         <div className="flex items-start gap-3 flex-1">
                                             <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
                                             <p className="text-[10px] text-muted-foreground italic leading-tight">
@@ -448,7 +449,7 @@ export default function UnitFormsPage() {
                                         </div>
 
                                         {isAdmin && (
-                                            <div className="w-full md:w-[450px] p-5 bg-slate-50 rounded-2xl border border-primary/10 shadow-sm space-y-4">
+                                            <div className="w-full xl:w-[450px] p-5 bg-slate-50 rounded-2xl border border-primary/10 shadow-sm space-y-4">
                                                 <div className="flex items-center gap-2 border-b pb-2 mb-2">
                                                     <FilePlus className="h-4 w-4 text-primary" />
                                                     <h4 className="text-[10px] font-black uppercase text-slate-900">Log New Masterlist Revision</h4>
@@ -513,41 +514,43 @@ export default function UnitFormsPage() {
                                         </div>
                                     </CardHeader>
                                     <CardContent className="p-0">
-                                        <Table>
-                                            <TableHeader className="bg-muted/30">
-                                                <TableRow>
-                                                    <TableHead className="text-[10px] font-black uppercase pl-6">Code</TableHead>
-                                                    <TableHead className="text-[10px] font-black uppercase">Official Title</TableHead>
-                                                    <TableHead className="text-[10px] font-black uppercase text-center">Rev.</TableHead>
-                                                    <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {isLoadingForms ? (
-                                                    <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" /></TableCell></TableRow>
-                                                ) : forms?.length ? (
-                                                    forms.sort((a,b) => a.formCode.localeCompare(b.formCode)).map(form => (
-                                                        <TableRow key={form.id} className="hover:bg-muted/20 transition-colors">
-                                                            <TableCell className="pl-6 font-mono text-xs font-bold text-primary">{form.formCode}</TableCell>
-                                                            <TableCell className="text-[12px] font-bold text-slate-800">{form.formName}</TableCell>
-                                                            <TableCell className="text-center"><Badge variant="secondary" className="h-4 text-[8px] font-bold uppercase">{form.revision}</Badge></TableCell>
-                                                            <TableCell className="text-right pr-6">
-                                                                <Button 
-                                                                    variant="default" 
-                                                                    size="sm" 
-                                                                    className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5"
-                                                                    onClick={() => setDownloadingForm(form)}
-                                                                >
-                                                                    <Download className="h-3 w-3" /> Request Download
-                                                                </Button>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))
-                                                ) : (
-                                                    <TableRow><TableCell colSpan={4} className="h-32 text-center text-[10px] font-bold text-muted-foreground uppercase opacity-20 italic">No individual forms enrolled in the system yet.</TableCell></TableRow>
-                                                )}
-                                            </TableBody>
-                                        </Table>
+                                        <div className="overflow-x-auto">
+                                            <Table>
+                                                <TableHeader className="bg-muted/30">
+                                                    <TableRow>
+                                                        <TableHead className="text-[10px] font-black uppercase pl-6">Code</TableHead>
+                                                        <TableHead className="text-[10px] font-black uppercase">Official Title</TableHead>
+                                                        <TableHead className="text-[10px] font-black uppercase text-center">Rev.</TableHead>
+                                                        <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {isLoadingForms ? (
+                                                        <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" /></TableCell></TableRow>
+                                                    ) : forms?.length ? (
+                                                        forms.sort((a,b) => a.formCode.localeCompare(b.formCode)).map(form => (
+                                                            <TableRow key={form.id} className="hover:bg-muted/20 transition-colors">
+                                                                <TableCell className="pl-6 font-mono text-xs font-bold text-primary">{form.formCode}</TableCell>
+                                                                <TableCell className="text-[12px] font-bold text-slate-800">{form.formName}</TableCell>
+                                                                <TableCell className="text-center"><Badge variant="secondary" className="h-4 text-[8px] font-bold uppercase">{form.revision}</Badge></TableCell>
+                                                                <TableCell className="text-right pr-6">
+                                                                    <Button 
+                                                                        variant="default" 
+                                                                        size="sm" 
+                                                                        className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5"
+                                                                        onClick={() => setDownloadingForm(form)}
+                                                                    >
+                                                                        <Download className="h-3 w-3" /> Request Download
+                                                                    </Button>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))
+                                                    ) : (
+                                                        <TableRow><TableCell colSpan={4} className="h-32 text-center text-[10px] font-bold text-muted-foreground uppercase opacity-20 italic">No individual forms enrolled in the system yet.</TableCell></TableRow>
+                                                    )}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             </div>
@@ -648,7 +651,7 @@ export default function UnitFormsPage() {
       )}
 
       <Dialog open={!!previewDoc} onOpenChange={() => setPreviewDoc(null)}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+        <DialogContent className="max-w-[95vw] lg:max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-4 border-b bg-slate-50 shrink-0">
             <div className="flex items-center justify-between">
                 <div className="space-y-0.5">

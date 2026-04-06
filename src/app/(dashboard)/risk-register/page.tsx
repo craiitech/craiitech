@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,9 +31,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { RORPrintTemplate } from '@/components/risk/ror-print-template';
 import { useToast } from '@/hooks/use-toast';
 import { StrategicSwotAnalysis } from '@/components/submissions/strategic-swot-analysis';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
+const yearsList = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
 export default function RiskRegisterPage() {
     const { userProfile, isAdmin, isUserLoading, firestore, isSupervisor } = useUser();
@@ -335,11 +337,11 @@ export default function RiskRegisterPage() {
               A centralized module for logging, tracking, and monitoring institutional risks and opportunities.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-muted-foreground block text-right">Monitoring Year</label>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="space-y-1 w-full sm:w-auto">
+                <label className="text-[10px] font-bold uppercase text-muted-foreground block sm:text-right">Monitoring Year</label>
                 <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                    <SelectTrigger className="w-[120px] h-9 bg-white font-bold shadow-sm">
+                    <SelectTrigger className="w-full sm:w-[120px] h-9 bg-white font-bold shadow-sm">
                         <CalendarSearch className="h-4 w-4 mr-2 opacity-50" />
                         <SelectValue placeholder="Year" />
                     </SelectTrigger>
@@ -348,19 +350,19 @@ export default function RiskRegisterPage() {
                     </SelectContent>
                 </Select>
             </div>
-            <div className="flex items-center gap-2 pt-5">
+            <div className="flex items-center gap-2 pt-0 sm:pt-5 w-full sm:w-auto">
                 <Button 
                     variant="outline" 
                     size="sm" 
                     onClick={handlePrintROR} 
                     disabled={isLoading || filteredRisks.length === 0}
-                    className="h-9 bg-white shadow-sm font-bold uppercase text-[10px] tracking-widest"
+                    className="flex-1 sm:flex-none h-9 bg-white shadow-sm font-bold uppercase text-[10px] tracking-widest"
                 >
                     <Printer className="mr-2 h-4 w-4" />
                     Print Registry
                 </Button>
                 {!isSupervisor && (
-                    <Button onClick={handleNewRisk} className="h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest">
+                    <Button onClick={handleNewRisk} className="flex-1 sm:flex-none h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest">
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Log New Entry
                     </Button>
@@ -427,7 +429,7 @@ export default function RiskRegisterPage() {
           </CardContent>
       </Card>
 
-      {/* STRATEGIC STRENGTHS & GAPS (Harvested Data Analysis) */}
+      {/* STRATEGIC STRENGTHS & GAPS */}
       {!isLoading && (
           <StrategicSwotAnalysis 
             submissions={harvestedSubmissions || []}
@@ -444,14 +446,16 @@ export default function RiskRegisterPage() {
       )}
 
       <Tabs defaultValue="visual-insights" className="space-y-4">
-        <TabsList className="bg-muted/50 p-1 border animate-tab-highlight rounded-md">
-            <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
-                <BarChart3 className="h-4 w-4" /> Visual Insights
-            </TabsTrigger>
-            <TabsTrigger value="detailed-register" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
-                <List className="h-4 w-4" /> Detailed Register
-            </TabsTrigger>
-        </TabsList>
+        <ScrollArea className="w-full">
+            <TabsList className="flex md:inline-flex bg-muted/50 p-1 border animate-tab-highlight rounded-md whitespace-nowrap">
+                <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
+                    <BarChart3 className="h-4 w-4" /> Visual Insights
+                </TabsTrigger>
+                <TabsTrigger value="detailed-register" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
+                    <List className="h-4 w-4" /> Detailed Register
+                </TabsTrigger>
+            </TabsList>
+        </ScrollArea>
 
         <TabsContent value="visual-insights" className="animate-in fade-in duration-500">
             <RiskDashboard 
@@ -493,15 +497,17 @@ export default function RiskRegisterPage() {
                                     <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
                                 </div>
                             ) : (
-                                <RiskTable 
-                                    risks={filteredRisks.filter(r => r.type === 'Risk')}
-                                    usersMap={usersMap}
-                                    onEdit={handleEditRisk}
-                                    isAdmin={isAdmin}
-                                    isSupervisor={isSupervisor}
-                                    campusMap={campusMap}
-                                    unitMap={unitMap}
-                                />
+                                <div className="overflow-x-auto">
+                                    <RiskTable 
+                                        risks={filteredRisks.filter(r => r.type === 'Risk')}
+                                        usersMap={usersMap}
+                                        onEdit={handleEditRisk}
+                                        isAdmin={isAdmin}
+                                        isSupervisor={isSupervisor}
+                                        campusMap={campusMap}
+                                        unitMap={unitMap}
+                                    />
+                                </div>
                             )}
                         </CardContent>
                     </Card>
@@ -526,15 +532,17 @@ export default function RiskRegisterPage() {
                                     <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
                                 </div>
                             ) : (
-                                <RiskTable 
-                                    risks={filteredRisks.filter(r => r.type === 'Opportunity')}
-                                    usersMap={usersMap}
-                                    onEdit={handleEditRisk}
-                                    isAdmin={isAdmin}
-                                    isSupervisor={isSupervisor}
-                                    campusMap={campusMap}
-                                    unitMap={unitMap}
-                                />
+                                <div className="overflow-x-auto">
+                                    <RiskTable 
+                                        risks={filteredRisks.filter(r => r.type === 'Opportunity')}
+                                        usersMap={usersMap}
+                                        onEdit={handleEditRisk}
+                                        isAdmin={isAdmin}
+                                        isSupervisor={isSupervisor}
+                                        campusMap={campusMap}
+                                        unitMap={unitMap}
+                                    />
+                                </div>
                             )}
                         </CardContent>
                     </Card>

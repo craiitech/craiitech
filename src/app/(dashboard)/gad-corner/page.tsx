@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -12,6 +13,7 @@ import { GADInitiatives } from '@/components/gad/gad-initiatives';
 import { GADMainstreaming } from '@/components/gad/gad-mainstreaming';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -22,26 +24,18 @@ export default function GadCornerPage() {
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedUnitId, setSelectedUnitId] = useState<string>('all');
 
-  // Fetch Institutional GAD Settings to identify the GAD Leadership Unit
   const gadSettingsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'system', 'gadSettings') : null),
     [firestore]
   );
   const { data: gadSettings } = useDoc<GadSettings>(gadSettingsRef);
 
-  /**
-   * GLOBAL OVERVIEW LOGIC
-   * A user has global institutional oversight if they are:
-   * 1. A system Admin
-   * 2. Belong to the designated GAD Leadership Unit (e.g., GAD Office)
-   */
   const isInstitutionalViewer = useMemo(() => {
     if (isAdmin) return true;
     if (gadSettings?.leadershipUnitId && userProfile?.unitId === gadSettings.leadershipUnitId) return true;
     return false;
   }, [isAdmin, gadSettings, userProfile]);
 
-  // Initialize selected unit based on role and designated authority
   useEffect(() => {
     if (userProfile && !isUserLoading) {
         if (isInstitutionalViewer) {
@@ -52,18 +46,10 @@ export default function GadCornerPage() {
     }
   }, [userProfile, isUserLoading, isInstitutionalViewer]);
 
-  /**
-   * AGGREGATED COMPLIANCES FETCHING
-   * Pulls academic data for SDD calculations
-   */
   const compliancesQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !userProfile) return null;
     const baseRef = collection(firestore, 'programCompliances');
     
-    // Aggregation Logic: 
-    // 1. Institutional Viewers get all units (or selected unit)
-    // 2. Site Supervisors get all units in their campus
-    // 3. Unit level gets specific unit
     if (selectedUnitId === 'all') {
         if (isInstitutionalViewer) {
             return query(baseRef, where('academicYear', '==', selectedYear));
@@ -79,9 +65,6 @@ export default function GadCornerPage() {
   
   const { data: compliances, isLoading: isLoadingCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
-  /**
-   * AGGREGATED GAD INITIATIVES FETCHING
-   */
   const initiativesQuery = useMemoFirebase(() => {
     if (!firestore || isUserLoading || !userProfile) return null;
     const baseRef = collection(firestore, 'gadInitiatives');
@@ -134,17 +117,17 @@ export default function GadCornerPage() {
             <p className="text-muted-foreground text-sm">
                 Gender and Development Hub &bull; 
             </p>
-            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black uppercase text-[10px]">
+            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black uppercase text-[10px] max-w-[200px] truncate">
                 {currentUnitName}
             </Badge>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
             {(isInstitutionalViewer || isSupervisor) && (
-                <div className="flex flex-col items-end">
+                <div className="flex flex-col items-start md:items-end w-full sm:w-auto">
                     <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block">Context Filter</label>
                     <Select value={selectedUnitId} onValueChange={setSelectedUnitId}>
-                        <SelectTrigger className="w-[220px] h-9 font-bold bg-white shadow-sm">
+                        <SelectTrigger className="w-full sm:w-[220px] h-9 font-bold bg-white shadow-sm">
                             <Building className="h-3 w-3 mr-2 opacity-40" />
                             <SelectValue placeholder="Select Unit" />
                         </SelectTrigger>
@@ -161,10 +144,10 @@ export default function GadCornerPage() {
                     </Select>
                 </div>
             )}
-            <div className="flex flex-col items-end">
+            <div className="flex flex-col items-start md:items-end w-full sm:w-auto">
                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block">Fiscal Year</label>
                 <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                    <SelectTrigger className="w-[120px] h-9 font-bold bg-white shadow-sm">
+                    <SelectTrigger className="w-full sm:w-[120px] h-9 font-bold bg-white shadow-sm">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -176,20 +159,22 @@ export default function GadCornerPage() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="bg-muted p-1 border shadow-sm w-full md:w-auto h-auto grid grid-cols-2 md:inline-flex animate-tab-highlight rounded-md">
-          <TabsTrigger value="overview" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
-            <BarChart3 className="h-4 w-4" /> Strategic Overview
-          </TabsTrigger>
-          <TabsTrigger value="sdd" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
-            <Users className="h-4 w-4" /> SDD Hub
-          </TabsTrigger>
-          <TabsTrigger value="initiatives" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
-            <Target className="h-4 w-4" /> GAD Initiatives
-          </TabsTrigger>
-          <TabsTrigger value="mainstreaming" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
-            <ListChecks className="h-4 w-4" /> Mainstreaming
-          </TabsTrigger>
-        </TabsList>
+        <ScrollArea className="w-full">
+            <TabsList className="bg-muted p-1 border shadow-sm flex lg:inline-flex animate-tab-highlight rounded-md whitespace-nowrap min-w-max">
+                <TabsTrigger value="overview" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
+                    <BarChart3 className="h-4 w-4" /> Strategic Overview
+                </TabsTrigger>
+                <TabsTrigger value="sdd" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
+                    <Users className="h-4 w-4" /> SDD Hub
+                </TabsTrigger>
+                <TabsTrigger value="initiatives" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
+                    <Target className="h-4 w-4" /> GAD Initiatives
+                </TabsTrigger>
+                <TabsTrigger value="mainstreaming" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 py-2">
+                    <ListChecks className="h-4 w-4" /> Mainstreaming
+                </TabsTrigger>
+            </TabsList>
+        </ScrollArea>
 
         <TabsContent value="overview" className="animate-in fade-in duration-500">
           <GADOverview 

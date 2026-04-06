@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PlusCircle, Trash2, Loader2, Calendar as CalendarIcon, Building, School, User, ArrowUpDown, Search, FileText, BarChart3, List, Filter, Download, ShieldCheck, XCircle, CheckCircle2, ChevronRight, LayoutList } from 'lucide-react';
@@ -375,16 +376,18 @@ export default function SubmissionsPage() {
         </Card>
 
         <Tabs defaultValue="visual-insights" className="space-y-4">
-            <TabsList className="bg-muted/50 p-1 border animate-tab-highlight rounded-md">
-                <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
-                    <BarChart3 className="h-4 w-4" /> Visual Insights
-                </TabsTrigger>
-                <TabsTrigger value="all-submissions" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
-                    <List className="h-4 w-4" /> Detailed Audit Log
-                </TabsTrigger>
-                {!isInstitutionalViewer && <TabsTrigger value="by-unit" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">Unit Status</TabsTrigger>}
-                {isInstitutionalViewer && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">Site Matrix</TabsTrigger>}
-            </TabsList>
+            <ScrollArea className="w-full">
+                <TabsList className="flex md:inline-flex bg-muted/50 p-1 border animate-tab-highlight rounded-md whitespace-nowrap">
+                    <TabsTrigger value="visual-insights" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
+                        <BarChart3 className="h-4 w-4" /> Visual Insights
+                    </TabsTrigger>
+                    <TabsTrigger value="all-submissions" className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">
+                        <List className="h-4 w-4" /> Detailed Audit Log
+                    </TabsTrigger>
+                    {!isInstitutionalViewer && <TabsTrigger value="by-unit" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">Unit Status</TabsTrigger>}
+                    {isInstitutionalViewer && <TabsTrigger value="by-campus" className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6">Site Matrix</TabsTrigger>}
+                </TabsList>
+            </ScrollArea>
 
             <TabsContent value="visual-insights" className="animate-in fade-in duration-500">
                 <SubmissionDashboard 
@@ -440,122 +443,124 @@ export default function SubmissionsPage() {
                                         <Loader2 className="animate-spin h-8 w-8 text-primary opacity-20" />
                                     </div>
                                 ) : tableSubmissionsData.length > 0 ? (
-                                    <Table>
-                                        <TableHeader className="bg-muted/30">
-                                            <TableRow className="hover:bg-transparent">
-                                                <TableHead className="font-bold uppercase text-[10px] pl-6 py-3 text-slate-900">Report & Control Info</TableHead>
-                                                <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Origin Unit / Office</TableHead>
-                                                <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Uploader</TableHead>
-                                                <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Submission Date</TableHead>
-                                                <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Status</TableHead>
-                                                <TableHead className="text-right font-bold uppercase text-[10px] py-3 pr-6 text-slate-900">Actions</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {tableSubmissionsData.map((sub) => {
-                                                const isRor = sub.reportType === 'Risk and Opportunity Registry';
-                                                const registered = isRor && isRiskRegistered(sub.unitId, sub.year);
-                                                
-                                                return (
-                                                    <TableRow 
-                                                        key={sub.id} 
-                                                        className={cn("transition-colors group", getYearCycleRowColor(sub.year, sub.cycleId))}
-                                                    >
-                                                        <TableCell className="pl-6 py-4">
-                                                            <div className="flex flex-col gap-1.5">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="font-bold text-sm text-black">{sub.reportType}</span>
-                                                                    {sub.isDraft && (
-                                                                        <Badge className="bg-blue-600 text-white border-none h-4 px-1.5 font-black text-[8px] gap-1 shadow-sm">
-                                                                            <LayoutList className="h-2.5 w-2.5" /> DRAFT
-                                                                        </Badge>
-                                                                    )}
-                                                                    {isRor && (
-                                                                        <Tooltip>
-                                                                            <TooltipTrigger asChild>
-                                                                                <div>
-                                                                                    {registered ? (
-                                                                                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 h-4 px-1.5 font-black text-[8px] gap-1 animate-in zoom-in duration-300">
-                                                                                            <CheckCircle2 className="h-2.5 w-2.5" /> LOG
-                                                                                        </Badge>
-                                                                                    ) : (
-                                                                                        <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 h-4 px-1.5 font-black text-[8px] gap-1">
-                                                                                            <XCircle className="h-2.5 w-2.5" /> X
-                                                                                        </Badge>
-                                                                                    )}
-                                                                                </div>
-                                                                            </TooltipTrigger>
-                                                                            <TooltipContent>
-                                                                                <p className="text-xs font-bold">
-                                                                                    {registered 
-                                                                                        ? "Entries present in digital register" 
-                                                                                        : "No digital entries logged for this unit/year"}
-                                                                                </p>
-                                                                            </TooltipContent>
-                                                                        </Tooltip>
-                                                                    )}
+                                    <div className="overflow-x-auto">
+                                        <Table>
+                                            <TableHeader className="bg-muted/30">
+                                                <TableRow className="hover:bg-transparent">
+                                                    <TableHead className="font-bold uppercase text-[10px] pl-6 py-3 text-slate-900">Report & Control Info</TableHead>
+                                                    <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Origin Unit / Office</TableHead>
+                                                    <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Uploader</TableHead>
+                                                    <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Submission Date</TableHead>
+                                                    <TableHead className="font-bold uppercase text-[10px] py-3 text-slate-900">Status</TableHead>
+                                                    <TableHead className="text-right font-bold uppercase text-[10px] py-3 pr-6 text-slate-900">Actions</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {tableSubmissionsData.map((sub) => {
+                                                    const isRor = sub.reportType === 'Risk and Opportunity Registry';
+                                                    const registered = isRor && isRiskRegistered(sub.unitId, sub.year);
+                                                    
+                                                    return (
+                                                        <TableRow 
+                                                            key={sub.id} 
+                                                            className={cn("transition-colors group", getYearCycleRowColor(sub.year, sub.cycleId))}
+                                                        >
+                                                            <TableCell className="pl-6 py-4">
+                                                                <div className="flex flex-col gap-1.5">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="font-bold text-sm text-black">{sub.reportType}</span>
+                                                                        {sub.isDraft && (
+                                                                            <Badge className="bg-blue-600 text-white border-none h-4 px-1.5 font-black text-[8px] gap-1 shadow-sm">
+                                                                                <LayoutList className="h-2.5 w-2.5" /> DRAFT
+                                                                            </Badge>
+                                                                        )}
+                                                                        {isRor && (
+                                                                            <Tooltip>
+                                                                                <TooltipTrigger asChild>
+                                                                                    <div>
+                                                                                        {registered ? (
+                                                                                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 h-4 px-1.5 font-black text-[8px] gap-1 animate-in zoom-in duration-300">
+                                                                                                <CheckCircle2 className="h-2.5 w-2.5" /> LOG
+                                                                                            </Badge>
+                                                                                        ) : (
+                                                                                            <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 h-4 px-1.5 font-black text-[8px] gap-1">
+                                                                                                <XCircle className="h-2.5 w-2.5" /> X
+                                                                                            </Badge>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </TooltipTrigger>
+                                                                                <TooltipContent>
+                                                                                    <p className="text-xs font-bold">
+                                                                                        {registered 
+                                                                                            ? "Entries present in digital register" 
+                                                                                            : "No digital entries logged for this unit/year"}
+                                                                                    </p>
+                                                                                </TooltipContent>
+                                                                            </Tooltip>
+                                                                        )}
+                                                                    </div>
+                                                                    <span className="text-[9px] text-slate-600 font-mono uppercase tracking-tighter">
+                                                                        {sub.cycleId} Cycle {sub.year} &bull; {sub.controlNumber}
+                                                                    </span>
                                                                 </div>
-                                                                <span className="text-[9px] text-slate-600 font-mono uppercase tracking-tighter">
-                                                                    {sub.cycleId} Cycle {sub.year} &bull; {sub.controlNumber}
-                                                                </span>
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <div className="flex flex-col text-xs">
-                                                                <span className="flex items-center gap-1 font-bold text-black"><Building className="h-3 w-3 text-primary/60" /> {sub.unitName}</span>
-                                                                <span className="flex items-center gap-1 text-slate-600 text-[10px] font-medium uppercase tracking-tighter"><School className="h-3 w-3" /> {campusMap.get(sub.campusId) || '...'}</span>
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell className="text-xs">
-                                                            <div className="flex items-center gap-2">
-                                                                <User className="h-3.5 w-3.5 text-slate-600 opacity-40" />
-                                                                <span className="font-bold text-black">{userMap.get(sub.userId) || '...'}</span>
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell className="text-xs">
-                                                            <div className="flex items-center gap-1 font-bold text-black">
-                                                                <CalendarIcon className="h-3 w-3 opacity-50" /> 
-                                                                {safeFormatDate(sub.submissionDate)}
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <Badge 
-                                                                className={cn(
-                                                                    "capitalize font-black text-[9px] px-2 py-0.5 shadow-sm border-none",
-                                                                    sub.statusId === 'approved' && "bg-emerald-600 text-white",
-                                                                    sub.statusId === 'rejected' && "bg-rose-600 text-white",
-                                                                    sub.statusId === 'submitted' && "bg-amber-50 text-amber-950",
-                                                                    sub.statusId === 'pending' && "bg-slate-50 text-white"
-                                                                )}
-                                                            >
-                                                                {sub.statusId === 'submitted' ? 'AWAITING APPROVAL' : (sub.statusId?.toUpperCase() || 'UNKNOWN')}
-                                                            </Badge>
-                                                        </TableCell>
-                                                        <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
-                                                            <Button 
-                                                                variant="default" 
-                                                                size="sm" 
-                                                                className="text-[10px] h-8 px-4 font-black uppercase tracking-widest bg-primary shadow-sm"
-                                                                onClick={() => router.push(`/submissions/${sub.id}`)}
-                                                            >
-                                                                VIEW
-                                                            </Button>
-                                                            {isAdmin && (
-                                                                <Button 
-                                                                    variant="ghost" 
-                                                                    size="icon" 
-                                                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                                    onClick={() => onDeleteClick(sub)}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <div className="flex flex-col text-xs">
+                                                                    <span className="flex items-center gap-1 font-bold text-black"><Building className="h-3 w-3 text-primary/60" /> {sub.unitName}</span>
+                                                                    <span className="flex items-center gap-1 text-slate-600 text-[10px] font-medium uppercase tracking-tighter"><School className="h-3 w-3" /> {campusMap.get(sub.campusId) || '...'}</span>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell className="text-xs">
+                                                                <div className="flex items-center gap-2">
+                                                                    <User className="h-3.5 w-3.5 text-slate-600 opacity-40" />
+                                                                    <span className="font-bold text-black">{userMap.get(sub.userId) || '...'}</span>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell className="text-xs">
+                                                                <div className="flex items-center gap-1 font-bold text-black">
+                                                                    <CalendarIcon className="h-3 w-3 opacity-50" /> 
+                                                                    {safeFormatDate(sub.submissionDate)}
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Badge 
+                                                                    className={cn(
+                                                                        "capitalize font-black text-[9px] px-2 py-0.5 shadow-sm border-none",
+                                                                        sub.statusId === 'approved' && "bg-emerald-600 text-white",
+                                                                        sub.statusId === 'rejected' && "bg-rose-600 text-white",
+                                                                        sub.statusId === 'submitted' && "bg-amber-50 text-amber-950",
+                                                                        sub.statusId === 'pending' && "bg-slate-50 text-white"
+                                                                    )}
                                                                 >
-                                                                    <Trash2 className="h-4 w-4" />
+                                                                    {sub.statusId === 'submitted' ? 'AWAITING APPROVAL' : (sub.statusId?.toUpperCase() || 'UNKNOWN')}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell className="text-right pr-6 space-x-2 whitespace-nowrap">
+                                                                <Button 
+                                                                    variant="default" 
+                                                                    size="sm" 
+                                                                    className="text-[10px] h-8 px-4 font-black uppercase tracking-widest bg-primary shadow-sm"
+                                                                    onClick={() => router.push(`/submissions/${sub.id}`)}
+                                                                >
+                                                                    VIEW
                                                                 </Button>
-                                                            )}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                );
-                                            })}
-                                        </TableBody>
-                                    </Table>
+                                                                {isAdmin && (
+                                                                    <Button 
+                                                                        variant="ghost" 
+                                                                        size="icon" 
+                                                                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                                        onClick={() => onDeleteClick(sub)}
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                )}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
                                 ) : (
                                     <div className="py-24 text-center text-muted-foreground flex flex-col items-center gap-3 border-t border-dashed bg-muted/5">
                                         <FileText className="h-12 w-12 opacity-10" />
