@@ -214,6 +214,7 @@ export type AuditSchedule = {
     auditNumber?: string; // Denormalized for access without AuditPlan get
     auditorId: string | null;
     auditorName: string | null;
+    campusId: string; // Mandatory site context for each entry
     targetId: string; // unitId or userId
     targetType: 'Unit' | 'User';
     targetName: string; // unit name or user name

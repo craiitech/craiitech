@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import type { AuditPlan, AuditSchedule, Campus, User, Unit, Signatories, AuditGroup, AuditFinding, ISOClause } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer, Search, ArrowUpDown, Users, FileText, AlertTriangle } from 'lucide-react';
+import { Edit, CalendarPlus, Building2, ClipboardCheck, Clock, UserCheck, ChevronRight, Settings2, User as UserIcon, Calendar, ShieldCheck, Flag, ListChecks, Trash2, Globe, Printer, Search, ArrowUpDown, Users, FileText, AlertTriangle, School } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -52,13 +52,15 @@ function PlanItineraryRegistry({
     schedules,
     allSchedules,
     onEdit, 
-    onDelete 
+    onDelete,
+    campusMap
 }: { 
     plan: AuditPlan; 
     schedules: AuditSchedule[];
     allSchedules: AuditSchedule[];
     onEdit: (plan: AuditPlan, s: AuditSchedule) => void;
     onDelete: (s: AuditSchedule) => void;
+    campusMap: Map<string, string>;
 }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'scheduledDate', direction: 'asc' });
@@ -74,7 +76,8 @@ function PlanItineraryRegistry({
                 (s.auditorName || '').toLowerCase().includes(lower) ||
                 s.procedureDescription.toLowerCase().includes(lower) ||
                 (s.processCategory || '').toLowerCase().includes(lower) ||
-                (s.auditeeHeadName || '').toLowerCase().includes(lower)
+                (s.auditeeHeadName || '').toLowerCase().includes(lower) ||
+                (campusMap.get(s.campusId) || '').toLowerCase().includes(lower)
             );
         }
 
@@ -112,7 +115,7 @@ function PlanItineraryRegistry({
         }
 
         return result;
-    }, [schedules, searchTerm, sortConfig]);
+    }, [schedules, searchTerm, sortConfig, campusMap]);
 
     const requestSort = (key: SortKey) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -149,6 +152,8 @@ function PlanItineraryRegistry({
             return sameAuditor || sameUnit;
         });
     };
+
+    const isPlanUniversityWide = plan.campusId === 'university-wide';
 
     return (
         <div className="space-y-4">
@@ -250,7 +255,15 @@ function PlanItineraryRegistry({
                                 <TableCell className="py-6">
                                     <div className="space-y-3 max-w-xs">
                                         <div className="p-3 rounded-lg border bg-muted/10 border-dashed group-hover:bg-white transition-colors">
-                                            <p className="text-[10px] font-black uppercase text-primary mb-1">Procedure / Focus Area</p>
+                                            <div className="flex items-center justify-between mb-1">
+                                                <p className="text-[10px] font-black uppercase text-primary">Procedure / Focus Area</p>
+                                                {isPlanUniversityWide && (
+                                                    <div className="flex items-center gap-1 text-[8px] font-black text-slate-500 uppercase">
+                                                        <School className="h-2.5 w-2.5" />
+                                                        {campusMap.get(schedule.campusId) || 'Site Context'}
+                                                    </div>
+                                                )}
+                                            </div>
                                             <p className="text-xs font-medium text-slate-600 leading-relaxed line-clamp-3">{schedule.procedureDescription || 'No description provided.'}</p>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2">
@@ -576,7 +589,6 @@ export function AuditPlanList({
                             <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Audit Team</p>
                             <div className="flex items-center gap-3 bg-primary/5 p-3 rounded-lg border border-primary/10 shadow-sm">
                                 <UserCheck className="h-5 w-5 text-primary" />
-                                hide
                                 <div>
                                     <p className="text-[10px] font-black text-primary leading-none uppercase tracking-tighter">Lead Auditor</p>
                                     <p className="text-sm font-bold text-slate-900 mt-1">{plan.leadAuditorName || 'TBA'}</p>
@@ -685,6 +697,7 @@ export function AuditPlanList({
                     allSchedules={schedules}
                     onEdit={onEditSchedule}
                     onDelete={onDeleteSchedule}
+                    campusMap={campusMap}
                 />
               </div>
             </AccordionContent>

@@ -37,8 +37,8 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { doc, addDoc, collection, Timestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useMemo, useState, useEffect } from 'react';
-import type { AuditPlan, User, Unit, ISOClause, AuditSchedule, UnitCategory, AuditGroup } from '@/lib/types';
-import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database, UserCheck, Layers, User as UserIcon, AlertTriangle } from 'lucide-react';
+import type { AuditPlan, User, Unit, ISOClause, AuditSchedule, UnitCategory, AuditGroup, Campus } from '@/lib/types';
+import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database, UserCheck, Layers, User as UserIcon, AlertTriangle, School } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from '../ui/command';
 import { Badge } from '../ui/badge';
@@ -60,6 +60,7 @@ interface AuditScheduleDialogProps {
 }
 
 const formSchema = z.object({
+  campusId: z.string().min(1, 'Target campus site is required.'),
   targetId: z.string().min(1, 'Auditee Unit/Office is required'),
   auditeeHeadName: z.string().min(1, 'Auditee Head / Office Head name is required'),
   processCategory: z.enum(['Management Processes', 'Operation Processes', 'Support Processes']),
@@ -91,14 +92,39 @@ export function AuditScheduleDialog({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
+  const { data: campuses } = useCollection<Campus>(campusesQuery);
+
   const isoClausesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'isoClauses') : null, [firestore]);
   const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
 
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      campusId: '',
+      targetId: '',
+      auditeeHeadName: '',
+      processCategory: 'Operation Processes',
+      scheduledDate: '',
+      isoClausesToAudit: [],
+      startTime: '09:00',
+      endTime: '12:00',
+      procedureDescription: '',
+      auditorId: '',
+    }
+  });
+
+  const watchCampusId = form.watch('campusId');
+  const watchTargetId = form.watch('targetId');
+  const watchAuditorId = form.watch('auditorId');
+  const watchDate = form.watch('scheduledDate');
+  const watchStart = form.watch('startTime');
+  const watchEnd = form.watch('endTime');
+
   const auditeesByCategory = useMemo(() => {
-    // If university-wide, show all units. Otherwise, filter by campus site defined in the plan.
-    const campusUnits = plan.campusId === 'university-wide'
-        ? allUnits
-        : allUnits.filter(u => u.campusIds?.includes(plan.campusId));
+    if (!watchCampusId) return { 'Academic': [], 'Administrative': [], 'Research': [], 'Support': [] };
+
+    const campusUnits = allUnits.filter(u => u.campusIds?.includes(watchCampusId));
     
     const groups: Record<UnitCategory, Unit[]> = {
         'Academic': [],
@@ -113,34 +139,12 @@ export function AuditScheduleDialog({
         groups[cat].push(unit);
     });
 
-    // Sort units within each category
     Object.keys(groups).forEach(cat => {
         groups[cat as UnitCategory].sort((a, b) => a.name.localeCompare(b.name));
     });
 
     return groups;
-  }, [plan, allUnits]);
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      targetId: '',
-      auditeeHeadName: '',
-      processCategory: 'Operation Processes',
-      scheduledDate: '',
-      isoClausesToAudit: [],
-      startTime: '09:00',
-      endTime: '12:00',
-      procedureDescription: '',
-      auditorId: '',
-    }
-  });
-
-  const watchTargetId = form.watch('targetId');
-  const watchAuditorId = form.watch('auditorId');
-  const watchDate = form.watch('scheduledDate');
-  const watchStart = form.watch('startTime');
-  const watchEnd = form.watch('endTime');
+  }, [watchCampusId, allUnits]);
 
   // Real-time conflict detection for the selected unit/auditor
   const currentConflict = useMemo(() => {
@@ -179,6 +183,7 @@ export function AuditScheduleDialog({
         const end = schedule.endScheduledDate?.toDate?.() || new Date();
         
         form.reset({
+            campusId: schedule.campusId || '',
             targetId: schedule.targetId,
             auditeeHeadName: schedule.auditeeHeadName || '',
             processCategory: schedule.processCategory || 'Operation Processes',
@@ -191,6 +196,7 @@ export function AuditScheduleDialog({
         });
     } else if (!schedule && isOpen) {
         form.reset({
+            campusId: plan.campusId === 'university-wide' ? '' : plan.campusId,
             targetId: '',
             auditeeHeadName: '',
             processCategory: 'Operation Processes',
@@ -202,7 +208,7 @@ export function AuditScheduleDialog({
             auditorId: '',
         });
     }
-  }, [schedule, isOpen, form]);
+  }, [schedule, isOpen, form, plan.campusId]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!firestore) return;
@@ -227,7 +233,8 @@ export function AuditScheduleDialog({
 
         const scheduleData = {
           auditPlanId: plan.id,
-          auditNumber: plan.auditNumber || '', // DENORMALIZED: Stores parent plan info
+          auditNumber: plan.auditNumber || '',
+          campusId: values.campusId,
           targetId: values.targetId,
           targetType: 'Unit',
           targetName,
@@ -260,6 +267,7 @@ export function AuditScheduleDialog({
   };
 
   const selectedClauses = form.watch('isoClausesToAudit');
+  const isPlanUniversityWide = plan.campusId === 'university-wide';
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -337,17 +345,45 @@ export function AuditScheduleDialog({
                             />
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <FormField
+                                control={form.control}
+                                name="campusId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-bold uppercase">Target Site / Campus</FormLabel>
+                                        <Select 
+                                            onValueChange={(val) => { field.onChange(val); form.setValue('targetId', ''); }} 
+                                            value={field.value || ''}
+                                            disabled={!isPlanUniversityWide}
+                                        >
+                                            <FormControl>
+                                                <SelectTrigger className="h-11 font-bold bg-muted/5">
+                                                    <div className="flex items-center gap-2">
+                                                        <School className="h-3.5 w-3.5 text-primary/40" />
+                                                        <SelectValue placeholder="Select Campus" />
+                                                    </div>
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
                             <FormField
                                 control={form.control}
                                 name="targetId"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase">Auditee Unit / Office Name</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormLabel className="text-[10px] font-bold uppercase">Auditee Unit / Office</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={!watchCampusId}>
                                             <FormControl>
                                                 <SelectTrigger className={cn("h-11 font-bold bg-muted/5", currentConflict?.targetId === watchTargetId && "border-destructive text-destructive")}>
-                                                    <SelectValue placeholder="Select Unit/Office to Audit" />
+                                                    <SelectValue placeholder={watchCampusId ? "Select Unit" : "Select Campus First"} />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
@@ -375,11 +411,11 @@ export function AuditScheduleDialog({
                                 name="auditeeHeadName"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase">Name of the Auditee / Office Head</FormLabel>
+                                        <FormLabel className="text-[10px] font-bold uppercase">Head of Unit / Office</FormLabel>
                                         <FormControl>
                                             <div className="relative">
                                                 <UserIcon className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground opacity-50" />
-                                                <Input {...field} placeholder="Enter full name of the head..." className="h-11 pl-10 font-bold bg-muted/5 shadow-sm" disabled={isSubmitting} />
+                                                <Input {...field} placeholder="Full Name" className="h-11 pl-10 font-bold bg-muted/5 shadow-sm" disabled={isSubmitting} />
                                             </div>
                                         </FormControl>
                                         <FormMessage />
@@ -543,7 +579,7 @@ export function AuditScheduleDialog({
 
         <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
             <div className="flex w-full items-center justify-between">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase">RSU Quality Management System | Itinerary v2.0</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase">RSU Quality Management System | Itinerary v2.5</p>
                 <div className="flex gap-2">
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
                     <Button type="submit" form="schedule-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black text-xs uppercase tracking-widest">
