@@ -143,8 +143,10 @@ export default function HomePage() {
 
   const canViewCampusAnnouncements = userProfile?.campusId;
 
-  // Oversight personnel (non-admin) see the consolidated campus dashboard
-  const isCampusSupervisor = isSupervisor && !isAdmin;
+  // Identify Campus vs Unit Level for dashboard routing and querying
+  const roleLower = userRole?.toLowerCase() || '';
+  const isCampusLevel = isAdmin || isVp || roleLower.includes('campus director') || roleLower.includes('campus odimo');
+  const isCampusSupervisor = isSupervisor && !isAdmin && isCampusLevel;
 
   // Fetch submissions based on role
   const submissionsQuery = useMemoFirebase(() => {
@@ -294,19 +296,22 @@ export default function HomePage() {
   const auditSchedulesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'auditSchedules');
+    const activeStatuses = ['Scheduled', 'In Progress'];
     
-    if (isAdmin) return query(baseRef, where('status', 'in', ['Scheduled', 'In Progress']));
+    if (isAdmin) return query(baseRef, where('status', 'in', activeStatuses));
     
-    if (isCampusSupervisor && userProfile.campusId) {
-        return query(baseRef, where('campusId', '==', userProfile.campusId), where('status', 'in', ['Scheduled', 'In Progress']));
+    // Campus-level oversight (Directors/ODIMOs) see all audits for their campus
+    if (isCampusLevel && userProfile.campusId) {
+        return query(baseRef, where('campusId', '==', userProfile.campusId), where('status', 'in', activeStatuses));
     }
     
+    // Unit-level roles see audits for their specific unit
     if (userProfile.unitId) {
-        return query(baseRef, where('targetId', '==', userProfile.unitId), where('status', 'in', ['Scheduled', 'In Progress']));
+        return query(baseRef, where('targetId', '==', userProfile.unitId), where('status', 'in', activeStatuses));
     }
     
     return null;
-  }, [firestore, userProfile, isAdmin, isCampusSupervisor, isUserLoading]);
+  }, [firestore, userProfile, isAdmin, isCampusLevel, isUserLoading]);
 
   const { data: dashboardSchedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(auditSchedulesQuery);
 

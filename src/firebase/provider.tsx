@@ -174,22 +174,22 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const servicesAvailable = !!(firebaseApp && firestore && auth);
     const userRole = userProfile?.role || null;
     
-    // Patterned after security rules logic: Admin doc OR "admin" in role string
-    const isAdmin = !!adminRoleDoc || (userRole ? userRole.toLowerCase().includes('admin') : false);
+    // Robust Role Detection
+    const roleLower = userRole?.toLowerCase() || '';
     
-    const isVp = !!userRole?.toLowerCase().includes('vice president');
-    const isAuditor = !!userRole?.toLowerCase().includes('auditor');
+    const isAdmin = !!adminRoleDoc || roleLower.includes('admin');
+    const isVp = roleLower.includes('vice president');
+    const isAuditor = roleLower.includes('auditor');
     
-    // CRITICAL: Aligned with new requirements - ODIMO roles are oversight supervisors
-    const supervisorRolesRegex = /^(Campus Director|Campus ODIMO|Unit ODIMO|Vice President.*|Director.*)$/i;
-    const isSupervisor = isAdmin || (userRole ? supervisorRolesRegex.test(userRole) : false) || isVp;
+    // Anyone with "Director" or "ODIMO" in their role is an oversight supervisor
+    const isSupervisor = isAdmin || isVp || roleLower.includes('director') || roleLower.includes('odimo');
 
     const mainCampus = campuses?.find(c => c.name === 'Main Campus');
     const isMainCampusCoordinator = !!(
       userProfile &&
       mainCampus &&
       userProfile.campusId === mainCampus.id &&
-      (userProfile.role === 'Unit Coordinator' || userProfile.role === 'Unit ODIMO')
+      (roleLower.includes('coordinator') || roleLower.includes('odimo'))
     );
 
     // The user is fully loaded only when auth state is determined AND the Firestore profile is loaded.
