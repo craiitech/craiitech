@@ -37,6 +37,7 @@ import { Loader2, Copy, Calendar, Building2, LayoutList, Clock, Check, ChevronRi
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface AuditPlanCloneDialogProps {
   isOpen: boolean;
