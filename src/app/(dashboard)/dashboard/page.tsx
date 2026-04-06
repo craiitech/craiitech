@@ -33,7 +33,8 @@ import {
   ShieldAlert,
   ListTodo,
   Printer,
-  ChevronRight
+  ChevronRight,
+  XCircle
 } from 'lucide-react';
 import {
   useUser,
@@ -59,7 +60,7 @@ import type {
     Cycle, 
     Risk, 
     ManagementReviewOutput, 
-    AuditSchedule, 
+    AuditPlan, 
     QaAdvisory, 
     UnitMonitoringRecord,
     ProgramComplianceRecord,
@@ -774,7 +775,7 @@ export default function HomePage() {
         )}
 
          <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
             <CardHeader>
@@ -962,7 +963,7 @@ export default function HomePage() {
       </TabsContent>
        <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin}/>
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin}/>
         <ComplianceHeatmap units={unitsInCampus} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Gap Heatmap" />
         <CampusUnitOverview allUnits={allUnits} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} selectedYear={selectedYear} />
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
@@ -1041,7 +1042,7 @@ export default function HomePage() {
       </TabsContent>
       <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
         <ComplianceHeatmap units={allUnits || []} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Parity Matrix" />
         <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading} selectedYear={selectedYear}/>
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
