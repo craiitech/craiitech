@@ -101,7 +101,7 @@ import { ComplianceOverTime } from '@/components/dashboard/strategic/compliance-
 import { RiskMatrix } from '@/components/dashboard/strategic/risk-matrix';
 import { RiskFunnel } from '@/components/dashboard/strategic/risk-funnel';
 import { CycleSubmissionBreakdown } from '@/components/dashboard/strategic/cycle-submission-breakdown';
-import { normalizeReportType } from '@/lib/utils';
+import { cn, normalizeReportType } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ComplianceHeatmap } from '@/components/dashboard/strategic/compliance-heatmap';
 import { MaturityRadar } from '@/components/dashboard/strategic/maturity-radar';
@@ -774,7 +774,7 @@ export default function HomePage() {
         )}
 
          <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin} />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
             <CardHeader>
@@ -962,7 +962,7 @@ export default function HomePage() {
       </TabsContent>
        <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin}/>
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin}/>
         <ComplianceHeatmap units={unitsInCampus} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Gap Heatmap" />
         <CampusUnitOverview allUnits={allUnits} allSubmissions={submissions} isLoading={isLoading} userProfile={userProfile} selectedYear={selectedYear} />
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
@@ -1041,7 +1041,7 @@ export default function HomePage() {
       </TabsContent>
       <TabsContent value="analytics" className="space-y-4">
         <SubmissionSchedule cycles={allCycles} isLoading={isLoadingCycles} />
-        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedYear} onYearChange={setSelectedYear} isSupervisor={isSupervisor || isAdmin} />
+        <RiskStatusOverview risks={risks} units={allUnits} isLoading={isLoading} selectedYear={selectedRiskYear} onYearChange={setSelectedRiskYear} isSupervisor={isSupervisor || isAdmin} />
         <ComplianceHeatmap units={allUnits || []} submissions={submissions || []} selectedYear={selectedYear} title="Institutional Parity Matrix" />
         <NonCompliantUnits allCycles={allCycles} allSubmissions={submissions} allUnits={allUnits} userProfile={userProfile} isLoading={isLoading} selectedYear={selectedYear}/>
         <SubmissionAnalytics allSubmissions={submissions} allUnits={allUnits} isLoading={isLoading} isAdmin={isAdmin} userProfile={userProfile} selectedYear={selectedYear} />
