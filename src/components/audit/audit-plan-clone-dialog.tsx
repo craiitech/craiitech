@@ -33,7 +33,7 @@ import { useFirestore } from '@/firebase';
 import { doc, collection, writeBatch, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { AuditPlan, AuditSchedule, Campus } from '@/lib/types';
-import { Loader2, Copy, Calendar, Building2, LayoutList, Clock, Check, ChevronRight } from 'lucide-react';
+import { Loader2, Copy, Calendar, Building2, LayoutList, Clock, Check, ChevronRight, PlusCircle } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
