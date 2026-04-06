@@ -210,7 +210,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
     }
   };
 
-  const selectedGroups = form.watch('auditeeType');
+  const selectedGroups = form.watch('auditeeType') || [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>

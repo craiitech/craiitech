@@ -76,7 +76,7 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
           <PopoverContent 
             className="w-72 p-0" 
             align="start" 
-            onPointerDown={(e) => e.stopPropagation()}
+            onOpenAutoFocus={(e) => e.preventDefault()}
           >
             <Command className="bg-transparent" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
               <div className="flex items-center border-b px-3 bg-white">
