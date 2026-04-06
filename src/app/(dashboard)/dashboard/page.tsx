@@ -35,7 +35,8 @@ import {
   ListTodo,
   Printer,
   ChevronRight,
-  XCircle
+  XCircle,
+  Settings
 } from 'lucide-react';
 import {
   useUser,
@@ -142,7 +143,7 @@ export default function HomePage() {
 
   const canViewCampusAnnouncements = userProfile?.campusId;
 
-  // Campus Level Supervisor excludes Unit ODIMO because they are restricted to submission only
+  // Oversight personnel (non-admin) see the consolidated campus dashboard
   const isCampusSupervisor = isSupervisor && !isAdmin;
 
   // Fetch submissions based on role
@@ -151,7 +152,6 @@ export default function HomePage() {
     if (isAdmin) return collection(firestore, 'submissions');
     if (!userProfile) return null;
     
-    // Campus level supervisors get everything in their campus
     if (isCampusSupervisor) {
       if (userProfile.campusId) {
         return query(
@@ -162,7 +162,6 @@ export default function HomePage() {
       return null;
     }
     
-    // Unit level users (Coordinators and Unit ODIMOs) get their unit's submissions
     return query(
       collection(firestore, 'submissions'),
       where('unitId', '==', userProfile.unitId),
@@ -201,7 +200,7 @@ export default function HomePage() {
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
-  // Fetch monitoring records for SWOT (Unit Level)
+  // Fetch monitoring records
   const monitoringQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     const baseRef = collection(firestore, 'unitMonitoringRecords');
@@ -211,7 +210,7 @@ export default function HomePage() {
   }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
   const { data: monitoringRecords } = useCollection<UnitMonitoringRecord>(monitoringQuery);
 
-  // --- EXTENDED PERFORMANCE DATA FETCHING ---
+  // Fetch performance data
   const compliancesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     const baseRef = collection(firestore, 'programCompliances');
@@ -240,7 +239,6 @@ export default function HomePage() {
   }, [firestore, userProfile]);
   const { data: mrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
 
-  // Fetch users based on role
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     if (isAdmin) return collection(firestore, 'users');
@@ -280,7 +278,6 @@ export default function HomePage() {
   const allCyclesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'cycles') : null, [firestore]);
   const { data: allCycles, isLoading: isLoadingCycles } = useCollection<Cycle>(allCyclesQuery);
 
-  // Fetch Latest QA Advisories for the dashboard
   const advisoriesQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'qaAdvisories'), orderBy('releaseDate', 'desc'), limit(1)) : null), [firestore]);
   const { data: latestAdvisories } = useCollection<QaAdvisory>(advisoriesQuery);
 
@@ -298,7 +295,6 @@ export default function HomePage() {
     if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'auditSchedules');
     
-    // Only fetch non-completed sessions for the home dashboard
     if (isAdmin) return query(baseRef, where('status', 'in', ['Scheduled', 'In Progress']));
     
     if (isCampusSupervisor && userProfile.campusId) {
@@ -374,10 +370,6 @@ export default function HomePage() {
   }, [firestore, userRole, user]);
   const { data: mySchedules } = useCollection<AuditSchedule>(schedulesQuery);
 
-  /**
-   * ASSIGNED ACCREDITATION RECOMMENDATIONS
-   * Scans all programs for recommendations assigned to the logged-in unit.
-   */
   const assignedRecommendations = useMemo(() => {
     if (!allCompliances || !userProfile?.unitId) return [];
     
@@ -536,13 +528,13 @@ export default function HomePage() {
               title: '1st Cycle (Verified)',
               value: `${firstCycleCount} / ${requiredFirstCycle}`,
               description: `Approved docs for ${selectedYear}`,
-              icon: <CheckCircle className="h-6 w-6 text-primary" />,
+              icon: <FileText className="h-6 w-6 text-primary" />,
             },
             stat2: {
               title: 'Final Cycle (Verified)',
               value: `${finalCycleCount} / ${requiredFinalCycle}`,
               description: `Approved docs for ${selectedYear}`,
-              icon: <CheckCircle className="h-6 w-6 text-primary" />,
+              icon: <FileText className="h-6 w-6 text-primary" />,
             },
             stat3: {
               title: 'Overall Maturity',
@@ -622,7 +614,6 @@ export default function HomePage() {
     const isActionPlanNA = registryFormSubmission?.riskRating === 'low';
     const requiredReports = isActionPlanNA ? submissionTypes.filter(t => t !== 'Risk and Opportunity Action Plan') : submissionTypes;
     
-    // CRITICAL: Progress based on APPROVED status
     const approvedCount = Array.from(statusMap.values()).filter(s => s.statusId === 'approved' && requiredReports.includes(s.reportType)).length;
     const progress = (approvedCount / requiredReports.length) * 100;
     

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect, useRef } from 'react';
@@ -179,8 +180,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const isVp = !!userRole?.toLowerCase().includes('vice president');
     const isAuditor = !!userRole?.toLowerCase().includes('auditor');
     
-    // CRITICAL: Aligned with new requirements - Unit ODIMO is NOT a supervisor/approver
-    const supervisorRolesRegex = /^(Campus Director|Campus ODIMO|Vice President.*|Director.*)$/i;
+    // CRITICAL: Aligned with new requirements - ODIMO roles are oversight supervisors
+    const supervisorRolesRegex = /^(Campus Director|Campus ODIMO|Unit ODIMO|Vice President.*|Director.*)$/i;
     const isSupervisor = isAdmin || (userRole ? supervisorRolesRegex.test(userRole) : false) || isVp;
 
     const mainCampus = campuses?.find(c => c.name === 'Main Campus');
