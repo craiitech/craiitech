@@ -33,7 +33,7 @@ import { useFirestore } from '@/firebase';
 import { doc, collection, writeBatch, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { AuditPlan, AuditSchedule, Campus } from '@/lib/types';
-import { Loader2, Copy, Calendar, Building2, LayoutList, Clock, Check, ChevronRight, PlusCircle } from 'lucide-react';
+import { Loader2, Copy, Calendar, Building2, LayoutList, Clock, Check, ChevronRight, PlusCircle, FileText } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -49,6 +49,7 @@ interface AuditPlanCloneDialogProps {
 
 const cloneSchema = z.object({
   auditNumber: z.string().min(1, 'New Audit Number is required.'),
+  title: z.string().min(5, 'Title must be at least 5 characters.'),
   campusId: z.string().min(1, 'Target campus is required.'),
   openingMeetingDate: z.string().min(1, 'New opening meeting date is required.'),
   closingMeetingDate: z.string().min(1, 'New closing meeting date is required.'),
@@ -77,6 +78,7 @@ export function AuditPlanCloneDialog({
     resolver: zodResolver(cloneSchema),
     defaultValues: {
       auditNumber: `${sourcePlan.auditNumber}-COPY`,
+      title: `${sourcePlan.title} (Cloned)`,
       campusId: '',
       openingMeetingDate: '',
       closingMeetingDate: '',
@@ -113,6 +115,7 @@ export function AuditPlanCloneDialog({
             ...sourcePlan,
             id: newPlanId,
             auditNumber: values.auditNumber,
+            title: values.title,
             campusId: values.campusId,
             openingMeetingDate: Timestamp.fromDate(new Date(values.openingMeetingDate)),
             closingMeetingDate: Timestamp.fromDate(new Date(values.closingMeetingDate)),
@@ -199,7 +202,7 @@ export function AuditPlanCloneDialog({
                             <FormField control={form.control} name="auditNumber" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="text-[10px] font-bold uppercase">New Audit No.</FormLabel>
-                                    <FormControl><Input {...field} className="h-11 font-mono font-black border-primary/20 bg-primary/5" /></FormControl>
+                                    <FormControl><Input {...field} placeholder="e.g. 2025-001" className="h-11 font-mono font-black border-primary/20 bg-primary/5" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
@@ -214,6 +217,19 @@ export function AuditPlanCloneDialog({
                                 </FormItem>
                             )} />
                         </div>
+
+                        <FormField control={form.control} name="title" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-bold uppercase">Plan Title / Description</FormLabel>
+                                <FormControl>
+                                    <div className="relative">
+                                        <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground opacity-50" />
+                                        <Input {...field} placeholder="Enter a descriptive title for this replicated plan..." className="pl-10 h-11 font-bold" />
+                                    </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
                             <FormField control={form.control} name="openingMeetingDate" render={({ field }) => (
@@ -299,7 +315,7 @@ export function AuditPlanCloneDialog({
                     <Button type="button" variant="ghost" className="text-[10px] font-black uppercase tracking-widest" onClick={() => onOpenChange(false)}>Cancel</Button>
                     <div className="flex gap-2">
                         {step === 1 ? (
-                            <Button type="button" onClick={() => setStep(2)} className="h-10 px-8 font-black uppercase text-xs tracking-widest shadow-lg shadow-primary/20">
+                            <Button type="button" onClick={() => setStep(2)} className="h-10 px-8 font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20">
                                 Next: Adjust Itinerary dates
                             </Button>
                         ) : (
