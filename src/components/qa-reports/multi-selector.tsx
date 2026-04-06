@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from "react";
@@ -74,16 +73,17 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
             </Button>
           </PopoverTrigger>
           <PopoverContent 
-            className="w-72 p-0" 
+            className="w-72 p-0 border-none shadow-2xl" 
             align="start" 
+            // Prevent Dialog from stealing focus back from the Popover input
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
-            <Command className="bg-transparent" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
-              <div className="flex items-center border-b px-3 bg-white">
-                <CommandInput placeholder={placeholder} className="h-9 text-xs" />
+            <Command className="bg-white border rounded-lg overflow-hidden" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
+              <div className="flex items-center border-b px-3">
+                <CommandInput placeholder={placeholder} className="h-10 text-xs border-none focus:ring-0" />
               </div>
-              <CommandList className="max-h-60">
-                <CommandEmpty className="p-4 text-center text-xs text-muted-foreground">No matches found.</CommandEmpty>
+              <CommandList className="max-h-64">
+                <CommandEmpty className="p-4 text-center text-xs text-muted-foreground uppercase font-bold">No results found</CommandEmpty>
                 <CommandGroup>
                   {items.map((item) => {
                     const isSelected = selectedIds.includes(item.id);
@@ -91,17 +91,18 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
                       <CommandItem
                         key={item.id}
                         value={item.name}
+                        // Critical for nested popovers: prevent click from bubbling
                         onSelect={() => toggleItem(item.id)}
-                        className="cursor-pointer flex items-center justify-between"
+                        className="cursor-pointer flex items-center justify-between px-4 py-3"
                       >
-                        <div className="flex items-center gap-2 overflow-hidden">
+                        <div className="flex items-center gap-3 overflow-hidden">
                             <div className={cn(
-                                "h-4 w-4 border rounded flex items-center justify-center shrink-0",
+                                "h-4 w-4 border rounded flex items-center justify-center shrink-0 transition-colors",
                                 isSelected ? "bg-primary border-primary text-white" : "border-slate-300"
                             )}>
                                 {isSelected && <Check className="h-3 w-3" />}
                             </div>
-                            <span className="text-xs truncate">{item.name}</span>
+                            <span className={cn("text-xs truncate", isSelected ? "font-bold text-primary" : "text-slate-600")}>{item.name}</span>
                         </div>
                       </CommandItem>
                     );

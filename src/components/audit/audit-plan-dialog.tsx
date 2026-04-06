@@ -1,4 +1,3 @@
-
 'use client';
 
 /**
@@ -376,13 +375,14 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                             {auditGroups.map((group) => {
                                 const isEnabled = selectedGroups.includes(group);
                                 return (
-                                    <Card key={group} className={cn("border-primary/10 transition-all", !isEnabled && "opacity-30 pointer-events-none grayscale")}>
+                                    <Card key={group} className={cn("border-primary/10 transition-all shadow-sm", !isEnabled && "opacity-30 pointer-events-none grayscale")}>
                                         <CardHeader className="py-3 px-4 bg-muted/30 border-b">
                                             <CardTitle className="text-[10px] font-black uppercase tracking-tight truncate">{group.replace(' Processes', '')}</CardTitle>
                                         </CardHeader>
                                         <CardContent className="pt-4 p-4">
                                             <FormField 
                                                 control={form.control} 
+                                                // Using bracket notation for process group names with spaces
                                                 name={`groupClauseMapping.${group}`} 
                                                 render={({ field }) => (
                                                     <MultiSelector 
