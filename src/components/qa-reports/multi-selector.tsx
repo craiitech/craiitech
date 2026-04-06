@@ -11,6 +11,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import {
   Popover,
@@ -72,27 +73,41 @@ export function MultiSelector({ items, selectedIds, onSelect, placeholder = "Add
               <Plus className="h-4 w-4" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-64 p-0" align="start">
-            <Command>
-              <CommandInput placeholder={placeholder} />
-              <CommandEmpty>No matches found.</CommandEmpty>
-              <CommandGroup className="max-h-60 overflow-auto">
-                {items.map((item) => (
-                  <CommandItem
-                    key={item.id}
-                    onSelect={() => toggleItem(item.id)}
-                    className="cursor-pointer"
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4 text-primary",
-                        selectedIds.includes(item.id) ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    <span className="text-xs font-medium">{item.name}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+          <PopoverContent 
+            className="w-72 p-0" 
+            align="start" 
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <Command className="bg-transparent" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
+              <div className="flex items-center border-b px-3 bg-white">
+                <CommandInput placeholder={placeholder} className="h-9 text-xs" />
+              </div>
+              <CommandList className="max-h-60">
+                <CommandEmpty className="p-4 text-center text-xs text-muted-foreground">No matches found.</CommandEmpty>
+                <CommandGroup>
+                  {items.map((item) => {
+                    const isSelected = selectedIds.includes(item.id);
+                    return (
+                      <CommandItem
+                        key={item.id}
+                        value={item.name}
+                        onSelect={() => toggleItem(item.id)}
+                        className="cursor-pointer flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-2 overflow-hidden">
+                            <div className={cn(
+                                "h-4 w-4 border rounded flex items-center justify-center shrink-0",
+                                isSelected ? "bg-primary border-primary text-white" : "border-slate-300"
+                            )}>
+                                {isSelected && <Check className="h-3 w-3" />}
+                            </div>
+                            <span className="text-xs truncate">{item.name}</span>
+                        </div>
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              </CommandList>
             </Command>
           </PopoverContent>
         </Popover>
