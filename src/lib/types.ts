@@ -199,6 +199,7 @@ export type AuditPlan = {
     year: number;
     campusId: string;
     auditeeType: AuditGroup[]; // Changed to array for multiple selection
+    groupClauseMapping?: Record<string, string[]>; // New: Preset clauses per group
     scope: string;
     leadAuditorId: string;
     leadAuditorName: string;
@@ -362,7 +363,7 @@ export type CorrectiveActionRequest = {
     source: 'Audit Finding' | 'Legal Non-compliance' | 'Non-conforming Service' | 'Others';
     procedureTitle: string;
     initiator: string;
-    natureOfFinding: 'NC' | 'OFI';
+    nature of finding: 'NC' | 'OFI';
     concerningClause: string;
     concerningTopManagementName?: string;
     timeLimitForReply: any; // Timestamp

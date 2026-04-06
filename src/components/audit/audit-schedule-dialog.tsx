@@ -38,7 +38,7 @@ import { doc, addDoc, collection, Timestamp, setDoc, updateDoc } from 'firebase/
 import { useToast } from '@/hooks/use-toast';
 import { useMemo, useState, useEffect } from 'react';
 import type { AuditPlan, User, Unit, ISOClause, AuditSchedule, UnitCategory, AuditGroup, Campus } from '@/lib/types';
-import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database, UserCheck, Layers, User as UserIcon, AlertTriangle, School } from 'lucide-react';
+import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database, UserCheck, Layers, User as UserIcon, AlertTriangle, School, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from '../ui/command';
 import { Badge } from '../ui/badge';
@@ -120,6 +120,7 @@ export function AuditScheduleDialog({
   const watchDate = form.watch('scheduledDate');
   const watchStart = form.watch('startTime');
   const watchEnd = form.watch('endTime');
+  const watchCategory = form.watch('processCategory');
 
   const auditeesByCategory = useMemo(() => {
     if (!watchCampusId) return { 'Academic': [], 'Administrative': [], 'Research': [], 'Support': [] };
@@ -146,7 +147,7 @@ export function AuditScheduleDialog({
     return groups;
   }, [watchCampusId, allUnits]);
 
-  // Real-time conflict detection for the selected unit/auditor
+  // Real-time conflict detection
   const currentConflict = useMemo(() => {
     if (!watchDate || !watchStart || !watchEnd || (!watchTargetId && !watchAuditorId)) return null;
 
@@ -210,6 +211,17 @@ export function AuditScheduleDialog({
     }
   }, [schedule, isOpen, form, plan.campusId]);
 
+  const handleLoadPresets = () => {
+      if (!plan.groupClauseMapping || !watchCategory) return;
+      const presets = plan.groupClauseMapping[watchCategory] || [];
+      if (presets.length > 0) {
+          form.setValue('isoClausesToAudit', presets);
+          toast({ title: 'Presets Loaded', description: `Injected ${presets.length} clauses defined for ${watchCategory}.` });
+      } else {
+          toast({ title: 'No Presets Found', description: `The Audit Plan has no pre-defined clauses for ${watchCategory}.`, variant: 'destructive' });
+      }
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!firestore) return;
     setIsSubmitting(true);
@@ -268,6 +280,7 @@ export function AuditScheduleDialog({
 
   const selectedClauses = form.watch('isoClausesToAudit');
   const isPlanUniversityWide = plan.campusId === 'university-wide';
+  const hasPresets = plan.groupClauseMapping && plan.groupClauseMapping[watchCategory] && plan.groupClauseMapping[watchCategory]!.length > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -479,7 +492,20 @@ export function AuditScheduleDialog({
                                 <FormItem className="space-y-4">
                                     <div className="flex items-center justify-between">
                                         <FormLabel className="text-[10px] font-black uppercase text-primary">ISO 21001:2018 Clauses in Scope</FormLabel>
-                                        <Badge variant="secondary" className="font-mono h-5 text-[10px]">{selectedClauses.length} CLS</Badge>
+                                        <div className="flex items-center gap-2">
+                                            {hasPresets && (
+                                                <Button 
+                                                    type="button" 
+                                                    variant="secondary" 
+                                                    size="sm" 
+                                                    onClick={handleLoadPresets}
+                                                    className="h-6 text-[9px] font-black uppercase bg-primary/10 text-primary hover:bg-primary/20 border-none gap-1.5"
+                                                >
+                                                    <Sparkles className="h-3 w-3" /> Load Plan Presets
+                                                </Button>
+                                            )}
+                                            <Badge variant="secondary" className="font-mono h-5 text-[10px]">{selectedClauses.length} CLS</Badge>
+                                        </div>
                                     </div>
                                     <div className="rounded-xl border shadow-sm overflow-hidden">
                                         <Command className="bg-transparent" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>

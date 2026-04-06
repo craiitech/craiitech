@@ -19,6 +19,24 @@
       },
       "required": ["id", "email", "firstName", "lastName", "roleId", "role", "campusId", "unitId", "verified"]
     },
+    "AuditPlan": {
+      "title": "AuditPlan",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "auditNumber": { "type": "string" },
+        "auditType": { "type": "string", "enum": ["Regular Audit", "Special Audit"] },
+        "title": { "type": "string" },
+        "year": { "type": "number" },
+        "campusId": { "type": "string" },
+        "auditeeType": { "type": "array", "items": { "type": "string" } },
+        "groupClauseMapping": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string" } } },
+        "scope": { "type": "string" },
+        "leadAuditorId": { "type": "string" },
+        "openingMeetingDate": { "type": "string", "format": "date-time" },
+        "closingMeetingDate": { "type": "string", "format": "date-time" }
+      }
+    },
     "EmployeeActivity": {
       "title": "EmployeeActivity",
       "description": "Daily task log for university personnel.",
@@ -83,6 +101,7 @@
   },
   "firestore": {
     "/users/{userId}": { "schema": { "$ref": "#/backend/entities/User" }, "description": "Institutional user profiles." },
+    "/auditPlans/{planId}": { "schema": { "$ref": "#/backend/entities/AuditPlan" }, "description": "High-level IQA frameworks." },
     "/employeeActivities/{activityId}": { "schema": { "$ref": "#/backend/entities/EmployeeActivity" }, "description": "Daily task logs." },
     "/qaAdvisories/{advisoryId}": { "schema": { "$ref": "#/backend/entities/QaAdvisory" }, "description": "QA communications." },
     "/system/signatories": { "schema": { "$ref": "#/backend/entities/Signatories" }, "description": "Institutional signatories." },

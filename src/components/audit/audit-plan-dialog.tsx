@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -35,10 +36,11 @@ import { useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebas
 import { doc, setDoc, serverTimestamp, collection, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState, useMemo } from 'react';
-import type { AuditPlan, Campus, User, AuditGroup } from '@/lib/types';
-import { Loader2, LayoutList, ShieldCheck, FileText, CalendarCheck, Globe } from 'lucide-react';
+import type { AuditPlan, Campus, User, AuditGroup, ISOClause } from '@/lib/types';
+import { Loader2, LayoutList, ShieldCheck, FileText, CalendarCheck, Globe, ListChecks } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { format } from 'date-fns';
+import { MultiSelector } from '../qa-reports/multi-selector';
 
 interface AuditPlanDialogProps {
   isOpen: boolean;
@@ -59,6 +61,7 @@ const formSchema = z.object({
   year: z.number(),
   campusId: z.string().min(1, 'Target campus site is required.'),
   auditeeType: z.array(z.string()).min(1, 'Select at least one process group.'),
+  groupClauseMapping: z.record(z.string(), z.array(z.string())).optional(),
   scope: z.string().min(10, 'Please provide a clear scope statement.'),
   leadAuditorId: z.string().min(1, 'Please designate a Lead Auditor.'),
   referenceDocument: z.string().min(1, 'Reference document is required.'),
@@ -73,6 +76,14 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
 
   const usersQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: allUsers } = useCollection<User>(usersQuery);
+
+  const isoClausesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'isoClauses') : null), [firestore]);
+  const { data: isoClauses } = useCollection<ISOClause>(isoClausesQuery);
+
+  const clauseOptions = useMemo(() => {
+    if (!isoClauses) return [];
+    return isoClauses.map(c => ({ id: c.id, name: `${c.id} - ${c.title}` }));
+  }, [isoClauses]);
 
   const auditors = useMemo(() => {
     if (!allUsers) return [];
@@ -91,6 +102,11 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
       year: currentYear,
       campusId: '',
       auditeeType: [],
+      groupClauseMapping: {
+          'Management Processes': [],
+          'Operation Processes': [],
+          'Support Processes': []
+      },
       scope: '',
       leadAuditorId: '',
       referenceDocument: 'ISO 21001:2018 / EOMS Standard',
@@ -119,6 +135,11 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
         year: plan.year || currentYear,
         campusId: plan.campusId || '',
         auditeeType: plan.auditeeType || [],
+        groupClauseMapping: plan.groupClauseMapping || {
+            'Management Processes': [],
+            'Operation Processes': [],
+            'Support Processes': []
+        },
         scope: plan.scope || '',
         leadAuditorId: plan.leadAuditorId || '',
         referenceDocument: plan.referenceDocument || 'ISO 21001:2018 / EOMS Standard',
@@ -133,6 +154,11 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
             year: currentYear,
             campusId: '',
             auditeeType: [],
+            groupClauseMapping: {
+                'Management Processes': [],
+                'Operation Processes': [],
+                'Support Processes': []
+            },
             scope: '',
             leadAuditorId: '',
             referenceDocument: 'ISO 21001:2018 / EOMS Standard',
@@ -153,16 +179,8 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
 
     const planData: any = {
       id,
-      auditNumber: values.auditNumber,
-      auditType: values.auditType,
-      title: values.title,
-      year: values.year,
-      campusId: values.campusId,
-      auditeeType: values.auditeeType,
-      scope: values.scope,
-      leadAuditorId: values.leadAuditorId,
+      ...values,
       leadAuditorName: leadAuditor ? `${leadAuditor.firstName} ${leadAuditor.lastName}` : (plan?.leadAuditorName || 'Unknown Auditor'),
-      referenceDocument: values.referenceDocument,
       openingMeetingDate: Timestamp.fromDate(new Date(values.openingMeetingDate)),
       closingMeetingDate: Timestamp.fromDate(new Date(values.closingMeetingDate)),
       updatedAt: serverTimestamp(),
@@ -180,9 +198,11 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
     }
   };
 
+  const selectedGroups = form.watch('auditeeType');
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+      <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
         <DialogHeader className="p-6 border-b bg-slate-50 shrink-0">
           <div className="flex items-center gap-2 text-primary mb-1">
             <LayoutList className="h-5 w-5" />
@@ -194,10 +214,11 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 bg-white">
             <Form {...form}>
-                <form id="plan-form" onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-10">
+                <form id="plan-form" onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-12">
                     
+                    {/* SECTION 1: REGISTRY INFO */}
                     <div className="space-y-6">
                         <div className="flex items-center gap-2 border-b pb-2">
                             <FileText className="h-4 w-4 text-primary" />
@@ -213,7 +234,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                             )} />
                             <FormField control={form.control} name="auditType" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[10px] font-bold uppercase">Audit Type</FormLabel>
+                                    <FormLabel className="text-[10px] font-bold uppercase">Audit Type</TableHead>
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl><SelectTrigger className="h-10"><SelectValue /></SelectTrigger></FormControl>
                                         <SelectContent>
@@ -242,94 +263,137 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                         )} />
                     </div>
 
+                    {/* SECTION 2: SCOPE & GROUPS */}
                     <div className="space-y-6">
                         <div className="flex items-center gap-2 border-b pb-2">
                             <ShieldCheck className="h-4 w-4 text-primary" />
-                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-800">2. Scope & Site Context</h4>
+                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-800">2. Scope & Process Groups</h4>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormField control={form.control} name="campusId" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[10px] font-bold uppercase">Target Site / Campus</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl><SelectTrigger className="h-10"><SelectValue placeholder="Select Site" /></SelectTrigger></FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="university-wide" className="font-bold text-primary italic">
-                                                <div className="flex items-center gap-2">
-                                                    <Globe className="h-3 w-3" />
-                                                    University-Wide Audit
-                                                </div>
-                                            </SelectItem>
-                                            {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </FormItem>
-                            )} />
-                            
-                            <FormField control={form.control} name="auditeeType" render={() => (
-                                <FormItem>
-                                    <div className="mb-4">
-                                        <FormLabel className="text-[10px] font-black uppercase text-primary">Audit Process Groups (Multi-Select)</FormLabel>
-                                        <FormDescription className="text-[9px]">Select all organizational process areas covered by this plan.</FormDescription>
-                                    </div>
-                                    <div className="grid grid-cols-1 gap-2">
-                                        {auditGroups.map((group) => (
-                                            <FormField
-                                                key={group}
-                                                control={form.control}
-                                                name="auditeeType"
-                                                render={({ field }) => {
-                                                    return (
-                                                        <FormItem
-                                                            key={group}
-                                                            className="flex flex-row items-start space-x-3 space-y-0 p-3 rounded-lg border bg-muted/5 hover:bg-muted/10 transition-colors"
-                                                        >
-                                                            <FormControl>
-                                                                <Checkbox
-                                                                    checked={field.value?.includes(group)}
-                                                                    onCheckedChange={(checked) => {
-                                                                        return checked
-                                                                            ? field.onChange([...field.value, group])
-                                                                            : field.onChange(
-                                                                                field.value?.filter(
-                                                                                    (value) => value !== group
-                                                                                )
-                                                                            )
-                                                                    }}
-                                                                />
-                                                            </FormControl>
-                                                            <FormLabel className="text-xs font-bold cursor-pointer">
-                                                                {group}
-                                                            </FormLabel>
-                                                        </FormItem>
-                                                    )
-                                                }}
-                                            />
-                                        ))}
-                                    </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-6">
+                                <FormField control={form.control} name="campusId" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-bold uppercase">Target Site / Campus</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl><SelectTrigger className="h-10"><SelectValue placeholder="Select Site" /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="university-wide" className="font-bold text-primary italic">
+                                                    <div className="flex items-center gap-2">
+                                                        <Globe className="h-3 w-3" />
+                                                        University-Wide Audit
+                                                    </div>
+                                                </SelectItem>
+                                                {campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </FormItem>
+                                )} />
+                                
+                                <FormField control={form.control} name="auditeeType" render={() => (
+                                    <FormItem>
+                                        <div className="mb-4">
+                                            <FormLabel className="text-[10px] font-black uppercase text-primary">Active Audit Process Groups</FormLabel>
+                                            <FormDescription className="text-[9px]">Check groups to enable standard clause mapping for each.</FormDescription>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {auditGroups.map((group) => (
+                                                <FormField
+                                                    key={group}
+                                                    control={form.control}
+                                                    name="auditeeType"
+                                                    render={({ field }) => {
+                                                        const isChecked = field.value?.includes(group);
+                                                        return (
+                                                            <FormItem
+                                                                key={group}
+                                                                className={cn("flex flex-row items-center space-x-3 space-y-0 p-3 rounded-lg border transition-all cursor-pointer", isChecked ? "bg-primary/5 border-primary/20" : "bg-muted/5 hover:bg-muted/10")}
+                                                            >
+                                                                <FormControl>
+                                                                    <Checkbox
+                                                                        checked={isChecked}
+                                                                        onCheckedChange={(checked) => {
+                                                                            return checked
+                                                                                ? field.onChange([...field.value, group])
+                                                                                : field.onChange(field.value?.filter((value) => value !== group))
+                                                                        }}
+                                                                    />
+                                                                </FormControl>
+                                                                <FormLabel className="text-xs font-bold cursor-pointer flex-1">
+                                                                    {group}
+                                                                </FormLabel>
+                                                            </FormItem>
+                                                        )
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
+
+                            <div className="space-y-6">
+                                <FormField control={form.control} name="referenceDocument" render={({ field }) => (
+                                    <FormItem><FormLabel className="text-[10px] font-bold uppercase">Audit Reference Document</FormLabel><FormControl><Input {...field} className="bg-slate-50 font-medium" /></FormControl></FormItem>
+                                )} />
+                                <FormField control={form.control} name="scope" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-[10px] font-bold uppercase">Detailed Statement of Scope & Criteria</FormLabel>
+                                        <FormControl><Textarea {...field} placeholder="Specific processes, clauses, and units covered..." rows={6} className="bg-slate-50 italic text-xs leading-relaxed" /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
                         </div>
-                        <FormField control={form.control} name="referenceDocument" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-[10px] font-bold uppercase">Audit Reference Document</FormLabel>
-                                <FormControl><Input {...field} className="bg-slate-50 font-medium" /></FormControl>
-                            </FormItem>
-                        )} />
-                        <FormField control={form.control} name="scope" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-[10px] font-bold uppercase">Detailed Statement of Scope & Criteria</FormLabel>
-                                <FormControl><Textarea {...field} placeholder="Specific processes, clauses, and units covered..." rows={4} className="bg-slate-50 italic text-xs leading-relaxed" /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
                     </div>
 
-                    <div className="space-y-6">
+                    {/* SECTION 3: STRATEGIC CLAUSE MAPPING */}
+                    <div className="space-y-6 pt-6">
+                        <div className="flex items-center gap-2 border-b pb-2">
+                            <ListChecks className="h-4 w-4 text-primary" />
+                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-800">3. Strategic Standard Clause Mapping (Itinerary Presets)</h4>
+                        </div>
+                        <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl flex gap-3">
+                            <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                            <p className="text-[10px] text-blue-800 font-medium leading-relaxed italic">
+                                Map ISO 21001:2018 clauses to each process group. These selections will appear as "Presets" when provisioning individual unit itinerary entries, ensuring institutional consistency.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {auditGroups.map((group) => {
+                                const isEnabled = selectedGroups.includes(group);
+                                return (
+                                    <Card key={group} className={cn("border-primary/10 transition-all", !isEnabled && "opacity-30 pointer-events-none grayscale")}>
+                                        <CardHeader className="py-3 px-4 bg-muted/30 border-b">
+                                            <CardTitle className="text-[10px] font-black uppercase tracking-tight truncate">{group.replace(' Processes', '')}</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="pt-4 p-4">
+                                            <FormField 
+                                                control={form.control} 
+                                                name={`groupClauseMapping.${group}`} 
+                                                render={({ field }) => (
+                                                    <MultiSelector 
+                                                        items={clauseOptions}
+                                                        selectedIds={field.value || []}
+                                                        onSelect={field.onChange}
+                                                        placeholder="Add ISO Clauses..."
+                                                        label={`Clauses for ${group}`}
+                                                    />
+                                                )}
+                                            />
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* SECTION 4: MEETINGS */}
+                    <div className="space-y-6 pt-6 border-t">
                         <div className="flex items-center gap-2 border-b pb-2">
                             <CalendarCheck className="h-4 w-4 text-primary" />
-                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-800">3. Audit Team & Key Meetings</h4>
+                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-800">4. Lead Auditor & Meeting Milestones</h4>
                         </div>
                         <FormField control={form.control} name="leadAuditorId" render={({ field }) => (
                             <FormItem>
@@ -338,7 +402,6 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                                     <FormControl><SelectTrigger className="h-11 font-bold bg-primary/5 border-primary/20"><SelectValue placeholder="Designate Lead Auditor" /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         {auditors.map(a => <SelectItem key={a.id} value={a.id}>{a.firstName} {a.lastName}</SelectItem>)}
-                                        {auditors.length === 0 && <div className="p-4 text-xs italic text-muted-foreground">No qualified auditors found.</div>}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
