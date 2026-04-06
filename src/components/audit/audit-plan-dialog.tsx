@@ -1,5 +1,8 @@
+'use server';
 
-'use client';
+/**
+ * @fileOverview A dialog component for creating or editing audit plans.
+ */
 
 import {
   Dialog,
@@ -234,7 +237,7 @@ export function AuditPlanDialog({ isOpen, onOpenChange, plan, campuses }: AuditP
                             )} />
                             <FormField control={form.control} name="auditType" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-[10px] font-bold uppercase">Audit Type</TableHead>
+                                    <FormLabel className="text-[10px] font-bold uppercase">Audit Type</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl><SelectTrigger className="h-10"><SelectValue /></SelectTrigger></FormControl>
                                         <SelectContent>
