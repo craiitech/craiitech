@@ -33,11 +33,12 @@ import { useFirestore } from '@/firebase';
 import { doc, collection, writeBatch, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { AuditPlan, AuditSchedule, Campus } from '@/lib/types';
-import { Loader2, Copy, Calendar, Building2, LayoutList, Clock, Check, ChevronRight, PlusCircle, FileText } from 'lucide-react';
+import { Loader2, Copy, Calendar, Building2, LayoutList, Clock, Check, ChevronRight, PlusCircle, FileText, ShieldCheck } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 
 interface AuditPlanCloneDialogProps {
   isOpen: boolean;
@@ -50,6 +51,7 @@ interface AuditPlanCloneDialogProps {
 const cloneSchema = z.object({
   auditNumber: z.string().min(1, 'New Audit Number is required.'),
   title: z.string().min(5, 'Title must be at least 5 characters.'),
+  scope: z.string().min(10, 'Please provide a clear scope statement.'),
   campusId: z.string().min(1, 'Target campus is required.'),
   openingMeetingDate: z.string().min(1, 'New opening meeting date is required.'),
   closingMeetingDate: z.string().min(1, 'New closing meeting date is required.'),
@@ -79,6 +81,7 @@ export function AuditPlanCloneDialog({
     defaultValues: {
       auditNumber: `${sourcePlan.auditNumber}-COPY`,
       title: `${sourcePlan.title} (Cloned)`,
+      scope: sourcePlan.scope || '',
       campusId: '',
       openingMeetingDate: '',
       closingMeetingDate: '',
@@ -116,6 +119,7 @@ export function AuditPlanCloneDialog({
             id: newPlanId,
             auditNumber: values.auditNumber,
             title: values.title,
+            scope: values.scope,
             campusId: values.campusId,
             openingMeetingDate: Timestamp.fromDate(new Date(values.openingMeetingDate)),
             closingMeetingDate: Timestamp.fromDate(new Date(values.closingMeetingDate)),
@@ -226,6 +230,19 @@ export function AuditPlanCloneDialog({
                                         <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground opacity-50" />
                                         <Input {...field} placeholder="Enter a descriptive title for this replicated plan..." className="pl-10 h-11 font-bold" />
                                     </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+
+                        <FormField control={form.control} name="scope" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-[10px] font-bold uppercase flex items-center gap-2">
+                                    <ShieldCheck className="h-3 w-3" />
+                                    Detailed Statement of Scope & Criteria
+                                </FormLabel>
+                                <FormControl>
+                                    <Textarea {...field} placeholder="Specific processes, clauses, and units covered..." rows={4} className="bg-slate-50 italic text-xs leading-relaxed" />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
