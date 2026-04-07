@@ -42,55 +42,57 @@ export function AuditorAssignmentsPrintTemplate({ auditorData, year, qaoDirector
   };
 
   return (
-    <div className="text-black bg-white max-w-[8.5in] mx-auto font-sans text-[10px] leading-tight border-none">
+    <div className="text-black bg-white max-w-[8in] mx-auto font-sans text-[9px] leading-tight border-none">
       {auditorData.map((auditor, idx) => (
-        <div key={idx} className="print-page-break p-8 mb-12 min-h-screen flex flex-col">
-          {/* repeated institutional header */}
-          <div className="text-center mb-8">
-            <div className="flex flex-col items-center justify-center gap-1 mb-2">
-                <h1 className="text-lg font-bold leading-none">Romblon State University</h1>
-                <h2 className="text-md font-semibold leading-none mt-1">Quality Assurance Office</h2>
-                <p className="text-xs italic">Odiongan, Romblon</p>
+        <div key={idx} className="print-page-break p-6 mb-10 flex flex-col">
+          {/* Institutional Header */}
+          <div className="text-center mb-6">
+            <div className="flex flex-col items-center justify-center gap-0.5 mb-1">
+                <h1 className="text-sm font-bold uppercase leading-none">Romblon State University</h1>
+                <h2 className="text-xs font-semibold leading-none mt-0.5">Quality Assurance Office</h2>
+                <p className="text-[8px] italic">Odiongan, Romblon</p>
             </div>
-            <div className="mt-6 border-y-2 border-black py-2 bg-slate-50">
-              <h2 className="text-sm font-black uppercase tracking-[0.2em]">IQA AUDITOR ASSIGNMENT REGISTRY</h2>
-              <p className="text-[10px] font-bold mt-1">FISCAL YEAR {year}</p>
+            <div className="mt-4 border-y border-black py-1.5 bg-slate-50/50">
+              <h2 className="text-xs font-black uppercase tracking-[0.15em]">IQA Auditor Assignment Registry</h2>
+              <p className="text-[9px] font-bold mt-0.5">FISCAL YEAR {year}</p>
             </div>
           </div>
 
-          <div className="flex items-center justify-between border-b-2 border-black pb-1 mb-3">
-              <h3 className="text-sm font-black uppercase">Auditor: {auditor.name}</h3>
-              <div className="flex gap-4">
+          {/* Auditor Identification Row */}
+          <div className="flex items-center justify-between border-b border-black pb-1 mb-2">
+              <h3 className="text-xs font-black uppercase">Auditor: {auditor.name}</h3>
+              <div className="flex gap-4 text-[8px]">
                   <span className="font-bold uppercase">Total Assignments: {auditor.count}</span>
-                  <span className="font-bold uppercase">Status: {Math.round((auditor.completed / auditor.count) * 100)}% Complete</span>
+                  <span className="font-bold uppercase">Completion: {Math.round((auditor.completed / auditor.count) * 100)}%</span>
               </div>
           </div>
 
-          <table className="w-full border-collapse border border-black flex-1">
+          {/* Assignments Table */}
+          <table className="w-full border-collapse border border-black mb-10">
               <thead>
-                  <tr className="bg-slate-100">
-                      <th className="border border-black p-2 w-[15%] text-left font-black uppercase text-[9px]">Date</th>
-                      <th className="border border-black p-2 w-[15%] text-left font-black uppercase text-[9px]">Time Slot</th>
-                      <th className="border border-black p-2 w-[25%] text-left font-black uppercase text-[9px]">Target Unit</th>
-                      <th className="border border-black p-2 text-left font-black uppercase text-[9px]">Procedure / Scope</th>
-                      <th className="border border-black p-2 w-[10%] text-center font-black uppercase text-[9px]">Status</th>
+                  <tr className="bg-slate-50">
+                      <th className="border border-black p-1.5 w-[12%] text-left font-black uppercase text-[8px]">Date</th>
+                      <th className="border border-black p-1.5 w-[15%] text-left font-black uppercase text-[8px]">Time Slot</th>
+                      <th className="border border-black p-1.5 w-[25%] text-left font-black uppercase text-[8px]">Target Unit</th>
+                      <th className="border border-black p-1.5 text-left font-black uppercase text-[8px]">Procedure / Scope</th>
+                      <th className="border border-black p-1.5 w-[10%] text-center font-black uppercase text-[8px]">Status</th>
                   </tr>
               </thead>
               <tbody>
                   {auditor.assignments.sort((a,b) => (a.date?.toMillis?.() || 0) - (b.date?.toMillis?.() || 0)).map((a, i) => (
-                      <tr key={i} className="break-inside-avoid">
-                          <td className="border border-black p-2 font-bold tabular-nums">{safeFormatDate(a.date)}</td>
-                          <td className="border border-black p-2 font-bold uppercase whitespace-nowrap text-[8px]">
+                      <tr key={i} className="break-inside-avoid border-b border-black/10 last:border-black">
+                          <td className="border border-black p-1.5 font-bold tabular-nums text-[8.5px]">{safeFormatDate(a.date)}</td>
+                          <td className="border border-black p-1.5 font-bold uppercase whitespace-nowrap text-[8px]">
                               {safeFormatTime(a.startTime)} - {safeFormatTime(a.endTime)}
                           </td>
-                          <td className="border border-black p-2 font-bold">
-                              <p className="uppercase leading-tight">{a.unitName}</p>
-                              <p className="text-[7px] font-medium text-slate-500 mt-0.5">{a.campus}</p>
+                          <td className="border border-black p-1.5">
+                              <p className="font-black uppercase leading-tight text-[8.5px]">{a.unitName}</p>
+                              <p className="text-[7px] font-bold text-slate-500 mt-0.5 uppercase tracking-tighter">{a.campus}</p>
                           </td>
-                          <td className="border border-black p-2 text-[9px] italic leading-relaxed">
+                          <td className="border border-black p-1.5 text-[8.5px] italic leading-snug">
                               {a.procedure}
                           </td>
-                          <td className="border border-black p-2 text-center font-black uppercase text-[8px]">
+                          <td className="border border-black p-1.5 text-center font-black uppercase text-[7.5px]">
                               {a.status}
                           </td>
                       </tr>
@@ -98,21 +100,24 @@ export function AuditorAssignmentsPrintTemplate({ auditorData, year, qaoDirector
               </tbody>
           </table>
 
-          {/* Official Signatories repeated for each auditor */}
-          <div className="mt-20 flex justify-end pr-10 break-inside-avoid">
-            <div className="text-center w-64">
-              <p className="text-left mb-8 text-[9px] font-bold uppercase opacity-60">Verified and Issued by:</p>
-              <div className="border-b border-black font-black text-xs pb-1 mb-1 uppercase">
+          {/* Official Signatories */}
+          <div className="mt-8 flex justify-end pr-6 break-inside-avoid">
+            <div className="text-center w-56">
+              <p className="text-left mb-6 text-[8px] font-bold uppercase opacity-60">Verified and Issued by:</p>
+              <div className="border-b border-black font-black text-[10px] pb-0.5 mb-0.5 uppercase tracking-tight">
                 {qaoDirector || '__________________________'}
               </div>
-              <p className="text-[9px] uppercase font-black text-slate-500">Director, Quality Assurance Office</p>
+              <p className="text-[8px] uppercase font-black text-slate-500 tracking-widest">Director, Quality Assurance Office</p>
             </div>
           </div>
 
-          {/* Footer repeated */}
-          <div className="mt-auto pt-4 border-t border-slate-200 flex justify-between items-center text-[8px] text-slate-400 italic uppercase tracking-widest">
-            <span>RSU-QAO-IQA-ASSIGNMENTS | REV 01-2025</span>
-            <span>Generated via RSU EOMS Portal</span>
+          {/* Footer */}
+          <div className="mt-12 pt-2 border-t border-slate-100 flex justify-between items-center text-[7.5px] text-slate-400 italic uppercase tracking-widest">
+            <span>RSU-QAO-IQA-AUDITOR-LOG | REV 02-2025</span>
+            <div className="flex gap-4">
+                <span>Page {idx + 1} of {auditorData.length}</span>
+                <span>Generated via RSU EOMS Digital Portal</span>
+            </div>
           </div>
         </div>
       ))}
