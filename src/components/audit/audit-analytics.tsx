@@ -104,6 +104,9 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
     const scheduleIds = new Set(yearSchedules.map(s => s.id));
     const yearFindings = findings.filter(f => scheduleIds.has(f.auditScheduleId));
 
+    // Get Lead Auditor Name from the first available plan of the year
+    const leadAuditorName = yearPlans.length > 0 ? yearPlans[0].leadAuditorName : undefined;
+
     // 1. Findings Distribution
     const counts = { Compliance: 0, OFI: 0, NC: 0 };
     yearFindings.forEach(f => {
@@ -237,6 +240,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         auditorSexCounts,
         strengths,
         gaps,
+        leadAuditorName,
         totalSchedules: yearSchedules.length,
         completedSchedules: yearSchedules.filter(s => s.status === 'Completed').length
     };
@@ -251,6 +255,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                 auditorData={analytics.auditorData as any[]}
                 year={selectedYear}
                 qaoDirector={signatories?.qaoDirector}
+                leadAuditorName={analytics.leadAuditorName}
             />
         );
 
@@ -442,10 +447,12 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                   </div>
                   <CardDescription className="text-xs">Drill down into specific unit assignments and timelines per auditor for AY {selectedYear}.</CardDescription>
               </div>
-              <Button onClick={handlePrintAssignments} size="sm" variant="outline" className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary gap-2 shadow-sm">
-                  <Printer className="h-4 w-4" />
-                  Print Assignments
-              </Button>
+              <div className="flex items-center gap-2">
+                  <Button onClick={handlePrintAssignments} size="sm" variant="outline" className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary gap-2 shadow-sm">
+                      <Printer className="h-4 w-4" />
+                      Print Assignments
+                  </Button>
+              </div>
           </CardHeader>
           <CardContent className="p-0">
               <ScrollArea className="h-[600px]">
@@ -489,7 +496,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                                                   </Badge>
                                               </div>
                                               <div className="space-y-1">
-                                                  <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase">
+                                                  <div className="flex items-center gap-1 text-[9px] font-bold text-muted-foreground uppercase">
                                                       <Clock className="h-3 w-3" />
                                                       {format(date, 'MMM dd')} &bull; {format(date, 'hh:mm a')}
                                                   </div>

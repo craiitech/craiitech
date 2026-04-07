@@ -26,9 +26,10 @@ interface AuditorAssignmentsPrintTemplateProps {
   auditorData: AuditorData[];
   year: number;
   qaoDirector?: string;
+  leadAuditorName?: string;
 }
 
-export function AuditorAssignmentsPrintTemplate({ auditorData, year, qaoDirector }: AuditorAssignmentsPrintTemplateProps) {
+export function AuditorAssignmentsPrintTemplate({ auditorData, year, qaoDirector, leadAuditorName }: AuditorAssignmentsPrintTemplateProps) {
   const safeFormatDate = (d: any) => {
     if (!d) return 'TBA';
     const date = d instanceof Timestamp ? d.toDate() : new Date(d);
@@ -101,9 +102,16 @@ export function AuditorAssignmentsPrintTemplate({ auditorData, year, qaoDirector
           </table>
 
           {/* Official Signatories */}
-          <div className="mt-8 flex justify-end pr-6 break-inside-avoid">
-            <div className="text-center w-56">
-              <p className="text-left mb-6 text-[8px] font-bold uppercase opacity-60">Verified and Issued by:</p>
+          <div className="mt-8 grid grid-cols-2 gap-12 px-6 break-inside-avoid">
+            <div className="text-center">
+              <p className="text-left mb-6 text-[8px] font-bold uppercase opacity-60">Prepared and Verified by:</p>
+              <div className="border-b border-black font-black text-[10px] pb-0.5 mb-0.5 uppercase tracking-tight">
+                {leadAuditorName || '__________________________'}
+              </div>
+              <p className="text-[8px] uppercase font-black text-slate-500 tracking-widest">IQA Lead Auditor</p>
+            </div>
+            <div className="text-center">
+              <p className="text-left mb-6 text-[8px] font-bold uppercase opacity-60">Approved by:</p>
               <div className="border-b border-black font-black text-[10px] pb-0.5 mb-0.5 uppercase tracking-tight">
                 {qaoDirector || '__________________________'}
               </div>
