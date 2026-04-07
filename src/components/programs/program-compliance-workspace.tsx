@@ -168,7 +168,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
   return (
     <FormProvider {...methods}>
       <form onSubmit={methods.handleSubmit(onSave)} className="space-y-6">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-muted/30 p-4 rounded-lg border border-primary/10">
+        <div className="sticky top-0 md:top-16 z-20 bg-background/95 backdrop-blur-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 mb-6 rounded-lg border border-primary/10 shadow-sm">
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-5 w-5 text-primary" />
             <span className="text-sm font-semibold uppercase tracking-wider">Academic Monitoring System</span>
