@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -20,6 +21,7 @@ import { Timestamp, doc } from 'firebase/firestore';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AuditPlanPrintTemplate } from './audit-plan-print-template';
 import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';
+import { AuditPrintTemplate } from './audit-print-template';
 import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -51,6 +53,8 @@ function PlanItineraryRegistry({
     plan, 
     schedules,
     allSchedules,
+    isoClauses,
+    signatories,
     onEdit, 
     onDelete,
     campusMap
@@ -58,6 +62,8 @@ function PlanItineraryRegistry({
     plan: AuditPlan; 
     schedules: AuditSchedule[];
     allSchedules: AuditSchedule[];
+    isoClauses: ISOClause[];
+    signatories?: Signatories;
     onEdit: (plan: AuditPlan, s: AuditSchedule) => void;
     onDelete: (s: AuditSchedule) => void;
     campusMap: Map<string, string>;
@@ -151,6 +157,55 @@ function PlanItineraryRegistry({
 
             return sameAuditor || sameUnit;
         });
+    };
+
+    const handlePrintTemplate = (schedule: AuditSchedule) => {
+        const clausesInScope = isoClauses.filter(c => schedule.isoClausesToAudit.includes(c.id));
+
+        try {
+            const reportHtml = renderToStaticMarkup(
+                <AuditPrintTemplate 
+                    schedule={schedule}
+                    findings={[]} 
+                    clauses={clausesInScope}
+                    signatories={signatories}
+                />
+            );
+
+            const printWindow = window.open('', '_blank');
+            if (printWindow) {
+                printWindow.document.open();
+                printWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Evidence Log Template - ${schedule.targetName}</title>
+                        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                        <style>
+                            @media print { 
+                                body { margin: 0; padding: 0; background: white; } 
+                                .no-print { display: none !important; }
+                                table { page-break-inside: auto; }
+                                tr { page-break-inside: avoid; page-break-after: auto; }
+                            }
+                            body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="no-print mb-8 flex justify-center">
+                            <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Blank Evidence Log</button>
+                        </div>
+                        <div id="print-content">
+                            ${reportHtml}
+                        </div>
+                    </body>
+                    </html>
+                `);
+                printWindow.document.close();
+            }
+        } catch (err) {
+            console.error("Print error:", err);
+        }
     };
 
     const isPlanUniversityWide = plan.campusId === 'university-wide';
@@ -310,6 +365,15 @@ function PlanItineraryRegistry({
                                             variant="ghost" 
                                             size="icon" 
                                             className="h-7 w-7 text-primary hover:bg-primary/5"
+                                            onClick={() => handlePrintTemplate(schedule)}
+                                            title="Print Blank Evidence Template"
+                                        >
+                                            <Printer className="h-3.5 w-3.5" />
+                                        </Button>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-7 w-7 text-primary hover:bg-primary/5"
                                             onClick={() => onEdit(plan, schedule)}
                                         >
                                             <Edit className="h-3.5 w-3.5" />
@@ -325,7 +389,7 @@ function PlanItineraryRegistry({
                                     </div>
                                 </TableCell>
                             </TableRow>
-                        )})}
+                            )})}
                     </TableBody>
                 </Table>
                 ) : (
@@ -704,6 +768,8 @@ export function AuditPlanList({
                     plan={plan}
                     schedules={planSchedules}
                     allSchedules={schedules}
+                    isoClauses={isoClauses}
+                    signatories={signatories || undefined}
                     onEdit={onEditSchedule}
                     onDelete={onDeleteSchedule}
                     campusMap={campusMap}

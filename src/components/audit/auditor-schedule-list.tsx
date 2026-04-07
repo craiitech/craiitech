@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { AuditSchedule, Campus, Unit } from '@/lib/types';
+import type { AuditSchedule, Campus, Unit, ISOClause, Signatories } from '@/lib/types';
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -15,17 +15,29 @@ import {
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
-import { Check, Clock, User } from 'lucide-react';
+import { Check, Clock, User, Printer, FileText } from 'lucide-react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { AuditPrintTemplate } from './audit-print-template';
 
 interface AuditorScheduleListProps {
     schedules: AuditSchedule[];
     campuses: Campus[];
     units: Unit[];
+    isoClauses: ISOClause[];
+    signatories?: Signatories;
     isClaimView: boolean;
     onClaimAudit?: (scheduleId: string) => void;
 }
 
-export function AuditorScheduleList({ schedules, campuses, units, isClaimView, onClaimAudit }: AuditorScheduleListProps) {
+export function AuditorScheduleList({ 
+    schedules, 
+    campuses, 
+    units, 
+    isoClauses, 
+    signatories,
+    isClaimView, 
+    onClaimAudit 
+}: AuditorScheduleListProps) {
   const router = useRouter();
   
   const getAuditeeName = (schedule: AuditSchedule) => {
@@ -41,6 +53,55 @@ export function AuditorScheduleList({ schedules, campuses, units, isClaimView, o
   const sortedSchedules = useMemo(() => {
     return [...schedules].sort((a,b) => a.scheduledDate.toMillis() - b.scheduledDate.toMillis());
   }, [schedules]);
+
+  const handlePrintTemplate = (schedule: AuditSchedule) => {
+    const clausesInScope = isoClauses.filter(c => schedule.isoClausesToAudit.includes(c.id));
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <AuditPrintTemplate 
+                schedule={schedule}
+                findings={[]} // Pass empty findings for blank template
+                clauses={clausesInScope}
+                signatories={signatories}
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Audit Evidence Template - ${schedule.targetName}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @media print { 
+                            body { margin: 0; padding: 0; background: white; } 
+                            .no-print { display: none !important; }
+                            table { page-break-inside: auto; }
+                            tr { page-break-inside: avoid; page-break-after: auto; }
+                        }
+                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Blank Evidence Log</button>
+                    </div>
+                    <div id="print-content">
+                        ${reportHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) {
+        console.error("Print error:", err);
+    }
+  };
 
   if (schedules.length === 0) {
     return <div className="text-center text-muted-foreground py-10">
@@ -87,16 +148,30 @@ export function AuditorScheduleList({ schedules, campuses, units, isClaimView, o
                         {schedule.status}
                     </Badge>
                 </TableCell>
-                <TableCell className="text-right">
-                    {isClaimView ? (
-                        <Button variant="default" size="sm" onClick={() => onClaimAudit?.(schedule.id)} className="h-8 text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/10">
-                            <Check className="h-3.5 w-3.5 mr-1.5" /> Claim Audit
-                        </Button>
-                    ) : (
-                        <Button variant="outline" size="sm" onClick={() => router.push(`/audit/${schedule.id}`)} className="h-8 text-[10px] font-black uppercase tracking-widest bg-white">
-                            Open Evidence Log
-                        </Button>
-                    )}
+                <TableCell className="text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-2">
+                        {!isClaimView && (
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handlePrintTemplate(schedule)}
+                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-primary/20 text-primary"
+                                title="Print Blank Template for Offline Use"
+                            >
+                                <Printer className="h-3.5 w-3.5 mr-1.5" />
+                                Print Template
+                            </Button>
+                        )}
+                        {isClaimView ? (
+                            <Button variant="default" size="sm" onClick={() => onClaimAudit?.(schedule.id)} className="h-8 text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/10">
+                                <Check className="h-3.5 w-3.5 mr-1.5" /> Claim Audit
+                            </Button>
+                        ) : (
+                            <Button variant="default" size="sm" onClick={() => router.push(`/audit/${schedule.id}`)} className="h-8 text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/10 px-4">
+                                Open Evidence Log
+                            </Button>
+                        )}
+                    </div>
                 </TableCell>
             </TableRow>
         ))}

@@ -1,9 +1,10 @@
+
 'use client';
 
 import { useMemo } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
-import type { AuditSchedule, Campus, Unit } from '@/lib/types';
+import type { AuditSchedule, Campus, Unit, ISOClause, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CalendarCheck, CalendarSearch, Check } from 'lucide-react';
 import { AuditorScheduleList } from './auditor-schedule-list';
@@ -27,6 +28,15 @@ export function AuditorAuditView() {
   
   const unitsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'units')) : null, [firestore]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+
+  const isoClausesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'isoClauses') : null), [firestore]);
+  const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
+
+  const signatoryRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
+    [firestore]
+  );
+  const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   const mySchedules = useMemo(() => 
     allSchedules?.filter(s => s.auditorId === user?.uid) || []
@@ -54,7 +64,7 @@ export function AuditorAuditView() {
     }
   }
 
-  const isLoading = isUserLoading || isLoadingSchedules || isLoadingCampuses || isLoadingUnits;
+  const isLoading = isUserLoading || isLoadingSchedules || isLoadingCampuses || isLoadingUnits || isLoadingClauses;
 
   return (
     <div className="space-y-4">
@@ -83,6 +93,8 @@ export function AuditorAuditView() {
                             schedules={mySchedules}
                             campuses={campuses || []}
                             units={units || []}
+                            isoClauses={isoClauses || []}
+                            signatories={signatories || undefined}
                             isClaimView={false}
                         />
                     </TabsContent>
@@ -91,6 +103,8 @@ export function AuditorAuditView() {
                             schedules={availableSchedules}
                             campuses={campuses || []}
                             units={units || []}
+                            isoClauses={isoClauses || []}
+                            signatories={signatories || undefined}
                             isClaimView={true}
                             onClaimAudit={handleClaimAudit}
                         />

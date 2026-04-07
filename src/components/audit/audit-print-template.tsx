@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -61,7 +62,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
                 <span className="opacity-60 mr-2">AUDIT NO:</span> {schedule.auditNumber || '--'}
             </div>
             <div className="p-2 border-r border-black font-bold">
-                <span className="opacity-60 mr-2">AUDITOR:</span> {schedule.auditorName || 'TBA'}
+                <span className="opacity-60 mr-2">AUDITOR:</span> {schedule.auditorName || '________________'}
             </div>
             <div className="p-2 border-r border-black font-bold">
                 <span className="opacity-60 mr-2">AUDITEE:</span> {schedule.officerInCharge || '________________'}
@@ -98,10 +99,10 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
                         {questions.map((q, i) => <li key={i}>{q}</li>)}
                     </ul>
                   </div>
-                  <div className="pt-2 border-t border-slate-100 min-h-[60px]">
+                  <div className="pt-2 border-t border-slate-100 min-h-[80px]">
                     <p className="text-[8px] font-black uppercase text-slate-400 mb-1">Auditor Observations / Objective Evidence:</p>
                     <p className="whitespace-pre-wrap leading-relaxed">
-                        {finding?.evidence || <span className="text-slate-300 italic">No record entry.</span>}
+                        {finding?.evidence || ""}
                     </p>
                     {finding?.type === 'Non-Conformance' && finding.ncStatement && (
                         <div className="mt-3 p-3 bg-red-50/50 border border-black border-dashed">
@@ -121,7 +122,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
                           {finding.type === 'Compliance' ? 'C' : 
                            finding.type === 'Non-Conformance' ? 'NC' : 'OFI'}
                       </span>
-                  ) : '--'}
+                  ) : ''}
                 </td>
               </tr>
             );
@@ -139,19 +140,19 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
         <div className="grid grid-cols-1 border-2 border-black divide-y-2 divide-black text-[10px]">
             <div className="p-3 bg-blue-50/30">
                 <h4 className="font-black uppercase text-blue-700 mb-1">Summary of Commendable Practices (P)</h4>
-                <div className="min-h-[40px] whitespace-pre-wrap italic">{schedule.summaryCommendable || 'None recorded.'}</div>
+                <div className="min-h-[60px] whitespace-pre-wrap italic">{schedule.summaryCommendable || ''}</div>
             </div>
             <div className="p-3">
                 <h4 className="font-black uppercase text-green-700 mb-1">Summary of Compliance (C)</h4>
-                <div className="min-h-[40px] whitespace-pre-wrap italic">{schedule.summaryCompliance || 'None recorded.'}</div>
+                <div className="min-h-[60px] whitespace-pre-wrap italic">{schedule.summaryCompliance || ''}</div>
             </div>
             <div className="p-3">
                 <h4 className="font-black uppercase text-amber-700 mb-1">Opportunities for Improvement (OFI)</h4>
-                <div className="min-h-[40px] whitespace-pre-wrap italic">{schedule.summaryOFI || 'None recorded.'}</div>
+                <div className="min-h-[60px] whitespace-pre-wrap italic">{schedule.summaryOFI || ''}</div>
             </div>
             <div className="p-3 bg-slate-50">
                 <h4 className="font-black uppercase text-red-700 mb-1">Non-Conformance / Non-Compliance (NC)</h4>
-                <div className="min-h-[40px] whitespace-pre-wrap italic">{schedule.summaryNC || 'None recorded.'}</div>
+                <div className="min-h-[60px] whitespace-pre-wrap italic">{schedule.summaryNC || ''}</div>
             </div>
         </div>
       </div>
