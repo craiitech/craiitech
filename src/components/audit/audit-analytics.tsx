@@ -1,10 +1,10 @@
-
 'use client';
 
 import { useMemo } from 'react';
 import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Unit, Campus, User, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '../ui/skeleton';
 import { 
     BarChart, 
@@ -12,7 +12,7 @@ import {
     XAxis, 
     YAxis, 
     CartesianGrid, 
-    Tooltip, 
+    Tooltip as RechartsTooltip, 
     Legend, 
     ResponsiveContainer, 
     Cell,
@@ -44,7 +44,8 @@ import {
     HandHeart,
     Printer,
     Clock,
-    ChevronRight
+    ChevronRight,
+    Building2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -55,6 +56,7 @@ import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { Timestamp } from 'firebase/firestore';
 
 interface AuditAnalyticsProps {
   plans: AuditPlan[];
@@ -430,7 +432,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
           </div>
       </div>
 
-      {/* 3. AUDITOR TEAM DETAILED ASSIGNMENTS (NEW REQUEST) */}
+      {/* 3. AUDITOR TEAM DETAILED ASSIGNMENTS */}
       <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
           <CardHeader className="bg-muted/10 border-b py-4 flex flex-row items-center justify-between">
               <div className="space-y-1">
@@ -481,7 +483,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                                                   </div>
                                                   <Badge className={cn(
                                                       "h-4 text-[7px] font-black uppercase border-none shrink-0",
-                                                      asg.status === 'Completed' ? "bg-emerald-600" : "bg-amber-500"
+                                                      asg.status === 'Completed' ? "bg-emerald-600" : "bg-amber-50"
                                                   )}>
                                                       {asg.status}
                                                   </Badge>
