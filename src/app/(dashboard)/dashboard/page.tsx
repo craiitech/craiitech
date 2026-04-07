@@ -118,6 +118,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { AccreditationRecommendationReport } from '@/components/programs/recommendation-print-template';
 import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
 import { AuditPrintTemplate } from '@/components/audit/audit-print-template';
+import { useToast } from '@/hooks/use-toast';
 
 
 export const TOTAL_REPORTS_PER_CYCLE = 6;
