@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AcademicProgram, ProgramComplianceRecord, AccreditationRecord, CurriculumRecord } from '@/lib/types';
+import type { AcademicProgram, ProgramComplianceRecord, AccreditationRecord, CurriculumRecord, CorrectiveActionRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -70,7 +69,7 @@ import { cn } from '@/lib/utils';
 import { Progress } from '../ui/progress';
 import { Timestamp } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, where, doc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Separator } from '../ui/separator';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -109,6 +108,20 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units } = useCollection<any>(unitsQuery);
   const unitMap = useMemo(() => new Map(units?.map(u => [u.id, u.name])), [units]);
+
+  /**
+   * COMPLIANCE HISTORY FETCHING
+   * Strictly scoped to the program's academic unit AND campus site.
+   */
+  const carQuery = useMemoFirebase(() => {
+    if (!firestore || !record?.unitId || !record?.campusId) return null;
+    return query(
+        collection(firestore, 'correctiveActionRequests'), 
+        where('unitId', '==', record.unitId),
+        where('campusId', '==', record.campusId)
+    );
+  }, [firestore, record?.unitId, record?.campusId]);
+  const { data: unitCars } = useCollection<CorrectiveActionRequest>(carQuery);
 
   const isCampusSupervisor = userRole === 'Campus Director' || userRole === 'Campus ODIMO';
   const isUnitViewer = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
@@ -499,7 +512,7 @@ export function ProgramPerformanceView({ program, record, selectedYear, onResolv
                                           <div className="flex-1 min-w-0 space-y-2">
                                               <div className="flex items-center justify-between">
                                                   <Badge variant="secondary" className="h-4 text-[8px] font-black uppercase">{milestone.level} &bull; {reco.type}</Badge>
-                                                  <Badge className={cn("h-4 text-[8px] font-black uppercase", reco.status === 'Closed' ? "bg-emerald-600" : "bg-amber-500")}>{reco.status}</Badge>
+                                                  <Badge className={cn("h-4 text-[8px] font-black uppercase", reco.status === 'Closed' ? "bg-emerald-600" : "bg-amber-50")}>{reco.status}</Badge>
                                               </div>
                                               <p className="text-xs font-bold text-slate-800 leading-relaxed italic">"{reco.text}"</p>
                                               <div className="flex flex-wrap gap-1.5">

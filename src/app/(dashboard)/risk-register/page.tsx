@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -139,12 +138,20 @@ export default function RiskRegisterPage() {
     }, [firestore, userProfile, selectedYear, isAdmin, isSupervisor]);
     const { data: harvestedCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
+    /**
+     * CORRECTIVE ACTION REQUESTS FETCHING
+     * Strictly scoped to site context for non-admin users.
+     */
     const carQuery = useMemoFirebase(() => {
         if (!firestore || !userProfile) return null;
         const baseRef = collection(firestore, 'correctiveActionRequests');
         if (isAdmin) return baseRef;
         if (isSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
-        return query(baseRef, where('unitId', '==', userProfile.unitId));
+        
+        return query(baseRef, 
+            where('unitId', '==', userProfile.unitId),
+            where('campusId', '==', userProfile.campusId)
+        );
     }, [firestore, userProfile, isAdmin, isSupervisor]);
     const { data: harvestedCars } = useCollection<CorrectiveActionRequest>(carQuery);
 
@@ -346,7 +353,7 @@ export default function RiskRegisterPage() {
                         <SelectValue placeholder="Year" />
                     </SelectTrigger>
                     <SelectContent>
-                        {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                        {yearsList.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>

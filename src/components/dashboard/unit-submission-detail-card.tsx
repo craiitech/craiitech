@@ -85,9 +85,13 @@ export function UnitSubmissionDetailCard({
   const { data: unitCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
   const carQuery = useMemoFirebase(() => {
-    if (!firestore || !unitId) return null;
-    return query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', unitId));
-  }, [firestore, unitId]);
+    if (!firestore || !unitId || !campusId) return null;
+    return query(
+        collection(firestore, 'correctiveActionRequests'), 
+        where('unitId', '==', unitId),
+        where('campusId', '==', campusId)
+    );
+  }, [firestore, unitId, campusId]);
   const { data: unitCars } = useCollection<CorrectiveActionRequest>(carQuery);
 
   const findingsQuery = useMemoFirebase(() => {

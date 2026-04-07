@@ -20,7 +20,7 @@ import {
     LabelList
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { 
     ClipboardCheck, 
@@ -66,12 +66,24 @@ export function QaAnalyticsTab() {
 
   const isInstitutionalViewer = isAdmin || userRole === 'Auditor';
 
-  // Scoped Data Fetching
+  /**
+   * CORRECTIVE ACTION REQUESTS FETCHING
+   * Strictly scoped to site context for non-admin users.
+   */
   const carQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     const baseRef = collection(firestore, 'correctiveActionRequests');
     if (isInstitutionalViewer) return baseRef;
-    if (userProfile.unitId) return query(baseRef, where('unitId', '==', userProfile.unitId));
+    
+    // For Unit Coordinators: Strictly bound to unit AND site
+    if (userProfile.unitId) {
+        return query(baseRef, 
+            where('unitId', '==', userProfile.unitId),
+            where('campusId', '==', userProfile.campusId)
+        );
+    }
+    
+    // For site supervisors
     return query(baseRef, where('campusId', '==', userProfile.campusId));
   }, [firestore, userProfile, isInstitutionalViewer]);
   const { data: cars, isLoading: isLoadingCars } = useCollection<CorrectiveActionRequest>(carQuery);
@@ -81,11 +93,8 @@ export function QaAnalyticsTab() {
 
   const mrOutputsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
-    const baseRef = collection(firestore, 'managementReviewOutputs');
-    if (isInstitutionalViewer) return baseRef;
-    // Assignments is an array of objects, so we fetch all and filter in useMemo for more complex logic
-    return baseRef; 
-  }, [firestore, userProfile, isInstitutionalViewer]);
+    return collection(firestore, 'managementReviewOutputs');
+  }, [firestore, userProfile]);
   const { data: rawMrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
 
   const reportsQuery = useMemoFirebase(() => {
@@ -194,7 +203,7 @@ export function QaAnalyticsTab() {
     if (openDecisions > 0) {
         gaps.push({
             title: 'Implementation Backlog',
-            description: `${openDecisions} management decisions are currently past due or pending unit-level implementation.`,
+            description: `${openDecisions} management decisions are currently past due or pending unit-level action.`,
             tag: '[MR Action Gap]',
             priority: 'Medium'
         });
@@ -465,7 +474,7 @@ export function QaAnalyticsTab() {
                                     <Cell key={`cell-${index}`} fill={CAR_STATUS_COLORS[entry.statusId] || '#cbd5e1'} />
                                 ))}
                             </Pie>
-                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'black', paddingTop: '20px' }} />
+                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontStyle: 'bold', paddingTop: '20px' }} />
                         </PieChart>
                     </ResponsiveContainer>
                 </ChartContainer>

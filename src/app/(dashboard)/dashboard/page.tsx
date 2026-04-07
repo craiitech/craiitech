@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -226,12 +225,21 @@ export default function HomePage() {
   }, [firestore, userProfile, selectedYear]);
   const { data: allCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
+  /**
+   * CORRECTIVE ACTION REQUESTS FETCHING
+   * Strictly scoped to site context for non-admin users.
+   */
   const carQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     const baseRef = collection(firestore, 'correctiveActionRequests');
     if (isAdmin) return baseRef;
     if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
-    return query(baseRef, where('unitId', '==', userProfile.unitId));
+    
+    // For Unit Coordinators: Strictly bound to unit AND site
+    return query(baseRef, 
+        where('unitId', '==', userProfile.unitId),
+        where('campusId', '==', userProfile.campusId)
+    );
   }, [firestore, userProfile, isAdmin, isCampusSupervisor]);
   const { data: correctiveActionRequests } = useCollection<CorrectiveActionRequest>(carQuery);
 

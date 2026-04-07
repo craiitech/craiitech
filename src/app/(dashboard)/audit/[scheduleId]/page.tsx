@@ -89,12 +89,16 @@ export default function AuditExecutionPage() {
 
   /**
    * COMPLIANCE HISTORY FETCHING
-   * Fetches historical CARs for the unit being audited to provide context.
+   * Strictly scoped to the unit AND site context of the audit session.
    */
   const unitCarsQuery = useMemoFirebase(() => {
-    if (!firestore || !schedule?.targetId) return null;
-    return query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', schedule.targetId));
-  }, [firestore, schedule?.targetId]);
+    if (!firestore || !schedule?.targetId || !schedule?.campusId) return null;
+    return query(
+        collection(firestore, 'correctiveActionRequests'), 
+        where('unitId', '==', schedule.targetId),
+        where('campusId', '==', schedule.campusId)
+    );
+  }, [firestore, schedule?.targetId, schedule?.campusId]);
   const { data: unitCars } = useCollection<CorrectiveActionRequest>(unitCarsQuery);
 
   const clausesInScope = useMemo(() => {
@@ -417,7 +421,7 @@ export default function AuditExecutionPage() {
                         </CardContent>
                     </Card>
 
-                    {/* STEP 2: EVIDENCE CHECKLIST (NOT inside a form tag to avoid nesting) */}
+                    {/* STEP 2: EVIDENCE CHECKLIST */}
                     <AuditChecklist 
                         scheduleId={schedule.id}
                         clausesToAudit={clausesInScope}

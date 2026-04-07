@@ -157,10 +157,18 @@ export function UnitSubmissionsView({
   }, [firestore, selectedUnitId, selectedYear]);
   const { data: unitCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
+  /**
+   * CORRECTIVE ACTION REQUESTS FETCHING
+   * Strictly scoped to the selected unit AND campus site.
+   */
   const carQuery = useMemoFirebase(() => {
-    if (!firestore || !selectedUnitId) return null;
-    return query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', selectedUnitId));
-  }, [firestore, selectedUnitId]);
+    if (!firestore || !selectedUnitId || !userProfile?.campusId) return null;
+    return query(
+        collection(firestore, 'correctiveActionRequests'), 
+        where('unitId', '==', selectedUnitId),
+        where('campusId', '==', userProfile.campusId)
+    );
+  }, [firestore, selectedUnitId, userProfile?.campusId]);
   const { data: unitCars } = useCollection<CorrectiveActionRequest>(carQuery);
 
   const mrOutputsQuery = useMemoFirebase(() => {
@@ -294,7 +302,7 @@ export function UnitSubmissionsView({
                 selectedYear={Number(selectedYear)}
               />
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 mini-gap-6">
                   <Card className="lg:col-span-1 flex flex-col items-center justify-center bg-background rounded-2xl border-primary/10 shadow-lg p-8 relative overflow-hidden">
                       <div className="absolute top-0 right-0 p-4 opacity-5"><PieIcon className="h-20 w-20" /></div>
                       <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-6">Unit Verified Maturity</span>
