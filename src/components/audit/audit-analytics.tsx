@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Unit, Campus, User } from '@/lib/types';
+import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Unit, Campus, User, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '../ui/skeleton';
@@ -41,11 +41,20 @@ import {
     Briefcase,
     CalendarCheck,
     Scale,
-    HandHeart
+    HandHeart,
+    Printer,
+    Clock,
+    ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { AuditorAssignmentsPrintTemplate } from './auditor-assignments-print-template';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 interface AuditAnalyticsProps {
   plans: AuditPlan[];
@@ -74,10 +83,19 @@ type SWOTItem = {
 };
 
 export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, campuses, users, isLoading, selectedYear }: AuditAnalyticsProps) {
-  
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
+  const signatoryRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
+    [firestore]
+  );
+  const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
   const analytics = useMemo(() => {
     if (!schedules.length) return null;
 
+    const campusMap = new Map(campuses.map(c => [c.id, c.name]));
     const yearPlans = plans.filter(p => p.year === selectedYear);
     const planIds = new Set(yearPlans.map(p => p.id));
     const yearSchedules = schedules.filter(s => planIds.has(s.auditPlanId));
@@ -108,17 +126,27 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         .slice(0, 10);
 
     // 3. Auditor Workload & Sex Distribution
-    const auditorWorkload: Record<string, { name: string, count: number, completed: number }> = {};
+    const auditorWorkload: Record<string, { name: string, count: number, completed: number, assignments: any[] }> = {};
     const uniqueAuditorIds = new Set<string>();
 
     yearSchedules.forEach(s => {
         if (!s.auditorId) return;
         uniqueAuditorIds.add(s.auditorId);
         if (!auditorWorkload[s.auditorId]) {
-            auditorWorkload[s.auditorId] = { name: s.auditorName || 'TBA', count: 0, completed: 0 };
+            auditorWorkload[s.auditorId] = { name: s.auditorName || 'TBA', count: 0, completed: 0, assignments: [] };
         }
         auditorWorkload[s.auditorId].count++;
         if (s.status === 'Completed') auditorWorkload[s.auditorId].completed++;
+        
+        auditorWorkload[s.auditorId].assignments.push({
+            unitName: s.targetName,
+            date: s.scheduledDate,
+            startTime: s.scheduledDate,
+            endTime: s.endScheduledDate,
+            status: s.status,
+            procedure: s.procedureDescription,
+            campus: campusMap.get(s.campusId) || 'Institutional'
+        });
     });
     const auditorData = Object.values(auditorWorkload).sort((a, b) => b.count - a.count);
 
@@ -210,7 +238,54 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
         totalSchedules: yearSchedules.length,
         completedSchedules: yearSchedules.filter(s => s.status === 'Completed').length
     };
-  }, [plans, schedules, findings, units, users, selectedYear]);
+  }, [plans, schedules, findings, units, users, campuses, selectedYear]);
+
+  const handlePrintAssignments = () => {
+    if (!analytics?.auditorData.length) return;
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <AuditorAssignmentsPrintTemplate 
+                auditorData={analytics.auditorData as any[]}
+                year={selectedYear}
+                qaoDirector={signatories?.qaoDirector}
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Auditor Assignments - AY ${selectedYear}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @media print { 
+                            body { margin: 0; padding: 0; background: white; } 
+                            .no-print { display: none !important; }
+                            .print-page-break { page-break-after: always; }
+                        }
+                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Assignment Report</button>
+                    </div>
+                    <div id="print-content">
+                        ${reportHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (e) {
+        console.error(e);
+        toast({ title: "Print Failed", variant: "destructive" });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -355,79 +430,85 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
           </div>
       </div>
 
-      {/* 3. AUDITOR RESOURCE & WORKLOAD DISTRIBUTION */}
+      {/* 3. AUDITOR TEAM DETAILED ASSIGNMENTS (NEW REQUEST) */}
       <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
-          <CardHeader className="bg-muted/10 border-b py-4">
-              <div className="flex items-center justify-between">
+          <CardHeader className="bg-muted/10 border-b py-4 flex flex-row items-center justify-between">
+              <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                      <Briefcase className="h-5 w-5 text-primary" />
-                      <CardTitle className="text-sm font-black uppercase tracking-tight">Audit Team Workload & Allocation</CardTitle>
+                      <UserCheck className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-sm font-black uppercase tracking-tight">Auditor Detailed Assignment Registry</CardTitle>
                   </div>
-                  <Badge variant="outline" className="h-5 text-[9px] font-black bg-white uppercase">AY {selectedYear} Resource Audit</Badge>
+                  <CardDescription className="text-xs">Drill down into specific unit assignments and timelines per auditor for AY {selectedYear}.</CardDescription>
               </div>
-              <CardDescription className="text-xs">Drill down into the number of units assigned per individual auditor.</CardDescription>
+              <Button onClick={handlePrintAssignments} size="sm" variant="outline" className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary gap-2 shadow-sm">
+                  <Printer className="h-4 w-4" />
+                  Print Assignments
+              </Button>
           </CardHeader>
           <CardContent className="p-0">
-              <div className="grid grid-cols-1 lg:grid-cols-2 divide-x">
-                  <div className="p-6 h-[500px]">
-                      <ChartContainer config={{}} className="h-full w-full">
-                          <ResponsiveContainer>
-                              <BarChart data={analytics.auditorData} layout="vertical" margin={{ right: 40, left: 10 }}>
-                                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
-                                  <XAxis type="number" hide />
-                                  <YAxis 
-                                    dataKey="name" 
-                                    type="category" 
-                                    tick={{ fontSize: 9, fontWeight: 700 }} 
-                                    width={200} 
-                                    axisLine={false} 
-                                    tickLine={false} 
-                                    interval={0}
-                                  />
-                                  <Tooltip content={<ChartTooltipContent />} />
-                                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={10}>
-                                      <LabelList dataKey="count" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--primary))' }} />
-                                  </Bar>
-                              </BarChart>
-                          </ResponsiveContainer>
-                      </ChartContainer>
-                  </div>
-                  <div className="p-0">
-                      <ScrollArea className="h-[500px]">
-                          <Table>
-                              <TableHeader className="bg-slate-50 sticky top-0 z-10">
-                                  <TableRow>
-                                      <TableHead className="text-[10px] font-black uppercase pl-6">Internal Auditor</TableHead>
-                                      <TableHead className="text-[10px] font-black uppercase text-center">Assigned Units</TableHead>
-                                      <TableHead className="text-[10px] font-black uppercase text-right pr-6">Completion</TableHead>
-                                  </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                  {analytics.auditorData.map((auditor, idx) => (
-                                      <TableRow key={idx} className="hover:bg-muted/30">
-                                          <TableCell className="pl-6 font-bold text-xs">{auditor.name}</TableCell>
-                                          <TableCell className="text-center font-black tabular-nums">{auditor.count}</TableCell>
-                                          <TableCell className="text-right pr-6">
-                                              <div className="flex flex-col items-end gap-1">
-                                                  <span className="text-[10px] font-black tabular-nums">{Math.round((auditor.completed / auditor.count) * 100)}%</span>
-                                                  <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
-                                                      <div className="h-full bg-emerald-500" style={{ width: `${(auditor.completed / auditor.count) * 100}%` }} />
+              <ScrollArea className="h-[600px]">
+                  <div className="divide-y">
+                      {analytics.auditorData.map((auditor, aIdx) => (
+                          <div key={aIdx} className="p-6 space-y-4 hover:bg-muted/10 transition-colors group">
+                              <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-black text-primary">
+                                          {auditor.name.charAt(0)}
+                                      </div>
+                                      <div>
+                                          <h4 className="font-black text-slate-900 uppercase">{auditor.name}</h4>
+                                          <div className="flex items-center gap-2 mt-0.5">
+                                              <Badge variant="secondary" className="h-4 px-1.5 text-[8px] font-black uppercase border-none bg-primary/5 text-primary">
+                                                  {auditor.count} SESSIONS
+                                              </Badge>
+                                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                  {Math.round((auditor.completed / auditor.count) * 100)}% COMPLETE
+                                              </span>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+
+                              <div className="pl-12 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                  {auditor.assignments.map((asg, sIdx) => {
+                                      const date = asg.date instanceof Timestamp ? asg.date.toDate() : new Date(asg.date);
+                                      return (
+                                          <div key={sIdx} className="p-3 rounded-xl border bg-white shadow-sm flex flex-col gap-2 group-hover:border-primary/20 transition-all">
+                                              <div className="flex items-center justify-between gap-2 border-b pb-2">
+                                                  <div className="flex items-center gap-1.5 min-w-0">
+                                                      <Building2 className="h-3 w-3 text-primary opacity-40 shrink-0" />
+                                                      <span className="text-[10px] font-black text-slate-800 uppercase truncate" title={asg.unitName}>{asg.unitName}</span>
                                                   </div>
+                                                  <Badge className={cn(
+                                                      "h-4 text-[7px] font-black uppercase border-none shrink-0",
+                                                      asg.status === 'Completed' ? "bg-emerald-600" : "bg-amber-500"
+                                                  )}>
+                                                      {asg.status}
+                                                  </Badge>
                                               </div>
-                                          </TableCell>
-                                      </TableRow>
-                                  ))}
-                              </TableBody>
-                          </Table>
-                      </ScrollArea>
+                                              <div className="space-y-1">
+                                                  <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase">
+                                                      <Clock className="h-3 w-3" />
+                                                      {format(date, 'MMM dd')} &bull; {format(date, 'hh:mm a')}
+                                                  </div>
+                                                  <p className="text-[9px] text-slate-500 italic line-clamp-2 leading-relaxed">
+                                                      {asg.procedure}
+                                                  </p>
+                                              </div>
+                                          </div>
+                                      );
+                                  })}
+                              </div>
+                          </div>
+                      ))}
                   </div>
-              </div>
+              </ScrollArea>
           </CardContent>
-          <CardFooter className="bg-muted/5 border-t py-3">
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
               <div className="flex items-start gap-3">
-                  <Scale className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                  <p className="text-[10px] text-muted-foreground leading-relaxed italic">
-                      <strong>Operational Support:</strong> Use this registry to ensure parity in audit assignments. High session counts per auditor (e.g. {'>'}10) may impact the depth of evidence logging and the quality of final findings.
+                  <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                  <p className="text-[9px] text-muted-foreground italic leading-relaxed">
+                      <strong>Deployment Oversight:</strong> This registry provides institutional visibility into auditor workloads. Ensure that no single auditor is over-leveraged to maintain the depth and integrity of evidence logs.
                   </p>
               </div>
           </CardFooter>
@@ -447,7 +528,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                 <ChartContainer config={{}} className="h-[280px] w-full">
                     <ResponsiveContainer>
                         <PieChart>
-                            <Tooltip content={<ChartTooltipContent hideLabel />} />
+                            <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
                             <Pie 
                                 data={analytics.findingsData} 
                                 cx="50%" 
@@ -491,7 +572,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
                             <XAxis type="number" hide />
                             <YAxis dataKey="id" type="category" tick={{ fontSize: 10, fontWeight: 900 }} width={40} axisLine={false} tickLine={false} />
-                            <Tooltip content={<ChartTooltipContent />} />
+                            <RechartsTooltip content={<ChartTooltipContent />} />
                             <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={14}>
                                 <LabelList dataKey="count" position="right" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--primary))' }} />
                             </Bar>
