@@ -124,15 +124,18 @@ function ClauseForm({
   return (
     <div className="space-y-8">
         {/* COMPLIANCE HISTORY NOTE (CARs) - Auditor Foresight mapped to Clause 10.1 */}
-        {clauseCars.length > 0 && (
-            <div className="space-y-3 p-5 rounded-2xl border-primary/20 bg-primary/5 animate-in slide-in-from-top-2 duration-500">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-primary">
-                        <Scale className="h-4 w-4" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Auditor Foresight: Clause {clause.id} History</span>
-                    </div>
-                    <Badge variant="outline" className="h-5 text-[8px] font-black bg-white border-primary/20 text-primary">CLAUSE 10.1 REQUIREMENT</Badge>
+        <div className="space-y-3 p-5 rounded-2xl border-primary/20 bg-primary/5 animate-in slide-in-from-top-2 duration-500">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-primary">
+                    <Scale className="h-4 w-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">
+                        Auditor Foresight: {clause.id === '10.1' ? 'Unit Non-Conformance History' : `Clause ${clause.id} History`}
+                    </span>
                 </div>
+                <Badge variant="outline" className="h-5 text-[8px] font-black bg-white border-primary/20 text-primary">CLAUSE 10.1 REQUIREMENT</Badge>
+            </div>
+            
+            {clauseCars.length > 0 ? (
                 <div className="space-y-2">
                     {clauseCars.map(car => (
                         <div key={car.id} className="flex items-center justify-between bg-white/80 p-3 rounded-xl border border-primary/5 shadow-sm">
@@ -151,11 +154,20 @@ function ClauseForm({
                         </div>
                     ))}
                 </div>
-                <p className="text-[9px] text-primary/60 font-medium italic leading-tight">
-                    <strong>Auditor Guideline (10.1.d):</strong> Verify if previous actions taken for the above findings are still effective and prevent recurrence.
-                </p>
-            </div>
-        )}
+            ) : (
+                <div className="flex items-center gap-3 bg-white/60 p-4 rounded-xl border border-emerald-100 shadow-inner">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <div className="space-y-0.5">
+                        <p className="text-[10px] font-black text-emerald-800 uppercase">Clean Compliance History</p>
+                        <p className="text-[9px] text-emerald-600 font-medium italic">This unit has no recorded non-conformities from previous audits {clause.id !== '10.1' ? 'associated with this clause' : ''}.</p>
+                    </div>
+                </div>
+            )}
+            
+            <p className="text-[9px] text-primary/60 font-medium italic leading-tight pt-1">
+                <strong>Auditor Guideline (10.1.d):</strong> Verify if previous actions taken for any findings are still effective and prevent recurrence.
+            </p>
+        </div>
 
         <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -288,7 +300,12 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, o
           {sortedClauses.map((clause) => {
             const hasFinding = findingsMap.has(clause.id);
             const findingType = findingsMap.get(clause.id)?.type;
-            const clauseCars = unitCars.filter(c => c.concerningClause === clause.id);
+            
+            // LOGIC: For Clause 10.1, show ALL unit non-conformances. 
+            // For other clauses, show only those specifically linked to that requirement.
+            const relevantCars = clause.id === '10.1' 
+                ? unitCars 
+                : unitCars.filter(c => c.concerningClause === clause.id);
 
             return (
               <AccordionItem value={clause.id} key={clause.id} className="px-8 border-b last:border-0 hover:bg-slate-50/50 transition-colors">
@@ -302,10 +319,12 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, o
                             <span className="text-sm font-black text-slate-800 uppercase tracking-tighter">
                                 {clause.title}
                             </span>
-                            {clauseCars.length > 0 && (
+                            {relevantCars.length > 0 && (
                                 <div className="flex items-center gap-1.5 mt-1">
                                     <History className="h-3 w-3 text-amber-600" />
-                                    <span className="text-[9px] font-black text-amber-700 uppercase tracking-widest">Historical Findings: {clauseCars.length}</span>
+                                    <span className="text-[9px] font-black text-amber-700 uppercase tracking-widest">
+                                        {clause.id === '10.1' ? 'Unit Total:' : 'Clause History:'} {relevantCars.length} findings detected
+                                    </span>
                                 </div>
                             )}
                         </div>
@@ -331,7 +350,7 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, o
                         clause={clause}
                         finding={findingsMap.get(clause.id)}
                         onSave={(data) => onFindingSaved?.(data)}
-                        clauseCars={clauseCars}
+                        clauseCars={relevantCars}
                     />
                   </div>
                 </AccordionContent>
