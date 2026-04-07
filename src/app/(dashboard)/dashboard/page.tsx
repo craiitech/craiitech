@@ -36,7 +36,8 @@ import {
   Printer,
   ChevronRight,
   XCircle,
-  Settings
+  Settings,
+  Building2
 } from 'lucide-react';
 import {
   useUser,
@@ -68,7 +69,9 @@ import type {
     ProgramComplianceRecord,
     AuditFinding,
     CorrectiveActionRequest,
-    AuditSchedule
+    AuditSchedule,
+    Signatories,
+    ISOClause
 } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo, useState, useEffect } from 'react';
@@ -114,6 +117,7 @@ import { StrategicSwotAnalysis } from '@/components/submissions/strategic-swot-a
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AccreditationRecommendationReport } from '@/components/programs/recommendation-print-template';
 import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
+import { AuditPrintTemplate } from '@/components/audit/audit-print-template';
 
 
 export const TOTAL_REPORTS_PER_CYCLE = 6;
@@ -135,6 +139,7 @@ export default function HomePage() {
   const { user, userProfile, isAdmin, isUserLoading, userRole, isSupervisor, isVp } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
 
   const [isAnnouncementVisible, setIsAnnouncementVisible] = useState(true);
   const [isGlobalAnnouncementVisible, setIsGlobalAnnouncementVisible] = useState(true);
@@ -290,6 +295,15 @@ export default function HomePage() {
     return isAccessible ? adv : null;
   }, [latestAdvisories, userProfile, isAdmin]);
 
+  const isoClausesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'isoClauses') : null), [firestore]);
+  const { data: isoClauses } = useCollection<ISOClause>(isoClausesQuery);
+
+  const signatoryRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
+    [firestore]
+  );
+  const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
   /**
    * IQA SCHEDULE FETCHING FOR DASHBOARD
    */
@@ -421,6 +435,49 @@ export default function HomePage() {
             printWindow.document.close();
         }
     } catch (e) { console.error(e); }
+  };
+
+  const handlePrintAuditTemplate = (schedule: AuditSchedule) => {
+    if (!isoClauses) return;
+    const clausesInScope = isoClauses.filter(c => schedule.isoClausesToAudit.includes(c.id));
+
+    try {
+        const reportHtml = renderToStaticMarkup(
+            <AuditPrintTemplate 
+                schedule={schedule}
+                findings={[]} 
+                clauses={clausesInScope}
+                signatories={signatories || undefined}
+            />
+        );
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Evidence Log Template - ${schedule.targetName}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        @media print { body { margin: 0; padding: 0; background: white; } .no-print { display: none !important; } }
+                        body { font-family: sans-serif; background: #f9fafb; padding: 40px; color: black; }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print mb-8 flex justify-center">
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Print Blank Evidence Log</button>
+                    </div>
+                    <div id="print-content">${reportHtml}</div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch (err) {
+        console.error("Print error:", err);
+    }
   };
 
   const isLoading =
@@ -879,8 +936,17 @@ export default function HomePage() {
                                             {s.endScheduledDate && ` - ${format(s.endScheduledDate.toDate(), 'p')}`}
                                         </TableCell>
                                         <TableCell><Badge variant="secondary">{s.status}</Badge></TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="outline" size="sm" onClick={() => router.push(`/audit/${s.id}`)}>
+                                        <TableCell className="text-right whitespace-nowrap space-x-2">
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                onClick={() => handlePrintAuditTemplate(s)}
+                                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-white border-primary/20 text-primary"
+                                            >
+                                                <Printer className="h-3.5 w-3.5 mr-1.5" />
+                                                Print Template
+                                            </Button>
+                                            <Button variant="default" size="sm" onClick={() => router.push(`/audit/${s.id}`)}>
                                                 Conduct Audit
                                             </Button>
                                         </TableCell>
