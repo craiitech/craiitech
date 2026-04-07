@@ -301,7 +301,6 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
 
         const printWindow = window.open('', '_blank');
         if (printWindow) {
-            printWindow.document.open();
             printWindow.document.write(`
                 <html>
                 <head>
@@ -685,7 +684,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage: initial
             <div className="flex items-start gap-3">
                 <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
                 <p className="text-[9px] text-muted-foreground italic leading-relaxed">
-                    <strong>Standard Requirement:</strong> This registry tracks all non-conformities identified during audits or operations. Per ISO 21001:2018 Clause 10.2, units must establish root causes and execute corrective actions within the specified time limits to ensure management system integrity.
+                    <strong>Standard Requirement:</strong> This registry tracks all non-conformities identified during audits or operations. Per ISO 21001:2018 Clause 10.1, units must establish root causes and execute corrective actions within the specified time limits to ensure management system integrity.
                 </p>
             </div>
         </CardFooter>

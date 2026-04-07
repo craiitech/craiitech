@@ -172,9 +172,9 @@ export function StrategicSwotAnalysis({
     // --- 5. AUDIT & CORRECTIVE ACTIONS (QA REPORTS) ---
     const activeCars = safeCars.filter(c => c.status !== 'Closed');
     if (activeCars.length > 0) {
-        weaknesses.push({ title: 'Open Non-Conformances', description: `${activeCars.length} Corrective Action Requests (CARs) are currently outstanding.`, tag: '[Audit Gap]', priority: 'High', category: 'Audit' });
+        weaknesses.push({ title: 'Open Non-Conformances', description: `${activeCars.length} Corrective Action Requests (CARs) are currently outstanding.`, tag: '[ISO 10.1]', priority: 'High', category: 'Audit' });
     } else if (safeCars.length > 0) {
-        strengths.push({ title: 'Audit Responsiveness', description: 'Unit has successfully closed all identified Corrective Action Requests.', tag: '[CAR Closure]', category: 'Audit' });
+        strengths.push({ title: 'Audit Responsiveness', description: 'Unit has successfully closed all identified Corrective Action Requests.', tag: '[ISO 10.1]', category: 'Audit' });
     }
 
     const ncFindings = safeFindings.filter(f => f.type === 'Non-Conformance').length;

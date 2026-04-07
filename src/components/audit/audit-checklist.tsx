@@ -16,7 +16,7 @@ import type { AuditFinding, ISOClause, CorrectiveActionRequest } from '@/lib/typ
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import { Loader2, AlertTriangle, History, ShieldCheck, Clock, CheckCircle2 } from 'lucide-react';
+import { Loader2, AlertTriangle, History, ShieldCheck, Clock, CheckCircle2, Scale } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
@@ -123,15 +123,15 @@ function ClauseForm({
 
   return (
     <div className="space-y-8">
-        {/* COMPLIANCE HISTORY NOTE (CARs) */}
+        {/* COMPLIANCE HISTORY NOTE (CARs) - Auditor Foresight mapped to Clause 10.1 */}
         {clauseCars.length > 0 && (
             <div className="space-y-3 p-5 rounded-2xl border-primary/20 bg-primary/5 animate-in slide-in-from-top-2 duration-500">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-primary">
-                        <History className="h-4 w-4" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Unit Compliance History: Clause {clause.id}</span>
+                        <Scale className="h-4 w-4" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Auditor Foresight: Clause {clause.id} History</span>
                     </div>
-                    <Badge variant="outline" className="h-5 text-[8px] font-black bg-white border-primary/20 text-primary">EXISTING FINDINGS</Badge>
+                    <Badge variant="outline" className="h-5 text-[8px] font-black bg-white border-primary/20 text-primary">CLAUSE 10.1 REQUIREMENT</Badge>
                 </div>
                 <div className="space-y-2">
                     {clauseCars.map(car => (
@@ -152,7 +152,7 @@ function ClauseForm({
                     ))}
                 </div>
                 <p className="text-[9px] text-primary/60 font-medium italic leading-tight">
-                    Auditor Guideline: Verify if previous actions taken for the above findings are still effective.
+                    <strong>Auditor Guideline (10.1.d):</strong> Verify if previous actions taken for the above findings are still effective and prevent recurrence.
                 </p>
             </div>
         )}
@@ -316,7 +316,7 @@ export function AuditChecklist({ scheduleId, clausesToAudit, existingFindings, o
                                 "h-5 text-[9px] font-black uppercase shadow-none border-none ml-4 transition-all scale-110",
                                 findingType === 'Compliance' ? 'bg-emerald-600 text-white' : 
                                 findingType === 'Non-Conformance' ? 'bg-destructive text-white' : 
-                                'bg-amber-500 text-amber-950'
+                                'bg-amber-50 text-amber-950'
                             )}
                         >
                             {findingType === 'Compliance' ? 'C' : findingType === 'Non-Conformance' ? 'NC' : 'OFI'} RECORDED
