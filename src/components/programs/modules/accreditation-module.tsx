@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
@@ -273,7 +272,7 @@ function AccreditationRecordCard({
                                         </div>
                                         <div className="flex items-center gap-1.5 shrink-0">
                                             <FormField control={control} name={`accreditationRecords.${index}.areas.${areaIdx}.taskForce`} render={({ field: inputField }) => (
-                                                <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="Head" className="h-7 text-[9px] w-20 bg-white" disabled={!canEdit} /></FormControl>
+                                                <FormControl><Input {...field} value={inputField.value || ''} placeholder="Head" className="h-7 text-[9px] w-20 bg-white" disabled={!canEdit} /></FormControl>
                                             )} />
                                             <FormField control={control} name={`accreditationRecords.${index}.areas.${areaIdx}.googleDriveLink`} render={({ field: inputField }) => (
                                                 <FormControl>
@@ -328,7 +327,7 @@ function AccreditationRecordCard({
                                         <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Mandatory
                                     </Button>
                                     <Button type="button" size="sm" onClick={() => appendReco({ id: Math.random().toString(36).substr(2, 9), type: 'Enhancement', text: '', assignedUnitIds: [], status: 'Open' })} className="h-8 text-[9px] font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-700">
-                                        <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Enhancement
+                                        <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Enhancement / Recommendations
                                     </Button>
                                 </div>
                             )}
@@ -395,7 +394,7 @@ function AccreditationRecordCard({
                                                 </div>
                                                 <FormField control={control} name={`accreditationRecords.${index}.recommendations.${recoIdx}.additionalInfo`} render={({ field: inputField }) => (
                                                     <FormItem>
-                                                        <FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Additional Action Notes</FormLabel>
+                                                        <FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Additional Action Notes / Area of Accreditation</FormLabel>
                                                         <FormControl><Input {...inputField} value={inputField.value || ''} placeholder="Internal tracking notes..." className="h-8 text-[10px] bg-white" disabled={!canEdit} /></FormControl>
                                                     </FormItem>
                                                 )} />
