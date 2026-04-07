@@ -343,7 +343,7 @@ export default function AuditExecutionPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSaveSummary)} className="space-y-6">
+                <div className="space-y-6">
                     {/* STEP 1: CONDUCT VERIFICATION */}
                     <Card className="shadow-xl border-primary/10 overflow-hidden">
                         <CardHeader className="bg-primary/5 border-b py-6">
@@ -417,7 +417,7 @@ export default function AuditExecutionPage() {
                         </CardContent>
                     </Card>
 
-                    {/* STEP 2: EVIDENCE CHECKLIST */}
+                    {/* STEP 2: EVIDENCE CHECKLIST (NOT inside a form tag to avoid nesting) */}
                     <AuditChecklist 
                         scheduleId={schedule.id}
                         clausesToAudit={clausesInScope}
@@ -480,14 +480,14 @@ export default function AuditExecutionPage() {
                             </div>
                         </CardContent>
                         <CardFooter className="bg-slate-50 border-t py-6 px-8">
-                            <Button type="submit" disabled={isSavingSummary} className="shadow-xl shadow-primary/20 font-black uppercase tracking-widest px-8">
+                            <Button type="button" onClick={form.handleSubmit(handleSaveSummary)} disabled={isSavingSummary} className="shadow-xl shadow-primary/20 font-black uppercase tracking-widest px-8">
                                 {isSavingSummary && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                                 <Save className="mr-2 h-4 w-4"/>
                                 Finalize Audit Report
                             </Button>
                         </CardFooter>
                     </Card>
-                </form>
+                </div>
             </Form>
         </div>
 
