@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Unit, Campus, User, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -478,7 +478,7 @@ export function AuditAnalytics({ plans, schedules, findings, isoClauses, units, 
                                           <div key={sIdx} className="p-3 rounded-xl border bg-white shadow-sm flex flex-col gap-2 group-hover:border-primary/20 transition-all">
                                               <div className="flex items-center justify-between gap-2 border-b pb-2">
                                                   <div className="flex items-center gap-1.5 min-w-0">
-                                                      <Building2 className="h-3 w-3 text-primary opacity-40 shrink-0" />
+                                                      <Building2 className="h-3 w-3 text-primary/60" />
                                                       <span className="text-[10px] font-black text-slate-800 uppercase truncate" title={asg.unitName}>{asg.unitName}</span>
                                                   </div>
                                                   <Badge className={cn(
