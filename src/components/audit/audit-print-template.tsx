@@ -27,6 +27,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
   );
 
   const qaoDirectorName = signatories?.qaoDirector || 'Director, Quality Assurance Office';
+  const isBlankTemplate = findings.length === 0;
 
   return (
     <div className="p-6 text-black bg-white max-w-[8.5in] mx-auto font-sans leading-tight">
@@ -38,7 +39,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
             <p className="text-xs italic">Odiongan, Romblon</p>
         </div>
         <div className="mt-3 px-8 py-1.5 bg-black text-white text-sm font-black uppercase tracking-[0.2em] shadow-sm">
-          Internal Quality Audit Evidence Log
+          Internal Quality Audit Evidence Log {isBlankTemplate && '(Template)'}
         </div>
       </div>
 
@@ -99,7 +100,7 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
                         {questions.map((q, i) => <li key={i}>{q}</li>)}
                     </ul>
                   </div>
-                  <div className="pt-2 border-t border-slate-100 min-h-[80px]">
+                  <div className={cn("pt-2 border-t border-slate-100", isBlankTemplate ? "min-h-[180px]" : "min-h-[80px]")}>
                     <p className="text-[8px] font-black uppercase text-slate-400 mb-1">Auditor Observations / Objective Evidence:</p>
                     <p className="whitespace-pre-wrap leading-relaxed">
                         {finding?.evidence || ""}
@@ -140,19 +141,19 @@ export function AuditPrintTemplate({ schedule, findings, clauses, signatories }:
         <div className="grid grid-cols-1 border-2 border-black divide-y-2 divide-black text-[10px]">
             <div className="p-3 bg-blue-50/30">
                 <h4 className="font-black uppercase text-blue-700 mb-1">Summary of Commendable Practices (P)</h4>
-                <div className="min-h-[60px] whitespace-pre-wrap italic">{schedule.summaryCommendable || ''}</div>
+                <div className={cn("whitespace-pre-wrap italic", isBlankTemplate ? "min-h-[100px]" : "min-h-[60px]")}>{schedule.summaryCommendable || ''}</div>
             </div>
             <div className="p-3">
                 <h4 className="font-black uppercase text-green-700 mb-1">Summary of Compliance (C)</h4>
-                <div className="min-h-[60px] whitespace-pre-wrap italic">{schedule.summaryCompliance || ''}</div>
+                <div className={cn("whitespace-pre-wrap italic", isBlankTemplate ? "min-h-[100px]" : "min-h-[60px]")}>{schedule.summaryCompliance || ''}</div>
             </div>
             <div className="p-3">
                 <h4 className="font-black uppercase text-amber-700 mb-1">Opportunities for Improvement (OFI)</h4>
-                <div className="min-h-[60px] whitespace-pre-wrap italic">{schedule.summaryOFI || ''}</div>
+                <div className={cn("whitespace-pre-wrap italic", isBlankTemplate ? "min-h-[100px]" : "min-h-[60px]")}>{schedule.summaryOFI || ''}</div>
             </div>
             <div className="p-3 bg-slate-50">
                 <h4 className="font-black uppercase text-red-700 mb-1">Non-Conformance / Non-Compliance (NC)</h4>
-                <div className="min-h-[60px] whitespace-pre-wrap italic">{schedule.summaryNC || ''}</div>
+                <div className={cn("whitespace-pre-wrap italic", isBlankTemplate ? "min-h-[100px]" : "min-h-[60px]")}>{schedule.summaryNC || ''}</div>
             </div>
         </div>
       </div>
